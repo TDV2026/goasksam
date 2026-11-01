@@ -702,7 +702,7 @@ export function pageHtml(view, carIn) {
       <hr>
       <div class="price">US ${"$" + d.price.toLocaleString("en-US")}</div>
       <div class="buy"><button type="button" class="btn pri blk">${d.priceKind}</button><button type="button" class="btn sec blk">Make offer</button><button type="button" class="btn sec blk">Save</button></div>
-      ${withRail ? '<div id="c-rail"><p class="loading">${reasonLine("cold.reading")}</p></div>' : ""}
+      ${withRail ? `<div id="c-rail"><p class="loading">${reasonLine("cold.reading")}</p></div>` : ""}
     </div>
     ${below ? `<div class="below-gal">${below}</div>` : ""}
   </div>`;
