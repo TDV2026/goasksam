@@ -739,7 +739,7 @@ async function converseOut(env, b) {
   if (r.near) say = r.say;
   else if (!r.closest && !r.outOfScope && /^There are [\w,]+ live right now\./.test(r.say || "") && (seenN || (unsure && sureN))) say = countLine + (seenN ? " " + sauce(seenN) : "") + (r.geo ? " Closest first." : "");
   else if (seenN && !r.closest && !r.outOfScope) say = allM.length === 1 ? r.say + " It has been through auction before, and Sam has its history." : (r.say || "") + " " + sauce(seenN);
-  return { type: "results", say: say, near: r.near || null, market: applyRung(r.market) || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: cards.length, cards, setAside, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null };
+  return { type: "results", say: say, near: r.near || null, market: applyRung(r.market) || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: cards.length, cards, setAside, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null, excluded: r.excluded && r.excluded.length ? r.excluded : undefined };
 }
 // Set-aside cars (modified, engine-swapped, project) are never cards: one quiet line each, with a thumbnail.
 const ASIDE_KINDS = { engine_swap: "engine-swapped", modified: "modified", project: "a project car" };

@@ -788,6 +788,13 @@ try {
 } catch (e) {
   record("checkSilenceCheck (scripts/checkSilenceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// findExcludedCheck (Lane E, Nov 1 2026): Find prints the engine's own "left out" lines above the cards, and nothing when excluded[] is empty. 1440 and 390. No network.
+try {
+  const out = execSync("node scripts/findExcludedCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("findExcludedCheck (scripts/findExcludedCheck.mjs)", "PASS", (out.match(/findExcludedCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("findExcludedCheck (scripts/findExcludedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // partnerDemoInertCheck (Lane E, Buy Stage 1c). No network.
 try {
   const out = execSync("node scripts/partnerDemoInertCheck.mjs", { encoding: "utf8" });
