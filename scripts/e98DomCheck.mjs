@@ -160,3 +160,16 @@ export const judge = (ok, name, r, needs) => {
   ok(!/Sales read on|Sales since then are not in yet|Updating now/.test(all), `${name}: the stale line never prints`);
   ok(!/Latest sale: [A-Z]/.test(all), `${name}: no "Latest sale: Month Year" line`);
 };
+
+// RUN DIRECTLY (Lane E, Nov 1 2026): this file is the DOM rules module that underlineCheck.mjs (fixtures) and e98LiveCheck.mjs (production) import, so run on its own
+// it printed nothing and exited 0, and a check that prints no result cannot fail. Run directly it now runs underlineCheck, the check that applies these rules to every
+// fixture card, and prints its pass and fail count as its own, exiting non-zero on any failure or on a run that printed no count.
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  const r = spawnSync(process.execPath, [fileURLToPath(new URL("./underlineCheck.mjs", import.meta.url))], { encoding: "utf8", maxBuffer: 1 << 26 });
+  const m = String(r.stdout || "").match(/underlineCheck: (\d+) pass, (\d+) FAIL/);
+  if (!m) { console.log("e98DomCheck: 0 pass, 1 FAIL (underlineCheck printed no pass and fail count, exit " + r.status + ")"); process.exit(1); }
+  console.log(`e98DomCheck: ${m[1]} pass, ${m[2]} FAIL (the DOM rules, applied by underlineCheck)`);
+  process.exit(Number(m[2]) || r.status ? 1 : 0);
+}
