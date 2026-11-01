@@ -6,6 +6,7 @@ import { unusedFieldsFor } from "../lib/live/unusedWords.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
 import { mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
+import { timedShareId } from "../lib/shareId.js";
 import { typedAttributesIn, typedAttributeByKey } from "../lib/typedAttributes.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
@@ -2776,9 +2777,15 @@ function coarseDayKey() {
   const d = new Date(Date.now() - 5 * 3600 * 1000); // rough US-eastern shift; dedup tolerance only
   return d.toISOString().slice(0, 10);
 }
-async function persistSavedResult(accountId, payload, supabaseUrl, supabaseKey) {
+// THE SHARE SNAPSHOT IS WRITTEN AFTER THE RESPONSE ON A STORED HIT (Lane B, Oct 31 2026). The awaited insert of the whole answer was the largest part of a stored read. The id is made here, the response carries it at once, and the insert runs under waitUntil (once more if it fails).
+// The link /o/<id> waits for its row (api/publicConfig.js, up to 6 s) rather than showing a dead page. Without waitUntil in this runtime the write stays awaited, so a link never goes out with no row coming.
+function requestWaitUntil() {
+  try { const ctx = globalThis[Symbol.for("@vercel/request-context")]; const got = ctx && typeof ctx.get === "function" ? ctx.get() : null; if (got && typeof got.waitUntil === "function") return pr => got.waitUntil(pr); } catch { /* none */ }
+  return null;
+}
+async function persistSavedResult(accountId, payload, supabaseUrl, supabaseKey, id = null) {
   try {
-    const ins = await supabaseInsert("saved_results", [{ user_id: accountId || null, payload }],
+    const ins = await supabaseInsert("saved_results", [{ ...(id ? { id } : {}), user_id: accountId || null, payload }],
       supabaseUrl, supabaseKey, "return=representation", "");
     return (ins.rows && ins.rows[0] && ins.rows[0].id) || null;
   } catch { return null; }
@@ -3756,10 +3763,12 @@ async function handler(req, res) {
       if (oneBox && oneBox.tier === "result" && !obRefine && !demoRead) {
         const tSnap = Date.now();
         try {
-          snapshotId = await persistSavedResult(null, {
-            obShare: true, savedAt: new Date().toISOString(),
-            query: oneBoxText, oneBox
-          }, supabaseUrl, supabaseKey);
+          const snap = { obShare: true, savedAt: new Date().toISOString(), query: oneBoxText, oneBox };
+          const wu = warmHit ? requestWaitUntil() : null;
+          if (wu) {   // a stored hit answers now; the row lands under waitUntil and the link waits for it
+            const sid = timedShareId(); snapshotId = sid;
+            wu((async () => { if (!(await persistSavedResult(null, snap, supabaseUrl, supabaseKey, sid))) await persistSavedResult(null, snap, supabaseUrl, supabaseKey, sid); })());
+          } else snapshotId = await persistSavedResult(null, snap, supabaseUrl, supabaseKey);
         } catch { snapshotId = null; }
         obTimes.snapshotMs = Date.now() - tSnap;
       } else if (demoRead) obTimes.snapshotMs = 0;

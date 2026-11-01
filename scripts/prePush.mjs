@@ -1697,6 +1697,12 @@ try {
   record("engine: every cold compute logs its stage milliseconds (engine, trim chips, question rule, sell fields, store) (scripts/stageTimerCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/snapshotAfterResponseCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("engine: a stored hit answers before its share snapshot is written, and the link waits for its row (scripts/snapshotAfterResponseCheck.mjs)", "PASS", (out.match(/snapshotAfterResponseCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a stored hit answers before its share snapshot is written, and the link waits for its row (scripts/snapshotAfterResponseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/exactYearParallelCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: a car with a trim reads its exact-year line beside the first answer, not after it (scripts/exactYearParallelCheck.mjs)", "PASS", (out.match(/exactYearParallelCheck: .*/) || [""])[0]);
 } catch (e) {
