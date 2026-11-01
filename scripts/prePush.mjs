@@ -760,6 +760,13 @@ try {
 } catch (e) {
   record("Dashed hub address 301s to the tidy one (scripts/hubDashRedirectCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// partnerDemoCheck (Lane E, Oct 31 2026): the eBay demo, four views at 1440 and 390, never a blank panel. No network.
+try {
+  const out = execSync("node scripts/partnerDemoCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("partnerDemoCheck (scripts/partnerDemoCheck.mjs)", "PASS", (out.match(/partnerDemoCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("partnerDemoCheck (scripts/partnerDemoCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // partnerDemoInertCheck (Lane E, Buy Stage 1c). No network.
 try {
   const out = execSync("node scripts/partnerDemoInertCheck.mjs", { encoding: "utf8" });

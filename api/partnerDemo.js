@@ -380,7 +380,7 @@ const JS = String.raw`
   }
   function questionHtml(a, slot){
     var q = a && a.question; if (!q) return "";
-    var opts = (q.options || []).map(function(o, i){ return '<button type="button" class="chip opt" data-slot="' + slot + '" data-send="' + esc(JSON.stringify(o.send)) + '">' + esc(o.label) + (o.count != null ? " (" + o.count + ")" : "") + "</button>"; }).join("");
+    var opts = (q.options || []).map(function(o, i){ return '<button type="button" class="chip opt" data-slot="' + slot + '" data-send="' + esc(JSON.stringify(o.send)) + '">' + esc(o.label) + (o.count != null && !/\(\d[\d,]*\)\s*$/.test(String(o.label)) ? " (" + o.count + ")" : "") + "</button>"; }).join("");   // the engine's own chip words may carry the count already ("Carrera (14)"): never twice
     var skip = q.skip ? '<button type="button" class="chip opt" data-slot="' + slot + '" data-send="' + esc(JSON.stringify(q.skip.send)) + '">' + esc(q.skip.label) + "</button>" : "";
     return '<p style="margin:14px 0 0;font-weight:600">' + esc(q.text || "Which one is it?") + '</p><div class="chips">' + opts + skip + "</div>";
   }
@@ -397,7 +397,7 @@ const JS = String.raw`
     var pl0 = opts.price != null ? placing(opts.price, a, opts.who) : null, pill = pl0 ? '<p class="pillrow"><span class="pill ' + pl0.cls + '">' + esc(pl0.text) + "</span></p>" : "";
     var body = a.range
       ? '<p class="range">' + usd(a.range.low) + " to " + usd(a.range.high) + "</p>" + pill + '<p class="sub">The typical range, from ' + a.count + " " + plural(a.count, "sale", "sales") + "" + ".</p>"
-      : (a.thin ? '<p class="sub">' + esc(a.thin) + "</p>" : "") + pill;
+      : '<p class="sub">' + (a.thin ? esc(a.thin) : COULD_NOT) + "</p>" + pill;   // never an empty panel: a range, the engine's thin or refusal line, else the one plain line the engine registers for a read that gave nothing (Oct 31 2026, the blank 2025 911 card)
     var aside = a.setAside && a.setAside.total ? '<p class="note">' + a.setAside.total + " more set aside" + (a.setAside.reasons ? " (" + Object.keys(a.setAside.reasons).map(function(k){ return a.setAside.reasons[k] + " " + esc(k); }).join(", ") + ")" : "") + ".</p>" : "";
     return '<div class="panel"><h3>What these sell for</h3>' + (opts.chips ? idChips(a) : "") + body + aside + foot(a) + "</div>";
   }
@@ -499,7 +499,7 @@ const JS = String.raw`
     var idn = a.identity ? [a.identity.year, a.identity.make, a.identity.model, a.identity.variant].filter(Boolean).join(" ") : "";
     $("a-head").textContent = a.vin ? (nameOf(a) || a.vin) : (idn || a.query || CAR);
     $("a-vin").hidden = !(a.vin && nameOf(a)); $("a-vin").textContent = a.vin && nameOf(a) ? "VIN " + a.vin : "";
-    $("a-out").innerHTML = (a.question ? "" : priorPanel(a, !!a.vin)) + (a.question ? "" : mainPhotoHtml(a)) + (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + (a.range || a.thin ? rangePanel(a, { lines: "a" }) : "")) + ((a.vin || (a.history && a.history.length)) && !soldRows(a).length ? historyPanel(a) : "") +
+    $("a-out").innerHTML = (a.question ? "" : priorPanel(a, !!a.vin)) + (a.question ? "" : mainPhotoHtml(a)) + (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + rangePanel(a, { lines: "a" })) + ((a.vin || (a.history && a.history.length)) && !soldRows(a).length ? historyPanel(a) : "") +
       (!a.question && a.sales && a.sales.length ? '<section class="full-a"><h2>What cars like this sold for</h2>' + salesList(a, "a") + "</section>" : "") +
       '<div style="margin-top:20px"><button type="button" class="btn pri" id="a-list">List it</button></div>';
   }

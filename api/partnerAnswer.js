@@ -306,7 +306,8 @@ export function countOf(d) {
 }
 // A range exactly when Market Check shows one: the result tier's cluster (the engine's 8-sale gate).
 export function rangeOf(d) {
-  return d && d.tier === "result" && Array.isArray(d.cluster) && d.cluster.length === 2 && num(d.cluster[0]) && num(d.cluster[1]) ? { low: num(d.cluster[0]), high: num(d.cluster[1]) } : null;
+  // the shared card's own test (lib/sellsForCard.js hasRange): a cluster of two positive numbers, whatever the tier, so the pill and the card never disagree
+  return d && Array.isArray(d.cluster) && d.cluster.length === 2 && num(d.cluster[0]) > 0 && num(d.cluster[1]) > 0 ? { low: num(d.cluster[0]), high: num(d.cluster[1]) } : null;
 }
 const cap = s => String(s || "").charAt(0).toUpperCase() + String(s || "").slice(1);
 const plural = (n, one, many) => (n === 1 ? one : many);
@@ -440,7 +441,7 @@ function thinTextOf(d, count) {
   if (!d || rangeOf(d)) return null;
   const tier = String(d.tier || "");
   if (thinLineOf(d)) return thinLineOf(d);
-  if (/^(refusal|not_tracked|body_unavailable)$/.test(tier) && typeof d.samLine === "string" && d.samLine) return d.samLine;
+  if (/^(refusal|not_tracked|body_unavailable)$/.test(tier)) { const l = tier === "refusal" && typeof d.refusal_line === "string" && d.refusal_line ? d.refusal_line : d.samLine; if (typeof l === "string" && l) return l; }
   return null;
 }
 // Trend: only the quarters with eight or more sales.
@@ -609,7 +610,10 @@ export function partnerShape(d, text, asked, extra = {}) {
     return { ok: false, query: text, error: d.tier, history: extra.history || null,
       ...(still ? { stillReading: true, line: typeof d.samLine === "string" ? d.samLine : null, retryAfterMs: d.retry === true && Number.isFinite(d.retryAfterMs) && d.retryAfterMs > 0 ? d.retryAfterMs : null, waitMaxMs: Number.isFinite(d.waitMaxMs) && d.waitMaxMs > 0 ? d.waitMaxMs : null } : {}) };
   }
-  const question = questionOf(d, text, asked), engineQuestion = engineQuestionOf(d, text, asked);
+  const question0 = questionOf(d, text, asked), engineQuestion = engineQuestionOf(d, text, asked);
+  // THE ENGINE'S OWN QUESTION IS THE QUESTION (Oct 31 2026, the blank 2025 911 card): a trim_choice or variant_choice answer carries no range, no thin line and no card, only the engine's question, which questionOf does not map;
+  // the page read a.question alone and drew nothing. With no range and no card to draw, engineQuestion is what the page asks.
+  const question = question0 || (engineQuestion && !rangeOf(d) && !/^(result|thin|refusal|not_tracked|body_unavailable)$/.test(String(d.tier || "")) ? engineQuestion : null);
   if (question) return { ok: true, query: text, engineVersion, answerType: "identity_question", identity: identityOf(d, extra.id), question, engineQuestion, range: null, count: null, window: null, sales: [], setAside: null, thin: null, trend: null, narrow: null, history: extra.history || null };
   const range = rangeOf(d), count = countOf(d);
   return {
