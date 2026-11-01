@@ -4,6 +4,8 @@
 // The rail's lower group (and so the footer and the phone menu, one function) links What's new between About and Feedback on every page that draws the rail. The page is in the sitemap and indexed. No network.
 //   node scripts/whatsNewCheck.mjs     exit 1 on any failure.
 import fs from "node:fs";
+import { copyData as COPY_DATA } from "../lib/copy.js";
+const C = COPY_DATA(), rxEsc = x => String(x).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");   // the page words come from data/copy.json: one edit changes the page and this check together
 import path from "node:path";
 import puppeteer from "puppeteer-core";
 import { pathToFileURL } from "node:url";
@@ -55,7 +57,7 @@ if (mod) for (const [name, list] of CASES) for (const width of [1440, 390]) {
     };
   });
   ok(m.h1 === "What's new" && /serif|Newsreader|Georgia/.test(m.h1font), `${tag}: the heading is "What's new" in the house serif (${m.h1} / ${m.h1font})`);
-  ok(m.intro === "What changed on GoAskSam. Newest first.", `${tag}: the intro line (${m.intro})`);
+  ok(m.intro === C.whatsNew.INTRO, `${tag}: the intro line (${m.intro})`);
   ok(m.introColor === "rgb(94, 107, 99)", `${tag}: the intro is in the quiet grey (${m.introColor})`);
   ok(m.colW <= 640 + 1 && (width > 700 ? m.colMax === "640px" : m.colW <= width), `${tag}: one column, about 640px wide at most (${m.colW}px, max ${m.colMax})`);
   ok(m.scrollW <= m.innerW + 1, `${tag}: no sideways scroll (${m.scrollW} against ${m.innerW})`);
@@ -75,7 +77,7 @@ if (mod) for (const [name, list] of CASES) for (const width of [1440, 390]) {
   const th = ents.filter(e => e.th);
   ok(th.length === list.filter(e => e.thanks).length && th.every(e => parseFloat(e.th.size) < parseFloat(e.size) && e.th.color === "rgb(94, 107, 99)" && e.text.endsWith(e.th.text)), `${tag}: a thanks line ends its sentence in small quiet grey`);
   for (const e of list) ok(ents.some(x => x.text.startsWith(e.text)), `${tag}: the entry text is printed as the file holds it (${e.text.slice(0, 30)})`);
-  ok(m.footText === "Spotted something? Tell Sam." && m.footHref === "/feedback" && m.footLink === "Tell Sam", `${tag}: the foot, Tell Sam linking to Feedback (${m.footText} ${m.footHref})`);
+  ok(m.footText === C.whatsNew.FOOT_BEFORE + C.whatsNew.FOOT_LINK + C.whatsNew.FOOT_AFTER && m.footHref === "/feedback" && m.footLink === C.whatsNew.FOOT_LINK, `${tag}: the foot, Tell Sam linking to Feedback (${m.footText} ${m.footHref})`);
   ok(m.robots === "index, follow" && m.canon === "https://goasksam.com/whats-new" && /What's new/.test(m.title), `${tag}: indexed, canonical, titled (${m.title})`);
   const nav = m.railLinks.map(x => x.split("|")[0]);
   ok(nav.indexOf("What's new") > 0 && nav.indexOf("What's new") === nav.indexOf("About") + 1 && nav[nav.indexOf("What's new") + 1] === "Feedback", `${tag}: the rail lists What's new between About and Feedback (${nav.join(", ")})`);
@@ -96,6 +98,6 @@ const vj = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
 ok((vj.rewrites || []).some(r => r.source === "/whats-new" && r.destination === "/api/whatsNew"), "vercel.json routes /whats-new to the page");
 ok(!!(vj.functions && vj.functions["api/whatsNew.js"] && /whatsNew\.json/.test(vj.functions["api/whatsNew.js"].includeFiles || "")), "the deployed function carries data/whatsNew.json");
 // a missing file: the heading, the intro and the foot, and it still looks fine (no groups, no gap)
-ok(mod && !/<section class="wn-group"/.test(mod.whatsNewPageHtml({ headers: {} }, [])) && /Spotted something\?/.test(mod.whatsNewPageHtml({ headers: {} }, [])), "with no entries the page is the heading, the intro and the foot");
+ok(mod && !/<section class="wn-group"/.test(mod.whatsNewPageHtml({ headers: {} }, [])) && new RegExp(rxEsc(C.whatsNew.FOOT_BEFORE.trim())).test(mod.whatsNewPageHtml({ headers: {} }, [])), "with no entries the page is the heading, the intro and the foot");
 console.log(`whatsNewCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

@@ -5,6 +5,8 @@
 // dead Terms link); no "Keep looking"; Buy is Find and /buy is a 301 to /find with the query kept. No network.
 //   node scripts/rail2Check.mjs   (from the repo root)
 import fs from "node:fs";
+import { copyData as COPY_DATA } from "../lib/copy.js";
+const C = COPY_DATA(), rxEsc = x => String(x).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");   // the page words come from data/copy.json: one edit changes the page and this check together
 import path from "node:path";
 import vm from "node:vm";
 import { pathToFileURL } from "node:url";
@@ -19,7 +21,7 @@ const noSvg = html.replace(/<svg[\s\S]*?<\/svg>/g, "");
 const nav = [...noSvg.matchAll(/<a class="gas-navitem(?: active)?" href="([^"]+)"[^>]*>([^<]+)/g)].map(m => m[2] + "=" + m[1]);
 const items = nav.slice(0, 5);
 ok(JSON.stringify(items) === JSON.stringify(["Home=/", "Find=/find", "Market Check=/market-check", "Sell=/sell", "Tasks=/tasks"]), "the five products in order: " + items.join(", "));
-ok(/<p class="gas-tag">Find, check, sell\.<\/p>/.test(html) && !/collector/i.test(html.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script>[\s\S]*?<\/script>/g, "")), "the tagline is 'Find, check, sell.' and 'collector' appears nowhere in the rail");
+ok(new RegExp('<p class="gas-tag">' + rxEsc(C.rail.RAIL_TAGLINE) + "<\\/p>").test(html) && !/collector/i.test(html.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script>[\s\S]*?<\/script>/g, "")), "the tagline is 'Find, check, sell.' and 'collector' appears nowhere in the rail");
 ok(/<a class="gas-logo" href="\/">GoAskSam<\/a>/.test(html), "the wordmark is Home");
 // ONE WORDMARK ON EVERY PAGE (Sam, Oct 24 2026): the wordmark is set in the serif webfont, and a page that does not load it drew a wider fallback and pushed the
 // Beta pill under it (Sell and Market Check did). Every page that draws the shared rail carries the font links, and the Tasks badge script has no per-page skip.
@@ -42,7 +44,7 @@ ok(JSON.stringify(labels.filter(l => l !== "For business")) === JSON.stringify([
     for (const m of t.matchAll(/How Sam decides[^\n]{0,60}?About[^\n]{0,30}?Feedback/g)) if (!/What's new/.test(m[0])) stale.push(f);
   }
   ok(stale.length === 0, "no check pins the quiet-link list without What's new between About and Feedback: " + [...new Set(stale)].join(", "));
-  ok(/a\("about"[^\n]*\) \+ a\("whatsnew", "\/whats-new", "What's new"\) \+\s*a\("feedback"/.test(fs.readFileSync(path.join(ROOT, "lib/appShell.js"), "utf8")), "shellFoot (the rail's quiet links and the phone menu, one function) lists About, What's new, Feedback in that order");
+  ok(/a\("about", "\/about", [^\n]*?\) \+ a\("whatsnew", "\/whats-new", [^\n]*?\) \+\s*a\("feedback", "\/feedback"/.test(fs.readFileSync(path.join(ROOT, "lib/appShell.js"), "utf8")), "shellFoot (the rail's quiet links and the phone menu, one function) lists About, What's new, Feedback in that order");
 }
 ok(/href="https:\/\/thedailyvroom\.com" target="_blank" rel="noopener"/.test(foot), "The Daily Vroom opens thedailyvroom.com in a new tab");
 ok(!/Terms/.test(foot) && !fs.existsSync(path.join(ROOT, "public/terms.html")), "no Terms link while no Terms page exists (no dead links)");

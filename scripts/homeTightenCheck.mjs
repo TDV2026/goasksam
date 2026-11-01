@@ -4,6 +4,8 @@
 // on all four pages; the freshness lines, one style, whose date is the real last-ingest date (lib/asOf.js lastUpdatedDate, mocked here), never the clock. Copy and CSS only.
 // Renders each handler's HTML in the local browser at 1440 and 390.   node scripts/homeTightenCheck.mjs
 import fs from "node:fs";
+import { copyData as COPY_DATA } from "../lib/copy.js";
+const C = COPY_DATA(), rxEsc = x => String(x).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");   // the page words come from data/copy.json: one edit changes the page and this check together
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import puppeteer from "puppeteer-core";
@@ -20,8 +22,8 @@ const call = async (mod, url) => { const { default: h } = await import(pathToFil
   return await new Promise(resolve => { const res = { setHeader() {}, getHeader() {}, status(c) { res.code = c; return res; }, json(b) { resolve(JSON.stringify(b)); }, send(b) { resolve(String(b)); }, end() { resolve(""); } };
     Promise.resolve(h({ method: "GET", url, query: {}, headers: { host: "goasksam.com", cookie: "" }, socket: {} }, res)).catch(e => resolve("ERR " + e)); setTimeout(() => resolve(""), 15000); }); };
 const PAGES = {
-  home: { html: await call("home", "/"), label: "Describe the car you want", fresh: "Live auctions now. Sales to Oct 26, 2026.", ex: ["A 1965 Chevrolet Corvette within 500 miles of Chicago", "A manual 911 under $80,000", "Low mile E46 M3, no modifications"] },
-  find: { html: await call("buy", "/find"), label: "Describe the car you want", fresh: "Live auctions now. Sales to Oct 26, 2026.", ex: ["A 1965 Chevrolet Corvette within 500 miles of Chicago", "A manual 911 under $80,000", "Low mile E46 M3, no modifications"] },
+  home: { html: await call("home", "/"), label: C.home.START_LABEL, fresh: "Live auctions now. Sales to Oct 26, 2026.", ex: ["A 1965 Chevrolet Corvette within 500 miles of Chicago", "A manual 911 under $80,000", "Low mile E46 M3, no modifications"] },
+  find: { html: await call("buy", "/find"), label: C.home.START_LABEL, fresh: "Live auctions now. Sales to Oct 26, 2026.", ex: ["A 1965 Chevrolet Corvette within 500 miles of Chicago", "A manual 911 under $80,000", "Low mile E46 M3, no modifications"] },
   mc: { html: await call("marketCheck", "/market-check"), label: "Describe the car or paste a VIN", fresh: "Completed sales \u00b7 Updated Oct 26, 2026", ex: ["1995 Porsche 911 Carrera", "2001 BMW M3, manual", "Or paste a VIN"] },
   sell: { html: await call("sellNext", "/api/sellNext"), label: "Describe the car you are selling or paste a VIN", fresh: "Auction data \u00b7 Updated Oct 26, 2026", ex: ["2004 Porsche 911 Carrera", "2006 BMW M5", "Or paste a VIN"] }
 };
@@ -44,7 +46,7 @@ ok(!/class="gst-eye"/.test(markup(PAGES.home.html)) && !/WELCOME TO GOASKSAM/i.t
 for (const k of ["find", "mc", "sell"]) ok(/class="gst-eye"/.test(markup(PAGES[k].html)), `${k}: its eyebrow is kept`);
 ok(/See what cars like yours actually sold for\./.test(PAGES.mc.html) && /Completed sales only\. Every result links to its source\./.test(PAGES.mc.html), "mc: the subtitle, and the line under the box is kept");
 ok(/Platform performance \u00b7 Selling strategy \u00b7 PowerSeller matching/.test(PAGES.sell.html) && !/Real completed sales\. Evidence behind the recommendations/.test(PAGES.sell.html), "sell: the line under the box is kept and the lower floating line is gone");
-ok(/<p class="gas-tag">Find, check, sell\.<\/p>/.test(PAGES.home.html), "the sidebar line is 'Find, check, sell.'");
+ok(new RegExp('<p class="gas-tag">' + rxEsc(C.rail.RAIL_TAGLINE) + "<\\/p>").test(PAGES.home.html), "the sidebar line is 'Find, check, sell.'");
 // the dates come from the ingest row, never the clock: no date at all when it cannot be read
 ok(!/new Date\(\)\.toLocale|toLocaleDateString/.test(src("find").split("export default")[1] || "") && !/new Date\(\)/.test(src("home").split("export default")[1] || ""), "home and find never read the clock for the date");
 // the range card's footer date ("Powered by GoAskSam · Updated ...") is the SAME ingest date, Pacific, handed to the card by the page (window.GAS_UPDATED), never the answer's read time

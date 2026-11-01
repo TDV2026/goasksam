@@ -1,5 +1,6 @@
 // /whats-new (Lane E, Oct 31 2026, Sam's order): "What's new", the plain log of what changed on GoAskSam, newest first. The same shell, type and rail as About and How Sam decides,
 // one column about 640px wide. The entries come from data/whatsNew.json through lib/whatsNew.js and nothing is computed here; with no file or no entries the page is the heading, the intro and the foot.
+import { copy, copyText } from "../lib/copy.js";
 import { FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appShell.js";
@@ -7,8 +8,8 @@ import { fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { whatsNewGroups, dateHeading } from "../lib/whatsNew.js";
 
-const TITLE = "What's new on GoAskSam";
-const INTRO = "What changed on GoAskSam. Newest first.";
+const TITLE = copy("whatsNew.TITLE");
+const INTRO = copy("whatsNew.INTRO");
 const DESC = INTRO;
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -38,10 +39,10 @@ ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "whatsnew", crew, req, analytics: true })}
 <main><div class="wn-col">
-<h1 class="wn-h1">What's new</h1>
+<h1 class="wn-h1">${copyText("whatsNew.H1")}</h1>
 <p class="wn-intro">${esc(INTRO)}</p>
 ${groups}
-<p class="wn-foot">Spotted something? <a href="/feedback">Tell Sam</a>.</p>
+<p class="wn-foot">${copyText("whatsNew.FOOT_BEFORE")}<a href="/feedback">${copyText("whatsNew.FOOT_LINK")}</a>${copyText("whatsNew.FOOT_AFTER")}</p>
 </div></main>${SHELL_MAIN_CLOSE}
 <script>${SHELL_JS}</script>
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>

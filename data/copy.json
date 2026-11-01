@@ -1,0 +1,161 @@
+{
+  "about": {
+    "TITLE": "About GoAskSam",
+    "DESC": "GoAskSam reads real auction sales to show what cars are bringing, find live cars that fit, and tell you where to sell. Built by the team behind The Daily Vroom.",
+    "WHAT": "GoAskSam is market intelligence for enthusiast cars, built on real auction sales. Every answer starts with a car that actually sold, on a date, for a price. Sam matches your car to those sales and tells you what they add up to. If the sales are not there, Sam says so instead of guessing.",
+    "PRODUCTS": [
+      [
+        "Market Check",
+        "what cars like yours are bringing, as a range with the count and the closest sales behind it."
+      ],
+      [
+        "Find",
+        "the live cars that fit exactly what you asked, each with what similar cars sold for."
+      ],
+      [
+        "Sell",
+        "where cars like yours sell best, and why."
+      ],
+      [
+        "Tasks",
+        "tell Sam once what you want, and Sam keeps looking and tells you when something genuinely fits."
+      ]
+    ],
+    "HOW": "Sam matches your car to real sales: same model, generation, body and gearbox, and the same trim when it changes the price. From those sales, our own rules and methodology work out the range, the count, the closest sales and where cars like yours sell best, the same way every time, in all four products. We use AI for the conversation: it helps Sam understand what you typed and explains what the engine found. AI never sets a price, a range, a count, which sales are set aside, or where to sell. New sales are added every day. When the exact match is thin, Sam widens the read a step at a time and says so, rather than dressing up a guess as a certainty.",
+    "NEVER": "Sam never invents a number. Every figure you see comes from a real recorded sale. GoAskSam does not appraise your car or put a value on it: it shows you what cars like yours actually sold for, with the sales behind it. It never sends your details out to a list of buyers, never claims a platform gets you more money than the evidence actually shows, and never emails you about a car that does not match what you asked for. When the read is less certain, Sam says so plainly.",
+    "STAND": "We are independent and sales first. Nobody pays to be recommended, and nothing on GoAskSam is sponsored. Every answer follows the sales record, not a relationship: what a car is bringing, which live cars fit what you asked, and where to sell all come from the same real sales. It is the same call we would make on our own car. If the numbers say to list it yourself, that is exactly what Sam will tell you. If the sales are not there, Sam says that instead.",
+    "H1": "About GoAskSam",
+    "FREE": "Sam is free to use. Built for the community, from The Daily Vroom.",
+    "COVER": "Sam reads sales from the US and Canada today. Europe, the UK and the rest of the world are next.",
+    "H2_WHAT": "What this is",
+    "H2_WHO": "Who's behind it",
+    "H2_HOW": "How it works",
+    "H2_NEVER": "What it will never do",
+    "H2_STAND": "Where we stand",
+    "WHO_BEFORE": "GoAskSam is built by the team behind ",
+    "WHO_LINK": "The Daily Vroom",
+    "WHO_AFTER": ", the incredibly popular collector car newsletter that has tracked this market every day for years. GoAskSam puts that same daily attention to real results to work for you: what cars like yours are bringing, which live cars are worth your time, and where to sell."
+  },
+  "howSamDecides": {
+    "TITLE": "How Sam decides | GoAskSam",
+    "DESC": "Every answer on GoAskSam starts with a real sale. Here is how Find, Market Check, Sell and Tasks each use that evidence.",
+    "PARTS": [
+      {
+        "h": "One engine, every page",
+        "p": [
+          "Sam is one engine, not a set of tools. The same sales, the same rules and the same fences sit behind every page, so a car reads the same wherever you meet it.",
+          "Follow one car through. Market Check shows what cars like it have actually sold for and which sale is closest. Sell takes that same evidence and turns it into decisions: the range to expect, the best day to end an auction, whether a reserve has helped cars like it, and where cars like it have sold best, house by house. Find shows the cars for sale right now and reads each live bid against those same sales, so you know whether a bid is inside, above or below the range before you act. Put Sam on a car or a search and Tasks keeps watch, and the emails carry the same line as the pages: where the bid sits against the range of recent sales. Every car with a VIN or chassis number keeps its own page, so its history is there the next time it comes up.",
+          "Ask about the same car on any page and you get the same answer."
+        ]
+      },
+      {
+        "h": "Less is more",
+        "p": [
+          "Finding a car, selling a car or seeing what cars like it have sold for should not feel like reading a trading screen. You came with one question, so you get one answer: the range, the sales behind it, the next step. No dozen statistics fighting for the same inch, no moving averages, no growth rates. When Sam shows how a market has moved, it is real sales by period, shown only when there are enough of them, and never a change in the mix of cars dressed as a change in the market."
+        ]
+      },
+      {
+        "h": "The rules",
+        "p": [
+          "Every range on this site comes from real sales of cars like the one you asked about. Not asking prices, not bids that failed, not a guide, not a model's opinion. Four rules decide what you see.",
+          "A sale is a sale. An asking price is a hope and a bid that did not meet reserve is not a price. Ranges come from completed sales only.",
+          "Like with like. A 997.1 is not a 997.2 and a cabriolet is not a coupe. When there are not enough sales of the exact car and the net is widened, the answer says so.",
+          "Enough sales or nothing. A range, a best day or a reserve call is shown only when enough sales agree. When they don't, Sam says so instead of guessing.",
+          "The count is always there. Every range says how many sales it rests on, and when the window is wider than a year, it says so. The sales behind every range are one click away."
+        ]
+      },
+      {
+        "h": "Where the numbers come from",
+        "p": [
+          "Every figure Sam shows traces back to a completed sale at a live or online auction, with a price that was public when the hammer fell. Any sale behind any answer can be opened and checked.",
+          "Plenty of other numbers exist. Cars change hands privately every day, and some tools collect prices by asking people what they paid or what they got. Those numbers can't be verified, and people have their own reasons for the figure they give. So Sam doesn't use them. A number that can't be checked isn't evidence, and it never reaches an answer here.",
+          "New sources of sales data are reviewed all the time. The ones that can be verified earn their way in. A guess never does."
+        ]
+      },
+      {
+        "h": "What Sam never does",
+        "never": [
+          "estimates what a car is worth before it has sold.",
+          "builds a range on an asking price, a failed bid or a withdrawn car.",
+          "widens the net without telling you.",
+          "sets a number between the highest and lowest and calls it the market.",
+          "dresses a change in the mix of cars sold as a change in the market.",
+          "grades condition it has not seen.",
+          "scores comments, hype or how a listing was written.",
+          "hides the count behind a word like hundreds."
+        ]
+      },
+      {
+        "h": "Where the intelligence comes from",
+        "p": [
+          "Sam uses AI for two things: the conversation, and reading what you type. The figures, the ranges, what to set aside and where to sell come from a proprietary algorithm and the rules behind it, built and tested by hand over a long time. Rules like these cannot be guessed by a model. Someone has to decide what counts as a comparable car, how many sales are enough and when to stay silent. That is the work, and it is why the answer is short."
+        ]
+      }
+    ],
+    "H1": "How Sam decides."
+  },
+  "feedback": {
+    "TITLE": "Feedback | GoAskSam",
+    "DESC": "Send GoAskSam a question or a note. Add your email if you would like a reply.",
+    "PAUSED_TEXT": "Feedback is paused right now. Please email feedback@goasksam.com.",
+    "H1": "Feedback",
+    "LEAD_BEFORE": "Questions or feedback? Email ",
+    "LEAD_AFTER": " or use the form below. Add your email if you would like a reply.",
+    "LABEL_NAME": "Name (optional)",
+    "LABEL_EMAIL": "Email (optional)",
+    "LABEL_MESSAGE": "Message",
+    "SEND": "Send",
+    "SMALL": "We use your name and email only to reply. ",
+    "SMALL_LINK": "Privacy"
+  },
+  "whatsNew": {
+    "TITLE": "What's new on GoAskSam",
+    "INTRO": "What changed on GoAskSam. Newest first.",
+    "H1": "What's new",
+    "FOOT_BEFORE": "Spotted something? ",
+    "FOOT_LINK": "Tell Sam",
+    "FOOT_AFTER": "."
+  },
+  "home": {
+    "TITLE": "GoAskSam | Find enthusiast cars at auction, check what they sell for, sell yours",
+    "DESC": "Tell Sam what you want and search live enthusiast car auctions in your own words, see what similar cars have actually sold for, and find where and how to sell yours.",
+    "START_TITLE": "Find the car you're looking for.",
+    "START_SUB": "Tell Sam what you want. Search live enthusiast car auctions in your own words.",
+    "START_LABEL": "Describe the car you want",
+    "CARD_MC_TITLE": "Market Check",
+    "CARD_MC_SUB": "See what similar cars have actually sold for.",
+    "CARD_SELL_TITLE": "Sell a car",
+    "CARD_SELL_SUB": "Discover where and how to sell.",
+    "LEGAL_TERMS": "Terms",
+    "LEGAL_PRIVACY": "Privacy",
+    "LEGAL_CHOICES": "Privacy choices"
+  },
+  "marketCheck": {
+    "TITLE": "Market Check: what could your car bring?"
+  },
+  "sell": {
+    "TITLE": "Where to sell your collector car"
+  },
+  "tasks": {
+    "HOW": "The cars Sam shows you come from a rules-based matching algorithm. Sam helps understand the question and explain the results, but never invents the cars, the matches or the numbers. Every number comes from real market evidence."
+  },
+  "rail": {
+    "RAIL_TAGLINE": "Find, check, sell.",
+    "NAV_HOME": "Home",
+    "NAV_FIND": "Find",
+    "NAV_MARKET_CHECK": "Market Check",
+    "NAV_SELL": "Sell",
+    "NAV_SELL_EARLY": "Where to sell",
+    "NAV_TASKS": "Tasks",
+    "FOOT_BUSINESS": "For business",
+    "FOOT_DAILY_VROOM": "The Daily Vroom",
+    "FOOT_HOW": "How Sam decides",
+    "FOOT_ABOUT": "About",
+    "FOOT_WHATS_NEW": "What's new",
+    "FOOT_FEEDBACK": "Feedback"
+  },
+  "find": {
+    "TITLE": "Find enthusiast cars at auction, by what they actually sell for",
+    "DESC_TAIL": "Each car is shown with what cars like it have actually sold for."
+  }
+}

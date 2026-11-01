@@ -788,6 +788,13 @@ try {
 } catch (e) {
   record("checkSilenceCheck (scripts/checkSilenceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// copyCheck (Lane E, Nov 1 2026): data/copy.json, the one file of static page words, is valid and within the copy rules (no dashes, competitors, source counts, first person, over-long titles). No network.
+try {
+  const out = execSync("node scripts/copyCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("copyCheck (scripts/copyCheck.mjs)", "PASS", (out.match(/copyCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("copyCheck (scripts/copyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // partnerDemoInertCheck (Lane E, Buy Stage 1c). No network.
 try {
   const out = execSync("node scripts/partnerDemoInertCheck.mjs", { encoding: "utf8" });

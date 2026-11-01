@@ -1,0 +1,17 @@
+# Copy of record for .github/workflows/copy-check.yml (Lane E, Nov 1 2026). The CI token cannot add workflow files, so Sam or Lane C copies this to .github/workflows/copy-check.yml.
+# Runs copyCheck on every push to main and on every pull request, so a bad edit to data/copy.json (made in the GitHub editor) fails with the key and the reason in plain words.
+name: Copy check
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  copy-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - run: node scripts/copyCheck.mjs
