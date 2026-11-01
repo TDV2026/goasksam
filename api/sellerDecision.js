@@ -3521,7 +3521,7 @@ async function handler(req, res) {
         driverVal: rawRefine.driverVal === "no" ? "no" : rawRefine.driverVal === "yes" ? "yes" : null,
         observe: typeof rawRefine.observe === "string" ? rawRefine.observe.slice(0, 40) : null,
         // typed gearbox and engine words (lib/typedAttributes.js): the keys the engine read, and the keys a removed chip turns off; shape-checked keys only
-        attrs: (() => { const a = (Array.isArray(rawRefine.attrs) ? rawRefine.attrs : []).map(String).filter(x => typedAttributeByKey(x)).slice(0, 6); return a.length ? a : null; })(),
+        attrs: (() => { const a = (Array.isArray(rawRefine.attrs) ? rawRefine.attrs : []).map(String).filter(x => typedAttributeByKey(x)).slice(0, 12); return a.length ? a : null; })(),
         attrsOff: (() => { const a = (Array.isArray(rawRefine.attrsOff) ? rawRefine.attrsOff : []).map(String).filter(x => typedAttributeByKey(x)).slice(0, 12); return a.length ? a : null; })(),
         label: typeof rawRefine.label === "string" ? rawRefine.label.slice(0, 40) : null
       } : null;

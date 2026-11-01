@@ -1766,6 +1766,12 @@ try {
   record("warm: a question leaves no old answer row behind and every warm stores only what the visitor path would store (scripts/warmLeftoverRowCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/exclusionCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("engine: a negated word (not, no, non, without, except, excluding, -RF) removes cars on Market Check, Find and Sell and is announced, never read as a word to look for (scripts/exclusionCheck.mjs)", "PASS", (out.match(/exclusionCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a negated word (not, no, non, without, except, excluding, -RF) removes cars on Market Check, Find and Sell and is announced, never read as a word to look for (scripts/exclusionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/foreignCarsTaskCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("ops: task=foreigncars reads in bounded pages, never sorts or filters on a raw_record field (scripts/foreignCarsTaskCheck.mjs)", "PASS", (out.match(/foreignCarsTaskCheck: .*/) || [""])[0]);
 } catch (e) {
