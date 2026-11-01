@@ -1792,6 +1792,12 @@ try {
   record("resolver: Rick Carey's period body names are read on input as their pool and never printed back; coachbuilder spellings merge (scripts/nomenclatureCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/partnerPositionCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("partner: typed prices are placed and the sales come in three orders by the engine; no page compares a price with the range (scripts/partnerPositionCheck.mjs)", "PASS", (out.match(/partnerPositionCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("partner: typed prices are placed and the sales come in three orders by the engine; no page compares a price with the range (scripts/partnerPositionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/foreignCarsTaskCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("ops: task=foreigncars reads in bounded pages, never sorts or filters on a raw_record field (scripts/foreignCarsTaskCheck.mjs)", "PASS", (out.match(/foreignCarsTaskCheck: .*/) || [""])[0]);
 } catch (e) {
