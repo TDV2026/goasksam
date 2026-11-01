@@ -381,8 +381,7 @@ const JS = String.raw`
   function questionHtml(a, slot){
     var q = a && a.question; if (!q) return "";
     var opts = (q.options || []).map(function(o, i){ return '<button type="button" class="chip opt" data-slot="' + slot + '" data-send="' + esc(JSON.stringify(o.send)) + '">' + esc(o.label) + (o.count != null && !/\(\d[\d,]*\)\s*$/.test(String(o.label)) ? " (" + o.count + ")" : "") + "</button>"; }).join("");   // the engine's own chip words may carry the count already ("Carrera (14)"): never twice
-    var skip = q.skip ? '<button type="button" class="chip opt" data-slot="' + slot + '" data-send="' + esc(JSON.stringify(q.skip.send)) + '">' + esc(q.skip.label) + "</button>" : "";
-    return '<p style="margin:14px 0 0;font-weight:600">' + esc(q.text || "Which one is it?") + '</p><div class="chips">' + opts + skip + "</div>";
+    return '<p style="margin:14px 0 0;font-weight:600">' + esc(q.text || "Which one is it?") + '</p><div class="chips">' + opts + "</div>";
   }
   function rangePanel(a, opts){
     opts = opts || {};

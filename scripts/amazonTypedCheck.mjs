@@ -162,7 +162,7 @@ for (const r of ROWS) {
   const t = partnerShape({ status: "one_box", tier: "trim_choice", prompt: "Which 1965 Mustang?", askIndex: 1, trimOptions: [{ value: "gt", label: "GT", n: 9 }, { value: "other", label: "Other trims", n: 20, notTrims: ["gt"] }], trimChips: ["GT (9)", "Other trims (20)"] }, "1965 Ford Mustang", 0, {});
   ok(t.engineQuestion.options[0].carWord === "1965 Ford Mustang GT" && t.engineQuestion.options[0].send.label === "GT", "a refine option: carWord = the car words plus its label (no count); send carries the label");
   const g = partnerShape({ status: "one_box", tier: "generation_choice", prompt: "Which?", askIndex: 1, generationOptions: [{ label: "992", query: "2019 Porsche 992" }] }, "2019 porsche 911", 0, {});
-  ok(g.engineQuestion.options[0].carWord === "2019 Porsche 992" && g.engineQuestion.skip.carWord === "2019 porsche 911", "a re-asking option: carWord = its own words; the skip keeps the typed words");
+  ok(g.engineQuestion.options[0].carWord === "2019 Porsche 992" && g.engineQuestion.skip == null, "a re-asking option: carWord = its own words; the demo carries no skip (Sam, Oct 31 2026)");
   ok(carFieldOf({ ok: true, identity: { year: 1965, make: "Ford", model: "Mustang" } }, { typed: "1965 Ford Mustang", chosen: "GT" }).car.name === "1965 Ford Mustang GT", "a narrowed re-read names the chosen option");
   ok(carFieldOf({ ok: true, identity: { year: 1965, make: "Ford", model: "Mustang", variant: "GT" } }, { chosen: "GT" }).car.name === "1965 Ford Mustang GT", "never twice when the identity already names it");
   ok(carFieldOf({ ok: true }, { typed: "1965 Ford Mustang", chosen: "Bring a Trailer" }).car.name === "1965 Ford Mustang", "a label naming a venue never reaches the name");

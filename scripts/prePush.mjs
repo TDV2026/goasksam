@@ -781,6 +781,13 @@ try {
 } catch (e) {
   record("whatsNewCheck (scripts/whatsNewCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// checkSilenceCheck (Lane E, Nov 1 2026): every check prints a result line and can exit non-zero (a check that prints nothing cannot fail). No network.
+try {
+  const out = execSync("node scripts/checkSilenceCheck.mjs", { encoding: "utf8" });
+  record("checkSilenceCheck (scripts/checkSilenceCheck.mjs)", "PASS", (out.match(/checkSilenceCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("checkSilenceCheck (scripts/checkSilenceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // partnerDemoInertCheck (Lane E, Buy Stage 1c). No network.
 try {
   const out = execSync("node scripts/partnerDemoInertCheck.mjs", { encoding: "utf8" });
