@@ -552,7 +552,11 @@ const JS = String.raw`
   var B_ORDERS = [["miles", "Closest miles"], ["date", "Newest"], ["price", "Highest price"]];
   var wholeOf = function(v){ var n = Math.round(Number(String(v == null ? "" : v).replace(/[^\d]/g, ""))); return n > 0 ? n : null; };
   var bFmt = function(){ return $("b-format").value === "fixed" ? "fixed" : "auction"; };
+  // The page's first read: views b and c send the SAME body, so they share one read (ask() keys on it). The listing car carries its price as item_price; the order is newest first.
+  function plainBody(){ var b = { q: CAR }; if (D) b.vin = D.vin; b.order = "date"; if (D) b.prices = { item_price: D.price }; return b; }
+  var bTouched = false;
   function bBody(){
+    if (!bTouched) return plainBody();
     var body = { q: CAR }; if (D) body.vin = D.vin;
     var mi = wholeOf($("b-miles").value); if (mi) body.mileage = mi;
     body.order = bOrder || (mi ? "miles" : "date");
@@ -560,18 +564,18 @@ const JS = String.raw`
     if (Object.keys(pr).length) body.prices = pr;
     return body;
   }
-  function bRead(){ run("b", bBody(), gotB); }
+  function bRead(touch){ if (touch) bTouched = true; run("b", bBody(), gotB); }
   function gotB(a){ bAns = a; noteLines("b", a); if (!D && $("b-name") && VIN_RE.test(CAR)) $("b-name").innerHTML = vinHead(a, "span"); else if ($("b-name")) $("b-name").textContent = (nameOf(a) || (D ? D.title : CAR)); drawB(); }
   function bSales(a){
     var rows = a.placedSales || [];
     if (!rows.length || a.order == null) return "";
     var tog = B_ORDERS.map(function(o){ return '<button type="button" data-order="' + o[0] + '" aria-pressed="' + (a.order === o[0]) + '">' + o[1] + "</button>"; }).join("");
     var cap = a.order === "miles" ? "Closest to the mileage entered for this car" : a.order === "date" ? "Most recent first" : "Highest price first";
-    // photo, car, date, miles and price only (Sam, Nov 1 2026): no link and no venue on a sale row; a tile only for a photo that loads
+    // photo, car name, date, miles and price only (Sam, Nov 1 2026): no link and no venue on a sale row; the name is the engine's venue-safe name and prints nothing when it is empty; a tile only for a photo that loads
     var li = rows.map(function(s){
-      var th = s.photo ? '<span class="th"><img src="' + esc(s.photo) + '" alt="" loading="lazy" decoding="async" onerror="this.parentNode.remove()"></span>' : "";
+      var th = s.photo ? '<span class="th"><img src="/api/partnerAnswer?photo=' + encodeURIComponent(s.photo) + '&w=320" alt="" decoding="async" onerror="this.parentNode.remove()"></span>' : "";   // the engine's photo id, served by the partner endpoint; a photo that does not load leaves no tile and no stand-in
       var meta = [s.date ? dayLabel(s.date) : "", s.miles ? Number(s.miles).toLocaleString("en-US") + " miles" : ""].filter(Boolean).join(" \u00b7 ");
-      return '<li class="' + (s.photo ? "has-th" : "no-th") + '">' + th + '<span class="d">' + esc(s.title || "Sold car") + '</span><span class="p">' + usd(s.price) + '</span><span class="m">' + meta + "</span></li>";
+      return '<li class="' + (s.photo ? "has-th" : "no-th") + '">' + th + (s.name ? '<span class="d">' + esc(s.name) + "</span>" : "") + '<span class="p">' + usd(s.price) + '</span><span class="m">' + meta + "</span></li>";
     }).join("");
     return '<div class="sales"><div class="sales-head"><h4>Recent sales</h4><div class="tog" role="group" aria-label="Order the sales">' + tog + '</div></div><div class="cap" style="margin:0 0 6px">' + cap + '</div><ul class="slist">' + li + '</ul><a class="all" href="?view=a&car=' + encodeURIComponent(CAR) + '">See all sales for this car</a></div>';
   }
@@ -584,6 +588,7 @@ const JS = String.raw`
     var geo = function(v){ return sp ? "clamp(0%, calc(" + ((v - sp.low) / (sp.high - sp.low) * 100).toFixed(2) + "%), 100%)" : null; };   // layout only: where a figure falls on the bar's own ends; CSS clamps it to the bar
     var marks = "", legend = "";
     keys.forEach(function(k){
+      if (!wholeOf($("b-" + k[0]).value)) return;   // a line only for a price the visitor typed in this field
       var p = posOf(a, k[1]); if (!p) return;
       var w = PLACE_WORDS[p.place]; if (!w) return;
       var rel = document.querySelector('.rel[data-for="' + k[0] + '"]'); if (rel) rel.textContent = w + ".";
@@ -642,17 +647,17 @@ const JS = String.raw`
   });
   document.addEventListener("click", function(e){ if (e.target && e.target.id === "a-list") e.preventDefault(); });   // the demo's List it does nothing
   $("a-form").addEventListener("submit", function(e){ e.preventDefault(); var v = String($("a-q").value || "").trim(); if (v) runA({ q: v }); });
-  $("b-format").addEventListener("change", function(){ bFormat(); bRead(); });
-  ["b-start", "b-reserve", "b-bin", "b-price", "b-miles"].forEach(function(id){ $(id).addEventListener("input", function(){ var d = String(this.value || "").replace(/[^\d]/g, "").slice(0, 9); this.value = d ? Number(d).toLocaleString("en-US") : ""; bRead(); }); });   // one read per change; the position shows when the answer returns, and only the latest read draws
-  document.addEventListener("click", function(e){ var t = e.target.closest && e.target.closest("[data-order]"); if (!t) return; bOrder = t.getAttribute("data-order"); bRead(); });
+  $("b-format").addEventListener("change", function(){ bFormat(); bRead(true); });
+  ["b-start", "b-reserve", "b-bin", "b-price", "b-miles"].forEach(function(id){ $(id).addEventListener("input", function(){ var d = String(this.value || "").replace(/[^\d]/g, "").slice(0, 9); this.value = d ? Number(d).toLocaleString("en-US") : ""; bRead(true); }); });   // one read per change; the position shows when the answer returns, and only the latest read draws
+  document.addEventListener("click", function(e){ var t = e.target.closest && e.target.closest("[data-order]"); if (!t) return; bOrder = t.getAttribute("data-order"); bRead(true); });
   bFormat();
   // (Sam, Oct 18 2026) View a opens empty when no car has been chosen: no read until the visitor submits one. Views b and
   // c start on the listing car (the 2014 GT3) when none has been chosen, and follow the chosen car when one has.
   var pre = new URLSearchParams(location.search).get("q") || (CHOSEN ? CAR : ""); $("a-q").value = pre;
   if (VIEW !== "a" || CHOSEN || pre) {
     bRead();   // the first read of the chosen car, with the default order
-    run("c", D ? { q: CAR, vin: D.vin, prices: { item_price: D.price } } : { q: CAR }, drawListing);
-    if (pre) runA({ q: pre });
+    run("c", plainBody(), drawListing);
+    if (pre) runA(pre === CAR ? plainBody() : { q: pre });   // the same body as views b and c when it is the chosen car: one read for the page
   }
 })();
 `;

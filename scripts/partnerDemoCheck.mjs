@@ -8,7 +8,7 @@
 import { MC } from "./e98Fixtures.mjs";
 import { startBrowser } from "./e98Render.mjs";
 import { pageHtml, DUMMY } from "../api/partnerDemo.js";
-import { partnerShape, positionAskOf } from "../api/partnerAnswer.js";
+import { partnerShape, positionAskOf, placedSaleOf } from "../api/partnerAnswer.js";
 import { partnerPositionsOf } from "../lib/onebox.js";
 import fs from "node:fs";
 import { reasonLine } from "../lib/reasonWords.js";
@@ -65,18 +65,18 @@ for (const [name, q] of [["model", MODEL_Q], ["generation", GEN_Q], ["body", BOD
 // THE ENGINE'S HALF OF THE LISTING FORM (Lane B, lane-b-position fd354d56): positions[], placedSales[] and order come from the REAL engine function (lib/onebox.js partnerPositionsOf), fed the same
 // request the page sends. Five sales with a photo that loads, none, and one that does not load. The comparisons are the engine's; this check only reads what the page prints.
 const SALE_CARDS = [
-  { id: 1, date: "2026-10-24", mi: 31200, price: 31250, title: "2008 Porsche 911 Carrera S", platform: "Venue One", url: "https://sales.example/s1", image: "https://img.example/ok.svg" },
-  { id: 2, date: "2026-10-19", mi: 18400, price: 43000, title: "2008 Porsche 911 Carrera S Coupe", platform: "Venue Two", url: "https://sales.example/s2", image: "https://img.example/ok.svg" },
-  { id: 3, date: "2026-10-11", mi: 42900, price: 24000, title: "2008 Porsche 911 Carrera S", platform: "Venue One", url: "https://sales.example/s3", image: null },
-  { id: 4, date: "2026-10-03", mi: 55100, price: 19500, title: "2008 Porsche 911 Carrera S", platform: "Venue Three", url: "https://sales.example/s4", image: "https://img.example/broken.svg" },
-  { id: 5, date: "2026-09-27", mi: 27600, price: 38500, title: "2008 Porsche 911 Carrera S Cabriolet", platform: "Venue Two", url: "https://sales.example/s5", image: null }
+  { id: "00000000-0000-4000-8000-000000000001", date: "2026-10-24", mi: 31200, price: 31250, title: "2008 Porsche 911 Carrera S", platform: "Venue One", url: "https://sales.example/s1", image: "https://img.example/ok.svg" },
+  { id: "00000000-0000-4000-8000-000000000002", date: "2026-10-19", mi: 18400, price: 43000, title: "2008 Porsche 911 Carrera S Coupe", platform: "Venue Two", url: "https://sales.example/s2", image: "https://img.example/ok.svg" },
+  { id: "00000000-0000-4000-8000-000000000003", date: "2026-10-11", mi: 42900, price: 24000, title: "2008 Porsche 911 Carrera S", platform: "Venue One", url: "https://sales.example/s3", image: null },
+  { id: "00000000-0000-4000-8000-000000000004", date: "2026-10-03", mi: 55100, price: 19500, title: "2008 Porsche 911 Carrera S", platform: "Venue Three", url: "https://sales.example/s4", image: "https://img.example/broken.svg" },
+  { id: "00000000-0000-4000-8000-000000000005", date: "2026-09-27", mi: 27600, price: 38500, title: "2008 Porsche 911 Carrera S sold on Bring a Trailer", platform: "Venue Two", url: "https://sales.example/s5", image: null }
 ];
 const RANGE_B = { ...RANGE, span: [15000, 60000], cards: SALE_CARDS };
 const engineOrder = (order, mileage) => partnerPositionsOf(RANGE_B, { prices: {}, mileage: mileage || null, order }).sales.map(r => r.price);
 function engineAsk(out, d, body) {
   const ask = positionAskOf(body); if (!ask || !out || out.ok === false) return out;
   const px = partnerPositionsOf(d, ask);
-  return { ...out, positions: d.__noPositions ? [] : px.positions, placedSales: px.sales, order: px.order };
+  return { ...out, positions: d.__noPositions ? [] : px.positions, placedSales: px.sales.map(placedSaleOf), order: px.order };
 }
 const ERR = /undefined|NaN|\[object|TypeError|ReferenceError|Unexpected token|Something went wrong|\bnull\b/;
 
@@ -92,6 +92,7 @@ async function open(view, car, width, answers) {
       let b = {}; try { b = JSON.parse(r.postData() || "{}"); } catch {} p._asked.push(b);
       const d = answers[Math.min(n++, answers.length - 1)], out = engineAsk({ ...partnerShape(d, b.q || car, Number(b.asked) || 0, {}), updated: null }, d, b);
       return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(out) }); }
+    if (u.host === "goasksam.com" && u.pathname === "/api/partnerAnswer" && r.method() === "GET" && u.searchParams.get("photo")) return /0004$/.test(u.searchParams.get("photo")) ? r.respond({ status: 404, body: "" }) : r.respond({ status: 200, contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="72" height="54"><rect width="72" height="54" fill="#8ab"/></svg>' });
     if (u.host === "img.example") return /broken/.test(u.pathname) ? r.respond({ status: 404, body: "" }) : r.respond({ status: 200, contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="72" height="54"><rect width="72" height="54" fill="#8ab"/></svg>' });
     if (u.host === "goasksam.com") return r.respond({ status: 204, body: "" });
     return r.respond({ status: 204, body: "" }); });
@@ -177,7 +178,9 @@ for (const width of [1440, 390]) {
     // sales: five rows, the engine's order, link, photo only when it loads
     let li = await p.evaluate(() => [...document.querySelectorAll("#b-out .slist li")].map(e => ({ th: !!e.querySelector(".th"), href: (e.querySelector("a") || {}).href || null, text: e.innerText.replace(/\s+/g, " ") })));
     ok(li.length === 5, `${t}: five recent sales (${li.length})`);
-    ok(li.every(r => !r.href) && !/Venue (One|Two|Three)|sales\.example/.test(c), `${t}: a sale row shows no link and no venue: photo, car, date, miles and price only`);
+    ok(li.every(r => !r.href) && !/Venue (One|Two|Three)|sales\.example|Bring a Trailer/.test(c), `${t}: a sale row shows no link and no venue: photo, car name, date, miles and price only`);
+    const named = await p.evaluate(() => [...document.querySelectorAll("#b-out .slist li")].map(e => ({ price: e.querySelector(".p").innerText, name: (e.querySelector(".d") || {}).innerText || null })));
+    ok(named.find(r => r.price === "$38,500").name === null && named.find(r => r.price === "$31,250").name === "2008 Porsche 911 Carrera S", `${t}: the car name is the engine's; an empty name prints nothing ${JSON.stringify(named)}`);
     ok(li.some(r => r.th) && li.some(r => !r.th), `${t}: a row with a photo has a tile and a row without one has none`);
     const tiles = await p.evaluate(() => [...document.querySelectorAll("#b-out .slist li")].map(e => ({ price: e.querySelector(".p").innerText, th: !!e.querySelector(".th") })));
     ok(tiles.find(r => r.price === "$31,250").th && !tiles.find(r => r.price === "$24,000").th && !tiles.find(r => r.price === "$19,500").th, `${t}: the tile is there only for the photo that loads (a missing photo and a photo that fails to load show no tile and no stand-in) ${JSON.stringify(tiles)}`);
