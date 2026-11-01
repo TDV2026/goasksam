@@ -1,6 +1,6 @@
 // THE PARTNER ANSWER PLACES TYPED PRICES AND ORDERS THE SALES; THE PAGE COMPARES NOTHING (Lane B, Nov 1 2026; Lane E's NEEDS LANE B note for the eBay listing form, partner view b).
 // CAUSE: api/partnerAnswer.js took no price and no mileage, so api/partnerDemo.js worked out "below / inside / above" itself (placing(), used by views b and c) and had no sales in the order closest to a mileage.
-// FIX: lib/onebox.js partnerPositionsOf (read time, from the finished answer; placingFor is the one comparison): positions[] for up to four tagged prices (starting_bid, buy_it_now, reserve, item_price), and five sales { date, miles, price, title, venue, url, photo, place }
+// FIX: lib/onebox.js partnerPositionsOf (read time, from the finished answer; placingFor is the one comparison): positions[] for up to four tagged prices (starting_bid, buy_it_now, reserve, item_price), and five sales { date, miles, price, name, photo (by id), place } (no venue and no address, Sam Nov 1 2026)
 // in the order asked (miles | date | price; miles falls back to date with no mileage, and the order echoed is the one used). api/partnerAnswer.js passes them as positions, placedSales and order only when the request carries a price, a mileage or an order;
 // the stored answer and the rest of the answer are unchanged. The page's placing() now only words an entry it is given. CLASS: any page that compares a price with the engine's range. This check fails without the fix.
 //   node scripts/partnerPositionCheck.mjs [repo root]
@@ -11,7 +11,8 @@ let fail = 0; const ok = (n, c, d) => { if (!c) fail++; console.log(`${c ? "PASS
 const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href), PA = await import(pathToFileURL(path.join(root, "api/partnerAnswer.js")).href);
 const fn = E.partnerPositionsOf; ok("lib/onebox.js exports partnerPositionsOf", typeof fn === "function");
 const DEAD = JSON.parse(fs.readFileSync("data/deadPhotoHosts.json", "utf8")).hosts[0].host;
-const card = (price, date, mi, extra = {}) => ({ price, date, mi, title: `${date.slice(0, 4)} Porsche 911 GT3`, platformName: "Venue One", platform: "Venue One", url: "https://example.test/lot/" + price, image: "https://img.example.test/" + price + ".jpg", ...extra });
+const uid = n => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+const card = (price, date, mi, extra = {}) => ({ id: uid(price), price, date, mi, title: `${date.slice(0, 4)} Porsche 911 GT3`, platformName: "Bring a Trailer", platform: "Bring a Trailer", url: "https://example.test/lot/" + price, image: "https://img.example.test/" + price + ".jpg", ...extra });
 const CARDS = [card(70000, "2026-03-10", 21000), card(82000, "2026-01-05", 9000), card(64000, "2025-12-20", 44000), card(91000, "2026-04-02", 15000), card(76000, "2025-11-11", null), card(88000, "2026-02-14", 32000), card(61000, "2025-10-01", 30000, { image: `https://${DEAD}/a.jpg` })];
 const D = { tier: "result", cluster: [65000, 90000], cards: CARDS };
 if (fn) {
@@ -32,7 +33,8 @@ if (fn) {
   // 3. the sales: five, three orders
   const dates = fn(D, { order: "date" }), prices = fn(D, { order: "price" }), miles = fn(D, { order: "miles", mileage: 20000 });
   ok("five sales", dates.sales.length === 5 && prices.sales.length === 5 && miles.sales.length === 5);
-  ok("each sale carries date, miles, price, title, venue, url and place", dates.sales.every(s => "date" in s && "miles" in s && s.price > 0 && s.title && s.venue && s.url && ["below", "within", "above"].includes(s.place)));
+  ok("each sale carries date, miles, price, title and place", dates.sales.every(s => "date" in s && "miles" in s && s.price > 0 && s.title && ["below", "within", "above"].includes(s.place)));
+  ok("a sale carries NO venue and NO address, at the source (the engine's own rows, not hidden by a page)", [dates, prices, miles].every(r => r.sales.every(s => !("venue" in s) && !("url" in s) && !JSON.stringify(s).match(/Bring a Trailer|https?:/i))), JSON.stringify(dates.sales[0]));
   ok("order date: newest first", dates.order === "date" && dates.sales.map(s => s.date).join() === ["2026-04-02", "2026-03-10", "2026-02-14", "2026-01-05", "2025-12-20"].join(), dates.sales.map(s => s.date).join());
   ok("order price: the order the answer lists them", prices.order === "price" && prices.sales.map(s => s.price).join() === CARDS.slice(0, 5).map(c => c.price).join(), prices.sales.map(s => s.price).join());
   // nearest to 20,000 miles on known mileages: 21000 (1000), 15000 (5000), 9000 (11000), 32000 (12000), 30000 (10000 -> before 9000? 9000 is 11000 away)
@@ -45,9 +47,9 @@ if (fn) {
   ok("no order and no mileage is date; a mileage with no order is nearest-miles", fn(D, {}).order === "date" && fn(D, { mileage: 20000 }).order === "miles");
   // 5. photo
   const ph = fn({ ...D, cards: [CARDS[6], CARDS[0]] }, { order: "date" });
-  ok("a sale whose photo host is dead returns no photo", ph.sales.find(s => s.price === 61000) && !("photo" in ph.sales.find(s => s.price === 61000)));
-  ok("a sale with a photo on a live host returns it", ph.sales.find(s => s.price === 70000).photo === "https://img.example.test/70000.jpg");
-  ok("a sale with no photo returns none", !("photo" in fn({ ...D, cards: [card(70000, "2026-03-10", 21000, { image: null })] }, { order: "date" }).sales[0]));
+  ok("a sale whose photo host is dead returns no photo", ph.sales.find(s => s.price === 61000) && !("photoId" in ph.sales.find(s => s.price === 61000)));
+  ok("a sale with a photo on a live host returns it, by id (never an address)", ph.sales.find(s => s.price === 70000).photoId === uid(70000));
+  ok("a sale with no photo returns none", !("photoId" in fn({ ...D, cards: [card(70000, "2026-03-10", 21000, { image: null })] }, { order: "date" }).sales[0]));
   // 6. fewer than five
   ok("fewer than five sales returns fewer", fn({ ...D, cards: CARDS.slice(0, 3) }, { order: "date" }).sales.length === 3);
   // 7. each sale's place is the same comparison
@@ -65,12 +67,21 @@ if (ask) {
   ok("a JSON string of prices is read", ask({ prices: JSON.stringify({ reserve: 70000 }) }).prices.reserve === 70000);
   ok("an unknown order is dropped", ask({ order: "alphabetical", mileage: 5000 }).order === null);
   const leaks = o => PA.venueLeak(o);
-  ok("the sales list may carry title, venue and url (the listing form's sales, behind the partner gate)", leaks({ ok: true, placedSales: [{ title: "2014 Porsche 911 GT3", venue: "Venue One", url: "https://example.test/x" }] }).length === 0);
+  ok("placedSaleOf exists", typeof PA.placedSaleOf === "function");
+  const row = PA.placedSaleOf({ date: "2026-04-02", miles: 15000, price: 91000, title: "2014 Porsche 911 GT3", photoId: uid(91000), place: "within" });
+  ok("a placed sale is date, miles, price, name, photo (by id) and place, nothing else", JSON.stringify(Object.keys(row)) === JSON.stringify(["date", "miles", "price", "name", "photo", "place"]) && row.photo === uid(91000), JSON.stringify(row));
+  ok("a placed sale has no venue, no address and no title key", !("venue" in row) && !("url" in row) && !("title" in row) && !JSON.stringify(row).match(/https?:/));
+  ok("a placed sale with no photo has no photo key", !("photo" in PA.placedSaleOf({ date: "2026-04-02", miles: 1, price: 5, title: "x", place: "within" })));
+  ok("the guard blocks nothing less than before: a placed sale answer is clean", leaks({ ok: true, positions: [{ key: "reserve", value: 1, place: "within", low: 1, high: 2 }], placedSales: [row], order: "date" }).length === 0);
+  ok("the guard exempts nothing: a venue, an address or a title key in placedSales is blocked", leaks({ placedSales: [{ ...row, venue: "x" }] }).length > 0 && leaks({ placedSales: [{ ...row, url: "https://example.test/x" }] }).length > 0 && leaks({ placedSales: [{ ...row, title: "x" }] }).length > 0);
+  ok("a venue name in a sale's title is still blocked", leaks({ ok: true, placedSales: [{ ...row, name: "2014 Porsche 911 GT3 on Bring a Trailer" }] }).length > 0 && leaks({ ok: true, sales: [{ name: "2014 Porsche 911 GT3, Bonhams" }] }).length > 0);
+  ok("placedSaleOf never lets a title that names a venue through (the venue-safe name, as the other rows)", PA.placedSaleOf({ date: null, miles: null, price: 5, title: "2014 Porsche 911 GT3 Bring a Trailer", place: "within" }).name === null);
   ok("any other field still cannot carry a venue or a url", leaks({ ok: true, sales: [{ title: "x", url: "https://example.test/x" }] }).length > 0 && leaks({ ok: true, positions: [{ venue: "x" }] }).length > 0);
 }
 // 9. the wiring: read time, after the last good answer is stored, and the stored shortcut is skipped for a request that asks
 const strip = t => t.replace(/\/\/[^\n]*/g, "");
 const pa = strip(fs.readFileSync("api/partnerAnswer.js", "utf8"));
+ok("the answer guard has no exemption for any path", !/placedSales/.test(pa.slice(pa.indexOf("export function venueLeak"), pa.indexOf("export default async function handler"))));
 const iStore = pa.indexOf("writeLast(env, lk, out)"), iPos = pa.indexOf("partnerPositionsOf(r.d, ask)");
 ok("positions are added after the last good answer is stored, so a stored answer never carries them", iStore > 0 && iPos > iStore, `${iStore} < ${iPos}`);
 ok("a request that asks is read through Market Check, never from a stored answer without the fields", /const qk = ask \? null : demoKey\(text\)/.test(pa));

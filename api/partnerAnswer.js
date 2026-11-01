@@ -637,6 +637,11 @@ export function partnerShape(d, text, asked, extra = {}) {
 // Belt and braces: the reshaped answer carries only fields this file wrote, but a venue name or listing link must
 // never leave even if an upstream field changes shape. Any string that names a venue or a URL fails the answer.
 const VENUE_RE = /bring ?a ?trailer|\bbat\b|cars ?(&|and) ?bids|pcar ?market|hagerty|gooding|rm sotheby|sotheby|bonhams|mecum|barrett|broad ?arrow|hemmings|collecting ?cars|car ?& ?classic|pistonheads|all ?collector|mb ?market|autohunter|\bthemarket\b|https?:\/\//i;
+// ONE PLACED SALE AS THE PARTNER SEES IT (Sam, Nov 1 2026: the eBay demo must not show or expose where a sale happened): date, miles, price, the venue-safe name (rowTitle), the photo by id (served through ?photo=, never an address) and the place. No venue and no address are in the row at all.
+export function placedSaleOf(s) {
+  const name = rowTitle({ title: s.title });
+  return { date: s.date || null, miles: s.miles ?? null, price: s.price, name: name || null, ...(s.photoId != null && photoId(s.photoId) ? { photo: photoId(s.photoId) } : {}), place: s.place };
+}
 // the request's typed prices, mileage and order, shape-checked; null when it carries none of them (the answer is then exactly what it was)
 export function positionAskOf(b) {
   if (!b || typeof b !== "object") return null;
@@ -652,7 +657,7 @@ export function venueLeak(obj) {
   const hits = [];
   const walk = (v, path) => {
     if (v == null) return;
-    if (path === ".query" || path === ".placedSales") return;   // placedSales (partnerPositionsOf) carries title, venue and url on purpose: the listing form's sales, behind the same partner gate
+    if (path === ".query") return;
     if (typeof v === "string") { if (VENUE_RE.test(v)) hits.push(path + ": " + v.slice(0, 60)); return; }
     if (Array.isArray(v)) return v.forEach((x, i) => walk(x, path + "[" + i + "]"));
     if (typeof v === "object") for (const [k, x] of Object.entries(v)) { if (/^(url|href|link|id|listingId|listing_id|source|platform|house|venue|title)$/i.test(k)) hits.push(path + "." + k); walk(x, path + "." + k); }
@@ -801,7 +806,7 @@ export default async function handler(req, res) {
     if (!out.identity && id) out.identity = { year: id.year || null, make: id.make, model: id.model, variant: id.trim || null };
   }
   out.updated = await updatedP;
-  if (ask && out && out.ok === true && r && r.d) { const px = partnerPositionsOf(r.d, ask); out = { ...out, positions: px.positions, placedSales: px.sales, order: px.order }; }   // a copy: the object just handed to the last-good store is never touched   // read time only, after the last good answer was stored: the stored answer never carries them
+  if (ask && out && out.ok === true && r && r.d) { const px = partnerPositionsOf(r.d, ask); out = { ...out, positions: px.positions, placedSales: px.sales.map(placedSaleOf), order: px.order }; }   // a copy: the object just handed to the last-good store is never touched   // read time only, after the last good answer was stored: the stored answer never carries them
   const leaks = venueLeak(out);
   if (leaks.length) { console.error("partnerAnswer venue leak blocked:", leaks.slice(0, 5).join(" | ")); return res.status(500).json({ ok: false, error: "blocked" }); }
   return res.status(200).json(out);
