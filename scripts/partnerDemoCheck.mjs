@@ -237,6 +237,8 @@ for (const width of [1440, 390]) {
   ok(!/The middle half/.test(c2 || "") && /Only 3 sales/.test(c2 || ""), "listing form: with no range there is no card, only the engine's own line");
   await q.p.close();
 }
+// ---- NO UNEVALUATED TEMPLATE TEXT: the served HTML of every view carries no literal "${" (a nested quote once printed ${reasonLine("cold.reading")} in the listing's rail until the first answer landed)
+for (const v of ["a", "b", "c", "d"]) for (const c of ["2008 Porsche 911 Carrera S", DUMMY.q]) ok(!pageHtml(v, c).replace(/<script>[\s\S]*?<\/script>/g, "").includes("${"), `view ${v}, ${c}: the served page holds no unevaluated template text (${(pageHtml(v, c).match(/.{0,30}\$\{.{0,40}/) || [""])[0]})`);
 // ---- STATIC: nothing on the page compares a price with a range, and the old placing() cannot come back
 {
   const src = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
