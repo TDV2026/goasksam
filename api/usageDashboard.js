@@ -5876,7 +5876,7 @@ if (task === "optiondetail") {
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
     const { ENGINE_VERSION } = await import("../lib/onebox.js");
-    const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js");
+    const { warmAnswerKeyFor, readWarmAnswerDetailed, questionRowKey, readQuestionRow } = await import("../lib/live/search.js");
     const { utcDayOf } = await import("../lib/warmDay.js");
     const fs = await import("node:fs");
     let named = [], golden = [];
@@ -5897,7 +5897,9 @@ if (task === "optiondetail") {
         const generation = await findGeneration(vehicle, env).catch(() => null);
         const st = await readWarmAnswerDetailed(env, warmAnswerKeyFor(vehicle, generation));
         row.reason = st && st.reason || null;
-        if (!(st && st.raw)) { row.hit = false; row.note = st && st.reason === "engine_version_mismatch" ? "stored under an older engine stamp" : "no answer row (a question-first spec stores none; its first read is the question)"; out.noRow++; }
+        const qr = !(st && st.raw) ? await readQuestionRow(env, questionRowKey(warmAnswerKeyFor(vehicle, generation), q)).catch(() => null) : null;
+        if (qr && qr.raw) { row.tier = qr.raw.tier; row.question = true; row.storedAt = qr.storedAt; row.stale = !!qr.stale; row.hit = !qr.stale; row.note = "stored question row (a question-first spec stores no answer row)"; if (qr.stale) out.stale++; else out.hit++; }
+        else if (!(st && st.raw)) { row.hit = false; row.note = st && st.reason === "engine_version_mismatch" ? "stored under an older engine stamp" : "no answer row and no stored question (a question-first spec's first read is the question)"; out.noRow++; }
         else {
           row.storedAt = st.storedAt; row.storedDay = utcDayOf(st.storedAt); row.stale = !!st.stale; row.tier = st.raw.tier;
           // e96 fields exist on a ranged answer (tier result with a cluster); a thin, refusal or other tier never carries optionsState, so only a ranged row is asked for them
@@ -6075,6 +6077,7 @@ if (task === "optiondetail") {
         if (!d || !d.tier) throw new Error("engine returned no tier");
         row.tier = d.tier; row.readAt = d.readAt || null;
         if (/_choice$/.test(String(d.tier))) row.question = await (await import("../lib/onebox.js")).warmQuestion(d, vehicle, generation, q, env);   // e95: the question's stored eligibility
+        if (/_choice$/.test(String(d.tier))) { const OB = await import("../lib/onebox.js"), SR = await import("../lib/live/search.js"); if (OB.isStorableQuestion(d)) { await SR.writeQuestionRow(env, SR.questionRowKey(SR.warmAnswerKeyFor(vehicle, generation), q), d); row.questionRow = "stored"; } }   // Nov 1: the question itself, so a reader's read of it is one stored read
         if (/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) { await writeWarmAnswer(env, warmAnswerKeyFor(vehicle, generation), d); row.stored = true; result.warmed++;
           // the car-only Sell block beside the answer (lib/sell/sellBlock.js), from this same answer; never a reason to fail the warm
           { const sb = await (await import("../lib/sell/sellBlock.js")).warmSellBlock(env, q, d, warmAnswerKeyFor(vehicle, generation)); row.sellBlock = sb.stored ? "stored" : sb.why; }
@@ -6226,6 +6229,7 @@ if (task === "optiondetail") {
         if (!d || !d.tier) throw new Error("engine returned no tier");
         row.tier = d.tier;
         if (/_choice$/.test(String(d.tier))) row.question = await (await import("../lib/onebox.js")).warmQuestion(d, vehicle, generation, q, env);   // e95: the question's stored eligibility
+        if (/_choice$/.test(String(d.tier))) { const OB = await import("../lib/onebox.js"), SR = await import("../lib/live/search.js"); if (OB.isStorableQuestion(d)) { await SR.writeQuestionRow(env, SR.questionRowKey(SR.warmAnswerKeyFor(vehicle, generation), q), d); row.questionRow = "stored"; } }   // Nov 1: the question itself
         const key = warmAnswerKeyFor(vehicle, generation);
         await writeWarmAnswer(env, key, d);
         row.key = key;
