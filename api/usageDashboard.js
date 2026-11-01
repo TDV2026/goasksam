@@ -2118,6 +2118,18 @@ async function handleOps(req, res) {
     const all = {}; for (const r of (Array.isArray(rows) ? rows : [])) all[r.cc || "?"] = (all[r.cc || "?"] || 0) + 1;
     return res.status(200).json({ task: "foreigncars", ocdSpend: 0, writes: 0, scanned: Array.isArray(rows) ? rows.length : null, countries: all, cars });
   }
+  // task=chipcase (Lane B, Oct 31 2026; READ-ONLY, zero OldCarsData, zero writes): the model and family values in the sales archive that carry no capital (the way "m8" arrived), per make, with the label the one chip rule (lib/chipLabel.js) prints for each. ?makes=BMW|Porsche|... (max 20, default the 12 busiest).
+  if (task === "chipcase") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { chipLabel } = await import("../lib/chipLabel.js");
+    const makes = (req.query?.makes ? String(req.query.makes).split("|") : ["BMW", "Porsche", "Mercedes-Benz", "Ford", "Chevrolet", "Audi", "Jaguar", "Ferrari", "Toyota", "Nissan", "Dodge", "Volkswagen"]).map(x => x.trim()).filter(Boolean).slice(0, 20), out = [];
+    for (const mk of makes) {
+      const rows = await supabaseSelectAll(env, `sales_archive?select=model,model_family&make=ilike.${encodeURIComponent(mk)}&model=not.is.null&order=model.asc`);
+      const seen = new Map(); for (const r of (Array.isArray(rows) ? rows : [])) for (const v of [r.model, r.model_family]) { const t = String(v || "").trim(); if (t && chipLabel(t) !== t) seen.set(t, (seen.get(t) || 0) + 1); }
+      out.push({ make: mk, rows: Array.isArray(rows) ? rows.length : null, changed: [...seen.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40).map(([from, n]) => ({ from, to: chipLabel(from), n })) });
+    }
+    return res.status(200).json({ task: "chipcase", ocdSpend: 0, writes: 0, makes: out });
+  }
   if (task === "warmwhy") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js"); const { oneEngineAnswer } = await import("../lib/onebox.js");
