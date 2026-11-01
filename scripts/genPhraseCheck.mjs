@@ -51,7 +51,7 @@ ok(`swept ${models.length} cars with a generation table`, models.length >= 50 &&
 ok("lib/genPhrase.js exists", !!GP);
 if (GP) {
   const cap = GP.guardGenPhraseFilters({ make: "Ford", model: "Capri", trim: "RS", year_min: 1968, year_max: 1974 }, "first gen Ford Capri", false);
-  ok("Capri: the chat's RS and 1968 to 1974 are gone", !cap.trim && !cap.year_min && !cap.year_max, JSON.stringify(cap));
+  ok("Capri: the chat's RS and 1968 are gone; the years are the generation table's own row (Mk1, 1969 to 1974, added with the Mercury Capri alias)", !cap.trim && cap.generation === "Mk1" && cap.year_min === 1969 && cap.year_max === 1974, JSON.stringify(cap));
   const mu = GP.guardGenPhraseFilters({ make: "Ford", model: "Mustang", trim: "GT", year_min: 1964, year_max: 1970 }, "first gen Mustang", false);
   ok("Mustang: the table's years, no trim", mu.year_min === 1965 && mu.year_max === 1973 && !mu.trim && mu.generation === "first", JSON.stringify(mu));
   const mb = GP.guardGenPhraseFilters({ make: "Ford", model: "Mustang", trim: "Boss 302", year_min: 1965, year_max: 1973 }, "first gen Mustang Boss 302", false);

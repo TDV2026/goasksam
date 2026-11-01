@@ -1653,6 +1653,12 @@ try {
   record("generation phrases: first gen, Mk1, gen 1 on every car with a generation table are the table's row, never a trim or made-up years (scripts/genPhraseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/namedModelCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("Find and every live search: a model or trim the reader named is never dropped to the whole make, no filter appears that was not typed, and a badge-engineered car (Ford and Mercury Capri) is read under both badges (scripts/namedModelCheck.mjs)", "PASS", (out.match(/namedModelCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find and every live search: a model or trim the reader named is never dropped to the whole make, no filter appears that was not typed, and a badge-engineered car (Ford and Mercury Capri) is read under both badges (scripts/namedModelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/whichChipsCheck.mjs", { encoding: "utf8", timeout: 180000 });
   record("Which model: no chip cut at a space, no duplicate, no variant beside its model (scripts/whichChipsCheck.mjs)", "PASS", (out.match(/whichChipsCheck: .*/) || [""])[0]);
 } catch (e) {
