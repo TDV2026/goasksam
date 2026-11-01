@@ -3,6 +3,7 @@ import { isNum } from "../lib/_num.js";
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
 import { countNoun } from "../lib/countNoun.js";
 import { unusedFieldsFor } from "../lib/live/unusedWords.js";
+import { tryRefresh } from "../lib/refreshGate.js";
 import { resolveVehicle, sanitizeResolvedVehicle, primeResolver } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
 import { mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
@@ -3803,8 +3804,11 @@ async function handler(req, res) {
             }
           } catch (e) { console.error(`stale recompute failed: ${(e && e.message) || e}`); }
         };
-        if (waitUntil) { obTimes.recompute = "waitUntil"; waitUntil(recomputeNow()); }
-        else obTimes.recompute = "none_live_on_next_visit";
+        // ONE REFRESH PER ROW, A FEW AT ONCE (Nov 1 2026, lib/refreshGate.js): a marker younger than 90 s means a refresh is already running (this or another instance); this instance runs at most REFRESH_CAP at once.
+        // A refused row is served as stored and tried again on its next read.
+        if (!waitUntil) obTimes.recompute = "none_live_on_next_visit";
+        else if (staleInfo.recomputingSince && (Date.now() - Date.parse(staleInfo.recomputingSince)) <= 90000) obTimes.recompute = "running_elsewhere";
+        else { const g = tryRefresh(warmKey, recomputeNow); obTimes.recompute = g.state === "started" ? "waitUntil" : g.state; if (g.promise) waitUntil(g.promise); }
       }
       const timings = { ...obTimes, warmHit, stale: !!staleInfo, totalMs: Date.now() - reqStart, dbBytes: supabaseBytesSoFar() - obTimes.dbBytes0, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
       // the words Sam did not use in this search (lib/live/unusedWords.js): the engine names them, the page prints the line
