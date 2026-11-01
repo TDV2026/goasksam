@@ -90,7 +90,7 @@ async function open(view, car, width, answers) {
     if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html });
     if (u.host === "goasksam.com" && u.pathname === "/api/partnerAnswer" && r.method() === "POST") {
       let b = {}; try { b = JSON.parse(r.postData() || "{}"); } catch {} p._asked.push(b);
-      const d = answers[Math.min(n++, answers.length - 1)], out = engineAsk({ ...partnerShape(d, b.q || car, Number(b.asked) || 0, {}), updated: null }, d, b);
+      const d = typeof answers === "function" ? answers(b) : answers[Math.min(n++, answers.length - 1)], out = engineAsk({ ...partnerShape(d, b.q || car, Number(b.asked) || 0, {}), updated: null }, d, b);
       return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(out) }); }
     if (u.host === "goasksam.com" && u.pathname === "/api/partnerAnswer" && r.method() === "GET" && u.searchParams.get("photo")) return /0004$/.test(u.searchParams.get("photo")) ? r.respond({ status: 404, body: "" }) : r.respond({ status: 200, contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="72" height="54"><rect width="72" height="54" fill="#8ab"/></svg>' });
     if (u.host === "img.example") return /broken/.test(u.pathname) ? r.respond({ status: 404, body: "" }) : r.respond({ status: 200, contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="72" height="54"><rect width="72" height="54" fill="#8ab"/></svg>' });
@@ -103,7 +103,7 @@ async function open(view, car, width, answers) {
 const OUT = { a: "#a-out", b: "#b-out", c: "#c-rail", d: "#c-rail" };   // d is the merged listing page: the rail and the list under the gallery
 const textOf = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); return e ? e.innerText.replace(/\s+/g, " ").trim() : null; }, sel).catch(() => null);
 
-for (const width of [1440, 390]) for (const view of ["a", "b", "c", "d"]) for (const sc of SCENARIOS) {
+if (!process.env.ONLY_SPLIT) for (const width of [1440, 390]) for (const view of ["a", "b", "c", "d"]) for (const sc of SCENARIOS) {
   const car = view === "c" || view === "d" ? DUMMY.q : "2025 Porsche 911", tag = `${view} ${width} ${sc.name}`;
   const { p, errs } = await open(view, car, width, sc.answers);
   try {
@@ -232,6 +232,52 @@ for (const width of [1440, 390]) {
   ok(!/Reserve \$30,000|Within the range|Above the range|Below the range/.test(c) && marks === 0 && rel === "", `listing form: no position from the engine means no line, no marker and no field note (${JSON.stringify((c || "").slice(0, 160))})`);
   ok(/\$22,500 to \$41,000/.test(c), "listing form: the range still shows");
   await p.close();
+  // A CAR THE ENGINE READS AS SEPARATE MARKETS (Sam, Nov 1 2026, the 2008 911 Carrera S: Coupe $44,500 to $66,000 and Cabriolet $43,000 to $63,000, no one range). The engine returns no range, so no position and no sales;
+  // the page must offer the engine's own choice (its body line), send the choice WITH every typed price, the mileage and the order, and then print what the engine places. It places and sorts nothing itself.
+  {
+    // the engine's REAL split answer (scripts/e98Fixtures.mjs "2004 BMW M3 (split)": cluster null, noCluster, the body line Convertible 9 / Coupe 8), with the five listing sales
+    const SPLITM = { status: "one_box", ...MC["2004 BMW M3 (split)"].d, cards: SALE_CARDS };
+    const rg = partnerShape(RANGE_B, "q", 0, {}).range, FIG_RANGE = "$" + rg.low.toLocaleString("en-US") + " to $" + rg.high.toLocaleString("en-US");   // the engine's figure, read from the shape function
+    const pick = body => body.refine && body.refine.body ? { ...RANGE_B, refined: body.refine } : SPLITM;
+    for (const width of [1440, 390]) {
+      const { p } = await open("b", CAR_B, width, pick); const t = `split car ${width}`;
+      await typeIn(p, "#b-miles", "15000"); await commit(p, "#b-miles"); await wait(500);
+      await typeIn(p, "#b-start", "40000"); await commit(p, "#b-start"); await wait(500);
+      await typeIn(p, "#b-bin", "60000"); await commit(p, "#b-bin"); await wait(900);
+      const last = p._asked[p._asked.length - 1] || {}, c0 = await cardText(p);
+      ok(last.mileage === 15000 && last.prices && last.prices.starting_bid === 40000 && last.prices.buy_it_now === 60000, `${t}: typing the three values sends them to the engine, one commit at a time (${JSON.stringify(last)})`);
+      ok(!/Lowest sale|Starting bid \$|Buy It Now \$/.test(c0 || "") && (await p.evaluate(() => document.querySelectorAll("#b-out .mk, #b-out .legend").length)) === 0 && (await p.evaluate(() => document.querySelectorAll('#b-out .idl[data-key="body"]').length)) === 2, `${t}: the engine gave no one range, so the card offers the engine's own body choice (Convertible, Coupe) and prints no position, bar or sale of its own (${JSON.stringify((c0 || "").slice(0, 160))})`);
+      ok(/Convertible \(9\)/.test(c0) && /Coupe \(8\)/.test(c0), `${t}: the choice carries the engine's counts (${JSON.stringify((c0 || "").slice(-120))})`);
+      const before = p._asked.length;
+      await p.evaluate(() => document.querySelector('#b-out .idl[data-val="coupe"]').click()); await wait(900);
+      const sent = p._asked[p._asked.length - 1] || {}, c1 = await cardText(p);
+      ok(p._asked.length === before + 1 && sent.refine && sent.refine.body === "coupe" && sent.mileage === 15000 && sent.prices && sent.prices.starting_bid === 40000 && sent.prices.buy_it_now === 60000 && sent.order === "miles", `${t}: choosing Coupe sends the engine's refine with the mileage, both prices and the order (${JSON.stringify(sent)})`);
+      ok(c1.includes(FIG_RANGE) && /Starting bid \$40,000/.test(c1) && /Buy It Now \$60,000/.test(c1) && (await p.evaluate(() => document.querySelectorAll("#b-out .sales li").length)) === 5, `${t}: after the choice the card shows the range, where the starting bid and the Buy It Now sit, and five sales (${JSON.stringify((c1 || "").slice(0, 200))})`);
+      ok((await p.evaluate(() => document.querySelectorAll("#b-out .idl.chosen").length)) === 1 && /Any \(/.test(c1), `${t}: the choice stays visible with a way back to Any`);
+      await p.evaluate(() => document.querySelector('#b-out .idl[data-val=""]').click()); await wait(900);
+      // back to the unsplit car: the same state as before the choice, so the page shows the one answer it already holds (one read per distinct state) and the split choice is offered again
+      const cb = await cardText(p);
+      ok((await p.evaluate(() => document.querySelectorAll("#b-out .idl.chosen").length)) === 0 && (await p.evaluate(() => document.querySelectorAll('#b-out .idl[data-key="body"]').length)) === 2 && !/Lowest sale|Starting bid \$/.test(cb || ""), `${t}: Any goes back to the unsplit car, offers the choice again and keeps what was typed (${JSON.stringify((cb || "").slice(0, 120))}, start ${await p.evaluate(() => document.querySelector("#b-start").value)}, bin ${await p.evaluate(() => document.querySelector("#b-bin").value)})`);
+      ok((await p.evaluate(() => document.querySelector("#b-start").value)) === "40,000" && (await p.evaluate(() => document.querySelector("#b-bin").value)) === "60,000" && (await p.evaluate(() => document.querySelector("#b-miles").value)) === "15,000", `${t}: the typed values are still in the fields`);
+      await p.close();
+    }
+    // THE CLASS: every engine answer with no one range (the engine reads the car as separate markets) either carries a choice the page offers, or it is a dead end for the visitor. Every such answer in the fixtures:
+    for (const [name, v] of Object.entries(MC)) {
+      const d = { status: "one_box", ...v.d, cards: SALE_CARDS }; if (d.tier !== "result" || d.cluster) continue;
+      const { p: pk } = await open("b", CAR_B, 1440, [d]); await typeIn(pk, "#b-start", "40000"); await commit(pk, "#b-start"); await wait(700);
+      const n = await pk.evaluate(() => document.querySelectorAll("#b-out .idl, #b-out button.opt").length), txt = await cardText(pk);
+      ok(n >= 2 && !/Starting bid \$40,000/.test(txt || ""), `no-range answer "${name}": view b offers the engine's choice (${n} options) and prints no position of its own`);
+      await pk.close();
+    }
+    // the engine's question (a body, model or generation chip) keeps the typed values the same way
+    const Q = { status: "one_box", tier: "body_choice", prompt: "Which one is it?", bodyOptions: ["Coupe", "Cabriolet"], baseLabel: CAR_B, askIndex: 1, resolvedCar: { year: 2008, make: "Porsche", model: "911", nameModel: "911", trim: "Carrera S", canonicalLabel: CAR_B } };
+    const { p: pq } = await open("b", CAR_B, 1440, b => b.q && /Cabriolet$/.test(b.q) ? RANGE_B : Q);
+    await typeIn(pq, "#b-start", "40000"); await commit(pq, "#b-start"); await wait(700);
+    await pq.evaluate(() => document.querySelector("#b-out button.opt").click()); await wait(900);
+    const sq = pq._asked[pq._asked.length - 1] || {};
+    ok(sq.prices && sq.prices.starting_bid === 40000 && /Coupe$/.test(sq.q || ""), `engine question: choosing a chip sends the engine's words with the typed price (${JSON.stringify(sq)})`);
+    await pq.close();
+  }
   // no range, no card
   const q = await open("b", CAR_B, 1440, [THIN]); const c2 = await cardText(q.p);
   ok(!/The middle half/.test(c2 || "") && /Only 3 sales/.test(c2 || ""), "listing form: with no range there is no card, only the engine's own line");
