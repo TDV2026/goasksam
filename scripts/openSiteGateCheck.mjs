@@ -16,7 +16,7 @@ const stranger = (url, query = {}) => ({ url, method: "GET", query, headers: { "
 // every public route a stranger can reach: [path, handler file, query]
 const ROUTES = [["/", "api/home.js", {}], ["/sell", "api/sell.js", {}], ["/find", "api/buy.js", {}], ["/market-check", "api/marketCheck.js", {}], ["/tasks", "api/tasksPage.js", {}], ["/business", "api/business.js", {}],
   ["/how-sam-decides", "api/howSamDecides.js", {}], ["/about", "api/about.js", {}], ["/feedback", "api/feedback.js", {}], ["/privacy", "api/legal.js", { page: "privacy" }], ["/terms", "api/legal.js", { page: "terms" }], ["/cars/porsche/911", "api/specPage.js", { slug: "/cars/porsche/911" }]];
-const RAIL = [["Home", /<a [^>]*href="\/"[^>]*>(?:\s*<[^>]*>)*\s*Home/], ["Find", /href="\/find"/], ["Market Check", /href="\/market-check"/], ["Sell", /href="\/sell"/], ["Tasks", /href="\/tasks"/], ["For business", /href="\/business"/], ["How Sam decides", /href="\/how-sam-decides"/], ["About", /href="\/about"/], ["Feedback", /href="\/feedback"/]];
+const RAIL = [["Home", /<a [^>]*href="\/"[^>]*>(?:\s*<[^>]*>)*\s*Home/], ["Find", /href="\/find"/], ["Market Check", /href="\/market-check"/], ["Sell", /href="\/sell"/], ["Tasks", /href="\/tasks"/], ["For business", /href="\/business"/], ["How Sam decides", /href="\/how-sam-decides"/], ["About", /href="\/about"/], ["What's new", /href="\/whats-new"/], ["Feedback", /href="\/feedback"/]];
 const run = async (file, url, q) => { const mod = await imp(file), res = mkRes(); try { await mod.default(stranger(url, q), res); } catch (e) { res.c = 500; res.b = String(e && e.stack || e); } return res; };
 OPEN();
 for (const [url, file, q] of ROUTES) {
