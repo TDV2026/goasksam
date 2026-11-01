@@ -271,7 +271,7 @@ async function logSearch(env, v, anonId) {
 function cleanFilters(raw) {
   const f = emptyFilters(); if (!raw || typeof raw !== "object") return null;
   const arr = (k, re) => Array.isArray(raw[k]) ? raw[k].map(String).filter(s => re.test(s)).slice(0, 12) : [];
-  f.bodies = arr("bodies", /^[a-z ]{3,20}$/); f.colours = arr("colours", /^[a-z]{3,10}$/); f.notColours = arr("notColours", /^[a-z]{3,10}$/);
+  f.bodies = arr("bodies", /^[a-z ]{3,20}$/); f.colours = arr("colours", /^[a-z]{3,10}$/); f.notColours = arr("notColours", /^[a-z]{3,10}$/); f.notWords = arr("notWords", /^not:[a-z0-9_]{2,28}$/);
   f.countries = arr("countries", /^[A-Z]{2}$/); f.houses = arr("houses", /^[a-z]{2,24}$/); f.gens = arr("gens", /^[A-Za-z0-9.]{1,8}$/);
   f.kind = typeof raw.kind === "string" && /^[A-Za-z0-9 .\-]{1,30}$/.test(raw.kind) ? raw.kind : null;
   f.gearbox = raw.gearbox === "manual" || raw.gearbox === "auto" ? raw.gearbox : null; f.gearboxLabel = typeof raw.gearboxLabel === "string" ? raw.gearboxLabel.slice(0, 20) : null;
@@ -634,7 +634,7 @@ async function handler(req, res) {
     if (!v) return res.status(200).json({ status: "unresolved", message: "Sam couldn’t tell which car that is. Try a make and model, like Porsche 911 or Ferrari 812." });
     const f = cleanFilters(b.filters) || parsed.filters;
     if (!b.filters) { const named = gensNamed(parsed.text, v.make); if (named.length > 1 || (named.length === 1 && !v.genCode)) f.gens = named; }
-    const { rows, facets } = await searchLive(env, v, f, parsed.text);
+    const { rows, facets, excluded } = await searchLive(env, v, f, parsed.text);
     // The market (the US and Canada, lib/live/search.js isAbroadRow) first, then abroad; inside each, every-filter-confirmed before "may match".
     const ordered = [...rows.filter(x => !isAbroadRow(x.r)), ...rows.filter(x => isAbroadRow(x.r))]
       .sort((a, b2) => { const ab = c => (isAbroadRow(c.r) ? 2 : 0) + (c.unknown.length ? 1 : 0); return ab(a) - ab(b2); });
@@ -653,7 +653,7 @@ async function handler(req, res) {
     return res.status(200).json({
       status: "ok",
       understood: { make: v.make, model: v.parentModel || v.model || null, trim: v.trim || null, year: v.year || null, noun: nounFor(v, f), filters: f },
-      total: rows.length, shownCap: capped.length, cards: first.concat(rest), facets, familyKey, emptyMarket
+      total: rows.length, shownCap: capped.length, cards: first.concat(rest), facets, familyKey, emptyMarket, excluded: excluded && excluded.length ? excluded : undefined
     });
   } catch (e) {
     console.error("buySearch failed:", (e && e.stack) || e);
