@@ -320,7 +320,7 @@ function questionOf(d, text, asked) {
   const tier = String(d.tier || ""), next = Number(d.askIndex) || (asked + 1);
   const rc = d.resolvedCar || {};
   const base = d.baseLabel || [rc.year, rc.make, rc.nameModel || rc.model, rc.trim].filter(Boolean).join(" ") || text;
-  const skip = { label: "Just show what sold", send: { q: text, asked: 2 } };
+  const skip = null;   // the demo never offers "Just show what sold" or any way past a choice (Sam, Oct 31 2026): the live Find, Market Check and Sell keep the engine's own skip
   if (tier === "generation_choice" && Array.isArray(d.generationOptions)) {
     return { dimension: "generation", text: d.prompt || "Which generation is it?", options: d.generationOptions.map(o => ({ label: o.label, send: { q: o.query, asked: next } })), skip };
   }
@@ -334,7 +334,7 @@ function questionOf(d, text, asked) {
     const val = label => iq.dimension === "gearbox" ? (/manual/i.test(label) ? "manual" : "auto")
       : iq.dimension === "competition" ? (/competition/i.test(label) ? "competition" : "standard")
       : iq.dimension === "documented_history" ? (/^has/i.test(label) ? "has" : "nohas") : null;
-    if (key) return { dimension: iq.dimension, text: iq.questionText || null, options: iq.options.map(o => ({ label: o.label, count: o.count ?? null, send: { q: text, refine: { [key]: val(o.label) }, asked: next } })), skip: { label: iq.skipLabel || skip.label, send: skip.send } };
+    if (key) return { dimension: iq.dimension, text: iq.questionText || null, options: iq.options.map(o => ({ label: o.label, count: o.count ?? null, send: { q: text, refine: { [key]: val(o.label) }, asked: next } })), skip };
   }
   return null;
 }
@@ -347,7 +347,7 @@ function engineQuestionCore(d, text, asked) {
   const tier = String(d.tier || ""), next = Number(d.askIndex) || (asked + 1);
   const rc = d.resolvedCar || {};
   const base = d.baseLabel || [rc.year, rc.make, rc.nameModel || rc.model, rc.trim].filter(Boolean).join(" ") || text;
-  const skip = { label: "Just show what sold", send: { q: text, asked: 2 } };
+  const skip = null;   // the demo never offers "Just show what sold" or any way past a choice (Sam, Oct 31 2026): the live Find, Market Check and Sell keep the engine's own skip
   if (tier === "generation_choice" && Array.isArray(d.generationOptions)) {
     return { dimension: "generation", text: d.prompt || "Which generation is it?", options: d.generationOptions.map(o => ({ label: o.label, send: { q: o.query, asked: next } })), skip };
   }
@@ -382,7 +382,7 @@ function engineQuestionCore(d, text, asked) {
     // engine's raw prompt, whose {carPlural} placeholder is not for display
     const labels = iq.options.map(o => String(o.label || "")).filter(Boolean);
     const qtext = labels.length >= 2 ? labels.slice(0, -1).join(", ") + " or " + labels[labels.length - 1] + "?" : (d.prompt && !/\{[a-zA-Z]+\}/.test(d.prompt) ? d.prompt : "Which is it?");
-    if (key) return { dimension: iq.dimension, text: qtext, options: iq.options.map(o => ({ label: o.label, count: o.count ?? null, send: { q: text, refine: { [key]: val(o.label) }, asked: next } })), skip: { label: iq.skipLabel || skip.label, send: skip.send } };
+    if (key) return { dimension: iq.dimension, text: qtext, options: iq.options.map(o => ({ label: o.label, count: o.count ?? null, send: { q: text, refine: { [key]: val(o.label) }, asked: next } })), skip };
   }
   return null;
 }

@@ -12,10 +12,10 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); }
 const h = amazonPageHtml("a", "2019 porsche 911", { carOf, listing: DUMMY }), js = h.slice(h.indexOf("<script>") + 8, h.lastIndexOf("</script>"));
 const page = h.replace(/<script>[\s\S]*<\/script>/, "");
 const cardFn = js.slice(js.indexOf("function cardHtml(a){"), js.indexOf("// This exact car's history"));
-ok(/function askOf\(a\)\{ return a && \(a\.engineQuestion \|\| a\.question\) \|\| null; \}/.test(js) && /if \(askOf\(a\)\) \{\s*var q = askOf\(a\), opts = \(q\.options \|\| \[\]\)\.concat\(q\.skip \? \[q\.skip\] : \[\]\);/.test(js.slice(js.indexOf("function askOf(a)"), js.indexOf("// This exact car's history"))), "the chips are drawn from the engine's question only (engineQuestion, else question): its options, then the engine's skip, in the engine's order");
+ok(/function askOf\(a\)\{ return a && \(a\.engineQuestion \|\| a\.question\) \|\| null; \}/.test(js) && /if \(askOf\(a\)\) \{\s*var q = askOf\(a\), opts = q\.options \|\| \[\];/.test(js.slice(js.indexOf("function askOf(a)"), js.indexOf("// This exact car's history"))), "the chips are drawn from the engine's question only (engineQuestion, else question): its options in the engine's order, no skip chip (Sam, Oct 31 2026)");
 ok(/\(o\.count != null && !\/\\\(\\d\+\\\)\/\.test\(String\(o\.label\)\) \? " \(" \+ esc\(o\.count\) \+ "\)" : ""\)/.test(cardFn + js.slice(js.indexOf("function askOf(a)"), js.indexOf("// This exact car's history"))), "a count beside a label is the engine's own count, never one of the page's, and never twice");
 ok(/'<p class="q-text">' \+ esc\(q\.text\)/.test(cardFn) && /esc\(o\.label\)/.test(cardFn) && /data-qsend="' \+ esc\(JSON\.stringify\(o\.send \|\| \{\}\)\)/.test(cardFn), "the question text and every label are the engine's own; each chip carries the option's own send");
-ok(/q\.skip && i === opts\.length - 1 \? " skip" : ""/.test(cardFn), "the engine's skip option is the last, plainer chip");
+ok(!/q\.skip|\.concat\(/.test(cardFn), "the Amazon demo draws no skip chip");
 // no question text of the page's own anywhere in the page or its script
 ok(!/Which (911|one|car|body|model|generation)|Did you mean|Is it a /i.test(h), "the page writes no question text");
 // the chip click

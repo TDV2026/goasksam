@@ -28,6 +28,11 @@ const RC = { year: 2025, make: "Porsche", model: "911", nameModel: "911", canoni
 const MODEL_Q = { status: "one_box", tier: "model_choice", askIndex: 1, resolvedCar: { year: 2025, make: "Porsche" }, baseLabel: "2025 Porsche", prompt: "Which Porsche model?", modelOptions: ["911", "Cayenne"] };
 const TRIM_Q = { status: "one_box", tier: "trim_choice", askIndex: 2, resolvedCar: RC, prompt: "Which 911?", trimOptions: [{ label: "Carrera", value: "carrera", n: 14 }, { label: "Carrera S", value: "carrera s", n: 9 }], trimChips: ["Carrera (14)", "Carrera S (9)"], optionCounts: [14, 9] };
 
+const GEN_Q = { status: "one_box", tier: "generation_choice", askIndex: 1, resolvedCar: RC, prompt: "Which generation?", generationOptions: [{ label: "991", query: "2015 Porsche 911 991" }, { label: "992", query: "2020 Porsche 911 992" }] };
+const BODY_Q = { status: "one_box", tier: "body_choice", askIndex: 1, resolvedCar: RC, baseLabel: "2005 Porsche 911", prompt: "Coupe or Cabriolet?", bodyOptions: ["Coupe", "Cabriolet"] };
+const VAR_Q = { status: "one_box", tier: "variant_choice", askIndex: 1, resolvedCar: RC, prompt: "Which one?", variantChoices: [{ key: "gt3", label: "GT3", count: 9 }, { key: "base", label: "Carrera", count: 14 }] };
+const idq = (dimension, labels) => ({ status: "one_box", tier: dimension + "_choice", askIndex: 1, resolvedCar: RC, prompt: "Which?", identityQuestion: { dimension, blocking: true, options: labels.map((l, i) => ({ label: l, count: 5 + i })), skipLabel: "Just show what sold" } });
+const GEAR_Q = idq("gearbox", ["Manual", "PDK"]), COMP_Q = idq("competition", ["Competition", "Standard"]), DOC_Q = idq("documented_history", ["Has records", "No records"]);
 // each scenario: the engine answers in order (the last repeats), what the panel must say, whether a range is expected
 const SCENARIOS = [
   { name: "range", answers: [RANGE], say: ["$22,500", "$41,000"], range: true },
@@ -37,8 +42,24 @@ const SCENARIOS = [
   { name: "waiting", answers: [WAITING], say: [READING], range: false, allowTryAgain: true },
   { name: "engine names no line", answers: [NOTHING], say: [COULD_NOT], range: false, allowCouldNot: true },
   { name: "model question", answers: [MODEL_Q, RANGE], say: ["Which Porsche model?"], range: false, ask: true },
+  ...[["generation question", GEN_Q], ["body question", BODY_Q], ["variant question", VAR_Q], ["gearbox question", GEAR_Q], ["competition question", COMP_Q], ["documented history question", DOC_Q]].map(([name, q]) => ({ name, answers: [q, RANGE], say: [], range: false, ask: true })),
   { name: "trim question (the 2025 911)", answers: [TRIM_Q, RANGE], say: ["Which 911?", "Carrera"], range: false, ask: true, follow: ["$22,500", "$41,000"] }
 ];
+// NO SKIP CHIP IN THE DEMO (Sam, Oct 31 2026): the engine offers "Just show what sold" on every choice step (model, generation, trim, body, gearbox, competition, history);
+// the demo (eBay views a to d, Amazon) never draws it or any other way past the question. The live Find, Market Check and Sell keep it.
+const SKIPWORDS = /just show|show what sold|\bskip\b|not sure|none of these|other\b/i;
+for (const [name, q] of [["model", MODEL_Q], ["generation", GEN_Q], ["body", BODY_Q], ["trim", TRIM_Q], ["variant", VAR_Q], ["gearbox", GEAR_Q], ["competition", COMP_Q], ["documented history", DOC_Q]]) {
+  const o = partnerShape(q, "2025 Porsche 911", 0, {});
+  ok(o.question && o.engineQuestion || o.engineQuestion, `${name}: the demo answer carries the engine's question`);
+  for (const k of ["question", "engineQuestion"]) if (o[k]) { ok(!o[k].skip, `${name}: ${k} carries no skip`); ok(!(o[k].options || []).some(x => SKIPWORDS.test(x.label)), `${name}: ${k} options hold no skip or escape chip`); }
+}
+{
+  const fsx = await import("node:fs");
+  const src = f => fsx.readFileSync(new URL("../" + f, import.meta.url), "utf8");
+  ok((src("lib/onebox.js").match(/skipLabel: "Just show what sold"/g) || []).length >= 2, "the live engine still offers 'Just show what sold' (Find, Market Check, Sell keep it)");
+  ok(/skipLabel/.test(src("public/js/onebox.js")), "the live Market Check page still draws the engine's skip");
+  ok(!/partnerAnswer|partnerShape/.test(src("lib/onebox.js") + src("public/js/onebox.js")), "the live pages do not read the demo's answer shape, so the demo change cannot reach them");
+}
 const ERR = /undefined|NaN|\[object|TypeError|ReferenceError|Unexpected token|Something went wrong|\bnull\b/;
 
 const browser = await startBrowser();
@@ -81,6 +102,7 @@ for (const width of [1440, 390]) for (const view of ["a", "b", "c", "d"]) for (c
       const tall = await p.evaluate(s => Array.from(document.querySelectorAll(s + " button.opt")).every(b => b.getBoundingClientRect().height >= 30), OUT[view]);
       ok(tall, `${tag}: the chips are tappable size`);
       const labels = await p.evaluate(s => Array.from(document.querySelectorAll(s + " button.opt")).map(b => b.innerText.trim()), OUT[view]);
+      ok(!labels.some(l => SKIPWORDS.test(l)), `${tag}: no skip or escape chip is drawn (${labels.join(" | ")})`);
       ok(labels.every(l => !/\(\d[\d,]*\)\s*\(\d[\d,]*\)/.test(l)), `${tag}: a count is printed once beside a chip (${labels.join(" | ")})`);
       if (sc.follow && opts.length) {
         await opts[0].click(); await new Promise(r => setTimeout(r, 900));

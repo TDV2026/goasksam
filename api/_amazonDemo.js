@@ -478,9 +478,9 @@ const JS = String.raw`
   function cardHtml(a){
     if (!a || a.ok === false) return '<p class="muted">' + esc(a && a.stillReading ? (a.line || STILL_LINE) : COULD_NOT) + "</p>";
     if (askOf(a)) {
-      var q = askOf(a), opts = (q.options || []).concat(q.skip ? [q.skip] : []);
+      var q = askOf(a), opts = q.options || [];   // no skip chip in the demo (Sam, Oct 31 2026)
       // the engine's question, its text and options and their order exactly as the engine returns them, drawn as chips; the skip option last
-      return '<div class="qa">' + (q.text ? '<p class="q-text">' + esc(q.text) + "</p>" : "") + '<div class="q-row">' + opts.map(function(o, i){ return '<button type="button" class="qchip' + (q.skip && i === opts.length - 1 ? " skip" : "") + '" data-qsend="' + esc(JSON.stringify(o.send || {})) + '" data-carword="' + esc(o.carWord || "") + '">' + esc(o.label) + (o.count != null && !/\(\d+\)/.test(String(o.label)) ? " (" + esc(o.count) + ")" : "") + "</button>"; }).join("") + "</div></div>";
+      return '<div class="qa">' + (q.text ? '<p class="q-text">' + esc(q.text) + "</p>" : "") + '<div class="q-row">' + opts.map(function(o, i){ return '<button type="button" class="qchip' + '" data-qsend="' + esc(JSON.stringify(o.send || {})) + '" data-carword="' + esc(o.carWord || "") + '">' + esc(o.label) + (o.count != null && !/\(\d+\)/.test(String(o.label)) ? " (" + esc(o.count) + ")" : "") + "</button>"; }).join("") + "</div></div>";
     }
     var c = a.cardWithRows || a.card || ""; return withRows(c.replace('<div class="gas-pill-slot"></div>', ""), a);
   }
