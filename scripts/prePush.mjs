@@ -1810,6 +1810,12 @@ try {
   record("ops: task=foreigncars reads in bounded pages, never sorts or filters on a raw_record field (scripts/foreignCarsTaskCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/storedFitCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("Stored fit read: nothing stored is never counted as the engine returning nothing; the read never computes or writes (scripts/storedFitCheck.mjs)", "PASS", (out.match(/storedFitCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Stored fit read: nothing stored is never counted as the engine returning nothing; the read never computes or writes (scripts/storedFitCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/exactYearParallelCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: a car with a trim reads its exact-year line beside the first answer, not after it (scripts/exactYearParallelCheck.mjs)", "PASS", (out.match(/exactYearParallelCheck: .*/) || [""])[0]);
 } catch (e) {

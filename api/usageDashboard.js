@@ -1824,6 +1824,16 @@ async function handleOps(req, res) {
     if (!out.stoppedAtBudget && offset + limit < all.length) out.next = offset + limit; else if (out.stoppedAtBudget) out.next = offset + out.read;
     return res.status(200).json(out);
   }
+  // task=storedfit (Lane D, Nov 1 2026; READ-ONLY, no compute, no write, no OldCarsData): ?list=a|b|c (up to 40 car texts a call). For each, what the engine's STORED answer says (range, thin, nothing, refusal, question), or no_row when nothing is stored
+  // (no_row is not "nothing": it says nothing about the engine's answer). Resolves each text as a visit does, reads the stored row, never runs the engine. lib/admin/storedFit.js.
+  if (task === "storedfit") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js");
+    const { warmAnswerKeyFor, readWarmAnswerDetailed, questionRowKey, readQuestionRow } = await import("../lib/live/search.js"); const { storedFitOf } = await import("../lib/admin/storedFit.js");
+    const list = String(req.query?.list || "").split("|").map(x => x.trim()).filter(Boolean).slice(0, 40);
+    const out = await storedFitOf(list, { resolve: async q => { const r = await resolveVehicle(q, {}); return r && r.status === "valid" && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null; }, generationOf: v => findGeneration(v, env), keyFor: (v, g) => warmAnswerKeyFor(v, g, null), readAnswer: k => readWarmAnswerDetailed(env, k), questionKey: questionRowKey, readQuestion: k => readQuestionRow(env, k) });
+    return res.status(200).json({ task: "storedfit", ocdSpend: 0, writes: 0, compute: 0, asked: list.length, ...out });
+  }
   // task=typedmissing (Lane B, Oct 29 2026; READ-ONLY, no write, no spend): the car texts typed ?min= (default 3) or more times in the last ?days= (default 7) on Market Check (?product=, default market_check) whose resolved
   // spec has no stored answer (or one behind the epoch): the cars people actually type that a visit would have to compute. ?crew=1 includes crew and test traffic (before launch almost every search is). Texts that look like a VIN,
   // an email, a phone number or a person's name are dropped, as buyqueries does. Returns the texts for warmNamed (--list) and, per text, why (no_row, stale, other stamp). Budget-bounded (?budget= ms, default 150000).
