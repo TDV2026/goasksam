@@ -1792,6 +1792,12 @@ try {
   record("resolver: Rick Carey's period body names are read on input as their pool and never printed back; coachbuilder spellings merge (scripts/nomenclatureCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/partnerFirstLoadCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("partner: a demo car's first load is served from storage with typed prices placed from the stored range; the bar's ends are the exact lowest and highest sale (scripts/partnerFirstLoadCheck.mjs)", "PASS", (out.match(/partnerFirstLoadCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("partner: a demo car's first load is served from storage with typed prices placed from the stored range; the bar's ends are the exact lowest and highest sale (scripts/partnerFirstLoadCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/partnerPositionCheck.mjs", { encoding: "utf8", timeout: 120000 });
   record("partner: typed prices are placed and the sales come in three orders by the engine; no page compares a price with the range (scripts/partnerPositionCheck.mjs)", "PASS", (out.match(/partnerPositionCheck: .*/) || [""])[0]);
 } catch (e) {

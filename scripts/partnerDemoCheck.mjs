@@ -71,7 +71,11 @@ const SALE_CARDS = [
   { id: "00000000-0000-4000-8000-000000000004", date: "2026-10-03", mi: 55100, price: 19500, title: "2008 Porsche 911 Carrera S", platform: "Venue Three", url: "https://sales.example/s4", image: "https://img.example/broken.svg" },
   { id: "00000000-0000-4000-8000-000000000005", date: "2026-09-27", mi: 27600, price: 38500, title: "2008 Porsche 911 Carrera S sold on Bring a Trailer", platform: "Venue Two", url: "https://sales.example/s5", image: null }
 ];
-const RANGE_B = { ...RANGE, span: [15000, 60000], cards: SALE_CARDS };
+const RANGE_B = { ...RANGE, cards: SALE_CARDS };
+// The figures the card prints are the ENGINE's, read from the same shape function the endpoint uses (range, and the exact lowest and highest sale: lowestSaleN / highestSaleN). Never typed into this check.
+const usdE = n => "$" + Number(n).toLocaleString("en-US");
+const engineFigures = d => { const o = partnerShape(d, "q", 0, {}); return { range: usdE(o.range.low) + " to " + usdE(o.range.high), lo: o.span ? "Lowest sale " + usdE(o.span.low) : null, hi: o.span ? "Highest sale " + usdE(o.span.high) : null }; };
+const FIG_B = engineFigures(RANGE_B);
 const engineOrder = (order, mileage) => partnerPositionsOf(RANGE_B, { prices: {}, mileage: mileage || null, order }).sales.map(r => r.price);
 function engineAsk(out, d, body) {
   const ask = positionAskOf(body); if (!ask || !out || out.ok === false) return out;
@@ -165,7 +169,7 @@ for (const width of [1440, 390]) {
     ok(page.demoBar && /b\. Setting a reserve/.test(page.demoBar) && /^b\./.test(page.tabOn || "") && page.carbar && page.logo && /Prepared for eBay/.test(page.prep || ""), `${t}: the demo bar (b active), the car row and the eBay strip with its logo are the other pages' own`);
     ok(!page.side, `${t}: no sideways scroll`);
     let c = await cardText(p);
-    ok(["What these sell for", "$22,500 to $41,000", "The middle half of completed sales", "Lowest sale $15,000", "Highest sale $60,000", "Powered by GoAskSam", "How Sam decides", "Type a price and Sam shows where it sits against the range."].every(x => (c || "").includes(x)), `${t}: with no price typed the card shows the range, the ends and the hint, got ${JSON.stringify((c || "").slice(0, 200))}`);
+    ok(["What these sell for", FIG_B.range, "The middle half of completed sales", FIG_B.lo, FIG_B.hi, "Powered by GoAskSam", "How Sam decides", "Type a price and Sam shows where it sits against the range."].every(x => (c || "").includes(x)), `${t}: with no price typed the card shows the range, the ends and the hint, got ${JSON.stringify((c || "").slice(0, 200))}`);
     ok(!/\bnull\b|undefined|NaN/.test(c || ""), `${t}: no error text in the card`);
     // prices: each is placed by the ENGINE's answer; the page only prints it
     const reads0 = p._asked.length;
@@ -230,8 +234,20 @@ for (const width of [1440, 390]) {
   await typeIn(p, "#b-reserve", "30000"); await commit(p, "#b-reserve"); await wait(900);
   const c = await cardText(p), marks = await p.evaluate(() => document.querySelectorAll("#b-out .mk").length), rel = await p.evaluate(() => [...document.querySelectorAll("#view-b .rel")].map(e => e.innerText.trim()).join(""));
   ok(!/Reserve \$30,000|Within the range|Above the range|Below the range/.test(c) && marks === 0 && rel === "", `listing form: no position from the engine means no line, no marker and no field note (${JSON.stringify((c || "").slice(0, 160))})`);
-  ok(/\$22,500 to \$41,000/.test(c), "listing form: the range still shows");
+  ok(c.includes(FIG_B.range), "listing form: the range still shows");
   await p.close();
+  // THE ENDS ARE THE ENGINE'S (Lane B lane-b-fast a832088f: the exact lowest and highest sale replace the rounded rail). Move the engine's figures and the card follows; take them away and the card prints no end.
+  for (const [name, patch] of [["moved", { lowestSaleN: 11111, highestSaleN: 88888 }], ["exact ends missing", { lowestSaleN: null, highestSaleN: null }]]) {
+    const d = { ...RANGE_B, ...patch }, f = engineFigures(d), { p: pe } = await open("b", CAR_B, 1440, [d]); const ce = await cardText(pe);
+    if (patch.lowestSaleN) ok(f.lo === "Lowest sale " + usdE(patch.lowestSaleN) && f.hi === "Highest sale " + usdE(patch.highestSaleN) && ce.includes(f.lo) && ce.includes(f.hi) && !ce.includes(FIG_B.lo), `listing form: when the engine's lowest and highest sale are ${name}, the card prints those (${JSON.stringify((ce || "").slice(0, 200))})`);
+    else ok(f.lo === null && !/Lowest sale|Highest sale/.test(ce) && ce.includes(f.range) && /Type a price/.test(ce) && (await pe.evaluate(() => document.querySelectorAll("#b-out .bar").length)) === 0, `listing form: with ${name} from the engine the card prints no end and no bar, and keeps the range and the hint (${JSON.stringify((ce || "").slice(0, 200))})`);
+    await pe.close();
+  }
+  // static: this check holds no dollar figure for the card's range or ends; they come from engineFigures()
+  { const me = import.meta.url.replace("file://", ""), self = (await import("node:fs")).readFileSync(me, "utf8");
+    const hard = (t) => /["'`](?:Lowest|Highest) sale \$\d|["'`]\$\d[\d,]* to \$\d[\d,]*["'`]/.test(t.replace(/\/\/ static[^\n]*\n/, ""));
+    ok(!hard(self.split("\n").filter(l => !/hard\(|selfTestHard/.test(l)).join("\n")), "listing form: the check types no dollar figure for the card's range or ends (engineFigures reads them)");
+    ok(hard('x("Lowest sale $15,000")') && hard("x('$22,500 to $41,000')") && !hard("x(FIG_B.lo)"), "listing form: that guard sees a typed end or range and ignores a read one"); }
   // no range, no card
   const q = await open("b", CAR_B, 1440, [THIN]); const c2 = await cardText(q.p);
   ok(!/The middle half/.test(c2 || "") && /Only 3 sales/.test(c2 || ""), "listing form: with no range there is no card, only the engine's own line");

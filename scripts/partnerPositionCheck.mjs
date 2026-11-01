@@ -82,9 +82,9 @@ if (ask) {
 const strip = t => t.replace(/\/\/[^\n]*/g, "");
 const pa = strip(fs.readFileSync("api/partnerAnswer.js", "utf8"));
 ok("the answer guard has no exemption for any path", !/placedSales/.test(pa.slice(pa.indexOf("export function venueLeak"), pa.indexOf("export default async function handler"))));
-const iStore = pa.indexOf("writeLast(env, lk, out)"), iPos = pa.indexOf("partnerPositionsOf(r.d, ask)");
+const iStore = pa.indexOf("writeLast(env, lk, storedWithPlaced(out, r.d))"), iPos = pa.indexOf("partnerPositionsOf(r.d, ask)");
 ok("positions are added after the last good answer is stored, so a stored answer never carries them", iStore > 0 && iPos > iStore, `${iStore} < ${iPos}`);
-ok("a request that asks is read through Market Check, never from a stored answer without the fields", /const qk = ask \? null : demoKey\(text\)/.test(pa));
+ok("a request that needs the live engine (a typed mileage, another order, a stored answer without the placed sales) is read through Market Check", /servedFromStored\(qlast\.out, ask\)/.test(pa) && /ask\.mileage \|\| \(ask\.order && ask\.order !== "date"\)/.test(pa));
 // 10. THE CLASS: no page compares a price with the engine's range. A comparison with a number (range.low > 0) is a test for a range, not a place.
 const COMPARE = /[<>]=?\s*(?!0\b)[\w$.\[\]]*range\.(?:low|high)\b|range\.(?:low|high)\s*[<>]=?\s*(?!0\b)[\w$.\[\]]/;
 const ALLOW = [
@@ -103,5 +103,12 @@ ok("no page file compares a price with the range (api/partnerDemo.js and every f
 const pd = fs.readFileSync("api/partnerDemo.js", "utf8");
 ok("api/partnerDemo.js has no placing() (Sam, Nov 1 2026) and words only the engine's positions (posOf, posPill)", !/\bplacing\s*\(/.test(pd) && /function posOf\(a, key\)\{[^}]*\.positions|var l = a && a\.positions/.test(pd) && /function posPill\(p, who\)\{[^}]*PLACE_PILL\[p && p\.place\]/.test(pd));
 ok("the listing views send their prices to the engine (c: item_price; b: starting bid, Buy It Now, reserve or item price, and the mileage and order)", /prices: \{ item_price: D\.price \}/.test(pd) && /body\.prices = pr/.test(pd) && /body\.mileage = mi/.test(pd) && /body\.order = /.test(pd));
+// 11. span (the bar's ends) is the engine's exact lowest and highest sale, and the contract says so
+{ const sh = PA.partnerShape({ status: "one_box", tier: "result", cluster: [130000, 150000], span: [100000, 200000], lowestSaleN: 123456, highestSaleN: 187654, poolN: 12, cards: [] }, "x", 0, {});
+  ok("span is lowestSaleN / highestSaleN (exact), never the rounded rail d.span", sh.span && sh.span.low === 123456 && sh.span.high === 187654, JSON.stringify(sh.span));
+  ok("span is null without a range", PA.partnerShape({ status: "one_box", tier: "thin", cluster: null, span: [1, 2], lowestSaleN: 5, highestSaleN: 9, poolN: 3, cards: [] }, "x", 0, {}).span === null);
+  ok("span is numbers only and clean under the answer guard", PA.venueLeak({ span: sh.span }).length === 0 && Object.values(sh.span).every(v => typeof v === "number"));
+  const doc = fs.readFileSync("docs/partner-answer-contract.md", "utf8");
+  ok("docs/partner-answer-contract.md lists positions, placedSales, order and span, and that no venue or address is in a sale", /positions\[\]/.test(doc) && /placedSales\[\]/.test(doc) && /`span`/.test(doc) && /No venue and no address/.test(doc)); }
 console.log(fail ? `partnerPositionCheck: ${fail} failure(s)` : "partnerPositionCheck: all pass");
 process.exit(fail ? 1 : 0);

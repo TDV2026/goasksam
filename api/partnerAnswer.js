@@ -30,7 +30,7 @@ import { lastUpdatedDate, shortDate } from "../lib/asOf.js";
 let CARD_UPDATED = "";
 import { decodeVinFacts } from "../lib/vehicle.js";
 import { sellsForCardHtml, latestQuarterRowHtml } from "../lib/sellsForCard.js";
-import { mapEngineAnswer, ENGINE_VERSION, partnerPositionsOf, PARTNER_PRICE_KEYS } from "../lib/onebox.js";
+import { mapEngineAnswer, ENGINE_VERSION, partnerPositionsOf, partnerPlacesOf, PARTNER_PRICE_KEYS } from "../lib/onebox.js";
 
 // THE SHARED CARD (Sam, Oct 16 2026; Lane A's lib/sellsForCard.js): the "What these sell for" card is rendered here by
 // the one function every product uses, from the very answer Market Check's page hands it (its raw answer), so the
@@ -83,7 +83,7 @@ export async function refreshDemoAnswer(env, car, { host = "goasksam.com" } = {}
   const t0 = Date.now();
   let r;
   try { r = await marketCheckAnswer({ headers: { host } }, car, null, 0, true); } catch (e) { return { car, stored: false, why: "read failed", ms: Date.now() - t0 }; }
-  const out = await withCarFacts(partnerShape(r && r.d, car, 0, {}), r && r.d, { env });
+  const out = storedWithPlaced(await withCarFacts(partnerShape(r && r.d, car, 0, {}), r && r.d, { env }), r && r.d);
   if (!fullResult(out) && !questionResult(out)) return { car, stored: false, why: out && out.stillReading ? "still reading" : (out && (out.error || out.answerType)) || "no answer", ms: Date.now() - t0 };
   if (venueLeak(out).length) return { car, stored: false, why: "blocked", ms: Date.now() - t0 };
   const ok = await writeLast(env, key, out, { force: true });
@@ -622,7 +622,7 @@ export function partnerShape(d, text, asked, extra = {}) {
     identity: identityOf(d, extra.id), question: null,
     ...(engineQuestion ? { engineQuestion } : {}),   // a question tier question() does not map (trim_choice, variantChoices): additive
     range, count, window: d.windowLabel || null,
-    span: Array.isArray(d.span) && d.span.length === 2 && num(d.span[0]) > 0 && num(d.span[1]) > 0 ? { low: num(d.span[0]), high: num(d.span[1]) } : null,   // the pool's own lowest and highest sale (the bar's ends on the listing form); the engine's field, passed as it is
+    span: range && num(d.lowestSaleN) > 0 && num(d.highestSaleN) >= num(d.lowestSaleN) ? { low: num(d.lowestSaleN), high: num(d.highestSaleN) } : null,   // the included sales' EXACT lowest and highest (the engine's lowestSaleN / highestSaleN, the figures sellsForCard reads for the spread beside the range), for the ends of the bar; d.span is the rounded rail and is not it
     sales: salesOf(d), rows: rowsOf(d), asideRows: asideRowsOf(d), asideLine: asideSentence(d), setAside: setAsideOf(d),
     thin: range ? null : thinTextOf(d, count),
     trend: range ? trendOf(d) : null,
@@ -638,6 +638,23 @@ export function partnerShape(d, text, asked, extra = {}) {
 // Belt and braces: the reshaped answer carries only fields this file wrote, but a venue name or listing link must
 // never leave even if an upstream field changes shape. Any string that names a venue or a URL fails the answer.
 const VENUE_RE = /bring ?a ?trailer|\bbat\b|cars ?(&|and) ?bids|pcar ?market|hagerty|gooding|rm sotheby|sotheby|bonhams|mecum|barrett|broad ?arrow|hemmings|collecting ?cars|car ?& ?classic|pistonheads|all ?collector|mb ?market|autohunter|\bthemarket\b|https?:\/\//i;
+// THE DEMO'S STORED ANSWER ALSO HOLDS THE PLACED SALES FOR THE DEFAULT ORDER (Lane B, Nov 1 2026, the eBay demo's first load): the page's first read carries an order, and a request that asks was never served from storage, so every cold load read the live engine.
+// The stored answer now carries placedSales (the five sales, newest first, the default order with no mileage typed) and order "date"; positions are placed from the stored range at read time (partnerPlacesOf, placingFor), so a typed price needs no engine read.
+// A typed mileage or another order still reads live. The fields are removed from an answer served to a request that did not ask, so that answer is exactly what it was.
+export function storedWithPlaced(out, d) {
+  if (!out || out.ok !== true || out.answerType !== "range" || !d) return out;
+  const px = partnerPositionsOf(d, { order: "date" });
+  return { ...out, placedSales: px.sales.map(placedSaleOf), order: "date" };
+}
+const plainOf = o => { const { placedSales, order, ...rest } = o; return rest; };
+export function servedFromStored(stored, ask) {
+  if (!stored || typeof stored !== "object") return null;
+  const { placedSales, order, ...rest } = stored;
+  if (!ask) return rest;
+  // only the default read comes from storage: no mileage, and the order is date (or none); a stored answer without the placed sales reads through
+  if (ask.mileage || (ask.order && ask.order !== "date") || !Array.isArray(placedSales)) return null;
+  return { ...rest, positions: rest.range ? partnerPlacesOf(rest.range, ask.prices) : [], placedSales: rest.range ? placedSales : [], order: "date" };
+}
 // ONE PLACED SALE AS THE PARTNER SEES IT (Sam, Nov 1 2026: the eBay demo must not show or expose where a sale happened): date, miles, price, the venue-safe name (rowTitle), the photo by id (served through ?photo=, never an address) and the place. No venue and no address are in the row at all.
 export function placedSaleOf(s) {
   const name = rowTitle({ title: s.title });
@@ -683,7 +700,7 @@ export default async function handler(req, res) {
   if (req.method === "GET" && req.query && req.query.last != null) {
     const car = String(req.query.last).replace(/\s+/g, " ").trim().slice(0, 120), lk = demoKey(car);
     const last = lk && env ? await readLast(env, lk) : null;
-    if (lastGoodUsable(last)) return res.status(200).json({ ...last.out, lastGood: true });
+    if (lastGoodUsable(last)) return res.status(200).json({ ...servedFromStored(last.out, null), lastGood: true });
     return res.status(200).json({ ok: false, query: car, error: "unavailable", stillReading: true, line: null, retryAfterMs: null });
   }
   if (req.method === "GET" && req.query && req.query.photo != null) {
@@ -768,13 +785,13 @@ export default async function handler(req, res) {
   // what Market Check itself would serve. Anything else reads through the handler as before. A VIN view gets its own VIN
   // history and name, as the existing fallback does.
   if (!refine && !(Number(asked) > 0)) {
-    const qk = ask ? null : demoKey(text), qlast = qk && env ? await readLast(env, qk) : null;
-    if (!vinIn && lastGoodUsable(qlast) && questionResult(qlast.out)) return res.status(200).json({ ...qlast.out, history, storedQuestion: true });
+    const qk = demoKey(text), qlast = qk && env ? await readLast(env, qk) : null;
+    if (!vinIn && lastGoodUsable(qlast) && questionResult(qlast.out)) return res.status(200).json({ ...servedFromStored(qlast.out, null), history, storedQuestion: true });
     if (lastGoodUsable(qlast) && fullResult(qlast.out)) {
       if (storedDemoServable(qlast, await currentEpoch(env).catch(() => null))) {
-        const out = vinIn ? { ...qlast.out, history, vin: vinIn, carName: carNameOf(id), storedDemo: true } : { ...qlast.out, storedDemo: true };
-        out.updated = await updatedP;
-        if (!venueLeak(out).length) return res.status(200).json(out);
+        const base = servedFromStored(qlast.out, ask);   // null: this request needs the live engine (a typed mileage, another order, or a stored answer from before the placed sales)
+        const out = !base ? null : vinIn ? { ...base, history, vin: vinIn, carName: carNameOf(id), storedDemo: true } : { ...base, storedDemo: true };
+        if (out) { out.updated = await updatedP; if (!venueLeak(out).length) return res.status(200).json(out); }
       }
     }
   }
@@ -782,7 +799,7 @@ export default async function handler(req, res) {
   try { r = await marketCheckAnswer(req, text, refine, asked, true); } catch (e) {
     console.error("partnerAnswer:", (e && e.message) || e);
     const lk0 = !refine ? demoKey(text) : null, last = lk0 && env ? await readLast(env, lk0) : null;
-    if (lastGoodUsable(last)) return res.status(200).json(vinIn ? { ...last.out, history, vin: vinIn, lastGood: true } : { ...last.out, lastGood: true });
+    if (lastGoodUsable(last)) return res.status(200).json(plainOf(vinIn ? { ...last.out, history, vin: vinIn, lastGood: true } : { ...last.out, lastGood: true }));
     // No answer and no usable stored one: the plain still-reading state, with no wait of its own (the page offers Try again).
     return res.status(200).json({ ok: false, query: text, error: "unavailable", history, stillReading: true, line: null, retryAfterMs: null });
   }
@@ -792,7 +809,7 @@ export default async function handler(req, res) {
   // views send the VIN, had no fallback, and showed the limit line); a VIN view keeps its own VIN history.
   const lk = !refine ? demoKey(text) : null;
   if (lk && env) {
-    if (!vinIn && (fullResult(out) || (questionResult(out) && !(Number(asked) > 0)))) writeLast(env, lk, out).catch(() => {});   // (c): a question answer too
+    if (!vinIn && (fullResult(out) || (questionResult(out) && !(Number(asked) > 0)))) writeLast(env, lk, storedWithPlaced(out, r.d)).catch(() => {});   // (c): a question answer too
     else if (!out.ok) { const last = await readLast(env, lk); if (lastGoodUsable(last)) out = vinIn ? { ...last.out, history, lastGood: true } : { ...last.out, lastGood: true }; }
   }
   if (vinIn) {
@@ -807,6 +824,7 @@ export default async function handler(req, res) {
     if (!out.identity && id) out.identity = { year: id.year || null, make: id.make, model: id.model, variant: id.trim || null };
   }
   out.updated = await updatedP;
+  if (!ask && out && ("placedSales" in out || "order" in out)) { const { placedSales, order, ...plain } = out; out = plain; }   // a request that asked nothing gets the answer it always got, whichever stored copy it came from
   if (ask && out && out.ok === true && r && r.d) { const px = partnerPositionsOf(r.d, ask); out = { ...out, positions: px.positions, placedSales: px.sales.map(placedSaleOf), order: px.order }; }   // a copy: the object just handed to the last-good store is never touched   // read time only, after the last good answer was stored: the stored answer never carries them
   const leaks = venueLeak(out);
   if (leaks.length) { console.error("partnerAnswer venue leak blocked:", leaks.slice(0, 5).join(" | ")); return res.status(500).json({ ok: false, error: "blocked" }); }
