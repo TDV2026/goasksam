@@ -18,6 +18,7 @@ import { fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { cors as gasCors } from "../lib/_cors.js";
 import { heldFor } from "../lib/_hold.js";
+import { isFreshShareId } from "../lib/shareId.js";
 
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
@@ -96,9 +97,15 @@ async function handleOneboxShare(req, res, id) {
     if (!lim.ok) return sendTooMany(res, lim.retryAfter);
   }
   try {
-    const rows = await supabaseSelect(
-      { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY },
-      `saved_results?id=eq.${encodeURIComponent(id)}&select=payload&limit=1`);
+    // A link handed out on a stored read (sellerDecision writes its row after the response) may be opened before the row lands: wait for it, up to 6 s, before the default page.
+    let rows = null;
+    for (let tries = 0; tries < 15; tries++) {
+      rows = await supabaseSelect(
+        { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY },
+        `saved_results?id=eq.${encodeURIComponent(id)}&select=payload&limit=1`);
+      if ((rows && rows[0]) || !isFreshShareId(id)) break;
+      await new Promise(r => setTimeout(r, 400));
+    }
     const payload = rows && rows[0] && rows[0].payload;
     if (!payload || payload.obShare !== true || !payload.oneBox || !payload.oneBox.tier) { finish(defaultOg, ""); return; }
     const ob = payload.oneBox;
