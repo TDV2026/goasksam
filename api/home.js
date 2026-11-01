@@ -11,7 +11,7 @@ import { fullyLaunched, isReleased } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { startHtml, START_CSS, START_JS } from "../lib/startPage.js";
 import { PLACEHOLDERS } from "../lib/startPlaceholders.js";
-import { lastUpdatedDate, shortDate } from "../lib/asOf.js";
+import { liveSalesLine, liveSalesWords } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { heldFor } from "../lib/_hold.js";
 
@@ -43,13 +43,13 @@ export default async function handler(req, res) {
   if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
   const crew = isCrewRequest(req);
   if (!isReleased("buy", req)) { res.setHeader("Cache-Control", "no-store"); res.setHeader("Location", "/sell"); return res.status(302).end(); }
-  const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
+  const both = await liveSalesLine(supabaseEnv()).catch(() => liveSalesWords(null, null));   // the live feed's own refresh and the sales date, two facts (lib/asOf.js), never one date for both
   const start = startHtml({
     id: "gas-start-home", enter: true, title: "Find the car you're looking for.",
     sub: "Tell Sam what you want. Search live enthusiast car auctions in your own words.",
     examples: EXAMPLES, helper: "", label: "Describe the car you want",
     ids: { input: "gst-home-q", mic: "gst-home-mic", go: "gst-home-go" },
-    asof: updated ? `Live auctions and completed sales, updated ${shortDate(updated)}.` : "Live auctions and completed sales.", leadMark: true,
+    asof: both.line, leadMark: true,
     after: `<div class="gst-cards">${card("/market-check", IC_CHART, "Market Check", "See what similar cars have actually sold for.")}${card("/sell", IC_TAG, "Sell a car", "Discover where and how to sell.")}</div>`
   });
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">

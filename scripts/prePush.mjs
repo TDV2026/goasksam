@@ -767,6 +767,13 @@ try {
 } catch (e) {
   record("partnerDemoCheck (scripts/partnerDemoCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// liveSalesDatesCheck (Lane E, Oct 31 2026): the live feed's refresh and the sales date are two facts, never one date for both (Home, Find, Market Check, Sell, the admin Launch tab). No network.
+try {
+  const out = execSync("node scripts/liveSalesDatesCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("liveSalesDatesCheck (scripts/liveSalesDatesCheck.mjs)", "PASS", (out.match(/liveSalesDatesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("liveSalesDatesCheck (scripts/liveSalesDatesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // partnerDemoInertCheck (Lane E, Buy Stage 1c). No network.
 try {
   const out = execSync("node scripts/partnerDemoInertCheck.mjs", { encoding: "utf8" });
