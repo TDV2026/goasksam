@@ -1,7 +1,7 @@
 // GOASKSAM 2.0 STAGE 1, THE ONE RAIL (Sam's block, Oct 23 2026; Lane C): every shell page and the server-rendered history/VIN/spec pages
 // draw the same rail: the GoAskSam wordmark (Home), the tagline, Home / Find / Market Check / Sell / Tasks in that order, RECENT SEARCHES
 // (empty and hidden for a new visitor, drawn from this browser's own list, never samples, Tasks never in it), then the quiet links
-// (For business when released, The Daily Vroom, How Sam decides, About, Feedback, Privacy, Privacy choices; no Terms page exists, so no
+// (For business when released, The Daily Vroom, How Sam decides, About, What's new, Feedback, Privacy, Privacy choices; no Terms page exists, so no
 // dead Terms link); no "Keep looking"; Buy is Find and /buy is a 301 to /find with the query kept. No network.
 //   node scripts/rail2Check.mjs   (from the repo root)
 import fs from "node:fs";
@@ -31,7 +31,19 @@ ok(/<a class="gas-logo" href="\/">GoAskSam<\/a>/.test(html), "the wordmark is Ho
 ok(/id="gas-recent" hidden><div class="gas-rail-head">Recent searches<\/div><div id="gas-recent-list"><\/div>/.test(html), "Recent searches is empty and hidden until this browser has a search (never samples)");
 const foot = noSvg.slice(noSvg.indexOf('class="gas-rail-foot"'), noSvg.indexOf("</aside>"));
 const labels = [...foot.matchAll(/<a class="gas-navitem[^"]*"[^>]*>([^<]+)/g)].map(m => m[1]);
-ok(JSON.stringify(labels.filter(l => l !== "For business")) === JSON.stringify(["The Daily Vroom", "How Sam decides", "About", "Feedback"]), "the quiet links in order, no Privacy items (they moved off the rail): " + labels.join(", "));
+ok(JSON.stringify(labels.filter(l => l !== "For business")) === JSON.stringify(["The Daily Vroom", "How Sam decides", "About", "What's new", "Feedback"]), "the quiet links in order (What's new between About and Feedback, Sam, Oct 31 2026), no Privacy items (they moved off the rail): " + labels.join(", "));
+// THE CLASS (Lane E, Oct 31 2026, What's new): a check that spells out the quiet-link list goes red the day a link is added. No check may carry a list that
+// runs "How Sam decides" ... "About" ... "Feedback" without What's new between About and Feedback, and the live rail, the phone menu (same function) and
+// the About page must all draw the one list from shellFoot.
+{
+  const dir = path.join(ROOT, "scripts"), stale = [];
+  for (const f of fs.readdirSync(dir).filter(x => /\.(mjs|js)$/.test(x) && x !== "rail2Check.mjs")) {
+    const t = fs.readFileSync(path.join(dir, f), "utf8");
+    for (const m of t.matchAll(/How Sam decides[^\n]{0,60}?About[^\n]{0,30}?Feedback/g)) if (!/What's new/.test(m[0])) stale.push(f);
+  }
+  ok(stale.length === 0, "no check pins the quiet-link list without What's new between About and Feedback: " + [...new Set(stale)].join(", "));
+  ok(/a\("about"[^\n]*\) \+ a\("whatsnew", "\/whats-new", "What's new"\) \+\s*a\("feedback"/.test(fs.readFileSync(path.join(ROOT, "lib/appShell.js"), "utf8")), "shellFoot (the rail's quiet links and the phone menu, one function) lists About, What's new, Feedback in that order");
+}
 ok(/href="https:\/\/thedailyvroom\.com" target="_blank" rel="noopener"/.test(foot), "The Daily Vroom opens thedailyvroom.com in a new tab");
 ok(!/Terms/.test(foot) && !fs.existsSync(path.join(ROOT, "public/terms.html")), "no Terms link while no Terms page exists (no dead links)");
 ok(!/Keep looking|gas-watching-rail|Your searches|Your results/.test(html), "no Keep looking, Your searches or Your results in the rail");

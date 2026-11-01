@@ -7,6 +7,7 @@
 // this file exists to keep true. Crew is never a consideration here: search engines don't carry a
 // crew cookie, so this always serves the PUBLIC list.
 import { isReleased } from "../lib/_launchStage.js";
+import { newestDate } from "../lib/whatsNew.js";
 
 const SITE = "https://goasksam.com";
 // Each entry's own lastmod/changefreq/priority, same values the old static file carried. "product"
@@ -20,6 +21,7 @@ const PAGES = [
   { loc: "/mcp", lastmod: "2026-10-07", changefreq: "monthly", priority: "0.7", product: null },
   { loc: "/how-sam-decides", lastmod: "2026-09-03", changefreq: "monthly", priority: "0.6", product: null },
   { loc: "/about", lastmod: "2026-09-03", changefreq: "yearly", priority: "0.3", product: null },
+  { loc: "/whats-new", lastmod: null, changefreq: "weekly", priority: "0.4", product: null },   // lastmod is the newest entry's own date (lib/whatsNew.js)
   { loc: "/privacy", lastmod: "2026-10-26", changefreq: "yearly", priority: "0.3", product: null },
   { loc: "/terms", lastmod: "2026-10-26", changefreq: "yearly", priority: "0.3", product: null },
   { loc: "/business", lastmod: "2026-09-03", changefreq: "monthly", priority: "0.5", product: "business" }
@@ -28,7 +30,7 @@ const PAGES = [
 export default async function handler(req, res) {
   const rows = PAGES
     .filter(p => p.product == null || isReleased(p.product, req))
-    .map(p => `  <url>\n    <loc>${SITE}${p.loc}</loc>\n    <lastmod>${p.lastmod}</lastmod>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`)
+    .map(p => `  <url>\n    <loc>${SITE}${p.loc}</loc>\n    <lastmod>${p.loc === "/whats-new" ? (newestDate() || "2026-10-31") : p.lastmod}</lastmod>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`)
     .join("\n");
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows}\n</urlset>\n`;
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
