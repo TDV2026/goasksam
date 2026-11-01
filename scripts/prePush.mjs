@@ -1760,6 +1760,12 @@ try {
   record("engine: a question-first text is stored as its own question row and a second read does no archive read (scripts/questionColdCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/warmLeftoverRowCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("warm: a question leaves no old answer row behind and every warm stores only what the visitor path would store (scripts/warmLeftoverRowCheck.mjs)", "PASS", (out.match(/warmLeftoverRowCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("warm: a question leaves no old answer row behind and every warm stores only what the visitor path would store (scripts/warmLeftoverRowCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/foreignCarsTaskCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("ops: task=foreigncars reads in bounded pages, never sorts or filters on a raw_record field (scripts/foreignCarsTaskCheck.mjs)", "PASS", (out.match(/foreignCarsTaskCheck: .*/) || [""])[0]);
 } catch (e) {

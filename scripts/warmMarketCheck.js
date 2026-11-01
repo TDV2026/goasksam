@@ -19,7 +19,7 @@ import { resolveVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
 import { oneEngineAnswer } from "../lib/onebox.js";
 import { warmSellBlock } from "../lib/sell/sellBlock.js";
-import { warmAnswerKeyFor, writeWarmAnswer } from "../lib/live/search.js";
+import { warmAnswerKeyFor, storeWarmResult } from "../lib/live/search.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 
 // The 15-nameplate list this round measures before/after against. 5 are the SAME cars last
@@ -64,7 +64,7 @@ export async function warmMarketCheck(env, list = WARM_LIST) {
       if (!d || !d.tier) throw new Error("engine returned no tier");
       row.tier = d.tier;
       const key = warmAnswerKeyFor(vehicle, generation);
-      await writeWarmAnswer(env, key, d);
+      { const sw = await storeWarmResult(env, key, d); row.stored = sw.stored; if (!sw.stored) row.notStored = sw.why; }
       row.key = key;
       if (/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) { const sb = await warmSellBlock(env, q, d, key); row.sellBlock = sb.stored ? "stored" : sb.why; }   // the car-only Sell block beside it
       out.warmed++;

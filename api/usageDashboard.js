@@ -1830,7 +1830,7 @@ async function handleOps(req, res) {
   if (task === "typedmissing") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js");
-    const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js");
+    const { warmAnswerKeyFor, readWarmAnswerDetailed, questionRowKey, readQuestionRow } = await import("../lib/live/search.js");
     const days = Math.min(30, Number(req.query?.days) || 7), min = Math.max(1, Number(req.query?.min) || 3), product = ["buy", "sell"].includes(String(req.query?.product)) ? String(req.query.product) : "market_check";
     const t0 = Date.now(), budget = Math.min(250000, Number(req.query?.budget) || 150000), since = new Date(Date.now() - days * 864e5).toISOString();
     const rows = await supabaseSelectAll(env, `analytics_events?name=eq.search_run&product=eq.${product}${req.query?.crew === "1" ? "" : "&internal=is.false"}&is_bot=is.false&ts=gte.${encodeURIComponent(since)}&select=q:props->>query_text`);
@@ -1845,8 +1845,10 @@ async function handleOps(req, res) {
       try {
         const r = await resolveVehicle(shown.get(k), {}); const v = r && r.status === "valid" && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null;
         if (!v) { out.unresolved++; out.missing.push({ q: shown.get(k), times: n, why: "no_car (asks a question or unresolved)" }); continue; }
-        const w = await readWarmAnswerDetailed(env, warmAnswerKeyFor(v, await findGeneration(v, env), null)).catch(() => null);
-        if (w && w.raw && !w.stale) out.covered++; else out.missing.push({ q: shown.get(k), times: n, why: !w || !w.raw ? (w && w.reason) || "no_row" : "stale" });
+        const wk = warmAnswerKeyFor(v, await findGeneration(v, env), null), w = await readWarmAnswerDetailed(env, wk).catch(() => null);
+        const qr = !(w && w.raw) ? await readQuestionRow(env, questionRowKey(wk, shown.get(k))).catch(() => null) : null;   // Nov 1: a question-first text is covered by its stored question, not by an answer row
+        if (qr && qr.raw && !qr.stale) { out.covered++; out.questionCovered = (out.questionCovered || 0) + 1; }
+        else if (w && w.raw && !w.stale) out.covered++; else out.missing.push({ q: shown.get(k), times: n, why: !w || !w.raw ? (w && w.reason) || "no_row" : "stale" });
       } catch { out.unresolved++; }
     }
     out.texts = out.missing.filter(m => !/^no_car/.test(m.why)).map(m => m.q);
@@ -2140,7 +2142,7 @@ async function handleOps(req, res) {
         try { const rr = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(key)}&select=computed_at,market`), r0 = rr && rr[0]; if (r0) { row.storedAt = r0.computed_at; row.ageHours = Math.round((Date.now() - Date.parse(r0.computed_at)) / 36e5 * 10) / 10; row.storedStamp = r0.market && r0.market.engineVersion || null; row.storedEpoch = r0.market && r0.market.warmEpoch || null; row.questionTag = r0.market && r0.market.raw && r0.market.raw.questionRulesTag || null; } } catch { /* diagnostics only */ }   // when the row was written and under which stamp
         const sink = []; const d = (await oneEngineAnswer(vehicle, generation, q, { ...env, asked: 0, stageSink: sink }, null)).raw; row.tier = d && d.tier || null; row.stagesMs = Object.fromEntries(sink); row.archiveReads = ((d && d.dedup && d.dedup.fetches) || []).map(f => ({ title: f.titleContains || null, years: [f.yearMin ?? null, f.yearMax ?? null], since: f.since || null, rows: f.raw, ms: f.ms, skipped: f.skipped || undefined })).slice(0, 12);   // Oct 31: the archive reads inside the engine stage, one per query   // the cold compute's stages in milliseconds (engine, trim_chips, question_rule, sell_fields, ...)
         if (!d || !d.tier) row.would = "engine returned no tier";
-        else if (/_choice$/.test(String(d.tier))) row.would = "question: stores only the question's eligibility, no answer row (by design)";
+        else if (/_choice$/.test(String(d.tier))) row.would = "question: the question is stored as its own row (MCQ), never an answer row" + (/engine_version_mismatch/.test(String(row.stored)) ? "; the answer row under " + row.storedStamp + " is a leftover the warm now deletes" : "");
         else if (!/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) row.would = "not stored: tier " + d.tier;
         else if (!answerCacheable(d)) { row.would = "store guard rejects: " + (storeGuardRejectReason(d) || "unknown"); if (d.refusal) row.refusal = { kind: d.refusal.kind, failed: d.refusal.failedChecks || null, details: d.refusal.details || null }; row.resolved = d.resolvedCar ? { make: d.resolvedCar.make, model: d.resolvedCar.model, trim: d.resolvedCar.trim, year: d.resolvedCar.year } : null; row.poolN = d.poolN ?? null; row.rawPool = Array.isArray(d.rawPool) ? d.rawPool.length : null; row.fallbackRung = d.fallbackRung || null; }
         else row.would = "stores an answer (" + d.tier + ")";
@@ -6033,7 +6035,7 @@ if (task === "optiondetail") {
         const d = (await oneEngineAnswer(vehicle, generation, q, { ...env, asked: 0 }, null)).raw;   // the whole engine path a visitor's read takes (questions, the options guard, the sell fields), so the stored row carries every e96 field
         if (!d || !d.tier || /^(read_failed|unavailable)$/.test(String(d.tier))) throw new Error("engine returned " + (d && d.tier));
         // a full answer goes to the Market Check store as warmDemo writes it; a question answer is kept by the demo's own store only (c)
-        if (/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) await writeWarmAnswer(env, key, d);
+        { const SR = await import("../lib/live/search.js"); const sw = await SR.storeWarmResult(env, key, d); if (!sw.stored) row.notStored = sw.why; }
         const dr = await refreshDemoAnswer(env, q).catch(() => null);
         row.tier = d.tier; row.demoStored = !!(dr && dr.stored); result.warmed++;
       } catch (e) { row.error = String(e && e.message || e); result.failed++; }
@@ -6072,16 +6074,16 @@ if (task === "optiondetail") {
         if (!d || !d.tier) throw new Error("engine returned no tier");
         row.tier = d.tier; row.readAt = d.readAt || null;
         if (/_choice$/.test(String(d.tier))) row.question = await (await import("../lib/onebox.js")).warmQuestion(d, vehicle, generation, q, env);   // e95: the question's stored eligibility
-        if (/_choice$/.test(String(d.tier))) { const OB = await import("../lib/onebox.js"), SR = await import("../lib/live/search.js"); if (OB.isStorableQuestion(d)) { await SR.writeQuestionRow(env, SR.questionRowKey(SR.warmAnswerKeyFor(vehicle, generation), q), d); row.questionRow = "stored"; } }   // Nov 1: the question itself, so a reader's read of it is one stored read
-        if (/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) { await writeWarmAnswer(env, warmAnswerKeyFor(vehicle, generation), d); row.stored = true; result.warmed++;
+        { const OB = await import("../lib/onebox.js"), SR = await import("../lib/live/search.js"); Object.assign(row, await SR.settleSpecRows(env, SR.warmAnswerKeyFor(vehicle, generation), q, d, OB.isStorableQuestion)); }   // Nov 1: the question row, the leftover old-stamp answer row, one helper for both warms
+        if (/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) { const sw = await (await import("../lib/live/search.js")).storeWarmResult(env, warmAnswerKeyFor(vehicle, generation), d); if (!sw.stored) row.notStored = sw.why; row.stored = !!sw.stored; if (sw.stored) result.warmed++;
           // the car-only Sell block beside the answer (lib/sell/sellBlock.js), from this same answer; never a reason to fail the warm
-          { const sb = await (await import("../lib/sell/sellBlock.js")).warmSellBlock(env, q, d, warmAnswerKeyFor(vehicle, generation)); row.sellBlock = sb.stored ? "stored" : sb.why; }
+          if (row.stored) { const sb = await (await import("../lib/sell/sellBlock.js")).warmSellBlock(env, q, d, warmAnswerKeyFor(vehicle, generation)); row.sellBlock = sb.stored ? "stored" : sb.why; }
           // keep-warm (Sam, Oct 18 2026): the demo's own stored answer through Lane C's SINGLE write path, once per car,
           // only after a full result; refreshDemoAnswer re-reads the row just stored (a hit) and writes partner_last
           // itself, or returns why it did not (not a demo car, still reading, blocked). This task writes nothing of its own.
           // the Amazon profile (Lane C's R2-C look, Oct 20 2026): its thin car is a refusal tier, which the page's own first
           // read cannot finish inside its deadline, so the Amazon warm stores a refusal's answer too; the default list unchanged
-          if ((req.query?.profile === "amazon" ? /^(result|thin|refusal)$/ : /^(result|thin)$/).test(String(d.tier))) { try { const { refreshDemoAnswer } = await import("./partnerAnswer.js"); const dr = await refreshDemoAnswer(env, q); row.demoStored = !!(dr && dr.stored); if (dr && !dr.stored) row.demoWhy = dr.why || null; } catch (e) { row.demoStored = false; row.demoWhy = "call failed"; } } }
+          if (row.stored && (req.query?.profile === "amazon" ? /^(result|thin|refusal)$/ : /^(result|thin)$/).test(String(d.tier))) { try { const { refreshDemoAnswer } = await import("./partnerAnswer.js"); const dr = await refreshDemoAnswer(env, q); row.demoStored = !!(dr && dr.stored); if (dr && !dr.stored) row.demoWhy = dr.why || null; } catch (e) { row.demoStored = false; row.demoWhy = "call failed"; } } }
         else { row.stored = false; result.warmed++; }
       } catch (e) { row.error = String(e && e.message || e); result.failed++; }
       result.rows.push(row);
@@ -6224,9 +6226,9 @@ if (task === "optiondetail") {
         if (!d || !d.tier) throw new Error("engine returned no tier");
         row.tier = d.tier;
         if (/_choice$/.test(String(d.tier))) row.question = await (await import("../lib/onebox.js")).warmQuestion(d, vehicle, generation, q, env);   // e95: the question's stored eligibility
-        if (/_choice$/.test(String(d.tier))) { const OB = await import("../lib/onebox.js"), SR = await import("../lib/live/search.js"); if (OB.isStorableQuestion(d)) { await SR.writeQuestionRow(env, SR.questionRowKey(SR.warmAnswerKeyFor(vehicle, generation), q), d); row.questionRow = "stored"; } }   // Nov 1: the question itself
+        { const OB = await import("../lib/onebox.js"), SR = await import("../lib/live/search.js"); Object.assign(row, await SR.settleSpecRows(env, SR.warmAnswerKeyFor(vehicle, generation), q, d, OB.isStorableQuestion)); }   // Nov 1: the question row, the leftover old-stamp answer row, one helper for both warms
         const key = warmAnswerKeyFor(vehicle, generation);
-        await writeWarmAnswer(env, key, d);
+        { const sw = await (await import("../lib/live/search.js")).storeWarmResult(env, key, d); row.stored = sw.stored; if (!sw.stored) row.notStored = sw.why; }
         row.key = key;
         result.warmed++;
       } catch (e) { row.error = String(e && e.message || e); result.failed++; }
