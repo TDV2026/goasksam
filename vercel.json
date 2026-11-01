@@ -60,6 +60,7 @@
     { "source": "/privacy", "destination": "/api/legal?page=privacy" },
     { "source": "/terms", "destination": "/api/legal?page=terms" },
     { "source": "/about", "destination": "/api/about" },
+    { "source": "/whats-new", "destination": "/api/whatsNew" },
     { "source": "/feedback", "destination": "/api/feedback" },
     { "source": "/", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/home?_crew=1" },
     { "source": "/", "destination": "/api/home" },
@@ -166,6 +167,12 @@
     "api/usageDashboard.js": {
       "maxDuration": 300,
       "includeFiles": "scripts/{warm-list,warm-named}.json"
+    },
+    "api/whatsNew.js": {
+      "includeFiles": "data/whatsNew.json"
+    },
+    "api/sitemapPages.js": {
+      "includeFiles": "data/whatsNew.json"
     },
     "api/crewPage.js": {
       "includeFiles": "lib/crewPages/*.html"

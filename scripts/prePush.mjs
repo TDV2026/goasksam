@@ -773,6 +773,12 @@ try {
   record("liveSalesDatesCheck (scripts/liveSalesDatesCheck.mjs)", "PASS", (out.match(/liveSalesDatesCheck: .*/) || [""])[0]);
 } catch (e) {
   record("liveSalesDatesCheck (scripts/liveSalesDatesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+// whatsNewCheck (Lane E, Oct 31 2026): /whats-new at 0, 1 and 12 entries, 1440 and 390; the entry words; the rail and footer link on every page. No network.
+try {
+  const out = execSync("node scripts/whatsNewCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("whatsNewCheck (scripts/whatsNewCheck.mjs)", "PASS", (out.match(/whatsNewCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("whatsNewCheck (scripts/whatsNewCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // partnerDemoInertCheck (Lane E, Buy Stage 1c). No network.
 try {

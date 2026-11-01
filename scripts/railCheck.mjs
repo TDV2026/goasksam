@@ -29,7 +29,7 @@ for (const crew of [false, true]) {
     if (!crew && GATED.has(url) && !html) continue;
     if (!/id="gas-rail"/.test(html)) { ok(false, key + ": the page draws no shared rail (handler returned " + html.length + " bytes)"); continue; }
     // THE FULL PUBLIC LIST FOR A SIGNED-OUT VISITOR (Oct 30 2026, launch-day: For business missing from a stranger's rail): the open site's rail and footer links are all there, on every page, for someone with no cookie
-    if (!crew) for (const [name, href] of [["Home", "/"], ["Find", "/find"], ["Market Check", "/market-check"], ["Sell", "/sell"], ["Tasks", "/tasks"], ["For business", "/business"], ["How Sam decides", "/how-sam-decides"], ["About", "/about"], ["Feedback", "/feedback"]])
+    if (!crew) for (const [name, href] of [["Home", "/"], ["Find", "/find"], ["Market Check", "/market-check"], ["Sell", "/sell"], ["Tasks", "/tasks"], ["For business", "/business"], ["How Sam decides", "/how-sam-decides"], ["About", "/about"], ["What's new", "/whats-new"], ["Feedback", "/feedback"]])
       ok(new RegExp('<a [^>]*class="gas-navitem[^"]*"[^>]*href="' + href.replace(/\//g, "\\/") + '"').test(html), key + ": a signed-out visitor's rail has " + name);
     const p = await b.newPage(); await p.setViewport({ width: 1440, height: 900 });
     await p.setRequestInterception(true); p.on("request", r => /fonts\.(googleapis|gstatic)\.com/.test(r.url()) ? r.continue() : r.abort());
