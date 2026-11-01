@@ -2110,25 +2110,20 @@ async function handleOps(req, res) {
   // task=foreigncars (Lane B, Oct 31 2026; READ-ONLY, zero OldCarsData, zero writes): the cars whose sales in the archive were listed in pounds or euros (raw_record currency), newest first, grouped by year make model with the sale countries, so a check can compare a stored read of them.
   if (task === "foreigncars") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const n = Math.min(6000, Number(req.query?.n) || 3000), cur = String(req.query?.cur || "GBP,EUR").split(",").map(x => x.trim().toUpperCase()).filter(x => /^[A-Z]{3}$/.test(x));
-    const rows = await supabaseSelect(env, `sales_archive?select=listing_title,platform,year,make,model,currency:raw_record->>currency,cc:raw_record->>country_code,sale_date:auction_end_date&raw_record->>currency=in.(${cur.join(",")})&sale_price=not.is.null&order=auction_end_date.desc&limit=${n}`);
-    const g = new Map();
-    for (const r of (Array.isArray(rows) ? rows : [])) { const k = [r.year, r.make, r.model].join(" "); const e = g.get(k) || { car: k, sales: 0, currencies: {}, countries: {}, platforms: {}, latest: r.sale_date }; e.sales++; e.currencies[r.currency] = (e.currencies[r.currency] || 0) + 1; e.countries[r.cc || "?"] = (e.countries[r.cc || "?"] || 0) + 1; e.platforms[r.platform] = (e.platforms[r.platform] || 0) + 1; g.set(k, e); }
-    const cars = [...g.values()].sort((a, b) => b.sales - a.sales).slice(0, 40);
-    const all = {}; for (const r of (Array.isArray(rows) ? rows : [])) all[r.cc || "?"] = (all[r.cc || "?"] || 0) + 1;
-    return res.status(200).json({ task: "foreigncars", ocdSpend: 0, writes: 0, scanned: Array.isArray(rows) ? rows.length : null, countries: all, cars });
-  }
-  // task=chipcase (Lane B, Oct 31 2026; READ-ONLY, zero OldCarsData, zero writes): the model and family values in the sales archive that carry no capital (the way "m8" arrived), per make, with the label the one chip rule (lib/chipLabel.js) prints for each. ?makes=BMW|Porsche|... (max 20, default the 12 busiest).
-  if (task === "chipcase") {
-    if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const { chipLabel } = await import("../lib/chipLabel.js");
-    const makes = (req.query?.makes ? String(req.query.makes).split("|") : ["BMW", "Porsche", "Mercedes-Benz", "Ford", "Chevrolet", "Audi", "Jaguar", "Ferrari", "Toyota", "Nissan", "Dodge", "Volkswagen"]).map(x => x.trim()).filter(Boolean).slice(0, 20), out = [];
-    for (const mk of makes) {
-      const rows = await supabaseSelectAll(env, `sales_archive?select=model,model_family&make=ilike.${encodeURIComponent(mk)}&model=not.is.null&order=model.asc`);
-      const seen = new Map(); for (const r of (Array.isArray(rows) ? rows : [])) for (const v of [r.model, r.model_family]) { const t = String(v || "").trim(); if (t && chipLabel(t) !== t) seen.set(t, (seen.get(t) || 0) + 1); }
-      out.push({ make: mk, rows: Array.isArray(rows) ? rows.length : null, changed: [...seen.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40).map(([from, n]) => ({ from, to: chipLabel(from), n })) });
+    // Nov 1 2026: bounded pages, newest first by the indexed sale_date column (the first version sorted on a column that does not exist, auction_end_date, and filtered on a raw_record field, so it returned nothing). The currency is read from the row and filtered here; nothing is sorted or filtered on raw_record.
+    const pages = Math.max(1, Math.min(30, Number(req.query?.pages) || 8)), size = 1000, want = new Set(String(req.query?.cur || "GBP,EUR").split(",").map(x => x.trim().toUpperCase()).filter(x => /^[A-Z]{3}$/.test(x)));
+    const g = new Map(), all = {}; let scanned = 0, before = null, failedPage = null;
+    for (let pg = 0; pg < pages; pg++) {
+      const q = `sales_archive?select=sale_date,listing_title,platform,year,make,model,currency,rcur:raw_record->>currency,cc:raw_record->>country_code&sale_price=not.is.null${before ? `&sale_date=lt.${before}` : ""}&order=sale_date.desc&limit=${size}`;
+      const rows = await supabaseSelect(env, q);
+      if (!Array.isArray(rows)) { failedPage = pg; break; }
+      if (!rows.length) break;
+      scanned += rows.length; before = rows[rows.length - 1].sale_date;
+      for (const r of rows) { const cur = String(r.currency || r.rcur || "").toUpperCase(); if (!want.has(cur)) continue; const k = [r.year, r.make, r.model].join(" "); const e = g.get(k) || { car: k, sales: 0, currencies: {}, countries: {}, platforms: {}, latest: r.sale_date }; e.sales++; e.currencies[cur] = (e.currencies[cur] || 0) + 1; e.countries[r.cc || "?"] = (e.countries[r.cc || "?"] || 0) + 1; e.platforms[r.platform] = (e.platforms[r.platform] || 0) + 1; g.set(k, e); all[r.cc || "?"] = (all[r.cc || "?"] || 0) + 1; }
+      if (rows.length < size) break;
     }
-    return res.status(200).json({ task: "chipcase", ocdSpend: 0, writes: 0, makes: out });
+    const cars = [...g.values()].sort((a, b) => b.sales - a.sales).slice(0, 40);
+    return res.status(200).json({ task: "foreigncars", ocdSpend: 0, writes: 0, pages, scanned, oldestScanned: before, failedPage, matched: Object.values(all).reduce((t, x) => t + x, 0), countries: all, cars });
   }
   if (task === "warmwhy") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
