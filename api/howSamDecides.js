@@ -5,47 +5,20 @@
 // copy was also Sell-only, first person ("I'd sell your vehicle"), named specific venues and said
 // "more sources being added". This version: one section per product (Market Check, Buy, Sell,
 // Tasks), ownership-neutral, no first person, no venue names, no valuation language, no median.
+import { copy, copyText } from "../lib/copy.js";
 import { FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appShell.js";
 import { fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 
-const TITLE = "How Sam decides | GoAskSam";
-const DESC = "Every answer on GoAskSam starts with a real sale. Here is how Find, Market Check, Sell and Tasks each use that evidence.";
+const TITLE = copy("howSamDecides.TITLE");
+const DESC = copy("howSamDecides.DESC");
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // The six sections (Sam, Oct 26 and 28 2026, exact copy; every earlier line on this page is gone). Plain text, no icons. The page describes the engine and
 // computes nothing. Section 2 keeps its own wording because Market Check shows a candle panel (public/js/onebox.js candleChartHtml, 3+ candles).
-const PARTS = [
-  { h: "One engine, every page", p: [
-    "Sam is one engine, not a set of tools. The same sales, the same rules and the same fences sit behind every page, so a car reads the same wherever you meet it.",
-    "Follow one car through. Market Check shows what cars like it have actually sold for and which sale is closest. Sell takes that same evidence and turns it into decisions: the range to expect, the best day to end an auction, whether a reserve has helped cars like it, and where cars like it have sold best, house by house. Find shows the cars for sale right now and reads each live bid against those same sales, so you know whether a bid is inside, above or below the range before you act. Put Sam on a car or a search and Tasks keeps watch, and the emails carry the same line as the pages: where the bid sits against the range of recent sales. Every car with a VIN or chassis number keeps its own page, so its history is there the next time it comes up.",
-    "Ask about the same car on any page and you get the same answer."] },
-  { h: "Less is more", p: [
-    "Finding a car, selling a car or seeing what cars like it have sold for should not feel like reading a trading screen. You came with one question, so you get one answer: the range, the sales behind it, the next step. No dozen statistics fighting for the same inch, no moving averages, no growth rates. When Sam shows how a market has moved, it is real sales by period, shown only when there are enough of them, and never a change in the mix of cars dressed as a change in the market."] },
-  { h: "The rules", p: [
-    "Every range on this site comes from real sales of cars like the one you asked about. Not asking prices, not bids that failed, not a guide, not a model's opinion. Four rules decide what you see.",
-    "A sale is a sale. An asking price is a hope and a bid that did not meet reserve is not a price. Ranges come from completed sales only.",
-    "Like with like. A 997.1 is not a 997.2 and a cabriolet is not a coupe. When there are not enough sales of the exact car and the net is widened, the answer says so.",
-    "Enough sales or nothing. A range, a best day or a reserve call is shown only when enough sales agree. When they don't, Sam says so instead of guessing.",
-    "The count is always there. Every range says how many sales it rests on, and when the window is wider than a year, it says so. The sales behind every range are one click away."] },
-  { h: "Where the numbers come from", p: [
-    "Every figure Sam shows traces back to a completed sale at a live or online auction, with a price that was public when the hammer fell. Any sale behind any answer can be opened and checked.",
-    "Plenty of other numbers exist. Cars change hands privately every day, and some tools collect prices by asking people what they paid or what they got. Those numbers can't be verified, and people have their own reasons for the figure they give. So Sam doesn't use them. A number that can't be checked isn't evidence, and it never reaches an answer here.",
-    "New sources of sales data are reviewed all the time. The ones that can be verified earn their way in. A guess never does."] },
-  { h: "What Sam never does", never: [
-    "estimates what a car is worth before it has sold.",
-    "builds a range on an asking price, a failed bid or a withdrawn car.",
-    "widens the net without telling you.",
-    "sets a number between the highest and lowest and calls it the market.",
-    "dresses a change in the mix of cars sold as a change in the market.",
-    "grades condition it has not seen.",
-    "scores comments, hype or how a listing was written.",
-    "hides the count behind a word like hundreds."] },
-  { h: "Where the intelligence comes from", p: [
-    "Sam uses AI for two things: the conversation, and reading what you type. The figures, the ranges, what to set aside and where to sell come from a proprietary algorithm and the rules behind it, built and tested by hand over a long time. Rules like these cannot be guessed by a model. Someone has to decide what counts as a comparable car, how many sales are enough and when to stay silent. That is the work, and it is why the answer is short."] }
-];
+const PARTS = copy("howSamDecides.PARTS");
 
 const CSS = `
 .hd-col{max-width:1080px;margin:0 auto;padding:56px 48px 80px;display:flex;flex-direction:column;gap:0}
@@ -84,7 +57,7 @@ ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "how", crew, req, analytics: true })}
 <main><div class="hd-col">
-<h1 class="hd-h1">How Sam decides.</h1>
+<h1 class="hd-h1">${copyText("howSamDecides.H1")}</h1>
 ${body}
 </div></main>${SHELL_MAIN_CLOSE}
 <script>${SHELL_JS}</script>

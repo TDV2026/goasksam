@@ -5,6 +5,7 @@
 // (app_config "tasks_example_update"); with none yet, the slot is left out ("better nothing than a
 // fake number"). TASKS_PITCH and exampleUpdate() are exported so a homepage section can reuse them.
 // Search: a conversation or a task is never a URL; any query-string variant is noindex, canonical /tasks.
+import { copy } from "../lib/copy.js";
 import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import { reasonLine } from "../lib/reasonWords.js";
 import { stillReadingMarket } from "../lib/live/search.js";   // the engine's own retry and wait for a market still being read: the fallback for a card whose reply carried none (no number of the page's own)
@@ -21,7 +22,7 @@ import { FREE_TASK_LIMIT, freeTasksWords } from "../lib/tasks/limit.js";
 import { heldFor } from "../lib/_hold.js";
 
 export const TASKS_PITCH = { lead: "A free collector car finder.", sub: "Tell Sam what you want and Sam keeps searching, then emails you when one fits." };
-const HOW = "The cars Sam shows you come from a rules-based matching algorithm. Sam helps understand the question and explain the results, but never invents the cars, the matches or the numbers. Every number comes from real market evidence.";
+const HOW = copy("tasks.HOW");
 const FAQ = [
   ["Is it free?", "Yes. Every GoAskSam account gets " + freeTasksWords() + " free. Sign in, tell Sam what you're looking for, and Sam keeps checking."],
   ["How is it different from a saved search?", "You describe the car in plain words, the way you'd tell a friend, and Sam confirms exactly what it will look for before it starts. When a car matches, the update says what came up, how far away it is and, when the same car has been to auction before, what happened then."],

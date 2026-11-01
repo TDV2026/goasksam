@@ -2,6 +2,8 @@
 // no footer, the small line linking Terms, Privacy and Privacy choices, open while the site is sealed, and /terms in the sitemap; the Privacy page names no vendor and no
 // company or address; the Home bottom line and the sign-in card link Terms. No network.   node scripts/legalPagesCheck.mjs
 import fs from "node:fs";
+import { copyData as COPY_DATA } from "../lib/copy.js";
+const C = COPY_DATA(), rxEsc = x => String(x).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");   // the page words come from data/copy.json: one edit changes the page and this check together
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 process.env.CURTAIN_SEALED = "1"; process.env.LAUNCH_STAGE = "2";
 delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -43,7 +45,7 @@ const vj = JSON.parse(fs.readFileSync("vercel.json", "utf8")).rewrites || [];
 ok(vj.some(r => r.source === "/terms" && /api\/legal\?page=terms/.test(r.destination)) && vj.some(r => r.source === "/privacy" && /api\/legal\?page=privacy/.test(r.destination)), "vercel.json routes /terms and /privacy to the one handler");
 ok(!fs.existsSync("public/privacy.html"), "the old static Privacy page is gone");
 const home = fs.readFileSync("api/home.js", "utf8");
-ok(/<div class="hm-legal"><span>&copy; GoAskSam, from The Daily Vroom<\/span><a href="\/terms">Terms<\/a><a href="\/privacy">Privacy<\/a><a href="#"[^>]*>Privacy choices<\/a><\/div>/.test(home), "the Home bottom line links Terms, Privacy and Privacy choices");
+ok(/<div class="hm-legal"><span>&copy; GoAskSam, from The Daily Vroom<\/span><a href="\/terms">\$\{copyText\("home\.LEGAL_TERMS"\)\}<\/a><a href="\/privacy">\$\{copyText\("home\.LEGAL_PRIVACY"\)\}<\/a><a href="#"[^>]*>\$\{copyText\("home\.LEGAL_CHOICES"\)\}<\/a><\/div>/.test(home) && C.home.LEGAL_TERMS && C.home.LEGAL_PRIVACY && C.home.LEGAL_CHOICES, "the Home bottom line links Terms, Privacy and Privacy choices (the words are data/copy.json's)");
 const au = fs.readFileSync("public/js/auth.js", "utf8");
 ok((au.match(/By continuing you agree to our <a href="\/terms">Terms<\/a> and <a href="\/privacy">Privacy Policy<\/a>\./g) || []).length === 2 && !/agree to our <a href="\/privacy">Privacy Policy<\/a>\./.test(au), "the sign-in card says Terms and Privacy Policy, linked, on the form step and the code step");
 console.log(`legalPagesCheck: ${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0);

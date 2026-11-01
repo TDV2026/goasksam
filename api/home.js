@@ -3,6 +3,7 @@
 // shared start page (lib/startPage.js) inside the shared shell, so the rail, the account control and the input are the same as every
 // other product's. Until Find is released to the public (lib/_launchStage.js isReleased("buy")), this page is not open: "/" answers
 // exactly as before (to /sell), with a temporary redirect, so the launch gate stays as it is. The page computes nothing.
+import { copy, copyText } from "../lib/copy.js";
 import { FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
@@ -16,8 +17,8 @@ import { supabaseEnv } from "../lib/_supabase.js";
 import { heldFor } from "../lib/_hold.js";
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const TITLE = "GoAskSam | Find enthusiast cars at auction, check what they sell for, sell yours";
-const DESC = "Tell Sam what you want and search live enthusiast car auctions in your own words, see what similar cars have actually sold for, and find where and how to sell yours.";
+const TITLE = copy("home.TITLE");
+const DESC = copy("home.DESC");
 const EXAMPLES = PLACEHOLDERS.home.examples;
 const IC_CHART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M9 20V6M14 20v-8M19 20V4M3 20h18"/></svg>';
 const IC_TAG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="8.5" r="1.2"/></svg>';
@@ -45,12 +46,12 @@ export default async function handler(req, res) {
   if (!isReleased("buy", req)) { res.setHeader("Cache-Control", "no-store"); res.setHeader("Location", "/sell"); return res.status(302).end(); }
   const both = await liveSalesLine(supabaseEnv()).catch(() => liveSalesWords(null, null));   // the live feed's own refresh and the sales date, two facts (lib/asOf.js), never one date for both
   const start = startHtml({
-    id: "gas-start-home", enter: true, title: "Find the car you're looking for.",
-    sub: "Tell Sam what you want. Search live enthusiast car auctions in your own words.",
-    examples: EXAMPLES, helper: "", label: "Describe the car you want",
+    id: "gas-start-home", enter: true, title: copy("home.START_TITLE"),
+    sub: copy("home.START_SUB"),
+    examples: EXAMPLES, helper: "", label: copy("home.START_LABEL"),
     ids: { input: "gst-home-q", mic: "gst-home-mic", go: "gst-home-go" },
     asof: both.line, leadMark: true,
-    after: `<div class="gst-cards">${card("/market-check", IC_CHART, "Market Check", "See what similar cars have actually sold for.")}${card("/sell", IC_TAG, "Sell a car", "Discover where and how to sell.")}</div>`
+    after: `<div class="gst-cards">${card("/market-check", IC_CHART, copy("home.CARD_MC_TITLE"), copy("home.CARD_MC_SUB"))}${card("/sell", IC_TAG, copy("home.CARD_SELL_TITLE"), copy("home.CARD_SELL_SUB"))}</div>`
   });
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${esc(TITLE)}</title><meta name="description" content="${esc(DESC)}"><meta name="robots" content="index, follow"><link rel="canonical" href="https://goasksam.com/">
@@ -61,7 +62,7 @@ ${FONT_LINKS}<style>:root{--ink:#15201A;--sec:#5E6B63;--soft:#3C4942;--green:#1E
 ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "home", crew, req, analytics: true })}
-<main class="hm">${start}<div class="hm-legal"><span>&copy; GoAskSam, from The Daily Vroom</span><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="#" onclick="if(window.gasShowConsentBanner)window.gasShowConsentBanner();return false;">Privacy choices</a></div></main>${SHELL_MAIN_CLOSE}
+<main class="hm">${start}<div class="hm-legal"><span>&copy; GoAskSam, from The Daily Vroom</span><a href="/terms">${copyText("home.LEGAL_TERMS")}</a><a href="/privacy">${copyText("home.LEGAL_PRIVACY")}</a><a href="#" onclick="if(window.gasShowConsentBanner)window.gasShowConsentBanner();return false;">${copyText("home.LEGAL_CHOICES")}</a></div></main>${SHELL_MAIN_CLOSE}
 <script>${SHELL_JS}</script>
 <script>${START_JS}</script>
 <script>(function(){var q=document.getElementById("gst-home-q"),go=document.getElementById("gst-home-go");if(!q||!go)return;go.addEventListener("click",function(){var v=String(q.value||"").trim();if(!v){q.focus();return;}location.href="/find?q="+encodeURIComponent(v);});})();</script>

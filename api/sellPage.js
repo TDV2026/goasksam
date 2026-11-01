@@ -3,6 +3,7 @@
 // page reads the same before and after its scripts run), and one quiet "Updated [date]" line under
 // "Built for enthusiast and specialty vehicles" (the real last-updated date, lib/asOf.js
 // lastUpdatedDate; no count, omitted when the date cannot be read). Edge-cached 1 hour.
+import { copy } from "../lib/copy.js";
 import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -18,7 +19,7 @@ import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../l
 import { heldFor } from "../lib/_hold.js";
 import { sellHeroHtml, SELL_ENTRY, SELL_ENTRY_CSS, SELL_GO_HTML } from "../lib/sell/sellEntry.js";
 
-const TITLE = "Where to sell your collector car";
+const TITLE = copy("sell.TITLE");
 const HERO = sellHeroHtml();
 let shell = null;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));

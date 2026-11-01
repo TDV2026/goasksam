@@ -1,6 +1,7 @@
 // /buy (Lane C, Oct 2026): the live-auction finder as a plain conversation with Sam. Server-rendered
 // shell + an inline client that talks to /api/buySearch. One centred column, input fixed at the bottom,
 // no bubbles or card boxes around messages. ZERO OldCarsData (the feed is the cron's).
+import { copy } from "../lib/copy.js";
 import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import { reasonLine } from "../lib/reasonWords.js";
 import { PAGE_CSS, FONT_LINKS, isCrewRequest } from "./_chrome.js";
@@ -105,8 +106,8 @@ export default async function handler(req, res) {
   // THE TWO FACTS, each from its own source (Oct 31 2026): the live feed's own refresh and the sales date, "Live auctions now. Sales to Oct 28, 2026." Never one date for both: the old "Live auctions \u00b7 Updated Oct 28" put the sales date on the live cars.
   const both = await liveSalesLine(supabaseEnv()).catch(() => liveSalesWords(null, updated));
   const lead = both.line;   // the page's dated line (search rule 1)
-  const description = `${both.line} Each car is shown with what cars like it have actually sold for.`;   // meta and og: the same two facts, complete sentences
-  const TITLE = "Find enthusiast cars at auction, by what they actually sell for";
+  const description = `${both.line} ${copy("find.DESC_TAIL")}`;   // meta and og: the same two facts, complete sentences
+  const TITLE = copy("find.TITLE");
   // Search: /buy itself is indexable; a conversation is never a separate URL (?q= starts one in the
   // page) and any query-string variant is noindex with /buy as its canonical.
   const hasQuery = /\?./.test(String(req.url || ""));

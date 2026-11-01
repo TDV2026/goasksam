@@ -795,6 +795,20 @@ try {
 } catch (e) {
   record("findExcludedCheck (scripts/findExcludedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// copyCheck (Lane E, Nov 1 2026): data/copy.json, the one file of static page words, is valid and within the copy rules (no dashes, competitors, source counts, first person, over-long titles). No network.
+try {
+  const out = execSync("node scripts/copyCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("copyCheck (scripts/copyCheck.mjs)", "PASS", (out.match(/copyCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("copyCheck (scripts/copyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// copyProposalsCheck (Lane E, Nov 1 2026): docs/copy-proposals.md matches data/copy.json, its counts are right, every proposal fits and follows the copy rules, and every over-length title or description has one. No network.
+try {
+  const out = execSync("node scripts/copyProposalsCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("copyProposalsCheck (scripts/copyProposalsCheck.mjs)", "PASS", (out.match(/copyProposalsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("copyProposalsCheck (scripts/copyProposalsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // partnerDemoInertCheck (Lane E, Buy Stage 1c). No network.
 try {
   const out = execSync("node scripts/partnerDemoInertCheck.mjs", { encoding: "utf8" });

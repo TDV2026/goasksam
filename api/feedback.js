@@ -3,6 +3,7 @@
 // (lib/_email.js sendTaskEmail, so the Task email kill switch pauses it too). Nothing in the request can change the recipient, sender, subject
 // or headers; name and email lose every control character; Reply-To is set only for a valid typed email; a filled honeypot sends nothing and
 // answers as a success; the message and the email address are never stored and never logged (the one log line holds an outcome word only).
+import { copy, copyText } from "../lib/copy.js";
 import { FONT_LINKS, isCrewRequest } from "./_chrome.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appShell.js";
@@ -16,9 +17,9 @@ import { track } from "../lib/track/log.js";
 
 export const FEEDBACK_TO = "feedback@goasksam.com";
 export const FEEDBACK_SUBJECT = "GoAskSam feedback";
-export const PAUSED_TEXT = "Feedback is paused right now. Please email feedback@goasksam.com.";
-const TITLE = "Feedback | GoAskSam";
-const DESC = "Send GoAskSam a question or a note. Add your email if you would like a reply.";
+export const PAUSED_TEXT = copy("feedback.PAUSED_TEXT");
+const TITLE = copy("feedback.TITLE");
+const DESC = copy("feedback.DESC");
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 const CSS = `
@@ -57,15 +58,15 @@ ${AUTH_SIGNBAR_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 ${railOpenHtml({ active: "feedback", crew, req, analytics: true })}
 <main><div class="fb-col">
-<h1 class="fb-h1">Feedback</h1>
-<p class="fb-lead">Questions or feedback? Email <a href="mailto:${FEEDBACK_TO}">${FEEDBACK_TO}</a> or use the form below. Add your email if you would like a reply.</p>
+<h1 class="fb-h1">${copyText("feedback.H1")}</h1>
+<p class="fb-lead">${copyText("feedback.LEAD_BEFORE")}<a href="mailto:${FEEDBACK_TO}">${FEEDBACK_TO}</a>${copyText("feedback.LEAD_AFTER")}</p>
 <form id="fb-form" class="fb-form" method="post" action="/api/feedback" novalidate>
-<label>Name (optional)<input name="name" type="text" maxlength="100" autocomplete="name"></label>
-<label>Email (optional)<input name="email" type="email" maxlength="254" autocomplete="email" inputmode="email"></label>
-<label>Message<textarea name="message" required maxlength="2000"></textarea></label>
+<label>${copyText("feedback.LABEL_NAME")}<input name="name" type="text" maxlength="100" autocomplete="name"></label>
+<label>${copyText("feedback.LABEL_EMAIL")}<input name="email" type="email" maxlength="254" autocomplete="email" inputmode="email"></label>
+<label>${copyText("feedback.LABEL_MESSAGE")}<textarea name="message" required maxlength="2000"></textarea></label>
 <div class="fb-hp" aria-hidden="true"><label>Website<input name="website" type="text" tabindex="-1" autocomplete="off"></label></div>
-<button class="fb-btn" type="submit">Send</button>
-<p class="fb-small">We use your name and email only to reply. <a href="/privacy">Privacy</a></p>
+<button class="fb-btn" type="submit">${copyText("feedback.SEND")}</button>
+<p class="fb-small">${copyText("feedback.SMALL")}<a href="/privacy">${copyText("feedback.SMALL_LINK")}</a></p>
 </form>
 <p id="fb-msg" class="fb-msg" role="status" aria-live="polite"></p>
 </div></main>${SHELL_MAIN_CLOSE}

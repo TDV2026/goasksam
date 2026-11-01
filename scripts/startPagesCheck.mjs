@@ -4,6 +4,8 @@
 // until Find is released; nothing says "collector"; no first-person Sam beyond Sam's own ordered placeholder; no Daily Vroom section in
 // Home's body; the dated lead sentence search rule 1 asks for is on every page. No network.   node scripts/startPagesCheck.mjs
 import fs from "node:fs";
+import { copyData as COPY_DATA } from "../lib/copy.js";
+const C = COPY_DATA(), rxEsc = x => String(x).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");   // the page words come from data/copy.json: one edit changes the page and this check together
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 process.env.LAUNCH_STAGE = "2";
@@ -24,7 +26,7 @@ ok(/Market Check<\/b><span>See what similar cars have actually sold for\.<\/span
 // (Oct 25 2026: the one quiet bottom line "(c) GoAskSam, from The Daily Vroom" with Privacy links is Sam's order and is the only mention allowed in the body.)
 const homeMain = home.body.slice(home.body.indexOf("<main"), home.body.indexOf("</main>")).replace(/<div class="hm-legal">[\s\S]*?<\/div>/, "");
 ok(!/Daily Vroom/.test(text(homeMain)), "Home: no Daily Vroom section in the body (it stays in the rail)");
-ok(/<div class="hm-legal"><span>&copy; GoAskSam, from The Daily Vroom<\/span><a href="\/terms">Terms<\/a><a href="\/privacy">Privacy<\/a><a [^>]*>Privacy choices<\/a><\/div>/.test(home.body), "Home: one quiet bottom line with the copyright and the Privacy and Privacy choices links");
+ok(new RegExp('<div class="hm-legal"><span>&copy; GoAskSam, from The Daily Vroom<\\/span><a href="\\/terms">' + rxEsc(C.home.LEGAL_TERMS) + '<\\/a><a href="\\/privacy">' + rxEsc(C.home.LEGAL_PRIVACY) + "<\\/a><a [^>]*>" + rxEsc(C.home.LEGAL_CHOICES) + "<\\/a><\\/div>").test(home.body), "Home: one quiet bottom line with the copyright and the Privacy and Privacy choices links");
 ok(/location\.href="\/find\?q="\+encodeURIComponent\(v\)/.test(home.body), "Home: submit goes straight to /find?q= (populated results)");
 ok(/data-gst-enter/.test(home.body) && /data-ph="/.test(home.body), "Home: Enter submits and the examples rotate");
 ok(/<p class="gst-asof" data-lead-sentence>Live auctions(?: now| updated [^<]*?)?\.( Sales to [^<]*)?</.test(home.body), "Home: the dated lead sentence (rule 1)");

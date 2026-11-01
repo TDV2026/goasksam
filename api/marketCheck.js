@@ -15,6 +15,7 @@
 //
 // Query-string variants (?q=<car>, a prefilled search, or a legacy ?tester=/?crew= link) are noindex
 // with THIS canonical (bare /market-check) - rule 2, one URL per object.
+import { copy } from "../lib/copy.js";
 import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import { withTracking } from "../lib/track/log.js";
 import fs from "node:fs";
@@ -38,7 +39,7 @@ import { heldFor } from "../lib/_hold.js";
 // syncRailResults() from localStorage, same as before the shared shell.
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
-const TITLE = "Market Check: what could your car bring?";
+const TITLE = copy("marketCheck.TITLE");
 const H1 = "What have cars like yours sold for?";
 const SITE = "https://goasksam.com";
 
