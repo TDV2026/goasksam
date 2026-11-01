@@ -1646,6 +1646,13 @@ try {
 } catch (e) {
   record("partner demo: an answer apart by body, gearbox, year or mileage places typed prices and sales per option (scripts/partnerApartCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// partnerOrderCheck (Lane E, Nov 1 2026): each sort order picks its five from the engine's FULL set of sales (highest price returns the five highest, newest the five most recent, closest miles the five nearest), for every demo car, on a single range and on every option of an apart answer. No network.
+try {
+  const out = execSync("node scripts/partnerOrderCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("partner demo: every sort order returns the right five of the full set (scripts/partnerOrderCheck.mjs)", "PASS", (out.match(/partnerOrderCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("partner demo: every sort order returns the right five of the full set (scripts/partnerOrderCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 try {
   const out = execSync("node scripts/nonVehicleCheck.mjs", { encoding: "utf8", timeout: 120000 });
   record("lots: an engine, wheels, literature or parts lot is never a car card, a spec match or a sale in a pool (scripts/nonVehicleCheck.mjs)", "PASS", (out.match(/nonVehicleCheck: .*/) || [""])[0]);
