@@ -1645,6 +1645,13 @@ try {
 } catch (e) {
   record("lots: an engine, wheels, literature or parts lot is never a car card, a spec match or a sale in a pool (scripts/nonVehicleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A generation phrase ("first gen", "Mk1") is the generation table's row, never a trim or years the chat made up (Lane B, Nov 1 2026).
+try {
+  const out = execSync("node scripts/genPhraseCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("generation phrases: first gen, Mk1, gen 1 on every car with a generation table are the table's row, never a trim or made-up years (scripts/genPhraseCheck.mjs)", "PASS", (out.match(/genPhraseCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("generation phrases: first gen, Mk1, gen 1 on every car with a generation table are the table's row, never a trim or made-up years (scripts/genPhraseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 try {
   const out = execSync("node scripts/whichChipsCheck.mjs", { encoding: "utf8", timeout: 180000 });
   record("Which model: no chip cut at a space, no duplicate, no variant beside its model (scripts/whichChipsCheck.mjs)", "PASS", (out.match(/whichChipsCheck: .*/) || [""])[0]);
