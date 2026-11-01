@@ -1639,6 +1639,13 @@ try {
   record("engine: a photo on a dead host is never handed to a page (scripts/photoHostCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "))
 }
 // A lot that is not a vehicle is not a car anywhere: no Find card, no spec match, no sales pool (Lane B, Oct 29 2026).
+// An answer that prices apart places a typed price against each option's own range, never an empty list (Lane B, Nov 1 2026).
+try {
+  const out = execSync("node scripts/partnerApartCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("partner demo: an answer apart by body, gearbox, year or mileage places typed prices and sales per option (scripts/partnerApartCheck.mjs)", "PASS", (out.match(/partnerApartCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("partner demo: an answer apart by body, gearbox, year or mileage places typed prices and sales per option (scripts/partnerApartCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 try {
   const out = execSync("node scripts/nonVehicleCheck.mjs", { encoding: "utf8", timeout: 120000 });
   record("lots: an engine, wheels, literature or parts lot is never a car card, a spec match or a sale in a pool (scripts/nonVehicleCheck.mjs)", "PASS", (out.match(/nonVehicleCheck: .*/) || [""])[0]);
