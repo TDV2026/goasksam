@@ -30,7 +30,7 @@ import { lastUpdatedDate, shortDate } from "../lib/asOf.js";
 let CARD_UPDATED = "";
 import { decodeVinFacts } from "../lib/vehicle.js";
 import { sellsForCardHtml, latestQuarterRowHtml } from "../lib/sellsForCard.js";
-import { mapEngineAnswer, ENGINE_VERSION } from "../lib/onebox.js";
+import { mapEngineAnswer, ENGINE_VERSION, partnerPositionsOf, PARTNER_PRICE_KEYS } from "../lib/onebox.js";
 
 // THE SHARED CARD (Sam, Oct 16 2026; Lane A's lib/sellsForCard.js): the "What these sell for" card is rendered here by
 // the one function every product uses, from the very answer Market Check's page hands it (its raw answer), so the
@@ -637,11 +637,22 @@ export function partnerShape(d, text, asked, extra = {}) {
 // Belt and braces: the reshaped answer carries only fields this file wrote, but a venue name or listing link must
 // never leave even if an upstream field changes shape. Any string that names a venue or a URL fails the answer.
 const VENUE_RE = /bring ?a ?trailer|\bbat\b|cars ?(&|and) ?bids|pcar ?market|hagerty|gooding|rm sotheby|sotheby|bonhams|mecum|barrett|broad ?arrow|hemmings|collecting ?cars|car ?& ?classic|pistonheads|all ?collector|mb ?market|autohunter|\bthemarket\b|https?:\/\//i;
+// the request's typed prices, mileage and order, shape-checked; null when it carries none of them (the answer is then exactly what it was)
+export function positionAskOf(b) {
+  if (!b || typeof b !== "object") return null;
+  let prices = b.prices; if (typeof prices === "string") { try { prices = JSON.parse(prices); } catch { prices = null; } }
+  const src = prices && typeof prices === "object" ? prices : b, out = {};
+  for (const k of PARTNER_PRICE_KEYS) { const v = Math.round(Number(String(src[k] ?? "").replace(/[$,\s]/g, ""))); if (v > 0 && v <= 1e9) out[k] = v; }
+  const miles = Math.round(Number(String(b.mileage ?? "").replace(/[,\s]/g, "")));
+  const order = ["miles", "date", "price"].includes(b.order) ? b.order : null;
+  if (!Object.keys(out).length && !(miles > 0) && !order) return null;
+  return { prices: out, mileage: miles > 0 && miles < 5e6 ? miles : null, order };
+}
 export function venueLeak(obj) {
   const hits = [];
   const walk = (v, path) => {
     if (v == null) return;
-    if (path === ".query") return;
+    if (path === ".query" || path === ".placedSales") return;   // placedSales (partnerPositionsOf) carries title, venue and url on purpose: the listing form's sales, behind the same partner gate
     if (typeof v === "string") { if (VENUE_RE.test(v)) hits.push(path + ": " + v.slice(0, 60)); return; }
     if (Array.isArray(v)) return v.forEach((x, i) => walk(x, path + "[" + i + "]"));
     if (typeof v === "object") for (const [k, x] of Object.entries(v)) { if (/^(url|href|link|id|listingId|listing_id|source|platform|house|venue|title)$/i.test(k)) hits.push(path + "." + k); walk(x, path + "." + k); }
@@ -693,6 +704,8 @@ export default async function handler(req, res) {
   let refine = null;
   try { refine = cleanRefine(typeof b.refine === "string" ? JSON.parse(b.refine) : b.refine); } catch { refine = null; }
   const asked = Math.max(0, Math.min(9, Number(b.asked) || 0));
+  // TYPED PRICES, MILEAGE AND ORDER (Lane B, Nov 1 2026; the listing form, partner view b): up to four tagged prices, a mileage and an order ride on the request and are answered at read time by the engine (lib/onebox.js partnerPositionsOf); the page compares nothing.
+  const ask = positionAskOf(b);
   const inputKind = vinOfInput(b), vinIn = inputKind.vin;
   let text = String(b.q || [b.year, b.make, b.model].filter(Boolean).join(" ") || "").replace(/\s+/g, " ").trim().slice(0, 120);
   // ANY CAR (Sam, Oct 18 2026): every read on the demo, its six cars and any other car, is bounded by the demo's own
@@ -749,7 +762,7 @@ export default async function handler(req, res) {
   // what Market Check itself would serve. Anything else reads through the handler as before. A VIN view gets its own VIN
   // history and name, as the existing fallback does.
   if (!refine && !(Number(asked) > 0)) {
-    const qk = demoKey(text), qlast = qk && env ? await readLast(env, qk) : null;
+    const qk = ask ? null : demoKey(text), qlast = qk && env ? await readLast(env, qk) : null;
     if (!vinIn && lastGoodUsable(qlast) && questionResult(qlast.out)) return res.status(200).json({ ...qlast.out, history, storedQuestion: true });
     if (lastGoodUsable(qlast) && fullResult(qlast.out)) {
       if (storedDemoServable(qlast, await currentEpoch(env).catch(() => null))) {
@@ -788,6 +801,7 @@ export default async function handler(req, res) {
     if (!out.identity && id) out.identity = { year: id.year || null, make: id.make, model: id.model, variant: id.trim || null };
   }
   out.updated = await updatedP;
+  if (ask && out && out.ok === true && r && r.d) { const px = partnerPositionsOf(r.d, ask); out = { ...out, positions: px.positions, placedSales: px.sales, order: px.order }; }   // a copy: the object just handed to the last-good store is never touched   // read time only, after the last good answer was stored: the stored answer never carries them
   const leaks = venueLeak(out);
   if (leaks.length) { console.error("partnerAnswer venue leak blocked:", leaks.slice(0, 5).join(" | ")); return res.status(500).json({ ok: false, error: "blocked" }); }
   return res.status(200).json(out);

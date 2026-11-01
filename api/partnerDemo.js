@@ -334,10 +334,12 @@ const JS = String.raw`
   // The pill names whose figure it is (Sam, Oct 18 2026): the listing's asking price, or the seller's reserve. Neutral,
   // no deal words, no advice.
   function placing(x, a, who){
-    if (!a || !a.range) return null;   // no range: no pill; the engine's line on the card says why (Sam, Oct 19 2026)
+    // the engine's position for this price (partnerAnswer positions[], placingFor); the page compares nothing and only words what it is given
+    var key = who === "reserve" ? "reserve" : "item_price", p = ((a && a.positions) || []).filter(function(q){ return q.key === key && q.value === x; })[0];
+    if (!p) return null;   // no entry: the engine could not place it (no range, or no price sent), so no pill
     var w = who === "reserve" ? "Your reserve is " : "Asking price is ";
-    if (x < a.range.low) return { cls: "below", text: w + "below the usual range" };
-    if (x > a.range.high) return { cls: "above", text: w + "above the usual range" };
+    if (p.place === "below") return { cls: "below", text: w + "below the usual range" };
+    if (p.place === "above") return { cls: "above", text: w + "above the usual range" };
     return { cls: "in", text: w + "inside the usual range" };
   }
   // The car's photo (Sam, Oct 18 2026): the endpoint's carPhoto, a photo from the engine's own included sales of this
@@ -485,7 +487,7 @@ const JS = String.raw`
     var send = { q: st.q }; if (val) { send.refine = {}; send.refine[key] = val; }
     if (slot === "a") return runA(send);
     if (slot === "b") { $("b-out").innerHTML = '<p class="loading">${reasonLine("cold.reading")}</p>'; return run("b", send, gotB); }
-    if (slot === "c") return run("c", D ? Object.assign({ vin: D.vin }, send) : send, drawListing);
+    if (slot === "c") return run("c", D ? Object.assign({ vin: D.vin, item_price: D.price }, send) : send, drawListing);
   });
   // ---- view a: before listing
   var aLast = null;
@@ -561,13 +563,23 @@ const JS = String.raw`
   });
   document.addEventListener("click", function(e){ if (e.target && e.target.id === "a-list") e.preventDefault(); });   // the demo's List it does nothing
   $("a-form").addEventListener("submit", function(e){ e.preventDefault(); var v = String($("a-q").value || "").trim(); if (v) runA({ q: v }); });
-  $("b-res").addEventListener("input", function(){ var d = String(this.value || "").replace(/[^\d]/g, "").slice(0, 9); this.value = d ? Number(d).toLocaleString("en-US") : ""; drawB(); });
+  var bTimer = null;
+  $("b-res").addEventListener("input", function(){
+    var d = String(this.value || "").replace(/[^\d]/g, "").slice(0, 9); this.value = d ? Number(d).toLocaleString("en-US") : ""; drawB();
+    // where the typed reserve sits is the engine's to say: one read with the reserve on the request, then positions[] is drawn (nothing is compared here)
+    clearTimeout(bTimer); var n = Number(d);
+    if (n > 0 && bAns && bAns.range) bTimer = setTimeout(function(){
+      ask(Object.assign({ q: CAR }, D ? { vin: D.vin } : {}, bAns.refined ? { refine: bAns.refined } : {}, { reserve: n })).then(function(a){
+        if (a && a.positions && Number(String($("b-res").value || "").replace(/[^\d]/g, "")) === n) { bAns = Object.assign({}, bAns, { positions: a.positions }); drawB(); }
+      });
+    }, 350);
+  });
   // (Sam, Oct 18 2026) View a opens empty when no car has been chosen: no read until the visitor submits one. Views b and
   // c start on the listing car (the 2014 GT3) when none has been chosen, and follow the chosen car when one has.
   var pre = new URLSearchParams(location.search).get("q") || (CHOSEN ? CAR : ""); $("a-q").value = pre;
   if (VIEW !== "a" || CHOSEN || pre) {
-    run("b", D ? { q: CAR, vin: D.vin } : { q: CAR }, gotB);   // the listing car's VIN brings its own sale photos to view b too
-    run("c", D ? { q: CAR, vin: D.vin } : { q: CAR }, drawListing);
+    run("b", D ? { q: CAR, vin: D.vin, item_price: D.price } : { q: CAR }, gotB);   // the same body as view c, so the page is one read   // the listing car's VIN brings its own sale photos to view b too
+    run("c", D ? { q: CAR, vin: D.vin, item_price: D.price } : { q: CAR }, drawListing);
     if (pre) runA({ q: pre });
   }
 })();
