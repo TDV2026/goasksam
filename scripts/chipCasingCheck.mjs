@@ -11,13 +11,13 @@ process.chdir(root);
 let fail = 0; const ok = (n, c, d) => { if (!c) fail++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 const imp = f => import(pathToFileURL(path.join(root, f)).href);
 const { chipLabel, casedChips } = await imp("lib/chipLabel.js").catch(() => ({})), V = await imp("lib/vehicle.js"), B = await imp("lib/bodyWords.js"), E = await imp("lib/onebox.js");
-const BMW_I = /^i(\d|x)\d*$/i, NUM_SUFFIX = /^[a-z]{0,2}\d{2,4}(i|is|xi|ci|ti|d|e|hp|cc|ps)$/i, unsetWord = w => /[a-z]/i.test(w) && !/[A-Z]/.test(w) && !BMW_I.test(w) && !NUM_SUFFIX.test(w);
+const BMW_I = /^i(\d|x)\d*$/i, NUM_SUFFIX = /^[a-z]{0,2}\d{2,4}(tii|ti|csi|ci|xi|is|si|i|d|e|hp|cc|ps)$/i, unsetWord = w => /[a-z]/i.test(w) && !/[A-Z]/.test(w) && !BMW_I.test(w) && !NUM_SUFFIX.test(w);
 const faults = label => /[A-Z]/.test(label) ? [] : String(label).split(/[\s\-/]+/).filter(unsetWord);   // a label with no capital at all, the way "m8" arrived
 ok("lib/chipLabel.js exists", typeof chipLabel === "function");
 if (typeof chipLabel === "function") {
-  const WANT = { m8: "M8", gt3: "GT3", rs6: "RS6", "300sl": "300SL", "e-type": "E-Type", "land cruiser": "Land Cruiser", "8-series": "8-Series", "7-series": "7-Series", x5: "X5", "bel air": "Bel Air", "e30 m3": "E30 M3", "cj-5": "CJ-5", "f-100": "F-100", ix: "iX", i3: "i3", "850i": "850i", m850i: "M850i", "325is": "325is", "20hp": "20hp", "300sel": "300SEL", i8: "i8", "vw bus": "VW Bus", "pre-a": "Pre-A" };
+  const WANT = { m8: "M8", gt3: "GT3", rs6: "RS6", "300sl": "300SL", "e-type": "E-Type", "land cruiser": "Land Cruiser", "8-series": "8-Series", "7-series": "7-Series", x5: "X5", "bel air": "Bel Air", "e30 m3": "E30 M3", "cj-5": "CJ-5", "f-100": "F-100", ix: "iX", i3: "i3", "850i": "850i", "2002tii": "2002tii", "2002ti": "2002ti", "635csi": "635CSi", "320i": "320i", "528i": "528i", "330ci": "330ci", "m635csi": "M635CSi", "325is": "325is", "540i": "540i", "633csi": "633CSi", m850i: "M850i", "325is": "325is", "20hp": "20hp", "300sel": "300SEL", i8: "i8", "vw bus": "VW Bus", "pre-a": "Pre-A" };
   for (const [a, b] of Object.entries(WANT)) ok(`"${a}" prints "${b}"`, chipLabel(a) === b, chipLabel(a));
-  const SAME = ["M3", "M8", "911", "2002", "SL-Class", "GT-R", "E-Type", "Land Cruiser", "300SL", "RS6", "GT3", "8-Series", "Not sure", "Bel Air", "CLK DTM", "i3", "iX", "Model T", "F-150"];
+  const SAME = ["2002tii", "635CSi", "320i", "M3", "M8", "911", "2002", "SL-Class", "GT-R", "E-Type", "Land Cruiser", "300SL", "RS6", "GT3", "8-Series", "Not sure", "Bel Air", "CLK DTM", "i3", "iX", "Model T", "F-150"];
   ok("a label that already carries its case is printed as written", SAME.every(x => chipLabel(x) === x), SAME.filter(x => chipLabel(x) !== x).join(" "));
   ok("the rule is idempotent", Object.values(WANT).every(x => chipLabel(chipLabel(x)) === chipLabel(x)));
   // (2) model chips built from records
