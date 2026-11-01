@@ -150,7 +150,8 @@ for (const width of [1440, 390]) for (const view of ["a", "b", "c", "d"]) for (c
 
 // ---- THE LISTING FORM (view b, Sam, Nov 1 2026)
 const CAR_B = "2008 Porsche 911 Carrera S", wait = ms => new Promise(r => setTimeout(r, ms));
-const typeIn = async (p, sel, v) => { await p.evaluate((s, x) => { const i = document.querySelector(s); i.value = x; i.dispatchEvent(new Event("input", { bubbles: true })); }, sel, v); };
+const typeIn = async (p, sel, v) => { await p.evaluate((s, x) => { const i = document.querySelector(s); i.value = x; i.dispatchEvent(new Event("input", { bubbles: true })); }, sel, v); };   // typing only: no read yet
+const commit = async (p, sel) => { await p.evaluate(s => document.querySelector(s).dispatchEvent(new Event("change", { bubbles: true })), sel); };   // leaving the field
 const cardText = p => textOf(p, "#b-out");
 const rowPrices = p => p.evaluate(() => [...document.querySelectorAll("#b-out .slist li .p")].map(e => Number(e.innerText.replace(/[^\d]/g, ""))));
 for (const width of [1440, 390]) {
@@ -167,7 +168,16 @@ for (const width of [1440, 390]) {
     ok(["What these sell for", "$22,500 to $41,000", "The middle half of completed sales", "Lowest sale $15,000", "Highest sale $60,000", "Powered by GoAskSam", "How Sam decides", "Type a price and Sam shows where it sits against the range."].every(x => (c || "").includes(x)), `${t}: with no price typed the card shows the range, the ends and the hint, got ${JSON.stringify((c || "").slice(0, 200))}`);
     ok(!/\bnull\b|undefined|NaN/.test(c || ""), `${t}: no error text in the card`);
     // prices: each is placed by the ENGINE's answer; the page only prints it
+    const reads0 = p._asked.length;
     await typeIn(p, "#b-reserve", "30000"); await typeIn(p, "#b-start", "45000"); await typeIn(p, "#b-bin", "10000"); await wait(900);
+    ok(p._asked.length === reads0, `${t}: typing alone reads nothing (${p._asked.length - reads0} reads before any field is left)`);
+    await commit(p, "#b-reserve"); await wait(500);
+    ok(p._asked.length === reads0 + 1, `${t}: leaving the reserve field is one read (${p._asked.length - reads0})`);
+    await commit(p, "#b-start"); await commit(p, "#b-bin"); await wait(900);
+    ok(p._asked.length === reads0 + 1, `${t}: committing the other two fields asks nothing new, the same state is one read (${p._asked.length - reads0})`);
+    await typeIn(p, "#b-bin", "11000"); await commit(p, "#b-bin"); await wait(500);
+    ok(p._asked.length === reads0 + 2, `${t}: a changed field committed is one more read (${p._asked.length - reads0})`);
+    await typeIn(p, "#b-bin", "10000"); await commit(p, "#b-bin"); await wait(900);
     c = await cardText(p);
     ok(/Reserve \$30,000\. Within the range\./.test(c) && /Starting bid \$45,000\. Above the range\./.test(c) && /Buy It Now \$10,000\. Below the range\./.test(c), `${t}: a line for each typed price, from the engine's position, got ${JSON.stringify((c || "").slice(0, 260))}`);
     const marks = await p.evaluate(() => [...document.querySelectorAll("#b-out .mk")].map(e => e.innerText.trim()).sort().join(""));
@@ -190,7 +200,13 @@ for (const width of [1440, 390]) {
     ok(JSON.stringify(prices) === JSON.stringify(engineOrder("date")) && prices[0] === 31250, `${t}: with no mileage the sales are newest first, as the engine sent them (${prices})`);
     await p.evaluate(() => document.querySelector('#b-out [data-order="price"]').click()); await wait(700);
     ok(JSON.stringify(await rowPrices(p)) === JSON.stringify(engineOrder("price")), `${t}: Highest price orders the rows as the engine sent them`);
-    await typeIn(p, "#b-miles", "36000"); await wait(900);
+    { const r1 = p._asked.length;
+      await p.focus("#b-miles"); await p.keyboard.type("36000", { delay: 15 }); await wait(500);
+      ok(p._asked.length === r1, `${t}: typing the mileage key by key reads nothing (${p._asked.length - r1})`);
+      await p.keyboard.press("Enter"); await wait(900);
+      ok(p._asked.length === r1 + 1 && p._asked[p._asked.length - 1].mileage === 36000, `${t}: Return commits the mileage: one read, with the mileage (${p._asked.length - r1})`);
+      const r2 = p._asked.length; await p.focus("#b-miles"); await p.keyboard.press("Tab"); await wait(500);
+      ok(p._asked.length === r2, `${t}: leaving a field whose value did not change reads nothing`); }
     await p.evaluate(() => document.querySelector('#b-out [data-order="miles"]').click()); await wait(700);
     ok(JSON.stringify(await rowPrices(p)) === JSON.stringify(engineOrder("miles", 36000)), `${t}: Closest miles orders the rows as the engine sent them for the mileage typed (${engineOrder("miles", 36000)})`);
     ok((p._asked.filter(b => b.order === "miles" && b.mileage === 36000).length >= 1) && p._asked.some(b => b.prices && b.prices.reserve === 30000), `${t}: the page asks the engine with the mileage, the order and the typed prices`);
@@ -198,7 +214,7 @@ for (const width of [1440, 390]) {
     await p.select("#b-format", "fixed"); await wait(1200);
     const fx = await p.evaluate(() => ({ auction: !document.getElementById("b-auction").hidden, fixed: !document.getElementById("b-fixed").hidden, dur: [...document.querySelectorAll("#b-duration option")].map(o => o.innerText).join("|"), lab: document.getElementById("b-durlab").innerText }));
     ok(!fx.auction && fx.fixed && /30 days/.test(fx.dur) && fx.lab === "Duration", `${t}: Fixed Price shows Item price and its durations and hides the auction fields (${JSON.stringify(fx)})`);
-    await typeIn(p, "#b-price", "72000"); await wait(900);
+    await typeIn(p, "#b-price", "72000"); await commit(p, "#b-price"); await wait(900);
     c = await cardText(p);
     const m2 = await p.evaluate(() => [...document.querySelectorAll("#b-out .mk")].map(e => e.innerText.trim()).join(""));
     ok(/Item price \$72,000\. Above the range\./.test(c) && m2 === "P" && !/Starting bid|Reserve \$|Buy It Now \$/.test(c), `${t}: Item price is placed by the engine and the auction prices are no longer on the card (${m2})`);
@@ -211,7 +227,7 @@ for (const width of [1440, 390]) {
 {
   // an engine that returns no position: the page prints no line, no marker and no comparison of its own
   const { p } = await open("b", CAR_B, 1440, [{ ...RANGE_B, __noPositions: true }]);
-  await typeIn(p, "#b-reserve", "30000"); await wait(900);
+  await typeIn(p, "#b-reserve", "30000"); await commit(p, "#b-reserve"); await wait(900);
   const c = await cardText(p), marks = await p.evaluate(() => document.querySelectorAll("#b-out .mk").length), rel = await p.evaluate(() => [...document.querySelectorAll("#view-b .rel")].map(e => e.innerText.trim()).join(""));
   ok(!/Reserve \$30,000|Within the range|Above the range|Below the range/.test(c) && marks === 0 && rel === "", `listing form: no position from the engine means no line, no marker and no field note (${JSON.stringify((c || "").slice(0, 160))})`);
   ok(/\$22,500 to \$41,000/.test(c), "listing form: the range still shows");

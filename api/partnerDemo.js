@@ -644,7 +644,13 @@ const JS = String.raw`
   document.addEventListener("click", function(e){ if (e.target && e.target.id === "a-list") e.preventDefault(); });   // the demo's List it does nothing
   $("a-form").addEventListener("submit", function(e){ e.preventDefault(); var v = String($("a-q").value || "").trim(); if (v) runA({ q: v }); });
   $("b-format").addEventListener("change", function(){ bFormat(); bRead(true); });
-  ["b-start", "b-reserve", "b-bin", "b-price", "b-miles"].forEach(function(id){ $(id).addEventListener("input", function(){ var d = String(this.value || "").replace(/[^\d]/g, "").slice(0, 9); this.value = d ? Number(d).toLocaleString("en-US") : ""; bRead(true); }); });   // one read per change; the position shows when the answer returns, and only the latest read draws
+  // A price or the mileage is READ when it is committed (leaving the field, or Return), once, never per keystroke (Sam, Nov 1 2026). The field still formats as it is typed.
+  ["b-start", "b-reserve", "b-bin", "b-price", "b-miles"].forEach(function(id){
+    var el = $(id);
+    el.addEventListener("input", function(){ var d = String(this.value || "").replace(/[^\d]/g, "").slice(0, 9); this.value = d ? Number(d).toLocaleString("en-US") : ""; });
+    el.addEventListener("change", function(){ bRead(true); });
+    el.addEventListener("keydown", function(e){ if (e.key === "Enter") { e.preventDefault(); this.blur(); } });   // Return commits: blur fires the one change
+  });
   document.addEventListener("click", function(e){ var t = e.target.closest && e.target.closest("[data-order]"); if (!t) return; bOrder = t.getAttribute("data-order"); bRead(true); });
   bFormat();
   // (Sam, Oct 18 2026) View a opens empty when no car has been chosen: no read until the visitor submits one. Views b and
