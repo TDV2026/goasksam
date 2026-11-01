@@ -36,7 +36,7 @@ if (fn) {
   ok("each sale carries date, miles, price, title and place", dates.sales.every(s => "date" in s && "miles" in s && s.price > 0 && s.title && ["below", "within", "above"].includes(s.place)));
   ok("a sale carries NO venue and NO address, at the source (the engine's own rows, not hidden by a page)", [dates, prices, miles].every(r => r.sales.every(s => !("venue" in s) && !("url" in s) && !JSON.stringify(s).match(/Bring a Trailer|https?:/i))), JSON.stringify(dates.sales[0]));
   ok("order date: newest first", dates.order === "date" && dates.sales.map(s => s.date).join() === ["2026-04-02", "2026-03-10", "2026-02-14", "2026-01-05", "2025-12-20"].join(), dates.sales.map(s => s.date).join());
-  ok("order price: the order the answer lists them", prices.order === "price" && prices.sales.map(s => s.price).join() === CARDS.slice(0, 5).map(c => c.price).join(), prices.sales.map(s => s.price).join());
+  ok("order price: highest price first, the newer sale first on a tie", prices.order === "price" && prices.sales.map(s => s.price).join() === CARDS.slice().sort((x, y) => y.price - x.price || Date.parse(y.date) - Date.parse(x.date)).slice(0, 5).map(c => c.price).join(), prices.sales.map(s => s.price).join());
   // nearest to 20,000 miles on known mileages: 21000 (1000), 15000 (5000), 9000 (11000), 32000 (12000), 30000 (10000 -> before 9000? 9000 is 11000 away)
   ok("order miles: nearest to the typed mileage first (known mileages)", miles.order === "miles" && miles.sales.map(s => s.miles).join() === "21000,15000,30000,9000,32000", miles.sales.map(s => s.miles).join());
   const all = fn({ ...D, cards: CARDS.slice(0, 6) }, { order: "miles", mileage: 20000 });
