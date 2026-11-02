@@ -261,12 +261,6 @@ const day = v => (v ? String(v).slice(0, 10) : null);
 // make and model instead; never a venue, never a URL. It travels as `name`, and the archive row's own id as `photo`
 // (used only by the demo's photo slot, /api/partnerAnswer?photo=<id>, which looks the photo up server side), so the
 // venue-leak guard below stays exactly as it is (it refuses any key called id or title, anywhere).
-export function rowTitle(r) {
-  const t = String((r && r.title) || "").trim();
-  if (t && !VENUE_RE.test(t)) return t;
-  const f = [r && r.year, r && r.make, r && r.model].filter(Boolean).join(" ").trim();
-  return f && !VENUE_RE.test(f) ? f : "";
-}
 const rowId = r => r && r.id != null ? photoId(r.id) : null;   // the archive's UUID (lib/_salePhoto.js photoId)
 // REVISION 4 (Sam, Oct 20 2026: the sales list in the shared card's own rows and order): the engine's included sales in
 // the order its card draws them (newest first, Market Check's order), with the same venue-safe swaps as sales (the row's
@@ -637,7 +631,8 @@ export function partnerShape(d, text, asked, extra = {}) {
 
 // Belt and braces: the reshaped answer carries only fields this file wrote, but a venue name or listing link must
 // never leave even if an upstream field changes shape. Any string that names a venue or a URL fails the answer.
-const VENUE_RE = /bring ?a ?trailer|\bbat\b|cars ?(&|and) ?bids|pcar ?market|hagerty|gooding|rm sotheby|sotheby|bonhams|mecum|barrett|broad ?arrow|hemmings|collecting ?cars|car ?& ?classic|pistonheads|all ?collector|mb ?market|autohunter|\bthemarket\b|https?:\/\//i;
+import { VENUE_RE, rowTitle, placedSaleOf } from "../lib/placedSale.js";
+export { rowTitle, placedSaleOf };
 // THE DEMO'S STORED ANSWER ALSO HOLDS THE PLACED SALES FOR THE DEFAULT ORDER (Lane B, Nov 1 2026, the eBay demo's first load): the page's first read carries an order, and a request that asks was never served from storage, so every cold load read the live engine.
 // The stored answer now carries placedSales (the five sales, newest first, the default order with no mileage typed) and order "date"; positions are placed from the stored range at read time (partnerPlacesOf, placingFor), so a typed price needs no engine read.
 // A typed mileage or another order still reads live. The fields are removed from an answer served to a request that did not ask, so that answer is exactly what it was.
@@ -668,10 +663,6 @@ export function servedFromStored(stored, ask) {
   return { ...rest, positions: rest.range ? partnerPlacesOf(rest.range, ask.prices) : [], placedSales: rest.range ? placedSales : [], order: "date" };
 }
 // ONE PLACED SALE AS THE PARTNER SEES IT (Sam, Nov 1 2026: the eBay demo must not show or expose where a sale happened): date, miles, price, the venue-safe name (rowTitle), the photo by id (served through ?photo=, never an address) and the place. No venue and no address are in the row at all.
-export function placedSaleOf(s) {
-  const name = rowTitle({ title: s.title });
-  return { date: s.date || null, miles: s.miles ?? null, price: s.price, name: name || null, ...(s.photoId != null && photoId(s.photoId) ? { photo: photoId(s.photoId) } : {}), place: s.place };
-}
 // the request's typed prices, mileage and order, shape-checked; null when it carries none of them (the answer is then exactly what it was)
 export function positionAskOf(b) {
   if (!b || typeof b !== "object") return null;

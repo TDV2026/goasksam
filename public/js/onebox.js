@@ -803,6 +803,12 @@
   }
   function heroMileageLineHtml(d, m) {
     var rf = obLastRefine || {};
+    // ONE MILEAGE (Lane B, Nov 2 2026): the engine names the one mileage this answer is read at and where it came from (rangeMileage.line); the page prints that line and fills its box with that same number. With none, the older lines below stand.
+    var rm = d && d.rangeMileage && Number(d.rangeMileage.miles) > 0 && typeof d.rangeMileage.line === "string" && d.rangeMileage.line ? d.rangeMileage : null;
+    if (rm) {
+      var rnote = Number(rf.miTarget) > 0 && d && d.mileageBand && d.mileageBand.line ? " " + String(d.mileageBand.line) : "";
+      return '<p class="hero-miles on" data-stage="answer">' + lint(esc(rm.line + rnote), "hero.mi.basis") + ' <button type="button" class="linkbtn" id="ob-miles-change">Change</button>' + milesFieldHtml(rm.miles) + "</p>";
+    }
     if (Number(rf.miTarget) > 0) {
       // MILEAGE NEVER MAKES THE ANSWER WORSE (Sam's rule, Oct 23 2026): when too few sales sit near the miles to narrow, the engine keeps the
       // original range and sends mileageNote ("Too few sales near N miles to narrow it. This is the range for all N."): printed in this slot.
@@ -1347,6 +1353,16 @@
   // uses, so there is nothing left to compute here beyond string assembly. Replaces the earlier
   // m/vinAnchor-based version (client-computed placing against d.cluster/d.span) now that the
   // engine carries ownSales on every tier that can have it (result, thin, refusal).
+  // THE CLOSEST SALES (Lane B, Nov 2 2026): the engine's nearestSales (date, miles, price, name) under its own heading; no field, no block.
+  function nearestSalesHtml(d) {
+    var list = d && Array.isArray(d.nearestSales) ? d.nearestSales.filter(function (s) { return s && Number(s.price) > 0; }) : [];
+    if (!list.length) return "";
+    var head = typeof d.nearestSalesHeading === "string" ? d.nearestSalesHeading : "";
+    return '<div class="nearest-sales" data-stage="answer">' + (head ? '<p class="sfc-label">' + lint(esc(head), "nearest.head") + "</p>" : "") + list.map(function (s) {
+      var mi = Number(s.miles) > 0 ? Number(s.miles).toLocaleString("en-US") + " miles" : "";
+      return '<div class="exactsale-row"><span class="exactsale-date">' + esc(monShort(s.date)) + '</span><span class="exactsale-price num">' + esc(usd(s.price)) + '</span><span class="exactsale-miles">' + esc(mi) + '</span>' + (s.name ? '<span class="exactsale-venue">' + esc(s.name) + "</span>" : "") + "</div>";
+    }).join("") + "</div>";
+  }
   function exactCarSalesHtml(d) {
     var own = d && d.ownSales;
     if (!own || !Array.isArray(own.sales) || !own.sales.length) return "";
@@ -2053,7 +2069,7 @@
   function resultHtml(d, m) {
     var thinTile = thinTileTreatment(d, m, d.cards, d.setAsideRows);
     // The car's OWN sale shows FIRST, labelled "Sold before" (Stage 3, Oct 23 2026), above the range it is read against.
-    var body = exactCarSalesHtml(d) + heroRangeHtml(d, m, thinTile);
+    var body = exactCarSalesHtml(d) + heroRangeHtml(d, m, thinTile) + nearestSalesHtml(d);
     // Item (d), Sam's review round: every sale is already on screen as a tile, so the "Sales behind
     // this answer" teaser (three cards + its own "see all" link) is redundant - suppressed whenever
     // tiles rendered (every pool size now, job 3 round two: 1 to 16 sales all get tiles).

@@ -1,5 +1,9 @@
 [
   {
+    "date": "2026-11-02",
+    "text": "Market Check now shows the closest sales to your car, matched on mileage, under the range. The page also states the mileage the range was computed at. A VIN lookup skips the trim question when the VIN already says the trim."
+  },
+  {
     "date": "2026-10-31",
     "text": "Type a gearbox or engine, like 6-speed or V8, and Sam narrows the sales to match.",
     "thanks": "Thanks Rick and Owen."

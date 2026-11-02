@@ -1730,6 +1730,20 @@ try {
 } catch (e) {
   record("Nightly: every example builder survives an apart, thin and no-range answer; warm, attempts, premium and cube need ingest only (scripts/nightlyExampleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Market Check, a VIN and its mileage: stored key, sibling trims, nearest sales, one mileage, one "Narrowed to" (Lane B, Nov 2 2026).
+try {
+  const out = execSync("node scripts/mcVinCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("Market Check: a VIN reads its trim's stored key, an asked trim never shows a sibling's range, nearestSales, one mileage, one Narrowed to (scripts/mcVinCheck.mjs)", "PASS", (out.match(/mcVinCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Market Check: a VIN reads its trim's stored key, an asked trim never shows a sibling's range, nearestSales, one mileage, one Narrowed to (scripts/mcVinCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// The narrowed family read (behind pool_columns_enabled, off) gives the same verdict as the full read (Lane B, Nov 2 2026).
+try {
+  const out = execSync("node scripts/narrowReadCheck.mjs", { encoding: "utf8", timeout: 290000 });
+  record("Thin read: the narrowed family read gives the same verdict as the full read on every seeded pool (scripts/narrowReadCheck.mjs)", "PASS", (out.match(/narrowReadCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Thin read: the narrowed family read gives the same verdict as the full read on every seeded pool (scripts/narrowReadCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // A VIN never asks a question it already answers (Lane B, Nov 2 2026).
 try {
   const out = execSync("node scripts/vinSettleCheck.mjs", { encoding: "utf8", timeout: 240000 });

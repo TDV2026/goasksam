@@ -32,7 +32,7 @@ const rows = Array.from({ length: 90 }, (_, i) => { const mi = 10000 + i * 1500,
 const v = (await V.resolveVehicle(TEXT, {})).vehicle, run = async refine => (await E.oneEngineAnswer(v, null, TEXT, env(rows), refine)).raw;
 { const a = await run({ miTarget: 60000, miMin: null, miMax: null }); // the shape the page sends
   ok("typed miles through the engine: the answer carries the filter and its plain line", Array.isArray(a.appliedFilters) && a.appliedFilters.length === 1 && /^Narrowed to cars within [\d,]+ miles of 60,000\.$/.test(String(a.appliedLine)), a.appliedLine);
-  ok("... scopeLine and metaLine carry it, and the footer keeps its count and since date once", String(a.scopeLine).includes("Narrowed to cars within") && String(a.metaLine).includes("Narrowed to") && /^\d+ sales?, since /.test(String(a.windowLine)), `${a.scopeLine} | ${a.windowLine}`);
+  ok("... appliedLine carries it once (scopeLine and metaLine do not repeat it), and the footer keeps its count and since date once", !/Narrowed to/.test(String(a.scopeLine)) && !/Narrowed to/.test(String(a.metaLine)) && /Narrowed to cars within/.test(String(a.appliedLine)) && /^\d+ sales?, since /.test(String(a.windowLine)), `${a.scopeLine} | ${a.windowLine}`);
   ok("... the line and the title line agree with the sales behind them (a band was applied, the pool is the band's)", a.tier === "result" && !a.mileageNote, String(a.poolN)); }
 { const near = r => Math.abs(Number(r.mileage) - 90000) <= 25000, few = [...rows.filter(r => !near(r)), ...rows.filter(near).slice(0, 3)];   // a gap near the typed miles: three sales in the band, under the range minimum
   const a = (await E.oneEngineAnswer(v, null, TEXT, env(few), { miTarget: 90000, miMin: null, miMax: null })).raw;
