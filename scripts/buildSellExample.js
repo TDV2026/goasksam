@@ -24,5 +24,5 @@ if (!d || !d.example) {
   process.exit(0);
 }
 const ex = d.example;
-console.log(`Sell landing example built in ${secs}s: ${ex.car} -> ${ex.platform.name}, ${ex.tiles.length} reasons, ${ex.recent.length} recent sales, band photo ${ex.bandPhoto ? "yes" : "no"}. Tried: ${tried}. DONE.`);
+console.log(`Sell landing example built in ${secs}s: ${ex.car} -> ${ex.platform?.name ?? "no platform"}, ${ex.tiles?.length ?? 0} reasons, ${ex.recent?.length ?? 0} recent sales, band photo ${ex.bandPhoto ? "yes" : "no"}. Tried: ${tried}. DONE.`);
 process.exit(0);

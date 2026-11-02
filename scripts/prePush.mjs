@@ -1723,6 +1723,13 @@ try {
 } catch (e) {
   record("VIN: the VIN answer and the typed answer of the same car are the same, field by field (scripts/vinTypedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A nightly cache builder survives an apart, a thin and a no-range answer, and the warm jobs do not wait for it (Lane B, Nov 2 2026).
+try {
+  const out = execSync("node scripts/nightlyExampleCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Nightly: every example builder survives an apart, thin and no-range answer; warm, attempts, premium and cube need ingest only (scripts/nightlyExampleCheck.mjs)", "PASS", (out.match(/nightlyExampleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Nightly: every example builder survives an apart, thin and no-range answer; warm, attempts, premium and cube need ingest only (scripts/nightlyExampleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The Sell flow never ends on the watch line alone, and a search never hangs without end (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/sellEndingCheck.mjs", { encoding: "utf8", timeout: 240000 });

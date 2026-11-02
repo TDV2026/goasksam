@@ -8,6 +8,7 @@
 //
 //   node scripts/buildMarketCheckExample.js
 import { marketCheckExample } from "../lib/live/marketCheckExample.js";
+import { rangeWords, salesWords } from "../lib/live/exampleAnswer.js";
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   console.error("Need SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY.");
@@ -22,4 +23,4 @@ if (!d) {
   console.error(`::warning::Market Check landing example built in ${secs}s but did not qualify (no cluster, or fewer than 5 matching sales) - the landing will hide the example band until the next successful run.`);
   process.exit(0);
 }
-console.log(`Market Check landing example built in ${secs}s: ${d.name}, range ${d.cluster[0]}-${d.cluster[1]}, ${d.cards.length} sales cached. DONE.`);
+console.log(`Market Check landing example built in ${secs}s: ${d.name}, ${rangeWords(d)}, ${salesWords(d)}. DONE.`);

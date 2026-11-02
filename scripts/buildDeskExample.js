@@ -21,4 +21,4 @@ if (!d) {
   console.error(`::warning::Sam Desk example built in ${secs}s but fewer than 2 of the 3 Porsche 911 generations qualified - the page will hide the worked example until the next successful run.`);
   process.exit(0);
 }
-console.log(`Sam Desk example built in ${secs}s: ${d.gens.map(g => g.code + "=" + g.soldCount).join(", ")}, total ${d.totalSoldCount}. DONE.`);
+console.log(`Sam Desk example built in ${secs}s: ${(d.gens || []).map(g => g.code + "=" + g.soldCount).join(", ")}, total ${d.totalSoldCount}. DONE.`);
