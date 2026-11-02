@@ -47,6 +47,7 @@ import { mapEngineAnswer, ENGINE_VERSION, partnerPositionsOf, partnerPlacesOf, P
 // the Amazon demo's own cars share this store (same key shape); DEMO_CARS stays the eBay list (Amazon revision 2 item 6)
 import { AMAZON_DEMO_CARS } from "./_amazonDemoCars.js";
 import { thinLineOf } from "../lib/pooledWords.js";
+import { runAsCaller, callerFor } from "../lib/_caller.js";
 export const DEMO_CARS = ["2014 Porsche 911 GT3", "2015 Porsche 911 GT3", "2005 Porsche 911", "1965 Ford Mustang", "1957 Porsche 356 Speedster", "1966 Ferrari 275 GTB", "2023 Porsche 911 GT3"];
 const demoKey = q => { const n = String(q || "").toLowerCase().replace(/\s+/g, " ").trim(); return (DEMO_CARS.some(c => c.toLowerCase() === n) || AMAZON_DEMO_CARS.some(c => c.toLowerCase() === n)) ? "partner_last:" + n.replace(/[^a-z0-9]+/g, "_") : null; };
 const LAST_MAX_MS = 24 * 3600e3, LAST_WRITE_EVERY_MS = 30 * 60e3;
@@ -688,7 +689,7 @@ export function venueLeak(obj) {
   return hits;
 }
 
-export default async function handler(req, res) {
+async function handlerCore(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
   if (!partnerAllowed(req)) return sendDisguisedNotFound(res, req);
@@ -836,3 +837,6 @@ export default async function handler(req, res) {
   if (leaks.length) { console.error("partnerAnswer venue leak blocked:", leaks.slice(0, 5).join(" | ")); return res.status(500).json({ ok: false, error: "blocked" }); }
   return res.status(200).json(out);
 }
+
+// lane-b-archiveread step e: the entry names its work for caller attribution (lib/_caller.js)
+export default function handler(req, res) { return runAsCaller(callerFor("/api/partnerAnswer", req), () => handlerCore(req, res)); }

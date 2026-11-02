@@ -18,6 +18,7 @@ import { censusRegion, CENSUS_REGIONS } from "../lib/_regions.js";
 import { runFillBatch } from "../lib/ops/fillLadder.js";
 import { readPremiumFreshness } from "../lib/ops/premiumFresh.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { runAsCaller, callerFor } from "../lib/_caller.js";
 
 function adminEsc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 const adminDayKey = ts => new Date(ts).toISOString().slice(0, 10);
@@ -7374,7 +7375,7 @@ async function renderQualityView(req, res) {
   return res.status(200).send(html);
 }
 
-export default async function handler(req, res) {
+async function handlerCore(req, res) {
   setCors(res, req);
   if (req.method === "OPTIONS") return res.status(200).end();
   // GET serves the dashboard; POST is the Phase-3 audited manual update only.
@@ -7440,3 +7441,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
+
+// lane-b-archiveread step e: the entry names its work for caller attribution (lib/_caller.js)
+export default function handler(req, res) { return runAsCaller(/^warm/i.test(String((req && req.query && req.query.task) || "")) ? "warm" : callerFor("/api/usageDashboard", req), () => handlerCore(req, res)); }

@@ -7,8 +7,9 @@ import { chatOut } from "../lib/live/chatHttp.js";
 import { runSellTurn } from "../lib/sell/sellChat.js";
 import { checkCeiling, followupGuard, sellModelGuard, testLimits, isCrew, CALM } from "../lib/_ceilings.js";
 import { hasServerCredential } from "../lib/_credential.js";
+import { runAsCaller, callerFor } from "../lib/_caller.js";
 
-export default async function handler(req, res) {
+async function handlerCore(req, res) {
   // SWITCHED OFF (Oct 8 2026, Sam): /sell is back on the previous front page and wizard (api/sellPage.js).
   // The new Sell stays in the repo (lib/sell/ facts engine) but is not reachable by the public: 404 unless
   // SELL_NEXT_ON=1, our header credential (lib/_credential.js; never a key in the address or body) or crew
@@ -76,3 +77,6 @@ export default async function handler(req, res) {
   { const mg = await sellModelGuard(env, req); if (!mg.ok) return res.status(200).json(mg.body); }
   return chatOut(res, env, b, { surface: "sell", run: runSellTurn, shape: async out => ({ page: out.page || null, cards: [] }) });
 }
+
+// lane-b-archiveread step e: the entry names its work for caller attribution (lib/_caller.js)
+export default function handler(req, res) { return runAsCaller(callerFor("/api/sellChat", req), () => handlerCore(req, res)); }

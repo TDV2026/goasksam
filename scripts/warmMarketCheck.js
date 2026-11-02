@@ -21,6 +21,7 @@ import { oneEngineAnswer } from "../lib/onebox.js";
 import { warmSellBlock } from "../lib/sell/sellBlock.js";
 import { warmAnswerKeyFor, storeWarmResult } from "../lib/live/search.js";
 import { supabaseEnv } from "../lib/_supabase.js";
+import { runAsCaller } from "../lib/_caller.js";
 
 // The 15-nameplate list this round measures before/after against. 5 are the SAME cars last
 // round's measurement named individually in docs/lane-notes.md (1991 BMW M3, 1969 Chevrolet
@@ -79,7 +80,7 @@ if (process.argv[1] && /warmMarketCheck\.js$/.test(process.argv[1])) {
   if (!env) { console.error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required"); process.exit(1); }
   const listArg = process.argv.find(a => a.startsWith("--list="));
   const list = listArg ? listArg.slice(7).split("|").filter(Boolean) : WARM_LIST;
-  const result = await warmMarketCheck(env, list);
+  const result = await runAsCaller("warm", () => warmMarketCheck(env, list));   // caller attribution (lane-b-archiveread step e)
   for (const r of result.rows) console.log(r.error ? `FAIL  ${r.q}: ${r.error}` : r.refused ? `OK    ${r.q}  refused: ${r.refused}` : `OK    ${r.q}  tier=${r.tier}  ${r.ms}ms`);
   console.log(`\nDONE. warmed=${result.warmed} refused=${result.refused} failed=${result.failed} of ${list.length}.`);
   process.exit(result.failed > 0 ? 1 : 0);

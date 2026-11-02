@@ -21,6 +21,7 @@ import { SHELL_CSS, SHELL_JS, railOpenHtml } from "../lib/appShell.js";
 import { isCrewRequest, FONT_LINKS } from "./_chrome.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { heldFor } from "../lib/_hold.js";
+import { runAsCaller, callerFor } from "../lib/_caller.js";
 
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
@@ -35,7 +36,7 @@ function pcardCss() {
   return css.slice(a, b + PCARD_TO.length);
 }
 
-export default async function handler(req, res) {
+async function handlerCore(req, res) {
   if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
   // SWITCHED OFF for the public (Oct 8 2026, Sam): 404 unless SELL_NEXT_ON=1, our header credential
   // (lib/_credential.js, never a key in the address), or crew opening the preview landing itself
@@ -87,3 +88,6 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", (keyed || crew) ? "private, no-store" : "public, max-age=0, s-maxage=600, stale-while-revalidate=3600");
   res.status(200).send(html);
 }
+
+// lane-b-archiveread step e: the entry names its work for caller attribution (lib/_caller.js)
+export default function handler(req, res) { return runAsCaller(callerFor("/api/sellNext", req), () => handlerCore(req, res)); }
