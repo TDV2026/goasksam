@@ -245,6 +245,15 @@ h2.car-name{font-size:22px;margin:0 0 2px}
 #view-b .bar .mid{position:absolute;top:0;bottom:0;background:var(--sam-band);border-radius:999px}
 #view-b .mk{position:absolute;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:var(--sam-ink);color:var(--sam-bg);font-size:12px;font-weight:700;display:grid;place-items:center;border:2px solid var(--sam-bg)}
 #view-b .ends{display:flex;justify-content:space-between;font-size:13px;opacity:.85;font-variant-numeric:tabular-nums}
+#view-b.apart .split{grid-template-columns:minmax(0,1fr)}
+#view-b.apart #b-out.sam{position:static}
+#view-b .aopts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:18px 24px;margin-top:14px}
+#view-b .aopt{min-width:0}
+#view-b .aopt h4{margin:0 0 4px;font-size:17px}
+#view-b .aopt .range{font-size:22px;font-weight:700;margin:0 0 4px}
+#view-b .aopt .few{margin:6px 0 0;font-size:15px}
+#view-b .aopt .legend{margin-top:12px;padding-top:10px}
+#view-b .aopt .slist{margin-top:12px}
 #view-b .legend{list-style:none;margin:18px 0 0;padding:14px 0 0;border-top:1px solid var(--sam-rule);display:grid;gap:10px}
 #view-b .legend li{display:flex;gap:10px;align-items:flex-start;font-size:15px}
 #view-b .legend .dot{flex:none;width:22px;height:22px;border-radius:50%;background:var(--sam-ink);color:var(--sam-bg);font-size:12px;font-weight:700;display:grid;place-items:center;margin-top:1px}
@@ -565,22 +574,58 @@ const JS = String.raw`
   }
   function bRead(touch){ if (touch) bTouched = true; run("b", bBody(), gotB); }
   function gotB(a){ bAns = a; noteLines("b", a); if (!D && $("b-name") && VIN_RE.test(CAR)) $("b-name").innerHTML = vinHead(a, "span"); else if ($("b-name")) $("b-name").textContent = (nameOf(a) || (D ? D.title : CAR)); drawB(); }
-  function bSales(a){
-    var rows = a.placedSales || [];
-    if (!rows.length || a.order == null) return "";
-    var tog = B_ORDERS.map(function(o){ return '<button type="button" data-order="' + o[0] + '" aria-pressed="' + (a.order === o[0]) + '">' + o[1] + "</button>"; }).join("");
-    var cap = a.order === "miles" ? "Closest to the mileage entered for this car" : a.order === "date" ? "Most recent first" : "Highest price first";
-    // photo, car name, date, miles and price only (Sam, Nov 1 2026): no link and no venue on a sale row; the name is the engine's venue-safe name and prints nothing when it is empty; a tile only for a photo that loads
-    var li = rows.map(function(s){
+  var B_CAP = { miles: "Closest to the mileage entered for this car", date: "Most recent first", price: "Highest price first" };
+  // photo, car name, date, miles and price only (Sam, Nov 1 2026): no link and no venue on a sale row; the name is the engine's venue-safe name and prints nothing when it is empty; a tile only for a photo that loads
+  function saleRows(rows){
+    return rows.map(function(s){
       var th = s.photo ? '<span class="th"><img src="/api/partnerAnswer?photo=' + encodeURIComponent(s.photo) + '&w=320" alt="" decoding="async" onerror="this.parentNode.remove()"></span>' : "";   // the engine's photo id, served by the partner endpoint; a photo that does not load leaves no tile and no stand-in
       var meta = [s.date ? dayLabel(s.date) : "", s.miles ? Number(s.miles).toLocaleString("en-US") + " miles" : ""].filter(Boolean).join(" \u00b7 ");
       return '<li class="' + (s.photo ? "has-th" : "no-th") + '">' + th + (s.name ? '<span class="d">' + esc(s.name) + "</span>" : "") + '<span class="p">' + usd(s.price) + '</span><span class="m">' + meta + "</span></li>";
     }).join("");
-    return '<div class="sales"><div class="sales-head"><h4>Recent sales</h4><div class="tog" role="group" aria-label="Order the sales">' + tog + '</div></div><div class="cap" style="margin:0 0 6px">' + cap + '</div><ul class="slist">' + li + '</ul><a class="all" href="?view=a&car=' + encodeURIComponent(CAR) + '">See all sales for this car</a></div>';
+  }
+  function orderToggle(a){
+    return '<div class="tog" role="group" aria-label="Order the sales">' + B_ORDERS.map(function(o){ return '<button type="button" data-order="' + o[0] + '" aria-pressed="' + (a.order === o[0]) + '">' + o[1] + "</button>"; }).join("") + "</div>";
+  }
+  function bSales(a){
+    var rows = a.placedSales || [];
+    if (!rows.length || a.order == null) return "";
+    return '<div class="sales"><div class="sales-head"><h4>Recent sales</h4>' + orderToggle(a) + '</div><div class="cap" style="margin:0 0 6px">' + B_CAP[a.order] + '</div><ul class="slist">' + saleRows(rows) + '</ul><a class="all" href="?view=a&car=' + encodeURIComponent(CAR) + '">See all sales for this car</a></div>';
+  }
+  // ---- an answer that prices apart (Lane B lane-b-apart, Nov 1 2026): no one range, so perOption carries each option's OWN range, the place of each typed price against it and its five sales in the asked order.
+  // Everything below is the engine's: the labels, counts, ranges, places and sales. The page only lays the options side by side; it places, sorts and sums nothing.
+  var FEW = '${reasonLine("thin.few_sales")}';   // the engine's own words for an option with too few sales for a range
+  function optPos(o, key){ var l = o && o.positions || []; for (var i = 0; i < l.length; i++) if (l[i].key === key) return l[i]; return null; }
+  function drawApart(a){
+    var out = $("b-out"), po = a.perOption, keys = B_KEYS[bFmt()];
+    out.className = "sam apart";
+    var cols = po.options.map(function(o){
+      var h = '<div class="aopt"><h4>' + esc(o.label) + (o.n != null ? " (" + Number(o.n).toLocaleString("en-US") + ")" : "") + "</h4>";
+      if (!o.range) return h + '<p class="few">' + FEW + "</p></div>";
+      h += '<div class="range">' + usd(o.range.low) + " to " + usd(o.range.high) + "</div>";
+      var lg = "";
+      keys.forEach(function(k){
+        if (!wholeOf($("b-" + k[0]).value)) return;   // a line only for a price the visitor typed in this field
+        var p = optPos(o, k[1]); if (!p) return;
+        var w = PLACE_WORDS[p.place]; if (!w) return;
+        lg += '<li><span class="dot">' + k[2] + "</span><span>" + k[3] + " <b>" + usd(p.value) + "</b>. " + w + ".</span></li>";
+      });
+      if (lg) h += '<ul class="legend">' + lg + "</ul>";
+      var rows = o.placedSales || [];
+      if (rows.length) h += '<ul class="slist">' + saleRows(rows) + "</ul>";   // an option whose sales are not listed carries none: its positions stand alone, with no words of the page's own
+      return h + "</div>";
+    }).join("");
+    var fm = po.forMileage && po.forMileage.line ? '<p class="cap">' + esc(po.forMileage.line) + "</p>" : "";
+    var anyRows = po.options.some(function(o){ return (o.placedSales || []).length; });
+    var head = anyRows && a.order != null ? '<div class="sales-head"><h4>Recent sales</h4>' + orderToggle(a) + '</div><div class="cap">' + B_CAP[a.order] + "</div>" : "";
+    var hint = !hasTyped() ? '<p class="cap">Type a price and Sam shows where it sits against each range.</p>' : "";
+    out.innerHTML = "<h3>What these sell for</h3>" + '<div class="car">' + esc(nameOf(a) || CAR) + "</div>" + fm + hint + head + '<div class="aopts">' + cols + "</div>" + '<div class="foot"><strong>Powered by GoAskSam</strong><span>How Sam decides</span></div>';
+    $("view-b").classList.add("apart");
   }
   function drawB(){
     var a = bAns, out = $("b-out"); if (!a) return;
+    $("view-b").classList.remove("apart");
     ["start", "reserve", "bin", "price"].forEach(function(id){ var e = document.querySelector('.rel[data-for="' + id + '"]'); if (e) e.textContent = ""; });
+    if (!a.question && a.ok !== false && !a.range && a.perOption && Array.isArray(a.perOption.options) && a.perOption.options.length) { drawApart(a); return; }
     if (a.question || a.ok === false || !a.range) { out.className = "plain"; out.innerHTML = rangePanel(a, { slot: "b" }) + (a.question ? "" : pickHtml()); return; }   // a car the engine reads as separate markets (coupes and cabriolets) has no one range: the engine's own choice is offered, and the typed prices go with it
     out.className = "sam";
     var keys = B_KEYS[bFmt()], got = a.positions || [], sp = a.span;

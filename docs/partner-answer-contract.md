@@ -14,6 +14,17 @@ A request with none of these gets the answer it always got.
 - `placedSales[]`: up to five `{ date, miles, price, name, photo?, place }`. `name` is the venue-safe name. `photo` is an archive id served through `/api/partnerAnswer?photo=`, present only when the sale has a photo that loads. No venue and no address, anywhere (the answer guard exempts nothing). No range: empty.
 - `order`: the order used (`miles` falls back to `date` with no mileage).
 
+## An answer that prices apart (`perOption`)
+An answer apart or split by body, gearbox, year, mileage or edition has no single `range` (`range: null`, `answerType: "not_enough_data"`). When the request asked (prices, mileage or order) it also carries:
+```
+perOption: {
+  dimension: "body" | "gearbox" | "year" | "mileage" | "edition",
+  forMileage: null | { value, nearest, line },   // mileage split only, with a typed mileage: the band those miles sit in, or the nearest band that has a range (line = the engine's sentence)
+  options: [{ value, label, dimension, n, range: { low, high } | null, positions[], placedSales[], salesReason? }]
+}
+```
+Each option is placed against its OWN range with the same comparison and the same shapes as a single answer (`positions[]` as above; `placedSales[]` up to five, ordered by the request's order, a typed mileage orders each option's five). An option with no range of its own (too few sales): `range: null`, `positions: []`, `placedSales: []`, `salesReason: "too_few_for_a_range"`. An edition option has a range but its sales are not held as a list: positions, `placedSales: []`, `salesReason: "not_listed"`. Same guards as `placedSales`: no venue, no address, no key `title`, `photo` is an archive id. A single-range answer has no `perOption`. The page sends the same request (`prices`, `mileage`, `order`) and computes nothing: it picks the option the visitor chose, or shows each, and prints `positions` and `placedSales` as sent.
+
 ## Always present on a range answer
 - `span`: `{ low, high }`, the included sales' EXACT lowest and highest sale (the engine's `lowestSaleN` / `highestSaleN`, the figures `lib/sellsForCard.js` reads for the spread beside the range), for the ends of the bar. NOT `d.span`, which is the rounded rail. Null without a range. Numbers only, guarded like every field.
 

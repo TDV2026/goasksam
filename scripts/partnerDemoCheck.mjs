@@ -8,7 +8,7 @@
 import { MC } from "./e98Fixtures.mjs";
 import { startBrowser } from "./e98Render.mjs";
 import { pageHtml, DUMMY } from "../api/partnerDemo.js";
-import { partnerShape, positionAskOf, placedSaleOf } from "../api/partnerAnswer.js";
+import { partnerShape, positionAskOf, placedSaleOf, perOptionOf } from "../api/partnerAnswer.js";
 import { partnerPositionsOf } from "../lib/onebox.js";
 import fs from "node:fs";
 import { reasonLine } from "../lib/reasonWords.js";
@@ -80,7 +80,7 @@ const engineOrder = (order, mileage) => partnerPositionsOf(RANGE_B, { prices: {}
 function engineAsk(out, d, body) {
   const ask = positionAskOf(body); if (!ask || !out || out.ok === false) return out;
   const px = partnerPositionsOf(d, ask);
-  return { ...out, positions: d.__noPositions ? [] : px.positions, placedSales: px.sales.map(placedSaleOf), order: px.order };
+  return { ...out, positions: d.__noPositions ? [] : px.positions, placedSales: px.sales.map(placedSaleOf), order: px.order, ...(px.perOption && !d.__noPerOption ? { perOption: perOptionOf(px.perOption) } : {}) };
 }
 const ERR = /undefined|NaN|\[object|TypeError|ReferenceError|Unexpected token|Something went wrong|\bnull\b/;
 
@@ -107,7 +107,7 @@ async function open(view, car, width, answers) {
 const OUT = { a: "#a-out", b: "#b-out", c: "#c-rail", d: "#c-rail" };   // d is the merged listing page: the rail and the list under the gallery
 const textOf = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); return e ? e.innerText.replace(/\s+/g, " ").trim() : null; }, sel).catch(() => null);
 
-if (!process.env.ONLY_SPLIT) for (const width of [1440, 390]) for (const view of ["a", "b", "c", "d"]) for (const sc of SCENARIOS) {
+if (!process.env.ONLY_SPLIT && !process.env.ONLY_APART) for (const width of [1440, 390]) for (const view of ["a", "b", "c", "d"]) for (const sc of SCENARIOS) {
   const car = view === "c" || view === "d" ? DUMMY.q : "2025 Porsche 911", tag = `${view} ${width} ${sc.name}`;
   const { p, errs } = await open(view, car, width, sc.answers);
   try {
@@ -248,11 +248,11 @@ for (const width of [1440, 390]) {
     const hard = (t) => /["'`](?:Lowest|Highest) sale \$\d|["'`]\$\d[\d,]* to \$\d[\d,]*["'`]/.test(t.replace(/\/\/ static[^\n]*\n/, ""));
     ok(!hard(self.split("\n").filter(l => !/hard\(|selfTestHard/.test(l)).join("\n")), "listing form: the check types no dollar figure for the card's range or ends (engineFigures reads them)");
     ok(hard('x("Lowest sale $15,000")') && hard("x('$22,500 to $41,000')") && !hard("x(FIG_B.lo)"), "listing form: that guard sees a typed end or range and ignores a read one"); }
-  // A CAR THE ENGINE READS AS SEPARATE MARKETS (Sam, Nov 1 2026, the 2008 911 Carrera S: Coupe $44,500 to $66,000 and Cabriolet $43,000 to $63,000, no one range). The engine returns no range, so no position and no sales;
+  // FALLBACK (no perOption in the answer): A CAR THE ENGINE READS AS SEPARATE MARKETS (Sam, Nov 1 2026, the 2008 911 Carrera S: Coupe $44,500 to $66,000 and Cabriolet $43,000 to $63,000, no one range). The engine returns no range, so no position and no sales;
   // the page must offer the engine's own choice (its body line), send the choice WITH every typed price, the mileage and the order, and then print what the engine places. It places and sorts nothing itself.
   {
     // the engine's REAL split answer (scripts/e98Fixtures.mjs "2004 BMW M3 (split)": cluster null, noCluster, the body line Convertible 9 / Coupe 8), with the five listing sales
-    const SPLITM = { status: "one_box", ...MC["2004 BMW M3 (split)"].d, cards: SALE_CARDS };
+    const SPLITM = { status: "one_box", ...MC["2004 BMW M3 (split)"].d, cards: SALE_CARDS, __noPerOption: true };   // an engine that gives no perOption (an older answer): the page falls back to the engine's own choice
     const rg = partnerShape(RANGE_B, "q", 0, {}).range, FIG_RANGE = "$" + rg.low.toLocaleString("en-US") + " to $" + rg.high.toLocaleString("en-US");   // the engine's figure, read from the shape function
     const pick = body => body.refine && body.refine.body ? { ...RANGE_B, refined: body.refine } : SPLITM;
     for (const width of [1440, 390]) {
@@ -279,7 +279,7 @@ for (const width of [1440, 390]) {
     }
     // THE CLASS: every engine answer with no one range (the engine reads the car as separate markets) either carries a choice the page offers, or it is a dead end for the visitor. Every such answer in the fixtures:
     for (const [name, v] of Object.entries(MC)) {
-      const d = { status: "one_box", ...v.d, cards: SALE_CARDS }; if (d.tier !== "result" || d.cluster) continue;
+      const d = { status: "one_box", ...v.d, cards: SALE_CARDS, __noPerOption: true }; if (d.tier !== "result" || d.cluster) continue;
       const { p: pk } = await open("b", CAR_B, 1440, [d]); await typeIn(pk, "#b-start", "40000"); await commit(pk, "#b-start"); await wait(700);
       const n = await pk.evaluate(() => document.querySelectorAll("#b-out .idl, #b-out button.opt").length), txt = await cardText(pk);
       ok(n >= 2 && !/Starting bid \$40,000/.test(txt || ""), `no-range answer "${name}": view b offers the engine's choice (${n} options) and prints no position of its own`);
@@ -311,6 +311,79 @@ for (const v of ["a", "b", "c", "d"]) for (const c of ["2008 Porsche 911 Carrera
   ok(hits(rest).length === 0, "the page code holds no comparison of a price with a range and no placing(): " + hits(rest).join(" "));
   // the guard itself: each way the old comparison could come back is caught
   for (const bad of ["function placing(x, a){ if (x < a.range.low) return 1; }", "var z = placing(v, a, 'reserve');", "if (a.range.high < price) {}", "var r = Math.max(0, Math.min(100, (v - sp.low)));  var q = Math.min(v, a.range.high);", "reserveList(rows, {})"]) ok(hits(bad).length > 0, "the static guard catches: " + bad.slice(0, 50));
+}
+
+// ---- AN ANSWER THAT PRICES APART (Lane B lane-b-apart 4335891f; Sam, Nov 1 2026: a 2008 Carrera S whose coupes and cabriolets price apart, and the panel did nothing). The engine returns no one range and, for the request's prices, a perOption with each
+// option's own range, the place of each typed price against it and its five sales. The page lays the options side by side and prints exactly that. The engine's REAL functions (partnerPositionsOf, perOptionOf) produce every answer below; this check
+// types no card figure: what the page must print is read from the engine's answer, and "the right option" is checked against ranges the fixtures are built with.
+{
+  const row = (yr, price, mi, i, title) => ({ id: "00000000-0000-4000-8000-" + String(500 + Math.round(price / 10) % 90000 + i).padStart(12, "0"), year: yr, _usd: price, mileage: String(mi), rtitle: title, auction_end_date: "2026-0" + (1 + (i % 9)) + "-1" + (i % 9), image: "https://img.example/ok.svg" });
+  const many = (n, yr, base, step, mi0, mistep, title) => Array.from({ length: n }, (_, i) => row(yr, base + i * step, mi0 + i * mistep, i, title));
+  const opt = (dimension, value, label, n, low, high, floor) => ({ dimension, value, label, n, low, high, rangeFloor: !!floor });
+  const A = (dimension, options, rawPool, extra) => ({ ...RANGE, cluster: null, span: null, noCluster: true, tier: "result", optionsState: "apart", headlineDimension: dimension, options, rawPool, cards: [], ...(extra || {}) });
+  const CAR_T = "2008 Porsche 911 Carrera S Coupe";
+  const FX = [
+    { name: "body", d: A("body", [opt("body", "coupe", "Coupe", 14, 52000, 66000), opt("body", "open", "Cabriolet", 14, 82000, 98000)], [...many(14, 2008, 52000, 1000, 9000, 4000, "2008 Porsche 911 Carrera S Coupe"), ...many(14, 2008, 82000, 1100, 11000, 3500, "2008 Porsche 911 Carrera S Cabriolet")]),
+      typed: { mileage: "15000", "#b-start": "60000", "#b-bin": "92000" }, want: { Coupe: { start: "Within the range", bin: "Above the range" }, Cabriolet: { start: "Below the range", bin: "Within the range" } }, photos: true },
+    { name: "gearbox", d: A("gearbox", [opt("gearbox", "manual", "Manual", 14, 76000, 90000), opt("gearbox", "auto", "Automatic", 14, 38000, 50000)], [...many(14, 2008, 76000, 1000, 9000, 4000, "2008 Porsche 911 Carrera S Coupe 6-Speed Manual"), ...many(14, 2008, 38000, 900, 11000, 3500, "2008 Porsche 911 Carrera S Coupe Tiptronic")]),
+      typed: { mileage: "15000", "#b-start": "45000", "#b-bin": "80000" }, want: { Manual: { start: "Below the range", bin: "Within the range" }, Automatic: { start: "Within the range", bin: "Above the range" } }, photos: true },
+    { name: "year", d: A("year", [opt("year", "2005", "2005", 9, 31000, 36000), opt("year", "2006", "2006", 9, 45000, 50000), opt("year", "2007", "2007", 3, null, null, true)], [...many(9, 2005, 31000, 600, 20000, 9000, "2005 Test Car"), ...many(9, 2006, 45000, 600, 20000, 9000, "2006 Test Car")]),
+      typed: { "#b-start": "33000", "#b-bin": "60000" }, want: { "2005": { start: "Within the range", bin: "Above the range" }, "2006": { start: "Below the range", bin: "Above the range" } }, thin: "2007" },
+    { name: "mileage near band", d: A("mileage", [opt("mileage", "lt50", "Under 50,000 miles", 9, 40000, 48000), opt("mileage", "50to100", "50,000 to 100,000 miles", 9, 30000, 36000), opt("mileage", "gt100", "Over 100,000 miles", 3, null, null, true)], [...many(9, 2008, 40000, 900, 10000, 4000, "2008 Test Car"), ...many(9, 2008, 30000, 700, 55000, 4000, "2008 Test Car")]),
+      typed: { mileage: "150000", "#b-start": "35000" }, want: { "Under 50,000 miles": { start: "Below the range" }, "50,000 to 100,000 miles": { start: "Within the range" } }, thin: "Over 100,000 miles", forMileage: true },
+    { name: "mileage own band", d: A("mileage", [opt("mileage", "lt50", "Under 50,000 miles", 9, 40000, 48000), opt("mileage", "50to100", "50,000 to 100,000 miles", 9, 30000, 36000)], [...many(9, 2008, 40000, 900, 10000, 4000, "2008 Test Car"), ...many(9, 2008, 30000, 700, 55000, 4000, "2008 Test Car")]),
+      typed: { mileage: "30000", "#b-start": "35000" }, want: { "Under 50,000 miles": { start: "Below the range" }, "50,000 to 100,000 miles": { start: "Within the range" } } },
+    { name: "edition", d: A("edition", [opt("edition", "gts", "GTS", 9, 70000, 80000), opt("edition", "base", "Base", 9, 40000, 50000)], [...many(9, 2008, 40000, 900, 10000, 4000, "2008 Test Car")]),
+      typed: { "#b-start": "45000" }, want: { GTS: { start: "Below the range" }, Base: { start: "Within the range" } }, notListed: true },
+    { name: "thin body", d: A("body", [opt("body", "coupe", "Coupe", 14, 52000, 66000), opt("body", "open", "Cabriolet", 14, 82000, 98000), opt("body", "targa", "Targa", 3, null, null, true)], [...many(14, 2008, 52000, 1000, 9000, 4000, "2008 Porsche 911 Carrera S Coupe"), ...many(14, 2008, 82000, 1100, 11000, 3500, "2008 Porsche 911 Carrera S Cabriolet")]),
+      typed: { mileage: "15000", "#b-start": "60000", "#b-bin": "92000" }, want: { Coupe: { start: "Within the range", bin: "Above the range" }, Cabriolet: { start: "Below the range", bin: "Within the range" } }, thin: "Targa", photos: true }
+  ];
+  const usdA = n => "$" + Number(n).toLocaleString("en-US");
+  const FEWLINE = reasonLine("thin.few_sales");
+  for (const width of [1440, 390]) for (const fx of FX) {
+    const t = `apart ${fx.name} ${width}`, { p, errs } = await open("b", CAR_B, width, fx.d.__x ? [fx.d] : [fx.d]);
+    await wait(300);
+    for (const [k, v] of Object.entries(fx.typed)) { const sel = k === "mileage" ? "#b-miles" : k; await typeIn(p, sel, v); await commit(p, sel); await wait(450); }
+    await wait(700);
+    const last = p._asked[p._asked.length - 1] || {}, ask = positionAskOf(last), eng = perOptionOf(partnerPositionsOf(fx.d, ask).perOption);   // the engine's answer to the request the page really sent
+    const dom = await p.evaluate(() => ({ text: (document.querySelector("#b-out") || {}).innerText || "", cls: (document.querySelector("#b-out") || {}).className, cols: [...document.querySelectorAll("#b-out .aopt")].map(c => ({ h: (c.querySelector("h4") || {}).innerText || "", text: c.innerText.replace(/\s+/g, " ").trim(), rows: [...c.querySelectorAll(".slist li")].map(li => li.innerText.replace(/\s+/g, " ").trim()), imgs: c.querySelectorAll(".slist img").length, paras: c.querySelectorAll("p").length })), chips: document.querySelectorAll("#b-out .idl, #b-out button.opt").length, fields: ["#b-miles", "#b-start", "#b-bin"].map(s => (document.querySelector(s) || {}).value), side: document.documentElement.scrollWidth > window.innerWidth + 1 }));
+    ok(eng && eng.options.length === dom.cols.length && dom.cols.length >= 2, `${t}: no dead end, one block per option the engine returned (${dom.cols.length} of ${eng && eng.options.length})`);
+    ok(dom.chips === 0, `${t}: no choice chip is needed for the panel to work (${dom.chips})`);
+    ok(!dom.side, `${t}: no sideways scroll`);
+    ok(errs.length === 0, `${t}: no page or console error (${errs[0] || ""})`);
+    ok(last.prices && (!fx.typed["#b-start"] || last.prices.starting_bid === Number(fx.typed["#b-start"])) && (!fx.typed["#b-bin"] || last.prices.buy_it_now === Number(fx.typed["#b-bin"])) && (!fx.typed.mileage || last.mileage === Number(fx.typed.mileage)), `${t}: every request carries what was typed (${JSON.stringify(last)})`);
+    ok((fx.typed.mileage ? dom.fields[0] === Number(fx.typed.mileage).toLocaleString("en-US") : true) && (!fx.typed["#b-start"] || dom.fields[1] === Number(fx.typed["#b-start"]).toLocaleString("en-US")) && (!fx.typed["#b-bin"] || dom.fields[2] === Number(fx.typed["#b-bin"]).toLocaleString("en-US")), `${t}: the typed values stay in the fields (${dom.fields.join(" | ")})`);
+    // the dollar figures: every one on the card is one the engine returned
+    const allowed = new Set(); for (const o of eng.options) { if (o.range) { allowed.add(usdA(o.range.low)); allowed.add(usdA(o.range.high)); } for (const q of o.positions) allowed.add(usdA(q.value)); for (const s of o.placedSales) allowed.add(usdA(s.price)); }
+    const shown = (dom.text.match(/\$[\d,]+/g) || []), stray = shown.filter(x => !allowed.has(x));
+    ok(shown.length > 0 && stray.length === 0, `${t}: no dollar figure of the page's own (${stray.join(" ") || "none"} of ${shown.length})`);
+    // each option block prints ITS range, ITS positions and ITS sales, in the engine's order
+    eng.options.forEach((o, i) => {
+      const c = dom.cols[i] || { h: "", text: "", rows: [], paras: 0, imgs: 0 };
+      ok(c.h.startsWith(o.label), `${t}: block ${i + 1} is ${o.label} (${c.h})`);
+      if (!o.range) { ok(c.text.includes(FEWLINE) && !/\$/.test(c.text) && c.rows.length === 0, `${t}: ${o.label} has no range of its own, so the engine's line and no position and no sales (${c.text})`); return; }
+      ok(c.text.includes(usdA(o.range.low) + " to " + usdA(o.range.high)), `${t}: ${o.label} prints its own range`);
+      for (const q of o.positions) { const lab = { starting_bid: "Starting bid", buy_it_now: "Buy It Now", reserve: "Reserve", item_price: "Item price" }[q.key], word = { below: "Below the range", within: "Within the range", above: "Above the range" }[q.place]; ok(c.text.includes(lab + " " + usdA(q.value) + ". " + word + "."), `${t}: ${o.label}: ${lab} sits "${word}" by the engine's place for this option`); }
+      const w = fx.want[o.label]; if (w) { const got = [["start", "Starting bid"], ["bin", "Buy It Now"]].filter(([k]) => w[k]).every(([k, lab]) => new RegExp(lab + " \\$[\\d,]+\\. " + w[k] + "\\.").test(c.text)); ok(got, `${t}: ${o.label}: the typed prices sit against THIS option's range (${JSON.stringify(w)}) -> ${c.text.slice(0, 160)}`); }
+      if (fx.notListed) ok(c.rows.length === 0 && c.paras === 0, `${t}: ${o.label}: sales not listed means positions alone, no list and no words of the page's own`);
+      else { const ex = o.placedSales.map(s => usdA(s.price)); ok(c.rows.length === o.placedSales.length && c.rows.length >= 1 && c.rows.length <= 5 && c.rows.every((r, j) => r.includes(ex[j])), `${t}: ${o.label}: its ${o.placedSales.length} sales, in the engine's order`); }
+      if (fx.photos && !fx.notListed) ok(c.imgs === o.placedSales.filter(s => s.photo).length, `${t}: ${o.label}: a thumbnail for each sale with a photo (${c.imgs})`);
+    });
+    if (fx.forMileage) ok(eng.forMileage && eng.forMileage.line && dom.text.includes(eng.forMileage.line), `${t}: the engine's sentence for the typed mileage is printed (${eng.forMileage && eng.forMileage.line})`);
+    else ok(!eng.forMileage || !eng.forMileage.line || dom.text.includes(eng.forMileage.line), `${t}: any engine sentence for the mileage is printed`);
+    if (fx.typed.mileage && !fx.notListed && eng.options.some(o => o.placedSales.length > 1)) { const o = eng.options.find(o => o.placedSales.length > 1), mi = o.placedSales.map(s => Math.abs((s.miles || 0) - Number(fx.typed.mileage))); ok(last.order === "miles" && mi.every((x, j) => j === 0 || x >= mi[j - 1]), `${t}: the sales come back nearest the typed mileage first (engine order ${last.order})`); }
+    // the order tabs: each click sends its own order, and the page prints the five the engine returned in the engine's order (it sorts nothing)
+    if (fx.name === "body") for (const ord of ["price", "date", "miles"]) {
+      await p.evaluate(o => document.querySelector('#b-out .tog [data-order="' + o + '"]').click(), ord); await wait(800);
+      const sent = p._asked[p._asked.length - 1] || {}, e2 = perOptionOf(partnerPositionsOf(fx.d, positionAskOf(ord === "miles" ? { ...sent, order: "miles", mileage: 15000 } : sent)).perOption), rows2 = await p.evaluate(() => [...document.querySelectorAll("#b-out .aopt")].map(c => [...c.querySelectorAll(".slist li")].map(li => li.innerText.replace(/\s+/g, " ").trim())));
+      ok(sent.order === ord || (ord === "miles" && sent.mileage === 15000), `${t}: the ${ord} tab sends order "${ord}" (${sent.order}; the miles state repeats the typed-mileage read, so it is served by the read already held)`);
+      ok(e2.options.every((o, i) => o.placedSales.length === rows2[i].length && o.placedSales.every((s, j) => rows2[i][j].includes(usdA(s.price)))), `${t}: the ${ord} tab prints the engine's five in the engine's order, re-sorting nothing`);
+    }
+    await p.close();
+  }
+  // THE FIXTURES ARE THE ENGINE'S: every perOption above is made by partnerPositionsOf + perOptionOf; the page never sees anything else. A guard on the page source: nothing in the apart code compares, sorts or sums.
+  { const src = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), a = src.slice(src.indexOf("function drawApart"), src.indexOf("function drawB")); 
+    ok(a.length > 200 && !/\.sort\(|Math\.(min|max|round)|\blow\s*[<>]|\bhigh\s*[<>]|[<>]=?\s*o\.range|reduce\(/.test(a), "apart: the page code compares, sorts and sums nothing (drawApart)"); }
 }
 await browser.close();
 console.log(`partnerDemoCheck: ${pass} pass, ${fail} FAIL`);

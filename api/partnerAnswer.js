@@ -641,18 +641,30 @@ const VENUE_RE = /bring ?a ?trailer|\bbat\b|cars ?(&|and) ?bids|pcar ?market|hag
 // THE DEMO'S STORED ANSWER ALSO HOLDS THE PLACED SALES FOR THE DEFAULT ORDER (Lane B, Nov 1 2026, the eBay demo's first load): the page's first read carries an order, and a request that asks was never served from storage, so every cold load read the live engine.
 // The stored answer now carries placedSales (the five sales, newest first, the default order with no mileage typed) and order "date"; positions are placed from the stored range at read time (partnerPlacesOf, placingFor), so a typed price needs no engine read.
 // A typed mileage or another order still reads live. The fields are removed from an answer served to a request that did not ask, so that answer is exactly what it was.
-export function storedWithPlaced(out, d) {
-  if (!out || out.ok !== true || out.answerType !== "range" || !d) return out;
-  const px = partnerPositionsOf(d, { order: "date" });
-  return { ...out, placedSales: px.sales.map(placedSaleOf), order: "date" };
+// The options of an apart answer as the partner sees them: each with its own range, positions and placed sales (no venue, no address). The engine did the placing (partnerOptionsOf); this only shapes the rows.
+export function perOptionOf(po) {
+  if (!po || !Array.isArray(po.options)) return null;
+  return { dimension: po.dimension || null, forMileage: po.forMileage || null, options: po.options.map(o => ({ value: o.value, label: o.label, dimension: o.dimension || null, n: o.n, range: o.range, positions: o.positions, placedSales: o.sales.map(placedSaleOf), ...(o.salesReason ? { salesReason: o.salesReason } : {}) })) };
 }
-const plainOf = o => { const { placedSales, order, ...rest } = o; return rest; };
+export function storedWithPlaced(out, d) {
+  if (!out || out.ok !== true || !d) return out;
+  if (out.answerType === "range") {
+    const px = partnerPositionsOf(d, { order: "date" });
+    return { ...out, placedSales: px.sales.map(placedSaleOf), order: "date" };
+  }
+  // an answer that is apart or split holds each option's five sales (default order); the positions are placed from each option's stored range at read time
+  const po = perOptionOf(partnerPositionsOf(d, { order: "date" }).perOption);
+  return po ? { ...out, perOptionPlaced: po, order: "date" } : out;
+}
+const plainOf = o => { const { placedSales, order, perOptionPlaced, ...rest } = o; return rest; };
 export function servedFromStored(stored, ask) {
   if (!stored || typeof stored !== "object") return null;
-  const { placedSales, order, ...rest } = stored;
+  const { placedSales, order, perOptionPlaced, ...rest } = stored;
   if (!ask) return rest;
   // only the default read comes from storage: no mileage, and the order is date (or none); a stored answer without the placed sales reads through
-  if (ask.mileage || (ask.order && ask.order !== "date") || !Array.isArray(placedSales)) return null;
+  if (ask.mileage || (ask.order && ask.order !== "date")) return null;
+  if (perOptionPlaced && Array.isArray(perOptionPlaced.options)) return { ...rest, perOption: { ...perOptionPlaced, options: perOptionPlaced.options.map(o => ({ ...o, positions: o.range ? partnerPlacesOf(o.range, ask.prices) : [] })) }, order: "date" };
+  if (!Array.isArray(placedSales)) return null;
   return { ...rest, positions: rest.range ? partnerPlacesOf(rest.range, ask.prices) : [], placedSales: rest.range ? placedSales : [], order: "date" };
 }
 // ONE PLACED SALE AS THE PARTNER SEES IT (Sam, Nov 1 2026: the eBay demo must not show or expose where a sale happened): date, miles, price, the venue-safe name (rowTitle), the photo by id (served through ?photo=, never an address) and the place. No venue and no address are in the row at all.
@@ -824,8 +836,8 @@ export default async function handler(req, res) {
     if (!out.identity && id) out.identity = { year: id.year || null, make: id.make, model: id.model, variant: id.trim || null };
   }
   out.updated = await updatedP;
-  if (!ask && out && ("placedSales" in out || "order" in out)) { const { placedSales, order, ...plain } = out; out = plain; }   // a request that asked nothing gets the answer it always got, whichever stored copy it came from
-  if (ask && out && out.ok === true && r && r.d) { const px = partnerPositionsOf(r.d, ask); out = { ...out, positions: px.positions, placedSales: px.sales.map(placedSaleOf), order: px.order }; }   // a copy: the object just handed to the last-good store is never touched   // read time only, after the last good answer was stored: the stored answer never carries them
+  if (!ask && out && ("placedSales" in out || "order" in out || "perOptionPlaced" in out)) { const { placedSales, order, perOptionPlaced, ...plain } = out; out = plain; }   // a request that asked nothing gets the answer it always got, whichever stored copy it came from
+  if (ask && out && out.ok === true && r && r.d) { const px = partnerPositionsOf(r.d, ask); const { perOptionPlaced, ...o2 } = out; out = { ...o2, positions: px.positions, placedSales: px.sales.map(placedSaleOf), order: px.order, ...(px.perOption ? { perOption: perOptionOf(px.perOption) } : {}) }; }   // a copy: the object just handed to the last-good store is never touched   // read time only, after the last good answer was stored: the stored answer never carries them
   const leaks = venueLeak(out);
   if (leaks.length) { console.error("partnerAnswer venue leak blocked:", leaks.slice(0, 5).join(" | ")); return res.status(500).json({ ok: false, error: "blocked" }); }
   return res.status(200).json(out);
