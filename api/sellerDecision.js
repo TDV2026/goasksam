@@ -3687,11 +3687,14 @@ async function handler(req, res) {
             return res.status(200).json(computingAnswer(vehicle));
           }
           if (coldStore) markComputing({ supabaseUrl, supabaseKey }, warmKey).catch(() => {});
-          engineP = oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, ...(poolSeed ? { poolSeed } : {}), asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine);
+          // The deadline stops the read it gave up on (lane-b-archiveread step d), EXCEPT on the cold-store path: there the compute keeps running after the handoff and stores its row
+          // (keepAlive below), so it must never be aborted.
+          const engineAc = coldStore ? null : new AbortController();
+          engineP = oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, ...(poolSeed ? { poolSeed } : {}), ...(engineAc ? { signal: engineAc.signal } : {}), asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine);
           const handoffMs = coldStore ? Math.min(obRemaining(), Number(process.env.ONEBOX_HANDOFF_MS || 8000)) : obRemaining();
           const engineAnswer = await Promise.race([
             engineP,
-            new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), handoffMs))   // the handoff, or the remainder of the whole-path clock
+            new Promise((_, rej) => setTimeout(() => { if (engineAc) engineAc.abort(); rej(new Error("onebox_deadline")); }, handoffMs))   // the handoff, or the remainder of the whole-path clock
           ]);
           oneBox = engineAnswer.raw;
           obTimes.engineMs = Date.now() - te;
