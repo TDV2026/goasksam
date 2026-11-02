@@ -3083,7 +3083,7 @@ if (task === "optiondetail") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
-    const { buildSpec, fetchQualifying } = await import("../lib/onebox.js");
+    const { buildSpec, fetchQualifying, requireWholePool } = await import("../lib/onebox.js");
     const { hammerUsd } = await import("../lib/_houseComps.js");
     const escRe = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // Pre-16eeb27 PERF_TRIMS, verbatim (git show 16eeb27^:lib/onebox.js).
@@ -3137,7 +3137,7 @@ if (task === "optiondetail") {
         // would otherwise wipe out the very rows this diagnostic needs to reclassify.
         const broadSpec = { ...spec, perfInclude: null, perfExclude: null, excludeVariants: [] };
         const sinceIso = new Date(Date.now() - 1825 * 864e5).toISOString();
-        const raw = await fetchQualifying(broadSpec, sinceIso, env, {});
+        const raw = requireWholePool(await fetchQualifying(broadSpec, sinceIso, env, {}), "ops pool");
         // Exact match to qualifyReason's own title construction (lib/onebox.js line 512) and its
         // perfInclude/else-branch order: perfInclude alone governs when set; otherwise perfExclude
         // AND excludeVariants both apply (a base-model query's halo exclusion, untouched by this fix,
@@ -5684,7 +5684,7 @@ if (task === "optiondetail") {
         if (body) {
           const spec = ob.buildSpec(v, g, q);
           const dx = { collectExcluded: true };
-          const pool = (await ob.fetchQualifying(spec, since5, env, dx)) || [];
+          const pool = ob.requireWholePool(await ob.fetchQualifying(spec, since5, env, dx), "ops pool");
           // the body's OWN rows only, of the typed year (lib/_bodyAside.js; Lane F's fix after the 15:50 read)
           const { heldBodyRows } = await import("../lib/_bodyAside.js");
           const { rulesFor } = await import("../lib/modelRules.js");
