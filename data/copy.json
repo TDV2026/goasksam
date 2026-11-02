@@ -119,8 +119,8 @@
   "home": {
     "TITLE": "GoAskSam | Find enthusiast cars, see what sold, sell yours",
     "DESC": "Tell Sam what you want, search live enthusiast car auctions in your own words, see what similar cars sold for, and find where and how to sell yours.",
-    "START_TITLE": "Find the car you're looking for.",
-    "START_SUB": "Tell Sam what you want. Search live enthusiast car auctions in your own words.",
+    "START_TITLE": "One search. Multiple auction platforms.",
+    "START_SUB": "Search live car auctions in your own words. Just type or speak to Sam.",
     "START_LABEL": "Describe the car you want",
     "CARD_MC_TITLE": "Market Check",
     "CARD_MC_SUB": "See what similar cars have actually sold for.",
@@ -155,6 +155,8 @@
     "FOOT_FEEDBACK": "Feedback"
   },
   "find": {
+    "START_TITLE": "What car are you looking for?",
+    "START_SUB": "Search multiple auction platforms at once. Just describe the car or speak to Sam.",
     "TITLE": "Find enthusiast cars at auction, by what they sell for",
     "DESC_TAIL": "Each car is shown with what cars like it have actually sold for."
   }

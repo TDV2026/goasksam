@@ -12,6 +12,7 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); }
 // A new title or description over the limit, and any of these getting longer, fails.
 const KNOWN_LONG = {};
 const KNOWN_LONG_DESC = {};
+const HERO_IN_CODE = ["market-check", "sell"];   // heroes still written in the page's code (Nov 2 2026); move one to the file and take it off this list
 import { RULES, SELLING_RULES, competitorIn } from "./copyRules.mjs";
 const leaves = (v, k, out = []) => { if (typeof v === "string") out.push([k, v]); else if (Array.isArray(v)) { if (!v.length) out.push([k, null]); v.forEach((x, i) => leaves(x, k + "[" + i + "]", out)); } else if (v && typeof v === "object") { const e = Object.entries(v); if (!e.length) out.push([k, null]); for (const [a, b] of e) leaves(b, k ? k + "." + a : a, out); } else out.push([k, v]); return out; };
 let data = null;
@@ -29,7 +30,7 @@ if (data) {
     if (last === "DESC") { const lim = KNOWN_LONG_DESC[k] || 159; ok(v.length <= lim, `${k} is a meta description of ${v.length} characters. Descriptions must be under 160${KNOWN_LONG_DESC[k] ? " (this one was " + KNOWN_LONG_DESC[k] + " when the rule began and may not grow)" : ""}.`); }
   }
   // every key a page reads is in the file, and every key in the file is read by a page
-  const srcFiles = []; for (const d of ["api", "lib"]) for (const f of fs.readdirSync(path.join(ROOT, d))) if (/\.js$/.test(f)) srcFiles.push(path.join(ROOT, d, f));
+  const srcFiles = []; for (const d of ["api", "lib"]) for (const f of fs.readdirSync(path.join(ROOT, d), { recursive: true })) if (/\.js$/.test(f)) srcFiles.push(path.join(ROOT, d, f));   // lib/live and lib/sell included (Nov 2 2026)
   const used = new Set(); for (const f of srcFiles) { const t = fs.readFileSync(f, "utf8"); for (const m of t.matchAll(/\bcopy(?:Text)?\("([A-Za-z0-9_]+\.[A-Za-z0-9_.]+)"\)/g)) used.add(m[1]); }
   const has = k => { const [p, ...r] = k.split("."); return data[p] && data[p][r.join(".")] !== undefined; };
   for (const k of used) ok(has(k), `a page asks for ${k} but data/copy.json has no such line. A key was renamed or deleted.`);
@@ -45,6 +46,18 @@ if (data) {
       const un = x => (x || "").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
       if (g && data[g] && data[g].TITLE !== undefined) ok(un(t) === data[g].TITLE, `the ${name} page serves the title "${un(t)}" but data/copy.json ${g}.TITLE says "${data[g].TITLE}".`);
       if (g && data[g] && data[g].DESC !== undefined) ok(un(d) === data[g].DESC, `the ${name} page serves the description "${un(d)}" but data/copy.json ${g}.DESC says "${data[g].DESC}".`);
+      // THE START-PAGE HERO (Nov 2 2026): the headline and the line under it of a page drawn by the shared start component come from the file, not from the page's own code, and a line that
+      // promises voice sits on a page whose box has the microphone. Market Check and Sell still carry their own words in code; they are named here so the list cannot grow.
+      const h1 = (/<h1 class="gst-h">([^<]*)<\/h1>/.exec(html) || [])[1], sub = (/<p class="gst-sub">([^<]*)<\/p>/.exec(html) || [])[1];
+      if (h1 != null) {
+        const inFile = x => leaves(data, "").some(([, v]) => v === un(x));
+        if (!HERO_IN_CODE.includes(name)) {
+          ok(inFile(h1), `the ${name} page serves the headline "${un(h1)}" but no line in data/copy.json says it. A hero written in code cannot be edited in the file.`);
+          ok(inFile(sub), `the ${name} page serves the line under the headline "${un(sub)}" but no line in data/copy.json says it.`);
+          if (g && data[g] && data[g].START_TITLE !== undefined) { ok(un(h1) === data[g].START_TITLE, `the ${name} page serves the headline "${un(h1)}" but data/copy.json ${g}.START_TITLE says "${data[g].START_TITLE}".`); ok(un(sub) === data[g].START_SUB, `the ${name} page serves the line "${un(sub)}" but data/copy.json ${g}.START_SUB says "${data[g].START_SUB}".`); }
+        }
+        if (/\b(speak|say it|voice|talk)\b/i.test(un(h1) + " " + un(sub))) ok(/data-gst-mic=/.test(html), `the ${name} page tells the reader to speak but its box has no microphone button.`);
+      }
       for (const [re, why] of SELLING_RULES) { ok(!re.test(t || ""), `the ${name} page title ${why}`); ok(!re.test(d || ""), `the ${name} page meta description ${why}`); }
       const tk = { home: "home.TITLE", find: "find.TITLE" }[name], dk = { home: "home.DESC", about: "about.DESC" }[name];
       ok(t == null || t.length <= (KNOWN_LONG[tk] || 59), `the ${name} page title is ${t && t.length} characters; titles must be under 60.`);
