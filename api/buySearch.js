@@ -594,6 +594,17 @@ async function handler(req, res) {
       const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
       return res.status(200).json({ reply: out.reply, searchNote: out.searchNote || null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
     }
+    // SHOW MORE (Nov 2 2026, a dealer buyer's "all live sales this week": 1,669 matches, 24 cards, no way to the rest): the next batch of the SAME search, in the engine's own order.
+    // The page sends the search's filters (its sort and chips are among them) and how many cars it already draws; the engine reads the search again and answers with the cars after those,
+    // each enriched like the first batch (a car whose sales are not read yet comes with the engine's "being read" market), and the counts (shown, remaining, nextN, countLine) written
+    // in lib/live/samChat.js. Nothing is sorted, counted or sliced here or on the page.
+    if (b.action === "more") {
+      const offset = Math.max(0, Math.min(100000, Math.floor(Number(b.offset) || 0)));
+      const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, offset });
+      const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
+      const m = out.meta || {};
+      return res.status(200).json({ cards, meta: { live: m.live, shown: m.shown, remaining: m.remaining, nextN: m.nextN, countLine: m.countLine || null, offset: m.offset } });
+    }
     // The detail's live bid refresh can meter one upstream call: only our own jobs may trigger it, never a
     // public visitor (open-search policy: public answers come from the cache and the archive only).
     if (b.action === "detail") return res.status(200).json(await detailOut(env, b, { fresh: hasServerCredential(req) }));

@@ -795,6 +795,13 @@ try {
 } catch (e) {
   record("findExcludedCheck (scripts/findExcludedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// findShowMoreCheck (Lane E, Nov 2 2026): any Find search with more matches than one batch shows ONE "Show N more" at the foot that asks the engine for the next batch of the same search; the shown and remaining counts are the engine's own (pageMeta), the filters go back, the last batch removes the button. 1440 and 390. No network.
+try {
+  const out = execSync("node scripts/findShowMoreCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("findShowMoreCheck (scripts/findShowMoreCheck.mjs)", "PASS", (out.match(/findShowMoreCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("findShowMoreCheck (scripts/findShowMoreCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // copyCheck (Lane E, Nov 1 2026): data/copy.json, the one file of static page words, is valid and within the copy rules (no dashes, competitors, source counts, first person, over-long titles). No network.
 try {
   const out = execSync("node scripts/copyCheck.mjs", { encoding: "utf8", timeout: 280000 });
