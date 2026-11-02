@@ -3394,7 +3394,8 @@ async function handler(req, res) {
     let vinCtx = null;
     if (req.body?.oneBox && vehicle && (vehicle.vin || vehicle.chassis)) {
       let vinArchive = null; try { vinArchive = await findVinArchiveMatch({ supabaseUrl, supabaseKey }, { vin: vehicle.vin || vehicle.chassis }); } catch { vinArchive = null; }   // what the archive holds for this exact VIN: a question it already answers is not asked (lib/vinAsTyped.js settleVinAnswer)
-      const plan = await vinSearchPlan(vehicle, { resolveVehicle, archive: vinArchive });
+      let vinLive = null; try { const id = String(vehicle.vin || vehicle.chassis || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); const lr = id ? await supabaseSelect({ supabaseUrl, supabaseKey }, `live_listings?vin_norm=eq.${encodeURIComponent(id)}&status=eq.live&select=listing_title,mileage&limit=1`) : null; vinLive = Array.isArray(lr) && lr[0] ? { title: lr[0].listing_title || null, mileage: lr[0].mileage || null } : null; } catch { vinLive = null; }   // the live listing of this VIN: its title words are the car's own
+      const plan = await vinSearchPlan(vehicle, { resolveVehicle, archive: vinArchive, live: vinLive });
       if (plan && plan.unresolved) return res.status(200).json({ status: "one_box", tier: "not_tracked", resolvedCar: null, samLine: plan.line, refusal_line: plan.line });
       if (plan) { vinCtx = { ...plan.ctx, text: plan.text }; vehicle = plan.vehicle; }
     }

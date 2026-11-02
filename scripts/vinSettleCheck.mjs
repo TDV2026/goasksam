@@ -27,7 +27,7 @@ const env = rows => ({ supabaseUrl: "https://fake.supabase.test", supabaseKey: "
 // one fixture: the car the page sends (decode facts), what the archive holds for the exact VIN, the seeded pool, and what must happen
 async function run(f) {
   const rows = f.rows, veh = { year: f.year, make: f.make, model: f.model, nameModel: f.model, trim: f.decodeTrim || null, bodyStyle: f.decodeBody || null, vin: f.vin, raw: f.vin };
-  const plan = await A.vinSearchPlan(veh, { resolveVehicle: V.resolveVehicle, archive: f.archive || null });
+  const plan = await A.vinSearchPlan(veh, { resolveVehicle: V.resolveVehicle, archive: f.archive || null, live: f.live || null });
   if (!plan || plan.unresolved) return { plan };
   const go = async (rf, o) => E.withReadFields((await E.oneEngineAnswer(plan.vehicle, null, plan.text, { ...env(rows), asked: o && o.openWhole ? 9 : 0 }, rf && Object.keys(rf).length ? rf : null)).raw, plan.text, plan.vehicle);
   const typed = await go({}, {}), out = A.applyVinOverlay(await settle(typed, plan.ctx, go), plan.ctx);
@@ -39,6 +39,8 @@ const MUST = vin => [...rep("GT Fastback", 60000, 10, 1965, "Ford", "Mustang", v
 const F = [
   { n: "the live find: 2002 911, decode trim Carrera 4S and the archive sale of this VIN", year: 2002, make: "Porsche", model: "911", vin: VIN, decodeTrim: "Carrera 4S", decodeBody: "coupe", archive: { trim: "Carrera 4S 6-Speed", displayName: TITLE }, rows: pool(2002, "Porsche", "911", P911, VIN, TITLE, "Carrera 4S"), settled: "Carrera 4S" },
   { n: "the decode names no trim, the archive sale of the VIN does", year: 2002, make: "Porsche", model: "911", vin: VIN, decodeTrim: null, archive: { trim: "Carrera 4S 6-Speed", displayName: TITLE }, rows: pool(2002, "Porsche", "911", P911, VIN, TITLE, "Carrera 4S"), settled: "Carrera 4S" },
+  { n: "the REAL decode of the case VIN says Trim \"Carrera (2WD + 4WD)\" (a family word) and the car's live listing says Carrera 4S: the live title settles it, never the plain Carrera", year: 2002, make: "Porsche", model: "911", vin: "WP0AA29962S621698", decodeTrim: "Carrera", archive: null, live: { title: "2002 Porsche 911 Carrera 4S Coupe 6-Speed" }, rows: pool(2002, "Porsche", "911", P911), settled: "Carrera 4S" },
+  { n: "the real decode alone (\"Carrera\", no record, no live listing): it rules out the Turbo and asks among the Carrera trims, never settles on the plain Carrera", year: 2002, make: "Porsche", model: "911", vin: "WP0AA29962S600009", decodeTrim: "Carrera", archive: null, rows: pool(2002, "Porsche", "911", P911), asks: "trim", chips: ["Carrera", "Carrera 4", "Carrera 4S"], narrowed: true },
   { n: "the VIN has never sold, the decode names the trim", year: 2002, make: "Porsche", model: "911", vin: "WP0AA29962S600001", decodeTrim: "Carrera 4S", archive: null, rows: pool(2002, "Porsche", "911", P911), settled: "Carrera 4S" },
   { n: "a 911 Turbo: the trim word is also a longer trim's word, the exact trim wins", year: 2002, make: "Porsche", model: "911", vin: "WP0AB29962S680001", decodeTrim: "Turbo", archive: null, rows: pool(2002, "Porsche", "911", [...P911, ["Turbo S", 120000, 6]]), settled: "Turbo" },
   { n: "the decode and the archive say nothing about the trim: the trim is asked, alone, with the reason", year: 2002, make: "Porsche", model: "911", vin: "WP0AA29962S600002", decodeTrim: null, archive: null, rows: pool(2002, "Porsche", "911", P911), asks: "trim", chips: ["Carrera", "Carrera 4", "Carrera 4S", "Turbo"] },
@@ -88,7 +90,7 @@ if (E.settleQuestionFromVin) {
 // the wiring: Market Check settles the VIN car before it answers, and the partner demo hands over the VIN's facts
 { const fs = await import("node:fs"); const sd = fs.readFileSync(path.join(root, "api/sellerDecision.js"), "utf8"), pa = fs.readFileSync(path.join(root, "api/partnerAnswer.js"), "utf8");
   ok("api/sellerDecision.js settles a VIN car's question before the VIN overlay", /settleVinAnswer\(oneBox, vinCtx/.test(sd) && sd.indexOf("settleVinAnswer(oneBox, vinCtx") < sd.indexOf("if (vinCtx) oneBox = applyVinOverlay(oneBox, vinCtx)"));
-  ok("api/sellerDecision.js reads the archive record of the exact VIN for the plan", /findVinArchiveMatch\(\{ supabaseUrl, supabaseKey \}, \{ vin: vehicle\.vin \|\| vehicle\.chassis \}\)/.test(sd) && /vinSearchPlan\(vehicle, \{ resolveVehicle, archive: vinArchive \}\)/.test(sd));
+  ok("api/sellerDecision.js reads the archive record of the exact VIN for the plan", /findVinArchiveMatch\(\{ supabaseUrl, supabaseKey \}, \{ vin: vehicle\.vin \|\| vehicle\.chassis \}\)/.test(sd) && /vinSearchPlan\(vehicle, \{ resolveVehicle, archive: vinArchive, live: vinLive \}\)/.test(sd));
   ok("the partner demo passes the VIN's facts to the engine's read", /marketCheckAnswer\(req, text, refine, asked, true, vinFacts\)/.test(pa) && /vinFacts/.test(sd)); }
 console.log(fail ? `vinSettleCheck: ${fail} failure(s)` : "vinSettleCheck: all pass");
 process.exit(fail ? 1 : 0);
