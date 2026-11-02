@@ -52,7 +52,8 @@ import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js
 import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.js";
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
-import { runTurn, runFilters, runSearch, suggestFor, BATCH_BUDGET_MS } from "../lib/live/samChat.js";
+import { runTurn, runFilters, runSearch, suggestFor, BATCH_BUDGET_MS, useMarketRank } from "../lib/live/samChat.js";
+import { nearestZip } from "../lib/live/geo.js";
 // The composer's suggestions (Stage 1c item 6), from the shaped cards (seen_before exists only after shaping).
 const withSuggest = (out, r) => ({ ...r, suggest: suggestFor({ meta: out.meta, filters: out.state && out.state.filters, seenAny: (r.cards || []).some(c => c && c.seen_before) }) });
 import { humanTitle } from "../lib/carTitle.js";
@@ -279,6 +280,29 @@ export async function moreBatch(items, { enrichOne, pendingOf, budgetMs = BATCH_
   } finally { clearTimeout(timer); }
 }
 const pendingCardOf = x => { const c = { ...cardOf(x), market: stillReadingMarket(), name: null }; return withSlots({ ...c, sam_lines: samLines(c) }); };
+// THE BID AGAINST THE RANGE, AS AN ORDER (Nov 2 2026, Find's "Furthest below the range"): every match's market is read the way its card reads it (stored reads only: a market still being read, or none, stays unranked and sorts last),
+// then the SAME judgement the card prints (bidPlaceObj, lib/onebox.js bidPlaceOf) gives its place: x.rank 0 below / 1 within / 2 above, x.rankKey the dollars from the low end (below, within) or from the high end (above). lib/live/samChat.js
+// orders by those and slices the batch; the page draws the order it is given. A request's own clock bounds the read (RANK_BUDGET_MS): what it did not reach is still being read and sorts last.
+const RANK_BUDGET_MS = 25000;
+export async function rankByBid(env, matches, now = Date.now()) {
+  const t0 = Date.now(), STEP = 60;
+  for (const x of matches) { delete x.rank; delete x.rankKey; }
+  for (let i = 0; i < matches.length; i += STEP) {
+    if (Date.now() - t0 > RANK_BUDGET_MS) break;
+    const part = matches.slice(i, i + STEP);
+    try { const specs = await Promise.all(part.filter(x => x.market === undefined).map(x => specOf(env, x.r, x.facts).catch(() => null))); const keys = specs.filter(Boolean).map(sp => sp.key); if (keys.length) await prefetchSpecs(env, keys); } catch {}
+    await Promise.all(part.map(async x => {
+      if (x.market === undefined) { const m = await listingMarket(env, x.r, x.facts, { noBlock: true, notTracked: true }).catch(() => null); x.market = m && m.kind === "pending" ? undefined : m; }
+      if (!x.market) return;
+      const market = await rungMarket(env, x.r, x.facts, x.market).catch(() => null);
+      const bp = market ? bidPlaceObj({ ...cardOf(x), market }, now) : null;
+      if (!bp) return;
+      x.rank = bp.against === "below" ? 0 : bp.against === "within" ? 1 : 2;
+      x.rankKey = bp.against === "above" ? bp.bid - bp.high : bp.bid - bp.low;
+    }));
+  }
+}
+useMarketRank(rankByBid);
 async function logSearch(env, v, anonId) {
   try {
     const r = await fetch(`${env.supabaseUrl}/rest/v1/search_events`, {
@@ -616,6 +640,12 @@ async function handler(req, res) {
       const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null });
       const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
       return res.status(200).json({ reply: out.reply, searchNote: out.searchNote || null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
+    }
+    // USE MY LOCATION (Nov 2 2026): the browser's position, sent once when the visitor chose it, becomes the nearest ZIP and its place name, and the page runs the search with that ZIP. The point is not stored or logged; no ZIP in range is a plain null.
+    if (b.action === "locate") {
+      const lat = Number(b.lat), lon = Number(b.lon);
+      if (!(Math.abs(lat) <= 90) || !(Math.abs(lon) <= 180) || b.lat == null || b.lon == null) return res.status(400).json({ location: null });
+      return res.status(200).json({ location: nearestZip({ lat, lon }) });
     }
     // SHOW MORE (Nov 2 2026, a dealer buyer's "all live sales this week": 1,669 matches, 24 cards, no way to the rest): the next batch of the SAME search, in the engine's own order.
     // The page sends the search's filters (its sort and chips are among them) and how many cars it already draws; the engine reads the search again and answers with the cars after those,
