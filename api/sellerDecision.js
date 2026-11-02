@@ -4507,6 +4507,8 @@ async function handler(req, res) {
         && vehicle && vehicle.make && vehicle.model) {
       try {
         const hr = await houseReceiptsForVehicle(vehicle, generation, thinEnv);
+        // A house read that FAILED is "could not read", never "no house sales" (lane-b-archiveread step f): the normal pick below is not a statement that the car has no house record.
+        if (hr && hr.readFailed) { decision.houseReadFailed = true; decision.houseReadFailedLine = reasonLine("cold.missed"); }
         if (req.body && req.body.debug === true) decision._houseDbg = { pref: car && car.sellerPreference, hr: hr ? { houseN: hr.houseN, onlineN: hr.onlineN, onlineReceiptsN: hr.onlineReceiptsN, totalN: hr.totalN } : null };
         if (hr && hr.houseN >= 1) {
           const _tl = String((car && car.timeline) || ""); const asap = /\b(asap|rush|hurry|urgent|fast|quick|soon)\b|right away|this week/i.test(_tl) && !/\bno\s+(rush|hurry)\b/i.test(_tl);

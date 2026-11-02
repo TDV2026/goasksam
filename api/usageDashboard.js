@@ -18,6 +18,7 @@ import { censusRegion, CENSUS_REGIONS } from "../lib/_regions.js";
 import { runFillBatch } from "../lib/ops/fillLadder.js";
 import { readPremiumFreshness } from "../lib/ops/premiumFresh.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { mustRows } from "../lib/_readScope.js";
 import { runAsCaller, callerFor } from "../lib/_caller.js";
 
 function adminEsc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
@@ -156,7 +157,7 @@ async function renderSearchesView(req, res) {
   let events = applyCrew(await fetchDecisionEvents(env, days), mode).slice(0, 100);
   // best-effort outbound y/n: an outbound_click for the same car within 3h after.
   const sinceIso = new Date(Date.now() - days * 864e5).toISOString();
-  const clicks = (await supabaseSelect(env, `outbound_clicks?created_at=gte.${sinceIso}&select=created_at,year,make,model&limit=100000`)) || [];
+  const clicks = mustRows(await supabaseSelect(env, `outbound_clicks?created_at=gte.${sinceIso}&select=created_at,year,make,model&limit=100000`), "ops helper L158");
   const clickKey = c => `${(c.make || "").toLowerCase()}|${(c.model || "").toLowerCase()}`;
   const clickIndex = new Map();
   for (const c of clicks) { const k = clickKey(c); (clickIndex.get(k) || clickIndex.set(k, []).get(k)).push(new Date(c.created_at).getTime()); }
@@ -491,7 +492,7 @@ async function handleOps(req, res) {
     const days = Math.min(60, Math.max(1, Number(req.query?.days) || 14));
     const since = new Date(Date.now() - days * 864e5);
     const sinceIso = since.toISOString();
-    const rows = (await supabaseSelectAll(env, `app_usage_events?select=created_at,oldcarsdata_metered_requests,metadata&event_type=eq.ocd_call&created_at=gte.${encodeURIComponent(sinceIso)}&order=created_at.asc`)) || [];
+    const rows = mustRows(await supabaseSelectAll(env, `app_usage_events?select=created_at,oldcarsdata_metered_requests,metadata&event_type=eq.ocd_call&created_at=gte.${encodeURIComponent(sinceIso)}&order=created_at.asc`), "ops ocdplan L493");
     const TAGGED = { ingest_delta: "nightly ingest (delta)", ingest_backfill: "nightly ingest (backfill/range)", ingest_attempts: "nightly attempts (auction_attempts)", pull_live: "live-auction poll (pullLive)", pull_live_bid: "live-auction poll (buySearch bid)" };
     const byDay = new Map();   // day -> { [label]: n }
     const totalsByJob = new Map();
@@ -538,7 +539,7 @@ async function handleOps(req, res) {
     const andClause = conds.length ? `&and=(${conds.join(",")})` : "";
     const makeClause = make ? `&make=ilike.*${encodeURIComponent(make)}*` : "";
     const sel = "select=listing_title,sale_price,sale_date,source_slug,url:raw_record->>url,mods:raw_record->>modifications";
-    const rows = await supabaseSelect(env, `sales_archive?${sel}${makeClause}${andClause}${ymin}&order=sale_date.desc&limit=300`) || [];
+    const rows = mustRows(await supabaseSelect(env, `sales_archive?${sel}${makeClause}${andClause}${ymin}&order=sale_date.desc&limit=300`), "ops modscan L540");
     return res.status(200).json({ task: "modscan", count: rows.length, rows });
   }
 
@@ -1327,7 +1328,7 @@ async function handleOps(req, res) {
     const sel = "select=source_slug,sale_price,sale_date,listing_title,vin," +
       "currency:raw_record->>currency,city:raw_record->>city,location:raw_record->>location," +
       "country:raw_record->>country,saleName:raw_record->>sale_name,url:raw_record->>url";
-    const hit = await supabaseSelect(env, `sales_archive?source_slug=eq.bonhams&or=(vin.ilike.*${chassis}*,listing_title.ilike.*${chassis}*)&${sel}`) || [];
+    const hit = mustRows(await supabaseSelect(env, `sales_archive?source_slug=eq.bonhams&or=(vin.ilike.*${chassis}*,listing_title.ilike.*${chassis}*)&${sel}`), "ops curverify L1329");
     // European venue signal from any location-ish field or the title (OCD's Bonhams location coverage
     // is thin, like Gooding, so the title is a fallback signal).
     const EU_RE = /\b(monaco|paris|chantilly|france|french|london|goodwood|bond\s?street|united\s?kingdom|\buk\b|england|zoute|knokke|belgium|italy|italian|milan|padua|padova|r[ée]trom|switzerland|swiss|geneva|gstaad|germany|german|n[üu]rburg|austria|spain|madrid)\b/i;
@@ -1386,7 +1387,7 @@ async function handleOps(req, res) {
     const want = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
     const frag = want.slice(-6);   // last 6, for a loose fragment probe
     const saSel = "select=id,platform,source_slug,sale_date,sale_price,make,model,year,listing_title,vin,vin_norm,rrVin:raw_record->>vin";
-    const q = async u => { try { return (await supabaseSelect(env, u)) || []; } catch (e) { return [{ _err: String((e && e.message) || e) }]; } };
+    const q = async u => { try { return mustRows(await supabaseSelect(env, u), "ops vinverify L1388"); } catch (e) { return [{ _err: String((e && e.message) || e) }]; } };
     const exact = await q(`sales_archive?vin_norm=eq.${encodeURIComponent(want)}&${saSel}&order=sale_date.desc.nullslast&limit=20`);
     const byVinFrag = await q(`sales_archive?vin=ilike.*${encodeURIComponent(frag)}*&${saSel}&limit=20`);
     const byRawVin = await q(`sales_archive?raw_record->>vin=ilike.*${encodeURIComponent(frag)}*&${saSel}&limit=20`);
@@ -1457,7 +1458,7 @@ async function handleOps(req, res) {
     }
     // Confirm the RM Milan GT2 R shell: the non-RS 1997 GT2 R sits in a ~150-260k band (the GT2 RS
     // cars are 300-750k), so pull rmsothebys GT2 sales in that band and show flag + description snippet.
-    const hit = (await supabaseSelect(env, `sales_archive?source_slug=eq.rmsothebys&listing_title=ilike.*GT2*&sale_price=gte.150000&sale_price=lte.260000&select=source_slug,sale_price,sale_date,listing_title,d:raw_record->>description&limit=20`)) || [];
+    const hit = mustRows(await supabaseSelect(env, `sales_archive?source_slug=eq.rmsothebys&listing_title=ilike.*GT2*&sale_price=gte.150000&sale_price=lte.260000&select=source_slug,sale_price,sale_date,listing_title,d:raw_record->>description&limit=20`), "ops projscan L1459");
     const summary = {};
     for (const [k, o] of Object.entries(per).sort((a, b) => (b[1].titleHits + b[1].descHits) - (a[1].titleHits + a[1].descHits))) summary[k] = { titleHits: o.titleHits, descHits: o.descHits, likelyFalsePos: o.likelyFalsePos };
     return res.status(200).json({
@@ -2517,8 +2518,8 @@ if (task === "optiondetail") {
   if (task === "unknownmake") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const since = new Date(Date.now() - 366 * 864e5).toISOString().slice(0, 10);
-    const sold = (await supabaseSelect(env, `sales_archive?source_slug=eq.bringatrailer&make=ilike.unknown&sale_date=gte.${since}&select=listing_title,make,year,sale_date&order=sale_date.desc&limit=400`)) || [];
-    const unsold = (await supabaseSelect(env, `auction_attempts?source_slug=eq.bringatrailer&make=ilike.unknown&attempt_date=gte.${since}&select=make,model,year,attempt_date,raw_record&order=attempt_date.desc&limit=400`)) || [];
+    const sold = mustRows(await supabaseSelect(env, `sales_archive?source_slug=eq.bringatrailer&make=ilike.unknown&sale_date=gte.${since}&select=listing_title,make,year,sale_date&order=sale_date.desc&limit=400`), "ops unknownmake L2514");
+    const unsold = mustRows(await supabaseSelect(env, `auction_attempts?source_slug=eq.bringatrailer&make=ilike.unknown&attempt_date=gte.${since}&select=make,model,year,attempt_date,raw_record&order=attempt_date.desc&limit=400`), "ops unknownmake L2515");
     // A title is likely fixable if it starts with a 4-digit year then a word (the make), e.g. "1972 Ducati ...".
     const fixable = t => /^\s*(19|20)\d{2}\s+[A-Za-z]/.test(String(t || ""));
     const soldFix = sold.filter(r => fixable(r.listing_title)).length;
@@ -2537,7 +2538,7 @@ if (task === "optiondetail") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const out = {};
     for (const src of ["bringatrailer", "carsandbids", "pcarmarket", "hagerty", "rmsothebys"]) {
-      const rows = (await supabaseSelect(env, `auction_attempts?source_slug=eq.${src}&select=attempt_date,raw_record&order=attempt_date.desc&limit=40`)) || [];
+      const rows = mustRows(await supabaseSelect(env, `auction_attempts?source_slug=eq.${src}&select=attempt_date,raw_record&order=attempt_date.desc&limit=40`), "ops attemptkeys L2534");
       const keys = {}, dates = {};
       for (const r of rows) for (const [k, v] of Object.entries(r.raw_record || {})) {
         keys[k] = (keys[k] || 0) + 1;
@@ -2552,7 +2553,7 @@ if (task === "optiondetail") {
   // to tell whether sale_date is the auction's LOCAL (Pacific) end date or a UTC date.
   if (task === "tzcheck") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const rows = (await supabaseSelect(env, `sales_archive?source_slug=eq.bringatrailer&sale_price=not.is.null&select=sale_date,end_at:raw_record->>auction_end_at,end_date:raw_record->>auction_end_date,title:listing_title&order=sale_date.desc&limit=300`)) || [];
+    const rows = mustRows(await supabaseSelect(env, `sales_archive?source_slug=eq.bringatrailer&sale_price=not.is.null&select=sale_date,end_at:raw_record->>auction_end_at,end_date:raw_record->>auction_end_date,title:listing_title&order=sale_date.desc&limit=300`), "ops tzcheck L2549");
     const dec = r => {
       const at = r.end_at || "";
       if (!at) return null;
@@ -2745,7 +2746,7 @@ if (task === "optiondetail") {
       if (make) q += `&make=ilike.${encodeURIComponent(make)}`;
       if (model) q += `&model=ilike.${encodeURIComponent(model)}`;
       if (title) q += `&listing_title=ilike.*${encodeURIComponent(title)}*`;
-      const rows = await supabaseSelect(env, q) || [];
+      const rows = mustRows(await supabaseSelect(env, q), "ops batch2 L2742");
       const prices = rows.map(r => Number(r.sale_price)).filter(x => x > 0);
       const p25 = pct(prices, 0.25), p75 = pct(prices, 0.75), p90 = pct(prices, 0.9);
       // price-fence like r4Split (drop > p75*1.35) before the cluster read
@@ -2930,7 +2931,7 @@ if (task === "optiondetail") {
     const criteria = { region: "US", state: req.query?.state || "" };
     // Select only columns known to exist (no consigns_to_houses column pre-DDL, else the select
     // 400s). The attribute is read from the specialties JSON, which is where it lives pre-column.
-    const partners = await supabaseSelect(env, "partners?active=is.true&select=name,regions,specialties&limit=50") || [];
+    const partners = mustRows(await supabaseSelect(env, "partners?active=is.true&select=name,regions,specialties&limit=50"), "ops sellthin L2927");
     const consignors = partners.filter(p => p.specialties && (p.specialties.consigns_to_houses === true || p.specialties.consignsToHouses === true));
     const out = [];
     for (const q of qs) {
@@ -2941,7 +2942,7 @@ if (task === "optiondetail") {
         const thin = await assessThinForVehicle(v, g, env);
         let classEraProbe = null;
         if (thin && thin.totalN === 0) {
-          try { const ce = await anyYearOrSiblingForVehicle(v, g, env); classEraProbe = ce ? { siblingName: ce.siblingName, label: ce.label, receipts: (ce.receipts || []).length } : "null-return"; }
+          try { const ce = await anyYearOrSiblingForVehicle(v, g, env); classEraProbe = ce && ce.readFailed ? { readFailed: true, reason: ce.reason } : ce ? { siblingName: ce.siblingName, label: ce.label, receipts: (ce.receipts || []).length } : "null-return"; }
           catch (e) { classEraProbe = { thrown: String((e && e.message) || e).slice(0, 150) }; }
         }
         const houseVenues = [];
@@ -2966,7 +2967,7 @@ if (task === "optiondetail") {
     // ilike patterns PostgREST can OR (the deployed exclusion regex is the source of truth in code).
     const pats = ["tribute", "replica", "recreation", "wall art", "diorama", "scale model", "1:18", "1:43", "1:12", "1:8", "poster", "-style", "model car", "toolbox", "tool box", "pedal car", "go-kart", "go kart", "brochure", "sign", "neon", "artwork", "print"];
     const orFilter = "or=(" + pats.map(p => `listing_title.ilike.*${encodeURIComponent(p)}*`).join(",") + ")";
-    const rows = await supabaseSelect(env, `sales_archive?${orFilter}&sale_price=not.is.null&select=make,model,listing_title,sale_price,platform&limit=3000`) || [];
+    const rows = mustRows(await supabaseSelect(env, `sales_archive?${orFilter}&sale_price=not.is.null&select=make,model,listing_title,sale_price,platform&limit=3000`), "ops memcheck L2963");
     const byModel = {};
     for (const r of rows) {
       const k = `${r.make} ${r.model}`.trim();
@@ -2980,7 +2981,7 @@ if (task === "optiondetail") {
     for (const [model, o] of top) {
       const [make, ...mm] = model.split(" "); const md = mm.join(" ");
       // total pool for this model + its real price range (crude: min/median/max of ALL its sales)
-      const all = await supabaseSelect(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&model=ilike.${encodeURIComponent(md)}&sale_price=not.is.null&select=sale_price&limit=1000`) || [];
+      const all = mustRows(await supabaseSelect(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&model=ilike.${encodeURIComponent(md)}&sale_price=not.is.null&select=sale_price&limit=1000`), "ops memcheck L2977");
       const allP = all.map(r => Number(r.sale_price)).filter(x => x > 0).sort((a, b) => a - b);
       const junkMin = Math.min(...o.prices), junkMax = Math.max(...o.prices);
       const poolMin = allP[0] || null;
@@ -3015,9 +3016,9 @@ if (task === "optiondetail") {
     // "desc" is a reserved PostgREST keyword; alias the description as descr.
     const fullSel = `&select=year,listing_title,descr:raw_record->>description,platform,source_slug,sale_date,sale_price,vin,vin_norm,curr:raw_record->>currency&limit=300`;
     const minSel = `&select=year,listing_title,platform,source_slug,sale_date,sale_price,vin_norm&limit=300`;
-    let rows = await supabaseSelect(env, base + fullSel) || [];
+    let rows = mustRows(await supabaseSelect(env, base + fullSel), "ops htground L3012");
     let usedSelect = "full";
-    if (!rows.length) { rows = await supabaseSelect(env, base + minSel) || []; usedSelect = rows.length ? "min" : "both-empty"; }
+    if (!rows.length) { rows = mustRows(await supabaseSelect(env, base + minSel), "ops htground L3014"); usedSelect = rows.length ? "min" : "both-empty"; }
     for (const r of rows) { r.chassis = r.vin_norm; r.desc = r.descr; }
     const in36 = r => { const d = (r.sale_date || "").slice(0, 10); return d && d >= since; };
     const nullDate = rows.filter(r => !r.sale_date).length;
@@ -3055,12 +3056,12 @@ if (task === "optiondetail") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { isHouseSource } = await import("../lib/_houseComps.js");
     // Multi-alias canonicals only (a single-sale car cannot be a cross-venue pair).
-    const canon = await supabaseSelect(env, `canonical_sales?alias_count=gte.2&select=id,make,model&limit=3000`) || [];
+    const canon = mustRows(await supabaseSelect(env, `canonical_sales?alias_count=gte.2&select=id,make,model&limit=3000`), "ops pairgate L3052");
     const ids = canon.map(c => c.id);
     const aliasBy = {};
     for (let i = 0; i < ids.length; i += 80) {
       const batch = ids.slice(i, i + 80);
-      const al = await supabaseSelect(env, `sale_aliases?canonical_id=in.(${batch.map(x => `"${x}"`).join(",")})&select=canonical_id,source_slug&limit=2000`) || [];
+      const al = mustRows(await supabaseSelect(env, `sale_aliases?canonical_id=in.(${batch.map(x => `"${x}"`).join(",")})&select=canonical_id,source_slug&limit=2000`), "ops pairgate L3057");
       for (const a of al) (aliasBy[a.canonical_id] = aliasBy[a.canonical_id] || []).push(a.source_slug);
     }
     const modelPairs = {};
@@ -3182,7 +3183,7 @@ if (task === "optiondetail") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { vinModelYear } = await import("../lib/vehicle.js");
     const { supabaseSelect } = await import("../lib/_supabase.js");
-    const blank = (await supabaseSelect(env, `live_listings?select=id,source,source_listing_id,vin_norm,status&year=is.null&limit=4000`)) || [];
+    const blank = mustRows(await supabaseSelect(env, `live_listings?select=id,source,source_listing_id,vin_norm,status&year=is.null&limit=4000`), "ops yearrecovery L3179");
     let vinRecoverable = 0, priorRecoverable = 0, bothRecoverable = 0, unrecoverable = 0;
     const bySource = new Map();
     for (const r of blank) { if (!bySource.has(r.source)) bySource.set(r.source, []); bySource.get(r.source).push(r.source_listing_id); }
@@ -3206,12 +3207,12 @@ if (task === "optiondetail") {
     const resolver = [];
     for (const t of texts) { try { const rv = await resolveVehicle(t, {}); const v = rv && rv.vehicle || {}; const cl = rv && rv.clarification; resolver.push({ input: t, make: v.make || null, model: v.model || null, trim: v.trim || null, year: v.year || null, status: rv && rv.status || null, clar: cl ? cl.kind : null, suggestion: cl && (cl.suggestion || (cl.chips && cl.chips[0])) || (rv && rv.corrections && rv.corrections[0] && rv.corrections[0].to) || null, dirtyTokens: v.dirtyTokens || null }); } catch (e) { resolver.push({ input: t, error: String(e && e.message || e) }); } }
     // Viper body-style tags in the archive (Part 3 diagnosis)
-    const viper = await supabaseSelect(env, `sales_archive?make=ilike.Dodge&listing_title=ilike.*Viper*&select=body:raw_record->>body_style,listing_title&limit=200`) || [];
+    const viper = mustRows(await supabaseSelect(env, `sales_archive?make=ilike.Dodge&listing_title=ilike.*Viper*&select=body:raw_record->>body_style,listing_title&limit=200`), "ops taxprobe L3203");
     const viperBody = {}; for (const r of viper) { const b = (r.body || "(null)"); viperBody[b] = (viperBody[b] || 0) + 1; }
     // body_style value distribution across a few marques (Part 3 generalization)
-    const bodyDist = async (make) => { const rows = await supabaseSelect(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&select=body:raw_record->>body_style&limit=300`) || []; const c = {}; for (const r of rows) { const b = (r.body || "(null)"); c[b] = (c[b] || 0) + 1; } return c; };
+    const bodyDist = async (make) => { const rows = mustRows(await supabaseSelect(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&select=body:raw_record->>body_style&limit=300`), "ops taxprobe L3206"); const c = {}; for (const r of rows) { const b = (r.body || "(null)"); c[b] = (c[b] || 0) + 1; } return c; };
     // title tokens for rare/coachbuilt/era-reuse cars (Part 1 grounding)
-    const titleSample = async (q) => { const rows = await supabaseSelect(env, `sales_archive?${q}&select=year,listing_title,body:raw_record->>body_style,price:sale_price&order=sale_price.desc.nullslast&limit=8`) || []; return rows.map(r => ({ y: r.year, t: (r.listing_title || "").slice(0, 60), body: r.body, p: r.price })); };
+    const titleSample = async (q) => { const rows = mustRows(await supabaseSelect(env, `sales_archive?${q}&select=year,listing_title,body:raw_record->>body_style,price:sale_price&order=sale_price.desc.nullslast&limit=8`), "ops taxprobe L3208"); return rows.map(r => ({ y: r.year, t: (r.listing_title || "").slice(0, 60), body: r.body, p: r.price })); };
     return res.status(200).json({
       task: "taxprobe",
       resolver,
@@ -3296,7 +3297,7 @@ if (task === "optiondetail") {
     if (model) q += `&model=ilike.*${encodeURIComponent(model)}*`;
     if (title) q += `&listing_title=ilike.*${encodeURIComponent(title)}*`;
     q += yMin + yMax;
-    const rows = await supabaseSelect(env, q) || [];
+    const rows = mustRows(await supabaseSelect(env, q), "ops poolsrc L3293");
     const RE = /car\s*&\s*classic|carandclassic|collecting\s*cars|collectingcars|\bthe\s+market\b|themarket|pistonheads/i;
     const counts = {}; for (const r of rows) { const p = r.platform || "?"; counts[p] = (counts[p] || 0) + 1; }
     const excluded = Object.entries(counts).filter(([p]) => RE.test(p));
@@ -3347,7 +3348,7 @@ if (task === "optiondetail") {
     const bodyOf = t => { t = String(t || "").toLowerCase(); for (const [s, ws] of BODY) if (ws.some(w => t.includes(w))) return s; return null; };
     const fam = s => s === "targa" ? "targa" : s === "coupe" ? "coupe" : s === "sedan" ? "sedan" : "open";
     const until = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.until || "")) ? String(req.query.until) : null;
-    const rows = (await supabaseSelectAll(env, `sales_archive?select=year,make,model,listing_title,body:raw_record->>body_style&source_slug=eq.${encodeURIComponent(slug)}&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.${since}${until ? `&sale_date=lte.${until}` : ""}`)) || [];
+    const rows = mustRows(await supabaseSelectAll(env, `sales_archive?select=year,make,model,listing_title,body:raw_record->>body_style&source_slug=eq.${encodeURIComponent(slug)}&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.${since}${until ? `&sale_date=lte.${until}` : ""}`), "ops bodyaudit L3344");
     const c = { total: rows.length, titleNamesBody: 0, storedAgreesOrEmpty: 0, storedContradictsTitle: 0, titleNamesNone: 0, noneStoredEmpty: 0, noneStoredCoveredOffered: 0, noneStoredCoveredNotOffered: 0, noneStoredUncovered: 0 };
     const byStored = {}; const notOfferedSample = []; const pairs = {};
     for (const r of rows) {
@@ -3377,7 +3378,7 @@ if (task === "optiondetail") {
       const baseQ = `sales_archive?select=id&source_slug=eq.${slug}&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.${since}`;
       const total = await countOf(baseQ);
       const withCc = await countOf(`${baseQ}&raw_record->>country_code=not.is.null`);
-      const sample = (await supabaseSelect(env, `${baseQ.replace("select=id", "select=cc:raw_record->>country_code,cur:raw_record->>currency")}&limit=500`)) || [];
+      const sample = mustRows(await supabaseSelect(env, `${baseQ.replace("select=id", "select=cc:raw_record->>country_code,cur:raw_record->>currency")}&limit=500`), "ops countrycov L3374");
       const codes = {}; for (const r of sample) { const k = String(r.cc || "").trim().toUpperCase() || "(none)"; codes[k] = (codes[k] || 0) + 1; }
       const curs = {}; for (const r of sample) { const k = String(r.cur || "").trim().toUpperCase() || "(none)"; curs[k] = (curs[k] || 0) + 1; }
       venues.push({ venue: slug, total, withCountryCode: withCc, withoutCountryCode: total != null && withCc != null ? total - withCc : null, sampleOf: sample.length, codesSeen: codes, currenciesSeen: curs });
@@ -3423,7 +3424,7 @@ if (task === "optiondetail") {
       const m = /\/(\d+)$/.exec(tr.headers.get("content-range") || "");
       total = m ? Number(m[1]) : null;
     } catch (e) { total = null; }
-    const rows = (await supabaseSelect(env, `${qs}&limit=${limit}&offset=${offset}`)) || [];
+    const rows = mustRows(await supabaseSelect(env, `${qs}&limit=${limit}&offset=${offset}`), "ops poolrows L3420");
 
     // fence=1&q=<typed words>: resolve q the SAME way Market Check does and run every row through
     // the engine's own qualifyReason (titleFenceReason plus the price-floor/photo gates) - this
@@ -3901,8 +3902,8 @@ if (task === "optiondetail") {
       const map = new Map();
       const add = (mk, md, w) => { const a = String(mk || "").trim(), b = String(md || "").trim(); if (!a || !b) return; const k = key(a, b); const e = map.get(k) || { make: a, model: b, interest: 0 }; e.interest += w; map.set(k, e); };
       try { const seed = JSON.parse(fs.readFileSync(new URL("../scripts/warm-list.json", import.meta.url), "utf8")).models || []; for (const [mk, md] of seed) add(mk, md, 1); } catch { /* seed optional */ }
-      try { const t = await supabaseSelect(env, `app_usage_events?event_type=eq.warm_targeted&select=metadata&order=created_at.desc&limit=1`); for (const [mk, md] of ((t && t[0] && t[0].metadata && t[0].metadata.models) || [])) add(mk, md, 2); } catch { /* partners optional */ }
-      try { const since = new Date(Date.now() - 180 * 864e5).toISOString(); const rows = await supabaseSelect(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${since}&select=vehicle&limit=20000`); for (const r of (rows || [])) { const v = r.vehicle || {}; add(v.make, v.model, 3); } } catch { /* search history optional */ }
+      try { const t = await supabaseSelect(env, `app_usage_events?event_type=eq.warm_targeted&select=metadata&order=created_at.desc&limit=1`); for (const [mk, md] of ((t && t[0] && t[0].metadata && t[0].metadata.models) || [])) add(mk, md, 2); } catch { /* partners optional */ }   // read-failure-ok: optional by design: a failed read leaves the curated warm list as it was (the try/catch says partners optional)
+      try { const since = new Date(Date.now() - 180 * 864e5).toISOString(); const rows = await supabaseSelect(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${since}&select=vehicle&limit=20000`); for (const r of (rows || [])) { const v = r.vehicle || {}; add(v.make, v.model, 3); } } catch { /* search history optional */ }   // read-failure-ok: optional by design: a failed read leaves the curated warm list as it was (the try/catch says search history optional)
       const now = Date.now();
       const ranked = [...map.values()]
         .filter(m => { const last = history[key(m.make, m.model)]; return !last || (now - new Date(last).getTime()) > REFRESH_DAYS * 864e5; })
@@ -3997,7 +3998,7 @@ if (task === "optiondetail") {
   // for every partner, read-only, no computation. For comparing against a live task=premium rerun.
   if (task === "partnerread") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const rows = await supabaseSelect(env, "partners?select=name,slug,active,specialties,updated_at&order=name.asc") || [];
+    const rows = mustRows(await supabaseSelect(env, "partners?select=name,slug,active,specialties,updated_at&order=name.asc"), "ops partnerread L3994");
     return res.status(200).json({
       task: "partnerread",
       rows: rows.map(r => ({ name: r.name, slug: r.slug, active: r.active, updatedAt: r.updated_at, premium: (r.specialties && r.specialties.premium) || null }))
@@ -4119,7 +4120,7 @@ if (task === "optiondetail") {
     let persisted = null;
     if (req.query?.persist === "1" || req.query?.persist === "true") {
       persisted = [];
-      const partnerRows = await supabaseSelect(env, `partners?select=id,name,slug,specialties,seller_usernames&limit=50`) || [];
+      const partnerRows = mustRows(await supabaseSelect(env, `partners?select=id,name,slug,specialties,seller_usernames&limit=50`), "ops premium L4116");
       for (const p of report) {
         const handles = (roster.find(r => r.partner === p.partner)?.handles || []).map(h => h.toLowerCase());
         const row = partnerRows.find(pr => (pr.seller_usernames || []).some(u => handles.includes(String(u).toLowerCase())));
@@ -4526,7 +4527,7 @@ if (task === "optiondetail") {
             const yLo = Math.min(...[py && py[0], v.year && Number(v.year)].filter(Number.isFinite)), yHi = Math.max(...[py && py[1], v.year && Number(v.year)].filter(Number.isFinite));
             const yq = Number.isFinite(yLo) && Number.isFinite(yHi) ? (yLo === yHi ? `&year=eq.${yLo}` : `&year=gte.${yLo}&year=lte.${yHi}`) : "";
             const mdl = encodeURIComponent("*" + String(v.model).trim() + "*");
-            const broad = (await supabaseSelect(env, `sales_archive?select=${cols}&make=ilike.${encodeURIComponent("*" + v.make + "*")}&sale_price=not.is.null&sale_date=gte.${since5}${yq}&or=(model.ilike.${mdl},listing_title.ilike.${mdl})&order=sale_date.desc&limit=1000`)) || [];
+            const broad = mustRows(await supabaseSelect(env, `sales_archive?select=${cols}&make=ilike.${encodeURIComponent("*" + v.make + "*")}&sale_price=not.is.null&sale_date=gte.${since5}${yq}&or=(model.ilike.${mdl},listing_title.ilike.${mdl})&order=sale_date.desc&limit=1000`), "ops obdiag L4523");
             notFetched = broad.filter(r => !known.has(r.id)).map(r => rowOut(r, { reason: "not returned by any fetch (outside the fetch filters: model/title scope, year bound, window or venue hold-out)" }));
           }
           // e65 (the Cayman R and Defender 90 reads): a row the answer SET ASIDE after the fetch (an odd sale, a modified or
@@ -4569,7 +4570,7 @@ if (task === "optiondetail") {
           try {
             const projRows = excluded.filter(r => /^project or incomplete car/.test(String(r.reason || "")) && r.id != null).slice(0, 60);
             if (projRows.length) {
-              const descs = (await supabaseSelect(env, `sales_archive?select=id,d:raw_record->>description&id=in.(${projRows.map(r => encodeURIComponent(r.id)).join(",")})`)) || [];
+              const descs = mustRows(await supabaseSelect(env, `sales_archive?select=id,d:raw_record->>description&id=in.(${projRows.map(r => encodeURIComponent(r.id)).join(",")})`), "ops obdiag L4566");
               const byId = new Map(descs.map(x => [String(x.id), String(x.d || "")]));
               for (const r of projRows) {
                 const kw = (/\(([^)]+)\)/.exec(String(r.reason)) || [])[1] || "";
@@ -4773,8 +4774,8 @@ if (task === "optiondetail") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const normVin = v => String(v || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
     const unk = s => !s || /^unknown$/i.test(String(s).trim());
-    const sales = await supabaseSelectAll(env, `sales_archive?vin_norm=not.is.null&vehicle_type=not.eq.non_vehicle&select=vin_norm,make,model,year`) || [];
-    const atts = await supabaseSelectAll(env, `auction_attempts?chassis_vin_norm=not.is.null&select=vin_norm:chassis_vin_norm,make,model,year`) || [];
+    const sales = mustRows(await supabaseSelectAll(env, `sales_archive?vin_norm=not.is.null&vehicle_type=not.eq.non_vehicle&select=vin_norm,make,model,year`), "ops vindist L4770");
+    const atts = mustRows(await supabaseSelectAll(env, `auction_attempts?chassis_vin_norm=not.is.null&select=vin_norm:chassis_vin_norm,make,model,year`), "ops vindist L4771");
     const byVin = new Map();
     for (const r of [...sales, ...atts]) { const v = normVin(r.vin_norm); if (v.length < 6) continue; if (!byVin.has(v)) byVin.set(v, []); byVin.get(v).push(r); }
     let polluted = 0; const kept = [];
@@ -4820,7 +4821,7 @@ if (task === "optiondetail") {
       // ordered scan has to walk the whole already-populated prefix to find the sparse remaining nulls
       // (statement timeout as the backfill nears the end). Unordered, PostgREST returns the first 1000
       // nulls it finds and we re-query until none remain.
-      const slice = (await supabaseSelect(env, `sales_archive?desc_facts=is.null&select=${sel}&limit=${pageSize}`)) || [];
+      const slice = mustRows(await supabaseSelect(env, `sales_archive?desc_facts=is.null&select=${sel}&limit=${pageSize}`), "ops descfacts L4817");
       if (!slice.length) break;   // nothing left
       const patch = slice.map(r => {
         const df = computeDescFacts({ title: r.listing_title, description: r.description, mileageStructured: r.mileage });
@@ -4845,7 +4846,7 @@ if (task === "optiondetail") {
   if (task === "ingestlog") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const limit = Math.max(1, Math.min(100, Number(req.query?.limit || 25)));
-    const rows = await supabaseSelect(env, `app_usage_events?or=(event_type.eq.job_ingest,event_type.eq.ocd_budget_guard,event_type.eq.ingest_health_below_floor)&select=created_at,event_type,route,status,oldcarsdata_metered_requests,metadata&order=created_at.desc&limit=${limit}`) || [];
+    const rows = mustRows(await supabaseSelect(env, `app_usage_events?or=(event_type.eq.job_ingest,event_type.eq.ocd_budget_guard,event_type.eq.ingest_health_below_floor)&select=created_at,event_type,route,status,oldcarsdata_metered_requests,metadata&order=created_at.desc&limit=${limit}`), "ops ingestlog L4842");
     return res.status(200).json({ task: "ingestlog", count: rows.length, events: rows.map(r => ({ at: r.created_at, type: r.event_type, status: r.status, ocd_metered: r.oldcarsdata_metered_requests, mode: r.metadata?.mode || null, upserted: r.metadata?.upserted ?? null, ocd_http: r.metadata?.ocd_http_requests ?? null, meta: r.metadata || null })) });
   }
 
@@ -4859,7 +4860,7 @@ if (task === "optiondetail") {
     const total = await cq("spec_key=not.is.null");
     const today = await cq(`computed_at=gte.${todayStart}`);
     const last24 = await cq(`computed_at=gte.${since24}`);
-    const recent = await supabaseSelect(env, `spec_market_cache?select=spec_key,kind,computed_at&order=computed_at.desc&limit=5`) || [];
+    const recent = mustRows(await supabaseSelect(env, `spec_market_cache?select=spec_key,kind,computed_at&order=computed_at.desc&limit=5`), "ops speccache L4856");
     return res.status(200).json({ task: "speccache", totalSpecs: total, refreshedToday: today, refreshedLast24h: last24, mostRecent: recent });
   }
 
@@ -5033,8 +5034,8 @@ if (task === "optiondetail") {
   // auction_attempts photos. Plus the cars live at auction right now.
   if (task === "vinsamples") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const live = (await supabaseSelect(env, `live_listings?status=eq.live&vin_norm=not.is.null&select=vin_norm,url,listing_title&limit=10`).catch(() => null)) || [];
-    const multi = (await supabaseSelect(env, `vin_summary?appearances=gte.2&make=not.is.null&select=vin_norm,appearances,last_sold_price_usd&order=appearances.desc&limit=60`).catch(() => null)) || [];
+    const live = (await supabaseSelect(env, `live_listings?status=eq.live&vin_norm=not.is.null&select=vin_norm,url,listing_title&limit=10`).catch(() => null)) || [];   // read-failure-ok: sample task: prints the rows it got and claims no count
+    const multi = (await supabaseSelect(env, `vin_summary?appearances=gte.2&make=not.is.null&select=vin_norm,appearances,last_sold_price_usd&order=appearances.desc&limit=60`).catch(() => null)) || [];   // read-failure-ok: sample task: prints the rows it got and claims no count
     const classified = [];
     for (const m of multi) {
       const v = m.vin_norm;
@@ -5059,7 +5060,7 @@ if (task === "optiondetail") {
   if (task === "pageviews") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const sinceIso = new Date(Date.now() - 24 * 3600e3).toISOString();
-    const rows = (await supabaseSelect(env, `app_usage_events?event_type=eq.page_view&created_at=gte.${sinceIso}&select=created_at,route,status,metadata&order=created_at.desc&limit=200`).catch(() => null)) || [];
+    const rows = mustRows(await supabaseSelect(env, `app_usage_events?event_type=eq.page_view&created_at=gte.${sinceIso}&select=created_at,route,status,metadata&order=created_at.desc&limit=200`).catch(() => null), "ops pageviews L5056");
     const bySource = {}, byPath = {};
     for (const r of rows) { const s = (r.metadata && r.metadata.source) || "?"; bySource[s] = (bySource[s] || 0) + 1; const p = r.route || (r.metadata && r.metadata.path) || "?"; byPath[p] = (byPath[p] || 0) + 1; }
     return res.status(200).json({ task: "pageviews", last24h: rows.length, bySource, byPath, recent: rows.slice(0, 12).map(r => ({ at: r.created_at.slice(0, 19), path: r.route || (r.metadata && r.metadata.path), source: r.metadata && r.metadata.source, kind: r.status })) });
@@ -5069,9 +5070,9 @@ if (task === "optiondetail") {
   if (task === "vindbg") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const v = String(req.query?.vin || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-    const idx = await supabaseSelect(env, `vin_index?vin_norm=eq.${encodeURIComponent(v)}&select=appearance_date,source,result,make,model,listing_title`) || [];
-    const sales = await supabaseSelect(env, `sales_archive?vin_norm=eq.${encodeURIComponent(v)}&select=sale_date,source_slug,make,model,listing_title`) || [];
-    const atts = await supabaseSelect(env, `auction_attempts?chassis_vin_norm=eq.${encodeURIComponent(v)}&select=attempt_date,source_slug,make,model,title:raw_record->>title`) || [];
+    const idx = mustRows(await supabaseSelect(env, `vin_index?vin_norm=eq.${encodeURIComponent(v)}&select=appearance_date,source,result,make,model,listing_title`), "ops vindbg L5066");
+    const sales = mustRows(await supabaseSelect(env, `sales_archive?vin_norm=eq.${encodeURIComponent(v)}&select=sale_date,source_slug,make,model,listing_title`), "ops vindbg L5067");
+    const atts = mustRows(await supabaseSelect(env, `auction_attempts?chassis_vin_norm=eq.${encodeURIComponent(v)}&select=attempt_date,source_slug,make,model,title:raw_record->>title`), "ops vindbg L5068");
     return res.status(200).json({ task: "vindbg", vin: v, in_vin_index: idx.length, vin_index: idx, sales_archive: sales, auction_attempts: atts });
   }
 
@@ -5091,7 +5092,7 @@ if (task === "optiondetail") {
       sales_titleless_or_unknown_with_vin: await cq("sales_archive?or=(make.ilike.unknown,make.is.null,listing_title.is.null)&vin_norm=not.is.null")
     };
     // Sample up to 1000 title-less VINs, cross-check the three tables for a usable make.
-    const sample = await supabaseSelect(env, `vin_summary?make=is.null&select=vin_norm&limit=1000`) || [];
+    const sample = mustRows(await supabaseSelect(env, `vin_summary?make=is.null&select=vin_norm&limit=1000`), "ops titleaudit L5088");
     const vins = sample.map(r => r.vin_norm).filter(Boolean);
     const chunk = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
     const unk = s => !s || /^unknown$/i.test(String(s).trim());
@@ -5100,7 +5101,7 @@ if (task === "optiondetail") {
       for (const c of chunk(vins.filter(v => !have[v]), 120)) {
         if (!c.length) continue;
         const inlist = c.map(encodeURIComponent).join(",");
-        const rows = await supabaseSelect(env, `${table}?${vinCol}=in.(${inlist})&make=not.is.null&make=not.ilike.unknown&select=${vinCol},make,model,year`) || [];
+        const rows = mustRows(await supabaseSelect(env, `${table}?${vinCol}=in.(${inlist})&make=not.is.null&make=not.ilike.unknown&select=${vinCol},make,model,year`), "ops titleaudit L5097");
         for (const r of rows) { const v = r[vinCol]; if (!have[v] && !unk(r.make)) have[v] = { src: table, make: r.make, model: r.model, year: r.year }; }
       }
     };
@@ -5122,8 +5123,8 @@ if (task === "optiondetail") {
     const raw = String(req.query?.u || "").trim();
     const norm = /^https?:\/\//i.test(raw) ? normalizeListingUrl(raw) : (/-/.test(raw) && !/^[A-Za-z0-9]{10,17}$/.test(raw) ? batSlugToUrlNorm(raw) : normalizeListingUrl(raw));
     if (!norm) return res.status(200).json({ task: "urlcheck", input: raw, normalized: null, found: false });
-    const s = await supabaseSelect(env, `sales_archive?url_norm=eq.${encodeURIComponent(norm)}&select=vin_norm,make,model,year,listing_title,source_slug&limit=1`) || [];
-    const a = await supabaseSelect(env, `auction_attempts?url_norm=eq.${encodeURIComponent(norm)}&select=chassis_vin_norm,make,model,year,source_slug&limit=1`) || [];
+    const s = mustRows(await supabaseSelect(env, `sales_archive?url_norm=eq.${encodeURIComponent(norm)}&select=vin_norm,make,model,year,listing_title,source_slug&limit=1`), "ops urlcheck L5119");
+    const a = mustRows(await supabaseSelect(env, `auction_attempts?url_norm=eq.${encodeURIComponent(norm)}&select=chassis_vin_norm,make,model,year,source_slug&limit=1`), "ops urlcheck L5120");
     return res.status(200).json({ task: "urlcheck", input: raw, normalized: norm, inSalesArchive: !!s[0], inAttempts: !!a[0], sales: s[0] || null, attempt: a[0] || null });
   }
 
@@ -5152,9 +5153,9 @@ if (task === "optiondetail") {
     const days = Math.min(60, Math.max(1, Number(req.query?.days) || 30));
     const since = new Date(Date.now() - days * 864e5); since.setUTCHours(0, 0, 0, 0);
     const iso = since.toISOString();
-    const sd = await supabaseSelectAll(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${iso}&select=created_at,oldcarsdata_metered_requests,tier:metadata->>tier,cache:metadata->>marketFetchCache&order=created_at.asc`).catch(() => null) || [];
-    const oc = await supabaseSelectAll(env, `app_usage_events?event_type=eq.ocd_call&oldcarsdata_metered_requests=gt.0&created_at=gte.${iso}&select=created_at,oldcarsdata_metered_requests&order=created_at.asc`).catch(() => null) || [];
-    const gd = await supabaseSelectAll(env, `app_usage_events?event_type=eq.ocd_budget_guard&created_at=gte.${iso}&select=created_at,status&order=created_at.asc`).catch(() => null) || [];
+    const sd = mustRows(await supabaseSelectAll(env, `app_usage_events?event_type=eq.seller_decision&created_at=gte.${iso}&select=created_at,oldcarsdata_metered_requests,tier:metadata->>tier,cache:metadata->>marketFetchCache&order=created_at.asc`).catch(() => null), "ops opensearchbudget L5149");
+    const oc = mustRows(await supabaseSelectAll(env, `app_usage_events?event_type=eq.ocd_call&oldcarsdata_metered_requests=gt.0&created_at=gte.${iso}&select=created_at,oldcarsdata_metered_requests&order=created_at.asc`).catch(() => null), "ops opensearchbudget L5150");
+    const gd = mustRows(await supabaseSelectAll(env, `app_usage_events?event_type=eq.ocd_budget_guard&created_at=gte.${iso}&select=created_at,status&order=created_at.asc`).catch(() => null), "ops opensearchbudget L5151");
     const byDay = {};
     const day = d => String(d).slice(0, 10);
     const D = k => byDay[k] || (byDay[k] = { searches: 0, metered: 0, meteredByTier: {}, searchesByCache: {}, missSearches: 0, ocdCallAll: 0, breakerTrips: 0 });
@@ -5251,12 +5252,12 @@ if (task === "optiondetail") {
     const dayStart = new Date().toISOString().slice(0, 10) + "T00:00:00Z";
     // The TRUSTED total = ocd_call rows only (the single source of truth, one per OCD request). Other
     // event_types carry a metered figure for cost reporting and would double-count if summed here.
-    const rows = await supabaseSelectAll(env, `app_usage_events?event_type=eq.ocd_call&oldcarsdata_metered_requests=gt.0&created_at=gte.${monthStart}&select=oldcarsdata_metered_requests,created_at,job:metadata->>job&order=created_at.desc`) || [];
+    const rows = mustRows(await supabaseSelectAll(env, `app_usage_events?event_type=eq.ocd_call&oldcarsdata_metered_requests=gt.0&created_at=gte.${monthStart}&select=oldcarsdata_metered_requests,created_at,job:metadata->>job&order=created_at.desc`), "ops ocdmeter L5248");
     let monthTotal = 0, dayTotal = 0; const byJobMonth = {}, byJobDay = {};
     for (const r of rows) { const n = Number(r.oldcarsdata_metered_requests) || 0; const j = r.job || "(none)"; monthTotal += n; byJobMonth[j] = (byJobMonth[j] || 0) + n; if (r.created_at >= dayStart) { dayTotal += n; byJobDay[j] = (byJobDay[j] || 0) + n; } }
     // The daily circuit breaker (Lane C, open-search policy): each time a search reached the metered budget and
     // was served from the cache and archive instead (api/sellerDecision.js ocd_budget_guard), today, by scope.
-    const trips = await supabaseSelectAll(env, `app_usage_events?event_type=eq.ocd_budget_guard&created_at=gte.${dayStart}&select=status,created_at&order=created_at.desc`).catch(() => null) || [];
+    const trips = mustRows(await supabaseSelectAll(env, `app_usage_events?event_type=eq.ocd_budget_guard&created_at=gte.${dayStart}&select=status,created_at&order=created_at.desc`).catch(() => null), "ops ocdmeter L5253");
     const breaker = { tripsToday: trips.length, byScope: trips.reduce((o, t) => { o[t.status] = (o[t.status] || 0) + 1; return o; }, {}), lastTrip: trips[0] ? trips[0].created_at : null, dailyBudget: Number(process.env.OCD_DAILY_REQUEST_BUDGET || 33) };
     return res.status(200).json({ task: "ocdmeter", source: "ocd_call events only (single source of truth; starts at the meter-fix deploy)", today: { total: dayTotal, byJob: byJobDay }, month: { total: monthTotal, byJob: byJobMonth }, ocdCallRowsThisMonth: rows.length, breaker });
   }
@@ -5295,7 +5296,7 @@ if (task === "optiondetail") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
     const cq = async (tbl, f) => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${tbl}?${f}&select=${tbl === "live_listings" ? "id" : "source_id"}&limit=1`, { headers: tbl === "live_listings" ? { ...H } : H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
-    const mbSample = await supabaseSelect(env, `sales_archive?source_slug=eq.mbmarket&mileage=gt.0&mileage=lt.1000&select=listing_title,vin,mileage,rawmiles:raw_record->>mileage,make,model,sale_date&order=mileage.desc&limit=30`) || [];
+    const mbSample = mustRows(await supabaseSelect(env, `sales_archive?source_slug=eq.mbmarket&mileage=gt.0&mileage=lt.1000&select=listing_title,vin,mileage,rawmiles:raw_record->>mileage,make,model,sale_date&order=mileage.desc&limit=30`), "ops milesaudit L5292");
     const mbUnder1000 = await cq("sales_archive", "source_slug=eq.mbmarket&mileage=gt.0&mileage=lt.1000");
     const mbTotal = await cq("sales_archive", "source_slug=eq.mbmarket");
     const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads", "autohunter"];
@@ -5305,7 +5306,7 @@ if (task === "optiondetail") {
     const liveZero = await cq("live_listings", "mileage=eq.0");
     const liveTotal = await cq("live_listings", "id=not.is.null");
     // Full raw_record for MB Market low-mileage rows (incl the 100-ish older cars), to find the signal.
-    const rawDump = await supabaseSelect(env, `sales_archive?source_slug=eq.mbmarket&mileage=gt.0&mileage=lt.200&select=listing_title,mileage,vin,desc:raw_record->>description,munit:raw_record->>mileage_unit&order=mileage.asc&limit=8`) || [];
+    const rawDump = mustRows(await supabaseSelect(env, `sales_archive?source_slug=eq.mbmarket&mileage=gt.0&mileage=lt.200&select=listing_title,mileage,vin,desc:raw_record->>description,munit:raw_record->>mileage_unit&order=mileage.asc&limit=8`), "ops milesaudit L5302");
     return res.status(200).json({ task: "milesaudit", mbMarket: { total: mbTotal, under1000: mbUnder1000, sample: mbSample, rawDump }, zeroMileageBySource: zeroBySource, stated_mileage_zero: statedZero, live_listings: { total: liveTotal, mileage_zero: liveZero } });
   }
 
@@ -5314,7 +5315,7 @@ if (task === "optiondetail") {
   // paginated read of 3 top-level columns + in-memory cross-tab. ZERO OCD.
   if (task === "reserveaudit") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const rows = await supabaseSelectAll(env, `sales_archive?select=source_slug,sale_date,has_reserve`) || [];
+    const rows = mustRows(await supabaseSelectAll(env, `sales_archive?select=source_slug,sale_date,has_reserve`), "ops reserveaudit L5311");
     const bySource = {}, byYear = {};
     for (const r of rows) {
       const s = r.source_slug || "(null)"; const y = String(r.sale_date || "").slice(0, 4) || "(nodate)";
@@ -5339,19 +5340,19 @@ if (task === "optiondetail") {
   // their history page's prior USD price is the before/after proof. Returns a few with full sale history.
   if (task === "provevins") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const multi = await supabaseSelect(env, `vin_summary?appearances=gte.2&make=not.is.null&select=vin_norm&limit=1000`) || [];
+    const multi = mustRows(await supabaseSelect(env, `vin_summary?appearances=gte.2&make=not.is.null&select=vin_norm&limit=1000`), "ops provevins L5336");
     const vins = multi.map(r => r.vin_norm).filter(Boolean);
     const chunk = (a, n) => { const o = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
     const hits = [];
     for (const c of chunk(vins, 100)) {
       if (hits.length >= 6) break;
       const inlist = c.map(encodeURIComponent).join(",");
-      const rows = await supabaseSelect(env, `sales_archive?vin_norm=in.(${inlist})&raw_record->>currency=in.(GBP,EUR)&select=vin_norm,sale_date,sale_price,sale_price_usd,cur:raw_record->>currency,listing_title,source_slug&order=sale_date.asc&limit=50`) || [];
+      const rows = mustRows(await supabaseSelect(env, `sales_archive?vin_norm=in.(${inlist})&raw_record->>currency=in.(GBP,EUR)&select=vin_norm,sale_date,sale_price,sale_price_usd,cur:raw_record->>currency,listing_title,source_slug&order=sale_date.asc&limit=50`), "ops provevins L5343");
       for (const r of rows) { if (hits.length >= 6) break; if (!hits.find(h => h.vin === r.vin_norm)) hits.push({ vin: r.vin_norm, title: r.listing_title, src: r.source_slug }); }
     }
     const out = [];
     for (const h of hits.slice(0, 5)) {
-      const sales = await supabaseSelect(env, `sales_archive?vin_norm=eq.${encodeURIComponent(h.vin)}&select=sale_date,sale_price,sale_price_usd,cur:raw_record->>currency,source_slug,listing_title&order=sale_date.asc`) || [];
+      const sales = mustRows(await supabaseSelect(env, `sales_archive?vin_norm=eq.${encodeURIComponent(h.vin)}&select=sale_date,sale_price,sale_price_usd,cur:raw_record->>currency,source_slug,listing_title&order=sale_date.asc`), "ops provevins L5348");
       out.push({ vin: h.vin, title: h.title, sales: sales.map(s => ({ date: String(s.sale_date || "").slice(0, 10), native: Number(s.sale_price) || null, currency: s.cur || null, usd: Number(s.sale_price_usd) || null, src: s.source_slug })) });
     }
     return res.status(200).json({ task: "provevins", candidatesChecked: vins.length, found: hits.length, vins: out });
@@ -5372,8 +5373,8 @@ if (task === "optiondetail") {
     const pnorm = s => String(s || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
     const dayg = d => String(d || "").slice(0, 10);
     // 1) this-week closes
-    const wkSales = await supabaseSelectAll(env, `sales_archive?sale_date=gte.${from}&sale_date=lte.${to}&vin_norm=not.is.null&select=vin_norm,sale_date,source_slug,platform,sale_price_usd,has_reserve`) || [];
-    const wkAtts = await supabaseSelectAll(env, `auction_attempts?attempt_date=gte.${from}&attempt_date=lte.${to}&chassis_vin_norm=not.is.null&select=vin_norm:chassis_vin_norm,attempt_date,source_slug,high_bid_usd,high_bid,auction_status,has_reserve`) || [];
+    const wkSales = mustRows(await supabaseSelectAll(env, `sales_archive?sale_date=gte.${from}&sale_date=lte.${to}&vin_norm=not.is.null&select=vin_norm,sale_date,source_slug,platform,sale_price_usd,has_reserve`), "ops relisted L5369");
+    const wkAtts = mustRows(await supabaseSelectAll(env, `auction_attempts?attempt_date=gte.${from}&attempt_date=lte.${to}&chassis_vin_norm=not.is.null&select=vin_norm:chassis_vin_norm,attempt_date,source_slug,high_bid_usd,high_bid,auction_status,has_reserve`), "ops relisted L5370");
     const wkVins = [...new Set([...wkSales, ...wkAtts].map(r => nvin(r.vin_norm)).filter(v => v.length >= 6))];
     // 2) full history (all dates) for those VINs, chunked IN to stay under URL limits
     const chunk = (arr, n) => { const o = []; for (let i = 0; i < arr.length; i += n) o.push(arr.slice(i, i + n)); return o; };
@@ -5466,9 +5467,9 @@ if (task === "optiondetail") {
     const vinIndexRows = await countOf("vin_index", "vin_norm=not.is.null");
     const vinSummaryRows = await countOf("vin_summary", "vin_norm=not.is.null");
     const multi = await countOf("vin_summary", "appearances=gte.2");
-    const samples = await supabaseSelect(env, `vin_summary?appearances=gte.2&select=vin_norm,appearances,make,model,first_seen,last_seen,last_sold_price_usd&order=appearances.desc&limit=5`) || [];
+    const samples = mustRows(await supabaseSelect(env, `vin_summary?appearances=gte.2&select=vin_norm,appearances,make,model,first_seen,last_seen,last_sold_price_usd&order=appearances.desc&limit=5`), "ops vinidxcount L5463");
     const withHistory = [];
-    for (const s of samples) { const hist = await supabaseSelect(env, `vin_index?vin_norm=eq.${encodeURIComponent(s.vin_norm)}&select=appearance_date,source,result,price_usd,listing_title&order=appearance_date.asc.nullslast&limit=20`) || []; withHistory.push({ ...s, history: hist }); }
+    for (const s of samples) { const hist = mustRows(await supabaseSelect(env, `vin_index?vin_norm=eq.${encodeURIComponent(s.vin_norm)}&select=appearance_date,source,result,price_usd,listing_title&order=appearance_date.asc.nullslast&limit=20`), "ops vinidxcount L5465"); withHistory.push({ ...s, history: hist }); }
     return res.status(200).json({ task: "vinidxcount", vin_index_rows: vinIndexRows, vin_summary_rows: vinSummaryRows, distinct_vins: vinSummaryRows, multi_appearance_vins: multi, samples: withHistory });
   }
 
@@ -5552,7 +5553,7 @@ if (task === "optiondetail") {
   if (task === "livegearbox") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const WORDS = /speed|manual|clutch|pdk|automatic|tiptronic/i;
-    const rows = (await supabaseSelectAll(env, "live_listings?status=eq.live&select=id,listing_title,transmission,source&order=id.asc")) || [];
+    const rows = mustRows(await supabaseSelectAll(env, "live_listings?status=eq.live&select=id,listing_title,transmission,source&order=id.asc"), "ops livegearbox L5549");
     const hits = rows.filter(r => WORDS.test(String(r.listing_title || "")) || WORDS.test(String(r.transmission || "")))
       .map(r => ({ title: r.listing_title ?? null, transmission: r.transmission ?? null, source: r.source ?? null, id: r.id }));
     return res.status(200).json({ task: "livegearbox", live: rows.length, matched: hits.length, rows: hits });
@@ -5572,12 +5573,12 @@ if (task === "optiondetail") {
     const marketN = Math.min(20, Math.max(0, Number(req.query?.market) || 0));
     const t0 = Date.now();
     // the slice: VINs in vin_norm order (distinct), read from the index rows of those VINs
-    const vinRows = (await supabaseSelect(env, `vin_summary?select=vin_norm,make,model,vehicle_type&vehicle_type=eq.car&order=vin_norm.asc&offset=${off}&limit=${want}`)) || [];
+    const vinRows = mustRows(await supabaseSelect(env, `vin_summary?select=vin_norm,make,model,vehicle_type&vehicle_type=eq.car&order=vin_norm.asc&offset=${off}&limit=${want}`), "ops vinidentitydry L5569");
     const vins = vinRows.map(r => r.vin_norm);
     const apps = new Map();
     for (let i = 0; i < vins.length; i += 150) {
       const part = vins.slice(i, i + 150);
-      const rows = (await supabaseSelect(env, `vin_index?select=vin_norm,appearance_date,listing_title,make,model,year&vin_norm=in.(${part.map(encodeURIComponent).join(",")})&order=appearance_date.desc`)) || [];
+      const rows = mustRows(await supabaseSelect(env, `vin_index?select=vin_norm,appearance_date,listing_title,make,model,year&vin_norm=in.(${part.map(encodeURIComponent).join(",")})&order=appearance_date.desc`), "ops vinidentitydry L5574");
       for (const r of rows) { if (!apps.has(r.vin_norm)) apps.set(r.vin_norm, []); apps.get(r.vin_norm).push(r); }
     }
     const word = w => new RegExp("(^|[^a-z0-9])" + String(w).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/[\s-]+/g, "[\\s-]?") + "([^a-z0-9]|$)", "i");
@@ -5643,7 +5644,7 @@ if (task === "optiondetail") {
     const t0 = Date.now(), out = {};
     for (const w of words) {
       if (Date.now() - t0 > 240000) { out[w] = { skipped: "time budget" }; continue; }
-      const rows = (await supabaseSelectAll(env, `sales_archive?select=make,model,year,listing_title&listing_title=ilike.*${encodeURIComponent(w)}*&sale_date=gte.${since}&sale_price=not.is.null&order=id.asc`)) || [];
+      const rows = mustRows(await supabaseSelectAll(env, `sales_archive?select=make,model,year,listing_title&listing_title=ilike.*${encodeURIComponent(w)}*&sale_date=gte.${since}&sale_price=not.is.null&order=id.asc`), "ops trimwordcount L5640");
       const by = new Map();
       for (const r of rows) {
         const g = trimGroupsFromSales([{ title: r.listing_title, raw_title: r.listing_title }], { make: r.make, model: r.model });
@@ -5735,7 +5736,7 @@ if (task === "optiondetail") {
     const t0 = Date.now(), rows = [], read = {}, skipped = [];
     for (const m of makes) {
       if (Date.now() - t0 > 230000) { skipped.push(m); continue; }
-      const got = (await supabaseSelectAll(env, `sales_archive?select=make,model,year,listing_title&make=ilike.${encodeURIComponent(m)}&order=id.asc`)) || [];
+      const got = mustRows(await supabaseSelectAll(env, `sales_archive?select=make,model,year,listing_title&make=ilike.${encodeURIComponent(m)}&order=id.asc`), "ops bodychanges L5732");
       read[m] = got.length; for (const r of got) rows.push(r);
     }
     const r = findBodyChanges(rows, { minSales });
@@ -5750,7 +5751,7 @@ if (task === "optiondetail") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { transmissionFromText } = await import("../lib/_descFacts.js");
     const t0 = Date.now();
-    const rows = (await supabaseSelectAll(env, "sales_archive?select=id,make,listing_title,transmission,ocdtx:raw_record->>transmission,desc:raw_record->>description&desc_facts->>transmission=eq.Manual&raw_record->>description=ilike.*getrag*&order=id.asc")) || [];
+    const rows = mustRows(await supabaseSelectAll(env, "sales_archive?select=id,make,listing_title,transmission,ocdtx:raw_record->>transmission,desc:raw_record->>description&desc_facts->>transmission=eq.Manual&raw_record->>description=ilike.*getrag*&order=id.asc"), "ops getragcount L5747");
     const byMake = {}, sample = [];
     let only = 0, columnToo = 0;
     for (const r of rows) {
@@ -5793,7 +5794,7 @@ if (task === "optiondetail") {
       cursor = batch[batch.length - 1].source_id;
       if (batch.length < LIMIT) break;
     }
-    const bodyshell = (await supabaseSelect(env, `sales_archive?select=source_id,source_slug,sale_price,listing_title,d:raw_record->>description&project_flag=eq.bodyshell&limit=1000`)) || [];
+    const bodyshell = mustRows(await supabaseSelect(env, `sales_archive?select=source_id,source_slug,sale_price,listing_title,d:raw_record->>description&project_flag=eq.bodyshell&limit=1000`), "ops projdry L5790");
     const staleBodyshell = bodyshell.filter(r => !projectFlagReason(String(r.listing_title || ""), String(r.d || "")));
     return res.status(200).json({ task: "projdry", scope: req.query?.flag ? `flag=${req.query.flag}` : (req.query?.flagged ? "flagged" : "null rows"), storedFlagBecomes: becomes, unflagExamples, scanned, stampedWithDescFacts: stamped, wouldFlag, wouldNotFlag: scanned - wouldFlag, wouldFlagPct: scanned ? Math.round((wouldFlag / scanned) * 1000) / 10 : 0, byKeyword,
       looseRule: { wouldFlag: wouldFlagLoose, byKeyword: byKeywordLoose, flaggedByLooseOnly: looseOnly.length, examples: looseOnly },
@@ -6142,7 +6143,7 @@ if (task === "optiondetail") {
     const { MAKE_ALIASES, MODEL_ALIASES, MODEL_OWNERSHIP, EXTRA_MAKES } = await import("../lib/vehicleData.js");
     const days = Math.min(60, Number(req.query?.days) || 30);
     const since = new Date(Date.now() - days * 864e5).toISOString();
-    const rows = (await supabaseSelectAll(env, `analytics_events?name=eq.search_run&product=eq.${req.query?.product === "market_check" ? "market_check" : "buy"}&internal=is.false&is_bot=is.false&ts=gte.${encodeURIComponent(since)}&select=q:props->>query_text`)) || [];   // product=market_check reads Market Check's own searches (Oct 28 2026, the launch warm's top 50), same filters
+    const rows = mustRows(await supabaseSelectAll(env, `analytics_events?name=eq.search_run&product=eq.${req.query?.product === "market_check" ? "market_check" : "buy"}&internal=is.false&is_bot=is.false&ts=gte.${encodeURIComponent(since)}&select=q:props->>query_text`), "ops buyqueries L6139");   // product=market_check reads Market Check's own searches (Oct 28 2026, the launch warm's top 50), same filters
     const carWords = new Set();
     const addW = t => String(t || "").toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length >= 2).forEach(w => carWords.add(w));
     for (const a of MAKE_ALIASES || []) { addW(a.alias); addW(a.make); }
@@ -6278,10 +6279,10 @@ if (task === "optiondetail") {
   if (task === "item3probe") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     // (b)
-    const b996 = await supabaseSelect(env, `sales_archive?source_slug=eq.pcarmarket&year=eq.1999&or=(listing_title.ilike.*996*,listing_title.ilike.*race*,listing_title.ilike.*cup*,model.ilike.*996*)&select=id,source_id,sale_date,listing_title,make,model,sale_price,sale_price_usd,status:raw_record->>auction_status&limit=50`) || [];
+    const b996 = mustRows(await supabaseSelect(env, `sales_archive?source_slug=eq.pcarmarket&year=eq.1999&or=(listing_title.ilike.*996*,listing_title.ilike.*race*,listing_title.ilike.*cup*,model.ilike.*996*)&select=id,source_id,sale_date,listing_title,make,model,sale_price,sale_price_usd,status:raw_record->>auction_status&limit=50`), "ops item3probe L6275");
     // (c)
-    const gLondon = await supabaseSelect(env, `sales_archive?source_slug=eq.gooding&raw_record->>currency=eq.USD&or=(city.ilike.*london*,listing_title.ilike.*london*)&select=id,source_id,sale_date,listing_title,sale_price,sale_price_usd,curr:raw_record->>currency,city&limit=50`) || [];
-    const bMay = await supabaseSelect(env, `sales_archive?source_slug=eq.bonhams&sale_date=gte.2025-05-01&sale_date=lt.2025-06-01&raw_record->>currency=eq.USD&select=id,source_id,sale_date,listing_title,sale_price,sale_price_usd,curr:raw_record->>currency,city&limit=100`) || [];
+    const gLondon = mustRows(await supabaseSelect(env, `sales_archive?source_slug=eq.gooding&raw_record->>currency=eq.USD&or=(city.ilike.*london*,listing_title.ilike.*london*)&select=id,source_id,sale_date,listing_title,sale_price,sale_price_usd,curr:raw_record->>currency,city&limit=50`), "ops item3probe L6277");
+    const bMay = mustRows(await supabaseSelect(env, `sales_archive?source_slug=eq.bonhams&sale_date=gte.2025-05-01&sale_date=lt.2025-06-01&raw_record->>currency=eq.USD&select=id,source_id,sale_date,listing_title,sale_price,sale_price_usd,curr:raw_record->>currency,city&limit=100`), "ops item3probe L6278");
     // (d) weekly Sep 27 to Oct 3 (sale_date indexed)
     const wk = await supabaseSelectAll(env, `sales_archive?sale_date=gte.2026-09-27&sale_date=lte.2026-10-03&select=source_slug,sale_price_usd,make,model,listing_title,vin_norm,year,sale_date`);
     const rows = wk || [];
@@ -6294,7 +6295,7 @@ if (task === "optiondetail") {
     const wkVins = [...new Set(rows.map(r => String(r.vin_norm || "")).filter(v => v.length >= 6))];
     let repeats = [];
     if (wkVins.length) {
-      const all = await supabaseSelect(env, `sales_archive?vin_norm=in.(${wkVins.map(encodeURIComponent).join(",")})&select=vin_norm,sale_date,listing_title,sale_price_usd,source_slug&order=sale_date.asc`) || [];
+      const all = mustRows(await supabaseSelect(env, `sales_archive?vin_norm=in.(${wkVins.map(encodeURIComponent).join(",")})&select=vin_norm,sale_date,listing_title,sale_price_usd,source_slug&order=sale_date.asc`), "ops item3probe L6291");
       const byVin = {}; for (const a of all) { const v = a.vin_norm; (byVin[v] = byVin[v] || []).push(a); }
       repeats = Object.entries(byVin).filter(([, a]) => a.length >= 2).map(([v, a]) => ({ vin: v, appearances: a.length, title: a[a.length - 1].listing_title, history: a.map(x => ({ date: x.sale_date, usd: Number(x.sale_price_usd) || null, source: x.source_slug })) }));
     }
@@ -6399,9 +6400,9 @@ if (task === "optiondetail") {
     // Supabase) regardless of the number asked for; this walks the Range header to get everything.
     // A plain limit= here would silently return only the OLDEST 1000 rows (order=created_at.asc),
     // excluding every row from today's test journey - exactly the bug this replaced.
-    const events = (await supabaseSelectAll(env, "funnel_events?select=event,tool,props,visitor_id,user_id,created_at&order=created_at.asc")) || [];
-    const links = (await supabaseSelectAll(env, "visitor_links?select=visitor_id,user_id,first_seen_at,linked_at")) || [];
-    const touches = (await supabaseSelectAll(env, "visitor_first_touch?select=visitor_id,utm_source")) || [];
+    const events = mustRows(await supabaseSelectAll(env, "funnel_events?select=event,tool,props,visitor_id,user_id,created_at&order=created_at.asc"), "ops trackingproof L6396");
+    const links = mustRows(await supabaseSelectAll(env, "visitor_links?select=visitor_id,user_id,first_seen_at,linked_at"), "ops trackingproof L6397");
+    const touches = mustRows(await supabaseSelectAll(env, "visitor_first_touch?select=visitor_id,utm_source"), "ops trackingproof L6398");
     const now = Date.now(), DAY = 86400000;
     const since30 = now - 30 * DAY, since7 = now - 7 * DAY;
     const t = r => new Date(r.created_at).getTime();
@@ -6567,7 +6568,7 @@ async function fetchEmailsByUserId(env, userIds) {
   const ids = [...new Set((userIds || []).filter(Boolean))];
   for (let i = 0; i < ids.length; i += 100) {
     const chunk = ids.slice(i, i + 100).join(",");
-    const accs = (await supabaseSelect(env, `accounts?user_id=in.(${chunk})&select=user_id,email`)) || [];
+    const accs = (await supabaseSelect(env, `accounts?user_id=in.(${chunk})&select=user_id,email`)) || [];   // read-failure-ok: label lookup: an unresolved user id prints as the id
     for (const a of accs) map.set(a.user_id, a.email);
   }
   return map;
@@ -6638,12 +6639,12 @@ async function anyRows(env, filter) {
 // One canonical computation of every business number for a range + cohort mode.
 async function computeBusiness(env, range, mode) {
   const JCOLS = "journey_id,anon_id,user_id,vehicle_year,vehicle_make,vehicle_model,vehicle_trim,vehicle_location,vehicle_attrs,rec_platform,rec_powerseller,rec_scope,rec_window,rec_estimated_value,stage,sale_status,listed_at,consignment_at,sold_at,sale_price,gas_revenue,actual_platform,listing_url,created_at,last_activity_at,contacted_at,engaged_at,intro_sent_at,intro_requested_at";
-  const journeysAll = (await supabaseSelect(env, `journeys?created_at=gte.${encodeURIComponent(range.sinceIso)}&created_at=lt.${encodeURIComponent(range.toIso)}&select=${JCOLS}&order=created_at.desc&limit=5000`)) || [];
+  const journeysAll = mustRows(await supabaseSelect(env, `journeys?created_at=gte.${encodeURIComponent(range.sinceIso)}&created_at=lt.${encodeURIComponent(range.toIso)}&select=${JCOLS}&order=created_at.desc&limit=5000`), "ops sellexamplerefresh L6635");
   // Order DESC (newest first) so that when a wide window exceeds the row cap, the events
   // that survive are the most RECENT - not the oldest. The prior asc+cap silently dropped
   // today's activity on any 7d/30d window busy enough to exceed the cap, so every funnel
   // metric read stale (recent journeys showed no clicks/intros at all). Cap raised too.
-  const events = (await supabaseSelect(env, `journey_events?occurred_at=gte.${encodeURIComponent(range.sinceIso)}&select=journey_id,event_type,platform_id,powerseller_id,metadata,occurred_at&order=occurred_at.desc&limit=60000`)) || [];
+  const events = mustRows(await supabaseSelect(env, `journey_events?occurred_at=gte.${encodeURIComponent(range.sinceIso)}&select=journey_id,event_type,platform_id,powerseller_id,metadata,occurred_at&order=occurred_at.desc&limit=60000`), "ops sellexamplerefresh L6640");
 
   // tier per journey (from its recommendation_completed event metadata). Events are DESC,
   // so keep-first = the LATEST recommendation_completed tier (preserves the prior asc
@@ -6657,7 +6658,7 @@ async function computeBusiness(env, range, mode) {
   // feature, so every VIN journey is recent and would silently drop from the map. Scoped
   // to one event type (one row per journey), this stays tiny and complete at any range.
   const entryMethodBy = new Map();
-  const startEvents = (await supabaseSelect(env, `journey_events?event_type=eq.seller_journey_started&occurred_at=gte.${encodeURIComponent(range.sinceIso)}&select=journey_id,metadata&limit=20000`)) || [];
+  const startEvents = mustRows(await supabaseSelect(env, `journey_events?event_type=eq.seller_journey_started&occurred_at=gte.${encodeURIComponent(range.sinceIso)}&select=journey_id,metadata&limit=20000`), "ops sellexamplerefresh L6654");
   for (const e of startEvents) if (e.metadata && e.metadata.entry_method) entryMethodBy.set(e.journey_id, e.metadata.entry_method);
   const internal = j => isInternalTier(tierBy.get(j.journey_id)) || tierBy.get(j.journey_id) === "internal";
   const journeys = journeysAll.filter(j => mode === "include" ? true : mode === "only" ? internal(j) : !internal(j));
@@ -6874,7 +6875,7 @@ async function renderBusinessView(req, res) {
   // deliberately SEPARATE from the /sell journey funnel above (it records to funnel_events,
   // not the journey spine), so these numbers never distort the seller funnel. Honesty
   // conventions: real zero shows 0; an empty range shows "not yet tracked".
-  const obEvents = (await supabaseSelect(env, `funnel_events?event=like.onebox_*&created_at=gte.${encodeURIComponent(range.sinceIso)}&created_at=lt.${encodeURIComponent(range.toIso)}&select=event,anon_session_id&limit=100000`)) || [];
+  const obEvents = mustRows(await supabaseSelect(env, `funnel_events?event=like.onebox_*&created_at=gte.${encodeURIComponent(range.sinceIso)}&created_at=lt.${encodeURIComponent(range.toIso)}&select=event,anon_session_id&limit=100000`), "ops sellexamplerefresh L6871");
   const obc = {}; const obAnons = new Set();
   for (const e of (Array.isArray(obEvents) ? obEvents : [])) { obc[e.event] = (obc[e.event] || 0) + 1; if (e.anon_session_id) obAnons.add(e.anon_session_id); }
   const obN = k => fmtN(obc[k] || 0);
@@ -6958,7 +6959,7 @@ async function processManualUpdate(env, req) {
   const note = String(body.note || "").trim() || null;
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(jid)) return { saved: 0, errors: ["bad_journey_id"], changedBy };
   if (!changedBy) return { saved: 0, errors: ["missing_operator"], changedBy };
-  const cur = (await supabaseSelect(env, `journeys?journey_id=eq.${encodeURIComponent(jid)}&select=*&limit=1`)) || [];
+  const cur = mustRows(await supabaseSelect(env, `journeys?journey_id=eq.${encodeURIComponent(jid)}&select=*&limit=1`), "ops sellexamplerefresh L6955");
   const row = cur[0];
   if (!row) return { saved: 0, errors: ["journey_not_found"], changedBy };
   let saved = 0; const errors = [];
@@ -7230,7 +7231,7 @@ async function renderCsvExport(req, res) {
   if (dataset === "funnel_events") {
     // funnel_events are pre-recommendation step events with no tier attribution, so only
     // the time filter applies (the tier cohort is not meaningful at this stage).
-    const rows = (await supabaseSelect(env, `funnel_events?created_at=gte.${encodeURIComponent(range.sinceIso)}&created_at=lt.${encodeURIComponent(range.toIso)}&select=id,event,anon_session_id,user_id,dedup_key,created_at&order=created_at.desc&limit=100000`)) || [];
+    const rows = mustRows(await supabaseSelect(env, `funnel_events?created_at=gte.${encodeURIComponent(range.sinceIso)}&created_at=lt.${encodeURIComponent(range.toIso)}&select=id,event,anon_session_id,user_id,dedup_key,created_at&order=created_at.desc&limit=100000`), "ops sellexamplerefresh L7227");
     const headers = ["id", "event", "anon_session_id", "user_id", "dedup_key", "created_at"];
     const body = rows.map(r => [r.id, r.event, r.anon_session_id, r.user_id, r.dedup_key, r.created_at]);
     return send("funnel_events", toCsv(headers, body));
@@ -7251,10 +7252,10 @@ async function renderCsvExport(req, res) {
 // and quality are computed over ALL traffic (stated on each view).
 async function fetchUsageInRange(env, sinceIso) {
   const cols = "event_type,status,duration_ms,oldcarsdata_cost_1k_usd,oldcarsdata_cost_10k_usd,anthropic_cost_usd,oldcarsdata_metered_requests,metadata,created_at";
-  return (await supabaseSelect(env, `app_usage_events?created_at=gte.${encodeURIComponent(sinceIso)}&select=${cols}&order=created_at.desc&limit=50000`)) || [];
+  return mustRows(await supabaseSelect(env, `app_usage_events?created_at=gte.${encodeURIComponent(sinceIso)}&select=${cols}&order=created_at.desc&limit=50000`), "ops sellexamplerefresh L7248");
 }
 async function fetchFunnelInRange(env, sinceIso) {
-  return (await supabaseSelect(env, `funnel_events?created_at=gte.${encodeURIComponent(sinceIso)}&select=event,created_at&limit=100000`)) || [];
+  return mustRows(await supabaseSelect(env, `funnel_events?created_at=gte.${encodeURIComponent(sinceIso)}&select=event,created_at&limit=100000`), "ops sellexamplerefresh L7251");
 }
 const num = v => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 

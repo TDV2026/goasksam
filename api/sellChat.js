@@ -57,9 +57,9 @@ async function handlerCore(req, res) {
     const out = { said, v: car.v, generation: car.generation };
     for (const days of [365, 1095]) { const sp = await specPool(car, days); out["pool" + days] = { n: sp.pool.length, step: sp.step, cohort: sp.cohort, spec: sp.spec && { model: sp.spec.model, trim: sp.spec.trim, bodyStyle: sp.spec.bodyStyle, yearMin: sp.spec.yearMin, yearMax: sp.spec.yearMax } }; }
     const hr = await houseReceiptsForVehicle(car.v, car.generation, env).catch(e => ({ err: String(e) }));
-    out.house = hr ? { n: (hr.houseReceipts || []).length, totalN: hr.totalN, err: hr.err } : null;
+    out.house = hr && hr.readFailed ? { readFailed: true, reason: hr.reason } : hr ? { n: (hr.houseReceipts || []).length, totalN: hr.totalN, err: hr.err } : null;
     const hr2 = await houseReceiptsForVehicle({ ...car.v, bodyStyle: null }, car.generation, env).catch(() => null);
-    out.houseNoBody = hr2 ? { n: (hr2.houseReceipts || []).length, totalN: hr2.totalN } : null;
+    out.houseNoBody = hr2 && hr2.readFailed ? { readFailed: true, reason: hr2.reason } : hr2 ? { n: (hr2.houseReceipts || []).length, totalN: hr2.totalN } : null;
     const { placesFor } = await import("../lib/sell/sellFacts.js");
     const pl = await placesFor(car).catch(e => ({ err: String(e) }));
     // How many unsold cars of each reserve kind each place records (24 months), for the reserve tile.

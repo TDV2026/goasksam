@@ -2485,6 +2485,7 @@ for (const [file, label] of [["bulkSaleCheck", "Bulk-sale guard"], ["exactYearLi
   ["readConcurrencyCheck", "Read concurrency: one request never holds more than 2 archive queries in flight"],
   ["readAbortCheck", "Read abort: a caller that gives up stops its archive reads, a shared flight survives one caller"],
   ["readCallerCheck", "Read caller: every archive read is attributed to warm, ops, visitor, Find or Sell in Query Performance"],
+  ["houseReadCheck", "House read: a failed read is could-not-read, never no house sales; an ops task never prints 0 for a failed read"],
   ["generationChipCheck", "Generation chips resolve for the whole generation with no invented year"]]) {
   try {
     const out = execSync(`node scripts/${file}.mjs`, { encoding: "utf8" });
