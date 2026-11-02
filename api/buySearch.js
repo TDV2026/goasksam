@@ -26,7 +26,7 @@ import { photoOrNull } from "../lib/photoHosts.js";
 import { asideRowsFor, asideMatch, setAsideLabel } from "../lib/tasks/setAside.js";
 import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
-import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, ladderSteps, walkLadder, panelOf } from "../lib/live/search.js";
+import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, prefetchSpecs, stillReadingMarket, ladderSteps, walkLadder, panelOf } from "../lib/live/search.js";
 import { vinAppearances } from "./_historyData.js";
 import { applyRung, askedName, countText } from "../lib/live/rung.js";
 // A card's market with the rung applied (lib/live/rung.js). On the sibling rung the Task door follows the car asked
@@ -50,7 +50,7 @@ import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js
 import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.js";
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
-import { runTurn, runFilters, runSearch, suggestFor } from "../lib/live/samChat.js";
+import { runTurn, runFilters, runSearch, suggestFor, BATCH_BUDGET_MS } from "../lib/live/samChat.js";
 // The composer's suggestions (Stage 1c item 6), from the shaped cards (seen_before exists only after shaping).
 const withSuggest = (out, r) => ({ ...r, suggest: suggestFor({ meta: out.meta, filters: out.state && out.state.filters, seenAny: (r.cards || []).some(c => c && c.seen_before) }) });
 import { humanTitle } from "../lib/carTitle.js";
@@ -258,6 +258,21 @@ export async function enrichFast(env, x) {
   c.mc_url = mcUrlOf(x.r, x.facts, c.market && c.market.query ? c.market : null);
   return { ...c, sam_lines: samLines(c) };
 }
+// A SHOW MORE BATCH UNDER ITS OWN CLOCK (Nov 2 2026, Sam's live click on "Show 24 more" that took a very long time with no sign of work): the batch returns within budgetMs whatever the cards' reads are doing. A card whose
+// read is back is drawn whole (its range and Sam line); a card whose read is not is drawn at once with the engine's being-read line (stillReadingMarket) and no range, the read keeps running behind the response, and the page asks for it
+// card by card exactly as it does for the first batch (action enrich, the engine's own retry and wait). Nothing is computed here beyond the engine's own reads.
+export async function moreBatch(items, { enrichOne, pendingOf, budgetMs = BATCH_BUDGET_MS }) {
+  const LATE = Symbol("late"); let timer; const clock = new Promise(res => { timer = setTimeout(() => res(LATE), budgetMs); });
+  try {
+    return await Promise.all((items || []).map(async x => {
+      const got = await Promise.race([Promise.resolve().then(() => enrichOne(x)).catch(() => LATE), clock]);
+      const c = got === LATE || !got ? pendingOf(x) : got;
+      if (x.distance != null) c.distance = x.distance;
+      return c;
+    }));
+  } finally { clearTimeout(timer); }
+}
+const pendingCardOf = x => { const c = { ...cardOf(x), market: stillReadingMarket(), name: null }; return { ...c, sam_lines: samLines(c) }; };
 async function logSearch(env, v, anonId) {
   try {
     const r = await fetch(`${env.supabaseUrl}/rest/v1/search_events`, {
@@ -600,8 +615,10 @@ async function handler(req, res) {
     // in lib/live/samChat.js. Nothing is sorted, counted or sliced here or on the page.
     if (b.action === "more") {
       const offset = Math.max(0, Math.min(100000, Math.floor(Number(b.offset) || 0)));
-      const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, offset });
-      const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
+      const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, offset, batchOnly: true });
+      // one stored-row read for the batch's spec keys, inside the same clock (a failure here only means each card reads as it would have)
+      const pre = Promise.all(out.cards.map(x => specOf(env, x.r, x.facts).catch(() => null))).then(sp => { const keys = sp.filter(Boolean).map(z => z.key); return keys.length ? prefetchSpecs(env, keys) : null; }).catch(() => null);
+      const cards = await moreBatch(out.cards, { enrichOne: async x => { await pre; return enrichFast(env, x); }, pendingOf: pendingCardOf });
       const m = out.meta || {};
       return res.status(200).json({ cards, meta: { live: m.live, shown: m.shown, remaining: m.remaining, nextN: m.nextN, countLine: m.countLine || null, offset: m.offset } });
     }

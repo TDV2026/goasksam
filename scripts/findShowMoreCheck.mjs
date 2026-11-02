@@ -105,7 +105,7 @@ try {
 {
   const rd = x => fs.readFileSync(new URL("../" + x, import.meta.url), "utf8");
   const bs = rd("api/buySearch.js"), sm = rd("lib/live/samChat.js");
-  ok(/b\.action === "more"[\s\S]{0,900}runFilters\(env, b\.filters \|\| \{\}, [^\n]*\boffset \}\)/.test(bs), "the engine answers action more: the same search from the filters, from the offset");
+  ok(/b\.action === "more"[\s\S]{0,900}runFilters\(env, b\.filters \|\| \{\}, [^\n]*\boffset(, batchOnly: true)? \}\)/.test(bs), "the engine answers action more: the same search from the filters, from the offset");
   ok(/matches\.slice\(offset, offset \+ SHOW_BATCH\)/.test(sm), "the engine's batch is the matches from the offset on, in the engine's own order");
   ok(/Object\.assign\(ctx\.searchMeta, pageMeta\(/.test(sm), "the counts in meta come from pageMeta");
   const buy = rd("api/buy.js"), client = JSON.parse(/^const CLIENT = (".*");$/m.exec(buy)[1]);
