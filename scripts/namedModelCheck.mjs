@@ -140,7 +140,31 @@ ok("control: with a Capri live there is no none-live block", zl.cards.length ===
 { const page = fs.readFileSync(path.join(root, "api/buy.js"), "utf8").replace(/\\n/g, "\n").replace(/\\"/g, '"');
   const iN = page.indexOf(": n ? '<p class=\"sc-1\">' + esc(matchesLine(n, true))"), iZ = page.indexOf(": matchesLine(0,", iN);
   ok("the page prints \"N live matches\" and \"That's everything matching your search\" only in the branch that has matches (n)", iN > 0 && iZ > iN && page.slice(iN, iZ).includes("everythingLine(m, f)") && (page.match(/esc\(everythingLine\(m, f\)\)/g) || []).length === 1);
-  ok("the page prints the engine's none-live lines and computes nothing (meta.noneLive.lines, escaped text)", /d\.meta\.noneLive\.lines\.map\(function\(x\)\{ return "<p>" \+ esc\(x\) \+ "<\/p>"; \}\)/.test(page));
+  ok("the page prints the engine's none-live lines and computes nothing (meta.noneLive.lines, escaped text)", /\(nlv\.pending \? \[nlv\.line\] : nlv\.lines\)\.filter\(Boolean\)\.map\(function\(x\)\{ return "<p>" \+ esc\(x\) \+ "<\/p>"; \}\)/.test(page));
   ok("the page offers Keep looking when nothing is live (keepHtml with no cards)", /keepHtml\(cards\.length, q, qp\)/.test(page) && /<h3>Nothing live right now\.<\/h3>/.test(page)); }
+// ---- 6. THE SAME LINES ON EVERY SCREEN WIDTH (Lane B, Nov 1 2026). Reader report: on /find?q=Ford+Capri+from+1968+to+1974&make=Ford&model=Capri&from=1968&to=1974 the none-live lines ("Three sales, too few for a range." and
+// "Since May 2022.") showed at 390px and not at 1440px. CAUSE: not the width. Nothing in api/buy.js or the engine reads the screen for these lines (checked below); the lines come from noneLiveOf, which returned NOTHING
+// whenever the Capri's market was not read yet (a cold engine, or the read past 8 seconds), so the visit that met the cold read showed no lines and the next visit, warm, showed them. WHO ELSE: every page that prints an
+// engine line from a market read that can be pending (Find none-live, the Find header, the cards' lines, Market Check). Those already carry the engine's still-reading answer and ask again; none-live was the one that dropped it.
+// Now a read that is not ready goes out as the engine's own still-reading answer (line, retry, wait) and the page asks the same search again on that cadence and swaps in the lines. The width is not an input anywhere.
+LIVE = OTHERS.slice(); SALES = FORD.slice(0, 3);
+{ const page = fs.readFileSync(path.join(root, "api/buy.js"), "utf8").replace(/\\n/g, "\n").replace(/\\"/g, '"');
+  const pieces = ["nonel", "noneLive", "noneAsk"].flatMap(k => { const out = []; let i = -1; while ((i = page.indexOf(k, i + 1)) >= 0) out.push(page.slice(Math.max(0, i - 160), i + 400)); return out; });
+  ok("no screen-width test sits beside the none-live code (no innerWidth, matchMedia, clientWidth, screen.width, offsetWidth)", pieces.length > 0 && !pieces.some(t => /innerWidth|matchMedia|clientWidth|screen\.width|offsetWidth/.test(t)));
+  ok("no CSS rule names the none-live section (nothing can hide it at one width)", !/\.nonel\s*[{,:.>\[]/.test(page) && !/@media[^{]*\{[^}]*nonel/.test(page));
+  ok("the page asks again on the engine's cadence when the lines are pending (noneAsk reads retryAfterMs and waitMaxMs from meta.noneLive)", /var noneAsk = function\(blk, ff, nl, t0\)\{ var every = Number\(nl\.retryAfterMs\) > 0/.test(page) && /max = Number\(nl\.waitMaxMs\) > 0/.test(page) && /nlv\.pending && f\) noneAsk\(block, f, nlv, Date\.now\(\)\)/.test(page));
+  const lit = fs.readFileSync(path.join(root, "api/buy.js"), "utf8").split("\n").find(l => l.startsWith("const CLIENT = "));
+  let parses = true; try { new Function(Function("return " + lit.slice("const CLIENT = ".length).replace(/;\s*$/, ""))()); } catch (e) { parses = String(e && e.message); }
+  ok("the page script still parses with the pending branch", parses === true, String(parses)); }
+const SAVEFETCH = globalThis.fetch; let coldN = 0;
+globalThis.fetch = async (url, init) => { const u = new URL(String(url)); if (u.pathname.endsWith("/sales_archive") && coldN < 40) { coldN++; return new Response("", { status: 500 }); } return SAVEFETCH(url, init); };
+const L2 = await import(pathToFileURL(path.join(root, "lib/live/search.js")).href);
+const cold = await S.runFilters(env, { make: "Hillman", model: "Imp" }, {}), cn = cold.meta && cold.meta.noneLive;
+ok("a cold read is never silent: meta.noneLive is there, pending, with the engine's still-reading line, its retry and its wait", !!cn && cn.pending === true && typeof cn.line === "string" && cn.line.length > 0 && Number(cn.retryAfterMs) > 0 && Number(cn.waitMaxMs) > 0, JSON.stringify(cn));
+ok("the pending lines carry no number of the page's own and no sale", !!cn && !/\$\d/.test(String(cn.line)) && (cn.lines || []).length === 0, JSON.stringify(cn));
+globalThis.fetch = SAVEFETCH;
+const warmA = await S.runFilters(env, { make: "Ford", model: "Capri", year_min: 1968, year_max: 1974 }, {}), warmB = await S.runFilters(env, { make: "Ford", model: "Capri", year_min: 1968, year_max: 1974 }, {});
+const wl = a => a.meta && a.meta.noneLive && !a.meta.noneLive.pending ? a.meta.noneLive.lines.join(" | ") : "";
+ok("once the read is ready both visits get the same two engine lines (three sales too few for a range, since a month and year)", wl(warmA).length > 0 && wl(warmA) === wl(warmB) && /too few for a range/i.test(wl(warmA)) && /since/i.test(wl(warmA)), wl(warmA));
 console.log(fail ? `namedModelCheck: ${fail} FAIL` : "namedModelCheck: all pass");
 process.exit(fail ? 1 : 0);
