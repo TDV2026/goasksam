@@ -59,6 +59,6 @@ for (const [text, rows] of CASES) {
 }
 ok(`over all the pools the narrowed read moves fewer family-window rows (${totOn} against ${totOff})`, totOn < totOff);
 ok(`the live-size pool: the narrowed read moves at least 30 percent fewer rows (${bigOn} against ${bigOff}, ${(bigOff * 6.96 / 1000).toFixed(1)} s to ${(bigOn * 6.96 / 1000).toFixed(1)} s at the measured rate)`, bigOn <= bigOff * 0.7);
-{ const src = (await import("node:fs")).readFileSync(path.join(root, "lib/onebox.js"), "utf8"); ok("the narrowed read runs only when poolColumnsOn(env) is true (the switch stays off unless Sam turns it on)", /if \(narrowTok && await poolColumnsOn\(env\)\)/.test(src)); }
+{ const src = (await import("node:fs")).readFileSync(path.join(root, "lib/onebox.js"), "utf8"); ok("the narrowed read runs only when poolColumnsOn(env) is true or the crew-gated per-request override is set (the switch stays off unless Sam turns it on)", /if \(narrowTok && \(\(env && env\.narrowRead === true\) \|\| await poolColumnsOn\(env\)\)\)/.test(src)); }
 console.log(fail ? `narrowReadCheck: ${fail} failure(s)` : "narrowReadCheck: all pass");
 process.exit(fail ? 1 : 0);

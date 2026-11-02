@@ -3,6 +3,7 @@
 // deploy cap; all three take the probe key in the x-ops-key header only (Oct 2026; USAGE_DASHBOARD_KEY is no longer
 // read, and a key in the address is refused). (Merged from api/adminAccounts.js
 // and api/outboundClicks.js, July 2026.)
+import { isCrewRequest } from "../lib/_crew.js";
 import { hasServerCredential, hasHeaderKey, cronOk, keyInAddress, ADDRESS_KEY_REFUSED } from "../lib/_credential.js";
 import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import fs from "node:fs";
@@ -2150,7 +2151,12 @@ async function handleOps(req, res) {
         const generation = await findGeneration(vehicle, env).catch(() => null), key = warmAnswerKeyFor(vehicle, generation);
         const st = await readWarmAnswerDetailed(env, key).catch(() => null); row.stored = st ? (st.raw ? (st.stale ? "stale: " + st.reason : "fresh") : "none: " + st.reason) : "unread";
         try { const rr = await supabaseSelect(env, `spec_market_cache?spec_key=eq.${encodeURIComponent(key)}&select=computed_at,market`), r0 = rr && rr[0]; if (r0) { row.storedAt = r0.computed_at; row.ageHours = Math.round((Date.now() - Date.parse(r0.computed_at)) / 36e5 * 10) / 10; row.storedStamp = r0.market && r0.market.engineVersion || null; row.storedEpoch = r0.market && r0.market.warmEpoch || null; row.questionTag = r0.market && r0.market.raw && r0.market.raw.questionRulesTag || null; } } catch { /* diagnostics only */ }   // when the row was written and under which stamp
-        const sink = []; const d = (await oneEngineAnswer(vehicle, generation, q, { ...env, asked: 0, stageSink: sink }, null)).raw; row.tier = d && d.tier || null; row.stagesMs = Object.fromEntries(sink); row.archiveReads = ((d && d.dedup && d.dedup.fetches) || []).map(f => ({ title: f.titleContains || null, years: [f.yearMin ?? null, f.yearMax ?? null], since: f.since || null, rows: f.raw, ms: f.ms, skipped: f.skipped || undefined })).slice(0, 12);   // Oct 31: the archive reads inside the engine stage, one per query   // the cold compute's stages in milliseconds (engine, trim_chips, question_rule, sell_fields, ...)
+        // THE NARROWED-READ OVERRIDE (Lane B, Nov 2 2026): ?narrow=1 turns the narrowed family read on for THIS request only, and only with the signed crew cookie as well as the ops key; without the cookie it is ignored and the reply says so. Nothing is written, the deployed
+        // POOL_COLUMNS_ENABLED is untouched. The reply carries the family read's rows and time and the thin verdict, so two runs (without and with) compare.
+        const wantNarrow = String(req.query?.narrow || "") === "1", crewOk = wantNarrow && isCrewRequest(req), thinSink = [];
+        row.narrowFlag = !wantNarrow ? "off" : crewOk ? "on for this request" : "ignored: no crew cookie";
+        const sink = []; const d = (await oneEngineAnswer(vehicle, generation, q, { ...env, asked: 0, stageSink: sink, thinReadSink: thinSink, ...(crewOk ? { narrowRead: true } : {}) }, null)).raw; row.tier = d && d.tier || null;
+        row.familyRead = thinSink[0] || null; row.verdict = d ? { tier: d.tier || null, thinReason: d.thinReason ?? null, poolN: d.poolN ?? null, cluster: d.cluster ?? null, fallbackRung: d.fallbackRung ?? null } : null; row.stagesMs = Object.fromEntries(sink); row.archiveReads = ((d && d.dedup && d.dedup.fetches) || []).map(f => ({ title: f.titleContains || null, years: [f.yearMin ?? null, f.yearMax ?? null], since: f.since || null, rows: f.raw, ms: f.ms, skipped: f.skipped || undefined })).slice(0, 12);   // Oct 31: the archive reads inside the engine stage, one per query   // the cold compute's stages in milliseconds (engine, trim_chips, question_rule, sell_fields, ...)
         if (!d || !d.tier) row.would = "engine returned no tier";
         else if (/_choice$/.test(String(d.tier))) row.would = "question: the question is stored as its own row (MCQ), never an answer row" + (/engine_version_mismatch/.test(String(row.stored)) ? "; the answer row under " + row.storedStamp + " is a leftover the warm now deletes" : "");
         else if (!/^(result|thin|refusal|not_tracked)$/.test(String(d.tier))) row.would = "not stored: tier " + d.tier;

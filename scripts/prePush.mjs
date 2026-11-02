@@ -1744,6 +1744,13 @@ try {
 } catch (e) {
   record("Thin read: the narrowed family read gives the same verdict as the full read on every seeded pool (scripts/narrowReadCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The narrowed-read override reaches only the read-only task, only with the crew cookie (Lane B, Nov 2 2026).
+try {
+  const out = execSync("node scripts/narrowFlagCheck.mjs", { encoding: "utf8", timeout: 290000 });
+  record("Thin read: the per-request narrowed-read override is ignored without the crew cookie and reaches no page path (scripts/narrowFlagCheck.mjs)", "PASS", (out.match(/narrowFlagCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Thin read: the per-request narrowed-read override is ignored without the crew cookie and reaches no page path (scripts/narrowFlagCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // A VIN never asks a question it already answers (Lane B, Nov 2 2026).
 try {
   const out = execSync("node scripts/vinSettleCheck.mjs", { encoding: "utf8", timeout: 240000 });
