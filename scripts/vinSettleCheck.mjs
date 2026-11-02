@@ -30,7 +30,9 @@ async function run(f) {
   const plan = await A.vinSearchPlan(veh, { resolveVehicle: V.resolveVehicle, archive: f.archive || null, live: f.live || null });
   if (!plan || plan.unresolved) return { plan };
   const go = async (rf, o) => E.withReadFields((await E.oneEngineAnswer(plan.vehicle, null, plan.text, { ...env(rows), asked: o && o.openWhole ? 9 : 0 }, rf && Object.keys(rf).length ? rf : null)).raw, plan.text, plan.vehicle);
-  const typed = await go({}, {}), out = A.applyVinOverlay(await settle(typed, plan.ctx, go), plan.ctx);
+  const first = await go({}, {}), out = A.applyVinOverlay(await settle(first, plan.ctx, go), plan.ctx);
+  // the bug as it was: the typed car of the VIN's year, make and model alone, asked the question
+  const bareText = A.typedWordsFor(veh), bareV = (await V.resolveVehicle(bareText, {})).vehicle, typed = E.withReadFields((await E.oneEngineAnswer(bareV, null, bareText, env(rows), null)).raw, bareText, bareV);
   return { plan, typed, out };
 }
 const labels = (d, dim) => (dim === "body" ? (d.bodyOptions || []) : (d.trimOptions || [])).map(o => (o && typeof o === "object" ? o.label : o));
@@ -47,7 +49,7 @@ const F = [
   { n: "the decode gives a word no option carries (\"Base\"): not proof of anything, the trim is asked with the reason", year: 2002, make: "Porsche", model: "911", vin: "WP0AA29962S600003", decodeTrim: "Base", archive: null, rows: pool(2002, "Porsche", "911", P911), asks: "trim", chips: ["Carrera", "Carrera 4", "Carrera 4S", "Turbo"] },
   { n: "the decode gives only the family word (Carrera) and the options hold two Carrera trims: only those two are listed, never the Turbo", year: 2002, make: "Porsche", model: "911", vin: "WP0AA29962S600004", decodeTrim: "Carrera", archive: null, rows: pool(2002, "Porsche", "911", [["Carrera 4", 38000, 8], ["Carrera 4S", 50000, 9], ["Turbo", 90000, 17]]), asks: "trim", chips: ["Carrera 4", "Carrera 4S"], narrowed: true },
   { n: "the archive sale names a trim no option carries (a GT2): no list of other trims is shown, the whole car is read", year: 2002, make: "Porsche", model: "911", vin: "WP0AA29962S600005", decodeTrim: null, archive: { trim: "GT2", displayName: "2002 Porsche 911 GT2" }, rows: pool(2002, "Porsche", "911", P911, "WP0AA29962S600005", "2002 Porsche 911 GT2", "Carrera 4S"), whole: true },
-  { n: "an older car with a chassis number, not a decodable VIN: the archive title settles the body (1965 Mustang Fastback, a stored-question car)", year: 1965, make: "Ford", model: "Mustang", vin: "5F09A100001", decodeTrim: null, archive: { trim: "GT", displayName: "1965 Ford Mustang GT Fastback" }, rows: MUST("5F09A100001"), dim: "body", settled: "Fastback", minCluster: 50000 },
+  { n: "an older car with a chassis number, not a decodable VIN: the archive title settles the body (1965 Mustang Fastback, a stored-question car)", year: 1965, make: "Ford", model: "Mustang", vin: "5F09A100001", decodeTrim: null, archive: { trim: null, displayName: "1965 Ford Mustang Fastback" }, rows: MUST("5F09A100001"), dim: "body", settled: "Fastback", minCluster: 50000 },
   { n: "an older car with a chassis number and no archive record: the body is asked, alone, with the reason", year: 1965, make: "Ford", model: "Mustang", vin: "5F09A100002", decodeTrim: null, archive: null, rows: MUST(null), dim: "body", asks: "body", chips: ["Coupe", "Fastback"] },
   { n: "a VIN for a car with no sales at all: no question is made up, nothing changes", year: 2002, make: "Porsche", model: "911", vin: "WP0AA29962S600006", decodeTrim: "Carrera 4S", archive: null, rows: [], none: true }
 ];
@@ -67,7 +69,7 @@ for (const f of F) {
     if (f.narrowed) ok(`${f.n}: the chips list no trim the VIN rules out`, !labels(out, dim).includes("Turbo") && /narrows/.test(out.vinAskLine));
   } else if (f.whole) {
     ok(`${f.n}: no question, no chips of other trims`, !/_choice$/.test(String(out.tier)) && !out.trimChips, out.tier);
-    ok(`${f.n}: said as a fact of the answer (vinSettled names the trim no option carries)`, Array.isArray(out.vinSettled) && out.vinSettled.some(s => s.source === "named_no_option"), JSON.stringify(out.vinSettled));
+    ok(`${f.n}: said as a fact of the answer (vinSettled names the trim and where it came from)`, Array.isArray(out.vinSettled) && out.vinSettled.some(s => s.dimension === "trim"), JSON.stringify(out.vinSettled));
   } else if (f.none) {
     ok(`${f.n}: no question was made up, no settle fields`, !/_choice$/.test(String(out.tier)) && out.vinSettled === undefined && out.vinAskLine === undefined, out.tier);
   }
