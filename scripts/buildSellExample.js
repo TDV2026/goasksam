@@ -8,6 +8,7 @@
 //   node scripts/buildSellExample.js
 import { sellExample } from "../lib/sell/sellExample.js";
 import { supabaseEnv } from "../lib/_supabase.js";
+import { countNoun } from "../lib/countNoun.js";
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   console.error("Need SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY.");
@@ -24,5 +25,5 @@ if (!d || !d.example) {
   process.exit(0);
 }
 const ex = d.example;
-console.log(`Sell landing example built in ${secs}s: ${ex.car} -> ${ex.platform?.name ?? "no platform"}, ${ex.tiles?.length ?? 0} reasons, ${ex.recent?.length ?? 0} recent sales, band photo ${ex.bandPhoto ? "yes" : "no"}. Tried: ${tried}. DONE.`);
+console.log(`Sell landing example built in ${secs}s: ${ex.car} -> ${ex.platform?.name ?? "no platform"}, ${countNoun(ex.tiles?.length ?? 0, "reason", { words: false })}, ${countNoun(ex.recent?.length ?? 0, "recent sale", { words: false })}, band photo ${ex.bandPhoto ? "yes" : "no"}. Tried: ${tried}. DONE.`);
 process.exit(0);

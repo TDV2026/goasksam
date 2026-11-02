@@ -36,6 +36,8 @@ for (const [name, a] of Object.entries(ANSWERS)) {
 { const r = runScript("scripts/buildMarketCheckExample.js", null), out = (r.stdout || "") + (r.stderr || ""); ok("Market Check example builder, a build that did not qualify (null): a warning and exit 0", r.status === 0 && /::warning::/.test(out)); }
 // the other two example builders, on the shapes their stubs can take
 { const d = { gens: [{ code: "997", soldCount: 31, cluster: null }, { code: "991", soldCount: 12 }], totalSoldCount: 43 }; const r = runScript("scripts/buildDeskExample.js", d); ok("Sam Desk example builder, a generation with no cluster: exits 0", r.status === 0 && /DONE\./.test(r.stdout || ""), (r.stderr || "").split("\n")[0]); }
+{ const { salesWords } = await import(pathToFileURL(path.join(root, "lib/live/exampleAnswer.js")).href); const mk = n => ({ cards: Array.from({ length: n }, () => ({})) });
+  ok("the log's sales count goes through the count-noun helper: 0, 1, 2 and 11 cards", salesWords(mk(0)) === "no sales cached" && salesWords(mk(1)) === "1 sale cached" && salesWords(mk(2)) === "2 sales cached" && salesWords(mk(11)) === "11 sales cached" && salesWords(null) === "no sales cached", [0, 1, 2, 11].map(n => salesWords(mk(n))).join(" | ")); }
 { const r = runScript("scripts/buildDeskExample.js", { totalSoldCount: 0 }); ok("Sam Desk example builder, no generations field: exits 0", r.status === 0, (r.stderr || "").split("\n")[0]); }
 { const r = runScript("scripts/buildSellExample.js", { example: { car: "2008 Porsche 911", platform: null } }); ok("Sell example builder, an example with no platform or tiles: exits 0", r.status === 0, (r.stderr || r.stdout || "").split("\n")[0]); }
 // no builder or warm script reads a single range off an answer without a guard

@@ -79,9 +79,9 @@ const SAFE = [
   ["lib/tasks/tasks.js", "for your Task, live now", "the several-car subject is the helper's count and its noun, then the Task line"],
   ["api/sellerDecision.js", "${landed.sales} sales ${windowLabel", "printed only from ten sales"],
 ];
-const pat = /((?:obNumWord|obNumWordLow|countWord|numWord|dnw|Cnt|low|COUNT_WORDS\[[^\]]*\]|timesWord)\([^()]*\)|\$\{[^}]*(?:\.length|\bn\b|\bcount\b|\btotal\b|\.n\b|\.sales\b|\.count\b)[^}]*\})\s*["'`]?\s*\+?\s*["'`]?\s*(sales|cars|listings|quarters|odd sales|set asides?)\b/g;
+const pat = /((?:obNumWord|obNumWordLow|countWord|numWord|dnw|Cnt|low|COUNT_WORDS\[[^\]]*\]|timesWord)\([^()]*\)|\$\{[^}]*(?:\.length|\bn\b|\bcount\b|\btotal\b|\.n\b|\.sales\b|\.count\b)[^}]*\})\s*["'`]?\s*\+?\s*["'`]?\s*(sales|cars|listings|quarters|odd sales|recent sales|reasons|set asides?)\b/g;
 const left = [];
-for (const root of ["lib", "api", "public/js"]) { const walk = d => { for (const e of fs.readdirSync(new URL("../" + d, import.meta.url), { withFileTypes: true })) { const p = d + "/" + e.name; if (e.isDirectory()) walk(p); else if (p.endsWith(".js")) {
+for (const root of ["lib", "api", "public/js", "scripts"]) { const walk = d => { for (const e of fs.readdirSync(new URL("../" + d, import.meta.url), { withFileTypes: true })) { const p = d + "/" + e.name; if (e.isDirectory()) walk(p); else if (p.endsWith(".js") && (root !== "scripts" || /^scripts\/build[^/]*\.js$/.test(p))) {
   read(p).split("\n").forEach((l, i) => { if (/^\s*\/\//.test(l)) return; for (const m of l.matchAll(pat)) { const seg = l.slice(Math.max(0, m.index - 100), m.index + m[0].length + 30); if (/(===|==|<=|<)\s*1\b|\?\s*["'`](sale|car|listing)/.test(seg)) continue; if (SAFE.some(([f, s]) => f === p && l.includes(s))) continue; left.push(p + ":" + (i + 1) + " " + l.trim().slice(0, 120)); } }); } } };
   walk(root); }
 ok(left.length === 0, "no count word or counted expression is glued to a plural noun without a one-case (" + left.length + " found)" + (left.length ? "\n  " + left.join("\n  ") : ""));
