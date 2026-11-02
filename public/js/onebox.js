@@ -2851,7 +2851,8 @@
   var vinAnchor = null;   // carried from the confirm step into the result render
   var vinQueryNoSale = false;   // the query WAS a VIN that resolved a car but has NO recorded sale in our archive
   var pendingVin = null;  // resolved vehicle awaiting confirmation
-  var mcFromCard = false;  // the address came from a card's Market Check link (from=card): no confirm question
+  var mcFromCard = false;   // the address came from a card's Market Check link (from=card): no confirm question
+  var mcCarHint = null;   // the car text a card's Market Check link carries beside the VIN
   // Base label a clarification chip appends its answer to (year+make for a model ask, the full
   // car for a body ask). A VIN query's raw text is the VIN, so a chip must NOT append to it (it
   // re-decodes and loops) - the chip builds a clean query from this context instead. Null for a
@@ -3003,6 +3004,7 @@
     if (!vin && !car) { renderEmpty(); syncRailResults(); return; }
     var refine = mcRefineFromParams(sp);
     obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obIdOrigVariantLines = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
+    mcCarHint = vin && car ? deslugifyQuery(car) : null;   // the card's own car text beside the VIN: used when the VIN decode alone would leave the trim or the model unnamed
     if (vin) { vinResolve(vin); return; }   // VIN re-decode is the full, tested path - refine on a VIN result is a rare combo and not threaded through it.
     runPool(lastQuery, null, refine);
   }
@@ -3176,6 +3178,7 @@
           // COLLAPSE (no match): the VIN decoded make+year but no model, so the clarification
           // carries the year-scoped model chips - render ONE model ask ("...a 1990 BMW. Which
           // model?"), not a confirm followed by a model screen. The chip builds "year make model".
+          if (mcFromCard && mcCarHint && cl.modelOptions && cl.modelOptions.length) { var hint = mcCarHint; mcFromCard = false; mcCarHint = null; vinQueryNoSale = true; runPool(hint, null); return; }   // a card's own link: the car it showed, not a model question
           if (cl.modelOptions && cl.modelOptions.length) {
             vinQueryNoSale = true;   // a VIN reached confirmation with no archive match -> no recorded sale
             renderChoice({ prompt: cl.question, modelOptions: cl.modelOptions, baseLabel: [d.vehicle && d.vehicle.year, d.vehicle && d.vehicle.make].filter(Boolean).join(" ") || null });
@@ -3183,7 +3186,7 @@
           }
           pendingVin = d.vehicle || null; vinAnchor = null; vinQueryNoSale = true;   // decoded a VIN, no recorded sale
           // Arriving from a card's own Market Check link (from=card): the car is the one the card shows, so there is nothing to confirm.
-          if (mcFromCard) { mcFromCard = false; runPool(lastQuery, pendingVin); return; }
+          if (mcFromCard) { mcFromCard = false; var hint2 = mcCarHint; mcCarHint = null; runPool(hint2 || lastQuery, pendingVin); return; }
           renderVinConfirm(cl.question, d.vehicle);
           return;
         }

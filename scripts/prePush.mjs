@@ -795,6 +795,13 @@ try {
 } catch (e) {
   record("findExcludedCheck (scripts/findExcludedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// popupSalesCheck (Lane E, Nov 2 2026): a Find card's popup prints the sales behind the count it states (warm, cold instance with a failed second read, nothing stored: the engine's still-reading line), for every card type; the Market Check link carries the car beside the VIN. Real engine over a fake archive, no network.
+try {
+  const out = execSync("node scripts/popupSalesCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("popupSalesCheck (scripts/popupSalesCheck.mjs)", "PASS", (out.match(/popupSalesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("popupSalesCheck (scripts/popupSalesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findShowMoreCheck (Lane E, Nov 2 2026): any Find search with more matches than one batch shows ONE "Show N more" at the foot that asks the engine for the next batch of the same search; the shown and remaining counts are the engine's own (pageMeta), the filters go back, the last batch removes the button. 1440 and 390. No network.
 try {
   const out = execSync("node scripts/findShowMoreCheck.mjs", { encoding: "utf8", timeout: 280000 });
