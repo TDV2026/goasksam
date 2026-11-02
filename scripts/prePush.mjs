@@ -2608,6 +2608,7 @@ for (const [file, label] of [["bulkSaleCheck", "Bulk-sale guard"], ["sellFieldsL
   ["houseReadCheck", "House read: a failed read is could-not-read, never no house sales; an ops task never prints 0 for a failed read"],
   ["readRetryRequestCheck", "Request retry: no retry on a timeout or an abort, one retry on a network blip, a failed read is never replayed from a memo"],
   ["readRacerCheck", "Read racers: every Promise.race is classified; one whose result is dropped stops its archive reads"],
+  ["widenedLineCheck", "Widened pools: a range for an asked year comes from a pool that holds it or says in words which years it covers; a far pool prints no range"],
   ["generationChipCheck", "Generation chips resolve for the whole generation with no invented year"]]) {
   try {
     const out = execSync(`node scripts/${file}.mjs`, { encoding: "utf8" });
