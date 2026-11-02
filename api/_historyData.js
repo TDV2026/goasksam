@@ -262,9 +262,11 @@ export async function oneBoxFor(env, id, exactSale, opts) {
     if (wkey && await readComputing(env, wkey)) { if (opts && opts.cold) opts.cold.timedOut = true; return null; }   // already being read: the page asks again, no second compute
     if (wkey) markComputing(env, wkey).catch(() => {});
     const run = (asked) => {
-      const eng = oneEngineAnswer(vehicle, generation, text, { ...env, exactSale: exactSale || null, asked }, null).then(r => r.raw);
+      // A VIN page (no stored-row key) stores nothing behind the response, so its deadline stops the read it gave up on (lane-b-archiveread step h); a hub (wkey) keeps computing on purpose and stores its row.
+      const ac = wkey ? null : new AbortController();
+      const eng = oneEngineAnswer(vehicle, generation, text, { ...env, exactSale: exactSale || null, asked, ...(ac ? { signal: ac.signal } : {}) }, null).then(r => r.raw);
       keepAlive(eng.then(async raw => { if (wkey && asked === 0 && raw && answerCacheable(raw) && !/_choice$/.test(String(raw.tier || ""))) await writeWarmAnswer(env, wkey, slimStored(raw)).catch(() => {}); if (wkey) await clearComputing(env, wkey); }));
-      return Promise.race([eng, new Promise((_, rej) => setTimeout(() => rej(new Error("deadline")), exactSale ? 40000 : 15000))]);   // a VIN page has no stored row to come back to (its own sale is part of the read): it waits for the answer; a hub hands off at 15 s to its reading placeholder
+      return Promise.race([eng, new Promise((_, rej) => setTimeout(() => { if (ac) ac.abort(); rej(new Error("deadline")); }, exactSale ? 40000 : 15000))]);   // a VIN page has no stored row to come back to (its own sale is part of the read): it waits for the answer; a hub hands off at 15 s to its reading placeholder
     };
     let d = await run(0);
     // BARE MULTI-GENERATION NAMEPLATE (Oct 2026, history hub timing): a year-less query that lands
