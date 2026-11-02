@@ -1659,6 +1659,12 @@ try {
   record("Find and every live search: a model or trim the reader named is never dropped to the whole make, no filter appears that was not typed, and a badge-engineered car (Ford and Mercury Capri) is read under both badges (scripts/namedModelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/bareModelCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("a bare model name, a make and model, a badge twin (Capri under Ford and Mercury) and a style word in a title (RS-Style) never read as nothing or as a trim, on Find, Market Check, the chat and Tasks (scripts/bareModelCheck.mjs)", "PASS", (out.match(/bareModelCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("a bare model name, a make and model, a badge twin (Capri under Ford and Mercury) and a style word in a title (RS-Style) never read as nothing or as a trim, on Find, Market Check, the chat and Tasks (scripts/bareModelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/whichChipsCheck.mjs", { encoding: "utf8", timeout: 180000 });
   record("Which model: no chip cut at a space, no duplicate, no variant beside its model (scripts/whichChipsCheck.mjs)", "PASS", (out.match(/whichChipsCheck: .*/) || [""])[0]);
 } catch (e) {

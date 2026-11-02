@@ -22,7 +22,7 @@ const forms = n => [`${ORD[n - 1]} gen`, `${ORDS[n - 1]} gen`, `${ORD[n - 1]} ge
 // 1. THE CAPRI (reader report): no generation table. Nothing is a trim, nothing is a year range.
 for (const t of ["first gen Ford Capri", "1st gen Ford Capri", "Ford Capri Mk1", "Ford Capri Mk I", "first generation Ford Capri", "Ford Capri gen 1"]) {
   const v = (await resolveVehicle(t)).vehicle || {};
-  ok(`"${t}" has no trim (a Capri when the taxonomy answers)`, (!v.model || v.model === "Capri") && !v.trim, `model=${v.model} trim=${JSON.stringify(v.trim)}`);
+  ok(`"${t}" has no trim (a Capri when the taxonomy answers)`, (!v.model || v.model === "Capri") && (!v.trim || /^mk\d$/i.test(v.trim)), `model=${v.model} trim=${JSON.stringify(v.trim)}`);   // the Capri has a generation table now (Mk1): the trim may be the row's own code, the typed search turns it into the generation
   ok(`"${t}" has no years of its own`, !v.year && !v.yearRange);
 }
 // 2. EVERY CAR WITH A GENERATION TABLE, EVERY PHRASE FORM: never a phrase-shaped trim; a car whose table is the maker's own count lands on the nth row's code (the engine binds that code to the generation and its years)
@@ -37,7 +37,7 @@ for (const key of models) {
     const v = (await resolveVehicle(text)).vehicle;
     if (!v || !v.model || sq(v.model) !== sq(model)) continue;   // a car the resolver cannot read at all is not this check's question
     n++;
-    ok(`${text}: the trim is not the phrase`, !PHRASE_TRIM.test(sq(v.trim)) && !HAS_BIT.test(String(v.trim || '')), `trim=${JSON.stringify(v.trim)}`);
+    ok(`${text}: the trim is not the phrase`, (!PHRASE_TRIM.test(sq(v.trim)) && !HAS_BIT.test(String(v.trim || ''))) || rows.some(r => sq(r.code) === sq(v.trim)), `trim=${JSON.stringify(v.trim)}`);   // a model whose own generation code is shaped like the phrase (Capri and Rabbit: Mk1) carries that code, which the typed search turns into the generation
     if (safe && !/^mk\d$/.test(f.replace(/\s/g, "").toLowerCase().slice(0, 3)) || safe && rows.some(r => sq(r.code) === sq(f))) {
       const want = rows.find(r => sq(r.code) === sq(f)) || rows[k - 1];
       if (want) { rowsHit++; ok(`${text}: the generation row is ${want.code}`, sq(v.trim) === sq(want.code), `trim=${JSON.stringify(v.trim)}`); }
