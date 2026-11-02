@@ -203,9 +203,9 @@ export function partnerAllowed(req) {
 // deadline of its own (Sam, Oct 18 2026: no demo-only timeout): the engine's own whole-path bound answers "still reading"
 // with its retry, and the page draws that.
 
-export async function marketCheckAnswer(req, text, refine, asked, demo = false) {
+export async function marketCheckAnswer(req, text, refine, asked, demo = false, vinFacts = null) {
   const { default: mc } = await import("./sellerDecision.js");
-  const body = { oneBox: true, car: { raw: text }, asked: Math.max(0, Math.min(9, Number(asked) || 0)) };
+  const body = { oneBox: true, car: { raw: text, ...(vinFacts ? { vinFacts } : {}) }, asked: Math.max(0, Math.min(9, Number(asked) || 0)) };   // vinFacts: what the VIN says (decode and archive), so the engine never asks the VIN car a question the VIN answers (lib/vinAsTyped.js; honoured only on the demo's server-credential read)
   if (demo) body.demoRead = true;   // Lane B (demo2): Market Check skips the public share snapshot for the demo's own read (honoured only with the server credential)
   if (refine) body.refine = refine;
   // The read goes in as the server's own internal call (Oct 17 2026): Market Check is sealed before launch, and a partner
@@ -808,7 +808,9 @@ export default async function handler(req, res) {
     }
   }
   let r;
-  try { r = await marketCheckAnswer(req, text, refine, asked, true); } catch (e) {
+  const vinFacts = vinIn ? { vin: vinIn, year: (id && id.year) || (vinDecode && vinDecode.year) || null, decodeTrim: (vinDecode && vinDecode.trim) || (id && id.fromDecode ? id.trim : null) || null, decodeBody: (vinDecode && vinDecode.bodyStyle) || null,
+    archiveTrim: id && !id.fromDecode ? id.trim || null : null, archiveTitle: id && !id.fromDecode ? [id.year, id.make, id.model, id.trim, id.bodyStyle].filter(Boolean).join(" ") : null } : null;
+  try { r = await marketCheckAnswer(req, text, refine, asked, true, vinFacts); } catch (e) {
     console.error("partnerAnswer:", (e && e.message) || e);
     const lk0 = !refine ? demoKey(text) : null, last = lk0 && env ? await readLast(env, lk0) : null;
     if (lastGoodUsable(last)) return res.status(200).json(plainOf(vinIn ? { ...last.out, history, vin: vinIn, lastGood: true } : { ...last.out, lastGood: true }));

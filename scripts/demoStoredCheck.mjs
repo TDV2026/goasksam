@@ -22,7 +22,7 @@ ok(storedDemoServable(row({ out: { ok: false, stillReading: true } }), EP, now) 
 { const r = row(); r.out.cardWithRows = '<img class="sfc-row-img" src="/api/partnerAnswer?photo=abc&amp;w=320">'; ok(storedDemoServable(r, EP, now) === true, "a stored card whose row photos ask a width: served"); }
 // The handler asks this before Market Check's handler, and only for a plain (unrefined, unasked) read.
 const src = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
-const at = src.indexOf("storedDemoServable(qlast"), mc = src.indexOf("r = await marketCheckAnswer(req, text, refine, asked, true)");
+const at = src.indexOf("storedDemoServable(qlast"), mc = src.indexOf("r = await marketCheckAnswer(req, text, refine, asked, true");
 ok(at > 0 && mc > at && /if \(!refine && !\(Number\(asked\) > 0\)\) \{/.test(src.slice(at - 1500, at)), "the stored answer is checked first, for an unrefined read only, before Market Check's handler");
 ok(/if \(!venueLeak\(out\)\.length\) return res\.status\(200\)\.json\(out\);/.test(src.slice(at, at + 800)), "a served stored answer still passes the venue guard");
 console.log(`demoStoredCheck: ${pass} passed, ${fail} failed`);

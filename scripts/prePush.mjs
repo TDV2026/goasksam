@@ -1730,6 +1730,13 @@ try {
 } catch (e) {
   record("Nightly: every example builder survives an apart, thin and no-range answer; warm, attempts, premium and cube need ingest only (scripts/nightlyExampleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// A VIN never asks a question it already answers (Lane B, Nov 2 2026).
+try {
+  const out = execSync("node scripts/vinSettleCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("VIN: a question the decode or the archive record of the VIN answers is not asked; an unsettled one is asked alone with its reason (scripts/vinSettleCheck.mjs)", "PASS", (out.match(/vinSettleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("VIN: a question the decode or the archive record of the VIN answers is not asked; an unsettled one is asked alone with its reason (scripts/vinSettleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The Sell flow never ends on the watch line alone, and a search never hangs without end (Lane B, Oct 29 2026).
 try {
   const out = execSync("node scripts/sellEndingCheck.mjs", { encoding: "utf8", timeout: 240000 });

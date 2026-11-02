@@ -23,7 +23,7 @@ import { VARIANT_MARKETS } from "../lib/modelRules.js";
 import { BODY_LABEL, isSingerPorsche, withReadFields, isStorableQuestion } from "../lib/onebox.js";
 import { casedChips } from "../lib/chipLabel.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
-import { vinSearchPlan, applyVinOverlay } from "../lib/vinAsTyped.js";
+import { settleVinAnswer, vinSearchPlan, applyVinOverlay } from "../lib/vinAsTyped.js";
 // Every variant value a chip may carry (e51): the M-car pair plus each variant market's key and its other side.
 // Restoration is never an option or a question (e52, Sam's decision): the generic entries' keys (restoration,
 // unrestored) are not accepted from a client, so a stale refine for them is ignored and the base page answers.
@@ -3393,9 +3393,16 @@ async function handler(req, res) {
     // A VIN SEARCH IS A TYPED SEARCH OF THE CAR IT NAMES (lib/vinAsTyped.js): the VIN names the car, the car goes through the same stored-answer path a typed search takes, and the VIN car's own sales and option are put on the finished answer
     let vinCtx = null;
     if (req.body?.oneBox && vehicle && (vehicle.vin || vehicle.chassis)) {
-      const plan = await vinSearchPlan(vehicle, { resolveVehicle });
+      let vinArchive = null; try { vinArchive = await findVinArchiveMatch({ supabaseUrl, supabaseKey }, { vin: vehicle.vin || vehicle.chassis }); } catch { vinArchive = null; }   // what the archive holds for this exact VIN: a question it already answers is not asked (lib/vinAsTyped.js settleVinAnswer)
+      const plan = await vinSearchPlan(vehicle, { resolveVehicle, archive: vinArchive });
       if (plan && plan.unresolved) return res.status(200).json({ status: "one_box", tier: "not_tracked", resolvedCar: null, samLine: plan.line, refusal_line: plan.line });
       if (plan) { vinCtx = { ...plan.ctx, text: plan.text }; vehicle = plan.vehicle; }
+    }
+    // THE PARTNER DEMO'S VIN CAR (Lane B, Nov 2 2026): the demo reads the car's words with the VIN's own facts beside them (api/partnerAnswer.js); only its server-credential read is believed. Same settle as a VIN search.
+    if (!vinCtx && req.body?.oneBox && req.body?.demoRead === true && hasServerCredential(req) && car && car.vinFacts && typeof car.vinFacts === "object" && vehicle && vehicle.make && vehicle.model) {
+      const f = car.vinFacts, str = (x, n) => (typeof x === "string" && x.trim() ? x.trim().slice(0, n) : null);
+      vinCtx = { vehicle: { ...vehicle, vin: str(f.vin, 24) }, vf: { year: Number(f.year) || Number(vehicle.year) || null, decodeTrim: str(f.decodeTrim, 60), decodeBody: str(f.decodeBody, 30), decodeTx: null, archiveTrim: str(f.archiveTrim, 80), archiveTitle: str(f.archiveTitle, 120), archiveTx: null },
+        title: "", year: Number(vehicle.year) || null, body: null, gearbox: null, miles: null, fields: [], text: typeof car.raw === "string" ? car.raw : "" };
     }
     const generation = await findGeneration(vehicle, { supabaseUrl, supabaseKey });
     if (obTimes.resolveStart) obTimes.resolveMs = Date.now() - obTimes.resolveStart;
@@ -3823,6 +3830,19 @@ async function handler(req, res) {
       }
       const timings = { ...obTimes, warmHit, stale: !!staleInfo, totalMs: Date.now() - reqStart, dbBytes: supabaseBytesSoFar() - obTimes.dbBytes0, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
       // the words Sam did not use in this search (lib/live/unusedWords.js): the engine names them, the page prints the line
+      // A VIN NEVER ASKS WHAT IT ALREADY ANSWERS (Lane B, Nov 2 2026): a question tier on a VIN car is read against the decode and the archive record of that exact VIN; a settled attribute is answered with the option a chip tap would send
+      // (the handler runs again with that refine, the same path), an unsettled one is asked about that attribute only with the engine's line saying why.
+      if (vinCtx && !req.body.vinSettledRun && /_choice$/.test(String(oneBox && oneBox.tier || ""))) {
+        let again = null;
+        const settledOut = await settleVinAnswer(oneBox, vinCtx, async (rf, o) => {
+          const body2 = { ...req.body, vinSettledRun: true, refine: { ...(req.body.refine || {}), ...rf }, ...(o && o.openWhole ? { asked: 9 } : {}) };
+          let out2 = null; const res2 = { statusCode: 200, headersSent: false, setHeader() {}, getHeader() { return undefined; }, removeHeader() {}, status(c) { this.statusCode = c; return this; }, json(x) { if (out2 == null) out2 = x; this.headersSent = true; return this; }, send(x) { if (out2 == null) out2 = x; this.headersSent = true; return this; }, end() { this.headersSent = true; return this; } };
+          await handler({ ...req, body: body2 }, res2);
+          again = out2; return out2;
+        });
+        if (again) return res.status(200).json({ ...again, ...(settledOut && settledOut.vinSettled ? { vinSettled: settledOut.vinSettled } : {}) });
+        oneBox = settledOut;
+      }
       if (vinCtx) oneBox = applyVinOverlay(oneBox, vinCtx);   // the VIN car's own sales and option on the typed car's finished answer
       const unusedFields = unusedFieldsFor(typeof rawSearch0 === "string" ? rawSearch0 : oneBoxText, vehicle, oneBox);
       return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
