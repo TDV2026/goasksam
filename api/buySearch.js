@@ -387,6 +387,8 @@ async function handler(req, res) {
       if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ ok: false });
       const rows = await liveRows(env, `id=eq.${id}`);
       const r = rows && rows[0]; if (!r) return res.status(200).json({ market: null, representative: null });
+      // A pick of one of an apart answer's options (the popup's chips): only that option's own engine answer comes back (lib/live/search.js panelOf).
+      if (b.option && typeof b.option === "object") return res.status(200).json((await panelOf(env, r, listingFacts(r), { dimension: String(b.option.dimension || ""), value: String(b.option.value == null ? "" : b.option.value) })) || { market: null, representative: null, engineAnswer: null });
       const p = (await panelOf(env, r, listingFacts(r))) || { market: null, representative: null };
       // The rung (lib/live/rung.js): a not_enough_data answer is count-only, so its three priced sales are not shown.
       const pm = await rungMarket(env, r, listingFacts(r), p.market);

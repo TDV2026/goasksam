@@ -86,10 +86,13 @@ for (let i = 0; i < 3; i++) SALES.push(sale("Aston Martin", 2019, "2019 Aston Ma
 const L4 = await imp("lib/live/search.js", "thin"), thin = await (async () => { const f = L4.listingFacts(thinRow); for (let i = 0; i < 6; i++) { const o = await L4.panelOf(env, thinRow, f); if (o && o.market && o.market.kind !== "pending") return o; await wait(1500); } return null; })();
 out.thin = thin;
 // SWEEP of the other card types, through the same panelOf: what each hands the popup
-const kinds = {};
-const probe = async (name, r, mkSales) => { mkSales(); const L = await imp("lib/live/search.js", "k" + name.replace(/\W/g, "")); const f = L.listingFacts(r); let o = null; for (let i = 0; i < 6; i++) { o = await L.panelOf(env, r, f).catch(e => ({ error: String(e) })); if (o && (o.error || (o.market && o.market.kind !== "pending"))) break; await wait(1500); } kinds[name] = o; return o; };
+const kinds = {}, kindLib = {};
+const probe = async (name, r, mkSales) => { mkSales(); const L = await imp("lib/live/search.js", "k" + name.replace(/\W/g, "")); const f = L.listingFacts(r); let o = null; for (let i = 0; i < 6; i++) { o = await L.panelOf(env, r, f).catch(e => ({ error: String(e) })); if (o && (o.error || (o.market && o.market.kind !== "pending"))) break; await wait(1500); } kinds[name] = o; kindLib[name] = { L, r, f, picks: [] }; const ox = o && o.engineAnswer && Array.isArray(o.engineAnswer.options) ? o.engineAnswer.options : []; for (const x of ox) kindLib[name].picks.push(x.rangeFloor === true ? null : await L.panelOf(env, r, f, { dimension: x.dimension, value: x.value }).catch(e => ({ error: String(e) }))); return o; };
 await probe("dealer", row(3, { seller_type: "dealer", source: "carsandbids" }), () => {});
 await probe("apart", row(4, { listing_title: "2008 Porsche 911 Carrera S", year: 2008, model: "911", source: "bringatrailer", transmission: "Manual" }), () => { for (let i = 0; i < 10; i++) SALES.push(sale("Porsche", 2008, "2008 Porsche 911 Carrera S 6-Speed Manual", 70000 + i * 1500, "911")); for (let i = 0; i < 10; i++) SALES.push(sale("Porsche", 2008, "2008 Porsche 911 Carrera S Tiptronic", 52000 + i * 1500, "911")); });
+const msale = (year, title, price, mi, model) => { const s = sale("BMW", year, title, price, model); s.raw_record.mileage = String(mi); return s; };
+await probe("apartMiles", row(5, { listing_title: "1995 BMW M3 Coupe", make: "BMW", model: "M3", year: 1995, source: "bringatrailer", mileage: 28000 }), () => { for (let i = 0; i < 8; i++) SALES.push(msale(1995, "1995 BMW M3 Coupe", 98000 + i * 2500, 18000 + i * 3000, "M3")); for (let i = 0; i < 8; i++) SALES.push(msale(1995, "1995 BMW M3 Coupe", 62000 + i * 2000, 55000 + i * 5000, "M3")); for (let i = 0; i < 11; i++) SALES.push(msale(1995, "1995 BMW M3 Coupe", 16000 + i * 700, 104000 + i * 6000, "M3")); });
+if (process.env.DUMPAPART) { const o = kinds[process.env.DUMPAPART]; console.log("APART", JSON.stringify({ market: { kind: o.market.kind, basisLine: o.market.basisLine, thinLine: o.market.thinLine, answerLine: o.market.answerLine, countLine: o.market.countLine, optionLines: o.market.optionLines }, ea: { ...o.engineAnswer, cards: o.engineAnswer.cards && o.engineAnswer.cards.length } }, null, 1)); }
 await probe("question", row(5, { listing_title: "1965 Ford Mustang", make: "Ford", model: "Mustang", year: 1965, source: "bringatrailer" }), () => { for (const b of ["Coupe", "Convertible", "Fastback"]) for (let i = 0; i < 6; i++) SALES.push(sale("Ford", 1965, `1965 Ford Mustang ${b}`, 30000 + i * 1000, "Mustang")); });
 await probe("nosales", row(6, { listing_title: "2021 Lotus Evija", make: "Lotus", model: "Evija", year: 2021, source: "bringatrailer" }), () => {});
 if (process.env.DBG) for (const [k, o] of Object.entries(kinds)) console.log("SWEEP", k, JSON.stringify({ market: o && o.market && { kind: o.market.kind, count: o.market.count }, tier: o && o.engineAnswer && o.engineAnswer.tier, cards: o && o.engineAnswer && o.engineAnswer.cards && o.engineAnswer.cards.length, basis: o && o.engineAnswer && o.engineAnswer.basisLine, thin: o && o.engineAnswer && o.engineAnswer.thinLine, still: !!(o && o.salesStill), err: o && o.error }));
@@ -113,9 +116,39 @@ for (const width of [1440, 390]) {
   ok(bare.n === 1 && bare.line === none.salesStill.line, `salesStill with no wait values: the drawer prints the engine's line and does not ask again (${bare.n} request)`);
   ok(partial.n === 1 && partial2.n === 1, `salesStill with only one of the two values: no retry (${partial.n}, ${partial2.n} requests)`);
   ok(full.n >= 3, `salesStill with the engine's retryAfterMs and waitMaxMs: the drawer asks again at the engine's cadence (${full.n} requests in 1.5 s)`); }
-// the other card types through the same popup: a dealer listing, an apart answer (the sales split into options priced apart) and a question-first car print every sale their answer carries
-for (const k of ["dealer", "apart", "question"]) { const o = kinds[k], n = o && o.engineAnswer && o.engineAnswer.cards ? o.engineAnswer.cards.length : 0, d = await draw(1440, o), bn = basisN(d.head);
+// the other card types through the same popup: a dealer listing and a question-first car print every sale their answer carries
+for (const k of ["dealer", "question"]) { const o = kinds[k], n = o && o.engineAnswer && o.engineAnswer.cards ? o.engineAnswer.cards.length : 0, d = await draw(1440, o), bn = basisN(d.head);
   ok(n > 0 && d.rows === n && (bn === null || bn === d.rows), `popup, ${k} card: it prints the ${n} sales its answer carries (${d.rows} printed; states ${bn === null ? "no count" : bn})`); }
+// AN ANSWER THAT PRICES APART PRINTS ITS OPTIONS AS CHIPS (Lane E, Nov 3 2026; the live 1995 BMW M3 Coupe popup: "pick one to see its range" over no options, and one option's heading ("Over 100,000 miles $16,000 to $23,000, 11 sales
+// since November 2025") over a list of every mileage band). CAUSE: drawerHtml printed the answer's basisLine/thinLine, the engine's otherLines (the options the headline does not already state) and ALL of the pool's cards, and never read
+// the answer's options or headlineLines, so an answer with no single range showed its apart line over nothing, or one option's line over the whole pool. CLASS: every card whose answer is apart or split, on every dimension
+// (mileage bands, gearbox, body, year), in the Find popup and the Tasks card (one kit). Before a pick: the engine's apart line and one chip per option (the engine's own headline line, in its order), no sales and no option's heading;
+// a pick asks the engine for that option (panelOf with the pick) and prints its heading and its own sales, never the mixed pool.
+for (const k of ["apart", "apartMiles"]) {
+  const o = kinds[k], ea = o && o.engineAnswer, opts = ea && ea.options || [], hl = ea && ea.headlineLines || [], lib = kindLib[k];
+  ok(opts.length >= 2 && hl.length === opts.length && /^(apart|split)$/.test(String(ea.optionsState)), `${k}: the engine's answer is apart with ${opts.length} options and a headline line for each`);
+  const picks = lib.picks;
+  picks.forEach((pk, i) => ok(opts[i].rangeFloor === true || (pk && pk.option && pk.engineAnswer && pk.engineAnswer.cards.length > 0 && pk.engineAnswer.cards.length < ea.cards.length), `${k}: the engine answers a pick of "${opts[i].label}" with that option's own ${pk && pk.engineAnswer ? pk.engineAnswer.cards.length : 0} sales, not the pool's ${ea.cards.length}`));
+  if (k === "apartMiles") picks.forEach((pk, i) => { const b = { lt50: [0, 50000], "50to100": [50000, 100000], gt100: [100000, Infinity] }[opts[i].value]; ok(!b || (pk && pk.engineAnswer.cards.every(c => c.mi >= b[0] && c.mi < b[1])), `${k}: every sale under "${opts[i].label}" has its miles inside that band`); });
+  for (const width of [1440, 390]) {
+    const p = await openPanel(br, width, { panelBody: o, optionBody: v => picks[opts.findIndex(x => String(x.value) === String(v.value) && x.dimension === v.dimension)] });
+    const snap = () => p.evaluate(() => ({ chips: Array.from(document.querySelectorAll(".mcdrawer .md-chip")).map(c => c.textContent), rows: document.querySelectorAll(".mcdrawer .md-row").length, heads: Array.from(document.querySelectorAll(".mcdrawer .md-s")).map(e => e.textContent), text: document.querySelector(".mcdrawer").innerText, pressed: Array.from(document.querySelectorAll(".mcdrawer .md-chip[aria-pressed=true]")).length, opts: document.querySelectorAll(".mcdrawer .md-opt").length }));
+    const a = await snap();
+    ok(JSON.stringify(a.chips) === JSON.stringify(hl), `${k} at ${width}: the popup prints one chip per option, the engine's own lines in its order (${a.chips.length} of ${opts.length})`);
+    ok(a.rows === 0 && a.heads.length === 1 && a.heads[0] === ea.thinLine && a.opts === 0, `${k} at ${width}: before a pick it prints the engine's apart line ("${a.heads[0]}") and no sales`);
+    const bandHead = hl.filter(t => a.text.split(t).length - 1 > 1);
+    ok(bandHead.length === 0, `${k} at ${width}: no option's heading is printed beside its chip before a pick`);
+    const i0 = opts.findIndex(x => x.rangeFloor !== true), want = picks[i0] && picks[i0].engineAnswer;
+    await p.evaluate(i => document.querySelector(`.mcdrawer .md-chip[data-mdopt="${i}"]`).click(), i0); await wait(700);
+    const b = await snap();
+    ok(want && b.rows === want.cards.length && b.rows < ea.cards.length && b.pressed === 1, `${k} at ${width}: a pick shows only that option's ${want && want.cards.length} sales (${b.rows} printed, the pool has ${ea.cards.length})`);
+    ok(want && b.heads[0] === (want.basisLine || want.thinLine) && b.chips.length === opts.length, `${k} at ${width}: a pick prints that option's own heading ("${b.heads[0]}") and keeps the chips`);
+    await p.close();
+  }
+}
+{ const kit = await imp("lib/findCardKit.js"), code = kit.buildKitSource().code, tp = fs.readFileSync(path.join(root, "api/tasksPage.js"), "utf8");
+  ok(/data-mdopt/.test(code) && /option: \{ dimension: o\.dimension/.test(code) && /md-chips/.test(kit.findCardKitJs()), "Tasks card: it lifts Find's drawer whole, so an apart answer prints the same option chips and the same pick (one kit, no copy)");
+  ok(!/data-mdopt|perOption/.test(tp), "Tasks page: no option logic of its own"); }
 // (6b) THE FULL MARKET CHECK PAGE, opened from that link: the VIN decodes to make and year with no model (the case that used to land on a model question or a bare model), the card's car text rides beside it,
 // and Market Check reads the car the card showed. Rendered page, the VIN lookup answered with a partial decode, the first thing the page asks the engine to read is captured.
 {
