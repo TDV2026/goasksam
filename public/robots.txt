@@ -1,6 +1,6 @@
 # Launched Aug 2026: the site is public and indexable. The pre-launch rule that
 # blocked everything but /privacy while the curtain was up has been removed.
-# /onebox and /desk stay crew-gated and carry their own noindex, so they are not listed here.
+# Crew-only pages are not listed here: they answer a stranger exactly as an address that was never there.
 #
 # Crawler policy (docs/search-rules.md rule 8). Search + AI-answer crawlers are explicitly allowed:
 # Googlebot, Bingbot (search); OAI-SearchBot, Claude-SearchBot, Claude-User, PerplexityBot (AI answers).

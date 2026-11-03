@@ -49,6 +49,7 @@
     },
     {
       "source": "/partner-demo",
+      "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }],
       "destination": "/preview",
       "permanent": false
     }
@@ -72,7 +73,8 @@
     { "source": "/cars/porsche/911/:path*", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/specPage?slug=/cars/porsche/911/:path*&_crew=1" },
     { "source": "/cars/porsche/911/:path*", "destination": "/api/specPage?slug=/cars/porsche/911/:path*" },
     { "source": "/o/:id", "destination": "/api/publicConfig?obShare=:id" },
-    { "source": "/onebox-preview", "destination": "/api/crewPage?page=onebox-preview" },
+    { "source": "/onebox-preview", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=onebox-preview" },
+    { "source": "/onebox-preview", "has": [{ "type": "cookie", "key": "gas_tester", "value": "t1\\..*" }], "destination": "/api/crewPage?page=onebox-preview" },
     { "source": "/privacy", "destination": "/api/legal?page=privacy" },
     { "source": "/terms", "destination": "/api/legal?page=terms" },
     { "source": "/about", "destination": "/api/about" },
@@ -144,7 +146,7 @@
     { "source": "/obx.20261026d/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261026e/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261028a/(.*)", "destination": "/js/$1" },
-    { "source": "/admin", "destination": "/api/admin?page=1" },
+    { "source": "/admin", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/admin?page=1" },
     { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=desk" },
     { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_tester", "value": "t1\\..*" }], "destination": "/api/crewPage?page=desk" },
     { "source": "/history/:slug/:vin", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/history?slug=:slug&vin=:vin&_crew=1" },

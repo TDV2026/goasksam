@@ -109,8 +109,9 @@ ok(!/supabaseInsert|method:\s*"(POST|PATCH|PUT|DELETE)"|\.insert\(|\.upsert\(/.t
 // ---- 5. the page
 const admin = await imp("api/admin.js");
 const g = { h: {}, c: null, b: null, setHeader(k, v) { this.h[k] = v; }, status(c) { this.c = c; return this; }, send(b) { this.b = b; return this; }, json(b) { this.b = b; return this; }, end() { return this; } };
-await admin.default({ method: "GET", query: {}, headers: {} }, g);
-ok(g.c === 404 && /healthStrip/.test(g.b) && /class="strip /.test(g.b.replace(/'/g, '"')), "GET /admin still answers 404 (noindex) and carries the strip");
+process.env.CURTAIN_CREW_CODE = process.env.CURTAIN_CREW_CODE || "check-crew-code"; const { mintCrewCookieValue: mintCrew } = await imp("lib/_crew.js");   // the dashboard page is crew-only: it is asked for with the crew cookie
+await admin.default({ method: "GET", query: {}, headers: { cookie: "gas_crew=" + mintCrew() } }, g);
+ok(g.c === 200 && /healthStrip/.test(g.b) && /class="strip /.test(g.b.replace(/'/g, '"')), "GET /admin with the crew cookie answers the page (noindex) and carries the strip");
 const puppeteer = (await import(pathToFileURL(path.join(ROOT, "node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js")).href).catch(() => import("puppeteer-core"))).default;
 const st = (level, why, step, also = []) => ({ level, why, step, also, thresholds: T });
 const fresh = { epoch: { read: true, at: "2026-10-29T10:00:00Z" }, last_warm: { read: true, at: "2026-10-29T09:12:00Z", hours: 5.3 }, off_day: { read: true, market_check: 0, buy_and_tasks: 12, capped: false }, epoch_mismatch: { read: true, n: 0, capped: false } };
@@ -128,7 +129,7 @@ for (const [w, hgt, tag] of [[1440, 900, "1440"], [390, 844, "390"]]) for (const
   await page.setRequestInterception(true);
   page.on("request", rq => {
     if (rq.url().endsWith("/api/admin") && rq.method() === "POST") return rq.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ before_launch: true, range: { key: "today", from: "2026-10-29T14:00:00Z", to: "2026-10-29T14:00:00Z" }, health, now: { minutes: 15, visitors: 0, answers: 0, failures: 0 }, held_back: { read: true, today: { hits: 0, visitors: 0, no_id: 0 }, week: { hits: 0, visitors: 0, no_id: 0 }, by_route: [], by_limit: [], busiest_today: null, busiest_week: null, tz: "Pacific" }, generatedAt: new Date().toISOString(), launchAt: "2026-10-29T14:00:00Z" }) });
-    if (rq.url().startsWith("http://admin.test/")) return rq.respond({ status: 404, contentType: "text/html; charset=utf-8", body: g.b });
+    if (rq.url().startsWith("http://admin.test/")) return rq.respond({ status: 200, contentType: "text/html; charset=utf-8", body: g.b });
     return rq.abort();
   });
   await page.evaluateOnNewDocument(() => { localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "t", expires_at: Math.floor(Date.now() / 1000) + 3000 })); });

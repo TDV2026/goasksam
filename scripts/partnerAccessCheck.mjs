@@ -20,7 +20,7 @@ async function call(query, cookie) {
 const C = () => process.env.PARTNER_DEMO_CODE;
 const cookieFrom = r => { const sc = [].concat(r.h["set-cookie"] || []); const m = /gas_partner=([^;]+)/.exec(sc[0] || ""); return m ? "gas_partner=" + m[1] : ""; };
 const visitor = await call({}, "");
-ok(visitor.status === 404 && visitor.body === "Not found", "no cookie, no code: the plain 404");
+ok(visitor.status === 404 && /^The page could not be found\n\nNOT_FOUND\n\n/.test(visitor.body), "no cookie, no code: the ordinary 404 (the platform's own words)");
 // 1. the right code
 for (const p of ["k", "code"]) {
   const r = await call({ [p]: C() });
@@ -47,7 +47,7 @@ for (const [what, q] of [["a wrong code", { k: rnd() }], ["an empty code", { k: 
 }
 ok(CEILINGS && CEILINGS.partner_code && CEILINGS.partner_code.address && CEILINGS.partner_code.address[0][1] <= 5, "code attempts are rate limited per address (lib/_ceilings.js partner_code)");
 // 4. headers on every answer
-for (const [what, r] of [["404", visitor], ["200", page], ["302", await call({ k: C() })]]) ok(r.h["x-robots-tag"] === "noindex, nofollow" && r.h["referrer-policy"] === "no-referrer" && r.h["cache-control"] === "private, no-store", `${what}: noindex, no-referrer, private no-store`);
+for (const [what, r] of [["200", page], ["302", await call({ k: C() })]]) ok(r.h["x-robots-tag"] === "noindex, nofollow" && r.h["referrer-policy"] === "no-referrer" && r.h["cache-control"] === "private, no-store", `${what}: noindex, no-referrer, private no-store`);
 // 5. the crew cookie still opens it
 const crew = "gas_crew=" + mintCrewCookieValue();
 ok((await call({}, crew)).status === 200 && partnerAllowed({ headers: { cookie: crew } }), "the crew cookie still opens the demo and the data endpoint");

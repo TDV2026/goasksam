@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   // method, with no JSON, no CORS headers, and no mention of Desk anywhere in the response.
   const crew = isCrewRequest(req);   // the signed crew cookie (lib/_crew.js)
   const tester = isTesterRequest(req);   // the signed tester cookie, inside its date (lib/_tester.js)
-  if (!crew && !tester) return sendDisguisedNotFound(res);
+  if (!crew && !tester) return sendDisguisedNotFound(res, req);
 
   setCors(res, req);
   if (req.method === "OPTIONS") return res.status(200).end();

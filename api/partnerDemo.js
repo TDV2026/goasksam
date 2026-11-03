@@ -12,6 +12,7 @@
 //   d. Under the listing: a full-width "What cars like this sold for" (sale tiles, lowest price first), then "This car
 //      before"; on a phone after the description.
 // Route: /preview (vercel.json rewrite to /api/partnerDemo; Sam, Oct 18 2026: the old /partner-demo redirects there), ?view=a|b|c|d.
+import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import { isCrewRequest } from "../lib/_crew.js";
 import { isPartnerRequest, partnerCodeMatches, partnerSetCookies } from "../lib/_partnerAccess.js";
 import { checkCeiling } from "../lib/_ceilings.js";
@@ -825,7 +826,7 @@ ${carBar}
 
 // The plain 404 every refused request gets (no cookie, a wrong, empty or missing code, too many attempts): the same body
 // and headers whatever the reason, so nothing says a code exists.
-const notFound = res => { res.setHeader("Content-Type", "text/plain; charset=utf-8"); return res.status(404).send("Not found"); };
+const notFound = (res, req) => sendDisguisedNotFound(res, req);
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
@@ -837,12 +838,12 @@ export default async function handler(req, res) {
     if (isCrewRequest(req)) { res.setHeader("Location", "/preview"); return res.status(302).end(); }
     const lim = await checkCeiling(supabaseEnv(), req, "partner_code", { tool: "partner" }).catch(() => ({ ok: true }));
     const cookies = lim.ok && partnerCodeMatches(q.k != null ? q.k : q.code) ? partnerSetCookies() : null;
-    if (!cookies) return notFound(res);
+    if (!cookies) return notFound(res, req);
     res.setHeader("Set-Cookie", cookies);
     res.setHeader("Location", "/preview");
     return res.status(302).end();
   }
-  if (!isCrewRequest(req) && !isPartnerRequest(req)) return notFound(res);
+  if (!isCrewRequest(req) && !isPartnerRequest(req)) return notFound(res, req);
   // eBay's own logo, byte for byte, behind the same gate as the page.
   if (req.query && req.query.img === "logo") {
     res.setHeader("Content-Type", "image/svg+xml");

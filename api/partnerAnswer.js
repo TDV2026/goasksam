@@ -16,6 +16,7 @@
 // NEVER in any output: a venue name, a venue link, a listing id, a listing title.
 // Gate: the signed crew cookie, the partner demo cookie (lib/_partnerAccess.js gas_partner), or the PARTNER_KEY header (x-partner-key) when that env var is set; anything else
 // is a plain 404. Rate limited (lib/_ceilings.js partner_answer). Archive only: zero OldCarsData requests.
+import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import { isNum } from "../lib/_num.js";
 import crypto from "node:crypto";
 import { isCrewRequest } from "../lib/_crew.js";
@@ -690,7 +691,7 @@ export function venueLeak(obj) {
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
-  if (!partnerAllowed(req)) return res.status(404).json({ error: "Not found" });
+  if (!partnerAllowed(req)) return sendDisguisedNotFound(res, req);
   if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const env = supabaseEnv();
   // A sale's photo (Sam, Oct 18 2026; demo only; lib/_salePhoto.js): GET ?photo=<archive id> and nothing else, behind the
@@ -708,7 +709,7 @@ export default async function handler(req, res) {
   }
   if (req.method === "GET" && req.query && req.query.photo != null) {
     const vk = vinPhotoKey(req.query.photo), pid = vk ? null : photoId(req.query.photo);
-    const no = () => { res.setHeader("Content-Type", "text/plain; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store"); return res.status(404).send("Not found"); };
+    const no = () => sendDisguisedNotFound(res, req);
     if ((!pid && !vk) || !env) return no();
     const lim = await checkCeiling(env, req, "partner_photo", { tool: "partner" }).catch(() => ({ ok: true }));
     if (!lim.ok) return no();

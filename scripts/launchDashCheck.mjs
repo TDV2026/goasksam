@@ -127,8 +127,9 @@ ok(!("anon_id" in D) && !JSON.stringify(D).includes('"a1"') && !JSON.stringify(D
 // ---- 3. the page, rendered
 const admin = await imp("api/admin.js");
 const resObj = () => ({ h: {}, c: null, b: null, setHeader(k, v) { this.h[k] = v; }, status(c) { this.c = c; return this; }, send(b) { this.b = b; return this; }, json(b) { this.b = b; return this; }, end() { return this; } });
-const g = resObj(); await admin.default({ method: "GET", query: {}, headers: {} }, g);
-ok(g.c === 404 && /noindex/.test(g.b) && /R\.launch=/.test(g.b) && /var cur="launch"/.test(g.b), "GET /admin answers 404 to everyone (noindex) and carries the Launch tab as the default");
+const g = resObj(); process.env.CURTAIN_CREW_CODE = process.env.CURTAIN_CREW_CODE || "check-crew-code"; const { mintCrewCookieValue: mintCrew } = await imp("lib/_crew.js");   // the dashboard page is crew-only: it is asked for with the crew cookie
+await admin.default({ method: "GET", query: {}, headers: { cookie: "gas_crew=" + mintCrew() } }, g);
+ok(g.c === 200 && /noindex/.test(g.b) && /R\.launch=/.test(g.b) && /var cur="launch"/.test(g.b), "GET /admin with the crew cookie answers the page (noindex) and carries the Launch tab as the default");
 const puppeteer = (await import(pathToFileURL(path.join(ROOT, "node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js")).href).catch(() => import("puppeteer-core"))).default;
 const heldBackMock = { read: true, today: { hits: 7, visitors: 5, no_id: 1 }, week: { hits: 31, visitors: 19, no_id: 2 }, by_route: [{ k: "market_check market_check_search", today: 7, week: 25 }, { k: "buy buy_chat", today: 0, week: 6 }], by_limit: [{ k: "device_day_cars", today: 7, week: 25 }, { k: "buy_model_spend", today: 0, week: 6 }], busiest_today: { hour: "2026-10-26 19:00", hits: 4 }, busiest_week: { hour: "2026-10-25 11:00", hits: 9 }, tz: "Pacific" };
 const payload = { ...D, held_back: heldBackMock, now: { minutes: 15, visitors: 7, answers: 12, failures: 1 }, generatedAt: new Date().toISOString(), launchAt: "2026-10-29T14:00:00Z" };
@@ -148,7 +149,7 @@ for (const [w, h, tag] of [[1440, 900, "1440"], [390, 844, "390"]]) {
   await page.setRequestInterception(true);
   page.on("request", rq => {
     if (rq.url().endsWith("/api/admin") && rq.method() === "POST") { let body = {}; try { body = JSON.parse(rq.postData() || "{}"); } catch {} calls.push(body); const ranged = { ...payload, range: { key: body.range } }; return rq.respond({ status: 200, contentType: "application/json", body: JSON.stringify(body.part === "me" ? { ok: true } : body.part === "searches" ? searchesMock : body.part === "users" ? usersMock : body.part === "user_journey" ? { user: true, anon: "sam@example.com", events: [{ ts: at(1), product: "buy", name: "page_view", props: { path: "/buy" }, user_id: "signed in" }] } : ranged) }); }
-    if (rq.url().startsWith("http://admin.test/")) return rq.respond({ status: 404, contentType: "text/html; charset=utf-8", body: g.b });
+    if (rq.url().startsWith("http://admin.test/")) return rq.respond({ status: 200, contentType: "text/html; charset=utf-8", body: g.b });
     return rq.abort();
   });
   await page.evaluateOnNewDocument(() => { localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "t", expires_at: Math.floor(Date.now() / 1000) + 3000 })); });

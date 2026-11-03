@@ -228,7 +228,7 @@ ok(consentState(mkReq({ country: "DE", headers: { "x-gas-region": "open" } })).r
   process.env.ADMIN_EMAILS = "someone@example.com";
   const { default: admin } = await import("../api/admin.js");
   const g = mkRes(); await admin({ method: "GET", query: { page: "1" }, headers: {} }, g);
-  ok(g.statusCode === 404 && /This page doesn/.test(g.body), "/admin answers 404 with the plain not-found page");
+  ok(g.statusCode === 404 && /NOT_FOUND/.test(g.body) && !/dashboard|admin/i.test(g.body), "/admin without the crew cookie answers the ordinary 404 (scripts/hiddenCrewCheck.mjs holds the full comparison)");
   ok(!/eyJ|service_role|SUPABASE_|sk-ant|ADMIN_EMAILS|someone@example/.test(g.body), "/admin page carries no key, no setting and no address");
   const p1 = mkRes(); await admin({ method: "POST", query: {}, headers: {}, body: { part: "overview" } }, p1);
   ok(p1.statusCode === 404, "data without a sign-in: 404");

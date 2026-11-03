@@ -56,7 +56,7 @@ ok(!/Math\.(ceil|round|floor)\([^)]*(range|price|low|high)/.test(js) && !/sample
   ok(sl["2016 Mercedes-Benz C63 AMG"] && sl["2016 Mercedes-Benz C63 AMG"].price === 54900 && sl["2016 Mercedes-Benz C63 AMG"].monthly === 901, "the thin car's fixed sample price is $54,900, $901 a month (Sam, Oct 20 2026)"); }
 ok(/"This car has sold before" : "This car was listed before"/.test(js), "the history popup heading: sold before only when a prior listing sold");
 const d = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
-ok(/if \(!isCrewRequest\(req\) && !isPartnerRequest\(req\)\) return notFound\(res\);[\s\S]*req\.query\.img === "amazon-logo"[\s\S]*req\.query\.p === "amazon"/.test(d), "the Amazon page and its logo sit behind the same gate (crew cookie or partner cookie)");
+ok(/if \(!isCrewRequest\(req\) && !isPartnerRequest\(req\)\) return notFound\(res, req\);[\s\S]*req\.query\.img === "amazon-logo"[\s\S]*req\.query\.p === "amazon"/.test(d), "the Amazon page and its logo sit behind the same gate (crew cookie or partner cookie)");
 const logo = fs.readFileSync(new URL("../api/_amazonLogo.js", import.meta.url), "utf8");
 const svg = Buffer.from((/AMAZON_LOGO_SVG_B64 = "([^"]+)"/.exec(logo) || [])[1] || "", "base64").toString("utf8");
 ok(/^<\?xml[\s\S]*<svg /.test(svg) && !/<script|href=|xlink/i.test(svg), "the logo is a plain SVG with no script and no external reference");

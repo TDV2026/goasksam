@@ -6519,7 +6519,7 @@ if (task === "optiondetail") {
   }
 
   // A task that does not exist (including the diagnostics removed before launch) is the normal 404: no task list.
-  return sendDisguisedNotFound(res);
+  return sendDisguisedNotFound(res, req);
 }
 
 // ===================== BUSINESS DASHBOARD (Phase 2) =====================

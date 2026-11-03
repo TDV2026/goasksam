@@ -9,8 +9,8 @@ import { sendDisguisedNotFound } from "../lib/_notFound.js";
 const PAGES = { "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true } };
 export default function handler(req, res) {
   const name = String((req.query && req.query.page) || "").toLowerCase(), p = PAGES[name];
-  if (!p || !(isCrewRequest(req) || (p.tester && isTesterRequest(req)))) return sendDisguisedNotFound(res);
-  let html; try { html = fs.readFileSync(path.join(process.cwd(), "lib/crewPages", p.file), "utf8"); } catch { return sendDisguisedNotFound(res); }
+  if (!p || !(isCrewRequest(req) || (p.tester && isTesterRequest(req)))) return sendDisguisedNotFound(res, req);
+  let html; try { html = fs.readFileSync(path.join(process.cwd(), "lib/crewPages", p.file), "utf8"); } catch { return sendDisguisedNotFound(res, req); }
   res.setHeader("Content-Type", "text/html; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store"); res.setHeader("X-Robots-Tag", "noindex, nofollow");
   res.status(200).send(html);
 }

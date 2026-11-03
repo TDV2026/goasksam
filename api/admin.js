@@ -7,6 +7,7 @@
 //   GET  /api/admin?refresh=hour    the Vercel cron (Bearer CRON_SECRET): today's summaries.
 //   GET  /api/admin?refresh=night   yesterday's summaries finalized, retention, and the 13-month purge.
 // Every number comes from analytics_events (through the summary tables) except live inventory and the deploy.
+import { isCrewRequest } from "../lib/_crew.js";
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential, cronOk } from "../lib/_credential.js";
 import { sendDisguisedNotFound } from "../lib/_notFound.js";
@@ -496,35 +497,38 @@ async function handler(req, res) {
 
   if (req.method === "GET" && q.refresh) {
     const cron = process.env.CRON_SECRET && cronOk(req);
-    if (!cron) return sendDisguisedNotFound(res);
+    if (!cron) return sendDisguisedNotFound(res, req);
     const env = storeEnv(); if (!env) return res.status(500).json({ ok: false, error: "store not configured" });
     try { return res.status(200).json({ ok: true, ...(await refresh(env, q.refresh === "night" ? "night" : "hour")) }); }
     catch (e) { return res.status(500).json({ ok: false, error: String((e && e.message) || e).slice(0, 120) }); }
   }
   if (req.method === "GET") {
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    return res.status(404).send(pageHtml());
+    // The dashboard page is crew-only: without the crew cookie the address answers the ordinary 404, with no dashboard code in it (lane-e-hidecrew, Nov 3 2026). With the cookie it is as before:
+    // the page, then it asks who is signed in and only an ADMIN_EMAILS account sees the numbers.
+    if (!isCrewRequest(req)) return sendDisguisedNotFound(res, req);
+    res.setHeader("Content-Type", "text/html; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store"); res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    return res.status(200).send(pageHtml());
   }
-  if (req.method !== "POST") return sendDisguisedNotFound(res);
+  if (req.method !== "POST") return sendDisguisedNotFound(res, req);
   const b = req.body && typeof req.body === "object" ? req.body : {};
 
   // A token refresh for the page, done here so the page never holds a key. Returns only the new session fields.
   if (b.part === "refresh") {
     const url = process.env.SUPABASE_URL, anon = process.env.SUPABASE_ANON_KEY;
-    if (!url || !anon || typeof b.refresh_token !== "string" || b.refresh_token.length > 400) return sendDisguisedNotFound(res);
+    if (!url || !anon || typeof b.refresh_token !== "string" || b.refresh_token.length > 400) return sendDisguisedNotFound(res, req);
     try {
       const r = await fetch(`${url}/auth/v1/token?grant_type=refresh_token`, { method: "POST", headers: { "Content-Type": "application/json", apikey: anon }, body: JSON.stringify({ refresh_token: b.refresh_token }) });
-      if (!r.ok) return sendDisguisedNotFound(res);
+      if (!r.ok) return sendDisguisedNotFound(res, req);
       const j = await r.json();
       return res.status(200).json({ access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || Math.floor(Date.now() / 1000) + Number(j.expires_in || 3600) });
-    } catch { return sendDisguisedNotFound(res); }
+    } catch { return sendDisguisedNotFound(res, req); }
   }
 
   // Our own server credential (header only, never the address) may read the same parts, plus "check" (is the store
   // receiving events) and "refresh_now" (today's summaries, as the hourly cron does). Anyone else needs ADMIN_EMAILS.
   const cred = hasServerCredential(req);
   const auth = cred ? null : await validateBearer(req.headers.authorization).catch(() => null);
-  if (!cred && (!auth || !auth.email || !adminEmails().includes(auth.email))) return sendDisguisedNotFound(res);
+  if (!cred && (!auth || !auth.email || !adminEmails().includes(auth.email))) return sendDisguisedNotFound(res, req);
   const env = storeEnv(); if (!env) return res.status(500).json({ error: "store not configured" });
   try {
     if (b.part === "check" && cred) return res.status(200).json(await storeCheck(env));
@@ -547,7 +551,7 @@ async function handler(req, res) {
     if (b.part === "retention") return res.status(200).json(await retention(env));
     if (b.part === "reconcile") return res.status(200).json(await reconcile(env, /^\d{4}-\d{2}-\d{2}$/.test(String(b.day || "")) ? b.day : ptDay(-1), typeof b.since === "string" && Number.isFinite(Date.parse(b.since)) ? b.since : null));
   } catch (e) { return res.status(500).json({ error: "read failed" }); }
-  return sendDisguisedNotFound(res);
+  return sendDisguisedNotFound(res, req);
 }
 
 // Analytics: an error event when this route throws or answers 5xx (a failed summary refresh shows as a cron failure).
