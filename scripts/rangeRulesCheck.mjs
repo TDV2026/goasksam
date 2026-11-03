@@ -5,8 +5,8 @@ process.env.PROBE_KEY = "local-check-key"; process.env.OLDCARSDATA_API_KEY = "un
 delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; delete process.env.SUPABASE_ANON_KEY;
 const ob = await import("../lib/onebox.js");
 let bad = 0; const ok = (c, m) => { if (!c) bad++; console.log(`${c ? "ok  " : "FAIL"} ${m}`); };
-ok(ob.RANGE_RULES.blendOneFamily === true && ob.RANGE_RULES.gearboxFirst === false && ob.RANGE_RULES.houseOnlyBody === false, "rule 1 (blend name, one family) is ON (Sam, Oct 20 2026); rules 2 and 3 stay OFF");
-ok(ob.rangeRuleOn({}, "blendOneFamily") && !ob.rangeRuleOn({}, "gearboxFirst") && !ob.rangeRuleOn(null, "houseOnlyBody"), "rule 1 is on for every request; rules 2 and 3 are on for none by default");
+ok(ob.RANGE_RULES.blendOneFamily === true && ob.RANGE_RULES.gearboxFirst === false && !("houseOnlyBody" in ob.RANGE_RULES), "rule 1 (blend name, one family) is ON (Sam, Oct 20 2026); rule 2 stays OFF; rule 3 (house-only body) is removed (Sam, Nov 2 2026: house sales are sales)");
+ok(ob.rangeRuleOn({}, "blendOneFamily") && !ob.rangeRuleOn({}, "gearboxFirst"), "rule 1 is on for every request; rule 2 is on for none by default");
 ok(ob.rangeRuleOn({ rangeRules: { blendOneFamily: true } }, "blendOneFamily") && !ob.rangeRuleOn({ rangeRules: { blendOneFamily: true } }, "gearboxFirst"), "env.rangeRules turns on only the named rule");
 const r = t => ({ raw_title: t }), F512 = { make: "Ferrari", model: "512" }, VIP = { make: "Dodge", model: "Viper" };
 ok(ob.blendOneFamily(F512, [r("1982 Ferrari 512 BBi"), r("1981 Ferrari 512 BB"), r("Ex-David Letterman 1983 Ferrari 512 BBi")]) === "512 BB", "512 BB and BBi read as one family");
@@ -29,8 +29,8 @@ ok(code === 401, "task=rangepreview refuses without the ops key");
 const fs = await import("fs");
 const ud = fs.readFileSync(new URL("../api/usageDashboard.js", import.meta.url), "utf8");
 ok(/if \(\/\^\(result\|thin\)\$\/\.test\(String\(d\.tier\)\)\) \{ try \{ const \{ refreshDemoAnswer \}/.test(ud), "warmDemo refreshes the demo's stored answer for thin answers as well as ranges");
-// rule 3's one-line diagnostic (Oct 20 2026): written only when the switch is on, shown by task=rangepreview
+// rule 3 (house-only body) is gone: the venue fence no longer withholds a range
 const obSrc = fs.readFileSync(new URL("../lib/onebox.js", import.meta.url), "utf8");
-ok(/diag\.houseOnlyBody = \{ read: /.test(obSrc) && /else if \(rangeRuleOn\(env, "houseOnlyBody"\)\) diag\.houseOnlyBody = \{ skipped:/.test(obSrc) && /houseOnlyBody: \(d\.dedup && d\.dedup\.houseOnlyBody\)/.test(ud), "rule 3 writes its diagnostic only with the switch on, and the preview shows it");
+ok(!/rangeRuleOn\(env, "houseOnlyBody"\)/.test(obSrc), "rule 3 (house-only body) is removed from the range path");
 console.log(bad ? `rangeRulesCheck: ${bad} failed` : "rangeRulesCheck: all passed");
 process.exit(bad ? 1 : 0);

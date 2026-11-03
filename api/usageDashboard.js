@@ -4446,7 +4446,7 @@ if (task === "optiondetail") {
     // rules= (Oct 21 2026, the trim-first table): the preview turns on ONLY the named switches ("trimFirst"); without it, the
     // three range rules as before
     const ruleNames = String(req.query?.rules || "").split(",").map(x => x.trim()).filter(k => Object.prototype.hasOwnProperty.call(RANGE_RULES, k));
-    const on = ruleNames.length ? Object.fromEntries(ruleNames.map(k => [k, true])) : { blendOneFamily: true, gearboxFirst: true, houseOnlyBody: true };
+    const on = ruleNames.length ? Object.fromEntries(ruleNames.map(k => [k, true])) : { blendOneFamily: true, gearboxFirst: true };
     const { parsePreviewBind } = await import("../lib/_bodyChanges.js");
     const bindGens = parsePreviewBind(req.query?.bind);
     if (req.query?.bind && !bindGens) return res.status(400).json({ error: "bind must read Make|Model|code:YYYY-YYYY[,code:YYYY-YYYY]" });
@@ -4457,7 +4457,6 @@ if (task === "optiondetail") {
         range: Array.isArray(d.cluster) ? d.cluster : null,
         line: d.samLine || d.thinLine || d.prompt || null,
         options: d.gearboxOptions || d.bodyOptions || d.generationOptions || d.variantOptions || (Array.isArray(d.trimOptions) ? d.trimOptions.map(o => o && (o.label || o.value) || o) : null) || null, optionCounts: d.optionCounts || null,
-        houseOnlyBody: (d.dedup && d.dedup.houseOnlyBody) || undefined,
         sales: cards.slice(0, 20).map(c => ({ date: String(c.date || "").slice(0, 10), price: Number(c.price) || null, title: c.title || null })) };
     };
     const out = [];
