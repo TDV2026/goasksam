@@ -8,7 +8,9 @@
 //  (D) a widening that is NOT far (1995 against 1993 cars) is answered and says in words that none of the asked year is in it;
 //  (E) a pooled nameplate (2008 Carrera and Carrera S) whose pool holds the asked year prints no year sentence;
 //  (F) the voice: "that's" is filler and never named back as an unused word; a market question after a search is not "Sam can't do that here yet" (a real filter still is, and a real unknown word is still named);
-//  (G) STATIC: every model_any_year label names the years held, the sibling label carries its decade, and every rescue lander refuses a far pool.
+//  (G) STATIC: every model_any_year label names the years held, the sibling label carries its decade, and every rescue lander refuses a far pool;
+//  (H) NO STAMP BUMP: the stamp stays e99 and SPEC_V 12; only a stored row whose pool was widened past the asked year (any year, sibling, year-widened, a pool without the asked year) and lacks widenRulesTag is read as no row
+//      (both readers, and the core reader); an exact-year row, a widened row carrying the tag, and a year-less row keep serving; an answer the engine computes carries the tag.
 //   node scripts/widenedLineCheck.mjs          (LIB_ROOT=<dir holding lib/> runs it against another tree, e.g. the base commit, to show it fails)
 import fs from "node:fs";
 import path from "node:path";
@@ -21,7 +23,7 @@ const E = await imp("lib/onebox.js"), S = await imp("lib/live/search.js"), C = a
 let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 const quiet = console.error; console.error = () => {};
 
-let FIX = [];
+let FIX = [], ROW = null;
 const mk = (i, make, model, year, price, word) => {
   const raw = { id: "o" + i, title: `${year} ${make} ${model} ${word || ""} ${i}`.replace(/\s+/g, " ").trim(), featured_image_url: `https://img/${i}.jpg`, mileage: `${60000 + i * 500}`, body_style: word === "Wagon" ? "Wagon" : "Coupe", currency: "USD", url: `https://bat/${i}`, country_code: "US", state: "TX", city: "Austin", auction_end_precision: "day" };
   return { id: "u" + String(i).padStart(5, "0"), source_id: raw.id, sale_price: price, sale_date: `2026-0${1 + (i % 9)}-1${i % 9}`, platform: "Bring a Trailer", listing_title: raw.title, year, make, model, vin_norm: null, stated_mileage: null, project_flag: null, desc_facts: null, has_reserve: false, raw_record: raw, vehicle_type: "car" };
@@ -30,6 +32,7 @@ const jt = v => v == null ? null : typeof v === "string" ? v : JSON.stringify(v)
 const ev = (row, it) => { const ci = it.indexOf(":"); const al = ci > 0 && it[ci + 1] !== ":"; const alias = al ? it.slice(0, ci) : null; const expr = al ? it.slice(ci + 1) : it; if (expr.startsWith("raw_record->>")) return [alias || expr.slice(13), jt(row.raw_record[expr.slice(13)])]; const c = expr.replace(/::text$/, ""); return [alias || c, c in row ? row[c] : null]; };
 globalThis.fetch = async (url, init = {}) => {
   const u = new URL(String(url)); const sel = u.searchParams.get("select") || "";
+  if (u.pathname.endsWith("/spec_market_cache")) return new Response(JSON.stringify(ROW ? [ROW] : []), { status: 200 });
   if (!u.pathname.endsWith("/sales_archive") || u.searchParams.get("id") || /^model$/.test(sel)) return new Response(/^model$/.test(sel) ? JSON.stringify([...new Set(FIX.map(r => ({ model: r.model })))]) : "[]", { status: 200 });
   let rows = FIX; for (const c of u.searchParams.getAll("year")) { const m = /^(gte|lte)\.(\d+)$/.exec(c); if (m) rows = rows.filter(r => m[1] === "gte" ? r.year >= +m[2] : r.year <= +m[2]); }
   return new Response(JSON.stringify(rows.map(r => Object.fromEntries(sel.split(",").map(it => ev(r, it))))), { status: 200 });
@@ -87,6 +90,26 @@ const src = fs.readFileSync(path.join(ROOT, "lib/onebox.js"), "utf8").split("\n"
 { const sib = src.findIndex(l => /fallbackRung: "sibling"/.test(l)); ok("(G) the sibling label carries the sibling's name and decade", sib >= 0 && /\$\{sib\.label\}\$\{decade/.test(src[sib]), src[sib] && src[sib].slice(0, 160)); }
 { const lands = src.filter(l => /resSib\.tier === "result"|resModel\.tier === "result"|res\.tier === "result" && /.test(l) && /farFromAsked|askedYearsFar/.test(l)).length;
   ok("(G) the three rescue landers (trim, model, sibling) each refuse a far pool", lands === 3 && typeof (E && E.askedYearsFar) === "function", `${lands} of 3`); }
+
+// (H) no stamp bump: a targeted recheck of the widened rows only
+{ ok("(H) the engine stamp is still e99 and SPEC_V still 12 (no stamp bump: every other stored row keeps serving)", !!E && /^e99-/.test(String(E.ENGINE_VERSION)) && !!S && S.SPEC_V === 12, `${E && E.ENGINE_VERSION} ${S && S.SPEC_V}`);
+  const row = raw => ({ computed_at: new Date().toISOString(), market: { raw, engineVersion: E.ENGINE_VERSION, warmEpoch: null } });
+  const pool = ys => ys.map(y => ({ year: y })), res = (year, extra) => ({ tier: "result", poolN: 14, cluster: [12500, 28000], resolvedCar: { year, make: "Volvo", model: "240" }, rawPool: pool([year]), ...extra });
+  const both = async raw => { ROW = row(raw); const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"), p = await S.readWarmAnswer(env, "MCWARM:x"); return { d, p }; };
+  const recheck = async raw => { const { d, p } = await both(raw); return d.raw === null && d.reason === "widened_recheck" && !p; };
+  const served = async raw => { const { d, p } = await both(raw); return !!d.raw && !!p; };
+  const bad = [];
+  for (const rung of ["model_any_year", "sibling", "year_widened", "trim_any_year", "generation_widened"]) if (!(await recheck(res(2005, { fallbackRung: rung, rawPool: pool([1985, 1990]) })))) bad.push(rung);
+  ok("(H) every widening rung (any year, sibling, year-widened, trim any year, generation) stored without the tag is read as no row, by both readers", bad.length === 0, bad.join(" "));
+  ok("(H) a pool that lacks the asked year (nameplate pooling, in a span or beside it) is rechecked", (await recheck(res(2008, { rawPool: pool([2007, 2009]) }))) && (await recheck(res(2008, { tier: "thin", rawPool: pool([2005]) }))));
+  ok("(H) an exact-year row without the tag keeps serving", await served(res(2008, { fallbackRung: "exact", rawPool: pool([2008, 2008]) })) && await served(res(2008, { rawPool: pool([2008, 2008, 2008]) })));
+  ok("(H) a widened row that carries the current tag keeps serving", await served(res(2005, { fallbackRung: "model_any_year", rawPool: pool([1985, 1990]), widenRulesTag: E.WIDEN_RULES_TAG })));
+  ok("(H) a year-less row and a refusal keep serving", await served({ ...res(null), rawPool: pool([1985]), questionRulesTag: E.QUESTION_RULES_TAG }) && await served({ tier: "refusal", refusal: { kind: "not_a_car" }, resolvedCar: { year: 2005 } }));
+  const core = (kind, rung, tag) => ({ v: S.SPEC_V, kind, fallbackRung: rung, ...(tag ? { widenTag: tag } : {}) });
+  ok("(H) a stored core: a widened rung without widenTag is a miss; exact, no rung, or the tag is served", E.storedCoreWidened(core("range", "model_any_year")) && E.storedCoreWidened(core("thin", "sibling")) && !E.storedCoreWidened(core("range", "exact")) && !E.storedCoreWidened(core("range", null)) && !E.storedCoreWidened(core("range", "sibling", E.WIDEN_RULES_TAG)));
+  FIX = Array.from({ length: 40 }, (_, i) => mk(i, "Volvo", "240", 1985 + (i % 9), 7000 + (i % 7) * 400, "Wagon")); ROW = null;
+  { const d = await answer(V240(1990), "1990 Volvo 240"); ok("(H) an answer the engine computes carries widenRulesTag", d && d.widenRulesTag === E.WIDEN_RULES_TAG, String(d && d.tier)); }
+  ROW = null; }
 
 console.error = quiet;
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");
