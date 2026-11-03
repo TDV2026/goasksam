@@ -157,7 +157,7 @@ for (const k of ["apart", "apartMiles"]) {
 {
   const { cardSlotsOf } = await imp("lib/live/cardSlots.js");
   const states = { "result with a range": w.market, "apart by gearbox (matched option)": kinds.apart.market, "apart by mileage band (matched band)": kinds.apartMiles.market, "a thin band beside other bands (the live M3)": kinds.apartFew.market, "question first (alike)": kinds.question.market, "dealer listing": kinds.dealer.market, "thin (three sales)": out.thin.market,
-    "no sales": { kind: "count", count: 0, query: "x" }, "not tracked": { kind: "not_tracked", notTrackedLine: "Sam does not track this car yet.", query: null }, "refused": { kind: "refused", refusalLine: "Sam does not read this one: the listing does not say enough to match it to a car.", query: null }, "unmatched": { kind: "unmatched", query: null } };
+    "one venue (the fence)": { kind: "count", count: 12, window: "since June 2026", thinReason: "house_share", thinLine: "These sales come mostly from one place, so no range is shown.", query: "x" }, "no sales": { kind: "count", count: 0, query: "x" }, "not tracked": { kind: "not_tracked", notTrackedLine: "Sam does not track this car yet.", query: null }, "refused": { kind: "refused", refusalLine: "Sam does not read this one: the listing does not say enough to match it to a car.", query: null }, "unmatched": { kind: "unmatched", query: null } };
   const seen = {};
   for (const width of [1440, 390]) {
     const hs = [];
