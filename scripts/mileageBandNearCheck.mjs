@@ -30,30 +30,42 @@ const answer = (ns) => {
 const served = (d, miles) => E.withReadFields(d, "1995 BMW M3 Coupe", { year: 1995, listingMiles: miles });
 const find = (d, miles) => E.findAnswerOf(served(d, miles), { title: "1995 BMW M3 Coupe", year: 1995, miles, bid: 7000 });
 const NO_TOO_FEW_HEAD = fa => !(fa.lines || []).some(l => /too few for a range/i.test(l));
-// 1. the live car: 38,000 miles (61,000 km), under 50 holds 4, 50 to 100 holds 9, over 100 holds 5
-{
-  const d = answer([4, 9, 5]), fa = find(d, 38000);
-  ok("the live car: the headline is the 50,000 to 100,000 mile range, not 'too few'", !!(fa && fa.state === "range" && fa.basis === "band_near" && fa.range && fa.range.low === 26000), JSON.stringify(fa && fa.range));
-  ok("... with the engine's one sentence naming both bands", fa && fa.lines[0] === "Few sales under 50,000 miles, so this is the 50,000 to 100,000 mile range.", fa && fa.lines[0]);
-  ok("... and no headline line says 'too few for a range'", fa && NO_TOO_FEW_HEAD(fa), fa && JSON.stringify(fa.lines));
-  ok("... the total is stated once (the count line), the sentence carries no count", fa && fa.lines.filter(l => /\b\d+ sales?\b/.test(l)).length === 1, fa && JSON.stringify(fa.lines));
-  ok("the option list does not restate the headline band or the thin band the sentence names", fa && (fa.otherLines || []).length === 1 && /^Over 100,000 miles/.test((fa.otherLines || [])[0]) && !(fa.otherLines || []).some(l => /^(Under 50,000|50,000 to 100,000)/.test(l)), fa && JSON.stringify(fa.otherLines));
-  const sv = served(d, 38000);
-  ok("Market Check with typed miles carries the same sentence as nearBand", sv.nearBand && sv.nearBand.line === fa.lines[0] && sv.nearBand.to.value === "50to100" && sv.nearBand.from.n === 4, sv.nearBand && JSON.stringify(sv.nearBand));
+// 1. the live cars: a 1995 M3 at 28,000 miles and at 38,000 (61,000 km), under 50 holds 4, 50 to 100 holds 9 ($26,000 to $38,000), over 100 holds 5. THE RULE (Lane B, Nov 2 2026, job lane-b-mileageband): a thin asked band never borrows a neighbour's range;
+// the card names the thin band in full and has no range, and the other bands are the options.
+const THIN_LINE = { 0: "Few sales under 50,000 miles. Pick a mileage band to see its range.", 1: "Few sales between 50,000 and 100,000 miles. Pick a mileage band to see its range.", 2: "Few sales over 100,000 miles. Pick a mileage band to see its range." };
+const noMoney = fa => !(fa.lines || []).some(l => /\$\s?\d/.test(l));
+for (const miles of [28000, 38000]) {
+  const d = answer([4, 9, 5]), fa = find(d, miles), sv = served(d, miles);
+  ok(`the live car at ${miles}: the card has NO range (the 50,000 to 100,000 mile band is not borrowed)`, !!fa && fa.state !== "range" && fa.basis !== "band_near" && !(fa.range && fa.range.low > 0) && noMoney(fa), fa && JSON.stringify({ state: fa.state, basis: fa.basis, range: fa.range, lines: fa.lines }));
+  ok(`... the line names the thin band in words, in full: "${THIN_LINE[0]}"`, fa && fa.lines.length === 1 && fa.lines[0] === THIN_LINE[0], fa && JSON.stringify(fa.lines));
+  ok("... the other bands are the options, each with its own range or its own 'too few'", fa && (fa.otherLines || []).length === 2 && /^50,000 to 100,000 miles \$26,000 to \$38,000/.test(fa.otherLines[0]) && /^Over 100,000 miles, 5 sales, too few/.test(fa.otherLines[1]) && !(fa.otherLines || []).some(l => /^Under 50,000/.test(l)), fa && JSON.stringify(fa.otherLines));
+  ok("Market Check and the partner page carry the same sentence as nearBand, with no borrowed band in it", sv.nearBand && sv.nearBand.line === THIN_LINE[0] && sv.nearBand.to === undefined && sv.nearBand.from.value === "lt50" && sv.nearBand.from.n === 4, sv.nearBand && JSON.stringify(sv.nearBand));
 }
-// 2. every band a car can sit in: the headline never says 'too few' while a neighbour has a range; options are never restated; bands ascend
+// 2. every band a car can sit in: a thin own band with a neighbour's range never prints a range; its line names the band in full; options are never restated; bands ascend
 const SHAPES = [[4, 9, 5], [9, 4, 5], [5, 4, 9], [3, 9, 3], [9, 9, 4], [4, 3, 9], [9, 3, 3], [3, 3, 9]];
-for (const ns of SHAPES) for (const miles of [20000, 38000, 49999, 50000, 75000, 99999, 120000]) {
+for (const ns of SHAPES) for (const miles of [20000, 28000, 38000, 49999, 50000, 75000, 99999, 120000]) {
   const d = answer(ns), sv = served(d, miles), fa = E.findAnswerOf(sv, { title: "1995 BMW M3 Coupe", year: 1995, miles, bid: 7000 });
-  const own = miles < 50000 ? 0 : miles < 100000 ? 1 : 2, anyRange = ns.some(n => n >= 8), ownRange = ns[own] >= 8, tag = `${ns.join("/")} at ${miles}`;
+  const own = miles < 50000 ? 0 : miles < 100000 ? 1 : 2, anyRange = ns.some((n, b) => b !== own && n >= 8), ownRange = ns[own] >= 8, tag = `${ns.join("/")} at ${miles}`;
   if (!fa) { ok(`${tag}: an answer`, false); continue; }
-  if (ns[own] >= 3 && !ownRange && anyRange) ok(`${tag}: own band thin, a neighbour has a range: the headline is a range`, fa.state === "range" && fa.basis === "band_near" && NO_TOO_FEW_HEAD(fa), JSON.stringify(fa.lines));
-  if (ns[own] >= 3 && ownRange) ok(`${tag}: own band has a range: no near-band sentence`, !fa.nearBand && fa.basis !== "band_near");
+  if (ns[own] >= 3 && !ownRange && anyRange) ok(`${tag}: own band thin, a neighbour has a range: NO range, and the line names the thin band in full`, fa.state !== "range" && !fa.range && noMoney(fa) && fa.lines[0] === THIN_LINE[own] && sv.nearBand && sv.nearBand.to === undefined, JSON.stringify(fa.lines));
+  if (ns[own] >= 3 && ownRange) ok(`${tag}: own band has a range: no thin-band sentence`, !fa.nearBand && fa.state === "range");
+  ok(`${tag}: no answer ever carries a borrowed band (nearBand.to) or the basis band_near`, !(sv.nearBand && sv.nearBand.to) && fa.basis !== "band_near");
   const heads = new Set([fa.option && fa.option.label, fa.nearBand && fa.nearBand.from.label].filter(Boolean));
   ok(`${tag}: the option list restates no band the headline states`, !(fa.otherLines || []).some(l => [...heads].some(h => l.startsWith(h))), JSON.stringify([...heads, fa.otherLines]));
   const order = (sv.options || []).map(o => ["lt50", "50to100", "gt100"].indexOf(o.value)), asc = a => a.every((x, i) => i === 0 || a[i - 1] < x);
   ok(`${tag}: options and their lines print ascending`, asc(order) && asc((sv.optionLines || []).map(l => ["Under", "50,000", "Over"].findIndex(w => l.startsWith(w)))) && asc((fa.otherLines || []).map(l => ["Under", "50,000", "Over"].findIndex(w => l.startsWith(w)))), JSON.stringify([order, sv.optionLines]));
 }
+// 2b. the stored rows: only a row that records a borrowed band (nearBand.to) is read as no row; every other row keeps serving, and the engine stamp is untouched
+{ const v = E.ENGINE_VERSION, now = new Date().toISOString(), rowOf = raw => ({ market: { engineVersion: v, raw, warmEpoch: null }, computed_at: now });
+  const plain = { tier: "result", resolvedCar: { year: 1995 }, questionRulesTag: E.QUESTION_RULES_TAG, poolN: 12 };
+  const rows = { borrowed: rowOf({ ...plain, nearBand: { from: { value: "lt50", n: 4 }, to: { value: "50to100", low: 26000, high: 36500 }, line: "Few sales under 50,000 miles, so this is the 50,000 to 100,000 mile range." } }), thinSentence: rowOf({ ...plain, nearBand: { from: { value: "lt50", n: 4 }, line: THIN_LINE[0] } }), none: rowOf({ ...plain, nearBand: null }), other: rowOf({ ...plain, poolN: 40 }) };
+  const f0 = globalThis.fetch; globalThis.fetch = async url => { const u = String(url); const m = /spec_key=eq\.([^&]+)/.exec(u); if (/spec_market_cache/.test(u) && m) return new Response(JSON.stringify([rows[decodeURIComponent(m[1])]]), { status: 200 }); return new Response("[]", { status: 200 }); };
+  const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" }; const got = {};
+  for (const k of Object.keys(rows)) got[k] = await S.readWarmAnswerDetailed(env, k);
+  globalThis.fetch = f0;
+  ok("storedBorrowedBand: true only for a row with nearBand.to", E.storedBorrowedBand(rows.borrowed.market.raw) === true && !E.storedBorrowedBand(rows.thinSentence.market.raw) && !E.storedBorrowedBand(rows.none.market.raw) && !E.storedBorrowedBand(rows.other.market.raw) && !E.storedBorrowedBand(null));
+  ok("the warm read marks stale ONLY the borrowed row (reason borrowed_band_recheck); the other three keep serving", got.borrowed.raw === null && got.borrowed.reason === "borrowed_band_recheck" && ["thinSentence", "none", "other"].every(k => got[k].raw && got[k].reason !== "borrowed_band_recheck"), JSON.stringify(Object.fromEntries(Object.entries(got).map(([k, x]) => [k, x.raw ? "served" : x.reason]))));
+  ok("no engine stamp bump: the stamp is still the one of 60cfa555", /^e99-20261028-trimfix/.test(E.ENGINE_VERSION), E.ENGINE_VERSION); }
 // 3. nothing to headline: no band has a range, the sentence is not made up
 { const fa = find(answer([4, 5, 3]), 38000); ok("no band has a range: the engine says too few (honest), with no near-band sentence", fa && fa.state === "few" && !fa.nearBand && /too few for a range/.test(fa.lines[0]), fa && JSON.stringify(fa.lines)); }
 // 4. km: 61,000 km is about 37,900 miles before it is banded, and the band label is in miles
