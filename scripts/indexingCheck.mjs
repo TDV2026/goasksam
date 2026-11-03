@@ -49,11 +49,7 @@ ok(smUrl && smUrl.startsWith(SITE + "/"), "robots.txt names a sitemap on goasksa
 const smPath = smUrl ? new URL(smUrl).pathname : "";
 const resolves = p => fs.existsSync(path.join(ROOT, "public", p)) || rewrites.some(r => r.source === p);
 ok(resolves(smPath) && resolves("/sitemap.xml"), "the named sitemap and /sitemap.xml both resolve (a file or a rewrite)");
-const idx = read("public/sitemap-index.xml");
-const kids = [...idx.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => new URL(m[1]).pathname);
-ok(kids.length >= 3, "the sitemap index lists its sitemaps (" + kids.length + ")");
-for (const k of kids) ok(resolves(k) || rewrites.some(r => new RegExp("^" + r.source.replace(/\\\\/g, "\\") + "$").test(k)), "sitemap " + k + " resolves");
-ok(kids.length < 50000, "an index lists fewer than 50,000 sitemaps");
+ok(resolves("/sitemap-index.xml") && rewrites.find(r => r.source === "/sitemap.xml").destination === rewrites.find(r => r.source === "/sitemap-index.xml").destination, "the sitemap index is one generated address under both names (its files are checked in scripts/sitemapValidCheck.mjs)");
 
 // ---- 3. every public page: rendered in process as Googlebot, then the same list read from the sitemap
 process.env.LAUNCH_STAGE = "2";   // every product released: the public list

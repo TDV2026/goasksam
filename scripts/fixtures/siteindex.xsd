@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- sitemaps.org protocol 0.9, sitemapindex (an index lists urlset files; the schema has no way to list another index). minOccurs 0 for sitemap, as in sitemap.xsd. -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" targetNamespace="http://www.sitemaps.org/schemas/sitemap/0.9" elementFormDefault="qualified">
+  <xsd:element name="sitemapindex">
+    <xsd:complexType><xsd:sequence><xsd:element ref="sitemap" minOccurs="0" maxOccurs="50000"/></xsd:sequence></xsd:complexType>
+  </xsd:element>
+  <xsd:element name="sitemap">
+    <xsd:complexType><xsd:sequence>
+      <xsd:element name="loc"><xsd:simpleType><xsd:restriction base="xsd:anyURI"><xsd:minLength value="12"/><xsd:maxLength value="2048"/></xsd:restriction></xsd:simpleType></xsd:element>
+      <xsd:element name="lastmod" minOccurs="0"><xsd:simpleType><xsd:union memberTypes="xsd:date xsd:dateTime"/></xsd:simpleType></xsd:element>
+    </xsd:sequence></xsd:complexType>
+  </xsd:element>
+</xsd:schema>

@@ -802,6 +802,13 @@ try {
 } catch (e) {
   record("popupSalesCheck (scripts/popupSalesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// sitemapValidCheck (Lane E, Nov 3 2026): every sitemap response is application/xml; charset=utf-8, starts with the XML declaration, is valid against the sitemaps.org schema, lists only absolute goasksam.com URLs, and an index lists no index.
+try {
+  const out = execSync("node scripts/sitemapValidCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("sitemapValidCheck (scripts/sitemapValidCheck.mjs)", "PASS", (out.match(/sitemapValidCheck.*: .*/) || [""])[0]);
+} catch (e) {
+  record("sitemapValidCheck (scripts/sitemapValidCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // indexingCheck (Lane E, Nov 3 2026): every public page answers 200 to Googlebot, one self canonical, no noindex, title and H1 in the server HTML, in the pages sitemap; vercel.app and the second addresses 301. (--live reads goasksam.com; not run here.)
 try {
   const out = execSync("node scripts/indexingCheck.mjs", { encoding: "utf8", timeout: 120000 });

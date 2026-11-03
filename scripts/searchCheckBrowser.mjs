@@ -45,7 +45,7 @@ async function loadDoc(page, url) {
 
 async function sitemapUrls(page) {
   const set = new Set();
-  for (const sm of ["sitemap-pages.xml", "sitemap-specs.xml", "sitemap-hubs.xml"]) {
+  for (const sm of ["sitemap-pages.xml", "sitemap-specs.xml"]) {
     try {
       const resp = await page.goto(`${BASE}/${sm}`, { waitUntil: "networkidle2", timeout: 20000 });
       if (resp && resp.ok()) {
