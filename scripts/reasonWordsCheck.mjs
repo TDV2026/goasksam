@@ -14,7 +14,7 @@ const probe = new Proxy({}, { get: (_, k) => k === "n" || k === "m" ? "5" : "x" 
 const sentences = t => t.split(/(?<=[.!?])\s+/).filter(Boolean).length;
 // One sentence is the rule. A line that Sam ruled to be two sentences in one field is named here with its count (Oct 29 2026: the range footer, and the trim fallback that says what it read instead);
 // the allowance is exact, so a listed line that changes length fails, and a new two-sentence line fails until Sam's ruling is named here.
-const TWO_SENTENCES = { "footer.range": 2, "trim.fallback": 2, "nearband.line": 2, "find.near_band": 2 };   // the last two: Sam's own wording for a thin mileage band, Nov 2 2026 ("Few sales under 50,000 miles. Pick a mileage band to see its range.")
+const TWO_SENTENCES = { "footer.range": 2, "trim.fallback": 2, "nearband.line": 2, "find.near_band": 2, "card.apart_line": 2 };   // the last two: Sam's own wording for a thin mileage band, Nov 2 2026 ("Few sales under 50,000 miles. Pick a mileage band to see its range.")
 // Sam's own sentence (the launch-day ruling, Oct 30 2026): "Sales do not say their engine, so Sam could not filter by V8." names Sam; exact, for this one line
 const NAMES_SAM = new Set(["typed.not_carried"]);
 for (const [id, e] of Object.entries(RW.REASON_TABLE)) {

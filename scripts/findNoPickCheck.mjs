@@ -73,6 +73,38 @@ for (const [dim, labels, lead] of CASES) { const line = U(dim, labels); ok(`${di
   const rw = fs.readFileSync("lib/reasonWords.js", "utf8");
   ok("the Find lines in the reason table say no pick or choose", !(rw.match(/"find\.[a-z_]+":[^\n]*/g) || []).some(l => /\b(pick|choose)\b/i.test(l.replace(/before: "[^"]*"/, ""))));
 }
+// 6. THE CLASS (lane-e-nopick, Nov 3 2026): no line that can land on a Find card or in the Tasks email says to pick, choose or select, whatever its table id. Cause of the red: the
+//    check read only ids named "find.*", while the thin mileage band's sentence reached the card through nearBand.line ("nearband.line", a Market Check line with pills) and the
+//    card wording lived in a line with the Market Check words. Now: (a) every table entry whose field is a card-surface field, (b) every table entry fed through every channel a card
+//    slot reads (cardSlotsOf), (c) the engine's own findAnswer.lines for a car in a thin mileage band. Market Check's thinLine / nearBand.line and the popup's lines keep their pills.
+{
+  const { REASON_TABLE: RTB } = await import(pathToFileURL(path.join(root, "lib/reasonWords.js")).href);
+  const CSM = await import(pathToFileURL(path.join(root, "lib/live/cardSlots.js")).href);
+  const PICK = /\b(pick|picks|choose|chooses|select)\b/i;
+  const WORST = new Proxy({}, { get: (_, k) => ["article"].includes(String(k)) ? "a" : /count|n$|^n|removed|left|pos/i.test(String(k)) ? "12" : "Mercedes-Benz 300 SL Gullwing" });
+  const CARD_FIELDS = /^(findAnswer\.lines|bidPlace\.line|refusal_line|answerLine|cardLine|cardHeadline|cardLabel|cards\.soldBefore\.line|excluded\.line)$/;
+  const offFields = [], offSlots = [];
+  for (const [id, e] of Object.entries(RTB)) {
+    let t; try { t = e.text(WORST); } catch { continue; } if (typeof t !== "string") continue;
+    if (!/^(thinLine|answerLine|refusal_line|findAnswer\.lines|bidPlace\.line|cardLine|cardHeadline|cardLabel)$/.test(e.field)) { if (CARD_FIELDS.test(e.field) && PICK.test(t)) offFields.push(`${id}: ${t}`); continue; }   // a line whose field no card slot reads (Market Check's nearBand.line) is not fed through the slots
+    if (CARD_FIELDS.test(e.field) && PICK.test(t)) offFields.push(`${id}: ${t}`);
+    const chans = e.field === "thinLine" ? [{ kind: "count", count: 5, window: "since November 2025", thinReason: id.startsWith("thin.") ? id.slice(5) : "house_share", thinLine: t, query: "x" }]
+      : e.field === "refusal_line" ? [{ kind: "refused", refusalLine: t, query: null }, { kind: "not_tracked", notTrackedLine: t, query: null }]
+      : e.field === "answerLine" ? [{ kind: "count", count: 0, answerLine: t, query: "x" }] : [];   // each line goes only through the channel its field names
+    for (const m of chans) {
+      const f = CSM.cardSlotsOf({ market: m, sam_lines: [] });
+      if (PICK.test(`${f.cardLabel} ${f.cardHeadline} ${f.cardLine}`)) offSlots.push(`${id} -> ${f.cardLine}`);
+    }
+  }
+  ok("no reason-table line on a card-surface field says pick, choose or select", offFields.length === 0, offFields.join(" | "));
+  ok("no table line, fed through every channel a card slot reads, lands in a slot saying pick, choose or select", offSlots.length === 0, [...new Set(offSlots)].slice(0, 4).join(" | "));
+  // the apart answer and the thin band, as the card slots print them
+  const o = (dimension, label, value, n, low, high) => ({ dimension, label, value, n, low: low ?? null, high: high ?? null, rangeFloor: !low, windowWords: "since September 2026" });
+  const apart = CSM.cardSlotsOf({ market: { kind: "count", count: 124, window: "since September 2026", optionsState: "apart", headlineDimension: "mileage", miles: { miles: 28000 }, options: [o("mileage", "Under 50,000 miles", "lt50", 4), o("mileage", "50,000 to 100,000 miles", "50to100", 9, 26000, 36500)], thinReason: "pooled_apart", thinLine: RTB["thin.pooled_apart"].text(), query: "x" }, sam_lines: [], miles: 28000 });
+  ok("the card of a split answer and of a thin mileage band says nothing to pick", !PICK.test(`${apart.cardLabel} ${apart.cardHeadline} ${apart.cardLine}`), JSON.stringify(apart));
+  const NB = E.nearBandOf ? E.nearBandOf({ options: [o("mileage", "Under 50,000 miles", "lt50", 4), o("mileage", "50,000 to 100,000 miles", "50to100", 9, 26000, 36500)], rawPool: [] }, 28000) : null;
+  ok("nearBandOf carries a card wording (cardLine) that says nothing to pick, and the Market Check wording (line) that keeps its pills", !!NB && typeof NB.cardLine === "string" && !PICK.test(NB.cardLine) && /pick/i.test(NB.line), NB && JSON.stringify(NB));
+}
 // 5. a split spec with no stored answer is refreshed behind the card
 { const src = fs.readFileSync("lib/live/search.js", "utf8"); ok("listingMarket computes and stores the answer behind a split card whose stored row is missing or on an older stamp", /refreshMcRowBehind\(env, spec\)/.test(src) && /function refreshMcRowBehind/.test(src)); }
 console.log(fail ? `findNoPickCheck: ${fail} failure(s)` : "findNoPickCheck: all pass");

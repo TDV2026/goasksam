@@ -32,14 +32,15 @@ const find = (d, miles) => E.findAnswerOf(served(d, miles), { title: "1995 BMW M
 const NO_TOO_FEW_HEAD = fa => !(fa.lines || []).some(l => /too few for a range/i.test(l));
 // 1. the live cars: a 1995 M3 at 28,000 miles and at 38,000 (61,000 km), under 50 holds 4, 50 to 100 holds 9 ($26,000 to $38,000), over 100 holds 5. THE RULE (Lane B, Nov 2 2026, job lane-b-mileageband): a thin asked band never borrows a neighbour's range;
 // the card names the thin band in full and has no range, and the other bands are the options.
-const THIN_LINE = { 0: "Few sales under 50,000 miles. Pick a mileage band to see its range.", 1: "Few sales between 50,000 and 100,000 miles. Pick a mileage band to see its range.", 2: "Few sales over 100,000 miles. Pick a mileage band to see its range." };
+import { REASON_TABLE as RT } from "../lib/reasonWords.js";
+const THIN_LINE = { 0: RT["find.near_band"].text({ thin: "under 50,000 miles" }), 1: RT["find.near_band"].text({ thin: "between 50,000 and 100,000 miles" }), 2: RT["find.near_band"].text({ thin: "over 100,000 miles" }) };   // the Find card line, from the engine's table (nothing to pick on a card)
 const noMoney = fa => !(fa.lines || []).some(l => /\$\s?\d/.test(l));
 for (const miles of [28000, 38000]) {
   const d = answer([4, 9, 5]), fa = find(d, miles), sv = served(d, miles);
   ok(`the live car at ${miles}: the card has NO range (the 50,000 to 100,000 mile band is not borrowed)`, !!fa && fa.state !== "range" && fa.basis !== "band_near" && !(fa.range && fa.range.low > 0) && noMoney(fa), fa && JSON.stringify({ state: fa.state, basis: fa.basis, range: fa.range, lines: fa.lines }));
   ok(`... the line names the thin band in words, in full: "${THIN_LINE[0]}"`, fa && fa.lines.length === 1 && fa.lines[0] === THIN_LINE[0], fa && JSON.stringify(fa.lines));
   ok("... the other bands are the options, each with its own range or its own 'too few'", fa && (fa.otherLines || []).length === 2 && /^50,000 to 100,000 miles \$26,000 to \$38,000/.test(fa.otherLines[0]) && /^Over 100,000 miles, 5 sales, too few/.test(fa.otherLines[1]) && !(fa.otherLines || []).some(l => /^Under 50,000/.test(l)), fa && JSON.stringify(fa.otherLines));
-  ok("Market Check and the partner page carry the same sentence as nearBand, with no borrowed band in it", sv.nearBand && sv.nearBand.line === THIN_LINE[0] && sv.nearBand.to === undefined && sv.nearBand.from.value === "lt50" && sv.nearBand.from.n === 4, sv.nearBand && JSON.stringify(sv.nearBand));
+  ok("Market Check and the partner page carry nearBand.line (their pills pick a band), the card carries cardLine (nothing to pick), neither with a borrowed band in it", sv.nearBand && sv.nearBand.line === RT["nearband.line"].text({ thin: "under 50,000 miles" }) && sv.nearBand.cardLine === THIN_LINE[0] && sv.nearBand.to === undefined && sv.nearBand.from.value === "lt50" && sv.nearBand.from.n === 4, sv.nearBand && JSON.stringify(sv.nearBand));
 }
 // 2. every band a car can sit in: a thin own band with a neighbour's range never prints a range; its line names the band in full; options are never restated; bands ascend
 const SHAPES = [[4, 9, 5], [9, 4, 5], [5, 4, 9], [3, 9, 3], [9, 9, 4], [4, 3, 9], [9, 3, 3], [3, 3, 9]];
