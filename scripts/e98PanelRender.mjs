@@ -13,7 +13,7 @@ export async function openPanel(browser, width, opts = {}) {
     if (u.host === "goasksam.com" && u.pathname === "/api/buySearch") { let q = {}; try { q = JSON.parse(r.postData() || "{}"); } catch {}
       if (q.action === "chat") return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ reply: "ok", turns: 1, state: { filters: { make: "BMW" } }, meta: { count: 1, total: 1, narrow: "none" }, cards: [card] }) });
       if (q.action === "panel") { if (opts.onPanel) opts.onPanel(q); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(q.option && opts.optionBody ? opts.optionBody(q.option) : opts.panelBody || { market: card.market, engineAnswer: { basisLine: "Based on ten sales, the latest in October 2026.", cards: opts.rows || TEN }, representative: {}, sam_lines: card.sam_lines }) }); }
-      if (q.action === "enrich") return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ cards: [] }) });
+      if (q.action === "enrich") { if (opts.onEnrich) { const cs = opts.onEnrich(q, card); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ cards: Array.isArray(cs) ? cs : [] }) }); } return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ cards: [] }) }); }
       return r.respond({ status: 200, contentType: "application/json", body: "{}" }); }
     if (u.host === "goasksam.com" && /^\/api\//.test(u.pathname)) return r.respond({ status: 200, contentType: "application/json", body: "{}" });
     if (u.host !== "goasksam-com" && u.host !== "goasksam.com") return r.respond({ status: 204, body: "" }); r.continue(); });

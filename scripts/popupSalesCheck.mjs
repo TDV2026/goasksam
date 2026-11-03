@@ -58,6 +58,17 @@ const w = await readMarket(L1, car), ea = w && w.engineAnswer;
 const basisN = n => { const m = /Based on (\d+|[a-z-]+) sales?/i.exec(String(n || "")); const words = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20 }; return m ? (/^\d+$/.test(m[1]) ? Number(m[1]) : words[m[1].toLowerCase()] || null) : null; };
 ok(!!ea && Array.isArray(ea.cards) && ea.cards.length === N, `warm: the popup's answer carries ${N} sales (${ea && ea.cards && ea.cards.length})`);
 ok(ea && basisN(ea.basisLine) === ea.cards.length, `warm: the count the popup states ("${ea && ea.basisLine}") equals the sales it carries (${ea && ea.cards && ea.cards.length})`);
+  const csSlots = (await imp("lib/live/cardSlots.js")).cardSlotsOf, bsm = await imp("api/buySearch.js");
+const enrichCall = body => new Promise(resolve => { const res = { setHeader() {}, getHeader() {}, status() { return res; }, json(o) { resolve(o); return res; }, send(b) { resolve(b); return res; }, end() { resolve(null); return res; } };
+  Promise.resolve(bsm.default({ method: "POST", url: "/api/buySearch", query: {}, headers: { host: "goasksam.com", cookie: "" }, body, socket: {} }, res)).catch(e => resolve({ error: e.message })); setTimeout(() => resolve({ timeout: true }), 30000); });
+// A CARD THAT WAS STILL READING LANDS WHOLE (lane-e-cardstill; the story is with the rendered part further down): the engine's enrich reply, from the real handler
+const lv = car; LIVE = [lv];   /* the car the warm steps above already read: its stored rows give the card its range */
+  let landed = null; for (let i = 0; i < 8 && !landed; i++) { const r = await enrichCall({ action: "enrich", ids: [lv.id] }); const c = r && r.cards && r.cards[0]; if (c && c.market && c.market.kind !== "pending") landed = c; else await wait(1500); }
+  ok(!!landed && landed.market.kind === "range", `enrich: the real handler answers the card with its range (${landed && landed.market && landed.market.kind})`);
+  const lvWant = landed ? csSlots({ market: landed.market, sam_lines: landed.sam_lines, miles: lv.mileage }) : null;
+  ok(!!landed && typeof landed.cardLabel === "string" && typeof landed.cardHeadline === "string" && typeof landed.cardLine === "string" && "cardBand" in landed && landed.cardHeadline.length > 0, `enrich: the reply carries the card's Sam box beside the market (label "${landed && landed.cardLabel}", headline "${landed && landed.cardHeadline}", line "${landed && landed.cardLine}")`);
+  ok(!!landed && !!lvWant && landed.cardHeadline === lvWant.cardHeadline && landed.cardLabel === lvWant.cardLabel, "enrich: the Sam box is the engine's slots for that very market, not a second wording");
+LIVE = [];
 const OB = await imp("lib/onebox.js"), full = await OB.oneEngineAnswer({ make: "Porsche", model: "911", year: 2016, trim: "GT3 RS", requireYear: true }, null, "2016 Porsche 911 GT3 RS", { ...env, asked: 0 }, null).catch(() => null);
 const mcCards = full && full.raw && full.raw.cards || [];
 ok(mcCards.length === N && ea && ea.cards.every((c, k) => c.price === mcCards[k].price && c.date === (mcCards[k].date || null) && c.title === (mcCards[k].title || null)), "warm: the popup's sales are the full Market Check page's cards, the same sales in the same order");
@@ -231,6 +242,33 @@ for (const k of ["apart", "apartMiles"]) {
   const asksModel = await p.evaluate(() => /Which model/i.test(document.body.innerText));
   ok(asked.length > 0 && asked.some(b => /gt3[ -]?rs/i.test(b)) && !asksModel, `Market Check opened from a card's link with a VIN reads the card's car ("2016 porsche 911 gt3 rs"), never a model question or the bare model (asked ${asked.length}x; model question shown: ${asksModel})`);
   await p.close();
+}
+// A CARD THAT WAS STILL READING LANDS WHOLE (Lane E, Nov 3 2026, lane-e-cardstill). Live: a Find card (and a Tasks card) whose answer was still being read asked again, the answer came back, and the Sam box stayed empty. CAUSE: a pending card is drawn
+// with empty slots (cardSlotsOf gives none for a pending market), the page re-asks at the engine's retryAfterMs until its waitMaxMs and swaps in the market the engine sends, but the engine's enrich reply carried the market and sam_lines
+// and NOT the card's Sam box (cardLabel, cardHeadline, cardLine, cardBand), so the landed card kept the empty box the pending one had. The popup was not affected (its answer carries the slots). WHO ELSE: every card that is drawn pending and filled by
+// the enrich ask: Find's first six, its hidden rest, a Show more batch, a sort / zip / radius rerun, and every Tasks card (the one kit asks the same action). CLASS: any reply that replaces a card's market must replace the Sam box made from it. The
+// check calls the real enrich handler, and renders a pending Find card whose answer lands after two more asks at the engine's own cadence (100 ms here, the page keeps none).
+{
+  const cardSlotsOf = csSlots, want = lvWant;
+  // the rendered card: pending at first (empty box, the engine's retry 100 ms and limit 6 s), two more pending answers, then the landed one
+  const SR = { kind: "pending", stillReading: true, line: "Sam is still reading the sales for this one.", retry: true, retryAfterMs: 100, waitMaxMs: 6000 };
+  for (const width of [1440, 390]) {
+    const stamps = []; const t0 = Date.now(); let n = 0;
+    const p = await openPanel(br, width, { marketOnly: SR, cardFields: cardSlotsOf({ market: SR }), noOpen: true, onEnrich: (q, card) => { n++; stamps.push(Date.now() - t0); const id = card.id; return n < 3 ? [{ id, market: SR, sam_lines: [], ...cardSlotsOf({ market: SR }) }] : landed ? [{ ...landed, id }] : []; } });
+    await wait(1500);
+    const box = () => p.evaluate(() => { const a = document.querySelector("article.car"), q = s => (a && a.querySelector(".sl " + s) || {}).textContent || ""; return { label: q(".cs-label"), head: q(".cs-head"), line: q(".cs-line"), text: a ? a.innerText.replace(/\s+/g, " ") : "" }; });
+    const b1 = await box(), asked = n; await wait(700); const asked2 = n;
+    ok(asked >= 3, `pending card at ${width}: it asked again until the answer landed (${asked} asks)`);
+    const gaps = stamps.slice(1).map((t, i) => t - stamps[i]);
+    ok(gaps.length >= 2 && gaps.every(g => g < 1000), `pending card at ${width}: it asked at the engine's retryAfterMs (100 ms), not at a pace of its own (gaps ${gaps.join(", ")} ms)`);
+    ok(!!want && b1.label === want.cardLabel && b1.head === want.cardHeadline && b1.line === want.cardLine, `pending card at ${width}: when the answer landed the Sam box redrew with the engine's three slots ("${b1.label}" | "${b1.head}" | "${b1.line}")`);
+    ok(!/still reading/i.test(b1.text), `pending card at ${width}: no still-reading line is left on the card once it has landed`);
+    ok(asked2 === asked, `pending card at ${width}: it stops asking once the answer is in (${asked} then ${asked2})`);
+    await p.close();
+  }
+  // the page keeps no wait of its own for this: the re-ask reads market.retryAfterMs and market.waitMaxMs, then the engine's stillReadingMarket values the server wrote in, never a number in the source
+  const src = fs.readFileSync(path.join(root, "api/buy.js"), "utf8"), seg = src.slice(src.indexOf("var nextAsk"), src.indexOf("var retry") + 700);
+  ok(!/setTimeout\([^)]*,\s*\d{3,}\s*\)/.test(seg) && /m\.retryAfterMs > 0 \? m\.retryAfterMs : STILL_RETRY/.test(seg), "the card's re-ask holds no wait number of the page's own");
 }
 await br.close();
 if (process.env.DBG) console.log("DBG thin", JSON.stringify({ market: out.thin && out.thin.market && { kind: out.thin.market.kind, count: out.thin.market.count }, tier: out.thin && out.thin.engineAnswer && out.thin.engineAnswer.tier, cards: out.thin && out.thin.engineAnswer && out.thin.engineAnswer.cards && out.thin.engineAnswer.cards.length, basis: out.thin && out.thin.engineAnswer && out.thin.engineAnswer.basisLine, still: out.thin && out.thin.salesStill }));
