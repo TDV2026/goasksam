@@ -38,8 +38,10 @@ ok(!/[–—]/.test(a.html + b.html + z.html), "no dashes");
   const zeroCard = sl2({ id: 1, market: { kind: "not_tracked", notTrackedLine: "Sam does not track this car.", thin_sales: { count: 0, answer_line: "No sale of a car like this on record in the US or Canada yet." } } });
   ok(zeroCard && /No sale of a car like this on record in the US or Canada yet\./.test(zeroCard.html) && !/does not track/.test(zeroCard.html), "not tracked: the card prints the zero line"); }
 { const sl3 = new Function("esc", "thinSales", "READING_LINE", "rungHtml", "rungShown", "usd", "var REL_MC = true;\n" + block("  function fxOpt(", "  function noRange(") + "\n" + block("  function noRange(", "  function compactNoRange(") + "\n" + block("  function compactNoRange(", "  function samLine(") + "\n" + block("  function samLine(", "  // SPEC CHIPS under the bid line") + "\nreturn samLine;")(esc, thinSales, "x", () => "", () => [], usd);
-  const um = sl3({ id: 1, market: { kind: "unmatched" } });
-  ok(um && /<p class="nt">Sam could not match this listing to a car yet\.<\/p>/.test(um.html), "unmatched: a listing the resolver cannot read prints the fixed line"); }
+  const { cardSlotsOf } = await import("../lib/live/cardSlots.js");
+  const umc = { id: 1, market: { kind: "unmatched" } }; Object.assign(umc, cardSlotsOf(umc));
+  const um = sl3(umc);
+  ok(um && umc.cardLine && um.html.includes(umc.cardLine.replace(/&/g, "&amp;")) && !/<p class="nt">/.test(um.html), "unmatched: the card prints the engine's own card line through the slots, and the page carries no copy of it"); }
 const srcS = fs.readFileSync(new URL("../lib/live/search.js", import.meta.url), "utf8");
 ok(/d\.refusal_line\) refusal = String\(d\.refusal_line\)/.test(srcS) && /refusalMem/.test(srcS) && /refusalLine: refusalMem\.get\(spec\.key\) \|\| null/.test(srcS) && /kind: "refused", emailMode: "none", refusalLine: rf/.test(srcS), "the engine's refusal sentence is carried and stored (refusalLine) for a spec with no sales to count");
 // samLine draws it first (a card with no sam_lines still shows it) and falls through otherwise
@@ -52,7 +54,7 @@ ok(/thinZeroMem/.test(src) && /thin_sales: \{ count: 0 \}/.test(src) && /thinZer
 ok(/m\.thin_sales = d\.thin_sales \|\| null/.test(src) || /m\.thin_sales = /.test(src), "the stored core carries thin_sales");
 // Tasks (its page and its emails) lift Find's card code by name: the thin block must be in that list or the email card cannot build
 const kit = fs.readFileSync(new URL("../lib/findCardKit.js", import.meta.url), "utf8");
-ok(/"compactNoRange", "thinSales", "samLine"/.test(kit), "findCardKit lifts thinSales with samLine, so the Tasks page and its emails print the same thin card");
+ok(["thinSales", "samLine", "cardSlotsHtml"].every(n => new RegExp('"' + n + '"').test((/KIT_NAMES = \[([^\]]*)\]/.exec(kit) || [])[1] || "")), "findCardKit lifts thinSales with samLine, so the Tasks page and its emails print the same thin card");
 // the shared card is unchanged
 const shared = fs.readFileSync(new URL("../lib/sellsForCard.js", import.meta.url), "utf8");
 ok(!/thin_sales|Thin so far/.test(shared), "lib/sellsForCard.js (Sell, Tasks, the partner demo) is unchanged");
