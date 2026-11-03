@@ -31,9 +31,12 @@ const card = await imp("lib/sellsForCard.js");
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 // the panel's option block, lifted from the page's own client code (api/buy.js CLIENT, drawerHtml) and run on a market object
 const src = fs.readFileSync("api/buy.js", "utf8"), CL = JSON.parse(/const CLIENT = ("(?:[^"\\]|\\.)*");/.exec(src)[1]);
-const a = CL.indexOf("    var fa1 = m && m.findAnswer"), a0 = a >= 0 ? a : CL.indexOf("    if (m && Array.isArray(m.optionLines) && m.optionLines.length) out.push('<div class=\"md-opts\">'");
-const b0 = CL.indexOf("\n", CL.indexOf("out.push('<div class=\"md-opts\">'", a0));
-const panelOf = new Function("esc", "m", "var out = [];\n" + CL.slice(a0, b0 + 1) + "\nreturn out.join('');");
+// THE REAL FUNCTION, NOT A SLICE OF IT (Lane E, Nov 3 2026): this check used to cut drawerHtml's option block out by text and run it alone; when the function gained a variable declared above the cut ("apart") the slice threw ReferenceError.
+// It now lifts the whole drawerHtml (up to openDrawer) and runs it with stubs only for the helpers it CALLS (heading, rows, switches), so what runs is the page's function as written, and a new line inside it cannot fall outside the cut.
+const dStart = CL.indexOf("  function drawerHtml("), dEnd = CL.indexOf("  function openDrawer(", dStart);
+if (dStart < 0 || dEnd < 0) throw new Error("nearBandPagesCheck: drawerHtml not found in api/buy.js");
+const realDrawer = new Function("esc", "var REL_MC = false; function mdHeadHtml(){ return ''; } function rungHtml(){ return ''; } function sameName(){ return false; } function carTitle(){ return ''; } function cnt(n){ return String(n); } function usd(n){ return '$' + n; } function mdRowHtml(){ return ''; } function alertSwitchHtml(){ return ''; } function watchHtml(){ return ''; }\n" + CL.slice(dStart, dEnd) + "\nreturn drawerHtml;")(esc);
+const panelOf = (e, m) => realDrawer({ id: 1, market: m }, { market: m, engineAnswer: {} });
 const optTexts = html => [...html.matchAll(/<p class="md-opt">([^<]*)<\/p>/g)].map(x => x[1].replace(/&amp;/g, "&"));
 const SHAPES = [[4, 9, 5], [9, 4, 5], [5, 4, 9], [3, 9, 3], [9, 9, 4], [4, 3, 9], [9, 3, 3], [3, 3, 9], [9, 9, 9], [4, 5, 3]];
 let nearN = 0, ownN = 0, panelN = 0;
