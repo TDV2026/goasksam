@@ -37,8 +37,8 @@ async function engineAnswer(filters, offset, sessionZip) {
   const list = FIX.map(f => ({ r: f.r, facts: f.facts, unknown: [], market: f.market })), zip = (/\d{5}/.exec(String(filters.location || "")) || [])[0] || (filters.sort === "nearest" && /^\d{5}$/.test(String(sessionZip || "")) ? sessionZip : null), center = zip ? geo.zipCoord(zip) : null;
   if (center) for (const x of list) { const c = geo.listingCoord(x.r); x.distance = c ? geo.milesBetween(center, c) : null; }
   const key = filters.sort === "nearest" && !center ? "ending_soon" : filters.sort || "ending_soon";
-  if (key === "below_range") await bs.rankByBid(null, list);
-  sm.orderMatches(list, key);
+  if (key === "below_range" && typeof bs.rankByBid === "function") await bs.rankByBid(null, list);
+  if (typeof sm.orderMatches === "function") sm.orderMatches(list, key);   // a tree without the engine's orders leaves the list as it came, and the assertions below fail on it
   const batch = list.slice(offset, offset + SHOW_BATCH);
   const cards = batch.map(x => { const c = { ...bs.cardOf(x), market: x.market, seen_before: null, timeline: [], name: null }; if (x.distance != null) c.distance = x.distance; return { ...c, sam_lines: bs.samLines(c) }; });
   return { cards, meta: { live: list.length, asks: [], sort: key, located: !!center, zipUnplaced: filters.sort === "nearest" && !center && /^\d{5}$/.test(String(sessionZip || "")) ? RL("find.zip_unplaced") : null, place: center ? "Atlanta, GA" : null, ...sm.pageMeta(list.length, offset, batch.length) }, order: list.map(x => x.r.id) };
