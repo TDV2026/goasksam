@@ -802,6 +802,13 @@ try {
 } catch (e) {
   record("popupSalesCheck (scripts/popupSalesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
+try {
+  const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("findSortsCheck (scripts/findSortsCheck.mjs)", "PASS", (out.match(/findSortsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("findSortsCheck (scripts/findSortsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // logLinesCheck (Lane E, Nov 3 2026, lane-e-vercelcost): a hot path (Find search, Show more, enrich, the card popup, Market Check) prints at most 2 console lines per request; no un-gated diagnostic line in api/ or lib/; only runtime folders are deployable.
 try {
   const out = execSync("node scripts/logLinesCheck.mjs", { encoding: "utf8", timeout: 120000 });

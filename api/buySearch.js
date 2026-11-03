@@ -53,7 +53,6 @@ import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.j
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
 import { runTurn, runFilters, runSearch, suggestFor, BATCH_BUDGET_MS, useMarketRank } from "../lib/live/samChat.js";
-import { nearestZip } from "../lib/live/geo.js";
 // The composer's suggestions (Stage 1c item 6), from the shaped cards (seen_before exists only after shaping).
 const withSuggest = (out, r) => ({ ...r, suggest: suggestFor({ meta: out.meta, filters: out.state && out.state.filters, seenAny: (r.cards || []).some(c => c && c.seen_before) }) });
 import { humanTitle } from "../lib/carTitle.js";
@@ -640,12 +639,6 @@ async function handler(req, res) {
       const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null });
       const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
       return res.status(200).json({ reply: out.reply, searchNote: out.searchNote || null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
-    }
-    // USE MY LOCATION (Nov 2 2026): the browser's position, sent once when the visitor chose it, becomes the nearest ZIP and its place name, and the page runs the search with that ZIP. The point is not stored or logged; no ZIP in range is a plain null.
-    if (b.action === "locate") {
-      const lat = Number(b.lat), lon = Number(b.lon);
-      if (!(Math.abs(lat) <= 90) || !(Math.abs(lon) <= 180) || b.lat == null || b.lon == null) return res.status(400).json({ location: null });
-      return res.status(200).json({ location: nearestZip({ lat, lon }) });
     }
     // SHOW MORE (Nov 2 2026, a dealer buyer's "all live sales this week": 1,669 matches, 24 cards, no way to the rest): the next batch of the SAME search, in the engine's own order.
     // The page sends the search's filters (its sort and chips are among them) and how many cars it already draws; the engine reads the search again and answers with the cars after those,
