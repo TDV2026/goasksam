@@ -42,7 +42,7 @@ ok("the make has no taxonomy list: the archive's own model column stands in, no 
 const a3 = await ask("down", "ok");
 ok("taxonomy unreadable (retried once): the archive's model column stands in, no Senna receipt", sennas(a3) === 0 && a3.modelCheck === "archive", `tier ${a3.tier}, check ${a3.modelCheck}, ${sennas(a3)} Senna`);
 const a4 = await ask("down", "down");
-ok("neither readable: the answer is marked unchecked", a4.modelCheck === "unchecked", `check ${a4.modelCheck}`);
+ok("neither readable: the answer is marked unchecked, or (since the read-failure rule) refused as still-reading: never a clean finished answer", a4.modelCheck === "unchecked" || (a4.tier === "unavailable" && a4.readFailed === true), `check ${a4.modelCheck}, tier ${a4.tier}, readFailed ${a4.readFailed}`);
 ok("neither readable: a Speedtail style pool is never passed as clean (no Senna receipt on a result)", !(a4.tier === "result" && sennas(a4) > 0), `tier ${a4.tier}, ${sennas(a4)} Senna`);
 ok("neither readable: the refusal carries its line", a4.tier !== "refusal" || !!a4.refusal_line, String(a4.refusal_line || "").slice(0, 80));
 { const card = (t, y) => ({ make: "McLaren", model: "Speedtail", title: t, year: y, price: 1e6 });

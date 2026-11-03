@@ -81,7 +81,7 @@ if (ask) {
 // 9. the wiring: read time, after the last good answer is stored, and the stored shortcut is skipped for a request that asks
 const strip = t => t.replace(/\/\/[^\n]*/g, "");
 const pa = strip(fs.readFileSync("api/partnerAnswer.js", "utf8"));
-ok("the answer guard has no exemption for any path", !/placedSales/.test(pa.slice(pa.indexOf("export function venueLeak"), pa.indexOf("export default async function handler"))));
+ok("the answer guard has no exemption for any path", !/placedSales/.test(pa.slice(pa.indexOf("export function venueLeak"), (pa.indexOf("async function handlerCore") > 0 ? pa.indexOf("async function handlerCore") : pa.indexOf("export default async function handler")))));
 const iStore = pa.indexOf("writeLast(env, lk, storedWithPlaced(out, r.d))"), iPos = pa.indexOf("partnerPositionsOf(r.d, ask)");
 ok("positions are added after the last good answer is stored, so a stored answer never carries them", iStore > 0 && iPos > iStore, `${iStore} < ${iPos}`);
 ok("a request that needs the live engine (a typed mileage, another order, a stored answer without the placed sales) is read through Market Check", /servedFromStored\(qlast\.out, ask\)/.test(pa) && /ask\.mileage \|\| \(ask\.order && ask\.order !== "date"\)/.test(pa));

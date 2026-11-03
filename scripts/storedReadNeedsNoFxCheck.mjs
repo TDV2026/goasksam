@@ -16,7 +16,7 @@ ok("the handler starts the table's load and waits for it only when the request i
 ok("priceProbe and oneBoxProof keep the wait (they convert without the engine)", /!req\.body\?\.oneBoxProof && !req\.body\?\.priceProbe/.test(seg));
 const oe = ob.slice(ob.indexOf("export async function oneEngineAnswer"), ob.indexOf("export async function oneEngineAnswer") + 2500);
 ok("oneEngineAnswer arms the table first, bounded, before anything converts", /await Promise\.race\(\[ensureFxReady\(env\), new Promise/.test(oe) && oe.indexOf("ensureFxReady") < oe.indexOf("bandedRefine(refine)"));
-ok("runOneBox still arms it", /export async function runOneBox\([^)]*\) \{\s*try \{ await ensureFxReady\(env\)/.test(ob));
+ok("runOneBox still arms it (directly, or through runOneBoxCore which opens with ensureFxReady)", /export async function runOneBox\([^)]*\) \{\s*try \{ await ensureFxReady\(env\)/.test(ob) || (/export async function runOneBox\([^)]*\) \{[\s\S]{0,200}runOneBoxCore\(/.test(ob) && /async function runOneBoxCore\([^)]*\) \{\s*try \{ await ensureFxReady\(env\)/.test(ob)));
 // CLASS: every stored read is the same with dated rates armed or not
 const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href), H = await import(pathToFileURL(path.join(root, "lib/_houseComps.js")).href), FX = await import(pathToFileURL(path.join(root, "lib/_fx.js")).href);
 const dir = "scripts/fixtures", files = fs.readdirSync(dir).filter(f => /^(answer-|m3Answer)/.test(f) && f.endsWith(".json"));
