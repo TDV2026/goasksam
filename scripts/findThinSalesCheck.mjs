@@ -3,15 +3,16 @@
 // sold at auction yet." The card computes nothing. Also: the engine fields reach the card (lib/live/search.js carries thin_sales and the zero
 // state), and the shared card (lib/sellsForCard.js) is untouched. No network.   node scripts/findThinSalesCheck.mjs
 import fs from "node:fs";
+import { fnBlock } from "./_pageLift.mjs";
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const s = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
 const i = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.parse(s.slice(i, s.indexOf('";\n', i) + 1));
 const block = (from, to) => { const a = c.indexOf(from), b = c.indexOf(to, a); if (a < 0 || b < 0) throw new Error("missing " + from); return c.slice(a, b); };
-const esc = new Function(block("function esc(s){", "function usd(n)") + "\nreturn esc;")();
+const esc = new Function(block("function esc(", "function usd(") + "\nreturn esc;")();
 const usd = n => "$" + Math.round(Number(n)).toLocaleString("en-US");
 const num = n => Math.round(Number(n)).toLocaleString("en-US");
-const mk = rel => new Function("esc", "usd", "num", "REL_MC", block("  function fxOpt(", "  function samLine(l){") + "\nreturn thinSales;")(esc, usd, num, rel);
+const mk = rel => new Function("esc", "usd", "num", "REL_MC", block("  function fxOpt(", "  function samLine(") + "\nreturn thinSales;")(esc, usd, num, rel);
 const thinSales = mk(true);
 const sale = (price, month, extra) => ({ price, month, gearbox: "Manual", mi: 31000, venue: "Bring a Trailer", url: "https://bringatrailer.com/x", ...(extra || {}) });
 const card = (m, extra) => ({ id: 1, market: { kind: "count", query: "2006 BMW 325i Sedan", specLabel: "2006 BMW 325i Sedan", ...m }, ...(extra || {}) });
@@ -31,18 +32,18 @@ ok(thinSales({ id: 1, market: { kind: "pending" } }) === null && thinSales({ id:
 ok(thinSales(card({ thin_sales: { count: 3, sales: [sale(1, "x")] } }, { swap: true })) === null, "a swap listing draws no thin block");
 ok(!/[–—]/.test(a.html + b.html + z.html), "no dashes");
 // REFUSED and NOT TRACKED: the card is never blank. A refusal prints the engine's refusal sentence as it comes; a car that is not tracked prints the zero line (thin_sales count 0), not nothing.
-{ const sl2 = new Function("esc", "thinSales", "READING_LINE", "rungHtml", "rungShown", "usd", "var REL_MC = true;\n" + block("  function fxOpt(", "  function noRange(") + "\n" + block("  function noRange(", "  function compactNoRange(") + "\n" + block("  function compactNoRange(", "  function samLine(") + "\n" + block("  function samLine(l){", "  // SPEC CHIPS under the bid line") + "\nreturn samLine;")(esc, thinSales, "Sam is still reading the sales for this one.", () => "", () => [], usd);
+{ const sl2 = new Function("esc", "thinSales", "READING_LINE", "rungHtml", "rungShown", "usd", "var REL_MC = true;\n" + block("  function fxOpt(", "  function noRange(") + "\n" + block("  function noRange(", "  function compactNoRange(") + "\n" + block("  function compactNoRange(", "  function samLine(") + "\n" + block("  function samLine(", "  // SPEC CHIPS under the bid line") + "\nreturn samLine;")(esc, thinSales, "Sam is still reading the sales for this one.", () => "", () => [], usd);
   const refused = sl2({ id: 1, market: { kind: "refused", refusalLine: "Sam could not verify this one, so no figures are shown." } });
   ok(refused && /<p class="nt">Sam could not verify this one, so no figures are shown\.<\/p>/.test(refused.html), "refused: the card prints the engine's refusal sentence");
   const zeroCard = sl2({ id: 1, market: { kind: "not_tracked", notTrackedLine: "Sam does not track this car.", thin_sales: { count: 0, answer_line: "No sale of a car like this on record in the US or Canada yet." } } });
   ok(zeroCard && /No sale of a car like this on record in the US or Canada yet\./.test(zeroCard.html) && !/does not track/.test(zeroCard.html), "not tracked: the card prints the zero line"); }
-{ const sl3 = new Function("esc", "thinSales", "READING_LINE", "rungHtml", "rungShown", "usd", "var REL_MC = true;\n" + block("  function fxOpt(", "  function noRange(") + "\n" + block("  function noRange(", "  function compactNoRange(") + "\n" + block("  function compactNoRange(", "  function samLine(") + "\n" + block("  function samLine(l){", "  // SPEC CHIPS under the bid line") + "\nreturn samLine;")(esc, thinSales, "x", () => "", () => [], usd);
+{ const sl3 = new Function("esc", "thinSales", "READING_LINE", "rungHtml", "rungShown", "usd", "var REL_MC = true;\n" + block("  function fxOpt(", "  function noRange(") + "\n" + block("  function noRange(", "  function compactNoRange(") + "\n" + block("  function compactNoRange(", "  function samLine(") + "\n" + block("  function samLine(", "  // SPEC CHIPS under the bid line") + "\nreturn samLine;")(esc, thinSales, "x", () => "", () => [], usd);
   const um = sl3({ id: 1, market: { kind: "unmatched" } });
   ok(um && /<p class="nt">Sam could not match this listing to a car yet\.<\/p>/.test(um.html), "unmatched: a listing the resolver cannot read prints the fixed line"); }
 const srcS = fs.readFileSync(new URL("../lib/live/search.js", import.meta.url), "utf8");
 ok(/d\.refusal_line\) refusal = String\(d\.refusal_line\)/.test(srcS) && /refusalMem/.test(srcS) && /refusalLine: refusalMem\.get\(spec\.key\) \|\| null/.test(srcS) && /kind: "refused", emailMode: "none", refusalLine: rf/.test(srcS), "the engine's refusal sentence is carried and stored (refusalLine) for a spec with no sales to count");
 // samLine draws it first (a card with no sam_lines still shows it) and falls through otherwise
-const sl = block("  function samLine(l){", "    var ls = l.swap");
+const sl = fnBlock(c, "samLine");
 ok(/var thin = thinSales\(l, bl0 && bl0\.bidLine\); if \(thin\) return thin;/.test(sl), "samLine returns the sales-only block first");
 // the engine fields reach the card
 const src = fs.readFileSync(new URL("../lib/live/search.js", import.meta.url), "utf8");

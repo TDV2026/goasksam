@@ -12,7 +12,7 @@ const buy = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
 const c = JSON.parse(/^const CLIENT = (".*");$/m.exec(buy)[1]), css = JSON.parse(/^const BUY_CARD_CSS = (".*");$/m.exec(buy)[1]);
 const line = from => { const a = c.indexOf(from); if (a < 0) throw new Error("missing " + from); return c.slice(a, c.indexOf("\n", a)) + "\n"; };
 const block = (from, to) => { const a = c.indexOf(from), b = c.indexOf(to, a); if (a < 0 || b < 0) throw new Error("missing " + from); return c.slice(a, b); };
-const oh = block("  function openHist(btn){", "  // A group of more than 3");
+const oh = block("  function openHist(", "  // A group of more than 3");
 ok(/pop\.className = "hpop modal"/.test(oh) && /document\.body\.appendChild\(sc\); document\.body\.appendChild\(pop\);/.test(oh) && !/art\.appendChild\(pop\)/.test(oh) && !/matchMedia/.test(oh), "the popup is appended to the page (with its scrim) at every width, never inside the card");
 ok(/pop\.setAttribute\("aria-modal", "true"\)/.test(oh) && /x\.focus\(/.test(oh), "a dialog, focus on its X");
 ok(/\.hpop\.modal\{position:fixed;left:50%;top:50%;[^}]*transform:translate\(-50%,-50%\);[^}]*z-index:200\}/.test(css) && /\.hscrim\{z-index:199\}/.test(css), "fixed, centred, above everything (the scrim just under it)");
@@ -20,7 +20,7 @@ ok(/sc\.setAttribute\("data-hpclose", ""\)/.test(oh) && /if \(e\.target\.closest
 ok(/document\.addEventListener\("keydown", function\(e\)\{ if \(e\.key === "Escape"\) \{ if \(document\.querySelector\("\[data-sale-modal\]"\)\) \{ closeSale\(\); return; \} closeOverlays\(\);/.test(c), "Escape closes it (a sale modal first, then the rest)");
 // The rows, rendered for the 1996 Turbo.
 const env = "var HOUSE = {}, MON3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];\nfunction esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\"/g,'&quot;'); }\n" +
-  [priorSold, priorWords, priorTake].map(f => f.toString()).join("\n") + "\n" + line("  function usd(n){") + line("  function num(n){") + line("  function monShort(d){") + line("  function okUrl(u){") + line("  function sameCar(l){") + block("  function histHtml(l){", "  function openHist(btn){");
+  [priorSold, priorWords, priorTake].map(f => f.toString()).join("\n") + "\n" + line("  function usd(") + line("  function num(") + line("  function monShort(") + line("  function okUrl(") + line("  function sameCar(") + block("  function histHtml(", "  function openHist(");
 const histHtml = new Function(env + "\nreturn histHtml;")();
 const turbo = { id: 109318, miles: 31200, history_url: "/vin/WP0AC2995TS375142", timeline: [{ date: "2026-09-21", house: "Bring a Trailer", result: "sold", price: 306000, url: "https://bringatrailer.com/listing/1996-porsche-911-turbo-216/", miles: 31000, photo: "https://bringatrailer.com/wp-content/uploads/2026/08/DSC01527-scaled-copy-2026-08-20-m7f-54157.jpg?w=940" }] };
 const h = histHtml(turbo), text = h.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");

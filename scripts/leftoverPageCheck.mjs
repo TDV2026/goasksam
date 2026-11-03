@@ -8,7 +8,7 @@ let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const ob = fs.readFileSync(new URL("../public/js/onebox.js", import.meta.url), "utf8");
 const buy = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
-const a = ob.indexOf("  function unusedLineHtml(d)"), b = ob.indexOf("\n  }\n", a) + 4;
+const a = ob.indexOf("  function unusedLineHtml("), b = ob.indexOf("\n  }\n", a) + 4;
 const ctx = vm.createContext({ esc: s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;") }); vm.runInContext(ob.slice(a, b) + "\nthis.f = unusedLineHtml;", ctx);
 const line = "Sam didn't use 'xyz' in this search.";
 ok(ctx.f({ unusedLine: line }) === '<p class="unused-line" role="note">Sam didn&#39;t use \'xyz\' in this search.</p>'.replace("&#39;", "'"), "One Box prints the engine's line exactly as sent");

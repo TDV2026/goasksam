@@ -51,9 +51,9 @@ ok("every listed sale carries date, miles, gearbox and venue fields", ts && ts.s
 const s = fs.readFileSync(path.join(root, "api/buy.js"), "utf8");
 const i0 = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.parse(s.slice(i0, s.indexOf('";\n', i0) + 1));
 const block = (from, to) => { const x = c.indexOf(from), y = c.indexOf(to, x); if (x < 0 || y < 0) throw new Error("missing " + from); return c.slice(x, y); };
-const esc = new Function(block("function esc(s){", "function usd(n)") + "\nreturn esc;")();
+const esc = new Function(block("function esc(", "function usd(") + "\nreturn esc;")();
 const usd = n => "$" + Math.round(Number(n)).toLocaleString("en-US"), num = n => Math.round(Number(n)).toLocaleString("en-US");
-const thinSales = new Function("esc", "usd", "num", "REL_MC", block("  function fxOpt(", "  function samLine(l){") + "\nreturn thinSales;")(esc, usd, num, true);
+const thinSales = new Function("esc", "usd", "num", "REL_MC", block("  function fxOpt(", "  function samLine(") + "\nreturn thinSales;")(esc, usd, num, true);
 const text = h => h.replace(/<[^>]+>/g, "|").replace(/\|+/g, "|");
 const card = (t) => ({ id: 1, market: { kind: "count", query: "2004 Porsche Boxster", specLabel: "2004 Porsche Boxster Convertible", countLine: t.count_line, thin_sales: t } });
 const sale2 = (price, gearbox) => ({ price, month: "September 2026", gearbox, mi: 41000, venue: "Bring a Trailer", url: "https://x" });

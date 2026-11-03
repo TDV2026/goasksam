@@ -11,9 +11,9 @@ const i = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.pars
 const block = (from, to) => { const a = c.indexOf(from), b = c.indexOf(to, a); if (a < 0 || b < 0) throw new Error("missing " + from); return c.slice(a, b); };
 const SIXTEEN = ["Bring a Trailer", "Cars & Bids", "Hagerty", "PCAR Market", "Hemmings", "MB Market", "Sotheby's Motorsport", "RM Sotheby's", "Gooding & Co", "Collecting Cars"];
 ok(c.includes(`var LIVE_SITES = ${JSON.stringify(SIXTEEN).replace(/","/g, '", "')};`), "the sites of the live read, in Sam's order (no All Collector Cars: Sam, Oct 23 2026)");
-ok(!/All Collector Cars/i.test(block("  var SEARCH_LINE = ", "  function searchingBlock(said){")) && !SIXTEEN.includes("All Collector Cars"), "no All Collector Cars in the searching line");
+ok(!/All Collector Cars/i.test(block("  var SEARCH_LINE = ", "  function searchingBlock(")) && !SIXTEEN.includes("All Collector Cars"), "no All Collector Cars in the searching line");
 ok(!SIXTEEN.some(x => /Car & Classic|PistonHeads|The Market|Bonhams|Mecum|All Collector Cars/i.test(x)), "no UK-only or unreturned source is named (Sam, Oct 25 2026)");
-ok(!/AutoHunter/i.test(block("  var SEARCH_LINE = ", "  function searchingBlock(said){")), "no AutoHunter");
+ok(!/AutoHunter/i.test(block("  var SEARCH_LINE = ", "  function searchingBlock(")), "no AutoHunter");
 ok((c.match(/Sam is searching \{site\} for your car/g) || []).length === 1 && !/Sam is searching [A-Z]/.test(c), "Sam's phrase is ONE constant, never written out per site");
 // Run it: a fake DOM and a fake clock.
 let now = 0; const timers = [];
@@ -39,8 +39,8 @@ const el2 = searchingBlock("red Ferrari"); el2.name("red Ferraris"); tick(20000)
 ok(/^Sam is still finding the sales for red Ferraris\./.test(st.textContent), "past 20 s: the still-finding line");
 tick(5000); ok(/^Sam is still finding/.test(st.textContent), "and the cycle does not overwrite it");
 el2.stop(); ok(timers.length === 0, "and stopping clears everything");
-const sb = block("  function searchingBlock(said){", "  // The answer is here");
-ok(!/[\u2013\u2014]/.test(block("  var SEARCH_LINE = ", "  function searchingBlock(said){")), "no dashes");
+const sb = block("  function searchingBlock(", "  // The answer is here");
+ok(!/[\u2013\u2014]/.test(block("  var SEARCH_LINE = ", "  function searchingBlock(")), "no dashes");
 ok(/el\.stop = function\(\)\{ clearInterval\(t\); clearTimeout\(t2\); \};/.test(sb), "stop clears the cycle");
 console.log(`buySearchLineCycleCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

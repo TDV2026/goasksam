@@ -26,7 +26,7 @@ ok(/\.mcdrawer \.md-x\{flex:0 0 auto;width:36px;height:36px/.test(css) && /\.mcd
 const line = from => { const i = client.indexOf(from); if (i < 0) throw new Error("missing " + from); return client.slice(i, client.indexOf("\n", i)) + "\n"; };
 const blk = (from, to) => { const i = client.indexOf(from), k = client.indexOf(to, i); if (i < 0 || k < 0) throw new Error("missing " + from); return client.slice(i, k); };
 const env = "var REL_MC = true; function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\"/g,'&quot;'); } function cnt(n){ return String(n); } function rungHtml(m){ return (m.rungLines || []).join(' '); } function carTitle(l){ return l.name; } function alertSwitchHtml(){ return '<p class=\"sw\">EMAIL</p>'; } function watchHtml(){ return '<p class=\"mw\">WATCH</p>'; }\n" +
-  line("  function usd(n){") + line("  function num(n){") + line("  var M = [") + line("  function monthYear(d){") + line("  var HOUSE = {") + line("  function cap(s){") + line("  function venueOf(c){") + line("  function mdHeadHtml(l){") + blk("  function sameName(a, b, make){", "  function openDrawer(btn){");
+  line("  function usd(") + line("  function num(") + line("  var M = [") + line("  function monthYear(") + line("  var HOUSE = {") + line("  function cap(") + line("  function venueOf(") + line("  function mdHeadHtml(") + blk("  function sameName(a, b, make){", "  function openDrawer(btn){");
 const drawerHtml = new Function(env + "\nreturn drawerHtml;")();
 const rows = Array.from({ length: 12 }, (_, k) => ({ price: 300000 - k * 1000, date: `2026-${String(10 - Math.floor(k / 2)).padStart(2, "0")}-1${k % 2}`, mi: 30000 + k, title: k ? "1996 Porsche 911 Turbo" : "1996 Porsche 911 Turbo 6-Speed", image: k === 3 ? null : `https://img.example/${k}.jpg`, platform: "Bring a Trailer" }));
 const l = { id: 1, name: "1996 Porsche 911 Turbo", make: "Porsche", year: 1996, market: { kind: "range", low: 258000, high: 330000, count: 17, rungLines: ["1996 911 Turbo"], query: "1996 porsche 911 turbo" } };
@@ -46,7 +46,7 @@ ok(/Not enough sales of this exact car to give a reliable range\./.test(thin) &&
 const failed = drawerHtml({ ...l, market: { kind: "range", low: 258000, high: 330000, count: 17 } }, null);
 ok(/\$258,000 to \$330,000: the typical range for comparable sales\. Based on 17 sales in the past year\./.test(failed), "a failed read falls back to the card's own line: never blank");
 ok(/function withMake\(fam, l\)/.test(client) && /Look for the next sale of ' \+ esc\(fam\)/.test(client) && /return m\.specLabel \|\| ""/.test(client), "the look-for button names the car by the engine's own identity (specLabel, which carries the make), Oct 29 2026");
-const withMake = new Function(line("  function withMake(fam, l){") + "\nreturn withMake;")();
+const withMake = new Function(line("  function withMake(") + "\nreturn withMake;")();
 ok(withMake("1996 911 Turbo", { make: "Porsche" }) === "1996 Porsche 911 Turbo" && withMake("1996 Porsche 911 Turbo", { make: "Porsche" }) === "1996 Porsche 911 Turbo" && withMake("911 Turbo", { make: "Porsche" }) === "Porsche 911 Turbo", "'Look for the next sale of 1996 Porsche 911 Turbo' (the make put in once)");
 console.log(`buyPanelCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

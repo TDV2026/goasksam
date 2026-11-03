@@ -11,7 +11,7 @@ const i = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.pars
 const line = from => { const a = c.indexOf(from); if (a < 0) throw new Error("missing " + from); return c.slice(a, c.indexOf("\n", a)) + "\n"; };
 const block = (from, to) => { const a = c.indexOf(from), b = c.indexOf(to, a); if (a < 0 || b < 0) throw new Error("missing " + from); return c.slice(a, b); };
 const env = ["  function esc(s)", "  function usd(n)", "  function num(n)", "  var TZ = ", "  function timePT(d)", "  function sameDay(a,b)", "  function bidAt(iso)", "  var SYM = ", "  function localMoney(n, cur)", "  function notUS(l)"].map(line).join("") +
-  "var CPHRASE = {}; function cityOf(l){ return l.location || ''; } function sameCar(l){ return l.timeline || []; } function priorSold(a){ return a.some(function(x){ return x.result === 'sold'; }); }\n" + line("  function awayWords(d)") + block("  // onPhoto: drawn inside the photo", "  function bidAge(ms)") + line("  function localTime(t)") + block("  function bidLine(l){", "  var CUR_F = null;") + block("  // The VIN pill is not shown", "  // HAVE SAM KEEP LOOKING");
+  "var CPHRASE = {}; function cityOf(l){ return l.location || ''; } function sameCar(l){ return l.timeline || []; } function priorSold(a){ return a.some(function(x){ return x.result === 'sold'; }); }\n" + line("  function awayWords(") + block("  // onPhoto: drawn inside the photo", "  function bidAge(") + line("  function localTime(") + block("  function bidLine(", "  var CUR_F = null;") + block("  // The VIN pill is not shown", "  // HAVE SAM KEEP LOOKING");
 const { moneyHtml, metaLine, chipsHtml, bidLine } = new Function(env + "\nreturn { moneyHtml: moneyHtml, metaLine: metaLine, chipsHtml: chipsHtml, bidLine: bidLine };")();
 const text = h => h.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 // The money figure: labelled, with the bid's own time; never a bare number.
@@ -37,7 +37,7 @@ ok(text(metaLine({ location: "Orlando, FL" })) === "Orlando, FL" && metaLine({})
 const ch = chipsHtml({ chips: ["Automatic", "Alpine White over Saddle Brown", "VIN WBAEA5…3774"] });
 ok(ch.includes("Automatic") && ch.includes("Alpine White over Saddle Brown") && !/VIN/.test(ch), "the VIN pill is not shown; the other chips stay");
 // The card: the order, no keep pill, the money on the photo or at the top of the text.
-const card = block("  function card(l, big, eager){", "  // THE ADAPTIVE GRID");
+const card = block("  function card(", "  // THE ADAPTIVE GRID");
 ok(!/keepPill\(\)/.test(card), "no 'Have Sam keep looking' on a card");
 ok(!/priceLine\(l\)|placeLine\(l\)/.test(card) && /metaLine\(l\) \+ chipsHtml\(l\)/.test(card), "one meta line, then the specs");
 ok(/var onPh = moneyHtml\(l, true\); if \(onPh\) ph = ph\.replace\(\/<\\\/a>\$\/, onPh \+ "<\/a>"\)/.test(card) && /money = ph \? "" : moneyHtml\(l, false\)/.test(card) && /'<div class="tx">' \+ \(ph \? "" : money\)/.test(card), "the money figure sits on the photo (inside its link), or at the top of the card when there is no photo");
@@ -46,7 +46,7 @@ ok(moneyHtml({ current_bid_usd: 42500, source: "Bring a Trailer", url: "https://
 const order = ["photoHtml(l, eager)", "<h3>", "metaLine(l)", "chipsHtml(l)", '<div class="sl">', 'class="acts"'].map(x => card.indexOf(x));
 ok(order.every((x, k) => x > 0 && (k === 0 || x > order[k - 1])) && /function slInner\(l\)\{ var line = samLine\(l\); return line \? '<span class="who">Sam<\/span>' \+ line\.html : ""; \}/.test(c), "the order: photo (with the money), car, meta, specs (the history chip last, Stage 1e item 2), Sam block, actions");
 // THE RANGE CARD (the five-line Sam box, Oct 29 2026; scripts/findCardShapeCheck.mjs has the whole-path fixtures): the engine's spec, scope, range on its own line, the options, the count with its window and the bid, in that order.
-const rf = new Function("esc", "usd", block("  function fxOpt(", "  function samLine(l){") + "\nfunction rungHtml(){ return ''; } function rungShown(){ return []; }\nreturn rangeFirst;")(
+const rf = new Function("esc", "usd", block("  function fxOpt(", "  function samLine(") + "\nfunction rungHtml(){ return ''; } function rungShown(){ return []; }\nreturn rangeFirst;")(
   s0 => String(s0 == null ? "" : s0).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch])), n => "$" + Math.round(Number(n)).toLocaleString("en-US"));
 const RM = { kind: "range", low: 55000, high: 78000, count: 24, specLabel: "2014 BMW 650i M Sport Convertible", countLine: "24 sales since December 2025." };
 const r1 = rf({ market: RM }, { kind: "range", rung: [], placing: "below the range", bidLine: "The bid is below the range.", text: "x" });

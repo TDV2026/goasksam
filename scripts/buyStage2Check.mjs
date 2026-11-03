@@ -12,7 +12,7 @@ const i = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.pars
 const line = from => { const a = c.indexOf(from); if (a < 0) throw new Error("missing " + from); return c.slice(a, c.indexOf("\n", a)) + "\n"; };
 const block = (from, to) => { const a = c.indexOf(from), b = c.indexOf(to, a); if (a < 0 || b < 0) throw new Error("missing " + from); return c.slice(a, b); };
 const env = ["  function esc(s)", "  function usd(n)", "  function num(n)", "  function genWord(v)", "  function band(lo, hi, fmt)"].map(line).join("") +
-  block("  function eraWords(f){", "  function band(") + block("  // STAGE 2: \"{N} live matches\"", "  function headerHtml(");
+  block("  function eraWords(", "  function band(") + block("  // STAGE 2: \"{N} live matches\"", "  function headerHtml(");
 const { matchesLine, filterParts, filterChips } = new Function(env + "\nreturn { matchesLine: matchesLine, filterParts: filterParts, filterChips: filterChips };")();
 const labels = f => filterParts(f).map(p => p.label);
 // The count, once.
@@ -31,7 +31,7 @@ ok(mk[0].keys.join() === "make,model,generation,trim,era" && mk[1].keys.join() =
 const ch = filterChips({ make: "Porsche", colour: "black" }).join("");
 ok(/<button type="button" class="rchip fchip" data-rmf="make,model,generation,trim,era" aria-label="Remove Porsche">Porsche<span class="fx" aria-hidden="true">×<\/span><\/button>/.test(ch) && /data-rmf="colour"/.test(ch), "each chip is a button that names what it removes");
 // The header and the searching block.
-const hh = block("  function headerHtml(m, q, qp, f, asking, drawn){", "  // With cars that don't state");
+const hh = block("  function headerHtml(", "  // With cars that don't state");
 const code = c.split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n");
 ok(!/Your search:/.test(code) && !/sq-k/.test(hh), "no 'Your search:' anywhere on the page");
 ok(!/chip-live/.test(hh) && !/data-nearme/.test(hh) && /var chips = filterChips\(f, m\.place, m\.radius\);/.test(hh), "no Live or Near me pill; the chips are the search's constraints");
@@ -40,10 +40,10 @@ ok(/if \(n <= 2\) widen\.forEach/.test(hh), "the engine's widenings (Any colour,
 ok(!/class="sq"|data-sqedit|esc\(q\)/.test(hh) && /return '<div class="shead">' \+\s*('<div class="shead-top">[^']*<\/div>' \+\s*)?'<div class="srow2">/.test(hh), "no search heading above the chips (Stage 1e item 7): the header starts with the chips row");
 ok(/esc\(m\.countLine \|\| matchesLine\(n, true\)\)/.test(hh) && /esc\(matchesLine\(0, !!qp, drawn\)\)/.test(hh), "the header's count is N live matches, or the engine's own countLine while cars remain");
 ok(!/insertAdjacentHTML\("beforeend", '<p class="snote">'/.test(c), "no 'Here's what's for sale' line over the cards");
-ok(/var lead = "";/.test(block("  function askHtml(a, m, qp){", "  // Listings that don't state")), "the narrowing question does not repeat the count");
+ok(/var lead = "";/.test(block("  function askHtml(", "  // Listings that don't state")), "the narrowing question does not repeat the count");
 ok(/'<div class="shead"><p class="sq"><b>' \+ esc\(said\) \+ '<\/b><\/p>/.test(c) && /matchesLine\(n, !!searchLabel/.test(c), "the searching block says the search once and its count as N live matches");
 // The clicks.
-const ck = block("    var rf = e.target.closest(\"[data-rmf]\");", "    var ap = e.target.closest(\"[data-askpatch]\");");
+const ck = block('closest("[data-rmf]")', 'closest("[data-askpatch]")');
 ok(/drop\.forEach\(function\(k\)\{ delete cur\[k\]; \}\);/.test(ck) && /return chatAsk\(cur\);/.test(ck) && /conv\.railReplace = location\.pathname \+ location\.search;/.test(ck), "a removed chip reruns at once without it, relabelling its rail entry");
 ok(/if \(!filterParts\(cur\)\.length\) return goStart\(true\);/.test(ck) && /if \(rf\.hasAttribute\("data-rmzip"\)\) setZip\("any"\);/.test(ck), "the last chip removed goes to the Buy start; a removed place forgets the zip");
 ok(!/sfin|data-sqedit|data-sfield/.test(c), "no inline edit field (Sam's new 1f item 4: the composer is the only free text input)");

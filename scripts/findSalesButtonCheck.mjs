@@ -12,9 +12,9 @@ const esc = x => String(x == null ? "" : x).replace(/[&<>"']/g, ch => ({ "&": "&
 const usd = n => "$" + Math.round(Number(n)).toLocaleString("en-US"), num = n => Math.round(Number(n)).toLocaleString("en-US");
 const monShort = d => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d || "")); return m ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][Number(m[2]) - 1] + " " + Number(m[3]) + ", " + m[1] : ""; };
 const okUrl = u => /^https?:\/\//.test(String(u || ""));
-const modal = new Function("esc", "usd", "num", "monShort", "okUrl", block("  function saleModalHtml(r){", "  function closeSale(){") + "\nreturn saleModalHtml;")(esc, usd, num, monShort, okUrl);
+const modal = new Function("esc", "usd", "num", "monShort", "okUrl", block("  function saleModalHtml(", "  function closeSale(){") + "\nreturn saleModalHtml;")(esc, usd, num, monShort, okUrl);
 const monthYear = d => { const m = /^(\d{4})-(\d{2})/.exec(String(d || "")); return m ? ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][Number(m[2]) - 1] + " " + m[1] : ""; };
-const row = new Function("esc", "usd", "num", "monthYear", block("  var HOUSE = {", "\n") + "\n" + block("  function cap(s){", "\n") + "\n" + block("  function venueOf(c){", "\n") + "\n" + block("  function mdRowHtml(r, k){", "  function drawerHtml(l, j){") + "\nreturn mdRowHtml;")(esc, usd, num, monthYear);
+const row = new Function("esc", "usd", "num", "monthYear", block("  var HOUSE = {", "\n") + "\n" + block("  function cap(", "\n") + "\n" + block("  function venueOf(", "\n") + "\n" + block("  function mdRowHtml(", "  function drawerHtml(") + "\nreturn mdRowHtml;")(esc, usd, num, monthYear);
 const sale = { title: "2010 Porsche 911 Carrera Cabriolet", price: 81500, date: "2026-07-01", mi: 27000, image: "https://img.test/a.jpg", venue: "Bring a Trailer", url: "https://bringatrailer.com/listing/x/", gearbox: "Manual" };
 const m1 = modal(sale);
 ok(/Jul 1, 2026/.test(m1) && /Bring a Trailer/.test(m1) && /27,000 miles/.test(m1) && />Manual</.test(m1) && /\$81,500/.test(m1) && /img.test\/a.jpg/.test(m1), "the modal shows photo, date, venue, miles, gearbox and price from the sale");

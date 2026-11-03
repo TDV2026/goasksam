@@ -304,7 +304,7 @@ for (const v of ["a", "b", "c", "d"]) for (const c of ["2008 Porsche 911 Carrera
 // ---- STATIC: nothing on the page compares a price with a range, and the old placing() cannot come back
 {
   const src = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
-  const sp0 = src.indexOf("  function samplePrice(a){"), sp1 = src.indexOf("  function sampleBuy(a){");
+  const sp0 = src.indexOf("  function samplePrice("), sp1 = src.indexOf("  function sampleBuy(");
   const rest = sp0 >= 0 ? src.slice(0, sp0) + src.slice(sp1) : src;   // samplePrice builds a sample asking price for another car's listing chrome; it is not a typed price
   const BAD = [/\bplacing\s*\(/, /function\s+placing\b/, /\breserveList\b/, /[\w\])]\s*(?:<=?|>=?)\s*(?:a\.range|a\.span|\w+\.range)\.(?:low|high)\b/, /(?:range|span|\bsp|\bp)\.(?:low|high)\s*(?:<=?|>=?)\s*[\w(]/, /Math\.(?:min|max)\([^)]*(?:range|span|\.low|\.high)/];
   const hits = s => BAD.map(r => r.test(s) ? String(r) : null).filter(Boolean);

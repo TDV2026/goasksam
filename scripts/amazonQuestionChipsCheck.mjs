@@ -11,9 +11,9 @@ let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const h = amazonPageHtml("a", "2019 porsche 911", { carOf, listing: DUMMY }), js = h.slice(h.indexOf("<script>") + 8, h.lastIndexOf("</script>"));
 const page = h.replace(/<script>[\s\S]*<\/script>/, "");
-const cardFn = js.slice(js.indexOf("function cardHtml(a){"), js.indexOf("// This exact car's history"));
-ok(/function askOf\(a\)\{ return a && \(a\.engineQuestion \|\| a\.question\) \|\| null; \}/.test(js) && /if \(askOf\(a\)\) \{\s*var q = askOf\(a\), opts = q\.options \|\| \[\];/.test(js.slice(js.indexOf("function askOf(a)"), js.indexOf("// This exact car's history"))), "the chips are drawn from the engine's question only (engineQuestion, else question): its options in the engine's order, no skip chip (Sam, Oct 31 2026)");
-ok(/\(o\.count != null && !\/\\\(\\d\+\\\)\/\.test\(String\(o\.label\)\) \? " \(" \+ esc\(o\.count\) \+ "\)" : ""\)/.test(cardFn + js.slice(js.indexOf("function askOf(a)"), js.indexOf("// This exact car's history"))), "a count beside a label is the engine's own count, never one of the page's, and never twice");
+const cardFn = js.slice(js.indexOf("function cardHtml("), js.indexOf("// This exact car's history"));
+ok(/function askOf\(a\)\{ return a && \(a\.engineQuestion \|\| a\.question\) \|\| null; \}/.test(js) && /if \(askOf\(a\)\) \{\s*var q = askOf\(a\), opts = q\.options \|\| \[\];/.test(js.slice(js.indexOf("function askOf("), js.indexOf("// This exact car's history"))), "the chips are drawn from the engine's question only (engineQuestion, else question): its options in the engine's order, no skip chip (Sam, Oct 31 2026)");
+ok(/\(o\.count != null && !\/\\\(\\d\+\\\)\/\.test\(String\(o\.label\)\) \? " \(" \+ esc\(o\.count\) \+ "\)" : ""\)/.test(cardFn + js.slice(js.indexOf("function askOf("), js.indexOf("// This exact car's history"))), "a count beside a label is the engine's own count, never one of the page's, and never twice");
 ok(/'<p class="q-text">' \+ esc\(q\.text\)/.test(cardFn) && /esc\(o\.label\)/.test(cardFn) && /data-qsend="' \+ esc\(JSON\.stringify\(o\.send \|\| \{\}\)\)/.test(cardFn), "the question text and every label are the engine's own; each chip carries the option's own send");
 ok(!/q\.skip|\.concat\(/.test(cardFn), "the Amazon demo draws no skip chip");
 // no question text of the page's own anywhere in the page or its script
@@ -25,7 +25,7 @@ ok(/ns\.refine = send\.refine; if \(typeof send\.label === "string"\) ns\.label 
 ok(/function syncAddress\(\)\{[\s\S]*history\.replaceState\(null, "", qs\(VIEW\)\)[\s\S]*querySelectorAll\("\.tabs a\[data-view\]"\)[\s\S]*\.back-l/.test(js) && /function qs\(view\)\{ return "\?p=amazon&view=" \+ view \+ "&car=" \+ encodeURIComponent\(CAR\) \+ \(ANS \? "&ans=" \+ encodeURIComponent\(JSON\.stringify\(ANS\)\) : ""\); \}/.test(js), "the choice rewrites the address and every tab link, no reload");
 ok(/function withAns\(b\)\{ if \(ANS && b && \(b\.q === CAR \|\| b\.q === LISTCAR\)\) \{ if \(ANS\.q\) b\.q = ANS\.q;/.test(js) && /read\(withAns\(\{ q: q \}\), drawA\)/.test(js) && /read\(withAns\(LIST/.test(js) && /function bodyOf\(\)\{ return withAns\(/.test(js), "every tab's read carries the chosen answer, so tabs a, b, c and d read the car with the same narrowing");
 ok(/aj\.refine\[k\] === "string"/.test(js) && /typeof aj\.asked === "number"/.test(js), "a hand-edited address cannot send anything but string refine values and a number");
-ok(/ANS = null; syncAddress\(\);/.test(js.slice(js.indexOf("function setCar(t){"), js.indexOf("function nameLine"))), "a newly typed car clears the old choice");
+ok(/ANS = null; syncAddress\(\);/.test(js.slice(js.indexOf("function setCar("), js.indexOf("function nameLine"))), "a newly typed car clears the old choice");
 // tab c never asks: its panel shows the engine's question, with no price block
 ok(/var block = ok && !a\.question,/.test(js) && /var scope = ok && \(inScope\(a\) \|\| !!askOf\(a\)\)/.test(js) && /function mcCard\(a\)\{ return cardHtml\(a\)/.test(js), "tab c: an engine question shows in the Market Check panel as the engine words it, with no listing block");
 // inert apart from the re-read

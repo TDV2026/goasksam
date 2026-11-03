@@ -12,7 +12,7 @@ const src = fs.readFileSync(new URL("../public/js/onebox.js", import.meta.url), 
 const grab = (from, to) => { const a = src.indexOf(from), b = src.indexOf(to, a); if (a < 0 || b < 0) throw new Error("missing " + from); return src.slice(a, b); };
 const code = ["  function esc(", "  function usd(", "  function digitOf(", "  function obNumWordLow("].map(h => { const a = src.indexOf(h); if (a < 0) throw new Error("missing " + h); return src.slice(a, src.indexOf("\n", a) + 1); }).join("") +
   "var NUMWORD = {1:'One',2:'Two',3:'Three',4:'Four',5:'Five',6:'Six',7:'Seven',8:'Eight'}, NUMWORD_REV = {one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8}; function lint(s){ return s; }\n" +
-  grab("  function usdK(n)", "  // No candle chart (the engine supplies no trend at all)") + "\nwindow.__chart = candleChartHtml;";
+  grab("  function usdK(", "  // No candle chart (the engine supplies no trend at all)") + "\nwindow.__chart = candleChartHtml;";
 const Bk = (label, low, high, typical, count) => ({ period: label, label, low, high, typical, count });
 const MV = (size, label, buckets) => ({ movement: { size, label, minForRange: 8, buckets }, quarters: [] });
 const CARS = {

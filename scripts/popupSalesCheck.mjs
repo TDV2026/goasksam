@@ -182,7 +182,7 @@ for (const k of ["apart", "apartMiles"]) {
 { const { cardOf } = await imp("api/buySearch.js"), Lk = await imp("lib/live/search.js", "km"), kr = row(7, { listing_title: "1995 BMW M3 Coupe 61,000 km", make: "BMW", model: "M3", year: 1995, mileage: 37900, source: "bringatrailer" }), kf = Lk.listingFacts(kr), kc = cardOf({ r: kr, facts: kf, gen: null, unknown: [] });
   ok(kc.km === 61000 && kc.miles === null && kc.kmMiles > 37000 && kc.kmMiles < 38500, `km listing: the card carries the km the listing states (${kc.km}) and the engine's miles (${kc.kmMiles})`);
   const code = fs.readFileSync(path.join(root, "api/buy.js"), "utf8"), cl = JSON.parse(/^const CLIENT = (".*");$/m.exec(code)[1]);
-  const ml = new Function("num", "notUS", "cityOf", "awayWords", "esc", cl.slice(cl.indexOf("  function metaLine(l){"), cl.indexOf("\n  }\n", cl.indexOf("  function metaLine(l){")) + 4) + "\nreturn metaLine;")(n => Math.round(Number(n)).toLocaleString("en-US"), () => false, () => "", () => "", x => String(x));
+  const ml = new Function("num", "notUS", "cityOf", "awayWords", "esc", cl.slice(cl.indexOf("  function metaLine("), cl.indexOf("\n  }\n", cl.indexOf("  function metaLine(")) + 4) + "\nreturn metaLine;")(n => Math.round(Number(n)).toLocaleString("en-US"), () => false, () => "", () => "", x => String(x));
   const line = ml({ km: kc.km, kmMiles: kc.kmMiles, miles: kc.miles, location: "Austin, TX" }).replace(/<[^>]+>/g, "");
   ok(/61,000 km \([\d,]+ miles\)/.test(line), `km listing: the card prints both ("${line}")`); }
 // (6b) THE FULL MARKET CHECK PAGE, opened from that link: the VIN decodes to make and year with no model (the case that used to land on a model question or a bare model), the card's car text rides beside it,
