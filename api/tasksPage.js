@@ -509,7 +509,7 @@ const APP_JS = String.raw`(function(){
       var waits = [];
       still.forEach(function(l){
         var c = ((j && j.cards) || []).filter(function(x){ return x.id === l.id; })[0];
-        if (c && c.market !== undefined) { l.market = c.market; l.seen_before = c.seen_before; if (c.timeline !== undefined) l.timeline = c.timeline; l.sam_lines = c.sam_lines; }
+        if (c && c.market !== undefined) { l.market = c.market; l.seen_before = c.seen_before; if (c.timeline !== undefined) l.timeline = c.timeline; l.sam_lines = c.sam_lines; if (typeof c.cardHeadline === "string") { l.cardLabel = c.cardLabel; l.cardHeadline = c.cardHeadline; l.cardLine = c.cardLine; l.cardBand = c.cardBand || null; } }
         if (isPend(l)) {
           coldSince[l.id] = coldSince[l.id] || Date.now();
           var k = Number(window.GAS_WAIT_SCALE) || 1;

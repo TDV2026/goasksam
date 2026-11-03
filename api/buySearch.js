@@ -17,6 +17,7 @@
 //   POST { action:"arm"|"disarm", listing_id } / { action:"alerts" } (signed in) -> Before it ends (lib/live/buyAlerts.js)
 //   GET  ?alerts=run                    -> the Before it ends probe run (the probe key in the x-ops-key header only)
 //   GET|POST ?alert=stop&t=<signed>     -> the message's stop link: GET shows a confirm page, only a POST acts
+import { cardSlotsOf } from "../lib/live/cardSlots.js";
 import { mcUrlOf } from "../lib/mcLink.js";
 import { track, withTracking } from "../lib/track/log.js";
 import { historyEnv, houseName, normVin } from "./_historyData.js";
@@ -163,6 +164,8 @@ export function samLines(c, now = Date.now()) {
   }
   return out;
 }
+// THE FIND CARD'S THREE SLOTS (lane-e-cardsize): the engine's label, headline and line for the Sam box, and the band the headline shows (lib/live/cardSlots.js); carried wherever a card or its refresh carries sam_lines.
+export const withSlots = c => ({ ...c, ...cardSlotsOf(c) });
 export function cardOf(x) {
   const r = x.r, facts = x.facts, cc = String(r.country || "").toUpperCase();
   return { id: r.id, source: houseName(r.source), sourceSlug: r.source, title: r.listing_title, url: r.url, photo_url: photoOrNull(r.photo_url), swap: !!x.swap,
@@ -251,13 +254,13 @@ async function enrich(env, x, deadlineAt) {   // deadlineAt (e61, Sam's item 3):
   market = await rungMarket(env, x.r, x.facts, market);   // the engine's fallback rung, when it names one; else unchanged
   const c = { ...cardOf(x), market, seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name: await nameOf(env, x) };
   c.mc_url = mcUrlOf(x.r, x.facts, market && market.query ? market : null);
-  return { ...c, sam_lines: samLines(c) };
+  return withSlots({ ...c, sam_lines: samLines(c) });
 }
 export async function enrichFast(env, x) {
   const [market, seen, timeline, name] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true, notTracked: true }), seenBefore(env, x.r.vin_norm), timelineOf(env, x, { asideWaitMs: 1500 }), nameOf(env, x)]);
   const c = { ...cardOf(x), market: await rungMarket(env, x.r, x.facts, market), seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name };
   c.mc_url = mcUrlOf(x.r, x.facts, c.market && c.market.query ? c.market : null);
-  return { ...c, sam_lines: samLines(c) };
+  return withSlots({ ...c, sam_lines: samLines(c) });
 }
 // A SHOW MORE BATCH UNDER ITS OWN CLOCK (Nov 2 2026, Sam's live click on "Show 24 more" that took a very long time with no sign of work): the batch returns within budgetMs whatever the cards' reads are doing. A card whose
 // read is back is drawn whole (its range and Sam line); a card whose read is not is drawn at once with the engine's being-read line (stillReadingMarket) and no range, the read keeps running behind the response, and the page asks for it
@@ -273,7 +276,7 @@ export async function moreBatch(items, { enrichOne, pendingOf, budgetMs = BATCH_
     }));
   } finally { clearTimeout(timer); }
 }
-const pendingCardOf = x => { const c = { ...cardOf(x), market: stillReadingMarket(), name: null }; return { ...c, sam_lines: samLines(c) }; };
+const pendingCardOf = x => { const c = { ...cardOf(x), market: stillReadingMarket(), name: null }; return withSlots({ ...c, sam_lines: samLines(c) }); };
 async function logSearch(env, v, anonId) {
   try {
     const r = await fetch(`${env.supabaseUrl}/rest/v1/search_events`, {
@@ -395,8 +398,8 @@ async function handler(req, res) {
       const pm = await rungMarket(env, r, listingFacts(r), p.market);
       // The card's two Sam lines from this same answer, so the card and its panel never disagree on screen.
       const [seen, timeline] = await Promise.all([seenBefore(env, r.vin_norm), timelineOf(env, { r })]);
-      const sl = samLines({ ...cardOf({ r, facts: listingFacts(r), gen: null, unknown: [] }), market: pm, seen_before: seen, timeline });
-      return res.status(200).json({ ...p, market: pm, representative: pm && pm.rung === "not_enough_data" ? null : p.representative, sam_lines: sl });
+      const pc = { ...cardOf({ r, facts: listingFacts(r), gen: null, unknown: [] }), market: pm, seen_before: seen, timeline }, sl = samLines(pc);
+      return res.status(200).json({ ...p, market: pm, representative: pm && pm.rung === "not_enough_data" ? null : p.representative, sam_lines: sl, ...cardSlotsOf({ ...pc, sam_lines: sl }) });
     }
     // Probe (PROBE_KEY): live listings for the card tests (repeat VINs, no photo, no reserve, long titles).
     // Probe: the landing's example pick (chips, example, and what each candidate search returned).

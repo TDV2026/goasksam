@@ -87,7 +87,7 @@ const L4 = await imp("lib/live/search.js", "thin"), thin = await (async () => { 
 out.thin = thin;
 // SWEEP of the other card types, through the same panelOf: what each hands the popup
 const kinds = {}, kindLib = {};
-const probe = async (name, r, mkSales) => { mkSales(); const L = await imp("lib/live/search.js", "k" + name.replace(/\W/g, "")); const f = L.listingFacts(r); let o = null; for (let i = 0; i < 6; i++) { o = await L.panelOf(env, r, f).catch(e => ({ error: String(e) })); if (o && (o.error || (o.market && o.market.kind !== "pending"))) break; await wait(1500); } kinds[name] = o; kindLib[name] = { L, r, f, picks: [] }; const ox = o && o.engineAnswer && Array.isArray(o.engineAnswer.options) ? o.engineAnswer.options : []; for (const x of ox) kindLib[name].picks.push(x.rangeFloor === true ? null : await L.panelOf(env, r, f, { dimension: x.dimension, value: x.value }).catch(e => ({ error: String(e) }))); return o; };
+const probe = async (name, r, mkSales) => { mkSales(); const L = await imp("lib/live/search.js", "k" + name.replace(/\W/g, "")); const f = L.listingFacts(r); let o = null; for (let i = 0; i < 6; i++) { o = await L.panelOf(env, r, f).catch(e => ({ error: String(e) })); if (o && (o.error || (o.market && o.market.kind !== "pending"))) break; await wait(1500); } kinds[name] = o; kindLib[name] = { L, r, f, picks: [] }; const ox = o && o.engineAnswer && Array.isArray(o.engineAnswer.options) ? o.engineAnswer.options : []; for (const x of ox) kindLib[name].picks.push(!(Number(x.n) > 0) ? null : await L.panelOf(env, r, f, { dimension: x.dimension, value: x.value }).catch(e => ({ error: String(e) }))); return o; };
 await probe("dealer", row(3, { seller_type: "dealer", source: "carsandbids" }), () => {});
 await probe("apart", row(4, { listing_title: "2008 Porsche 911 Carrera S", year: 2008, model: "911", source: "bringatrailer", transmission: "Manual" }), () => { for (let i = 0; i < 10; i++) SALES.push(sale("Porsche", 2008, "2008 Porsche 911 Carrera S 6-Speed Manual", 70000 + i * 1500, "911")); for (let i = 0; i < 10; i++) SALES.push(sale("Porsche", 2008, "2008 Porsche 911 Carrera S Tiptronic", 52000 + i * 1500, "911")); });
 const msale = (year, title, price, mi, model) => { const s = sale("BMW", year, title, price, model); s.raw_record.mileage = String(mi); return s; };
@@ -96,6 +96,7 @@ await probe("apartFew", row(6, { listing_title: "1996 BMW M3 Coupe", make: "BMW"
 await probe("question", row(5, { listing_title: "1965 Ford Mustang", make: "Ford", model: "Mustang", year: 1965, source: "bringatrailer" }), () => { for (const b of ["Coupe", "Convertible", "Fastback"]) for (let i = 0; i < 6; i++) SALES.push(sale("Ford", 1965, `1965 Ford Mustang ${b}`, 30000 + i * 1000, "Mustang")); });
 await probe("nosales", row(6, { listing_title: "2021 Lotus Evija", make: "Lotus", model: "Evija", year: 2021, source: "bringatrailer" }), () => {});
 if (process.env.DBG) for (const [k, o] of Object.entries(kinds)) console.log("SWEEP", k, JSON.stringify({ market: o && o.market && { kind: o.market.kind, count: o.market.count }, tier: o && o.engineAnswer && o.engineAnswer.tier, cards: o && o.engineAnswer && o.engineAnswer.cards && o.engineAnswer.cards.length, basis: o && o.engineAnswer && o.engineAnswer.basisLine, thin: o && o.engineAnswer && o.engineAnswer.thinLine, still: !!(o && o.salesStill), err: o && o.error }));
+if (process.env.DUMPSHAPES) { const strip = m => { if (!m) return m; const { rows, recent, ...r } = m; return r; }; fs.writeFileSync(process.env.DUMPSHAPES, JSON.stringify({ range: strip(w.market), thin: strip(out.thin.market), apart: strip(kinds.apart.market), apartMiles: strip(kinds.apartMiles.market), apartFew: strip(kinds.apartFew.market), question: strip((kinds.question || {}).market), dealer: strip((kinds.dealer || {}).market) }, null, 1)); }
 // (4) and (5) the RENDERED popup, at 1440 and 390: it prints every sale the answer states, and when it has none says why
 const { startBrowser } = await imp("scripts/e98Render.mjs"), { openPanel } = await imp("scripts/e98PanelRender.mjs");
 const br = await startBrowser();
@@ -134,7 +135,7 @@ for (const k of ["apart", "apartMiles"]) {
     const p = await openPanel(br, width, { panelBody: o, optionBody: v => picks[opts.findIndex(x => String(x.value) === String(v.value) && x.dimension === v.dimension)] });
     const snap = () => p.evaluate(() => ({ chips: Array.from(document.querySelectorAll(".mcdrawer .md-chip")).map(c => c.textContent), rows: document.querySelectorAll(".mcdrawer .md-row").length, heads: Array.from(document.querySelectorAll(".mcdrawer .md-s")).map(e => e.textContent), text: document.querySelector(".mcdrawer").innerText, pressed: Array.from(document.querySelectorAll(".mcdrawer .md-chip[aria-pressed=true]")).length, opts: document.querySelectorAll(".mcdrawer .md-opt").length }));
     const a = await snap();
-    ok(JSON.stringify(a.chips) === JSON.stringify(hl), `${k} at ${width}: the popup prints one chip per option, the engine's own lines in its order (${a.chips.length} of ${opts.length})`);
+    ok(JSON.stringify(a.chips) === JSON.stringify(ea.chipLines || hl), `${k} at ${width}: the popup prints one chip per option, the engine's own lines in its order (${a.chips.length} of ${opts.length})`);
     ok(a.rows === 0 && a.heads.length === 1 && a.heads[0] === ea.thinLine && a.opts === 0, `${k} at ${width}: before a pick it prints the engine's apart line ("${a.heads[0]}") and no sales`);
     const bandHead = hl.filter(t => a.text.split(t).length - 1 > 1);
     ok(bandHead.length === 0, `${k} at ${width}: no option's heading is printed beside its chip before a pick`);
@@ -149,34 +150,62 @@ for (const k of ["apart", "apartMiles"]) {
 { const kit = await imp("lib/findCardKit.js"), code = kit.buildKitSource().code, tp = fs.readFileSync(path.join(root, "api/tasksPage.js"), "utf8");
   ok(/data-mdopt/.test(code) && /option: \{ dimension: o\.dimension/.test(code) && /md-chips/.test(kit.findCardKitJs()), "Tasks card: it lifts Find's drawer whole, so an apart answer prints the same option chips and the same pick (one kit, no copy)");
   ok(!/data-mdopt|perOption/.test(tp), "Tasks page: no option logic of its own"); }
-// A CARD NEVER PRINTS AN INSTRUCTION WITH NOTHING TO ACT ON (Lane E, Nov 3 2026; the 1995 BMW M3 Coupe live: "Few sales under 50,000 miles. Pick a mileage band to see its range." and only View auction). CAUSE: the Find card showed See the
-// the sales only when the card had a headline range (api/buy.js card(): rangeNow); an answer that prices apart, or a band too thin for a range, has none, so the button was hidden and the line told the reader to pick with nothing to pick.
-// RULE: See the sales shows whenever the engine's answer has sales or options and hides only when it has neither; an answer that prices apart prints its options as chips on the card under the Sam line. CLASS: every card state below, rendered
-// from the real engine's market (Find card and, by the one kit, the Tasks card). A card whose text says pick or choose has an enabled chip to pick; a card with sales or options has See the sales; a card with neither has no button.
+// THE FIND CARD IS ONE SIZE AND SHAPE IN EVERY STATE (Lane E, Nov 3 2026, lane-e-cardsize; Sam: "every card is the same size and shape"). The live 1995 M3 Coupe card printed its band chips as full sentences, one to a row, and the picked line as a headline
+// outside the box: far taller than a range card. CAUSE: the card had a different shape for each state (a range in the large serif and two small lines, a sentence for an answer with no range, then chips) and each state a different height. RULE: one Sam
+// box, three slots in this order, from the engine for every answer: a small label, the headline, a small line (cardLabel, cardHeadline, cardLine; lib/live/cardSlots.js); the page prints those and nothing else; each slot keeps its height. The pick stays in
+// the popup behind See the sales, and the popup opens on the band the headline shows (cardBand). CLASS: every state below, at 1440 and 390; Find and, through the one kit, the Tasks card.
 {
-  const states = { "result with a range": w.market, "thin (three sales)": out.thin.market, "apart by gearbox": kinds.apart.market, "apart by mileage band": kinds.apartMiles.market, "a thin mileage band beside other bands": kinds.apartFew.market, "question first": kinds.question.market, "dealer listing": kinds.dealer.market, "no sales and no options": { kind: "count", count: 0 } };
+  const { cardSlotsOf } = await imp("lib/live/cardSlots.js");
+  const states = { "result with a range": w.market, "apart by gearbox (matched option)": kinds.apart.market, "apart by mileage band (matched band)": kinds.apartMiles.market, "a thin band beside other bands (the live M3)": kinds.apartFew.market, "question first (alike)": kinds.question.market, "dealer listing": kinds.dealer.market, "thin (three sales)": out.thin.market,
+    "no sales": { kind: "count", count: 0, query: "x" }, "not tracked": { kind: "not_tracked", notTrackedLine: "Sam does not track this car yet.", query: null }, "refused": { kind: "refused", refusalLine: "Sam does not read this one: the listing does not say enough to match it to a car.", query: null }, "unmatched": { kind: "unmatched", query: null } };
   const seen = {};
-  for (const [name, mk] of Object.entries(states)) {
-    const p = await openPanel(br, 1440, { marketOnly: mk, noOpen: true });
-    const s = await p.evaluate(() => { const a = document.querySelector("article.car"); return a ? { see: !!a.querySelector("button.act[data-mc]"), chips: a.querySelectorAll("button.md-chip[data-copt]").length, off: a.querySelectorAll(".md-chip-off").length, text: a.innerText, vauc: !!a.querySelector("a.vauc") } : null; });
-    seen[name] = s;
-    const sales = Number(mk.count) > 0 || (mk.options || []).length > 0 || (mk.kind === "range" && mk.low > 0), nOpt = (mk.options || []).length;
-    ok(s && s.vauc, `card, ${name}: View auction prints`);
-    ok(s && s.see === sales, `card, ${name}: See the sales ${sales ? "prints (the engine's answer has sales or options)" : "is hidden (the engine says no sales and no options)"}`);
-    const headlineRange = mk.kind === "range" && mk.low > 0 || (mk.findAnswer && mk.findAnswer.state === "range" && mk.findAnswer.range);
-    if (!headlineRange && nOpt > 1) ok(s && s.chips + s.off === nOpt && s.chips > 0, `card, ${name}: the ${nOpt} options print as chips under the Sam line (${s && s.chips} to pick, ${s && s.off} too thin for a range)`);
-    if (s && /\b(pick|choose)\b/i.test(s.text)) ok(s.chips > 0, `card, ${name}: the card says to pick and has ${s.chips} chips to pick from`);
+  for (const width of [1440, 390]) {
+    const hs = [];
+    for (const [name, mk] of Object.entries(states)) {
+      const f = cardSlotsOf({ market: mk, sam_lines: [], miles: 28000 }), p = await openPanel(br, width, { marketOnly: mk, cardFields: f, noOpen: true });
+      const r = await p.evaluate(() => { const a = document.querySelector("article.car"), sl = a && a.querySelector(".sl"); const kids = sl ? Array.from(sl.children).filter(x => !x.classList.contains("who")) : [], h = a && a.querySelector(".cs-head"); return a ? { h: Math.round(a.getBoundingClientRect().height), kids: kids.map(x => x.className), label: (a.querySelector(".cs-label") || {}).textContent, head: (h || {}).textContent, line: (a.querySelector(".cs-line") || {}).textContent, oneLine: h ? h.scrollWidth <= h.clientWidth + 1 : null, see: !!a.querySelector("button.act[data-mc]"), chips: a.querySelectorAll(".md-chip").length, text: a.innerText, vauc: !!a.querySelector("a.vauc") } : null; });
+      seen[name] = r; hs.push([name, r && r.h]);
+      ok(r && r.vauc && JSON.stringify(r.kids) === JSON.stringify(["cs-label", "cs-head", "cs-line"]), `card at ${width}, ${name}: the Sam box is exactly label, headline, line`);
+      ok(r && r.label === f.cardLabel && r.head === f.cardHeadline && r.line === f.cardLine && f.cardHeadline.length > 0, `card at ${width}, ${name}: it prints the engine's three fields as sent ("${f.cardLabel}" | "${f.cardHeadline}" | "${f.cardLine}")`);
+      ok(r && r.oneLine === true, `card at ${width}, ${name}: the headline is one line ("${f.cardHeadline}")`);
+      ok(!/\b(January|February|March|April|June|July|August|September|October|November|December)\b/.test(f.cardLabel), `card at ${width}, ${name}: the label abbreviates the month ("${f.cardLabel}")`);
+      ok(r && r.chips === 0 && !(/\b(pick|choose)\b/i.test(r.text) && !r.see), `card at ${width}, ${name}: no chips on the card, and nothing to pick without See the sales`);
+      const sales = Number(mk.count) > 0 || (mk.options || []).length > 0 || (mk.kind === "range" && mk.low > 0);
+      if (mk.query) ok(r && r.see === sales, `card at ${width}, ${name}: See the sales ${sales ? "prints" : "is hidden"}`);
+      await p.close();
+    }
+    const all = hs.map(x => x[1]), spread = Math.max(...all) - Math.min(...all);
+    console.log(`CARDSIZE ${width}px: ${hs.map(x => x[0] + " " + x[1]).join("; ")}`);
+    ok(spread <= 18, `card height at ${width}: every state is one height, within one small line (spread ${spread}px over ${hs.length} states)`);
+  }
+  const f3 = cardSlotsOf({ market: kinds.apartFew.market, sam_lines: [], miles: 28000 }), o3 = kinds.apartFew.market.options;
+  ok(/^50,000 to 100,000 miles, 8 sales since Jul 2026$/.test(f3.cardLabel) && f3.cardHeadline === "$65,500 to $72,500" && f3.cardLine === "Under 50,000 miles: 3 sales, too few. See the sales for each band." && f3.cardBand.value === "50to100", `the live M3 shape: label, headline and line as specified ("${f3.cardLabel}" | "${f3.cardHeadline}" | "${f3.cardLine}")`);
+  // the popup opens on the band the card headline shows
+  { const lib = kindLib.apartFew, idx = v => o3.findIndex(x => String(x.value) === String(v.value) && x.dimension === v.dimension);
+    const p = await openPanel(br, 1440, { marketOnly: kinds.apartFew.market, cardFields: f3, panelBody: kinds.apartFew, optionBody: v => lib.picks[idx(v)] }); await wait(1000);
+    const r = await p.evaluate(() => ({ d: !!document.querySelector(".mcdrawer"), pressed: Array.from(document.querySelectorAll(".mcdrawer .md-chip[aria-pressed=true]")).map(x => x.getAttribute("data-mdkey")), rows: document.querySelectorAll(".mcdrawer .md-row").length }));
+    ok(r.d && r.pressed.length === 1 && r.pressed[0] === "mileage|50to100" && r.rows === lib.picks[idx({ dimension: "mileage", value: "50to100" })].engineAnswer.cards.length, `See the sales opens the popup on the band the headline shows (${r.pressed}), with that band's ${r.rows} sales`);
+    await p.close(); }
+}
+// THE THIN BAND IS A CHIP YOU CAN PICK (Lane E, Nov 3 2026): a band with too few sales for a range lists its sales under "Under 50,000 miles: 4 sales, too few for a range." and no figures; only a band with no sales is plain text. The chips are the engine's short form.
+{
+  const k = kinds.apartFew, ea = k.engineAnswer, opts = ea.options, lib = kindLib.apartFew, i0 = opts.findIndex(o => o.rangeFloor === true && o.n > 0);
+  ok(i0 >= 0 && Array.isArray(ea.chipLines) && ea.chipLines.length === opts.length && Array.isArray(ea.pickLines), "thin band: the engine sends a chip line and a pick heading for each option");
+  ok(ea.chipLines[i0] === `${opts[i0].label}, ${opts[i0].n} sales` && ea.pickLines[i0] === `${opts[i0].label}: ${opts[i0].n} sales, too few for a range.`, `thin band: chip "${ea.chipLines[i0]}", heading "${ea.pickLines[i0]}"`);
+  ok(lib.picks[i0] && lib.picks[i0].engineAnswer && lib.picks[i0].engineAnswer.cards.length === opts[i0].n, `thin band: the engine answers a pick of "${opts[i0].label}" with its ${opts[i0].n} sales (${lib.picks[i0] && lib.picks[i0].engineAnswer ? lib.picks[i0].engineAnswer.cards.length : 0})`);
+  const zero = { ...opts[i0], value: "none0", label: "Over 200,000 miles", n: 0 }, ea0 = { ...ea, options: [...opts, zero], headlineLines: [...ea.headlineLines, "Over 200,000 miles, no sales"], chipLines: [...ea.chipLines, "Over 200,000 miles, 0 sales"], pickLines: [...ea.pickLines, null] };
+  for (const width of [1440, 390]) {
+    const p = await openPanel(br, width, { panelBody: { ...k, engineAnswer: ea0 }, optionBody: v => lib.picks[opts.findIndex(x => String(x.value) === String(v.value) && x.dimension === v.dimension)] });
+    const snap = () => p.evaluate(() => ({ chips: Array.from(document.querySelectorAll(".mcdrawer .md-chip")).map(c => ({ t: c.textContent, btn: c.tagName === "BUTTON" })), rows: document.querySelectorAll(".mcdrawer .md-row").length, head: (document.querySelector(".mcdrawer .md-s") || {}).textContent || "" }));
+    const a = await snap();
+    ok(JSON.stringify(a.chips.map(c => c.t)) === JSON.stringify(ea0.chipLines) && a.chips[i0].btn === true && a.chips[a.chips.length - 1].btn === false, `thin band at ${width}: the chips are the engine's short form, the thin band is a button and the band with no sales is plain text`);
+    await p.evaluate(i => document.querySelector(`.mcdrawer .md-chip[data-mdopt="${i}"]`).click(), i0); await wait(800);
+    const b = await snap();
+    ok(b.rows === opts[i0].n && b.head === ea.pickLines[i0] && !/\$\d/.test(b.head), `thin band at ${width}: a pick lists its ${opts[i0].n} sales under "${b.head}" with no figures (${b.rows} printed)`);
     await p.close();
   }
-  // a pick on the card: the option's own line in the Sam box, the chip marked, the popup open on that option with its own sales
-  const lib = kindLib.apartFew, mk = kinds.apartFew.market, opts2 = mk.options, k0 = opts2.findIndex(o => o.rangeFloor !== true);
-  const p = await openPanel(br, 1440, { marketOnly: mk, noOpen: true, panelBody: kinds.apartFew, optionBody: v => lib.picks[opts2.findIndex(x => String(x.value) === String(v.value) && x.dimension === v.dimension)] });
-  await p.evaluate(i => document.querySelector(`button.md-chip[data-copt="${i}"]`).click(), k0); await wait(1200);
-  const r = await p.evaluate(() => ({ pick: (document.querySelector("article.car .sl-pick") || {}).textContent || "", hidden: (document.querySelector("article.car .sl-pick") || {}).hidden, pressed: document.querySelectorAll("article.car button.md-chip[aria-pressed=true]").length, drawer: !!document.querySelector(".mcdrawer"), dpressed: document.querySelectorAll(".mcdrawer .md-chip[aria-pressed=true]").length, rows: document.querySelectorAll(".mcdrawer .md-row").length, head: (document.querySelector(".mcdrawer .md-s") || {}).textContent || "" }));
-  ok(r.pick === mk.optionLines[k0] && r.hidden === false && r.pressed === 1, `card pick: the Sam box prints the engine's line for "${opts2[k0].label}" ("${r.pick}") and the chip is marked`);
-  ok(r.drawer && r.dpressed === 1 && r.rows === lib.picks[k0].engineAnswer.cards.length, `card pick: the popup opens on that option with its own ${lib.picks[k0].engineAnswer.cards.length} sales (${r.rows} printed)`);
-  await p.close();
 }
+
 // A KILOMETRE LISTING PRINTS ITS KM AND THE ENGINE'S MILES (Lane E, Nov 3 2026; the red M3 card: "61,000 km" beside a line in miles). The engine reads a km listing's mileage as miles (lib/live/liveTrust.js converts, facts.miles) and reads
 // the bands and lines in miles; the card kept only the km. The card now carries both numbers the engine returns (km, kmMiles) and prints "61,000 km (37,900 miles)".
 { const { cardOf } = await imp("api/buySearch.js"), Lk = await imp("lib/live/search.js", "km"), kr = row(7, { listing_title: "1995 BMW M3 Coupe 61,000 km", make: "BMW", model: "M3", year: 1995, mileage: 37900, source: "bringatrailer" }), kf = Lk.listingFacts(kr), kc = cardOf({ r: kr, facts: kf, gen: null, unknown: [] });
