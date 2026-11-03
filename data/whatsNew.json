@@ -1,7 +1,34 @@
 [
   {
+    "date": "2026-11-03",
+    "text": "Find has two new sorts. Furthest below the range puts the cars with the biggest gap between the bid and what they sell for first. Closest to me asks for your zip once and orders by distance. Both carry through Show more.",
+    "thanks": "Thanks Francis for asking for both."
+  },
+  {
+    "date": "2026-11-03",
+    "text": "On a Find card for a car whose sales split by mileage, the box now shows the band nearest your car's miles with its range, and See the sales lets you pick any band, including ones with too few sales for a range."
+  },
+  {
     "date": "2026-11-02",
     "text": "Market Check now shows the closest sales to your car, matched on mileage, under the range. The page also states the mileage the range was computed at. A VIN lookup skips the trim question when the VIN already says the trim."
+  },
+  {
+    "date": "2026-11-02",
+    "text": "Show 24 more on Find now loads the next batch in one click.",
+    "thanks": "Thanks Francis for reporting it."
+  },
+  {
+    "date": "2026-11-02",
+    "text": "The Ford Capri and Mercury Capri now find each other, and a bare model name fills in from the badge.",
+    "thanks": "Thanks Michelle for the report."
+  },
+  {
+    "date": "2026-11-02",
+    "text": "The sales list in the Find card popup is back. It had stopped showing when the second read failed; it now falls back to the stored sales and says when it is still reading."
+  },
+  {
+    "date": "2026-11-02",
+    "text": "Every Find card now has the same shape: a label line, the figures, and one line below. No card text is cut off."
   },
   {
     "date": "2026-10-31",
