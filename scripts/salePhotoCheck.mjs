@@ -34,7 +34,7 @@ r = await fetchPhoto(u, { timeoutMs: 200, fetchImpl: (href, o) => new Promise((_
 ok(r === null && Date.now() - t0 < 1500, "a slow photo is refused at the deadline");
 r = await fetchPhoto(u, { fetchImpl: async () => { throw new Error("network"); } }); ok(r === null, "a network error is refused");
 const lib = fs.readFileSync(new URL("../lib/_salePhoto.js", import.meta.url), "utf8");
-ok(/PHOTO_TIMEOUT_MS = 4000/.test(lib) && /sales_archive\?id=eq\.\$\{id\}&select=image:raw_record->>featured_image_url&limit=1/.test(lib), "one primary-key read, a 4 s deadline");
+ok(/PHOTO_TIMEOUT_MS = 4000/.test(lib) && /sales_archive\?id=eq\.\$\{id\}&select=image:raw_record->>featured_image_url(?:,vin_norm)?&limit=1/.test(lib), "one primary-key read, a 4 s deadline");
 const api = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
 const page = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
 const gate = api.indexOf("if (!partnerAllowed(req)) return res.status(404)"), photo = api.indexOf("if (req.method === \"GET\" && req.query && req.query.photo != null)");

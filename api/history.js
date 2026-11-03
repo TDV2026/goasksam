@@ -9,6 +9,7 @@
 import { stillReadingMarket } from "../lib/live/search.js";
 import { asOfDate } from "../lib/asOf.js";
 import { reasonLine } from "../lib/reasonWords.js";
+import { heroPhotoOf, otherPhotosOf } from "../lib/heroPhoto.js";
 import { logArm, ARM_LINES } from "../lib/live/looking.js";
 import { withTracking } from "../lib/track/log.js";
 import { vinsForUrls } from "./_historyData.js";
@@ -402,8 +403,8 @@ async function carPage(req, res, env, slug, vin) {
     ["How many times has it been to auction?", countAns],
     cmp ? ["How does its last sale compare with others?", cmp] : null
   ].filter(Boolean);
-  const photo = appearances.find(a => a.image) || null;
-  const altPhotos = [...new Set(appearances.map(a => a.image).filter(Boolean))].filter(u => !photo || u !== photo.image);
+  // THE HERO PHOTO (lib/heroPhoto.js): the live listing's photo when there is one, else the most recent appearance's, else the box.
+  const heroSrc = { live: live ? { photo_url: live.photo_url, url: live.url, house: houseName(live.source) } : null, appearances }, photo = heroPhotoOf(heroSrc), altPhotos = otherPhotosOf(heroSrc, photo);
   // Up to the model (the all-years hub) as well as this year's, each linked only when that hub has a car on it (Lane E's
   // scan found 25 linked hubs answering 404). The car's own records answer it at no cost; only when none of them is in
   // the hub is the archive asked. When the family's hub is empty, the car's OWN model hub is tried next (its trim as the
@@ -423,7 +424,7 @@ async function carPage(req, res, env, slug, vin) {
 <header class="vhead"><div><span class="eyebrow">Auction history</span>
 <h1>${esc(name)}</h1><div class="vinline">VIN ${esc(vinNorm)}</div>
 <p class="lead" data-lead-sentence>${esc(story)}</p></div>
-${photo ? `<figure class="vph" data-alt="${esc(JSON.stringify(altPhotos))}">${photoHtml(photo.image, photo.url, photo.house, name, "photo", true)}<span class="chip">Photo: ${esc(photo.house)}</span></figure>` : `<figure class="vph nophoto"><span class="nm">${esc(name)}</span></figure>`}</header>
+${heroHtml(photo, altPhotos, name)}</header>
 ${timelineHtml(appearances, live)}
 ${specRailHtml(d, id, lastSale, noun)}
 ${live ? liveCardHtml(live, name, noun) : ""}
@@ -466,6 +467,10 @@ function otherNoun(title) {
 }
 // THE TIMELINE (the page's main visual): every appearance, oldest left, with its date, result, house
 // and miles; sold dots filled, unsold hollow, the live listing last in red.
+// THE HERO FIGURE: the photo it is given (heroPhotoOf), or the box with the car's name when the car has no photo on record at all.
+export function heroHtml(photo, altPhotos, name) {
+  return photo ? `<figure class="vph" data-alt="${esc(JSON.stringify(altPhotos))}">${photoHtml(photo.image, photo.url, photo.house, name, "photo", true)}<span class="chip">Photo: ${esc(photo.house)}</span></figure>` : `<figure class="vph nophoto"><span class="nm">${esc(name)}</span></figure>`;
+}
 function timelineHtml(apps, live) {
   // Part 4 (result-hero job, Oct 2026): a no-sale point reads as one composed fact - "Ended {month
   // year} on {venue}. Bidding reached $X. Did not sell." (or "Sold later." when a later appearance in

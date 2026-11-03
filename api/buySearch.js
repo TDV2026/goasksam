@@ -18,6 +18,7 @@
 //   GET  ?alerts=run                    -> the Before it ends probe run (the probe key in the x-ops-key header only)
 //   GET|POST ?alert=stop&t=<signed>     -> the message's stop link: GET shows a confirm page, only a POST acts
 import { cardSlotsOf } from "../lib/live/cardSlots.js";
+import { cardPhotoOf } from "../lib/heroPhoto.js";
 import { mcUrlOf } from "../lib/mcLink.js";
 import { track, withTracking } from "../lib/track/log.js";
 import { historyEnv, houseName, normVin } from "./_historyData.js";
@@ -165,7 +166,8 @@ export function samLines(c, now = Date.now()) {
   return out;
 }
 // THE FIND CARD'S THREE SLOTS (lane-e-cardsize): the engine's label, headline and line for the Sam box, and the band the headline shows (lib/live/cardSlots.js); carried wherever a card or its refresh carries sam_lines.
-export const withSlots = c => ({ ...c, ...cardSlotsOf(c) });
+// A live car with no photo of its own takes the photo of its most recent earlier appearance (lib/heroPhoto.js cardPhotoOf), never a grey box while the archive holds one.
+export const withSlots = c => ({ ...c, photo_url: cardPhotoOf(c.photo_url, c.timeline), ...cardSlotsOf(c) });
 export function cardOf(x) {
   const r = x.r, facts = x.facts, cc = String(r.country || "").toUpperCase();
   return { id: r.id, source: houseName(r.source), sourceSlug: r.source, title: r.listing_title, url: r.url, photo_url: photoOrNull(r.photo_url), swap: !!x.swap,
