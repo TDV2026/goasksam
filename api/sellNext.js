@@ -47,6 +47,10 @@ export default async function handler(req, res) {
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "public", "onebox.html"), "utf8");
   if (cardCss == null) cardCss = pcardCss();
   const crew = isCrewRequest(req);
+  // SEARCH (search rule 4/7, Oct 2026): the public Sell landing (plain /sell, nobody keyed or in crew) is indexable and is in the
+  // pages sitemap; every other address (a result /sell?car=, any query variant, crew or keyed previews) is noindex with /sell as its canonical.
+  const publicLanding = !keyed && !crew && !String(req.url || "").includes("?");
+  const robots = publicLanding ? "index, follow" : "noindex, nofollow";
   const env = supabaseEnv();
   // The landing's one live example (lib/sell/sellExample.js, the same result a visitor gets): memory, the
   // stored row, or a build waited on for up to 8 seconds (never left to finish after the response is sent).
@@ -59,8 +63,8 @@ export default async function handler(req, res) {
     .replace("</body>", () => `<script>${OUTBOUND_JS};gasOutboundInstall("sell")</script></body>`)
     .replace(/<title>[\s\S]*?<\/title>/, () => "<title>Sell your car | GoAskSam</title>")
     .replace(/<meta name="robots" content="[^"]*"\s*\/?>/, () => "")
-    // Every new Sell address is noindex with the Sell landing as its canonical (result addresses included).
-    .replace("</head>", () => `${FONT_LINKS}<meta name="robots" content="noindex, nofollow">\n<link rel="canonical" href="https://goasksam.com/sell">\n<style>${cardCss}\n${SELL_MC_CSS}\n${SELLS_FOR_CARD_CSS}\n${SELL_LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}</style>\n</head>`)
+    // The plain public landing is indexable; every other new Sell address is noindex with the Sell landing as its canonical (result addresses included).
+    .replace("</head>", () => `${FONT_LINKS}<meta name="robots" content="${robots}">\n<link rel="canonical" href="https://goasksam.com/sell">\n<style>${cardCss}\n${SELL_MC_CSS}\n${SELLS_FOR_CARD_CSS}\n${SELL_LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}</style>\n</head>`)
     // Round D (app shell, Oct 2026): the same shared rail as every other product - the full page
     // list, current page ("sell") marked - replacing the old Sell-only stripped-down rail.
     // Server-rendered start page (GoAskSam 2.0 Stage 4): the headline, sub, box and line are in the first HTML, not drawn afterwards by the browser.
@@ -77,7 +81,7 @@ export default async function handler(req, res) {
     // separate flag for js/auth.js's lighter boot and is unrelated to GAS_SELL.
     .replace("<body>", () => `<body>\n${AUTH_SIGNBAR_HTML}\n<script>${AUTH_SIGNBAR_MIRROR_JS}</script>\n<script>window.GAS_AUTH_MODE="topbar";</script>\n<script src="/js/auth.js" defer></script>`);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.setHeader("X-Robots-Tag", "noindex, nofollow");
+  res.setHeader("X-Robots-Tag", robots);
   // A probe-key preview, or crew (whose rail differs from the public's, PUBLIC_LAUNCH switch), stays
   // private; once SELL_NEXT_ON serves it to everyone it is a public page (no Vary on the cookie).
   res.setHeader("Cache-Control", (keyed || crew) ? "private, no-store" : "public, max-age=0, s-maxage=600, stale-while-revalidate=3600");

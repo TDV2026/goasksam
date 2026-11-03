@@ -12,7 +12,7 @@ import { newestDate } from "../lib/whatsNew.js";
 const SITE = "https://goasksam.com";
 // Each entry's own lastmod/changefreq/priority, same values the old static file carried. "product"
 // is null for the always-on stage-0 pages; isReleased(null, req) is never called for those.
-const PAGES = [
+export const PAGES = [
   { loc: "/", lastmod: "2026-10-23", changefreq: "daily", priority: "1.0", product: "buy" },   // Home (GoAskSam 2.0): open once Find is released
   { loc: "/sell", lastmod: "2026-10-07", changefreq: "daily", priority: "1.0", product: null },
   { loc: "/find", lastmod: "2026-10-07", changefreq: "daily", priority: "0.9", product: "buy" },

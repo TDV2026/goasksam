@@ -5,7 +5,22 @@
       "source": "/(.*)",
       "has": [{ "type": "host", "value": "goasksam.vercel.app" }],
       "destination": "https://goasksam.com/$1",
-      "permanent": true
+      "statusCode": 301
+    },
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "statusCode": 301
+    },
+    {
+      "source": "/mcp.html",
+      "destination": "/mcp",
+      "statusCode": 301
+    },
+    {
+      "source": "/powersellers.html",
+      "destination": "/powersellers",
+      "statusCode": 301
     },
     {
       "source": "/rudy",
@@ -15,12 +30,12 @@
     {
       "source": "/sell-old.html",
       "destination": "/sell",
-      "statusCode": 302
+      "statusCode": 301
     },
     {
       "source": "/onebox.html",
       "destination": "/market-check",
-      "statusCode": 302
+      "statusCode": 301
     },
     {
       "source": "/buy",
@@ -30,7 +45,7 @@
     {
       "source": "/onebox",
       "destination": "/market-check",
-      "permanent": true
+      "statusCode": 301
     },
     {
       "source": "/partner-demo",

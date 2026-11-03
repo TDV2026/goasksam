@@ -802,6 +802,13 @@ try {
 } catch (e) {
   record("popupSalesCheck (scripts/popupSalesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// indexingCheck (Lane E, Nov 3 2026): every public page answers 200 to Googlebot, one self canonical, no noindex, title and H1 in the server HTML, in the pages sitemap; vercel.app and the second addresses 301. (--live reads goasksam.com; not run here.)
+try {
+  const out = execSync("node scripts/indexingCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("indexingCheck (scripts/indexingCheck.mjs)", "PASS", (out.match(/indexingCheck.*: .*/) || [""])[0]);
+} catch (e) {
+  record("indexingCheck (scripts/indexingCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // pageSliceCheck (Lane E, Nov 3 2026): no check runs a fragment of a page function (a lift must start at a declaration).
 try {
   const out = execSync("node scripts/pageSliceCheck.mjs", { encoding: "utf8", timeout: 60000 });

@@ -129,3 +129,5 @@ One slug per spec object, for life. Lowercase, hyphen-separated. Four nested lev
   nightly workflow after the spec-cache step and logs its result to `app_usage_events`
   (`event_type: "search_check"`).
 - `docs/search-panel.md` holds the 30 citation prompts the panel is measured on (rule 10).
+
+`scripts/indexingCheck.mjs` (Nov 3 2026, in prePush) renders every page in the pages sitemap as Googlebot and fails on a non-200, a missing or second canonical, a noindex, a title or H1 missing from the server HTML, a page missing from the sitemap, a vercel.app or second address that is not a 301. `--live` reads goasksam.com the same way (needs the Vercel automation bypass; a spoofed Googlebot is challenged, a verified one is not).

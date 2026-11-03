@@ -881,7 +881,7 @@ async function rollout(env, opts = {}) {
     const c = canonicalHub(g.make, g.family);
     const raw = hubSlug(g.make, g.family), hk = hubSlug(c.make, c.family);
     if (raw !== hk) { merged.set(raw, hk); }
-    const h = hubs.get(hk) || { vins: 0, sales: 0, make: c.make, photos: [] }; h.vins++; h.sales += g.sold; if (h.photos.length < 3 && g.photos[0]) h.photos.push(g.photos[0]); hubs.set(hk, h);
+    const h = hubs.get(hk) || { vins: 0, sales: 0, make: c.make, photos: [], last: "" }; h.vins++; h.sales += g.sold; { const gd = String(g.date || "").slice(0, 10); if (gd > h.last) h.last = gd; } if (h.photos.length < 3 && g.photos[0]) h.photos.push(g.photos[0]); hubs.set(hk, h);
     if (g.n >= 2) { counts.multi_candidates++; multi.push({ vin, g }); } else counts.single_noindex++;
   }
   // Cars + motorcycles + other self-propelled share ONE batched validation pass (perf, Oct 2026): they
@@ -947,7 +947,8 @@ async function rollout(env, opts = {}) {
   counts.hubs_candidates = hubs.size; counts.hubs_page_disagrees = pageDisagrees; counts.hubs_replica = replicaHubs; counts.hubs_indexable = okHubs.length; counts.hubs_fallback_named = fallback.length;
   counts.hubs_alias_merged = merged.size;
   const hubPhotos = {}; for (const k of okHubs) hubPhotos[k] = hubs.get(k).photos;
-  ROLL = { counts, hubs: okHubs.sort(), hubPhotos, vins, motos, others, fallback, merged: [...merged.entries()].map(([from, to]) => ({ from: "/history/" + from, to: "/history/" + to })) }; ROLL_AT = Date.now();
+  const hubLast = {}; for (const k of okHubs) if (hubs.get(k).last) hubLast[k] = hubs.get(k).last;   // the newest appearance among the hub's cars: the hub's sitemap lastmod
+  ROLL = { counts, hubs: okHubs.sort(), hubPhotos, hubLast, vins, motos, others, fallback, merged: [...merged.entries()].map(([from, to]) => ({ from: "/history/" + from, to: "/history/" + to })) }; ROLL_AT = Date.now();
   return ROLL;
 }
 // Exported for scripts/buildVinRolloutCache.js (the nightly precompute) to call directly - the ONE
@@ -1025,7 +1026,7 @@ async function sitemap(res, env, which) {
   const dead = await deadPhotos(env);
   if (which === "motorcycles") return res.status(200).send(urlset((r.motos || []).filter(u => !dead.vins.has(u.vin))));
   if (which === "other") return res.status(200).send(urlset((r.others || []).filter(u => !dead.vins.has(u.vin))));
-  if (which === "hubs") return res.status(200).send(urlset(r.hubs.filter(h => !dead.hubs.has(h)).map(h => ({ loc: `${SITE}/history/${h}` }))));
+  if (which === "hubs") return res.status(200).send(urlset(r.hubs.filter(h => !dead.hubs.has(h)).map(h => ({ loc: `${SITE}/history/${h}`, lastmod: (r.hubLast && r.hubLast[h]) || "" }))));
   const page = Math.max(1, Number(which) || 1) - 1;
   return res.status(200).send(urlset(r.vins.filter(u => !dead.vins.has(u.vin)).slice(page * SITEMAP_PAGE, (page + 1) * SITEMAP_PAGE)));
 }
