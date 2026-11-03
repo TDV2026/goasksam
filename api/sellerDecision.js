@@ -1,3 +1,4 @@
+import { debugLogOn } from "../lib/_debugLog.js";
 import { reasonLine } from "../lib/reasonWords.js";
 import { isNum } from "../lib/_num.js";
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
@@ -3657,7 +3658,7 @@ async function handler(req, res) {
         const raw = ans && ans.raw;
         if (wantsWarm && !poolSeed && raw && isStorableQuestion(raw)) { await writeQuestionRow({ supabaseUrl, supabaseKey }, qKey, slimAnswerForWire(raw)).catch(() => {}); return; }   // a question is stored as itself, never as an answer row
         if (wantsWarm && !poolSeed && raw && answerCacheable(raw) && !/_choice$/.test(String(raw.tier || ""))) {   // a recompute self-call lands here too and writes the fresh row
-          { const ts = Date.now(); await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(raw)).catch(() => {}); console.log(JSON.stringify({ tag: "stage_ms", stage: "store", ms: Date.now() - ts, key: String(warmKey).slice(0, 80) })); }
+          { const ts = Date.now(); await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(raw)).catch(() => {}); if (debugLogOn()) console.log(JSON.stringify({ tag: "stage_ms", stage: "store", ms: Date.now() - ts, key: String(warmKey).slice(0, 80) })); }
           // the nightly warm's own credentialed call also stores the car-only Sell block beside the answer (lib/sell/sellBlock.js)
           if (req.body?.warm === true && credentialed) { try { await (await import("../lib/sell/sellBlock.js")).warmSellBlock({ supabaseUrl, supabaseKey }, oneBoxText, raw, warmKey); } catch (e) { /* the block is optional */ } }
         }

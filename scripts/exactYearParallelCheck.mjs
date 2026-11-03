@@ -4,6 +4,7 @@
 // FIX: the second read starts beside the first and is used only if the first answer is thin. The line and the answer are unchanged.
 // CLASS CHECK: each car below has a trim and a year and a thin answer with the line; the time of the whole answer must stay clearly under the two reads added together. Fails without the fix.
 //   node scripts/exactYearParallelCheck.mjs [repo root]
+process.env.DEBUG_LOG = "1";   // the stage_ms line is a diagnostic, on only with DEBUG_LOG=1 (lib/_debugLog.js, lane-e-vercelcost)
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));

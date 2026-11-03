@@ -1,6 +1,7 @@
 // EVERY COLD COMPUTE LOGS ITS STAGES (Lane B, Oct 30 2026, the first-ask deadline: 13 to 17 s cold against the 20 s page deadline, the engine about 4.6 s). oneEngineAnswer times the engine, the trim chips, the question rule, the sell fields and the exact-year line,
 // sellerDecision times the store; one stage_ms line per cold compute names where the time goes. Fails without the timer (no line is logged).
 //   node scripts/stageTimerCheck.mjs [repo root]
+process.env.DEBUG_LOG = "1";   // the stage_ms line is a diagnostic, on only with DEBUG_LOG=1 (lib/_debugLog.js, lane-e-vercelcost)
 import fs from "node:fs";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";

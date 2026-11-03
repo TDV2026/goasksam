@@ -802,6 +802,13 @@ try {
 } catch (e) {
   record("popupSalesCheck (scripts/popupSalesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// logLinesCheck (Lane E, Nov 3 2026, lane-e-vercelcost): a hot path (Find search, Show more, enrich, the card popup, Market Check) prints at most 2 console lines per request; no un-gated diagnostic line in api/ or lib/; only runtime folders are deployable.
+try {
+  const out = execSync("node scripts/logLinesCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("logLinesCheck (scripts/logLinesCheck.mjs)", "PASS", (out.match(/logLinesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("logLinesCheck (scripts/logLinesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // sitemapValidCheck (Lane E, Nov 3 2026): every sitemap response is application/xml; charset=utf-8, starts with the XML declaration, is valid against the sitemaps.org schema, lists only absolute goasksam.com URLs, and an index lists no index.
 try {
   const out = execSync("node scripts/sitemapValidCheck.mjs", { encoding: "utf8", timeout: 120000 });

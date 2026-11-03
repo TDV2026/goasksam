@@ -33,6 +33,8 @@ _pd.mjs
 /test/
 /smoke-artifacts/
 /.github/
+# proofs/ (Nov 3 2026, lane-e-vercelcost): screenshots and check evidence, 6.3 MB over 40 files, uploaded with every deployment and kept for the deployment retention period (Deployment Storage on the bill).
+/proofs/
 
 # scripts/** is dev/ops tooling only, with exceptions for files api/usageDashboard.js itself
 # reads at request time: warm-list.json via vercel.json's own includeFiles, plus FOUR files it
