@@ -106,6 +106,13 @@ for (const width of [1440, 390]) {
   const tn = basisN(th.head) || (t && t.market && t.market.count);
   ok(th.rows > 0 && th.rows === Number(tn), `popup at ${width}, thin answer: it prints the ${tn} sales it states (${th.rows})`);
 }
+// THE PAGE KEEPS NO WAIT OF ITS OWN (Lane E, Nov 2 2026, pageWaitCheck): the drawer asks again only at the ENGINE's salesStill values. Without waitMaxMs and retryAfterMs it prints the still-reading line and does not ask again; with them it asks again at the engine's cadence.
+{ const still = (extra) => ({ market: none.market, engineAnswer: null, representative: {}, salesStill: { line: none.salesStill.line, ...extra } });
+  const asks = async (extra) => { let n = 0; const p = await openPanel(br, 1440, { panelBody: still(extra), onPanel: () => n++ }); await wait(1500); const line = await p.evaluate(() => (document.querySelector(".mcdrawer .md-still") || {}).textContent || ""); return { n, line }; };
+  const bare = await asks({}), partial = await asks({ waitMaxMs: 60000 }), partial2 = await asks({ retryAfterMs: 100 }), full = await asks({ retryAfterMs: 100, waitMaxMs: 60000 });
+  ok(bare.n === 1 && bare.line === none.salesStill.line, `salesStill with no wait values: the drawer prints the engine's line and does not ask again (${bare.n} request)`);
+  ok(partial.n === 1 && partial2.n === 1, `salesStill with only one of the two values: no retry (${partial.n}, ${partial2.n} requests)`);
+  ok(full.n >= 3, `salesStill with the engine's retryAfterMs and waitMaxMs: the drawer asks again at the engine's cadence (${full.n} requests in 1.5 s)`); }
 // the other card types through the same popup: a dealer listing, an apart answer (the sales split into options priced apart) and a question-first car print every sale their answer carries
 for (const k of ["dealer", "apart", "question"]) { const o = kinds[k], n = o && o.engineAnswer && o.engineAnswer.cards ? o.engineAnswer.cards.length : 0, d = await draw(1440, o), bn = basisN(d.head);
   ok(n > 0 && d.rows === n && (bn === null || bn === d.rows), `popup, ${k} card: it prints the ${n} sales its answer carries (${d.rows} printed; states ${bn === null ? "no count" : bn})`); }
