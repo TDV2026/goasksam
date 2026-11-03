@@ -320,7 +320,7 @@ const APP_JS = String.raw`(function(){
     var more = u.data.total > cs.length ? '<p class="more">' + (u.data.total - cs.length) + " more match.</p>" : "";
     var h = big.length ? '<div class="cgrid tkgrid n' + big.length + '">' + big.join("") + "</div>" : "";
     if (thin.length) h += '<ul class="cars">' + thin.map(function(c){
-      var fx = [bidFx(c), c.house, c.distance_miles != null ? c.distance_miles.toLocaleString("en-US") + " miles away" : c.location, c.miles ? Number(c.miles).toLocaleString("en-US") + " mi" : c.km ? Number(c.km).toLocaleString("en-US") + " km" : ""].filter(Boolean).join(" · ");
+      var fx = [bidFx(c), c.house, c.distance_miles != null ? c.distance_miles.toLocaleString("en-US") + " miles away" : c.location, c.miles ? Number(c.miles).toLocaleString("en-US") + " mi" : c.km ? Number(c.km).toLocaleString("en-US") + " km" + (c.kmMiles ? " (" + Number(c.kmMiles).toLocaleString("en-US") + " mi)" : "") : ""].filter(Boolean).join(" · ");
       return '<li><a class="carlink" href="' + esc(c.url || "#") + '" target="_blank" rel="noopener"><span class="t">' + esc(c.title || "Listing") + "</span>" + (fx ? '<span class="fx">' + esc(fx) + "</span>" : "") + "</a></li>";
     }).join("") + "</ul>";
     return h + more;

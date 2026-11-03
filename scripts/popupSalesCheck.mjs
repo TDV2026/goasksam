@@ -91,8 +91,8 @@ const probe = async (name, r, mkSales) => { mkSales(); const L = await imp("lib/
 await probe("dealer", row(3, { seller_type: "dealer", source: "carsandbids" }), () => {});
 await probe("apart", row(4, { listing_title: "2008 Porsche 911 Carrera S", year: 2008, model: "911", source: "bringatrailer", transmission: "Manual" }), () => { for (let i = 0; i < 10; i++) SALES.push(sale("Porsche", 2008, "2008 Porsche 911 Carrera S 6-Speed Manual", 70000 + i * 1500, "911")); for (let i = 0; i < 10; i++) SALES.push(sale("Porsche", 2008, "2008 Porsche 911 Carrera S Tiptronic", 52000 + i * 1500, "911")); });
 const msale = (year, title, price, mi, model) => { const s = sale("BMW", year, title, price, model); s.raw_record.mileage = String(mi); return s; };
-await probe("apartMiles", row(5, { listing_title: "1995 BMW M3 Coupe", make: "BMW", model: "M3", year: 1995, source: "bringatrailer", mileage: 28000 }), () => { for (let i = 0; i < 8; i++) SALES.push(msale(1995, "1995 BMW M3 Coupe", 98000 + i * 2500, 18000 + i * 3000, "M3")); for (let i = 0; i < 8; i++) SALES.push(msale(1995, "1995 BMW M3 Coupe", 62000 + i * 2000, 55000 + i * 5000, "M3")); for (let i = 0; i < 11; i++) SALES.push(msale(1995, "1995 BMW M3 Coupe", 16000 + i * 700, 104000 + i * 6000, "M3")); });
-if (process.env.DUMPAPART) { const o = kinds[process.env.DUMPAPART]; console.log("APART", JSON.stringify({ market: { kind: o.market.kind, basisLine: o.market.basisLine, thinLine: o.market.thinLine, answerLine: o.market.answerLine, countLine: o.market.countLine, optionLines: o.market.optionLines }, ea: { ...o.engineAnswer, cards: o.engineAnswer.cards && o.engineAnswer.cards.length } }, null, 1)); }
+await probe("apartMiles", row(5, { listing_title: "1995 BMW M3 Coupe", make: "BMW", model: "M3", year: 1995, source: "bringatrailer", mileage: 28000 }), () => { SALES.length = 0; for (let i = 0; i < 8; i++) SALES.push(msale(1995, "1995 BMW M3 Coupe", 98000 + i * 2500, 18000 + i * 3000, "M3")); for (let i = 0; i < 8; i++) SALES.push(msale(1995, "1995 BMW M3 Coupe", 62000 + i * 2000, 55000 + i * 5000, "M3")); for (let i = 0; i < 11; i++) SALES.push(msale(1995, "1995 BMW M3 Coupe", 16000 + i * 700, 104000 + i * 6000, "M3")); });
+await probe("apartFew", row(6, { listing_title: "1996 BMW M3 Coupe", make: "BMW", model: "M3", year: 1996, source: "bringatrailer", mileage: 28000 }), () => { SALES.length = 0; for (let i = 0; i < 3; i++) SALES.push(msale(1996, "1996 BMW M3 Coupe", 98000 + i * 2500, 18000 + i * 3000, "M3")); for (let i = 0; i < 8; i++) SALES.push(msale(1996, "1996 BMW M3 Coupe", 62000 + i * 2000, 55000 + i * 5000, "M3")); for (let i = 0; i < 11; i++) SALES.push(msale(1996, "1996 BMW M3 Coupe", 16000 + i * 700, 104000 + i * 6000, "M3")); });
 await probe("question", row(5, { listing_title: "1965 Ford Mustang", make: "Ford", model: "Mustang", year: 1965, source: "bringatrailer" }), () => { for (const b of ["Coupe", "Convertible", "Fastback"]) for (let i = 0; i < 6; i++) SALES.push(sale("Ford", 1965, `1965 Ford Mustang ${b}`, 30000 + i * 1000, "Mustang")); });
 await probe("nosales", row(6, { listing_title: "2021 Lotus Evija", make: "Lotus", model: "Evija", year: 2021, source: "bringatrailer" }), () => {});
 if (process.env.DBG) for (const [k, o] of Object.entries(kinds)) console.log("SWEEP", k, JSON.stringify({ market: o && o.market && { kind: o.market.kind, count: o.market.count }, tier: o && o.engineAnswer && o.engineAnswer.tier, cards: o && o.engineAnswer && o.engineAnswer.cards && o.engineAnswer.cards.length, basis: o && o.engineAnswer && o.engineAnswer.basisLine, thin: o && o.engineAnswer && o.engineAnswer.thinLine, still: !!(o && o.salesStill), err: o && o.error }));
@@ -149,6 +149,42 @@ for (const k of ["apart", "apartMiles"]) {
 { const kit = await imp("lib/findCardKit.js"), code = kit.buildKitSource().code, tp = fs.readFileSync(path.join(root, "api/tasksPage.js"), "utf8");
   ok(/data-mdopt/.test(code) && /option: \{ dimension: o\.dimension/.test(code) && /md-chips/.test(kit.findCardKitJs()), "Tasks card: it lifts Find's drawer whole, so an apart answer prints the same option chips and the same pick (one kit, no copy)");
   ok(!/data-mdopt|perOption/.test(tp), "Tasks page: no option logic of its own"); }
+// A CARD NEVER PRINTS AN INSTRUCTION WITH NOTHING TO ACT ON (Lane E, Nov 3 2026; the 1995 BMW M3 Coupe live: "Few sales under 50,000 miles. Pick a mileage band to see its range." and only View auction). CAUSE: the Find card showed See the
+// the sales only when the card had a headline range (api/buy.js card(): rangeNow); an answer that prices apart, or a band too thin for a range, has none, so the button was hidden and the line told the reader to pick with nothing to pick.
+// RULE: See the sales shows whenever the engine's answer has sales or options and hides only when it has neither; an answer that prices apart prints its options as chips on the card under the Sam line. CLASS: every card state below, rendered
+// from the real engine's market (Find card and, by the one kit, the Tasks card). A card whose text says pick or choose has an enabled chip to pick; a card with sales or options has See the sales; a card with neither has no button.
+{
+  const states = { "result with a range": w.market, "thin (three sales)": out.thin.market, "apart by gearbox": kinds.apart.market, "apart by mileage band": kinds.apartMiles.market, "a thin mileage band beside other bands": kinds.apartFew.market, "question first": kinds.question.market, "dealer listing": kinds.dealer.market, "no sales and no options": { kind: "count", count: 0 } };
+  const seen = {};
+  for (const [name, mk] of Object.entries(states)) {
+    const p = await openPanel(br, 1440, { marketOnly: mk, noOpen: true });
+    const s = await p.evaluate(() => { const a = document.querySelector("article.car"); return a ? { see: !!a.querySelector("button.act[data-mc]"), chips: a.querySelectorAll("button.md-chip[data-copt]").length, off: a.querySelectorAll(".md-chip-off").length, text: a.innerText, vauc: !!a.querySelector("a.vauc") } : null; });
+    seen[name] = s;
+    const sales = Number(mk.count) > 0 || (mk.options || []).length > 0 || (mk.kind === "range" && mk.low > 0), nOpt = (mk.options || []).length;
+    ok(s && s.vauc, `card, ${name}: View auction prints`);
+    ok(s && s.see === sales, `card, ${name}: See the sales ${sales ? "prints (the engine's answer has sales or options)" : "is hidden (the engine says no sales and no options)"}`);
+    const headlineRange = mk.kind === "range" && mk.low > 0 || (mk.findAnswer && mk.findAnswer.state === "range" && mk.findAnswer.range);
+    if (!headlineRange && nOpt > 1) ok(s && s.chips + s.off === nOpt && s.chips > 0, `card, ${name}: the ${nOpt} options print as chips under the Sam line (${s && s.chips} to pick, ${s && s.off} too thin for a range)`);
+    if (s && /\b(pick|choose)\b/i.test(s.text)) ok(s.chips > 0, `card, ${name}: the card says to pick and has ${s.chips} chips to pick from`);
+    await p.close();
+  }
+  // a pick on the card: the option's own line in the Sam box, the chip marked, the popup open on that option with its own sales
+  const lib = kindLib.apartFew, mk = kinds.apartFew.market, opts2 = mk.options, k0 = opts2.findIndex(o => o.rangeFloor !== true);
+  const p = await openPanel(br, 1440, { marketOnly: mk, noOpen: true, panelBody: kinds.apartFew, optionBody: v => lib.picks[opts2.findIndex(x => String(x.value) === String(v.value) && x.dimension === v.dimension)] });
+  await p.evaluate(i => document.querySelector(`button.md-chip[data-copt="${i}"]`).click(), k0); await wait(1200);
+  const r = await p.evaluate(() => ({ pick: (document.querySelector("article.car .sl-pick") || {}).textContent || "", hidden: (document.querySelector("article.car .sl-pick") || {}).hidden, pressed: document.querySelectorAll("article.car button.md-chip[aria-pressed=true]").length, drawer: !!document.querySelector(".mcdrawer"), dpressed: document.querySelectorAll(".mcdrawer .md-chip[aria-pressed=true]").length, rows: document.querySelectorAll(".mcdrawer .md-row").length, head: (document.querySelector(".mcdrawer .md-s") || {}).textContent || "" }));
+  ok(r.pick === mk.optionLines[k0] && r.hidden === false && r.pressed === 1, `card pick: the Sam box prints the engine's line for "${opts2[k0].label}" ("${r.pick}") and the chip is marked`);
+  ok(r.drawer && r.dpressed === 1 && r.rows === lib.picks[k0].engineAnswer.cards.length, `card pick: the popup opens on that option with its own ${lib.picks[k0].engineAnswer.cards.length} sales (${r.rows} printed)`);
+  await p.close();
+}
+// A KILOMETRE LISTING PRINTS ITS KM AND THE ENGINE'S MILES (Lane E, Nov 3 2026; the red M3 card: "61,000 km" beside a line in miles). The engine reads a km listing's mileage as miles (lib/live/liveTrust.js converts, facts.miles) and reads
+// the bands and lines in miles; the card kept only the km. The card now carries both numbers the engine returns (km, kmMiles) and prints "61,000 km (37,900 miles)".
+{ const { cardOf } = await imp("api/buySearch.js"), Lk = await imp("lib/live/search.js", "km"), kr = row(7, { listing_title: "1995 BMW M3 Coupe 61,000 km", make: "BMW", model: "M3", year: 1995, mileage: 37900, source: "bringatrailer" }), kf = Lk.listingFacts(kr), kc = cardOf({ r: kr, facts: kf, gen: null, unknown: [] });
+  ok(kc.km === 61000 && kc.miles === null && kc.kmMiles > 37000 && kc.kmMiles < 38500, `km listing: the card carries the km the listing states (${kc.km}) and the engine's miles (${kc.kmMiles})`);
+  const code = fs.readFileSync(path.join(root, "api/buy.js"), "utf8"), cl = JSON.parse(/^const CLIENT = (".*");$/m.exec(code)[1]);
+  const ml = new Function("num", "notUS", "cityOf", "awayWords", "esc", cl.slice(cl.indexOf("  function metaLine(l){"), cl.indexOf("\n  }\n", cl.indexOf("  function metaLine(l){")) + 4) + "\nreturn metaLine;")(n => Math.round(Number(n)).toLocaleString("en-US"), () => false, () => "", () => "", x => String(x));
+  const line = ml({ km: kc.km, kmMiles: kc.kmMiles, miles: kc.miles, location: "Austin, TX" }).replace(/<[^>]+>/g, "");
+  ok(/61,000 km \([\d,]+ miles\)/.test(line), `km listing: the card prints both ("${line}")`); }
 // (6b) THE FULL MARKET CHECK PAGE, opened from that link: the VIN decodes to make and year with no model (the case that used to land on a model question or a bare model), the card's car text rides beside it,
 // and Market Check reads the car the card showed. Rendered page, the VIN lookup answered with a partial decode, the first thing the page asks the engine to read is captured.
 {

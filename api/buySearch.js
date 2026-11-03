@@ -172,7 +172,8 @@ export function cardOf(x) {
     bid_unknown: facts.priceState === "suspect" || facts.priceState === "unconverted" || (!facts.priceUsd && Number(r.bid_count) > 0),
     // The bid's own time only (bid_at), never when we last read the row: the page shows a bid by it (lib/tasks/bidTime.js).
     bid_at: r.bid_at || null, end_time: r.end_time, year: r.year, make: r.make || null,
-    miles: cardMiles(facts), km: facts.km || null, colour: facts.colour, colourSrc: facts.colourSrc || null, body: facts.body, gearbox: facts.gearboxLabel,
+    miles: cardMiles(facts), km: facts.km || null, kmMiles: facts.km && Number(facts.miles) > 0 ? Math.round(Number(facts.miles)) : null,   // a km listing: the engine's own miles (the unit its mileage bands and lines are in), beside the km the listing states
+    colour: facts.colour, colourSrc: facts.colourSrc || null, body: facts.body, gearbox: facts.gearboxLabel,
     location: titleCaseIfShouting(r.location) || null, country: cc || null, countryName: COUNTRY_NAME[cc] || cc || null, abroad: isAbroadRow(r),
     vin_norm: r.vin_norm || null, mc_url: mcUrlOf(r, facts, x.market && x.market.query ? x.market : null), generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r),
     reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null, says: listingSays(r), sam_facts: listingSamFacts(r, facts), chips: specChips(r, facts) };

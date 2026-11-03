@@ -6,7 +6,7 @@ export const TEN = Array.from({ length: 10 }, (_, k) => ({ id: "s" + k, price: 4
 export async function openPanel(browser, width, opts = {}) {
   const defs = [M3_ROW["2008 BMW M3 Coupe"]], cards = await buildCards(defs), html = await pageHtml("api/buy.js", "/buy", false), p = await browser.newPage(); await p.setViewport({ width, height: 900, deviceScaleFactor: 1 });
   await p.evaluateOnNewDocument(() => { window.gasTrack = () => {}; });
-  const card = { ...cards[0], market: { ...cards[0].market, query: "2008 bmw m3 coupe", ...(opts.market || {}) } };
+  const card = { ...cards[0], market: opts.marketOnly ? { ...opts.marketOnly, query: "2008 bmw m3 coupe" } : { ...cards[0].market, query: "2008 bmw m3 coupe", ...(opts.market || {}) } };
   await p.setRequestInterception(true);
   p.on("request", r => { const u = new URL(r.url());
     if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html });
@@ -18,5 +18,6 @@ export async function openPanel(browser, width, opts = {}) {
     if (u.host === "goasksam.com" && /^\/api\//.test(u.pathname)) return r.respond({ status: 200, contentType: "application/json", body: "{}" });
     if (u.host !== "goasksam-com" && u.host !== "goasksam.com") return r.respond({ status: 204, body: "" }); r.continue(); });
   await p.goto("https://goasksam.com/buy", { waitUntil: "networkidle2" }).catch(() => {}); await p.waitForSelector("#hq", { timeout: 5000 }).catch(() => {}); await p.type("#hq", "bmw m3"); await p.keyboard.press("Enter"); await new Promise(r => setTimeout(r, 2500));
-  await p.evaluate(() => { const b = document.querySelector("button[data-mc]"); if (b) b.click(); }); await p.waitForSelector(opts.panelBody ? ".mcdrawer .md-s, .mcdrawer .md-g" : ".md-row", { timeout: 6000 }).catch(() => {}); await new Promise(r => setTimeout(r, 600)); return p;
+  if (opts.noOpen) { await p.waitForSelector("article.car", { timeout: 6000 }).catch(() => {}); await new Promise(r => setTimeout(r, 400)); return p; }
+  await p.evaluate(() => { const b = document.querySelector("button.act[data-mc]"); if (b) b.click(); }); await p.waitForSelector(opts.panelBody ? ".mcdrawer .md-s, .mcdrawer .md-g" : ".md-row", { timeout: 6000 }).catch(() => {}); await new Promise(r => setTimeout(r, 600)); return p;
 }

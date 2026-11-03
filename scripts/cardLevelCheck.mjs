@@ -1,6 +1,6 @@
 // FIND CARDS IN A ROW ARE LEVEL (Sam, Oct 29 2026): every card's Sam block is a fixed-height slot, the chips row a fixed two-line height, so the View auction buttons of the cards in one row sit on one line, at 1440 and 390, in every
 // state (a range, thin, refused, no bids, ended, still being read). This renders rows of mixed-state cards through the real Find page (api/buy.js) and FAILS if any two buttons in a row differ in vertical position, if a Sam block's
-// height differs from its row mates, or if a card repeats its own name inside the Sam block. "See the sales" prints only with a range and sits beside the button.
+// height differs from its row mates, or if a card repeats its own name inside the Sam block. "See the sales" prints whenever the engine's answer has sales or options (Nov 3 2026) and sits beside the button.
 //   node scripts/cardLevelCheck.mjs   (E98_ROOT=<another checkout> to read that tree's pages)
 import { BLACK_BMW, FIND, M3_ROW, PORSCHE_2005, CORVETTE } from "./e98Fixtures.mjs";
 import { startBrowser, ROOT } from "./e98Render.mjs";
@@ -46,8 +46,10 @@ for (const w of [1440, 390]) {
   const lineMax = Math.max(...info.map(c => c.lines.used)); const slotH = Math.max(...allH);
   for (const c of info) { ok(c.lines.n <= 4, `${w}: card ${c.id}: the Sam block is ${c.lines.n} text lines, at most four`); ok(c.lines.gaps.every(g => g <= 4), `${w}: card ${c.id}: the lines follow one another with no paragraph gaps (${c.lines.gaps.join(", ")} px)`); }
   const labelH = Math.min(...info.map(c => c.lines.off)); ok(slotH - labelH <= 4 * 22 && slotH <= lineMax + 12, /* the block's own 10px bottom padding */ `${w}: the Sam slot (${slotH}px, ${labelH}px of it the Sam label) holds four 16px lines at most (88px) and is no more than the tallest real state needs (${lineMax}px, plus the block's bottom padding)`);
-  // See the sales only with a range, beside the button; the car's own name is not repeated in the Sam block
-  for (const c of info) { if (c.hasAct) { ok(c.rangeText, `${w}: card ${c.id} prints See the sales only with a range`); ok(c.actBesideBtn, `${w}: card ${c.id}: See the sales sits beside View auction`); }
+  // See the sales whenever the engine has sales or options, beside the button; the car's own name is not repeated in the Sam block
+  // (Nov 3 2026, lane-e-pickbutton: the rule is the engine's sales or options, not a headline range)
+  const hasSalesOrOptions = id => { const mk = (mixed.find(x => String(x.id) === String(id)) || {}).market || {}; return (mk.kind === "range" && mk.low > 0) || Number(mk.count) > 0 || (mk.options || []).length > 0 || (mk.optionLines || []).length > 0 || !!(mk.findAnswer && mk.findAnswer.state === "range" && mk.findAnswer.range); };
+  for (const c of info) { if (c.hasAct) { ok(hasSalesOrOptions(c.id), `${w}: card ${c.id} prints See the sales because the engine's answer has sales or options`); ok(c.actBesideBtn, `${w}: card ${c.id}: See the sales sits beside View auction`); }
     ok(!c.clipped, `${w}: card ${c.id}: nothing in the Sam block or the chips row is cut off by its fixed height (${c.clipped})`);
     ok(!c.name || !c.slText.includes(c.name), `${w}: card ${c.id}: the car's name is not repeated inside the Sam block`); }
   await p.close();
