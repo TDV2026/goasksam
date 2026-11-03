@@ -32,7 +32,7 @@ const REGISTRY = [
   ["lib/live/samChat.js", /parseQueryResolved/, N, "a parse"],
   ["lib/live/samChat.js", /const raced = \(promise, ms, fallback\)/, N, "used for parses (resolveOnce)"],
   ["lib/live/samChat.js", /Promise\.all\(matches\.map\(x => specOf/, N, "the resolver"],
-  ["lib/live/samChat.js", /familyMarket\(env, v, f\)/, P, "listingMarket keepAlive fills the stored row"],
+  ["lib/live/samChat.js", /familyMarket\(env, (?:v|vq), f\)/, P, "listingMarket keepAlive fills the stored row"],
   ["lib/live/search.js", /const run = asked =>/, A, "Find's 25 s deadline"],
   ["lib/live/search.js", /const within = p =>/, P, "specCore is keepAlive'd and stores its row; the resolver half is not an archive read"],
   ["lib/newsletterSignup.js", /sub\.promise/, N, "a signup"],
