@@ -52,7 +52,7 @@ import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js
 import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.js";
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
-import { runTurn, runFilters, runSearch, suggestFor, BATCH_BUDGET_MS, useMarketRank } from "../lib/live/samChat.js";
+import { runTurn, runFilters, runSearch, suggestFor, BATCH_BUDGET_MS, useMarketRank, radiusOf } from "../lib/live/samChat.js";
 // The composer's suggestions (Stage 1c item 6), from the shaped cards (seen_before exists only after shaping).
 const withSuggest = (out, r) => ({ ...r, suggest: suggestFor({ meta: out.meta, filters: out.state && out.state.filters, seenAny: (r.cards || []).some(c => c && c.seen_before) }) });
 import { humanTitle } from "../lib/carTitle.js";
@@ -636,7 +636,7 @@ async function handler(req, res) {
     // A result address reloaded or pasted (/buy?q=...&make=...): the same search from its filters, no model call.
     if (b.action === "rerun") {
       // zip: the buyer's zip for the distance question (kept by the page for the session), never a filter by itself.
-      const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null });
+      const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, radius: radiusOf(b.radius) });
       const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
       return res.status(200).json({ reply: out.reply, searchNote: out.searchNote || null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
     }
@@ -646,12 +646,12 @@ async function handler(req, res) {
     // in lib/live/samChat.js. Nothing is sorted, counted or sliced here or on the page.
     if (b.action === "more") {
       const offset = Math.max(0, Math.min(100000, Math.floor(Number(b.offset) || 0)));
-      const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, offset, batchOnly: true });
+      const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, radius: radiusOf(b.radius), offset, batchOnly: true });
       // one stored-row read for the batch's spec keys, inside the same clock (a failure here only means each card reads as it would have)
       const pre = Promise.all(out.cards.map(x => specOf(env, x.r, x.facts).catch(() => null))).then(sp => { const keys = sp.filter(Boolean).map(z => z.key); return keys.length ? prefetchSpecs(env, keys) : null; }).catch(() => null);
       const cards = await moreBatch(out.cards, { enrichOne: async x => { await pre; return enrichFast(env, x); }, pendingOf: pendingCardOf });
       const m = out.meta || {};
-      return res.status(200).json({ cards, meta: { live: m.live, shown: m.shown, remaining: m.remaining, nextN: m.nextN, countLine: m.countLine || null, offset: m.offset } });
+      return res.status(200).json({ cards, meta: { live: m.live, shown: m.shown, remaining: m.remaining, nextN: m.nextN, countLine: m.countLine || null, liveLine: m.liveLine || null, within: m.within || null, offset: m.offset } });
     }
     // The detail's live bid refresh can meter one upstream call: only our own jobs may trigger it, never a
     // public visitor (open-search policy: public answers come from the cache and the archive only).
@@ -729,7 +729,7 @@ function cleanState(s) {
     answered: (Array.isArray(s.answered) ? s.answered : []).map(String).filter(k => /^(generation|body|mileage|budget|location|zip|kind|travel)$/.test(k)),
     travel: /^(100|500|any)$/.test(String(s.travel || "")) ? String(s.travel) : null,
     asked: Math.max(0, Math.min(4, Number(s.asked) || 0)),
-    zip: /^\d{5}$/.test(String(s.zip || "")) ? String(s.zip) : null,
+    zip: /^\d{5}$/.test(String(s.zip || "")) ? String(s.zip) : null, radius: radiusOf(s.radius),
     place: typeof s.place === "string" && /^[A-Za-z .,'-]{3,60}$/.test(s.place) ? s.place.trim() : null,
     showNow: !!s.showNow,
     // The chat's filters (what the page's address is built from), so a saved search reopens at its own
