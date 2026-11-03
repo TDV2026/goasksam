@@ -26,7 +26,7 @@ globalThis.fetch = async (url) => {
   throw new Error("offline");
 };
 const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k", qelig: "compute" };
-const ask = async (model, asked = 2) => (await E.oneEngineAnswer({ make: MK, model, trim: "", year: 2001, bodyStyle: null }, null, `2001 ${MK} ${model}`, { ...env, asked }, null)).raw;   // asked 2: the question cap is spent, so the pooled result with its option lines is what the engine answers
+const ask = async (model, asked = 2, year = 2001) => (await E.oneEngineAnswer({ make: MK, model, trim: "", year, bodyStyle: null }, null, `${year} ${MK} ${model}`, { ...env, asked }, null)).raw;   // asked 2: the question cap is spent, so the pooled result with its option lines is what the engine answers
 const hasPooled = a => !!(a.cluster || (a.raw && a.raw.cluster));
 const chart = a => { const t = a.trend || (a.raw && a.raw.trend); return !!(t && ((t.movement && t.movement.buckets && t.movement.buckets.length) || (t.quarters && t.quarters.some(q => q.count >= 8)))); };
 const fill = (model, plan) => { for (const [body, tx, base, count, agoStart] of plan) for (let i = 0; i < count; i++) sale(model, body, tx, base + (i % 5) * 400, agoStart + i * 9); };
@@ -47,11 +47,11 @@ const J = (c) => E.setConsistencyOf({ tier: "result", poolN: 1, cluster: [20000,
 ok("judge: an unlabelled card outside the range is a violation", J({}).some(v => /outside the printed range/.test(v)), JSON.stringify(J({})));
 ok("judge: the same card labelled is consistent", !J({ rangeLabel: "Above the typical range" }).some(v => /outside the printed range/.test(v)), JSON.stringify(J({ rangeLabel: "Above the typical range" })));
 // C. low-mile tile
-for (let i = 0; i < 9; i++) salemi("LM1", 40000 + i * 800, 5 + i * 9, 20000 + i * 1000, 1985);
+for (let i = 0; i < 9; i++) salemi("LM1", 40000 + i * 800, 5 + i * 9, 20000 + i * 1000, 1985, "1985 Testmake LM1");   // a 1985 pool asked for 1985 (a 2001 ask of a 1985-only pool is a far widening and prints no range)
 salemi("LM1", 41000, 90, 151, 1985, "1985 Testmake LM1 Replacement Speedometer");
 salemi("LM1", 42000, 100, 454, 1985, "454-Mile 1985 Testmake LM1");
 salemi("LM1", 43000, 110, 100, new Date().getUTCFullYear() - 3, "2023 Testmake LM1");
-a = await ask("LM1");
+a = await ask("LM1", 2, 1985);
 const cardOf = t => (a.cards || []).find(c => t === "454" ? c.price === 42000 : c.title === t);
 const c151 = cardOf("1985 Testmake LM1 Replacement Speedometer"), c454 = cardOf("454");
 ok("low miles: a 151-mile sale on a 1985 car hides its mileage", c151 && c151.milesHidden === true && c151.mileageText == null, JSON.stringify(c151 && [c151.milesHidden, c151.mileageText]));
