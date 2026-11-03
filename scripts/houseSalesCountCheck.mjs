@@ -61,8 +61,10 @@ FIX = Array.from({ length: 12 }, (_, i) => mk(false, price(i), 1993)); { const d
   const base = { tier: "thin", poolN: 9, rawPool: [{ id: "a", year: 1993 }], cluster: null, resolvedCar: { year: 1993, make: "Jaguar", model: "XJ220" } };
   { const { d, p } = await rd({ ...base, thinReason: "house_share" }); ok("(F) a row refused by house_share without the tag is read as no row, by both readers", d.raw === null && d.reason === "house_recheck" && !p, JSON.stringify([d.reason, !!p])); }
   { const { d, p } = await rd({ ...base, thinReason: "house_share", houseRulesTag: E.HOUSE_RULES_TAG }); ok("(F) the same row carrying the tag is served", !!d.raw && !!p); }
-  { const a = await rd({ ...base, thinReason: "few_sales" }), b = await rd({ ...base, tier: "result", cluster: [380000, 440000] }), c = await rd({ ...base, thinReason: "few_comparable" });
-    ok("(F) every other row keeps serving (few_sales, few_comparable, a result)", !!a.d.raw && !!b.d.raw && !!c.d.raw && !!a.p && !!b.p && !!c.p); }
+  { const a = await rd({ ...base, thinReason: "few_sales" }), b = await rd({ ...base, tier: "result", cluster: [380000, 440000] }), c = await rd({ ...base, thinReason: "few_comparable" }), c2 = await rd({ ...base, thinReason: "few_comparable", thin: { houseN: 0, totalN: 9 } }), c3 = await rd({ ...base, thinReason: "few_comparable", thin: { houseN: 5, totalN: 6 } });
+    ok("(F) every other row keeps serving (few_sales, a result, few_comparable with no house sale or fewer than 8 sales in all)", !!a.d.raw && !!b.d.raw && !!c.d.raw && !!c2.d.raw && !!c3.d.raw && !!a.p && !!b.p && !!c.p && !!c2.p && !!c3.p); }
+  { const { d, p } = await rd({ ...base, thinReason: "few_comparable", thin: { houseN: 4, totalN: 9 } }); ok("(F) a few_comparable row whose pool reaches 8 sales once its house sales count (4 house, 9 in all) is read as no row, by both readers", d.raw === null && d.reason === "house_recheck" && !p, JSON.stringify([d.reason, !!p])); }
+  { const { d, p } = await rd({ ...base, thinReason: "few_comparable", thin: { houseN: 4, totalN: 9 }, houseRulesTag: E.HOUSE_RULES_TAG }); ok("(F) the same few_comparable row carrying the tag is served", !!d.raw && !!p); }
   ok("(F) the stamp did not move (still e99)", !!E && /^e99-/.test(String(E.ENGINE_VERSION)), E && E.ENGINE_VERSION);
   ROW = null;
   FIX = Array.from({ length: 12 }, (_, i) => mk(true, price(i), 1993)); const d = await answer();
