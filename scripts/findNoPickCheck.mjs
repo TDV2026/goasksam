@@ -105,6 +105,25 @@ for (const [dim, labels, lead] of CASES) { const line = U(dim, labels); ok(`${di
   const NB = E.nearBandOf ? E.nearBandOf({ options: [o("mileage", "Under 50,000 miles", "lt50", 4), o("mileage", "50,000 to 100,000 miles", "50to100", 9, 26000, 36500)], rawPool: [] }, 28000) : null;
   ok("nearBandOf carries a card wording (cardLine) that says nothing to pick, and the Market Check wording (line) that keeps its pills", !!NB && typeof NB.cardLine === "string" && !PICK.test(NB.cardLine) && /pick/i.test(NB.line), NB && JSON.stringify(NB));
 }
+// 7. EVERY SURFACE THAT DRAWS THE SHARED CARD (lib/sellsForCard.js), by whether it has pills to pick with (lane-e-nopick, part 2). Cause: sellsForCard printed nearBand.line, the Market Check wording that points at its pills, on the Sell card,
+//    the partner page, Buy and Tasks, none of which has a pill (only Market Check passes interactive:true and draws sellsForNarrowHtml). The surface list: Market Check keeps line; Sell, the partner page and the default card print cardLine,
+//    and an answer stored without a cardLine prints nothing there rather than a pick.
+{
+  const { sellsForCardHtml } = await import(pathToFileURL(path.join(root, "lib/sellsForCard.js")).href);
+  const { REASON_TABLE: RT7 } = await import(pathToFileURL(path.join(root, "lib/reasonWords.js")).href);
+  const thin = "under 50,000 miles";
+  const base = { tier: "thin", thinLine: "Too few sales to show a range.", poolN: 4, windowWords: "since September 2026", cards: [] };
+  const withBoth = { ...base, nearBand: { from: { value: "lt50", label: "Under 50,000 miles", n: 4 }, line: RT7["nearband.line"].text({ thin }), cardLine: RT7["find.near_band"].text({ thin }) } };
+  const legacy = { ...base, nearBand: { from: withBoth.nearBand.from, line: RT7["nearband.line"].text({ thin }) } };
+  const SURFACES = [["Sell card", { marketHref: "/market-check?q=x" }], ["Sell card (result column)", {}], ["partner page", { partnerPillsHtml: "<!--pills-->", rows: false, poweredBy: true }], ["Buy and Tasks default", { rows: false }]];
+  for (const [name, opts] of SURFACES) {
+    const h = sellsForCardHtml(withBoth, opts) || "", hl = sellsForCardHtml(legacy, opts) || "";
+    ok(`${name}: prints the card wording of a thin mileage band, nothing to pick`, h.includes(RT7["find.near_band"].text({ thin })) && !/\bpick\b/i.test(h), h.match(/Few sales[^<]*/) ? h.match(/Few sales[^<]*/)[0] : "no nearBand line");
+    ok(`${name}: an answer stored without a cardLine prints no pick`, !/\bpick\b/i.test(hl));
+  }
+  const mc = sellsForCardHtml(withBoth, { rows: false, reasonsShown: true, interactive: true }) || "";
+  ok("Market Check (interactive: its narrow strip has the pills): keeps the line that points at them", mc.includes(RT7["nearband.line"].text({ thin })));
+}
 // 5. a split spec with no stored answer is refreshed behind the card
 { const src = fs.readFileSync("lib/live/search.js", "utf8"); ok("listingMarket computes and stores the answer behind a split card whose stored row is missing or on an older stamp", /refreshMcRowBehind\(env, spec\)/.test(src) && /function refreshMcRowBehind/.test(src)); }
 console.log(fail ? `findNoPickCheck: ${fail} failure(s)` : "findNoPickCheck: all pass");

@@ -115,11 +115,12 @@ if (LIVE) {
   if (!byp) { try { byp = execSync("security find-generic-password -s goasksam-bypass -w", { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { /* none */ } }
   const get = async (url, bypass) => { const h = { "user-agent": UA }; if (bypass && byp) h["x-vercel-protection-bypass"] = byp; const r = await fetch(url, { redirect: "manual", headers: h }); const hd = {}; r.headers.forEach((v, k) => { hd[k] = v; }); return { code: r.status, h: hd, body: r.status < 300 || r.status >= 400 ? await r.text() : "" }; };
   ok(!!byp, "live: the automation bypass secret is available");
-  // hosts: one hop, a 301, to the canonical address
-  for (const u of ["https://goasksam.vercel.app/find", "https://www.goasksam.com/find"]) {
-    const r = await get(u, true);
-    ok(r.code === 301 && r.h.location === SITE + "/find", `live: ${u} answers 301 to ${SITE}/find in one hop (is ${r.code} ${r.h.location || ""})`);
-  }
+  // hosts: one hop to the canonical address. vercel.app is redirected by vercel.json, so it must be a 301. www is Vercel's domain-level redirect (Settings > Domains), not the repo's:
+  // Google treats a 308 as permanent, so a 301 or a 308 passes there.
+  { const u = "https://goasksam.vercel.app/find", r = await get(u, true);
+    ok(r.code === 301 && r.h.location === SITE + "/find", `live: ${u} answers 301 (the repo's own redirect) to ${SITE}/find in one hop (is ${r.code} ${r.h.location || ""})`); }
+  { const u = "https://www.goasksam.com/find", r = await get(u, true);
+    ok((r.code === 301 || r.code === 308) && r.h.location === SITE + "/find", `live: ${u} answers 301 or 308 (Vercel's domain redirect) to ${SITE}/find in one hop (is ${r.code} ${r.h.location || ""})`); }
   for (const u of ["/find/", "/whats-new/", "/mcp.html", "/powersellers.html", "/buy", "/onebox", "/vin/WBSBF9327SEH06974"]) {
     const r = await get(SITE + u, true);
     ok(r.code === 301 && !!r.h.location, `live: ${u} 301s (is ${r.code} ${r.h.location || ""})`);
