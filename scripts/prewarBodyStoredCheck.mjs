@@ -1,3 +1,4 @@
+// clock: real-ok stored-row fixtures are stamped with the current time and read on the same day; no assertion depends on the date
 // A STORED PRE-WAR ANSWER FROM BEFORE THE APART-BY-BODY RULE IS COMPUTED AGAIN (Lane B, Nov 4 2026, job lane-b-rick point 3, the invalidation).
 // CAUSE: the rule (before 1949, two or more bodies with sales are an apart answer) changed no stamp, so stored Market Check rows (MCWARM:) of such cars kept serving the alike answer. THE FIRST PLAN, market.staleSince, does nothing here:
 // only the core-row reader honours it; readWarmAnswerDetailed and readWarmAnswer (the two readers of an MCWARM row, behind Market Check, Buy, Tasks, Sell and the partner page) never read it. So the invalidation is a rule tag (PREWAR_BODY_TAG),

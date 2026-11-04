@@ -1,3 +1,4 @@
+// clock: real-ok stored-row fixtures are stamped with the current time and read on the same day; no assertion depends on the date
 // NON-CAR NAMES NEVER REACH A CAR'S NAME (Lane B, Nov 4 2026, job lane-b-names; Rick Carey's launch-day list). Offline: the resolver reads each title; no database, no network.
 // CAUSE, per pattern (parser step in lib/nameGuard.js): coachbuilder phrase "by X" -> read as the model ("Chrysler By", "Delahaye By"); engine or gearbox word -> model or trim ("Dodge Hemi R T", "Chevrolet LT1", "Ferrari F1", Mustang "GT V8");
 // two-word model -> its front half ("Jaguar Mark", "Packard Super"); reference number -> trim ("Ferrari 275 GTB RN26"); a badge several cars wear -> the model ("Alfa Romeo GTA" without Giulia).
