@@ -134,8 +134,9 @@ for (const [vin, year, make, model, trim, body] of CARS) {
 // HERO PHOTO (lane-b-vinpool item 2): the partner page showed a 997 GT3 as "a car like this one" on a 997 Carrera VIN. The hero photo is a sale of the answer's OWN pool, never a wider one; no photo in the pool, no photo.
 {
   const { photoId } = await import(pathToFileURL(path.join(root, "lib/_salePhoto.js")).href);
-  const card = (id, title, price) => ({ id, title, rtitle: title, price, date: "2026-03-01", mi: 40000, image: "https://img.test/" + id + ".jpg" });
-  const inPoolSale = card("11111111-1111-4111-8111-111111111111", "2005 Porsche 911 Carrera", 52000), outSale = card("22222222-2222-4222-8222-222222222222", "2005 Porsche 911 GT3", 150000);
+  const card = (id, title, price, date = "2026-03-01") => ({ id, title, rtitle: title, price, date, mi: 40000, image: "https://img.test/" + id + ".jpg" });
+  // the stray sale is built to WIN the pick on a tree without the fix (cheaper and newer than the pool's own sale, same year), so these cases fail without the pool guard and are not vacuous
+  const inPoolSale = card("11111111-1111-4111-8111-111111111111", "2005 Porsche 911 Carrera", 52000), outSale = card("22222222-2222-4222-8222-222222222222", "2005 Porsche 911 GT3", 40000, "2026-06-01");
   // (a) a card outside the pool the range was built from is never the hero, whatever else is in the answer
   const dOut = { tier: "result", cards: [outSale, inPoolSale], rawPool: [inPoolSale], cluster: [50000, 54000] };
   const pOut = P.carPhotoOf(dOut, 2005);
