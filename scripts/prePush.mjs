@@ -1986,6 +1986,12 @@ try {
   record("engine: every engine and N-speed word filters live listings and stored sales like a gearbox word, and an applied word is never named unused (scripts/engineWordFilterCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/prewarBodyApartCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("engine: before 1949 body style is an apart dimension by default, each body with its own range, plain labels (scripts/prewarBodyApartCheck.mjs)", "PASS", (out.match(/prewarBodyApartCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: before 1949 body style is an apart dimension by default, each body with its own range, plain labels (scripts/prewarBodyApartCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/typedAttributeCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: a typed gearbox, engine or body word is applied or announced, never dropped; the classic bodies are separate pools; sales can be read by date (scripts/typedAttributeCheck.mjs)", "PASS", (out.match(/typedAttributeCheck: .*/) || [""])[0]);
 } catch (e) {
