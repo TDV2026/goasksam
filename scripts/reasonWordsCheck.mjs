@@ -4,7 +4,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath, pathToFileURL } from "url";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
-let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
+let failed = 0, total = 0; const ok = (n, c, d) => { total++; if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 const RW = await import(pathToFileURL(path.join(root, "lib/reasonWords.js")).href).catch(() => null);
 ok("lib/reasonWords.js exists with the table", !!(RW && RW.REASON_TABLE && RW.reasonPatterns));
 if (!RW) process.exit(1);
@@ -80,4 +80,5 @@ ok(`the engine lines carried by ${seen} fields on the fixtures are all in the ta
 // the cold and stale lines
 const S = await import(pathToFileURL(path.join(root, "lib/live/search.js")).href);
 ok("the cold line is in the table", pats.some(p => p.id === "cold.reading" && p.re.test(S.stillReadingMarket().line)));
+console.log(`reasonWordsCheck: ${total - failed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

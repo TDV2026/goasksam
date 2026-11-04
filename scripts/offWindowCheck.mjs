@@ -166,4 +166,5 @@ if (offWindowLabel && drawerHtml) {
 }
 
 console.log(`\n${n - fails}/${n} checks passed.`);
+console.log(`offWindowCheck: ${n - fails} passed, ${fails} failed`);
 process.exit(fails ? 1 : 0);

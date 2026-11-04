@@ -3,7 +3,7 @@
 import path from "path"; import { fileURLToPath, pathToFileURL } from "url";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href);
-let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
+let failed = 0, total = 0; const ok = (n, c, d) => { total++; if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 let MAKE="Porsche", MODEL="Boxster";
 let rows = [], n = 0;
 const sale = (year, date, price, mi, title) => { n++; rows.push({ id: "00000000-0000-4000-8000-" + String(n).padStart(12, "0"), source_id: "rw" + n, sale_price: price, sale_date: date, platform: "Bring a Trailer", source_slug: "bringatrailer", make: MAKE, model: MODEL, year, listing_title: title || `${year} Datsun 240Z`, vin_norm: "V" + n, stated_mileage: null, project_flag: null, desc_facts: null, has_reserve: null, vehicle_type: "car", sale_price_usd: price,
@@ -67,4 +67,5 @@ ok("E: a near line only with 8 or more sales", outs.every(([x]) => !x || !x.line
 const B = await import(pathToFileURL(path.join(root, "api/buySearch.js")).href);
 const lines = B.samLines({ market: { kind: "range", soldLine: "The typical range for X sales: $1 to $2.", findAnswer: a }, timeline: [] });
 ok("F: the card's market line is the findAnswer lines", lines[0] && lines[0].text === a.lines.join(" ") && !/typical range/.test(lines[0].text), JSON.stringify(lines[0]));
+console.log(`findAnswerCheck: ${total - failed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

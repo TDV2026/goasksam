@@ -6,7 +6,7 @@
 import fs from "node:fs"; import path from "node:path"; import { fileURLToPath, pathToFileURL } from "node:url";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 process.chdir(root);
-let fail = 0; const ok = (n, c, d) => { if (!c) fail++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
+let fail = 0, total = 0; const ok = (n, c, d) => { total++; if (!c) fail++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 process.env.LAUNCH_STAGE = "2"; process.env.SUPABASE_URL = "https://fake.supabase.test"; process.env.SUPABASE_SERVICE_ROLE_KEY = "k";
 globalThis.fetch = async () => { throw new Error("no network in this check"); };
 const imp = f => import(pathToFileURL(path.join(root, f)).href);
@@ -77,4 +77,5 @@ if (V) {
     ok("findAnswerOf: the bid word is the one the pair gives", fb.length === 0, fb.join(" | "));
   }
 }
+console.log(`bidPlaceCheck: ${total - fail} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
