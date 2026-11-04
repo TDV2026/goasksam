@@ -25,9 +25,9 @@ for (let i = 1; i <= N; i++) {
   const r = { id: i, listing_title: "1995 Porsche 911 lot " + i, make: "Porsche", model: "911", year: 1995, source: "bringatrailer", url: "https://auction.test/" + i, photo_url: "https://img.test/" + i + ".jpg", end_time: iso(2 + i * 0.37), first_seen: iso(-1 - ((i * 7) % N) * 0.5), current_bid_usd: bid, bid_count: bid ? 1 : 0, location: CITIES[i % CITIES.length], country: "US", has_reserve: false, status: "live" };
   FIX.push({ r, facts: { priceUsd: bid, priceState: bid ? "usd" : "none", miles: 20000 + i, gearboxLabel: "Manual" }, unknown: [], market, kind, low, high, bid });
 }
-// ORACLE (written here, from the numbers): below the range, deepest gap first; within, lowest in the range first; above, nearest the top first; then every car with no range, no bid or still being read, ending soonest first
+// ORACLE (written here, from the numbers; Nov 3 2026 the rule is PERCENT: the low end minus the bid, over the low end, biggest first): below the range, biggest share below first; within, lowest in the range first; above, nearest the top first; then every car with no range, no bid or still being read, in the order they were in
 const endsAt = f => Date.parse(f.r.end_time);
-const oracleBelow = FIX.slice().sort((a, b) => { const g = f => f.kind === "below" ? 0 : f.kind === "within" ? 1 : f.kind === "above" ? 2 : 3; const k = f => f.kind === "below" || f.kind === "within" ? f.bid - f.low : f.kind === "above" ? f.bid - f.high : 0; return g(a) - g(b) || k(a) - k(b) || endsAt(a) - endsAt(b); }).map(f => f.r.id);
+const oracleBelow = FIX.slice().sort((a, b) => { const g = f => f.kind === "below" ? 0 : f.kind === "within" ? 1 : f.kind === "above" ? 2 : 3; const k = f => f.kind === "below" || f.kind === "within" ? (f.bid - f.low) / f.low : f.kind === "above" ? (f.bid - f.high) / f.high : 0; return g(a) - g(b) || (g(a) === 3 ? 0 : k(a) - k(b) || endsAt(a) - endsAt(b)); }).map(f => f.r.id);
 const distOf = (zip, f) => { const c = geo.zipCoord(zip), l = geo.listingCoord(f.r); return c && l ? geo.milesBetween(c, l) : null; };
 const oracleNear = zip => FIX.slice().sort((a, b) => { const da = distOf(zip, a), db = distOf(zip, b); return (da == null ? 1e9 : da) - (db == null ? 1e9 : db) || endsAt(a) - endsAt(b); }).map(f => f.r.id);
 const oracleEnding = FIX.slice().sort((a, b) => endsAt(a) - endsAt(b)).map(f => f.r.id);
@@ -54,12 +54,38 @@ for (const [name, key, want] of [["below_range", "below_range", oracleBelow], ["
   const e = await engineAnswer({ make: "Porsche", sort: "below_range" }, 0), by = id => FIX.find(f => f.r.id === id);
   const kinds = e.order.map(id => by(id).kind), firstNone = kinds.findIndex(k => k === "none" || k === "pending" || k === "nobid");
   ok(kinds.slice(0, firstNone).every(k => k === "below" || k === "within" || k === "above") && kinds.slice(firstNone).every(k => k === "none" || k === "pending" || k === "nobid"), "below-range: every car with a place against its range comes before every car with no range, no bid or still being read");
-  const gaps = e.order.filter(id => by(id).kind === "below").map(id => by(id).low - by(id).bid);
-  ok(gaps.length > 5 && gaps.every((g, i) => i === 0 || gaps[i - 1] >= g), `below-range: the deepest gap first, then shallower (${gaps.slice(0, 4)})`);
+  const gaps = e.order.filter(id => by(id).kind === "below").map(id => (by(id).low - by(id).bid) / by(id).low);
+  ok(gaps.length > 5 && gaps.every((g, i) => i === 0 || gaps[i - 1] >= g), `below-range: the biggest share below the low end first, then smaller (${gaps.slice(0, 4)})`);
   const g1 = kinds.indexOf("within"), g2 = kinds.indexOf("above");
   ok(kinds.lastIndexOf("below") < g1 && kinds.lastIndexOf("within") < g2, "below-range: below the range, then within it, then above it");
   const unplaced = e.order.slice(firstNone);
   ok(unplaced.every(id => by(id).kind === "pending" || by(id).kind === "none" || by(id).kind === "nobid") && unplaced.length === FIX.filter(f => ["none", "pending", "nobid"].includes(f.kind)).length, "below-range: the cars with no range, no bid or still being read are last, none dropped");
+}
+// ---- THE RULE IS A SHARE OF THE RANGE (Nov 3 2026): low end minus bid, over the low end, biggest first; and the rank is on the range the card PRINTS
+{
+  const mk = (id, title, bid, low, high, extra = {}) => ({ r: { id, listing_title: title, make: "Porsche", model: "911", year: 2000, source: "bringatrailer", url: "https://auction.test/p" + id, photo_url: null, end_time: iso(5 + id), first_seen: iso(-1) }, facts: { priceUsd: bid, priceState: "usd", miles: 20000 }, unknown: [], market: { kind: "range", low, high, count: 20, query: "Porsche 911", window: "the last 12 months", ...extra } });
+  const rankOf = async list => { await bs.rankByBid(null, list); sm.orderMatches(list, "below_range"); return list.map(x => x.r.id); };
+  // the three 911s of the question
+  let L = [mk(1, "1989 Porsche 911 Speedster", 85000, 182000, 227000), mk(2, "2024 Porsche 911 Targa 4 GTS", 90000, 201000, 212000), mk(3, "2019 Porsche 911 GT2 RS", 455000, 608000, 780000)];
+  ok(JSON.stringify(await rankOf(L)) === JSON.stringify([2, 1, 3]), "the three 911s order Targa (55% under), Speedster (53%), GT2 RS (25%) by the share below the low end, not by dollars");
+  // a small car far under outranks a dear car less far under
+  L = [mk(1, "dear", 450000, 600000, 700000), mk(2, "cheap", 12000, 20000, 25000)];
+  ok(JSON.stringify(await rankOf(L)) === JSON.stringify([2, 1]), "a $20,000 car 40% under outranks a $600,000 car 25% under");
+  // cars with no range, no bid or a market still being read go last, in the order they were in
+  L = [mk(1, "pending", 50000, 1, 1), mk(2, "nobid", null, 40000, 50000), mk(3, "under", 30000, 40000, 50000), mk(4, "none", 40000, 1, 1), mk(5, "under more", 20000, 40000, 50000)];
+  L[0].market = undefined; L[0].marketPending = true; L[3].market = { kind: "none", query: "x" }; L[0].market = { kind: "pending" };
+  ok(JSON.stringify(await rankOf(L)) === JSON.stringify([5, 3, 1, 2, 4]), "no range, no bid or a market still being read go last, in the order they were in (" + JSON.stringify(L.map(x => x.r.id)) + ")");
+  // THE RANK IS ON THE RANGE THE CARD PRINTS: a card whose headline is a mileage band's range ranks on that range, not on the pool's
+  const band = (id, bid, poolLow, poolHigh, bandLow, bandHigh) => mk(id, "banded " + id, bid, poolLow, poolHigh, { findAnswer: { state: "range", n: 9, range: { low: bandLow, high: bandHigh }, lines: ["p", "The bid is below the range."] } });
+  L = [band(1, 60000, 100000, 140000, 62000, 70000), band(2, 60000, 100000, 140000, 120000, 140000)];   // pool says both are 40% under; card 1 prints $62,000 to $70,000 (3% under), card 2 prints $120,000 to $140,000 (50% under)
+  const order = await rankOf(L);
+  ok(JSON.stringify(order) === JSON.stringify([2, 1]), "a card that prints a band's range is ranked on that range (50% under before 3% under), not on the pool's (" + order + ")");
+  // every card's rank equals its own printed range: read each card's headline figures and bid, compute the share, and the order must follow it
+  const cards = L.slice().sort((a, b) => order.indexOf(a.r.id) - order.indexOf(b.r.id)).map(x => bs.withSlots({ ...bs.cardOf(x), market: x.market, seen_before: null, timeline: [], name: null }));
+  const share = c => { const n = String(c.cardHeadline).replace(/,/g, "").match(/\$(\d+)/g).map(t => +t.slice(1)); return (Number(c.current_bid_usd) - n[0]) / n[0]; };
+  ok(cards.length === 2 && cards.every(c => /\$\d/.test(c.cardHeadline)) && cards.every((c, i) => i === 0 || share(cards[i - 1]) <= share(c)), "every card's place in the order follows the range printed on that card (" + cards.map(c => c.cardHeadline + " " + share(c).toFixed(2)).join(" | ") + ")");
+  // the menu says the rule, in the engine's words
+  ok(sm.SORT_TIPS && /gap below the range, as a share of the range/i.test(sm.SORT_TIPS.below_range), "the sort's tooltip is the engine's text: " + (sm.SORT_TIPS && sm.SORT_TIPS.below_range));
 }
 // ---- the REAL engine (runFilters over fake live rows): Closest to me orders by distance from the kept ZIP and hides nothing for being far; no ZIP, or a ZIP it cannot place, leaves the order as it was and says so
 {
@@ -238,6 +264,7 @@ try {
   ok(!/\.sort\([^)]*(rank|gap|distance|below_range)/.test(client), "the page holds no sort of its own by rank, gap or distance");
   ok(!/sessionStorage\.setItem\("gas_buy_zip"/.test(client.replace(/function setZip[^}]*}/, "")) && !/localStorage\.setItem\([^)]*zip/i.test(client), "the ZIP is written in one place (setZip, session storage) and never to local storage");
   ok(!/distance\s*[<>]=?\s*r(adius)?\b|miles\s*[<>]=?\s*r(adius)?\b/.test(client) && !/\.filter\([^)]*radius/.test(client), "the page holds no radius test of its own (the engine decides who is inside)");
+  ok(/m\.sortTips && m\.sortTips\[o\[0\]\]/.test(client) && !/share of the range|below the low end/i.test(client), "the sort menu's tooltip is the engine's sortTips; the page holds no wording of the rule");
   ok(!/getCurrentPosition|navigator\.geolocation/.test(client) && !/action: "locate"/.test(client), "the page never reads the browser's position");
 }
 await b.close();
