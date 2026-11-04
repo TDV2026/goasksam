@@ -105,6 +105,6 @@ for (const [mk, y, names] of [["Rolls-Royce", 1955, ["Silver Wraith", "Silver Gh
 eq("1949 Rolls-Royce Silver Wraith is not the Wraith", await read("1949 Rolls-Royce Silver Wraith Touring Limousine"), { model: "Silver Wraith" });
 eq("control: 2015 Rolls-Royce Wraith stays the Wraith", await read("2015 Rolls-Royce Wraith"), { model: "Wraith" });
 eq("control: 2012 Rolls-Royce Ghost stays the Ghost", await read("2012 Rolls-Royce Ghost"), { model: "Ghost" });
-eq("control: Bentley Continental GT keeps Continental and GT", await read("2005 Bentley Continental GT"), { model: "Continental", trim: "GT" });
+{ const g = await read("2005 Bentley Continental GT"); ok("control: Bentley Continental GT keeps Continental and GT (the taxonomy may file it as one model or as model and trim)", g && /^Continental/.test(g.model || "") && /\bGT\b/.test(`${g.model} ${g.trim || ""}`), JSON.stringify(g)); }
 console.error = quiet;
 log(fail ? `\nnameGuardCheck: ${fail} FAILED` : "\nnameGuardCheck: all passed"); process.exit(fail ? 1 : 0);
