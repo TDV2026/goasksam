@@ -11,7 +11,7 @@
   var timers = {};
 
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
-  function usd(n) { return n == null ? "n/a" : "$" + Math.round(n).toLocaleString("en-US"); }
+  function usd(n) { return n == null ? "n/a" : "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 }); }   // formatting only
   function nf(n) { return n == null ? "n/a" : Number(n).toLocaleString("en-US"); }
   function ns(n) { return nf(n) + (Number(n) === 1 ? " sale" : " sales"); }   // a count and its noun
   function day(d) { return d ? String(d).slice(0, 10) : ""; }

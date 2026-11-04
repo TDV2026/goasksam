@@ -330,7 +330,7 @@ fieldset{border:0;margin:10px 0;padding:0}
 .thiscar{margin-top:18px}
 .thiscar .tc{display:flex;gap:12px;font:500 12px/1.4 var(--mono);color:var(--slate);padding:6px 0;border-bottom:1px solid var(--line2)}
 .covfix{position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--line2);font:400 10.5px/1.6 var(--mono);color:var(--faint);padding:8px 0;margin-top:26px}
-@media (max-width:640px){.vals{padding:0 14px 30px}.sec7{grid-template-columns:1fr}.sec7 .no{padding:0 0 4px}.kv{grid-template-columns:1fr}.chk{grid-template-columns:1fr}.vnew{display:none}}
+@media (max-width:640px){body[data-mode="vals"] .screen{flex-direction:column}body[data-mode="vals"] .rail{display:flex;width:100%;height:auto;max-height:36vh;position:static;overflow:auto;padding:12px}body[data-mode="vals"] .rail .top{padding-bottom:6px}body[data-mode="vals"] .vnew{display:flex;margin:0 0 8px}.vals{padding:0 14px 30px}.sec7{grid-template-columns:1fr}.sec7 .no{padding:0 0 4px}.kv{grid-template-columns:1fr}.chk{grid-template-columns:1fr}.vnew{display:none}}
 @media (max-width:640px){
   .rail{display:none}
   .body{padding:18px 16px 8px}.chrome{padding:12px 16px}.chat{padding:12px 16px 16px}
