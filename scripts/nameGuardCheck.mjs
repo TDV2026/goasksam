@@ -74,6 +74,9 @@ eq("Alfa Romeo 1750 Berlina", await read("1969 Alfa Romeo 1750 Berlina"), { mode
 eq("Alfa Romeo 2000 Spider", await read("1960 Alfa Romeo 2000 Spider"), { model: "2000 Spider" });
 eq("control: the 1995 to 2006 Alfa Romeo GTV stays GTV", await read("1998 Alfa Romeo GTV"), { model: "GTV" });
 eq("2021 Giulia GTA", await read("2021 Alfa Romeo Giulia GTA"), { model: "Giulia", trim: "GTA" });
+eq("Daimler V8 250 resolves", await read("1966 Daimler V8 250"), { model: "V8 250" });
+eq("Daimler SP250 resolves", await read("1961 Daimler SP250"), { model: "SP250" });
+eq("Daimler V8-250 hyphen resolves", await read("1966 Daimler V8-250"), { model: "V8 250" });
 eq("McLaren F1 keeps F1", await read("1995 McLaren F1"), { model: "F1" });
 eq("Aston Martin V8 keeps V8", await read("1975 Aston Martin V8"), { model: "V8" });
 eq("Ford V8 keeps V8", await read("1934 Ford V8"), { model: "V8" });
