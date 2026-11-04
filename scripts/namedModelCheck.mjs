@@ -138,7 +138,7 @@ LIVE = OTHERS.concat([live("Ford", "Capri", 1972, "1972 Ford Capri 1600")]);
 const zl = await S.runFilters(env, { make: "Ford", model: "Capri" }, {});
 ok("control: with a Capri live there is no none-live block", zl.cards.length === 1 && !(zl.meta && zl.meta.noneLive));
 { const page = fs.readFileSync(path.join(root, "api/buy.js"), "utf8").replace(/\\n/g, "\n").replace(/\\"/g, '"');
-  const iN = page.indexOf(": n ? '<p class=\"sc-1\" data-count>' + esc(m.countLine || matchesLine(n, true))"), iZ = page.indexOf(": matchesLine(0,", iN);
+  const iN = page.indexOf(": n ? '<p class=\"sc-1\" data-count>' + esc(m.countLine || m.liveLine || matchesLine(n, true))"), iZ = page.indexOf(": matchesLine(0,", iN);
   ok("the page prints \"N live matches\" and \"That's everything matching your search\" only in the branch that has matches (n)", iN > 0 && iZ > iN && page.slice(iN, iZ).includes("everythingLine(m, f)") && (page.match(/esc\(everythingLine\(m, f\)\)/g) || []).length === 1);
   ok("the page prints the engine's none-live lines and computes nothing (meta.noneLive.lines, escaped text)", /\(nlv\.pending \? \[nlv\.line\] : nlv\.lines\)\.filter\(Boolean\)\.map\(function\(x\)\{ return "<p>" \+ esc\(x\) \+ "<\/p>"; \}\)/.test(page));
   ok("the page offers Keep looking when nothing is live (keepHtml with no cards)", /keepHtml\(cards\.length, q, qp\)/.test(page) && /<h3>Nothing live right now\.<\/h3>/.test(page)); }

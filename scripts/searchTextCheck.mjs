@@ -102,8 +102,9 @@ const rows = [
 // ---- 4. the page
 const admin = await imp("api/admin.js");
 const g = { h: {}, c: null, b: null, setHeader(k, v) { this.h[k] = v; }, status(c) { this.c = c; return this; }, send(b) { this.b = b; return this; }, json(b) { this.b = b; return this; }, end() { return this; } };
-await admin.default({ method: "GET", query: {}, headers: {} }, g);
-ok(g.c === 404 && /askedBlock/.test(g.b), "GET /admin still answers 404 and carries the list");
+process.env.CURTAIN_CREW_CODE = process.env.CURTAIN_CREW_CODE || "check-crew-code"; const { mintCrewCookieValue: mintCrew } = await imp("lib/_crew.js");   // /admin is crew-only (hidecrew): ask for it with the crew cookie
+await admin.default({ method: "GET", query: {}, headers: { cookie: "gas_crew=" + mintCrew() } }, g);
+ok(g.c === 200 && /askedBlock/.test(g.b), "GET /admin with the crew cookie answers the page and carries the list");
 const puppeteer = (await import(pathToFileURL(path.join(ROOT, "node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js")).href).catch(() => import("puppeteer-core"))).default;
 const asked = { rows: groupAsked(rows), searches_read: 8, capped: false, max: 200 };
 const searchesMock = { shown: 1, capped: false, limit: 300, asked, rows: [{ ts: at(1), product: "buy", text: "porsche 911", car: "porsche 911", outcome: "range", seconds: 1.2, cache: "warm", state: "CA", device: "mobile", source: "google.com", person: "AAAAAAAAAAAAAAAAAAAAAA", signed_in: false, anon: "AAAAAAAAAAAAAAAAAAAAAA", crew: false }] };
@@ -114,7 +115,7 @@ for (const [w, hgt, tag] of [[1440, 900, "1440"], [390, 844, "390"]]) for (const
   await page.setRequestInterception(true);
   page.on("request", rq => {
     if (rq.url().endsWith("/api/admin") && rq.method() === "POST") { let body = {}; try { body = JSON.parse(rq.postData() || "{}"); } catch {} return rq.respond({ status: 200, contentType: "application/json", body: JSON.stringify(body.part === "searches" ? { ...searchesMock, asked: variant === "list" ? asked : null } : { before_launch: true, range: { key: "today", from: at(0), to: at(0) }, now: {}, held_back: { read: true, today: { hits: 0, visitors: 0, no_id: 0 }, week: { hits: 0, visitors: 0, no_id: 0 }, by_route: [], by_limit: [] }, generatedAt: new Date().toISOString() }) }); }
-    if (rq.url().startsWith("http://admin.test/")) return rq.respond({ status: 404, contentType: "text/html; charset=utf-8", body: g.b });
+    if (rq.url().startsWith("http://admin.test/")) return rq.respond({ status: 200, contentType: "text/html; charset=utf-8", body: g.b });
     return rq.abort();
   });
   await page.evaluateOnNewDocument(() => { localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "t", expires_at: Math.floor(Date.now() / 1000) + 3000 })); });

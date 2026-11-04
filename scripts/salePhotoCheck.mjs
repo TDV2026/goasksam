@@ -37,7 +37,7 @@ const lib = fs.readFileSync(new URL("../lib/_salePhoto.js", import.meta.url), "u
 ok(/PHOTO_TIMEOUT_MS = 4000/.test(lib) && /sales_archive\?id=eq\.\$\{id\}&select=image:raw_record->>featured_image_url(?:,vin_norm)?&limit=1/.test(lib), "one primary-key read, a 4 s deadline");
 const api = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
 const page = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
-const gate = api.indexOf("if (!partnerAllowed(req)) return res.status(404)"), photo = api.indexOf("if (req.method === \"GET\" && req.query && req.query.photo != null)");
+const gate = api.indexOf("if (!partnerAllowed(req)) return sendDisguisedNotFound(res, req)"), photo = api.indexOf("if (req.method === \"GET\" && req.query && req.query.photo != null)");
 ok(gate > 0 && photo > gate, "the photo branch sits behind the crew-or-partner gate (no session: 404)");
 ok(api.indexOf('res.setHeader("X-Robots-Tag", "noindex, nofollow")') > 0 && api.indexOf('res.setHeader("X-Robots-Tag", "noindex, nofollow")') < photo, "the photo response is noindex");
 const block = api.slice(photo, photo + 2000);   // Oct 19 2026: the handler grew by the right-sized photo lines (sizedPhotoUrl)

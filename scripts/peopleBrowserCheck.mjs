@@ -50,7 +50,8 @@ const heldBackMock = { read: true, today: { hits: 7, visitors: 5, no_id: 1 }, we
 const launchPayload = { ...LD, held_back: heldBackMock, now: { minutes: 15, visitors: 3, answers: 2, failures: 0 }, generatedAt: new Date().toISOString(), launchAt: "2026-10-29T14:00:00Z" };
 ok(LD.sources.some(s => s.source === "utm: beehiiv" && s.visitors === 3), "the stub Launch data has the source utm: beehiiv with 3 visitors");
 const resObj = () => ({ h: {}, c: null, b: null, setHeader(k, v) { this.h[k] = v; }, status(c) { this.c = c; return this; }, send(b) { this.b = b; return this; }, json(b) { this.b = b; return this; }, end() { return this; } });
-const g = resObj(); await admin.default({ method: "GET", query: {}, headers: {} }, g);
+process.env.CURTAIN_CREW_CODE = process.env.CURTAIN_CREW_CODE || "check-crew-code"; const { mintCrewCookieValue: mintCrew } = await import("../lib/_crew.js");   // /admin is crew-only (hidecrew): ask for it with the crew cookie
+const g = resObj(); await admin.default({ method: "GET", query: {}, headers: { cookie: "gas_crew=" + mintCrew() } }, g);
 const puppeteer = (await import(pathToFileURL(path.join(ROOT, "node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js")).href).catch(() => import("puppeteer-core"))).default;
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 for (const [w, h, tag] of [[1440, 900, "1440"], [390, 844, "390"]]) {
@@ -65,7 +66,7 @@ for (const [w, h, tag] of [[1440, 900, "1440"], [390, 844, "390"]]) {
         : body.part === "person" ? await personDrill(env, body.person) : { ok: true, rows: [] };
       return rq.respond({ status: 200, contentType: "application/json", body: JSON.stringify(out) });
     }
-    if (u.startsWith("http://admin.test/")) return rq.respond({ status: 404, contentType: "text/html; charset=utf-8", body: g.b });
+    if (u.startsWith("http://admin.test/")) return rq.respond({ status: 200, contentType: "text/html; charset=utf-8", body: g.b });
     return rq.abort();
   });
   await page.evaluateOnNewDocument(() => { localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "t", expires_at: Math.floor(Date.now() / 1000) + 3000 })); });
