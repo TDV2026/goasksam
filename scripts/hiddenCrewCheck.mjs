@@ -42,7 +42,7 @@ ok(["/desk", "/onebox-preview", "/admin", "/partner-demo", "/preview"].every(s =
 // /preview is the exception: it is also the partner's door (a code, then a partner cookie), so it reaches the function, which answers the ordinary 404 itself.
 for (const s of sources.filter(x => x !== "/preview")) {
   const rules = routed.filter(r => r.source === s);
-  ok(rules.every(r => (r.has || []).some(h => h.type === "cookie" && /^(gas_crew|gas_tester)$/.test(h.key))), `${s}: every rule for it applies only with the crew or tester cookie, so without it the platform answers its own 404`);
+  ok(rules.every(r => (r.has || []).some(h => h.type === "cookie" && /^(gas_crew|gas_tester)$/.test(h.key) || (s === "/desk" && h.key === "gas_seat" && h.value === "s1\\..*"))), `${s}: every rule for it applies only with the crew or tester cookie (or, for /desk, the signed seat cookie s1.), so without it the platform answers its own 404`);
 }
 { const red = (vj.redirects || []).find(r => r.source === "/partner-demo"); ok(red && (red.has || []).length > 0, "/partner-demo does not redirect a stranger to /preview (that would name the page)"); }
 

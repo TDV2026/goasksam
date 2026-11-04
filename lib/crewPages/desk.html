@@ -14,6 +14,7 @@
 (function(){try{
   var c=document.cookie||"";
   if(c.indexOf("gas_tester=t1.")!==-1||c.indexOf("gas_crew=v1.")!==-1)return;
+  if(window.__DESK_SEAT__)return;   // a seat: the server sent this page only for a signed gas_seat cookie whose seat is active
   var m=/[?&](tester|crew)=([^&]*)/.exec(location.search||"");
   if(m){var q=m[1]==="tester"?"tcode":"code";location.replace("/api/crew?"+q+"="+encodeURIComponent(m[2])+"&to="+encodeURIComponent((location.pathname||"/desk")+(location.search||"")+(location.hash||"")));return;}
   location.replace("/");

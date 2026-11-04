@@ -253,6 +253,8 @@
   });
 
   var m0 = "vals"; try { m0 = sessionStorage.getItem("desk_mode") || "vals"; } catch (e) { }
+  // A seat (the server sets __DESK_SEAT__ only for a signed seat cookie) opens in Valuations and has no Analyst mode: the API refuses everything but the sheet actions
+  if (window.__DESK_SEAT__) { m0 = "vals"; var ab = $("modeAnalyst"); if (ab) ab.hidden = true; }
   setMode(m0 === "analyst" ? "analyst" : "vals");
   window.__deskVals = { open: openSheet, state: S };
 })();

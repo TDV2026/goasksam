@@ -80,11 +80,18 @@ async function authConfig() {
 
 // ---------------- session ----------------
 function authGetSession() { try { const s = localStorage.getItem(AUTH_SESSION_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+// THE DESK SEAT DOOR (Lane C, Nov 4 2026): a signed-in account that holds a Desk seat gets a signed cookie from /api/deskSeat; anyone else gets the platform's plain 404, which nothing here reads or shows.
+// At most once every 30 minutes, and only for a session that has just been written (a sign-in or a refresh).
+let _deskDoorAt = 0;
+function authDeskDoor(token) {
+  const now = Date.now(); if (!token || now - _deskDoorAt < 30 * 60 * 1000) return; _deskDoorAt = now;
+  try { fetch("/api/deskSeat", { method: "POST", credentials: "same-origin", headers: { Authorization: "Bearer " + token } }).catch(function () {}); } catch (e) {}
+}
 function authSetSession(s) {
   try { if (s) localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(AUTH_SESSION_KEY); } catch (e) {}
   // Signed out (or the token was refused): nothing of the account stays in this browser or on the page (the shell's gasAccountPurge: recent searches, results, drafts, badge).
   if (!s) { try { if (typeof window.gasAccountPurge === "function") window.gasAccountPurge(); } catch (e) {} }
-  else { try { if (typeof window.gasRecentDraw === "function") window.gasRecentDraw(); } catch (e) {} }
+  else { try { if (typeof window.gasRecentDraw === "function") window.gasRecentDraw(); } catch (e) {} authDeskDoor(s.access_token); }
 }
 function authIsSignedIn() { const s = authGetSession(); return !!(s && s.access_token); }
 function sessionFromTokenResponse(j) {

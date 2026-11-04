@@ -15,6 +15,8 @@ import { supabaseSelect } from "../lib/_supabase.js";
 import { isCrewRequest } from "../lib/_crew.js";
 import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { resolveSeatCookie } from "../lib/desk/seatCookie.js";
+import { routeLimit, sendTooMany } from "../lib/_routeLimit.js";
 import { failBody } from "../lib/_fail.js";
 // One CORS helper (lib/_cors.js, security F-06): only GoAskSam's own hosts get a cross-origin answer.
 function setCors(res, req) { gasCors(req || { headers: {} }, res, { methods: "POST, OPTIONS", headers: "Content-Type" }); }
@@ -26,11 +28,22 @@ export default async function handler(req, res) {
   // method, with no JSON, no CORS headers, and no mention of Desk anywhere in the response.
   const crew = isCrewRequest(req);   // the signed crew cookie (lib/_crew.js)
   const tester = isTesterRequest(req);   // the signed tester cookie, inside its date (lib/_tester.js)
-  if (!crew && !tester) return sendDisguisedNotFound(res, req);
+  // A SEAT (Lane C, Nov 4 2026): a signed gas_seat cookie whose seat row is still active (re-read on every call, so a removed seat is out on the next one). It runs Valuations (sheet_) actions only.
+  let seat = null;
+  if (!crew && !tester) {
+    const e0 = { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY };
+    seat = e0.supabaseUrl ? await resolveSeatCookie(req, { env: e0 }).catch(() => null) : null;
+    if (!seat) return sendDisguisedNotFound(res, req);
+  }
 
   setCors(res, req);
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (seat) {
+    const lim = await routeLimit({ supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY }, req, "desk_seat", { route: "/api/desk" }); if (!lim.ok) return sendTooMany(res, lim.retryAfter);
+    const act = req.body && req.body.action;
+    if (typeof act !== "string" || !act.startsWith("sheet_") || req.body.archiveDiag) return res.status(403).json({ ok: false, error: "A seat runs the Valuations actions only." });
+  }
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
@@ -82,8 +95,8 @@ export default async function handler(req, res) {
   try {
     const out = await handleDeskRequest(req.body || {}, {
       env: { supabaseUrl, supabaseKey }, apiKey: process.env.ANTHROPIC_API_KEY,
-      crew, tester, curtainSealed: process.env.CURTAIN_SEALED === "1",
-      org: crew ? "sam" : (tester ? "tester" : "public"), seat: "crew"
+      crew, tester, seatCaller: !!seat, curtainSealed: process.env.CURTAIN_SEALED === "1",
+      org: crew ? "sam" : (seat ? seat.org : (tester ? "tester" : "public")), seat: seat ? String(seat.seatId) : "crew"
     });
     const code = out.httpStatus || 200; delete out.httpStatus;
     return res.status(code).json(out);

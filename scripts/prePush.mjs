@@ -236,6 +236,12 @@ if (!allChanged || allChanged.some(f => /^(lib\/desk\/(storage|retention|orgSett
   }
 }
 
+// Desk seat access (Nov 4 2026, Lane C): a Hagerty seat reaches the Desk through a signed gas_seat cookie; active seat in, removed seat out on the next call, no crew actions, everyone else the platform's own 404.
+try {
+  const out = execSync("node scripts/seatAccessCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Desk seat access (scripts/seatAccessCheck.mjs)", "PASS", (out.match(/seatAccessCheck: .*/) || [""])[0]);
+} catch (e) { record("Desk seat access (scripts/seatAccessCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | ")); }
+
 // Dismiss controls and counts (Oct 29 2026, Lane D): every dismiss, close and "never mind" control on the Tasks page is clicked in headless Chrome at 1440 and 390 and what it dismisses must be gone; a count of cars on a Task card has the cars behind it; no 'close ones'. Offline.
 try {
   const out = execSync("node scripts/tasksDismissCountCheck.mjs", { encoding: "utf8", timeout: 240000 });

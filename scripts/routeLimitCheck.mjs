@@ -36,7 +36,7 @@ const REASONS = {
 const EXEMPT = {
   "account.js": "bearer", "hunts.js": "bearer", "watch.js": "bearer", "tasks.js": "bearer",
   "admin.js": "key", "usageDashboard.js": "key", "pullLive.js": "key", "refreshSpecLiveCounts.js": "key",
-  "desk.js": "crew", "deskInbound.js": "signed",
+  "desk.js": "crew", "crewPage.js": "crew", "deskInbound.js": "signed",
   "about.js": "shell", "business.js": "shell", "buy.js": "shell", "home.js": "shell", "howSamDecides.js": "shell", "legal.js": "shell",
   "marketCheck.js": "shell", "sellNext.js": "shell", "sellPage.js": "shell", "specPage.js": "shell", "tasksPage.js": "shell",
   "signup.js": "ledger", "mcp.js": "bucket",
