@@ -280,11 +280,12 @@ export async function moreBatch(items, { enrichOne, pendingOf, budgetMs = BATCH_
 }
 const pendingCardOf = x => { const c = { ...cardOf(x), market: stillReadingMarket(), name: null }; return withSlots({ ...c, sam_lines: samLines(c) }); };
 // THE BID AGAINST THE RANGE, AS AN ORDER (Nov 2 2026, Find's "Furthest below the range"): every match's market is read the way its card reads it (stored reads only: a market still being read, or none, stays unranked and sorts last),
-// then the SAME judgement the card prints (bidPlaceObj, lib/onebox.js bidPlaceOf) gives its place: x.rank 0 below / 1 within / 2 above, x.rankKey the share of the range (below, within: from the low end; above: from the high end), on the range the card prints. lib/live/samChat.js
+// then the SAME judgement the card prints (bidPlaceObj, lib/onebox.js bidPlaceOf) gives its place: x.rank 0 ending within 24 hours / 1 later, x.rankKey the share of the range's low end the bid sits from it (the biggest share below first), on the range the card prints. lib/live/samChat.js
 // orders by those and slices the batch; the page draws the order it is given. A request's own clock bounds the read (RANK_BUDGET_MS): what it did not reach is still being read and sorts last.
 const RANK_BUDGET_MS = 25000;
 // the card has no bid to place: not a live car with a real bid in dollars, a sibling or count-only rung, or a range the engine says is not body-scoped
 const bidPlacingOff = (c, now) => { const m = c && c.market; return !m || m.rung === "sibling" || m.rung === "not_enough_data" || m.bodyScoped === false || c.bid_unknown || !(Number(c.current_bid_usd) > 0) || (c.end_time && Date.parse(c.end_time) <= now); };
+export const ENDING_SOON_MS = 24 * 3600e3;   // the day an auction has left that puts it first under "Furthest below the range"
 export async function rankByBid(env, matches, now = Date.now()) {
   const t0 = Date.now(), STEP = 60;
   for (const x of matches) { delete x.rank; delete x.rankKey; }
@@ -300,8 +301,9 @@ export async function rankByBid(env, matches, now = Date.now()) {
       const c = { ...cardOf(x), market }, pr = market && !bidPlacingOff(c, now) ? printedRangeOf(c) : null;
       const bp = pr ? bidPlaceOf(c.current_bid_usd, pr.low, pr.high, "range", null) : null;
       if (!bp) return;
-      x.rank = bp.against === "below" ? 0 : bp.against === "within" ? 1 : 2;
-      x.rankKey = bp.against === "above" ? (bp.bid - bp.high) / bp.high : (bp.bid - bp.low) / bp.low;   // a share of the range's edge: below is negative, the biggest gap sorts first
+      // two parts, in this order (Nov 3 2026): ending within 24 hours first (x.rank 0, exactly 24 hours counts as inside), then the share below the low end of the range the card prints, biggest first (x.rankKey: the bid's distance from the low end over the low end, so the most negative is first)
+      x.rank = Date.parse(c.end_time) - now <= ENDING_SOON_MS ? 0 : 1;
+      x.rankKey = (bp.bid - bp.low) / bp.low;
     }));
   }
 }

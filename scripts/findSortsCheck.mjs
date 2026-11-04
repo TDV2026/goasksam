@@ -25,9 +25,9 @@ for (let i = 1; i <= N; i++) {
   const r = { id: i, listing_title: "1995 Porsche 911 lot " + i, make: "Porsche", model: "911", year: 1995, source: "bringatrailer", url: "https://auction.test/" + i, photo_url: "https://img.test/" + i + ".jpg", end_time: iso(2 + i * 0.37), first_seen: iso(-1 - ((i * 7) % N) * 0.5), current_bid_usd: bid, bid_count: bid ? 1 : 0, location: CITIES[i % CITIES.length], country: "US", has_reserve: false, status: "live" };
   FIX.push({ r, facts: { priceUsd: bid, priceState: bid ? "usd" : "none", miles: 20000 + i, gearboxLabel: "Manual" }, unknown: [], market, kind, low, high, bid });
 }
-// ORACLE (written here, from the numbers; Nov 3 2026 the rule is PERCENT: the low end minus the bid, over the low end, biggest first): below the range, biggest share below first; within, lowest in the range first; above, nearest the top first; then every car with no range, no bid or still being read, in the order they were in
+// ORACLE (written here, from the numbers; Nov 3 2026 the rule is two parts: an auction ending within 24 hours first, then the share below the low end, (low minus bid) over low, biggest first): then every car with no range, no bid or still being read, in the order they were in
 const endsAt = f => Date.parse(f.r.end_time);
-const oracleBelow = FIX.slice().sort((a, b) => { const g = f => f.kind === "below" ? 0 : f.kind === "within" ? 1 : f.kind === "above" ? 2 : 3; const k = f => f.kind === "below" || f.kind === "within" ? (f.bid - f.low) / f.low : f.kind === "above" ? (f.bid - f.high) / f.high : 0; return g(a) - g(b) || (g(a) === 3 ? 0 : k(a) - k(b) || endsAt(a) - endsAt(b)); }).map(f => f.r.id);
+const oracleBelow = FIX.slice().sort((a, b) => { const g = f => f.kind === "none" || f.kind === "pending" || f.kind === "nobid" ? 9 : (Date.parse(f.r.end_time) - now <= 24 * 3600e3 ? 0 : 1); const k = f => (f.bid - f.low) / f.low; return g(a) - g(b) || (g(a) === 9 ? 0 : k(a) - k(b) || endsAt(a) - endsAt(b)); }).map(f => f.r.id);
 const distOf = (zip, f) => { const c = geo.zipCoord(zip), l = geo.listingCoord(f.r); return c && l ? geo.milesBetween(c, l) : null; };
 const oracleNear = zip => FIX.slice().sort((a, b) => { const da = distOf(zip, a), db = distOf(zip, b); return (da == null ? 1e9 : da) - (db == null ? 1e9 : db) || endsAt(a) - endsAt(b); }).map(f => f.r.id);
 const oracleEnding = FIX.slice().sort((a, b) => endsAt(a) - endsAt(b)).map(f => f.r.id);
@@ -84,8 +84,19 @@ for (const [name, key, want] of [["below_range", "below_range", oracleBelow], ["
   const cards = L.slice().sort((a, b) => order.indexOf(a.r.id) - order.indexOf(b.r.id)).map(x => bs.withSlots({ ...bs.cardOf(x), market: x.market, seen_before: null, timeline: [], name: null }));
   const share = c => { const n = String(c.cardHeadline).replace(/,/g, "").match(/\$(\d+)/g).map(t => +t.slice(1)); return (Number(c.current_bid_usd) - n[0]) / n[0]; };
   ok(cards.length === 2 && cards.every(c => /\$\d/.test(c.cardHeadline)) && cards.every((c, i) => i === 0 || share(cards[i - 1]) <= share(c)), "every card's place in the order follows the range printed on that card (" + cards.map(c => c.cardHeadline + " " + share(c).toFixed(2)).join(" | ") + ")");
+  // THE DAY AN AUCTION HAS LEFT COMES FIRST (Nov 3 2026): ending within 24 hours, then the share below the low end. Fixed clock, so "exactly 24 hours" is exact.
+  const NOW = Date.now(), at = (id, h, bid, low = 100000, high = 140000) => { const x = mk(id, "car " + id, bid, low, high); x.r.end_time = new Date(NOW + h * 3600e3).toISOString(); return x; };
+  const rankAt = async list => { await bs.rankByBid(null, list, NOW); sm.orderMatches(list, "below_range"); return list.map(x => x.r.id); };
+  ok(JSON.stringify(await rankAt([at(1, 40, 4000), at(2, 13, 47000)])) === JSON.stringify([2, 1]), "a car ending in 13 hours at 53% below outranks a car with 40 hours left at 96% below");
+  ok(JSON.stringify(await rankAt([at(1, 5, 70000), at(2, 20, 40000), at(3, 12, 90000)])) === JSON.stringify([2, 1, 3]), "two cars both inside 24 hours rank by percent below (60% before 30% before 10%)");
+  ok(JSON.stringify(await rankAt([at(1, 30, 70000), at(2, 50, 40000), at(3, 26, 90000)])) === JSON.stringify([2, 1, 3]), "cars all outside 24 hours rank by percent below");
+  ok(JSON.stringify(await rankAt([at(1, 24.01, 5000), at(2, 24, 90000)])) === JSON.stringify([2, 1]), "a card at exactly 24 hours counts as inside (ahead of one at 24 hours and a minute at 95% below)");
+  ok(JSON.stringify(await rankAt([at(1, 30, 5000), at(2, 25, 5000), at(3, 3, 99000)])) === JSON.stringify([3, 2, 1]), "inside before outside whatever the percent; equal percents keep ending soonest first");
+  // Show more batches keep the first page's order: the pages of the engine, joined, are the one order
+  { const e0 = await engineAnswer({ make: "Porsche", sort: "below_range" }, 0), e1 = await engineAnswer({ make: "Porsche", sort: "below_range" }, SHOW_BATCH), e2 = await engineAnswer({ make: "Porsche", sort: "below_range" }, SHOW_BATCH * 2);
+    ok(JSON.stringify([e0, e1, e2].flatMap(e => e.cards.map(c => c.id))) === JSON.stringify(oracleBelow) && e0.cards.length === SHOW_BATCH, "Show more batches, joined, are the first page's order continued (" + e0.cards.length + " + " + e1.cards.length + " + " + e2.cards.length + ")"); }
   // the menu says the rule, in the engine's words
-  ok(sm.SORT_TIPS && /gap below the range, as a share of the range/i.test(sm.SORT_TIPS.below_range), "the sort's tooltip is the engine's text: " + (sm.SORT_TIPS && sm.SORT_TIPS.below_range));
+  ok(sm.SORT_TIPS && /^Biggest gap below the range, auctions ending within a day first$/.test(sm.SORT_TIPS.below_range), "the sort's tooltip is the engine's text: " + (sm.SORT_TIPS && sm.SORT_TIPS.below_range));
 }
 // ---- the REAL engine (runFilters over fake live rows): Closest to me orders by distance from the kept ZIP and hides nothing for being far; no ZIP, or a ZIP it cannot place, leaves the order as it was and says so
 {
