@@ -3,7 +3,8 @@
 //   POST /api/deskSend {sheetId, to, subject, message, note, pdfBase64?}   sends the finalised sheet as the org through its own provider (lib/desk/send.js)
 // Seat-only: the signed crew cookie, or a signed-in user whose email is a seat. Anyone else gets the same plain 404 as the rest of the Desk. A seat can send only a
 // sheet it owns, inside its own org; automatic sending is never reachable from here (HTTP always sends manually).
-import { resolveSeat } from "../lib/desk/seat.js";
+import { callerSeat } from "../lib/desk/intake/caller.js";
+import { routeLimit, sendTooMany } from "../lib/_routeLimit.js";
 import { sendSheet, sendPrefill } from "../lib/desk/send.js";
 import { supabaseStore } from "../lib/desk/intake/store.js";
 import { supabaseEnv } from "../lib/_supabase.js";
@@ -18,8 +19,10 @@ export default async function handler(req, res) {
     const env = supabaseEnv();
     if (!env) return res.status(500).json({ error: "not configured" });
     const store = supabaseStore(env);
-    const who = await resolveSeat(req, store);
-    if (!who) return sendDisguisedNotFound(res, req);
+    const who = await callerSeat(req, env, store);
+    if (!who) return sendDisguisedNotFound(res, req);   // a stranger sees the same plain 404 as the rest of the Desk, before any limit can tell them the route exists
+    // The address limit (lib/_routeLimit.js; ceilings in lib/_ceilings.js): 30 a minute and 300 an hour by device, 60 and 600 by address; the signed crew cookie is exempt; fails open.
+    { const lim = await routeLimit(env, req, "desk_send", { route: "/api/deskSend" }); if (!lim.ok) return sendTooMany(res, lim.retryAfter); }
     const { org, seat } = who;
     if (req.method === "GET") {
       const id = String((req.query && req.query.sheetId) || "");

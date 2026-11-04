@@ -13,13 +13,13 @@ const { processInbound } = K.run;
 const VIN = K.makeVin("WP0AB299", "8S745123");
 const body = `2008 Porsche 911 Carrera S, VIN ${VIN}. 20,000 miles.`;
 const att = [K.att("a.jpg", "image/jpeg", K.fx("big.jpg"))];
-const objectsOf = st => st._state.objects.size, sheetsOf = st => st._state.sheets.length;
+const objectsOf = st => st._state.objects.size, sheetsOf = st => st._state.sheets.length, filesN = (st, id) => st._state.photos.concat(st._state.documents).filter(f => !id || f.sheet_id === id).length;
 
 async function dropped(name, mail, outcome, extraOk) {
   const { st, deps, reads } = K.fresh();
   const r = await processInbound(mail, deps);
   const log = st._state.log.get(mail.emailId);
-  ok(`${name}: dropped (${outcome})`, r.outcome === outcome && sheetsOf(st) === 0 && objectsOf(st) === 0 && st._state.files.length === 0 && reads.length === 0, { r, sheets: sheetsOf(st), objects: objectsOf(st) });
+  ok(`${name}: dropped (${outcome})`, r.outcome === outcome && sheetsOf(st) === 0 && objectsOf(st) === 0 && filesN(st) === 0 && reads.length === 0, { r, sheets: sheetsOf(st), objects: objectsOf(st) });
   ok(`${name}: logged with sender, address and time`, log && log.outcome === outcome && /@/.test(log.from_address || "") && log.to_address && log.detail && log.detail.at === "2026-11-04T12:00:00.000Z" || (outcome === "dropped_unknown_org" && log && log.detail && Array.isArray(log.detail.to)), log);
   if (extraOk) extraOk(log);
 }
@@ -44,14 +44,14 @@ for (const [name, from, authentication] of [["a seat", "ann@hagerty.example"], [
   const r = await processInbound(K.mail({ id: "o1", from: "zed@other.example", to: ["other@desk.goasksam.com"], subject: "Fwd: x", text: body, attachments: att }), deps);
   const [a, b] = st._state.sheets;
   ok("the same VIN sent to two orgs is two sheets, each in its own org", r.outcome === "created" && a.org_id === "hagerty" && b.org_id === "other" && a.id !== b.id);
-  ok("the second org's files are under the second org only; the first org's sheet got nothing", st._state.files.filter(f => f.sheet_id === b.id).length >= 2 && st._state.files.filter(f => f.sheet_id === a.id).length === 1 && [...st._state.objects.keys()].every(p => p.startsWith(a.id.length ? "hagerty/" : "") || p.startsWith("other/")));
+  ok("the second org's files are under the second org only; the first org's sheet got nothing", filesN(st, b.id) >= 1 && filesN(st, a.id) === 0 && [...st._state.objects.keys()].every(p => p.startsWith("hagerty/") || p.startsWith("other/")) && st._state.photos.concat(st._state.documents).filter(f => f.sheet_id === b.id).every(f => f.org_id === "other"));
   ok("another org's seat reading this org's sheets by id gets nothing", (await st.getSheet("other", a.id)) === null && (await st.sheetsOfOrg("other", { vin: VIN })).every(s => s.org_id === "other")); }
 
 // a repeated delivery of the same email (the provider retries) changes nothing
 { const { st, deps } = K.fresh();
   const m = K.mail({ id: "dup1", from: "ann@hagerty.example", subject: "x", text: body, attachments: att });
   await processInbound(m, deps); const again = await processInbound(m, deps);
-  ok("the same email delivered twice makes one sheet and one set of files", again.outcome === "duplicate" && sheetsOf(st) === 1 && st._state.files.length === 2, again); }
+  ok("the same email delivered twice makes one sheet and one set of files", again.outcome === "duplicate" && sheetsOf(st) === 1 && filesN(st) === 1, again); }
 
 // the webhook itself: signed, fresh
 { const { verifyWebhook, signWebhook } = await K.imp("lib/desk/intake/resendInbound.js");
@@ -68,11 +68,14 @@ for (const [name, from, authentication] of [["a seat", "ann@hagerty.example"], [
   const urls = []; const realFetch = globalThis.fetch;
   globalThis.fetch = async (u, init = {}) => { urls.push({ url: String(u), method: init.method || "GET", body: init.body && typeof init.body === "string" ? init.body : "" }); return { ok: true, status: 200, text: async () => "[]", json: async () => [], arrayBuffer: async () => new ArrayBuffer(0) }; };
   const st = supabaseStore({ supabaseUrl: "https://db.example", supabaseKey: "test-service-key" });
-  const calls = { seatsOf: () => st.seatsOf("hagerty"), sheetsOfOrg: () => st.sheetsOfOrg("hagerty", { vin: VIN, threadIds: ["a@b"], subjectKey: "x", consignorEmail: "j@x.example" }), getSheet: () => st.getSheet("hagerty", "11111111-1111-4111-8111-111111111111"), patchSheet: () => st.patchSheet("hagerty", "11111111-1111-4111-8111-111111111111", { status: "x" }), patchSheetIf: () => st.patchSheetIf("hagerty", "11111111-1111-4111-8111-111111111111", { status: "Finalised", sending: false }, { sending: true }), filesOf: () => st.filesOf("hagerty", "11111111-1111-4111-8111-111111111111"), sentOf: () => st.sentOf("hagerty", "11111111-1111-4111-8111-111111111111"), patchSent: () => st.patchSent("hagerty", "11111111-1111-4111-8111-111111111111", { provider_id: "x" }), deleteSent: () => st.deleteSent("hagerty", "11111111-1111-4111-8111-111111111111") };
+  const SID = "11111111-1111-4111-8111-111111111111";
+  const calls = { seatsOf: () => st.seatsOf("hagerty"), settingsOf: () => st.settingsOf("hagerty"), sheetsOfOrg: () => st.sheetsOfOrg("hagerty", { vin: VIN, threadIds: ["a@b"], subjectKey: "x", consignorEmail: "j@x.example" }), getSheet: () => st.getSheet("hagerty", SID), patchSheet: () => st.patchSheet("hagerty", SID, { status: "in_progress" }), patchSheetIf: () => st.patchSheetIf("hagerty", SID, { status: "finalised", sending: false }, { sending: true }), filesOf: () => st.filesOf("hagerty", SID), fileHashes: () => st.fileHashes("hagerty", SID), sentOf: () => st.sentOf("hagerty", SID), deleteSent: () => st.deleteSent("hagerty", SID) };
   for (const [name, fn] of Object.entries(calls)) { urls.length = 0; await fn().catch(() => {}); ok(`production store ${name}: the query carries this org's id`, urls.length >= 1 && urls.every(c => /[?&]org_id=eq\.hagerty(&|$)/.test(c.url)), urls.map(c => c.url)); }
-  urls.length = 0; await st.createSheet({ org_id: "hagerty", status: "New" }).catch(() => {}); await st.addFiles([{ org_id: "hagerty", sheet_id: "s", kind: "photo", path: "p" }]).catch(() => {}); await st.insertSent({ org_id: "hagerty", sheet_id: "s" }).catch(() => {});
-  ok("production store: inserts carry the org in the row", urls.length === 3 && urls.every(c => JSON.parse(c.body)[0].org_id === "hagerty"), urls);
-  urls.length = 0; await st.put("hagerty/sheet1/photos/a b.jpg", Buffer.from("x"), "image/jpeg");
-  ok("production store: files go to the private bucket under the org's folder", urls.length === 1 && urls[0].url === "https://db.example/storage/v1/object/desk-intake/hagerty/sheet1/photos/a%20b.jpg", urls);
+  urls.length = 0; await st.createSheet({ org_id: "hagerty", status: "new", seat_id: 1 }).catch(() => {}); await st.insertSent({ org_id: "hagerty", sheet_id: SID, seat_id: 1 }).catch(() => {});
+  ok("production store: inserts carry the org in the row", urls.length === 2 && urls.every(c => JSON.parse(c.body)[0].org_id === "hagerty"), urls);
+  urls.length = 0; await st.putObject("hagerty", `hagerty/${SID}/web/a b.jpg`.replace("a b", "22222222-2222-4222-8222-222222222222"), Buffer.from("x"), "image/jpeg").catch(() => {});
+  ok("production store: files go to the org's own private bucket under the org's folder", urls.length === 1 && urls[0].url === `https://db.example/storage/v1/object/desk-hagerty/hagerty/${SID}/web/22222222-2222-4222-8222-222222222222.jpg`, urls);
+  urls.length = 0; const wrong = await st.putObject("other", `hagerty/${SID}/web/x.jpg`, Buffer.from("x"), "image/jpeg").then(() => "wrote", () => "refused");
+  ok("production store: a path in another org's folder is refused, nothing is sent", wrong === "refused" && urls.length === 0, urls);
   globalThis.fetch = realFetch; }
 { const r = result(); console.log(`\nintakeAuthCheck: ${r.pass} pass, ${r.fail} FAIL`); process.exit(r.fail ? 1 : 0); }

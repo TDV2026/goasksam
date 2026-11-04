@@ -10,15 +10,16 @@ process.chdir(root); process.env.SUPABASE_URL = ""; process.env.SUPABASE_SERVICE
 const { ok, result } = reporter();
 const K = await loadKit(root);
 const S = K.send;
-if (!S) { ok("lib/desk/send.js exists", false, "missing"); { const r = result(); console.log(`\nsendCheck: ${r.pass} pass, ${r.fail} FAIL`); process.exit(r.fail ? 1 : 0); } }
+if (!S) { ok("lib/desk/send.js exists", false, "missing"); const r = result(); console.log(`sendCheck: ${r.pass} pass, ${r.fail} FAIL`); process.exit(1); }
 const PDF = Buffer.from("%PDF-1.4\n% fixture report\n%%EOF");
 const recorder = (behaviour = () => ({ ok: true, id: "re_1" })) => { const calls = []; const fn = async args => { calls.push(args); return behaviour(calls.length, args); }; fn.calls = calls; return fn; };
 
-async function world({ status = "Finalised", pdfStored = true, seatId = 1, orgPatch = {} } = {}) {
+async function world({ status = "finalised", pdfStored = true, seatId = 1, settingsPatch = {} } = {}) {
   const { st } = K.fresh();
-  const org = { ...st._state.orgs.find(o => o.id === "hagerty"), ...orgPatch }; st._state.orgs[0] = org;
+  const org = st._state.orgs.find(o => o.id === "hagerty");
+  st._state.settings.hagerty = { ...st._state.settings.hagerty, ...settingsPatch };
   const sheet = await st.createSheet({ org_id: "hagerty", seat_id: seatId, seat_email: "ann@hagerty.example", status, car_label: "2008 Porsche 911 Carrera S", consignor_email: "john@seller.example", sending: false });
-  if (pdfStored) { const p = `hagerty/${sheet.id}/report/r.pdf`; await st.put(p, PDF); sheet.pdf_path = p; }
+  if (pdfStored) { const p = `hagerty/${sheet.id}/sent/00000000-0000-4000-8000-0000000000aa.pdf`; await st.putObject("hagerty", p, PDF); sheet.pdf_path = p; }
   return { st, org, sheet, ann: { id: 1, email: "ann@hagerty.example" }, bob: { id: 2, email: "bob@hagerty.example" } };
 }
 const args = (w, over = {}) => ({ store: w.st, org: w.org, seat: w.ann, sheetId: w.sheet.id, to: "john@seller.example", subject: "Your 2008 Porsche", message: "Thank you for your submission.\n\nOur report is attached.", note: "The seller asked about a reserve.", provider: over.provider, ...over });
@@ -31,8 +32,8 @@ const args = (w, over = {}) => ({ store: w.st, org: w.org, seat: w.ann, sheetId:
   ok("sent AS the org: its verified sending address and name, no expert's name or address anywhere", c.from === "Hagerty Marketplace <marketplace@hagerty.example>" && !/ann@|\bAnn\b/i.test(c.text + c.html + c.from + c.subject), c.from);
   ok("the message as edited, then the note under the org's name, then the org's signature", /^Thank you for your submission\.\n\nOur report is attached\.\n\nA note from Hagerty Marketplace:\nThe seller asked about a reserve\.\n\nHagerty Marketplace\nvaluations@hagerty\.example$/.test(c.text), c.text);
   ok("the PDF is attached, byte for byte", c.pdf && Buffer.compare(Buffer.from(c.pdf.bytes), PDF) === 0 && /\.pdf$/.test(c.pdf.name));
-  ok("the exact copy is stored: text, html, address, subject, note and the PDF it carried", sent && sent.body_text === c.text && sent.body_html === c.html && sent.to_address === "john@seller.example" && sent.from_address === "marketplace@hagerty.example" && sent.subject === "Your 2008 Porsche" && sent.note === "The seller asked about a reserve." && sent.pdf_path === w.sheet.pdf_path, sent);
-  ok("the sheet moved to Sent with the time and the address logged", sh.status === "Sent" && sh.sent_at === sent.sent_at && sh.sent_to === "john@seller.example" && sh.sending === false, sh);
+  ok("the exact copy is stored: text, html, address, subject, note and the PDF it carried", sent && sent.body_text === c.text && sent.body_html === c.html && sent.to_address === "john@seller.example" && sent.from_address === "marketplace@hagerty.example" && sent.subject === "Your 2008 Porsche" && sent.seat_id === 1 && sent.mode === "manual" && sent.seller_note === "The seller asked about a reserve." && sent.pdf_path === w.sheet.pdf_path, sent);
+  ok("the sheet moved to Sent with the time and the address logged", sh.status === "sent" && !!sh.sent_at && !!sent.sent_at && sh.sent_to === "john@seller.example" && sh.sending === false && sh.sent_provider_id === "re_1", sh);
   ok("the provider is given a key made from the sheet (a retry upstream cannot send a second mail)", c.idempotencyKey === `desk-send-${w.sheet.id}`); }
 
 // ---- 2. nothing sent twice ----
@@ -44,15 +45,15 @@ const args = (w, over = {}) => ({ store: w.st, org: w.org, seat: w.ann, sheetId:
   ok("five presses at once: exactly one send, four refused", slow.calls.length === 1 && rs.filter(r => r.ok).length === 1 && rs.filter(r => !r.ok).length === 4, rs.map(r => r.reason || "ok")); }
 { const w = await world(), prov = recorder(n => n === 1 ? { ok: false, reason: "provider_refused", message: "domain not verified" } : { ok: true, id: "re_2" });
   const a = await S.sendSheet(args(w, { provider: prov }));
-  ok("a provider refusal leaves the sheet Finalised, no copy kept, no claim held", !a.ok && (await w.st.getSheet("hagerty", w.sheet.id)).status === "Finalised" && (await w.st.sentOf("hagerty", w.sheet.id)) === null && (await w.st.getSheet("hagerty", w.sheet.id)).sending === false, a);
+  ok("a provider refusal leaves the sheet Finalised, no copy kept, no claim held", !a.ok && (await w.st.getSheet("hagerty", w.sheet.id)).status === "finalised" && (await w.st.sentOf("hagerty", w.sheet.id)) === null && (await w.st.getSheet("hagerty", w.sheet.id)).sending === false, a);
   const b = await S.sendSheet(args(w, { provider: prov }));
-  ok("...and a retry then sends, once", b.ok && prov.calls.length === 2 && (await w.st.getSheet("hagerty", w.sheet.id)).status === "Sent"); }
+  ok("...and a retry then sends, once", b.ok && prov.calls.length === 2 && (await w.st.getSheet("hagerty", w.sheet.id)).status === "sent"); }
 { const w = await world(), prov = recorder(() => { throw new Error("socket hang up"); });
   const a = await S.sendSheet(args(w, { provider: prov }));
-  ok("a provider that throws is a refusal too: nothing recorded as sent", !a.ok && (await w.st.getSheet("hagerty", w.sheet.id)).status === "Finalised" && (await w.st.sentOf("hagerty", w.sheet.id)) === null, a); }
+  ok("a provider that throws is a refusal too: nothing recorded as sent", !a.ok && (await w.st.getSheet("hagerty", w.sheet.id)).status === "finalised" && (await w.st.sentOf("hagerty", w.sheet.id)) === null, a); }
 { // the provider accepted, then the status write fails: it must NOT be sendable again
   const w = await world(), prov = recorder(), real = w.st.patchSheet.bind(w.st);
-  w.st.patchSheet = async (o, id, patch) => { if (patch.status === "Sent") throw new Error("database down"); return real(o, id, patch); };
+  w.st.patchSheet = async (o, id, patch) => { if (patch.status === "sent") throw new Error("database down"); return real(o, id, patch); };
   const a = await S.sendSheet(args(w, { provider: prov }));
   w.st.patchSheet = real;
   const b = await S.sendSheet(args(w, { provider: prov }));
@@ -66,11 +67,12 @@ const args = (w, over = {}) => ({ store: w.st, org: w.org, seat: w.ann, sheetId:
 
 // ---- 3. who and when ----
 for (const [name, mk, over, reason] of [
-  ["a sheet still In progress", () => world({ status: "In progress" }), {}, "not_finalised"],
-  ["a New sheet", () => world({ status: "New" }), {}, "not_finalised"],
+  ["a sheet still In progress", () => world({ status: "in_progress" }), {}, "not_finalised"],
+  ["a new sheet", () => world({ status: "new" }), {}, "not_finalised"],
   ["another seat of the same org", () => world(), { seat: { id: 2, email: "bob@hagerty.example" } }, "not_your_sheet"],
-  ["a sending address that is not verified", () => world({ orgPatch: { sending_verified: false } }), {}, "sending_not_verified"],
-  ["no sending address at all", () => world({ orgPatch: { sending_address: null } }), {}, "sending_not_verified"],
+  ["a sending address that is not verified", () => world({ settingsPatch: { sending_domain_status: "unverified" } }), {}, "sending_not_verified"],
+  ["no sending address at all", () => world({ settingsPatch: { sending_address: null } }), {}, "sending_not_verified"],
+  ["a sending address outside the verified domain", () => world({ settingsPatch: { sending_address: "marketplace@evil.example" } }), {}, "sending_not_verified"],
   ["a consignor address that is not an address", () => world(), { to: "john at seller" }, "bad_address"],
   ["an empty message", () => world(), { message: "  " }, "no_message"],
   ["no PDF", () => world({ pdfStored: false }), {}, "no_pdf"],
@@ -91,19 +93,20 @@ for (const [name, mk, over, reason] of [
 { const w = await world(), prov = recorder();
   const r1 = await S.sendSheet(args(w, { provider: prov, mode: "auto" })), r2 = await S.autoSend({ store: w.st, org: w.org, sheetId: w.sheet.id, provider: prov });
   ok("auto mode with the org's switch off: refused, nothing sent", !r1.ok && r1.reason === "auto_send_off" && !r2.ok && prov.calls.length === 0, [r1, r2]);
-  ok("the switch defaults to off in the schema", /auto_send\s+boolean not null default false/.test(fs.readFileSync(path.join(root, "docs/supabase-desk-intake.sql"), "utf8"))); }
-{ const w = await world({ orgPatch: { auto_send: true } }), prov = recorder();
+  ok("the switch defaults to off in the schema (Lane S's desk_org_settings)", /auto_send\s+boolean not null default false/.test(fs.readFileSync(path.join(root, "docs/supabase-desk-storage.sql"), "utf8"))); }
+{ const w = await world({ settingsPatch: { auto_send: true } }), prov = recorder();
   const r = await S.autoSend({ store: w.st, org: w.org, sheetId: w.sheet.id, provider: prov });
   const sent = await w.st.sentOf("hagerty", w.sheet.id);
   ok("auto mode with the switch on: sends the org's standard message to the consignor, marked auto, once", r.ok && prov.calls.length === 1 && sent.mode === "auto" && /^Thank you for your submission\. Our valuation is attached\./.test(sent.body_text) && prov.calls[0].to === "john@seller.example", r);
   const r2 = await S.autoSend({ store: w.st, org: w.org, sheetId: w.sheet.id, provider: prov });
   ok("...and a second automatic send of the same sheet sends nothing", !r2.ok && prov.calls.length === 1); }
 
-// ---- 5. the Resend adapter: the org's own key, from the environment, never printed ----
-{ const w = await world(), seen = []; const fetchFn = async (url, init) => { seen.push({ url, init }); return { ok: true, json: async () => ({ id: "re_real" }) }; };
-  const out = await S.providers.resend({ org: w.org, from: "Hagerty Marketplace <marketplace@hagerty.example>", to: "john@seller.example", subject: "s", text: "t", html: "<p>t</p>", pdf: { name: "r.pdf", bytes: PDF }, idempotencyKey: "desk-send-1", env: { DESK_SEND_KEY_HAGERTY: "re_test_key" }, fetchFn });
+// ---- 5. the Resend adapter: our provider account, the org's verified address as From ----
+{ const w = await world(), seen = [], settings = await w.st.settingsOf("hagerty"); const fetchFn = async (url, init) => { seen.push({ url, init }); return { ok: true, json: async () => ({ id: "re_real" }) }; };
+  const out = await S.providers.resend({ settings, from: "Hagerty Marketplace <marketplace@hagerty.example>", to: "john@seller.example", subject: "s", text: "t", html: "<p>t</p>", pdf: { name: "r.pdf", bytes: PDF }, idempotencyKey: "desk-send-1", env: { RESEND_API_KEY: "re_test_key" }, fetchFn });
   const body = JSON.parse(seen[0].init.body);
-  ok("resend adapter: the org's own key, an idempotency key, from the org, the PDF as base64", out.ok && out.id === "re_real" && seen[0].url === "https://api.resend.com/emails" && seen[0].init.headers.Authorization === "Bearer re_test_key" && seen[0].init.headers["Idempotency-Key"] === "desk-send-1" && body.from.includes("marketplace@hagerty.example") && body.attachments[0].content === PDF.toString("base64"));
-  const none = await S.providers.resend({ org: w.org, from: "x", to: "y", subject: "s", text: "t", html: "t", idempotencyKey: "k", env: { RESEND_API_KEY: "re_goasksam_key", DESK_SEND_KEY_OTHER: "re_other_org_key" }, fetchFn });
-  ok("resend adapter: no key for the org means no send (never falls back to another org's key or ours)", !none.ok && none.reason === "no_provider_key" && seen.length === 1); }
+  ok("resend adapter: the provider key from the environment, an idempotency key, from the org's verified address, the PDF as base64", out.ok && out.id === "re_real" && seen[0].url === "https://api.resend.com/emails" && seen[0].init.headers.Authorization === "Bearer re_test_key" && seen[0].init.headers["Idempotency-Key"] === "desk-send-1" && body.from.includes("marketplace@hagerty.example") && body.reply_to === "marketplace@hagerty.example" && body.attachments[0].content === PDF.toString("base64"));
+  const none = await S.providers.resend({ settings, from: "x", to: "y", subject: "s", text: "t", html: "t", idempotencyKey: "k", env: {}, fetchFn });
+  ok("resend adapter: no provider key means no send, nothing posted", !none.ok && none.reason === "no_provider_key" && seen.length === 1); }
 { const r = result(); console.log(`\nsendCheck: ${r.pass} pass, ${r.fail} FAIL`); process.exit(r.fail ? 1 : 0); }
+

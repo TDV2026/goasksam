@@ -31,13 +31,12 @@ const REASONS = {
   shell: /s-maxage/,                                          // a page shell served from the edge cache; reads a date or a setting, never the engine
   ledger: /countSince|record\(/,                              // its own count in the same ledger (sign-up)
   bucket: /rateLimit\(/,                                      // its own in-memory bucket (MCP): per instance only
-  seat: /resolveSeat\(/,                                      // Desk Valuations: a seat of an org (crew cookie or signed-in account) is the caller; anyone else gets the disguised 404 (Lane D, Nov 2026)
   signed: /verifyWebhook\(/,                                  // Desk inbound email: only the mail provider's signed webhook is accepted (Svix signature on the raw body, five minute window)
 };
 const EXEMPT = {
   "account.js": "bearer", "hunts.js": "bearer", "watch.js": "bearer", "tasks.js": "bearer",
   "admin.js": "key", "usageDashboard.js": "key", "pullLive.js": "key", "refreshSpecLiveCounts.js": "key",
-  "desk.js": "crew", "deskSend.js": "seat", "deskIntake.js": "seat", "deskInbound.js": "signed",
+  "desk.js": "crew", "deskInbound.js": "signed",
   "about.js": "shell", "business.js": "shell", "buy.js": "shell", "home.js": "shell", "howSamDecides.js": "shell", "legal.js": "shell",
   "marketCheck.js": "shell", "sellNext.js": "shell", "sellPage.js": "shell", "specPage.js": "shell", "tasksPage.js": "shell",
   "signup.js": "ledger", "mcp.js": "bucket",

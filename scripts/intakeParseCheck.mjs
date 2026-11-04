@@ -8,6 +8,7 @@ const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPat
 process.chdir(root); process.env.SUPABASE_URL = ""; process.env.SUPABASE_SERVICE_ROLE_KEY = "";
 const { ok, result } = reporter();
 const K = await loadKit(root);
+const flat = async (st, id) => { const f = await st.filesOf("hagerty", id); return [...f.photos.map(p => ({ ...p, kind: "photo" })), ...f.documents.map(d => ({ ...d, kind: d.kind === "link" ? "link" : "document" }))]; };
 const { processInbound } = K.run, { findVins, vinCheckDigitOk, readSubmission } = K.parse;
 const VIN_A = K.makeVin("WP0AB299", "8S745123"), VIN_B = K.makeVin("ZFFXR48A", "S0105678");
 const fetches = []; const realFetch = globalThis.fetch; globalThis.fetch = async (u, ...r) => { fetches.push(String(u)); throw new Error("network is closed in this check"); };
@@ -31,36 +32,36 @@ ok("a long word is never read as a VIN", findVins("Congratulationsonyourpurchase
 { const { st, deps, reads } = K.fresh();
   const r = await processInbound(K.mail({ from: "ann@hagerty.example", subject: "Fwd: 1995 Porsche from Germany", text: `Please look. VIN ${VIN_EU[0]}\nMileage: 31,000 km` }), deps);
   const s = st._state.sheets[0];
-  ok("an email with a European VIN: a New sheet (not dropped, not Needs the car) holding that VIN, marked check digit not valid, car decoded, read started", r.outcome === "created" && s.status === "New" && s.vin === VIN_EU[0] && s.vin_check_invalid === true && s.make === "Porsche" && reads.length === 1, s); }
+  ok("an email with a European VIN: a New sheet (not dropped, not Needs the car) holding that VIN, marked check digit not valid, car decoded, read started", r.outcome === "created" && s.status === "new" && s.vin === VIN_EU[0] && s.vin_check_invalid === true && s.make === "Porsche" && reads.length === 1, s); }
 { // unknown maker code + failing check digit: the engine's decode decides
   const { st, deps, reads } = K.fresh();
   deps.decodeVin = async vin => (vin === VIN_UNKNOWN ? { year: 1991, make: "Ferrari", model: "348", trim: "TB", body: "Coupe" } : null);
   deps.resolveVehicle = async t => ({ status: "valid", vehicle: { year: 1991, make: "Ferrari", model: "348", trim: "TB" } });
   const r = await processInbound(K.mail({ from: "ann@hagerty.example", subject: "Fwd: car", text: `VIN ${VIN_UNKNOWN}` }), deps);
   const s = st._state.sheets[0];
-  ok("unknown maker code, bad check digit, decode finds a car: a New sheet, both markers set, the decoded car, the read started", r.outcome === "created" && s.status === "New" && s.vin === VIN_UNKNOWN && s.vin_check_invalid === true && s.vin_maker_unknown === true && s.make === "Ferrari" && reads.length === 1, s); }
+  ok("unknown maker code, bad check digit, decode finds a car: a New sheet, both markers set, the decoded car, the read started", r.outcome === "created" && s.status === "new" && s.vin === VIN_UNKNOWN && s.vin_check_invalid === true && s.vin_maker_unknown === true && s.make === "Ferrari" && reads.length === 1, s); }
 { const { st, deps, reads } = K.fresh();
   deps.decodeVin = async () => null;
   const r = await processInbound(K.mail({ id: "u1", from: "ann@hagerty.example", subject: "Fwd: car", text: `Seller says VIN ${VIN_UNKNOWN}` }), deps);
   const s = st._state.sheets[0];
-  ok("...decode finds no car: Needs the car, the string shown on the row (VIN and both markers), no read started, original kept", r.outcome === "needs_the_car" && s.status === "Needs the car" && s.vin === VIN_UNKNOWN && s.vin_check_invalid && s.vin_maker_unknown && reads.length === 0 && st._state.objects.has(s.original_path), s);
+  ok("...decode finds no car: Needs the car, the string shown on the row (VIN and both markers), no read started, original kept", r.outcome === "needs_the_car" && s.status === "needs_car" && s.vin === VIN_UNKNOWN && s.vin_check_invalid && s.vin_maker_unknown && reads.length === 0 && st._state.objects.has(s.source_email_path), s);
   const r2 = await processInbound(K.mail({ id: "u2", from: "ann@hagerty.example", subject: "Re: car", text: `VIN ${VIN_UNKNOWN} more photos`, attachments: [K.att("a.jpg", "image/jpeg", K.fx("big.jpg"))] }), deps);
-  ok("...a later email with the same string joins the sheet and does NOT turn it into a New car by itself", r2.outcome === "added_to_sheet" && st._state.sheets.length === 1 && st._state.sheets[0].status === "Needs the car"); }
+  ok("...a later email with the same string joins the sheet and does NOT turn it into a New car by itself", r2.outcome === "added_to_sheet" && st._state.sheets.length === 1 && st._state.sheets[0].status === "needs_car"); }
 { const { st, deps } = K.fresh();
   deps.decodeVin = async () => null;
   await processInbound(K.mail({ from: "ann@hagerty.example", subject: "Fwd: 1965 Ferrari 275 GTB", text: `VIN ${VIN_UNKNOWN}` }), deps);
-  ok("...decode finds nothing but the email names the car in words: New, the VIN kept with its markers", st._state.sheets[0].status === "New" && st._state.sheets[0].vin === VIN_UNKNOWN && st._state.sheets[0].vin_maker_unknown === true && st._state.sheets[0].year === 1965, st._state.sheets[0]); }
+  ok("...decode finds nothing but the email names the car in words: New, the VIN kept with its markers", st._state.sheets[0].status === "new" && st._state.sheets[0].vin === VIN_UNKNOWN && st._state.sheets[0].vin_maker_unknown === true && st._state.sheets[0].year === 1965, st._state.sheets[0]); }
 { const { st, deps } = K.fresh();
   deps.decodeVin = async () => null;
   await processInbound(K.mail({ from: "ann@hagerty.example", subject: "Fwd", text: `VIN ${VIN_EU[0]}` }), deps);
-  ok("a KNOWN maker code with a failing check digit and no decode is still a New sheet (the marker is not a gate either way)", st._state.sheets[0].status === "New" && st._state.sheets[0].vin_maker_unknown === false); }
+  ok("a KNOWN maker code with a failing check digit and no decode is still a New sheet (the marker is not a gate either way)", st._state.sheets[0].status === "new" && st._state.sheets[0].vin_maker_unknown === false); }
 { const { st, deps } = K.fresh();
   await processInbound(K.mail({ from: "ann@hagerty.example", subject: "x", text: `VIN ${VIN_A}` }), deps);
   ok("a VIN with a correct check digit is not marked", st._state.sheets[0].vin === VIN_A && st._state.sheets[0].vin_check_invalid === false); }
 { const { st, deps } = K.fresh();
   const r = await processInbound(K.mail({ from: "ann@hagerty.example", subject: "Fwd: mystery", text: `Please look. VIN ${VIN_STRUCT}` }), deps);
   const s = st._state.sheets[0];
-  ok("a string that fails structure alone makes a Needs the car row that lists the rejected string", r.outcome === "needs_the_car" && s.status === "Needs the car" && s.vin == null && s.vin_failed_check[0] === VIN_STRUCT, s); }
+  ok("a string that fails structure alone makes a Needs the car row that lists the rejected string", r.outcome === "needs_the_car" && s.status === "needs_car" && s.vin == null && s.vin_failed_check[0] === VIN_STRUCT, s); }
 { const { st, deps } = K.fresh();   // a later email with the same marked VIN joins the sheet
   await processInbound(K.mail({ id: "e1", from: "ann@hagerty.example", subject: "x", text: `VIN ${VIN_EU[2]}` }), deps);
   const r = await processInbound(K.mail({ id: "e2", from: "bob@hagerty.example", subject: "y", text: `VIN ${VIN_EU[2]} more photos`, attachments: [K.att("a.jpg", "image/jpeg", K.fx("big.jpg"))] }), deps);
@@ -76,7 +77,7 @@ ok("a long word is never read as a VIN", findVins("Congratulationsonyourpurchase
 { const { st, deps } = K.fresh();
   await processInbound(K.mail({ from: "ann@hagerty.example", subject: "Fwd: 1965 Ferrari 275 GTB", text: "Seller's car.\nChassis no. 06701\nMileage: 41,000 miles" }), deps);
   const s = st._state.sheets[0];
-  ok("pre 1981: chassis kept, No VIN found box set, sheet is New (the car is known from the words)", s.chassis === "06701" && s.no_vin === true && s.vin == null && s.status === "New" && s.year === 1965, s); }
+  ok("pre 1981: chassis kept, No VIN found box set, sheet is New (the car is known from the words)", s.chassis === "06701" && s.no_vin === true && s.vin == null && s.status === "new" && s.year === 1965, s); }
 
 // ---- 4. forward chains ----
 const GMAIL = `Here is one for you.\n\n---------- Forwarded message ---------\nFrom: Jane Doe <jane@gmail.example>\nDate: Mon, Nov 2, 2026 at 9:00 AM\nSubject: Selling my 2008 Porsche 911 Carrera S\nTo: Marketplace <marketplace@hagerty.example>\n\nHi, the VIN is ${VIN_A}. 33,500 miles, color: Guards Red, 6-speed manual.\n\nOn Sun, Nov 1, 2026 at 5:00 PM John Seller <john@seller.example> wrote:\n> Jane, send it to Hagerty.\n`;
@@ -86,7 +87,7 @@ const OUTLOOK = `FYI\n\n________________________________\nFrom: Pat Owner <pat@o
   const s = st._state.sheets[0];
   ok("Gmail chain: consignor is the EARLIEST message's sender, not the forwarder or the middle", s.consignor_email === "john@seller.example" && s.consignor_name === "John Seller", [s.consignor_name, s.consignor_email]);
   ok("chain read whole: VIN from the middle message, mileage, colour, gearbox", s.vin === VIN_A && s.mileage === 33500 && s.colour === "Guards Red" && s.gearbox === "Manual", s);
-  ok("the sheet belongs to the forwarding seat, status New, original email kept", s.seat_email === "ann@hagerty.example" && s.status === "New" && st._state.objects.has(s.original_path)); }
+  ok("the sheet belongs to the forwarding seat, status New, original email kept", s.seat_email === "ann@hagerty.example" && s.status === "new" && st._state.objects.has(s.source_email_path)); }
 { const { st, deps } = K.fresh();
   await processInbound(K.mail({ from: "bob@hagerty.example", subject: "Fwd: RE: 1995 Ferrari F355", text: OUTLOOK }), deps);
   const s = st._state.sheets[0];
@@ -108,44 +109,45 @@ const OUTLOOK = `FYI\n\n________________________________\nFrom: Pat Owner <pat@o
   await processInbound(first, deps);
   const second = K.mail({ id: "m2", from: "ann@hagerty.example", subject: "Re: Selling my 2008 Porsche 911 Carrera S", text: "More photos attached.", headers: { "message-id": "<t2@mail.example>", "in-reply-to": "<t1@mail.example>", references: "<t1@mail.example>" }, attachments: [K.att("front.jpg", "image/jpeg", K.fx("big.jpg"))] });
   const r2 = await processInbound(second, deps);
-  const files = await st.filesOf("hagerty", st._state.sheets[0].id);
+  const files = await flat(st, st._state.sheets[0].id);
   ok("same thread (message ids): added to the existing sheet, not a second row", r2.outcome === "added_to_sheet" && st._state.sheets.length === 1);
   ok("the new photo is on the first sheet; the engine read started once only", files.filter(f => f.kind === "photo").length === 1 && reads.length === 1, [files.length, reads.length]);
   const third = K.mail({ id: "m3", from: "bob@hagerty.example", subject: "Different words entirely", text: `VIN ${VIN_A} here is the service file.`, attachments: [K.att("service.pdf", "application/pdf", Buffer.from("%PDF-1.4 fake"))] });
   const r3 = await processInbound(third, deps);
-  ok("same VIN (any subject, even another seat's email): added to the existing sheet", r3.outcome === "added_to_sheet" && st._state.sheets.length === 1 && (await st.filesOf("hagerty", st._state.sheets[0].id)).some(f => f.kind === "document" && f.filename === "service.pdf"));
+  ok("same VIN (any subject, even another seat's email): added to the existing sheet", r3.outcome === "added_to_sheet" && st._state.sheets.length === 1 && (await flat(st, st._state.sheets[0].id)).some(f => f.kind === "document" && f.filename === "service.pdf"));
   const fourth = K.mail({ id: "m4", from: "ann@hagerty.example", subject: "Re: Selling my 2008 Porsche 911 Carrera S", text: `Oh and VIN ${VIN_B} is a second car`, headers: { "in-reply-to": "<t1@mail.example>" } });
   const r4 = await processInbound(fourth, deps);
   ok("a different VIN in the same thread is a different car: its own sheet", r4.outcome === "created" && st._state.sheets.length === 2 && st._state.sheets[1].vin === VIN_B); }
 { const { st, deps } = K.fresh();
   await processInbound(K.mail({ id: "n1", from: "ann@hagerty.example", subject: "Fwd: car", text: GMAIL }), deps);
-  st._state.sheets[0].status = "Finalised";
+  st._state.sheets[0].status = "finalised";
   const r = await processInbound(K.mail({ id: "n2", from: "ann@hagerty.example", subject: "Fwd: car", text: `More: VIN ${VIN_A}`, attachments: [K.att("x.jpg", "image/jpeg", K.fx("big.jpg"))] }), deps);
-  ok("a finalised sheet is immutable: a later email makes a NEW sheet that references it, the old one gets nothing", r.outcome === "created" && st._state.sheets.length === 2 && st._state.sheets[1].related_sheet_id === st._state.sheets[0].id && (await st.filesOf("hagerty", st._state.sheets[0].id)).length === 1); }
+  ok("a finalised sheet is immutable: a later email makes a NEW sheet that references it, the old one gets nothing", r.outcome === "created" && st._state.sheets.length === 2 && st._state.sheets[1].supersedes_sheet_id === st._state.sheets[0].id && (await flat(st, st._state.sheets[0].id)).length === 0); }
 
 // ---- 6. no car at all: a row, never dropped ----
 { const { st, deps, reads } = K.fresh();
   const r = await processInbound(K.mail({ from: "ann@hagerty.example", subject: "Can you look at this?", text: "Sorry, the seller did not say what it is.", attachments: [K.att("IMG_9.jpg", "image/jpeg", K.fx("big.jpg"))] }), deps);
   const s = st._state.sheets[0];
-  ok("no car: row created as Needs the car, owned by the seat, original kept, photo kept, no engine read", r.outcome === "needs_the_car" && s.status === "Needs the car" && s.seat_email === "ann@hagerty.example" && st._state.objects.has(s.original_path) && (await st.filesOf("hagerty", s.id)).some(f => f.kind === "photo") && reads.length === 0, s); }
+  ok("no car: row created as Needs the car, owned by the seat, original kept, photo kept, no engine read", r.outcome === "needs_the_car" && s.status === "needs_car" && s.seat_email === "ann@hagerty.example" && st._state.objects.has(s.source_email_path) && (await flat(st, s.id)).some(f => f.kind === "photo") && reads.length === 0, s); }
 
 // ---- 7. images ----
 { const { st, deps } = K.fresh();
   await processInbound(K.mail({ from: "ann@hagerty.example", subject: "2008 Porsche 911 Carrera S photos", text: `VIN ${VIN_A}`, attachments: [
     K.att("IMG_0001.HEIC", "image/heic", K.fx("portrait.heic")), K.att("side.jpg", "image/jpeg", K.fx("rotated.jpg")), K.att("big.jpg", "image/jpeg", K.fx("big.jpg")), K.att("big-again.jpg", "image/jpeg", K.fx("big.jpg")), K.att("sig.png", "image/png", K.fx("logo.png")), K.att("doc.pdf", "application/pdf", Buffer.from("%PDF-1.4 x")) ] }), deps);
-  const sh = st._state.sheets[0], files = await st.filesOf("hagerty", sh.id), photos = files.filter(f => f.kind === "photo");
+  const sh = st._state.sheets[0], files = await flat(st, sh.id), photos = files.filter(f => f.kind === "photo");
   const heic = photos.find(f => /HEIC/i.test(f.filename)), rot = photos.find(f => f.filename === "side.jpg"), big = photos.find(f => f.filename === "big.jpg");
-  ok("HEIC is converted to a JPEG copy (and the HEIC original is kept)", heic && heic.converted && st._state.objects.get(heic.resized_path).slice(0, 2).toString("hex") === "ffd8" && st._state.objects.get(heic.path).slice(4, 8).toString() === "ftyp", heic);
+  ok("HEIC is converted to a JPEG copy (and the HEIC original is kept)", heic && heic.content_type === "image/heic" && st._state.objects.get(heic.resized_path).slice(0, 2).toString("hex") === "ffd8" && st._state.objects.get(heic.original_path).slice(4, 8).toString() === "ftyp", heic);
   ok("a sideways photo (orientation tag 6) is stored upright: 1000x700 becomes 700x1000", rot && rot.width === 700 && rot.height === 1000, rot);
-  ok("a large photo is resized to 2000 on the long edge, the original bytes are kept whole", big && Math.max(big.width, big.height) === 2000 && st._state.objects.get(big.path).length === K.fx("big.jpg").length, big);
+  ok("a large photo is resized to 2000 on the long edge, the original bytes are kept whole", big && Math.max(big.width, big.height) === 2000 && st._state.objects.get(big.original_path).length === K.fx("big.jpg").length, big);
   ok("the same photo sent twice is stored once; a 90px signature logo is not a photo", photos.length === 3 && !files.some(f => /big-again|sig/.test(f.filename)), files.map(f => f.filename));
   ok("documents are listed by name, kept as sent", files.some(f => f.kind === "document" && f.filename === "doc.pdf"));
-  ok("every stored object sits under the org and the sheet", [...st._state.objects.keys()].every(p => p.startsWith(`hagerty/${sh.id}/`)), [...st._state.objects.keys()].filter(p => !p.startsWith("hagerty/"))); }
+  ok("every stored object sits under the org and the sheet, in the files the store accepts (photos, documents, the first email)", [...st._state.objects.keys()].every(p => p.startsWith(`hagerty/${sh.id}/`)) && st._state.objects.size >= 7, [...st._state.objects.keys()].filter(p => !p.startsWith("hagerty/"))); }
 
 // ---- 8. links stay unopened ----
 { const { st, deps } = K.fresh(); fetches.length = 0;
   await processInbound(K.mail({ from: "ann@hagerty.example", subject: "2008 Porsche 911 Carrera S", text: `VIN ${VIN_A}\nPhotos: https://drive.google.com/drive/folders/AbC123 and https://www.dropbox.com/sh/xyz/abc?dl=0 and https://example.com/not-a-share` }), deps);
   const s = st._state.sheets[0];
+  ok("the links the store accepts are also listed as documents (Documents supplied)", (await flat(st, s.id)).filter(f => f.kind === "link").length === 2);
   ok("Drive and Dropbox links are kept as written on the sheet", s.links.length === 2 && s.links[0].startsWith("https://drive.google.com/") && s.links[1].startsWith("https://www.dropbox.com/"), s.links);
   ok("no link was opened (no network call at all during intake)", fetches.length === 0, fetches); }
 

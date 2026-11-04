@@ -12,11 +12,11 @@ export async function loadKit(root) {
   let n = 0;
   const att = (filename, contentType, bytes) => ({ filename, contentType, size: bytes.length, load: async () => bytes });
   const mail = o => ({ emailId: o.id || "em_" + (++n), from: o.from, to: o.to || ["hagerty@desk.goasksam.com"], subject: o.subject || "", text: o.text || "", html: "", headers: o.headers || {}, authentication: o.authentication === undefined ? { spf: "pass", dkim: "pass", dmarc: "pass" } : o.authentication, attachments: o.attachments || [], raw: null });
-  const orgs = [{ id: "hagerty", name: "Hagerty Marketplace", inbound_local: "hagerty", sending_address: "marketplace@hagerty.example", sending_name: "Hagerty Marketplace", sending_verified: true, send_provider: "resend", signature: "Hagerty Marketplace\nvaluations@hagerty.example", standard_message: "Thank you for your submission. Our valuation is attached.", auto_send: false },
-    { id: "other", name: "Other Org", inbound_local: "other", auto_send: false }];
+  const orgs = [{ id: "hagerty", name: "Hagerty Marketplace", inbound_local: "hagerty" }, { id: "other", name: "Other Org", inbound_local: "other" }];
+  const settings = { hagerty: { sending_address: "marketplace@hagerty.example", sending_name: "Hagerty Marketplace", sending_domain: "hagerty.example", sending_domain_status: "verified", signature: "Hagerty Marketplace\nvaluations@hagerty.example", standard_message: "Thank you for your submission. Our valuation is attached.", auto_send: false } };
   const seats = [{ org_id: "hagerty", email: "ann@hagerty.example", role: "member", subject: "u1" }, { org_id: "hagerty", email: "bob@hagerty.example", role: "member", subject: "u2" }, { org_id: "other", email: "zed@other.example", role: "member", subject: "u3" }];
   const fresh = () => {
-    const st = store.memoryStore({ orgs, seats });
+    const st = store.memoryStore({ orgs, seats, settings });
     const reads = [];
     const deps = {
       store: st, now: () => "2026-11-04T12:00:00.000Z",
@@ -27,7 +27,7 @@ export async function loadKit(root) {
     };
     return { st, deps, reads };
   };
-  return { run, store, parse, images, send, makeVin, fx, att, mail, orgs, seats, fresh, imp };
+  return { run, store, parse, images, send, makeVin, fx, att, mail, orgs, seats, settings, fresh, imp };
 }
 export function reporter() {
   let fail = 0, pass = 0;

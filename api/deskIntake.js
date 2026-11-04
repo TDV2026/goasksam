@@ -2,7 +2,8 @@
 // POST /api/deskIntake {text}  -> the same sheet the inbound email makes (owned by the calling seat, status New, the engine read started in the background).
 // Seat-only, like the other Desk endpoints. Words that are not a car (or a VIN that fails its check digit) are answered with the reason, never made into a row.
 import { createTypedSheet, decodeVinPublic } from "../lib/desk/intake/run.js";
-import { resolveSeat } from "../lib/desk/seat.js";
+import { callerSeat } from "../lib/desk/intake/caller.js";
+import { routeLimit, sendTooMany } from "../lib/_routeLimit.js";
 import { supabaseStore } from "../lib/desk/intake/store.js";
 import { engineReader } from "../lib/desk/intake/engineRead.js";
 import { resolveVehicle } from "../lib/vehicle.js";
@@ -17,8 +18,10 @@ export default async function handler(req, res) {
     const env = supabaseEnv();
     if (!env) return res.status(500).json({ error: "not configured" });
     const store = supabaseStore(env);
-    const who = await resolveSeat(req, store);
-    if (!who) return sendDisguisedNotFound(res, req);
+    const who = await callerSeat(req, env, store);
+    if (!who) return sendDisguisedNotFound(res, req);   // a stranger sees the same plain 404 as the rest of the Desk, before any limit can tell them the route exists
+    // The address limit (lib/_routeLimit.js; ceilings in lib/_ceilings.js): 30 a minute and 300 an hour by device, 60 and 600 by address; the signed crew cookie is exempt; fails open.
+    { const lim = await routeLimit(env, req, "desk_intake", { route: "/api/deskIntake" }); if (!lim.ok) return sendTooMany(res, lim.retryAfter); }
     if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
     const reader = engineReader(store, env);
     const out = await createTypedSheet({ org: who.org, seat: who.seat, text: String((req.body && req.body.text) || "").slice(0, 200), deps: { store, resolveVehicle, decodeVin: decodeVinPublic, startRead: (s, c, r) => { keepAlive(reader(s, c, r)); } } });
