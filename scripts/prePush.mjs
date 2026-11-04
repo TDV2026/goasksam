@@ -222,6 +222,20 @@ try {
   record("analytics layer (scripts/analyticsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 
+// Desk storage (Nov 2026, Lane S; docs/supabase-desk-storage.sql): RLS on every desk_ table and bucket, retention, org settings and seats. Each check builds the
+// real DDL in a throwaway local Postgres and runs its own mutants, so it takes a minute or two: it runs only when this branch touches the Desk storage files
+// (or the changed files could not be read). With no local Postgres the database part prints SKIP and is never counted as a pass.
+if (!allChanged || allChanged.some(f => /^(lib\/desk\/(storage|retention|orgSettings|domain|seats)\.js|api\/deskOrg\.js|docs\/supabase-desk.*\.sql|scripts\/(rls|retention|orgSettings)Check\.mjs|scripts\/_desk(Pg|Db|Fakes)\.mjs)$/.test(f))) {
+  for (const c of ["rlsCheck", "retentionCheck", "orgSettingsCheck"]) {
+    try {
+      const out = execSync(`node scripts/${c}.mjs`, { encoding: "utf8", timeout: 600000 });
+      record(`desk storage (scripts/${c}.mjs)`, /SKIP/.test(out) ? "SKIP" : "PASS", (out.match(new RegExp(c + ": .*")) || [""])[0]);
+    } catch (e) {
+      record(`desk storage (scripts/${c}.mjs)`, "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+    }
+  }
+}
+
 // Dismiss controls and counts (Oct 29 2026, Lane D): every dismiss, close and "never mind" control on the Tasks page is clicked in headless Chrome at 1440 and 390 and what it dismisses must be gone; a count of cars on a Task card has the cars behind it; no 'close ones'. Offline.
 try {
   const out = execSync("node scripts/tasksDismissCountCheck.mjs", { encoding: "utf8", timeout: 240000 });

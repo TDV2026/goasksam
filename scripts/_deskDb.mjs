@@ -24,7 +24,7 @@ export function stop() { if (cluster) { cluster.stop(); cluster = null; } }
 // files: the DDL map (possibly mutated). Returns { c, db, errors } where errors lists any file that failed to apply.
 export async function build(files, { seed = true, baseDir } = {}) {
   const c = await cl(baseDir); const db = c.newDb("d" + (++n)); const errors = [];
-  for (const f of DDL) { const r = c.run(db, files[f]); if (!r.ok) errors.push(`${f}: ${r.err.split("\n")[0]}`); }
+  for (const f of DDL) { const r = c.run(db, files[f]); if (!r.ok) errors.push(`${f}: ${r.err.split("\n").find(l => /ERROR/.test(l)) || r.err.split("\n")[0]}`); }
   if (seed && !errors.length) {
     const r = c.run(db, `
       update desk_org_settings set licence_starts_on = '2026-11-01', licence_ends_on = '2027-10-31' where org_id in ('hagerty','sam');

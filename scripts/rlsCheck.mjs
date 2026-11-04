@@ -136,7 +136,7 @@ export async function dynamicFindings(files) {
   return fails;
 }
 
-const rep = (files, from, to, all = false) => { const s = files; if (!s.includes(from)) throw new Error("mutant did not apply: " + from.slice(0, 60)); return all ? s.split(from).join(to) : s.replace(from, to); };
+const rep = (files, from, to, all = false) => { const s = files; if (!s.includes(from)) throw new Error("mutant did not apply: " + from.slice(0, 60)); return all ? s.split(from).join(to) : s.replace(from, () => to); };
 export const MUTANTS = [
   ["new tables keep their grants", f => ({ ...f, "supabase-desk-storage.sql": rep(f["supabase-desk-storage.sql"], "revoke all on desk_org_settings, desk_sheets, desk_sheet_photos, desk_sheet_documents, desk_sheet_sent, desk_deletion_log from anon, authenticated;", "") })],
   ["older desk tables never revoked (the class)", f => ({ ...f, "supabase-desk-org.sql": rep(f["supabase-desk-org.sql"], "revoke all on desk_orgs, desk_seats, desk_saved_views from anon, authenticated;", ""), "supabase-desk-storage.sql": rep(f["supabase-desk-storage.sql"], "revoke all on desk_orgs, desk_seats, desk_saved_views from anon, authenticated;", "") })],
@@ -160,6 +160,7 @@ export async function main() {
   for (const [name, mut] of MUTANTS) {
     let files; try { files = mut(real); } catch (e) { bad(`mutant "${name}": ${e.message}`); continue; }
     const s = staticFindings(files), d = await dynamicFindings(files);
+    if (d.length && /^apply:/.test(d[0])) { bad(`mutant "${name}" did not even apply (${d[0].slice(0, 100)}): it proves nothing`); continue; }
     // The live-database part must catch it ON ITS OWN: a regex over the SQL text alone is not proof the database is locked.
     if (d.length) { ok(); if (process.env.VERBOSE) console.log(`  caught "${name}" (database): ${d[0].slice(0, 110)}`); } else bad(`mutant "${name}" was NOT caught by the database part${s.length ? " (only the static text scan saw it)" : ""}`);
   }
