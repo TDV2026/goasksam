@@ -24,7 +24,7 @@ import { VARIANT_MARKETS } from "../lib/modelRules.js";
 import { BODY_LABEL, isSingerPorsche, withReadFields, isStorableQuestion } from "../lib/onebox.js";
 import { casedChips } from "../lib/chipLabel.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
-import { settleVinAnswer, vinSearchPlan, applyVinOverlay } from "../lib/vinAsTyped.js";
+import { settleVinAnswer, vinSearchPlan, applyVinOverlay, decodeTrimRerun } from "../lib/vinAsTyped.js";
 // Every variant value a chip may carry (e51): the M-car pair plus each variant market's key and its other side.
 // Restoration is never an option or a question (e52, Sam's decision): the generic entries' keys (restoration,
 // unrestored) are not accepted from a client, so a stale refine for them is ignored and the base page answers.
@@ -3396,7 +3396,7 @@ async function handler(req, res) {
     if (req.body?.oneBox && vehicle && (vehicle.vin || vehicle.chassis)) {
       let vinArchive = null; try { vinArchive = await findVinArchiveMatch({ supabaseUrl, supabaseKey }, { vin: vehicle.vin || vehicle.chassis }); } catch { vinArchive = null; }   // what the archive holds for this exact VIN: a question it already answers is not asked (lib/vinAsTyped.js settleVinAnswer)
       let vinLive = null; try { const id = String(vehicle.vin || vehicle.chassis || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); const lr = id ? await supabaseSelect({ supabaseUrl, supabaseKey }, `live_listings?vin_norm=eq.${encodeURIComponent(id)}&status=eq.live&select=listing_title,mileage&limit=1`) : null; vinLive = Array.isArray(lr) && lr[0] ? { title: lr[0].listing_title || null, mileage: lr[0].mileage || null } : null; } catch { vinLive = null; }   // the live listing of this VIN: its title words are the car's own
-      const plan = await vinSearchPlan(vehicle, { resolveVehicle, archive: vinArchive, live: vinLive });
+      const plan = await vinSearchPlan(vehicle, { resolveVehicle, archive: vinArchive, live: vinLive, decodeTrim: req.body.vinTrimRun ? req.body.vinDecodeTrim : null });
       if (plan && plan.unresolved) return res.status(200).json({ status: "one_box", tier: "not_tracked", resolvedCar: null, samLine: plan.line, refusal_line: plan.line });
       if (plan) { vinCtx = { ...plan.ctx, text: plan.text }; vehicle = plan.vehicle; }
     }
@@ -3847,6 +3847,16 @@ async function handler(req, res) {
         });
         if (again) return res.status(200).json({ ...again, ...(settledOut && settledOut.vinSettled ? { vinSettled: settledOut.vinSettled } : {}) });
         oneBox = settledOut;
+      }
+      // THE DECODED TRIM IS PART OF THE TYPED SEARCH (lib/vinAsTyped.js decodeTrimRerun): a finished answer for the bare model, on a VIN whose decode names a trim the resolver knows, is answered again as the typed search of that trim
+      if (vinCtx && !req.body.vinTrimRun) {
+        const tr = await decodeTrimRerun(oneBox, vinCtx, { resolveVehicle }).catch(() => null);
+        if (tr) {
+          const body3 = { ...req.body, vinSettledRun: true, vinTrimRun: true, vinDecodeTrim: tr.trim, ...(req.body.car && typeof req.body.car === "object" ? { car: { ...req.body.car, ...(req.body.car.vinFacts ? { raw: tr.text } : {}) } } : {}) };
+          let out3 = null; const res3 = { statusCode: 200, headersSent: false, setHeader() {}, getHeader() { return undefined; }, removeHeader() {}, status(c) { this.statusCode = c; return this; }, json(x) { if (out3 == null) out3 = x; this.headersSent = true; return this; }, send(x) { if (out3 == null) out3 = x; this.headersSent = true; return this; }, end() { this.headersSent = true; return this; } };
+          await handler({ ...req, body: body3 }, res3);
+          if (out3 && out3.status === "one_box" && /^(result|thin)$/.test(String(out3.tier || ""))) return res.status(200).json({ ...out3, vinSettled: [...(Array.isArray(out3.vinSettled) ? out3.vinSettled : []), { dimension: "trim", label: tr.trim, source: "decode" }] });
+        }
       }
       if (vinCtx) oneBox = applyVinOverlay(oneBox, vinCtx);   // the VIN car's own sales and option on the typed car's finished answer
       const unusedFields = unusedFieldsFor(typeof rawSearch0 === "string" ? rawSearch0 : oneBoxText, vehicle, oneBox);

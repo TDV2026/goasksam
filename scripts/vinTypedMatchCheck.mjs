@@ -1,7 +1,7 @@
 // A VIN WITH A DECODED TRIM READS THE TYPED ANSWER OF THAT TRIM (Lane B, Nov 3 2026, lane-b-vintrim). The partner page for VIN 2C3CDZH92JH100451 was titled "2018 Dodge Challenger SRT Demon" and printed the bare 2018 Challenger pool widened to 2016 to 2021
 // ($23,500 to $30,500 on 8 sales); the typed Demon reads $91,000 to $105,000 on 23.
 // CAUSE: api/partnerAnswer.js built the engine text as year, make and model (the decoded trim travelled only as a fact for settling a question) and lib/vinAsTyped.js vinSearchPlan did the same (a trim only when the VIN's own sale named one).
-// FIX: lib/vinAsTyped.js vinTypedText / vinTrimOf name the VIN car's words, trim included, for both paths.
+// FIX: lib/vinAsTyped.js decodeTrimRerun (called in api/sellerDecision.js on every VIN path): a finished bare answer on a VIN whose decode names a trim the resolver knows is answered again as the typed search of that trim.
 // THIS CHECK: for each VIN car below (decoded trim in hand) the typed answer of "year make model trim" and the answer the VIN paths give (the partner page's text, the VIN plan) must have the same pool count, range, scope line, set of cards and hero photo, and
 // the answer must NOT be the bare model's (so the check is not vacuous). A seeded pool, no database.
 //   node scripts/vinTypedMatchCheck.mjs [repo root]     (run against a tree without the fix to see it fail)
@@ -40,20 +40,24 @@ for (const [vin, year, make, model, trim] of CARS) {
   // the bare model answer (what the VIN paths gave before): proves the trim matters for this car
   const br = await V.resolveVehicle(bareText, {}), bare = br && br.vehicle ? facts(await read(br.vehicle, bareText, rows), year) : null;
   if (bare && diffKeys(F, bare).length === 0) vacuous++;
-  // PARTNER PAGE: the engine text the page builds for this VIN (id from the archive or the decode)
-  const partnerText = typeof A.vinTypedText === "function" ? A.vinTypedText({ year, make, model, nameModel: model, trim }) : [year, make, model].join(" ");
-  const pr = await V.resolveVehicle(partnerText, {}), pv = pr && pr.vehicle ? pr.vehicle : null;
-  const viaPartner = pv ? facts(await read(pv, partnerText, rows), year) : null;
-  ok(`${label}: the partner page's text is the typed words ("${partnerText}")`, partnerText === typedText, partnerText);
-  ok(`${label}: partner answer equals typed answer on pool count, range, scope line, cards and hero photo`, !!viaPartner && diffKeys(F, viaPartner).length === 0, viaPartner ? diffKeys(F, viaPartner).join(", ") : "no vehicle");
-  // CONSUMER VIN PLAN
+  // PARTNER PAGE: the engine reads the car's words as the page sends them (year make model), then the engine's own decodeTrimRerun runs on the finished answer with the decode's trim (api/sellerDecision.js, the same call on every VIN path)
+  const finalOf = async (vehicle, text, ctx, again) => { const bare0 = await read(vehicle, text, rows), rr = await A.decodeTrimRerun(bare0, ctx, { resolveVehicle: V.resolveVehicle }); return rr ? await again(rr) : bare0; };
+  const partnerCtx = { vf: { decodeTrim: trim }, text: bareText };
+  const viaPartnerD = await finalOf(br.vehicle, bareText, partnerCtx, async rr => read(rr.vehicle, rr.text, rows)), viaPartner = facts(viaPartnerD, year);
+  ok(`${label}: partner answer equals typed answer on pool count, range, scope line, cards and hero photo`, diffKeys(F, viaPartner).length === 0, diffKeys(F, viaPartner).join(", "));
+  // CONSUMER VIN PLAN (the VIN page, Find, ops vintypedlive): the plan of the VIN, then the same rerun, which hands the plan the decode's trim
   const vinVehicle = { year, make, model, nameModel: model, trim, bodyStyle: null, transmission: null, vin, raw: vin };
   const plan = await A.vinSearchPlan(vinVehicle, { resolveVehicle: V.resolveVehicle });
-  const viaPlan = plan && !plan.unresolved ? facts(A.applyVinOverlay(await read(plan.vehicle, plan.text, rows), plan.ctx), year) : null;
+  let viaPlanD = null;
+  if (plan && !plan.unresolved) {
+    const b0 = A.applyVinOverlay(await read(plan.vehicle, plan.text, rows), plan.ctx), rr = await A.decodeTrimRerun(b0, { ...plan.ctx, text: plan.text }, { resolveVehicle: V.resolveVehicle });
+    if (rr) { const p2 = await A.vinSearchPlan(vinVehicle, { resolveVehicle: V.resolveVehicle, decodeTrim: rr.trim }); viaPlanD = A.applyVinOverlay(await read(p2.vehicle, p2.text, rows), p2.ctx); } else viaPlanD = b0;
+  }
+  const viaPlan = viaPlanD ? facts(viaPlanD, year) : null;
   ok(`${label}: the VIN plan's answer equals the typed answer on pool count, range, scope line, cards and hero photo`, !!viaPlan && diffKeys(F, viaPlan).length === 0, viaPlan ? diffKeys(F, viaPlan).join(", ") : "no plan");
 }
 ok("the check is not vacuous: the trim changes the answer for most of the cars (the bare model reads another pool)", vacuous <= Math.floor(CARS.length / 3), `${vacuous} of ${CARS.length} read the same with and without the trim`);
 // the partner endpoint must build its text with the one function (a page that builds its own words drifts)
-{ const src = fs.readFileSync(path.join(root, "api/partnerAnswer.js"), "utf8"); ok("api/partnerAnswer.js builds a VIN's engine text with vinTypedText", /vinTypedText\(/.test(src) && !/\[id\.year, id\.make, id\.family \|\| id\.model\]/.test(src)); }
+{ const src = fs.readFileSync(path.join(root, "api/sellerDecision.js"), "utf8"); ok("api/sellerDecision.js runs decodeTrimRerun on a finished VIN answer, for the VIN page and the partner read alike", /decodeTrimRerun\(oneBox, vinCtx/.test(src)); }
 console.log(fail ? `vinTypedMatchCheck: ${fail} failure(s)` : "vinTypedMatchCheck: all pass");
 process.exit(fail ? 1 : 0);

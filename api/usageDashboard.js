@@ -2064,7 +2064,7 @@ async function handleOps(req, res) {
   if (task === "vintypedlive") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js"); const { oneEngineAnswer, withReadFields } = await import("../lib/onebox.js");
-    const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js"); const { vinSearchPlan, applyVinOverlay, vinTypedText } = await import("../lib/vinAsTyped.js"); const { decodeVinFacts } = await import("../lib/vehicle.js");   // the decode's trim is part of the VIN car's words, on both sides (a VIN with a decoded trim was compared to the BARE typed model and so could never see the Demon class)
+    const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js"); const { vinSearchPlan, applyVinOverlay, typedWordsFor } = await import("../lib/vinAsTyped.js");   // the decoded-trim class is read by task=vintrimsweep (the VIN answer adds the trim in the engine, lib/vinAsTyped.js decodeTrimRerun)
     const limit = Math.max(1, Math.min(8, Number(req.query?.limit) || 5));
     const matchQ = String(req.query?.match || "").trim(), repeat = Math.max(1, Math.min(5, Number(req.query?.repeat) || 1));   // ?match= a title fragment (one named car), ?repeat= runs of each path (at most 5): the determinism proof
     const rows = await supabaseSelect(env, "live_listings?status=eq.live&vin_norm=not.is.null&year=not.is.null&make=not.is.null&model=not.is.null&select=vin_norm,year,make,model,listing_title&order=id.asc&limit=400" + (matchQ ? "&listing_title=ilike.*" + encodeURIComponent(matchQ) + "*" : ""));
@@ -2075,7 +2075,7 @@ async function handleOps(req, res) {
     for (const r of picks) {
       const car = { title: String(r.listing_title || "").slice(0, 70), year: r.year, make: r.make, model: r.model };
       try {
-        const dec = await decodeVinFacts(r.vin_norm).catch(() => null), vv = { year: r.year, make: r.make, model: r.model, nameModel: r.model, vin: r.vin_norm, raw: r.vin_norm, ...(dec && dec.readable && dec.trim ? { trim: dec.trim } : {}) }, words = vinTypedText(vv), tr = await resolveVehicle(words, {}), tv = tr && tr.vehicle;
+        const vv = { year: r.year, make: r.make, model: r.model, nameModel: r.model, vin: r.vin_norm, raw: r.vin_norm }, words = typedWordsFor(vv), tr = await resolveVehicle(words, {}), tv = tr && tr.vehicle;
         if (!tv || !tv.model) { out.cars.push({ ...car, typed: "unresolved: " + (tr && tr.status) }); continue; }
         const plan = await vinSearchPlan(vv, { resolveVehicle }); if (!plan || plan.unresolved) { out.cars.push({ ...car, vin: "unresolved", line: plan && plan.line }); continue; }
         const A = await answer(tv, words), Bv = await answer(plan.vehicle, plan.text), vin = applyVinOverlay(Bv.d, plan.ctx);
