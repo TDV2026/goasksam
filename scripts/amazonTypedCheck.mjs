@@ -154,7 +154,7 @@ for (const r of ROWS) {
   ok(gen.engineQuestion.text === gen.question.text && JSON.stringify(gen.engineQuestion.options.map(({ carWord, ...o }) => o)) === JSON.stringify(gen.question.options), "generation_choice: engineQuestion equals the existing question (Market Check's own prompt and options)");
   const d = { status: "one_box", tier: "result", cluster: [1, 9], poolN: 3, cards: [{ id: "a", price: 5, date: "2026-10-01", title: "2017 X" }, { id: "b", price: 3, date: "2026-09-01", title: "2017 Y" }, { id: "c", price: 7, date: "2026-08-01", title: "2017 Z" }] };
   const out = partnerShape(d, "t", 0, {});
-  ok(out.rows.map(r => r.price).join(",") === "5,3,7" && out.sales.map(r => r.price).join(",") === "3,5,7", "rows: the card's own order (engine order); sales unchanged (by price)");
+  ok(out.rows.map(r => r.price).join(",") === "5,3,7" && out.sales.map(r => r.price).join(",") === out.rows.map(r => r.price).join(","), "rows and sales: one order, the engine's (date newest first)");
   ok(rowsOf({ tier: "result", cards: [{ id: "x", price: 1, title: "Bring a Trailer 1995 BMW M3", date: "2026-01-01" }] }).every(r => !/bring a trailer/i.test(r.name)), "rows: a venue in a title never shows (the row's own year, make and model)"); }
 // R4-B: every option carries the words the other tabs carry (carWord), a refine option sends its label, and a narrowed
 // re-read names the chosen option in car.name; offline, including the handler (the label reaches the name only with a refine)

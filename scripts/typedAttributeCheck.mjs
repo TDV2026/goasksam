@@ -91,13 +91,11 @@ const gtoSales = () => { for (let i = 0; i < 10; i++) mkS("Pontiac", "GTO", "200
     for (let i = 0; i < 2; i++) mkS("Packard", "Eight", "1930 Packard 745 Deluxe Eight Roadster", 130000 + i * 9000, 50 + i * 20, 1930); for (let i = 0; i < 2; i++) mkS("Packard", "Eight", "1931 Packard Eight Roadster", 125000 + i * 9000, 55 + i * 20, 1931); });
   const titles = (d.rawPool || []).map(r => r.rtitle);
   ok("1930 Packard 745 Deluxe Eight Roadster: Roadsters only, no Phaeton and no 1929 Speedster", titles.length > 0 && titles.every(t => /roadster/i.test(t)) && !titles.some(t => /phaeton|speedster/i.test(t)), JSON.stringify([...new Set(titles)])); }
-// 7. sales by date: the same sales, price order as sent, date order newest first, the default price
-{ const d = await run("2005 Pontiac GTO", GTO, gtoSales), so = E.withReadFields(d, "2005 Pontiac GTO", { year: 2005 }).salesOrder, n = (d.cards || []).length;
-  ok("salesOrder: price is the default and date is offered", !!so && so.default === "price" && so.options.map(o => o.value).join() === "price,date");
-  ok("salesOrder: both orders are the same sales (a permutation of every position)", !!so && [so.price, so.date].every(a => a.length === n && new Set(a).size === n));
-  const dates = so ? so.date.map(i => String(d.cards[i].date || "")) : [];
-  ok("salesOrder: date is newest first", dates.length > 1 && dates.every((x, i) => i === 0 || dates[i - 1] >= x), dates.slice(0, 4).join(" "));
-  ok("salesOrder: price is the order the list is sent in", !!so && so.price.every((x, i) => x === i)); }
+// 7. sales by date: the engine sends every sales list newest first (Rick Carey, Nov 4 2026); there is no salesOrder option and no page sort
+{ const d = await run("2005 Pontiac GTO", GTO, gtoSales), r = E.withReadFields(d, "2005 Pontiac GTO", { year: 2005 }), dates = (r.cards || []).map(c => String(c.date || ""));
+  ok("sales order: the engine's cards are date newest first by default", dates.length > 1 && dates.every((x, i) => i === 0 || dates[i - 1] >= x), dates.slice(0, 4).join(" "));
+  ok("sales order: the same sales as the pool (a permutation, none lost)", (r.cards || []).length === (d.cards || []).length && new Set((r.cards || []).map(c => c.id)).size === new Set((d.cards || []).map(c => c.id)).size);
+  ok("sales order: no dead salesOrder option is served", !("salesOrder" in r)); }
 // 8. the table: typed words and the sales that state them
 ok("lib/typedAttributes.js exists", !!T);
 console.log(failed ? `typedAttributeCheck: ${failed} failure(s)` : "typedAttributeCheck: all pass");

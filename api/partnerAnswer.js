@@ -31,7 +31,7 @@ import { lastUpdatedDate, shortDate } from "../lib/asOf.js";
 let CARD_UPDATED = "";
 import { decodeVinFacts } from "../lib/vehicle.js";
 import { sellsForCardHtml, latestQuarterRowHtml } from "../lib/sellsForCard.js";
-import { mapEngineAnswer, ENGINE_VERSION, partnerPositionsOf, partnerPlacesOf, PARTNER_PRICE_KEYS } from "../lib/onebox.js";
+import { mapEngineAnswer, salesNewestFirst, ENGINE_VERSION, partnerPositionsOf, partnerPlacesOf, PARTNER_PRICE_KEYS } from "../lib/onebox.js";
 
 // THE SHARED CARD (Sam, Oct 16 2026; Lane A's lib/sellsForCard.js): the "What these sell for" card is rendered here by
 // the one function every product uses, from the very answer Market Check's page hands it (its raw answer), so the
@@ -270,14 +270,14 @@ const rowId = r => r && r.id != null ? photoId(r.id) : null;   // the archive's 
 export function rowsOf(d) {
   if (!d) return [];
   const src = d.tier === "thin" && d.thin && Array.isArray(d.thin.receipts) ? d.thin.receipts : (Array.isArray(d.cards) ? d.cards : []);
-  return src.map(c => ({ photo: rowId(c), name: rowTitle(c), price: num(c.price) || num(c.allIn) || num(c.hammer), date: day(c.date), miles: num(c.mi) || num(c.mileage) })).filter(r => r.price);
+  return salesNewestFirst(src.map(c => ({ photo: rowId(c), name: rowTitle(c), price: num(c.price) || num(c.allIn) || num(c.hammer), date: day(c.date), miles: num(c.mi) || num(c.mileage) })).filter(r => r.price));
 }
 export function salesOf(d) {
   if (!d) return [];
   let rows;
   if (d.tier === "thin" && d.thin && Array.isArray(d.thin.receipts)) rows = d.thin.receipts.map(r => ({ photo: rowId(r), name: rowTitle(r), price: num(r.allIn) || num(r.hammer), date: day(r.date), miles: num(r.mileage) }));
   else rows = (Array.isArray(d.cards) ? d.cards : []).map(c => ({ photo: rowId(c), name: rowTitle(c), price: num(c.price), date: day(c.date), miles: num(c.mi) }));
-  return rows.filter(r => r.price).sort((a, b) => a.price - b.price || String(a.date || "").localeCompare(String(b.date || "")));
+  return salesNewestFirst(rows.filter(r => r.price));   // the engine's one order, newest first (Rick Carey, Nov 4 2026); the page sorts nothing
 }
 // THE CAR'S PHOTO (Sam, Oct 18 2026, for the eBay showing: always a photo of the same car when there is one, never a
 // wrong one). Taken only from the engine's own included sales for this answer (never a set-aside row): the engine's pool
@@ -452,8 +452,8 @@ function trendOf(d) {
 // (setAsideReasonFor: modified, project, replica, odd sale); never mixed into the sales the answer is based on.
 export function asideRowsOf(d) {
   const rows = d && Array.isArray(d.setAsideRows) ? d.setAsideRows : (d && d.thin && Array.isArray(d.thin.setAsideRows) ? d.thin.setAsideRows : []);
-  return rows.filter(r => r && r.setAside !== false).map(r => ({ photo: rowId(r), name: rowTitle(r), price: num(r.price) || num(r.allIn) || num(r.hammer), date: day(r.date), miles: num(r.mi) || num(r.mileage), reason: typeof r.reason === "string" && !VENUE_RE.test(r.reason) ? r.reason : null }))
-    .filter(r => r.price && r.reason);
+  return salesNewestFirst(rows.filter(r => r && r.setAside !== false).map(r => ({ photo: rowId(r), name: rowTitle(r), price: num(r.price) || num(r.allIn) || num(r.hammer), date: day(r.date), miles: num(r.mi) || num(r.mileage), reason: typeof r.reason === "string" && !VENUE_RE.test(r.reason) ? r.reason : null }))
+    .filter(r => r.price && r.reason));
 }
 function setAsideOf(d) {
   const s = d && d.counts && d.counts.setAside;

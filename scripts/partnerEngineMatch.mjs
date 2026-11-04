@@ -72,7 +72,7 @@ for (const [name, d] of Object.entries(FIX)) {
     ok(out.count === mc.count, `${name}: count ${out.count} vs ${mc.count}`);
     ok(out.window === mc.window, `${name}: window ${out.window} vs ${mc.window}`);
     ok(same(asKeys(out.sales), mc.sales), `${name}: the same sales as Market Check`);
-    ok(out.sales.every((s, i, a) => !i || a[i - 1].price <= s.price), `${name}: sales lowest price first`);
+    ok(out.sales.every((s, i, a) => !i || String(a[i - 1].date || "") >= String(s.date || "")), `${name}: sales newest first`);
     ok(out.sales.every(s => Object.keys(s).sort().join() === "date,miles,name,photo,price" && (s.photo === null || /^(\d{1,15}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.test(s.photo)) && !venueLeak({ n: s.name }).length), `${name}: a sale is its price, date, mileage, the engine row's own name (venue-safe) and its archive id for the photo only`);
     ok(sameCard(out.card, d), `${name}: the shared card, byte-identical to Market Check's card for the same answer`);
     // cardWithRows (Oct 20 2026, additive, the Amazon demo's tab c): Market Check's own card WITH its sale rows, in the engine's

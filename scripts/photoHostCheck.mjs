@@ -13,7 +13,7 @@ const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href), P 
 const DEAD = "https://d2niwqq19lf86s.cloudfront.net/uploads/993-cabriolet.jpg", LIVE = "https://media.carsandbids.com/ok.jpg";
 const answer = () => ({ tier: "result", poolN: 10, soldCount: 10, cluster: [40000, 52000], optionsState: null, windowWords: "since November 2025",
   rawPool: Array.from({ length: 10 }, (_, i) => ({ id: "r" + i, _usd: 40000 + i * 1500, image: i === 0 ? DEAD : LIVE })),
-  cards: [{ title: "1995 Porsche 911 Carrera Cabriolet", image: DEAD, price: 41000 }, { title: "1995 911", image: LIVE, price: 42000 }],
+  cards: [{ title: "1995 Porsche 911 Carrera Cabriolet", image: DEAD, price: 41000, date: "2026-10-02" }, { title: "1995 911", image: LIVE, price: 42000, date: "2026-09-02" }],
   recent3: [{ title: "x", image: DEAD }], ownSales: { sales: [{ photo: DEAD }] }, photos: [DEAD, LIVE], extraPhoto: DEAD, closest: { image: DEAD }, factsBlock: { count: 10 } });
 const d = E.withReadFields(answer(), "1995 Porsche 911 Carrera", { year: 1995 }), flat = JSON.stringify(d);
 ok("lib/photoHosts.js exists and lists the dead host pushCheck named", !!P && P.photoHostDead(DEAD) && !P.photoHostDead(LIVE));

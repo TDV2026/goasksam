@@ -381,7 +381,7 @@ const JS = String.raw`
   // A sale's mileage as the engine read it, or the plain words when the listing stated none.
   var milesOf = function(s){ return s && s.miles ? Number(s.miles).toLocaleString("en-US") + " miles" : "Mileage not stated"; };
   var dayLabel = function(d){ var p = String(d || "").split("-"); return p.length === 3 && MON[Number(p[1]) - 1] ? MON[Number(p[1]) - 1].slice(0, 3) + " " + Number(p[2]) + ", " + p[0] : (monthYear(d) || ""); };
-  var newest = function(a){ return (a && a.sales || []).slice().sort(function(x, y){ return String(y.date || "").localeCompare(String(x.date || "")) || y.price - x.price; }); };
+  var newest = function(a){ return (a && a.sales || []).slice(); };   // the engine sends the sales newest first; the page sorts nothing
   // Where a figure sits against the engine's range is the ENGINE's answer (positions[], Lane B; Sam, Nov 1 2026): the page keeps no comparison of its own. A pill is drawn only from a
   // position the engine returned, with its words; no position, no pill.
   var PLACE_PILL = { below: { cls: "below", text: "below the usual range" }, within: { cls: "in", text: "inside the usual range" }, above: { cls: "above", text: "above the usual range" } };
@@ -492,7 +492,7 @@ const JS = String.raw`
     if (a.question || !a.sales || !a.sales.length) return '<p class="muted">' + esc((a && a.thin) || "No recorded sales of cars like this yet.") + "</p>";
     var rows = newest(a); lists[slot] = rows; thisKeys[slot] = keysOf(a);
     var shown = rows.slice(0, LIST_STEP), n = shown.length;
-    var aside = (a.asideRows || []).slice().sort(function(x, y){ return String(y.date || "").localeCompare(String(x.date || "")); });
+    var aside = (a.asideRows || []).slice();
     return '<p class="sub sl-head" id="slh-' + slot + '">The most recent ' + (n < 10 ? ["zero","one","two","three","four","five","six","seven","eight","nine"][n] : n) + " " + plural(n, "sale", "sales") + " behind this answer, newest first.</p>" +
       '<div class="slist" id="sl-' + slot + '">' + shown.map(function(s){ return saleRow(s, null, thisKeys[slot]); }).join("") + "</div>" +
       (rows.length > LIST_STEP ? '<p class="morewrap"><button type="button" class="more" data-more="' + slot + '">Show more</button></p>' : "") +

@@ -1974,6 +1974,12 @@ try {
   record("engine: a car with a trim reads its exact-year line beside the first answer, not after it (scripts/exactYearParallelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/salesOrderCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("engine: every sales list is sent date newest first, no salesOrder option, no page-side sort (scripts/salesOrderCheck.mjs)", "PASS", (out.match(/salesOrderCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: every sales list is sent date newest first, no salesOrder option, no page-side sort (scripts/salesOrderCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/typedAttributeCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: a typed gearbox, engine or body word is applied or announced, never dropped; the classic bodies are separate pools; sales can be read by date (scripts/typedAttributeCheck.mjs)", "PASS", (out.match(/typedAttributeCheck: .*/) || [""])[0]);
 } catch (e) {
