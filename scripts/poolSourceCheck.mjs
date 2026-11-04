@@ -61,4 +61,14 @@ for (let k = 0; k < 20; k++) { rows = []; n = 0; const model = "Online" + String
   const d = await read(1934, model);
   ok("Packard case: the pool is the whole record in its window, house sales included, not the 8 online sedans", poolOf(d) === inWindow(d) && inWindow(d, true) > 0 && poolOf(d) > 8, `pool ${poolOf(d)}, window ${d.windowStart}, house in window ${inWindow(d, true)}`);
   ok("... and the pre-war bodies rule fires: apart by body, no pooled range", d.optionsState === "apart" && d.headlineDimension === "body" && !d.cluster && (d.options || []).length >= 2, JSON.stringify({ state: d.optionsState, dim: d.headlineDimension, opts: (d.options || []).map(o => o.label + o.n) })); }
+
+// (4) THE STORED ROWS (Sam, Nov 5 2026): an answer read online-only with eight or more online sales may be a house-heavy car cut by the old rule, so it is read as no row until it carries the tag; a pool with a house sale, a thin pool and a tagged row keep serving.
+{ const S = await import(pathToFileURL(path.join(root, "lib/live/search.js")).href);
+  const pool = (n, house) => Array.from({ length: n }, (_, i) => ({ id: "r" + i, source: house && i === 0 ? "RM Sotheby's" : "Bring a Trailer", year: 1934 }));
+  const rowOf = (raw) => ({ market: { engineVersion: E.ENGINE_VERSION, warmEpoch: null, raw: { tier: "result", resolvedCar: { year: 1934, make: "Packard", model: "Twelve" }, questionRulesTag: E.QUESTION_RULES_TAG, prewarBodyTag: E.PREWAR_BODY_TAG, nameRulesTag: E.NAME_RULES_TAG, ...raw } }, computed_at: new Date().toISOString() });
+  const R = { online8: rowOf({ rawPool: pool(8, false) }), tagged: rowOf({ rawPool: pool(8, false), poolSourceTag: E.POOL_SOURCE_TAG }), withHouse: rowOf({ rawPool: pool(9, true) }), thin: rowOf({ rawPool: pool(5, false) }) };
+  const want = { online8: false, tagged: true, withHouse: true, thin: true };
+  const f0 = globalThis.fetch; globalThis.fetch = async url => { const u = String(url); const m = /spec_key=eq\.([^&]+)/.exec(u); if (/spec_market_cache/.test(u) && m) return new Response(JSON.stringify([R[decodeURIComponent(m[1])]]), { status: 200 }); return new Response("[]", { status: 200 }); };
+  for (const k of Object.keys(R)) { const a = await S.readWarmAnswerDetailed(env, k), b = await S.readWarmAnswer(env, k); ok(`stored ${k}: both readers ${want[k] ? "serve" : "read no row"}`, !!(a && a.raw) === want[k] && !!b === want[k]); }
+  globalThis.fetch = f0; }
 console.log(failed ? `\n${failed} FAILED` : "\npoolSourceCheck: all pass"); process.exit(failed ? 1 : 0);

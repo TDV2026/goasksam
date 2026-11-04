@@ -13,3 +13,14 @@ select count(*) as cars_whose_pool_changes, sum(house) as house_sales_now_in_the
 -- the first forty of them, biggest gain first
 -- (run separately after reading the count)
 -- select make, model, online as pool_before, house + online as pool_after, round(100.0 * house / (house + online)) as house_pct from rec where online >= 8 and house::numeric / nullif(house + online, 0) >= 2.0 / 3 order by house desc limit 40;
+
+-- STORED ROWS THE TAG MAKES COMPUTE AGAIN ON THEIR NEXT READ (PS tag ps1-20261105, lib/onebox.js storedPoolSourceOvertaken): Market Check answers with eight or more sales in the pool and no house sale among them, without the tag.
+-- (The reader cannot tell a car the old cut touched from a car with no house sales, so both compute again once; the second kind comes back the same.)
+select count(*) as stored_rows_read_again
+from spec_market_cache
+where spec_key like 'MCWARM:%'
+  and market->'raw'->>'tier' in ('result', 'thin')
+  and coalesce(market->'raw'->>'poolSourceTag', '') <> 'ps1-20261105'
+  and jsonb_typeof(market->'raw'->'rawPool') = 'array'
+  and jsonb_array_length(market->'raw'->'rawPool') >= 8
+  and not exists (select 1 from jsonb_array_elements(market->'raw'->'rawPool') e where e->>'source' in ('rmsothebys','gooding','barrettjackson','mecum','broadarrow','bonhams','RM Sotheby''s','Gooding & Co','Barrett-Jackson','Broad Arrow','Bonhams'));
