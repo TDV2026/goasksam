@@ -56,6 +56,7 @@ for (const w of [1440, 390]) {
   await p.click('.vtab:first-child'); await wait(500);
   const back = await p.evaluate(() => ({ h: document.querySelector(".sheet h1").textContent, v: (document.querySelector('[data-k="d-reserve"]') || {}).value, tier: document.querySelector(".tier.on") && document.querySelector(".tier.on").textContent }));
   ok(back.h === "2008 Porsche 911 Carrera S" && back.v === "68250" && /Excellent/.test(back.tier || ""), `${w}: going back to the first sheet finds its tier and reserve as left (${back.v})`);
+  { const tc = await p.evaluate(() => [...document.querySelectorAll(".thiscar .tc")].map(e => e.innerText.replace(/\s+/g, " "))); ok(tc.length >= 2 && tc.every(t => /New|In progress|Finalised|Sent/.test(t)), `${w}: This car lists the earlier sheets for the same VIN beside the sheet (${tc.length})`); }
   ok((await store.get(ORG, a1.id)).state.decision.reserve === "68250" && (await store.get(ORG, a1.id)).state.tier === 2, `${w}: and they are saved on the sheet`);
   // read only, and pick up
   await p.click(`#l-company [data-open="${b1.id}"]`).catch(() => {}); await wait(800);
