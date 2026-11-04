@@ -1222,15 +1222,15 @@
     var n = list.length;
     if (!n || n > 16) return null;
     var heldSaid = chartLatestHeading(d);
-    // The sales are listed right here (in the block below, by price, not newest first), so the engine's "Latest sales" heading is NOT printed over nothing: no heading in this slot (Sam's live 2010 Porsche 911 GT3, 130 pixels of blank under it). The heading prints only over the engine's own rows (heldPanelHtml).
+    // The sales are listed right here (in the block below, in the engine's order), so the engine's "Latest sales" heading is NOT printed over nothing: no heading in this slot (Sam's live 2010 Porsche 911 GT3, 130 pixels of blank under it). The heading prints only over the engine's own rows (heldPanelHtml).
     var said = heldSaid ? "" : '<p class="hero-noband" data-stage="answer">' + lint(esc(obCount(n, "sale", { cap: true }) + ". Too few to show movement, enough to show where they landed."), "hero.thintiles.said") + "</p>";
-    var sorted = list.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); });
+    var sorted = list.slice();   // the engine's order, printed as sent (pages sort nothing)
     var wide = n >= 9;
     var tiles = '<div class="thin-tiles' + (wide ? " thin-tiles-wide" : "") + '">' + sorted.map(function (c) { return thinTileHtml(c, null); }).join("") + "</div>";
     var aside = Array.isArray(asideRows) ? asideRows : [];
     var asideBlock = "";
     if (aside.length) {
-      var asideTiles = aside.slice().sort(function (a, b) { return Number(b.price) - Number(a.price); }).map(function (c) { return thinTileHtml(c, thinAsideTileLabel(c.reason)); }).join("");
+      var asideTiles = aside.map(function (c) { return thinTileHtml(c, thinAsideTileLabel(c.reason)); }).join("");
       asideBlock = '<div class="thin-aside-block" data-stage="answer"><p class="eyebrow thin-aside-eyebrow">' + lint(esc("Set aside, not in the range"), "hero.thintiles.asideeyebrow") + '</p><div class="thin-tiles thin-tiles-aside">' + asideTiles + "</div></div>";
     }
     var eyebrow = '<div class="eyebrow">' + lint(esc(n >= 1 ? "The " + obCount(n, "sale") : obCount(0, "sale", { cap: true })), "hero.thintiles.eyebrow") + "</div>";
@@ -2336,7 +2336,7 @@
     // A gearbox tag shows only when the pool has a real manual-vs-non-manual split.
     htGearboxSplit = !!ht.gearboxSplit;   // the engine's flag: the online receipts hold both a manual and another box
     // Newest first (the honest evidence order); the engine's hammer-desc order is for its own math.
-    var newestFirst = thinCardsFrom(scope).sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); });
+    var newestFirst = thinCardsFrom(scope);   // the engine sends the sales in its order (newest first); the page prints them as sent
     var thinTile = thinTileTreatment(d, m, newestFirst, d.setAsideRows);
     var body = exactCarSalesHtml(d) + thinHeroHtml(d, name, scope, ht, m, thinTile, newestFirst.length);
     if (!(thinTile && thinTile.suppressSalesRow)) body += salesRowHtml(d, m, newestFirst);
@@ -2407,7 +2407,7 @@
       ? "The only recent " + esc(carName) + " sale on record is this car" + (saleBits.length ? " (" + saleBits.join(", ") + ")" : "") + "."
       : "No " + esc(carName) + " has sold in " + HT_WINDOW_TEXT + ".";
     var shown = ce.receipts.slice(0, 8);
-    var byDateDesc = ce.receipts.slice().sort(function (a, b) { return String(b.date || "").localeCompare(String(a.date || "")); });
+    var byDateDesc = ce.receipts.slice();   // the engine's order (newest first); the first is the latest
     var latest = byDateDesc[0] || null;
     // Round 6 Job 3 (Oct 2026): count-only rung. The window is already stated once by leadTxt
     // above (HT_WINDOW_TEXT, the same constant the fetch itself uses), so this line never repeats

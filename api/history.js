@@ -589,7 +589,7 @@ function groupListsHtml(d, id, vinNorm, cards, urlVins, others, noun = "car") {
   const out = [];
   const fam = d ? nounOf(d, id) : null;
   if (cards.length && fam) {
-    const rows = cards.slice().sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))).map(c => {
+    const rows = cards.map(c => {   // the engine's order, printed as sent
       const v = c.vin ? { vin: c.vin, year: Number(c.year) || null } : (urlVins && c.url ? urlVins.get(c.url) : null);
       const year = (v && v.year) || Number((/\b(19|20)\d{2}\b/.exec(c.title || "") || [])[0]) || null;
       const href = v ? `/history/${[year, slugify(id.make), slugify(id.family)].filter(Boolean).join("-")}/${v.vin}` : (c.url ? utm(c.url) : null);

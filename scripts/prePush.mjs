@@ -823,6 +823,13 @@ try {
 } catch (e) {
   record("hiddenCrewCheck (scripts/hiddenCrewCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// pageSortCheck (Lane E, Nov 4 2026, lane-e-pagesort): pages sort nothing. Every sort in page code is reviewed (an engine list is never sorted by a page), and three cars rendered in Chrome (a result card, a thin car with set-aside rows, the partner page with Highest price chosen) print the order the engine sent.
+try {
+  const out = execSync("node scripts/pageSortCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Pages sort nothing: sales, tiles, set-aside rows print in the engine's order (scripts/pageSortCheck.mjs)", "PASS", (out.match(/pageSortCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Pages sort nothing: sales, tiles, set-aside rows print in the engine's order (scripts/pageSortCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // logLinesCheck (Lane E, Nov 3 2026, lane-e-vercelcost): a hot path (Find search, Show more, enrich, the card popup, Market Check) prints at most 2 console lines per request; no un-gated diagnostic line in api/ or lib/; only runtime folders are deployable.
 try {
   const out = execSync("node scripts/logLinesCheck.mjs", { encoding: "utf8", timeout: 120000 });
