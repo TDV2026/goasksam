@@ -31,5 +31,10 @@
   },
   "devDependencies": {
     "puppeteer-core": "^25.5.0"
+  },
+  "dependencies": {
+    "heic-convert": "^2.1.0",
+    "mailparser": "^3.14.2",
+    "sharp": "^0.35.5"
   }
 }

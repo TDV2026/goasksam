@@ -220,6 +220,15 @@
     "api/specPage.js": {
       "maxDuration": 60
     },
+    "api/deskInbound.js": {
+      "maxDuration": 300
+    },
+    "api/deskSend.js": {
+      "maxDuration": 60
+    },
+    "api/deskIntake.js": {
+      "maxDuration": 60
+    },
     "api/desk.js": {
       "maxDuration": 300
     }

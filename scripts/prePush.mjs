@@ -2440,6 +2440,15 @@ try {
 } catch (e) {
   record("Task email form (scripts/emailFormCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Desk intake and send (Lane D, Nov 4 2026; docs/desk-valuations-spec.md): a submission read as the spec says, only a seat of the org accepted, a sheet sent once with the copy kept. Offline. scripts/intakeFailsWithout.mjs puts each bug back and requires the check to go red (run it when intake or send code changes).
+for (const [chk, label] of [["intakeParseCheck", "Desk intake reads a submission (scripts/intakeParseCheck.mjs)"], ["intakeAuthCheck", "Desk intake accepts only a seat of the org (scripts/intakeAuthCheck.mjs)"], ["sendCheck", "Desk send: copy stored, status moved, nothing sent twice (scripts/sendCheck.mjs)"]]) {
+  try {
+    const out = execSync(`node scripts/${chk}.mjs`, { encoding: "utf8", timeout: 240000 });
+    record(label, "PASS", (out.match(new RegExp(chk + ": .*")) || [""])[0]);
+  } catch (e) {
+    record(label, "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+  }
+}
 // A Task email prints by the engine's emailMode and never a question (Oct 27 2026): the block lines and the card, every mode, an answer that also asked a question. No network.
 try {
   const out = execSync("node scripts/emailModeCheck.mjs", { encoding: "utf8", timeout: 300000 });
