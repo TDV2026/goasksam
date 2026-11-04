@@ -24,7 +24,7 @@ import { VARIANT_MARKETS } from "../lib/modelRules.js";
 import { BODY_LABEL, isSingerPorsche, withReadFields, isStorableQuestion } from "../lib/onebox.js";
 import { casedChips } from "../lib/chipLabel.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
-import { settleVinAnswer, vinSearchPlan, applyVinOverlay, decodeTrimRerun } from "../lib/vinAsTyped.js";
+import { settleVinAnswer, vinSearchPlan, applyVinOverlay, decodeTrimRerun, ruledOutLineOf } from "../lib/vinAsTyped.js";
 // Every variant value a chip may carry (e51): the M-car pair plus each variant market's key and its other side.
 // Restoration is never an option or a question (e52, Sam's decision): the generic entries' keys (restoration,
 // unrestored) are not accepted from a client, so a stale refine for them is ignored and the base page answers.
@@ -3519,6 +3519,9 @@ async function handler(req, res) {
         // so that chip read the whole pool (Lane C's check, Oct 20 2026). Same shape check as trim: a comma list (or an
         // array) of up to 12 such words; anything else is dropped.
         notTrims: (() => { const a = (Array.isArray(rawRefine.notTrims) ? rawRefine.notTrims : String(rawRefine.notTrims || "").split(",")).map(x => String(x).trim()).filter(x => /^[a-z0-9-]{1,30}$/.test(x)).slice(0, 12); return a.length ? a.join(",") : null; })(),
+        // The trims a VIN's own code rules out (lib/vinTrimCodes.js; server-built by the VIN paths): trim slugs only, up to 12
+        allowTrims: (() => { const a = (Array.isArray(rawRefine.allowTrims) ? rawRefine.allowTrims : String(rawRefine.allowTrims || "").split(",")).map(x => String(x).trim()).filter(x => /^[a-z0-9-]{1,30}$/.test(x)).slice(0, 12); return a.length ? a.join(",") : null; })(),
+        exceptTrims: (() => { const a = (Array.isArray(rawRefine.exceptTrims) ? rawRefine.exceptTrims : String(rawRefine.exceptTrims || "").split(",")).map(x => String(x).trim()).filter(x => /^[a-z0-9-]{1,30}$/.test(x)).slice(0, 12); return a.length ? a.join(",") : null; })(),
         // Competition-variant refine (Part 1 change 1): Competition Package vs standard.
         // Variant refine (e51, Lane A's find): any variant-market key or its other side (lib/modelRules.js
         // VARIANT_MARKETS: carrera, competizione, lightweight, gta, restoration/unrestored...) plus the M-car
@@ -3852,10 +3855,10 @@ async function handler(req, res) {
       if (vinCtx && !req.body.vinTrimRun) {
         const tr = await decodeTrimRerun(oneBox, vinCtx, { resolveVehicle }).catch(() => null);
         if (tr) {
-          const body3 = { ...req.body, vinSettledRun: true, vinTrimRun: true, vinRerunWords: [tr.trim, tr.body].filter(Boolean).join(" "), ...(req.body.car && typeof req.body.car === "object" ? { car: { ...req.body.car, ...(req.body.car.vinFacts ? { raw: tr.text } : {}) } } : {}) };
+          const body3 = { ...req.body, ...(tr.refine ? { refine: { ...(req.body.refine || {}), ...tr.refine } } : {}), vinSettledRun: true, vinTrimRun: true, vinRerunWords: [tr.trim, tr.body].filter(Boolean).join(" "), ...(req.body.car && typeof req.body.car === "object" ? { car: { ...req.body.car, ...(req.body.car.vinFacts ? { raw: tr.text } : {}) } } : {}) };
           let out3 = null; const res3 = { statusCode: 200, headersSent: false, setHeader() {}, getHeader() { return undefined; }, removeHeader() {}, status(c) { this.statusCode = c; return this; }, json(x) { if (out3 == null) out3 = x; this.headersSent = true; return this; }, send(x) { if (out3 == null) out3 = x; this.headersSent = true; return this; }, end() { this.headersSent = true; return this; } };
           await handler({ ...req, body: body3 }, res3);
-          if (out3 && out3.status === "one_box" && /^(result|thin)$/.test(String(out3.tier || ""))) return res.status(200).json({ ...out3, vinSettled: [...(Array.isArray(out3.vinSettled) ? out3.vinSettled : []), ...(tr.trim ? [{ dimension: "trim", label: tr.trim, source: "decode" }] : []), ...(tr.body ? [{ dimension: "body", label: tr.body, source: "decode" }] : [])] });
+          if (out3 && out3.status === "one_box" && /^(result|thin)$/.test(String(out3.tier || ""))) return res.status(200).json({ ...out3, ...(tr.ruling ? { vinRuling: { allowed: tr.ruling.allowed, ruledOut: tr.ruling.ruledOut, source: tr.ruling.source }, vinRuledOutLine: ruledOutLineOf(tr.ruling) } : {}), vinSettled: [...(Array.isArray(out3.vinSettled) ? out3.vinSettled : []), ...(tr.trim ? [{ dimension: "trim", label: tr.trim, source: "decode" }] : []), ...(tr.body ? [{ dimension: "body", label: tr.body, source: "decode" }] : [])] });
         }
       }
       if (vinCtx) oneBox = applyVinOverlay(oneBox, vinCtx);   // the VIN car's own sales and option on the typed car's finished answer

@@ -89,6 +89,48 @@ for (const [vin, year, make, model, trim, body] of CARS) {
     ok("api/partnerAnswer.js hands ANY request's mileage (VIN or typed car) to the engine as the typed mileage (refine.miTarget), never stores it as the last good, and prints the engine's mileageLine", /engineRefine = ask && ask\.mileage/.test(src) && /!engineRefine \? demoKey/.test(src) && /mileageLine: typeof d\.mileageLine/.test(src));
     ok("the demo page has a mileage field beside the VIN field, sends it, and prints the engine's line", /id="a-mileage"/.test(pg) && /mileage: mi/.test(pg) && /a\.mileageLine/.test(pg)); }
 }
+// EXCLUDED TRIMS (lane-b-vinpool item 1): VIN WP0AA29985S716137 is a 997 Carrera coupe; the page answered "Carrera and Carrera S" with Carrera S sales ($71,255 and $91,759) in the pool. The 997's VIN code separates Carrera and Carrera 4 (WP0AA) from Carrera S and 4S (WP0AB),
+// so the VIN rules the S out (lib/vinTrimCodes.js). Rule under test: the pool keeps the trims the VIN allows and leaves out the ones it rules out, before any trim question; two allowed siblings are asked between those two only.
+// The 997 rule is the real table row. Four more family-word cars across makes use a TEST rule table (this check does not claim those are real VIN codes; the real table holds only what a person confirmed): the mechanism is the same for any row.
+{
+  const T = await import(pathToFileURL(path.join(root, "lib/vinTrimCodes.js")).href).catch(() => null);
+  const titleOfRow = r => String(r.raw_title || r.rtitle || r.title || "");
+  const CASES = [   // [label, vin, year, make, model, family-word decode, trims in the pool with a base price, allowed, rules (null = the real table)]
+    ["997 Carrera coupe (WP0AA)", "WP0AA29985S716137", 2005, "Porsche", "911", "Carrera", [["Carrera", 52000], ["Carrera 4", 55000], ["Carrera S", 71000], ["Carrera 4S", 75000]], ["Carrera", "Carrera 4"], null],
+    ["997 Carrera S coupe (WP0AB)", "WP0AB29985S716138", 2005, "Porsche", "911", "Carrera", [["Carrera", 52000], ["Carrera 4", 55000], ["Carrera S", 71000], ["Carrera 4S", 75000]], ["Carrera S", "Carrera 4S"], null],
+    ["997 Carrera coupe (WP0AA), no trim question asked", "WP0AA29985S716137", 2005, "Porsche", "911", "Carrera", [["Carrera", 52000], ["Carrera 4", 55000], ["Carrera S", 71000], ["Carrera 4S", 75000]], ["Carrera", "Carrera 4"], null, { asked: 9 }],
+    ["997 Carrera S coupe (WP0AB), no trim question asked", "WP0AB29985S716138", 2005, "Porsche", "911", "Carrera", [["Carrera", 52000], ["Carrera 4", 55000], ["Carrera S", 71000], ["Carrera 4S", 75000]], ["Carrera S", "Carrera 4S"], null, { asked: 9 }],
+    ["Corvette Z06 code", "1G1YY26U365100001", 2015, "Chevrolet", "Corvette", "Z06", [["Stingray", 52000], ["Z06", 82000], ["Grand Sport", 66000]], ["Z06"], [{ make: "Chevrolet", model: "Corvette", years: [2015, 2019], vin: /^1G1YY/, allowed: ["Z06"], ruledOut: ["Stingray", "Grand Sport"], source: "test table" }]],
+    ["Mustang Shelby GT500 code", "1ZVBP8JZ2E5100002", 2014, "Ford", "Mustang", "Shelby", [["V6", 24000], ["Boss 302", 60000], ["Shelby GT500", 90000]], ["Shelby GT500"], [{ make: "Ford", model: "Mustang", years: [2014, 2014], vin: /^1ZVBP8JZ/, allowed: ["Shelby GT500"], ruledOut: ["V6", "Boss 302"], source: "test table" }]],
+    ["Challenger SRT code", "2C3CDZC94JH100003", 2018, "Dodge", "Challenger", "SRT", [["R/T", 32000], ["SRT Hellcat", 60000], ["SRT Demon", 95000]], ["SRT Hellcat", "SRT Demon"], [{ make: "Dodge", model: "Challenger", years: [2018, 2018], vin: /^2C3CDZC9/, allowed: ["SRT Hellcat", "SRT Demon"], ruledOut: ["R/T"], source: "test table" }]],
+    ["M3 code", "WBS8M9C57J5100004", 2018, "BMW", "M3", "Competition", [["Base", 62000], ["Competition", 80000], ["CS", 120000]], ["Competition", "CS"], [{ make: "BMW", model: "M3", years: [2018, 2018], vin: /^WBS8M9C5/, allowed: ["Competition", "CS"], ruledOut: ["Base"], source: "test table" }]]
+  ];
+  for (const [lab, vin, year, make, model, decodeTrim, trims, allowed, rules, envx] of CASES) {
+    const envC = rws => ({ ...env(rws), ...(envx || {}) });
+    const rows = trims.flatMap(([t, p]) => Array.from({ length: 10 }, (_, i) => ({ id: `${t}${i}`, price: p + i * 300, _usd: p + i * 300, auction_end_date: `2026-0${1 + (i % 9)}-${10 + (i % 9)}`, year, make, model, raw_title: `${year} ${make} ${model} ${t}`, rtitle: `${year} ${make} ${model} ${t}`, mileage: String(20000 + i * 900), vin_norm: "ZZ" + t.replace(/\W/g, "") + i, transmission: "Manual", image: "https://img.test/x.jpg", source: "bringatrailer", platform: "bringatrailer" })));
+    const words = `${year} ${make} ${model}`, br = await V.resolveVehicle(words, {}), bv = br && br.vehicle;
+    if (!bv) { ok(`${lab}: the bare words resolve`, false, br && br.status); continue; }
+    const ruling = T && T.vinTrimRuling ? T.vinTrimRuling({ vin, year, make, model }, rules || undefined) : null;
+    ok(`${lab}: the VIN's code gives a ruling (${(ruling && ruling.source) || "none"})`, !!ruling && JSON.stringify(ruling.allowed) === JSON.stringify(allowed), JSON.stringify(ruling && ruling.allowed));
+    const ruledSlugs = new Set(ruling ? ruling.exceptTrims : []), inPool = d => [...(d.cards || []), ...(d.rawPool || [])].map(titleOfRow).filter(t => ruling && ruling.ruledOut.some(x => t.toLowerCase().includes(x.toLowerCase()) && !allowed.some(a => a.toLowerCase() !== x.toLowerCase() && a.toLowerCase().includes(x.toLowerCase()) && t.toLowerCase().includes(a.toLowerCase()))));
+    // what the page did before: the decode's family word, no ruling
+    const before = E.withReadFields((await E.oneEngineAnswer(bv, null, words, envC(rows), null)).raw, words, bv), beforeTyped = await (async () => { const r = await V.resolveVehicle(`${words} ${decodeTrim}`, {}); return r && r.vehicle ? read(r.vehicle, `${words} ${decodeTrim}`, rows) : before; })();
+    // the VIN path: the bare answer, then the engine's own settle / rerun with the ruling (the same calls api/sellerDecision.js makes)
+    const vehicle = { year, make, model, nameModel: model, trim: decodeTrim, vin, raw: vin }, ctx = { vehicle, vf: { decodeTrim, make, model, year }, text: words, year, rules: rules || undefined };
+    let fin = before, how = "bare";
+    if (/_choice$/.test(String(before.tier))) {
+      const s = E.settleQuestionFromVin(before, { ...ctx.vf, ruling });
+      if (s && s.settled) { fin = await (async () => E.withReadFields((await E.oneEngineAnswer(bv, null, words, envC(rows), { trim: s.refine.trim })).raw, words, bv))(); how = "settled " + s.label; }
+      else if (s && Array.isArray(s.keep)) { fin = { ...before, trimOptions: before.trimOptions.filter(o => s.keep.some(k => k.value === o.value)) }; how = "question between " + s.keep.map(k => k.label).join(" / "); }
+    } else {
+      const rr = await A.decodeTrimRerun(before, ctx, { resolveVehicle: V.resolveVehicle });
+      if (rr) { fin = E.withReadFields((await E.oneEngineAnswer(rr.vehicle, null, rr.text, envC(rows), rr.refine || null)).raw, rr.text, rr.vehicle); how = "rerun " + JSON.stringify(rr.refine); }
+    }
+    ok(`${lab}: before the ruling the pool held a trim the VIN rules out (so the case is not vacuous)`, inPool(before).length > 0 || /_choice$/.test(String(before.tier)), `${before.tier}; ruled-out titles in the pool: ${inPool(before).length}`);
+    ok(`${lab}: after the ruling no ruled-out trim is in the pool, and any question lists only the allowed trims (${how})`, inPool(fin).length === 0 && (!/_choice$/.test(String(fin.tier)) || (fin.trimOptions || []).every(o => allowed.some(a => String(o.label).toLowerCase() === a.toLowerCase()))), `${fin.tier}; ruled-out in pool: ${inPool(fin).length}; options ${(fin.trimOptions || []).map(o => o.label).join("|")}`);
+    ok(`${lab}: the engine says which trims the VIN rules out`, !!A.ruledOutLineOf && /settles which trims/.test(String(A.ruledOutLineOf(ruling))), String(A.ruledOutLineOf && A.ruledOutLineOf(ruling)));
+  }
+}
 ok("the check is not vacuous: the trim changes the answer for most of the cars (the bare model reads another pool)", vacuous <= Math.floor(CARS.length / 3), `${vacuous} of ${CARS.length} read the same with and without the trim`);
 // the partner endpoint must build its text with the one function (a page that builds its own words drifts)
 { const src = fs.readFileSync(path.join(root, "api/sellerDecision.js"), "utf8"); ok("api/sellerDecision.js runs decodeTrimRerun on a finished VIN answer, for the VIN page and the partner read alike", /decodeTrimRerun\(oneBox, vinCtx/.test(src)); }

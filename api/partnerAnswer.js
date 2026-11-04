@@ -626,6 +626,7 @@ export function partnerShape(d, text, asked, extra = {}) {
     cardWithRows: cardWithRowsOf(d),   // additive (Oct 20 2026, the Amazon demo's tab c): Market Check's own card WITH its sale rows
     quarter: latestQuarterRowHtml({ ...d, trendQuarters: mapEngineAnswer(d).trendQuarters }) || null,
     lines: linesOf(d),
+    vinRuledOutLine: typeof d.vinRuledOutLine === "string" ? d.vinRuledOutLine : null,   // the engine's line when the VIN's code rules trims out of the pool
     mileageLine: typeof d.mileageLine === "string" ? d.mileageLine : null,   // the engine's one line about mileage on a VIN answer: the band it applied, or that the range is for all mileages
     carPhoto: carPhotoOf(d, (identityOf(d, extra.id) || {}).year || (/^(\d{4})\b/.exec(String(text || "")) || [])[1] || null),
     history: extra.history || null
