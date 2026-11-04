@@ -124,4 +124,18 @@ if (LIVE) {
     }
   }
 }
+// ---- SWEEP (Nov 3 2026): every check that CALLS a crew page's own handler (api/admin.js, desk.js, partnerDemo.js, partnerAnswer.js, crewPage.js by its default export)
+// must ask with the crew cookie, or say in a "crew-check: refusal" comment that it asks without one on purpose (it tests the 404). A new check cannot miss it:
+// it fails here until it does one or the other. (searchTextCheck and peopleBrowserCheck missed it after the hide and went red in the full prePush.)
+{
+  const fs2 = await import("node:fs"), path2 = await import("node:path");
+  const GATED = /(?:from|import|imp|require)\s*\(?\s*["'`][^"'`]*api\/(?:admin|desk|partnerDemo|partnerAnswer|crewPage)\.js["'`]/, CALLS = /\.default\(|\{\s*default\s*:\s*\w+\s*\}|import\s+\w+\s+from\s+["'][^"']*api\/(?:admin|desk|partnerDemo|partnerAnswer|crewPage)\.js/, ASKS = /gas_crew|mintCrew|CREW_COOKIE|crewCookie|isCrewRequest|gas_partner|x-partner-key|crew-check: refusal/;
+  const dir = path2.join(ROOT, "scripts"), missed = [];
+  for (const f of fs2.readdirSync(dir)) {
+    if (!/\.(mjs|js)$/.test(f) || f === "hiddenCrewCheck.mjs") continue;
+    const t = fs2.readFileSync(path2.join(dir, f), "utf8");
+    if (GATED.test(t) && CALLS.test(t) && !ASKS.test(t)) missed.push(f);
+  }
+  ok(missed.length === 0, `every check that calls a crew page's handler sends the crew cookie or says it tests the refusal (${missed.join(", ") || "none missed"})`);
+}
 console.log(`hiddenCrewCheck${LIVE ? " (live)" : ""}: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

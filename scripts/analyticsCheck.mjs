@@ -1,3 +1,4 @@
+// crew-check: refusal (section 7 asks /admin without the cookie on purpose: it tests the 404)
 // Analytics layer checks (Oct 2026, Lane C; docs/analytics-events.md). No database, no network, no keys:
 // the store is replaced by a sink (or by a closed local port for the store-down test).
 //   node scripts/analyticsCheck.mjs            all checks, exit 1 on any failure

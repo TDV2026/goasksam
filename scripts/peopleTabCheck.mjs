@@ -1,3 +1,4 @@
+// crew-check: refusal (the gate part asks /admin without the cookie on purpose: it tests the 404)
 // PEOPLE TAB CHECK (Lane D, Oct 29 2026). The admin "People" tab: who did what, per person. Offline, on a fake store.
 //   1. THE GATE, for the class: every part api/admin.js answers (read from its own source) gives the plain 404 with no token and with a bad token,
 //      so a part added later without the gate fails here, not only People.
