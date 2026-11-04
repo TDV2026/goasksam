@@ -3396,7 +3396,7 @@ async function handler(req, res) {
     if (req.body?.oneBox && vehicle && (vehicle.vin || vehicle.chassis)) {
       let vinArchive = null; try { vinArchive = await findVinArchiveMatch({ supabaseUrl, supabaseKey }, { vin: vehicle.vin || vehicle.chassis }); } catch { vinArchive = null; }   // what the archive holds for this exact VIN: a question it already answers is not asked (lib/vinAsTyped.js settleVinAnswer)
       let vinLive = null; try { const id = String(vehicle.vin || vehicle.chassis || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); const lr = id ? await supabaseSelect({ supabaseUrl, supabaseKey }, `live_listings?vin_norm=eq.${encodeURIComponent(id)}&status=eq.live&select=listing_title,mileage&limit=1`) : null; vinLive = Array.isArray(lr) && lr[0] ? { title: lr[0].listing_title || null, mileage: lr[0].mileage || null } : null; } catch { vinLive = null; }   // the live listing of this VIN: its title words are the car's own
-      const plan = await vinSearchPlan(vehicle, { resolveVehicle, archive: vinArchive, live: vinLive, decodeTrim: req.body.vinTrimRun ? req.body.vinDecodeTrim : null });
+      const plan = await vinSearchPlan(vehicle, { resolveVehicle, archive: vinArchive, live: vinLive, rerunWords: req.body.vinTrimRun ? req.body.vinRerunWords : null });
       if (plan && plan.unresolved) return res.status(200).json({ status: "one_box", tier: "not_tracked", resolvedCar: null, samLine: plan.line, refusal_line: plan.line });
       if (plan) { vinCtx = { ...plan.ctx, text: plan.text }; vehicle = plan.vehicle; }
     }
@@ -3852,10 +3852,10 @@ async function handler(req, res) {
       if (vinCtx && !req.body.vinTrimRun) {
         const tr = await decodeTrimRerun(oneBox, vinCtx, { resolveVehicle }).catch(() => null);
         if (tr) {
-          const body3 = { ...req.body, vinSettledRun: true, vinTrimRun: true, vinDecodeTrim: tr.trim, ...(req.body.car && typeof req.body.car === "object" ? { car: { ...req.body.car, ...(req.body.car.vinFacts ? { raw: tr.text } : {}) } } : {}) };
+          const body3 = { ...req.body, vinSettledRun: true, vinTrimRun: true, vinRerunWords: [tr.trim, tr.body].filter(Boolean).join(" "), ...(req.body.car && typeof req.body.car === "object" ? { car: { ...req.body.car, ...(req.body.car.vinFacts ? { raw: tr.text } : {}) } } : {}) };
           let out3 = null; const res3 = { statusCode: 200, headersSent: false, setHeader() {}, getHeader() { return undefined; }, removeHeader() {}, status(c) { this.statusCode = c; return this; }, json(x) { if (out3 == null) out3 = x; this.headersSent = true; return this; }, send(x) { if (out3 == null) out3 = x; this.headersSent = true; return this; }, end() { this.headersSent = true; return this; } };
           await handler({ ...req, body: body3 }, res3);
-          if (out3 && out3.status === "one_box" && /^(result|thin)$/.test(String(out3.tier || ""))) return res.status(200).json({ ...out3, vinSettled: [...(Array.isArray(out3.vinSettled) ? out3.vinSettled : []), { dimension: "trim", label: tr.trim, source: "decode" }] });
+          if (out3 && out3.status === "one_box" && /^(result|thin)$/.test(String(out3.tier || ""))) return res.status(200).json({ ...out3, vinSettled: [...(Array.isArray(out3.vinSettled) ? out3.vinSettled : []), ...(tr.trim ? [{ dimension: "trim", label: tr.trim, source: "decode" }] : []), ...(tr.body ? [{ dimension: "body", label: tr.body, source: "decode" }] : [])] });
         }
       }
       if (vinCtx) oneBox = applyVinOverlay(oneBox, vinCtx);   // the VIN car's own sales and option on the typed car's finished answer
