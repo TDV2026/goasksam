@@ -226,6 +226,111 @@ table.receipts td.r{text-align:right;font-family:var(--mono);white-space:nowrap}
 .chat .box .go{width:38px;height:38px;border-radius:9px;background:var(--green-btn);color:#fff;border:0;display:grid;place-items:center;flex:none;cursor:pointer;font-size:17px}
 .chat .box .go[disabled]{opacity:.5;cursor:wait}
 
+/* ============ Valuations mode (Nov 2026): rail lists, open-sheet tabs, the seven-section sheet ============ */
+body[data-mode="vals"] .analyst{display:none!important}
+body[data-mode="analyst"] .valsrail,body[data-mode="analyst"] .vals,body[data-mode="analyst"] .vnew{display:none!important}
+body[data-mode="vals"] .rail{width:268px}
+.vnew{display:flex;gap:6px;margin-right:6px}
+.vnew input{font:500 12px/1 var(--mono);border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px 10px;width:230px;color:var(--ink);outline:none}
+.vnew input:focus{border-color:var(--green)}
+.vnew button,.vbtn{font:600 11px/1 var(--mono);letter-spacing:.04em;color:var(--green-deep);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}
+.vnew button:hover,.vbtn:hover{border-color:var(--green)}
+.vbtn.pri{background:var(--green-btn);color:#fff;border-color:var(--green-btn)}
+.vbtn[disabled]{opacity:.45;cursor:not-allowed}
+.valsrail .sec{margin-top:14px}
+.valsrail .qrow{display:block;width:100%;text-align:left;background:none;border:0;border-radius:7px;padding:7px 8px;cursor:pointer;color:#c3b9a2;margin-bottom:1px}
+.valsrail .qrow:hover,.valsrail .qrow.on{background:#20190f;color:#f1ead8}
+.valsrail .qcar{display:block;font:500 12px/1.3 var(--grotesk);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.valsrail .qmeta{display:flex;gap:7px;align-items:center;font:500 9.5px/1.3 var(--mono);color:var(--rail-faint);margin-top:3px}
+.valsrail .st{font:600 8.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--rail-line);border-radius:4px;padding:2px 4px;color:#c3b9a2}
+.valsrail .st.fin,.valsrail .st.sent{border-color:#2f6b4f;color:#8fd0aa}
+.valsrail .st.need{border-color:#6b4a2f;color:#d0a98f}
+.valsrail .none{font:400 11px/1.4 var(--mono);color:var(--rail-faint);padding:4px 8px}
+.valsrail input.csearch{width:100%;font:500 11px/1 var(--mono);background:#1d160c;border:1px solid var(--rail-line);border-radius:6px;padding:7px 8px;color:#f1ead8;outline:none;margin-bottom:6px}
+.valsrail input.csearch::placeholder{color:var(--rail-faint)}
+.vals{flex:1;overflow:auto;padding:0 30px 40px}
+.vtabs{display:flex;gap:4px;border-bottom:1px solid var(--line2);position:sticky;top:0;background:var(--paper);padding-top:12px;z-index:3;overflow-x:auto}
+.vtab{font:500 11.5px/1 var(--grotesk);color:var(--slate);background:transparent;border:1px solid transparent;border-bottom:0;border-radius:8px 8px 0 0;padding:9px 12px;cursor:pointer;white-space:nowrap;display:flex;gap:8px;align-items:center}
+.vtab.on{background:var(--card);border-color:var(--line);color:var(--ink);box-shadow:0 1px 0 var(--card)}
+.vtab .x{color:var(--faint);font:700 12px/1 var(--mono)}
+.vempty{max-width:60ch;margin:48px auto;font:400 16px/1.6 var(--serif);color:var(--slate)}
+.sheet{max-width:880px;margin:20px auto 0}
+.shead h1{font:800 30px/1.15 var(--serif);letter-spacing:-.01em;margin:0 0 6px}
+.shead .vin{font:500 12px/1 var(--mono);color:var(--slate);letter-spacing:.04em}
+.shead .chips{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.chip{font:600 10px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);border-radius:5px;padding:5px 7px;color:var(--slate);background:var(--card)}
+.chip.ok{color:var(--green-deep);border-color:color-mix(in srgb,var(--green) 40%,var(--line))}
+.chip.warn{color:var(--clay);border-color:color-mix(in srgb,var(--clay) 40%,var(--line))}
+.banner{font:400 13.5px/1.5 var(--grotesk);background:var(--card);border:1px solid var(--line);border-left:3px solid var(--clay);border-radius:0 10px 10px 0;padding:10px 14px;margin:14px 0}
+.banner.fx{border-left-color:var(--faint);color:var(--slate)}
+.sec7{display:grid;grid-template-columns:34px 1fr;gap:0 14px;margin:22px 0 0}
+.sec7 .no{font:700 13px/1.1 var(--mono);color:var(--faint);padding-top:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:18px 20px}
+.card h2{font:700 19px/1.2 var(--serif);margin:0 0 4px}
+.card .sub{font:400 12.5px/1.5 var(--grotesk);color:var(--slate);margin:0 0 12px}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:0;border-top:1px solid var(--line2)}
+.kv>div{padding:8px 0;border-bottom:1px solid var(--line2);font:400 14px/1.45 var(--grotesk)}
+.kv>.k{font:600 9.5px/1.6 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding-top:10px}
+.big{font:800 34px/1.1 var(--serif);letter-spacing:-.01em}
+.big small{font:500 12px/1 var(--mono);color:var(--faint);margin-left:8px;letter-spacing:.04em}
+.figs{display:flex;gap:30px;flex-wrap:wrap;margin:6px 0 12px}
+.fig .l{font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+.fig .v{font:700 22px/1.1 var(--serif)}
+.fig.start .v{color:var(--green-deep)}
+table.vt{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+table.vt th{font:600 9px/1.2 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);text-align:left;padding:8px 8px 8px 0;border-bottom:1px solid var(--line)}
+table.vt td{padding:8px 8px 8px 0;border-bottom:1px solid var(--line2);vertical-align:top}
+table.vt td.m{font-family:var(--mono);font-size:12px;white-space:nowrap}
+table.vt a{color:var(--green);text-decoration:none;border-bottom:1px solid currentColor}
+.tiers{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}
+.tier{font:600 12px/1.2 var(--grotesk);background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:10px 14px;cursor:pointer;text-align:left;min-width:128px}
+.tier .n{display:block;font:700 10px/1 var(--mono);color:var(--faint);letter-spacing:.08em;margin-bottom:5px}
+.tier .c{display:block;font:500 11px/1 var(--mono);color:var(--slate);margin-top:5px}
+.tier.on{border-color:var(--green);background:color-mix(in srgb,var(--green) 8%,var(--card))}
+.tier[disabled]{cursor:default}
+.photos{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+.ph{width:132px;border:1.5px solid var(--line);border-radius:9px;overflow:hidden;background:var(--paper)}
+.ph.on{border-color:var(--green)}
+.ph img{display:block;width:100%;height:92px;object-fit:cover}
+.ph .pb{display:flex;justify-content:space-between;align-items:center;padding:6px 7px;font:500 10px/1 var(--mono);color:var(--slate)}
+.ph label{display:flex;gap:5px;align-items:center;cursor:pointer}
+.ph .hero{background:none;border:1px solid var(--line);border-radius:4px;font:600 9px/1 var(--mono);padding:3px 4px;cursor:pointer;color:var(--slate)}
+.ph .hero.on{background:var(--green-btn);color:#fff;border-color:var(--green-btn)}
+.docs a{display:block;font:400 13px/1.7 var(--grotesk);color:var(--green);text-decoration:none}
+.chk{display:grid;grid-template-columns:170px auto 1fr;gap:8px 12px;align-items:center;border-top:1px solid var(--line2);padding:9px 0}
+.chk .nm{font:600 13px/1.3 var(--grotesk)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:600 11px/1 var(--mono);background:var(--card);border:0;border-right:1px solid var(--line);padding:8px 10px;cursor:pointer;color:var(--slate)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:color-mix(in srgb,var(--green) 12%,var(--card));color:var(--green-deep)}
+.seg button[disabled]{cursor:default}
+input.vin,textarea.vin,select.vin{font:400 14px/1.4 var(--grotesk);border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:8px 10px;color:var(--ink);outline:none;width:100%}
+input.vin:focus,textarea.vin:focus,select.vin:focus{border-color:var(--green)}
+input.vin.mono{font-family:var(--mono);font-size:15px}
+textarea.vin{min-height:64px;resize:vertical}
+.fields{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0}
+.fields label{font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);display:block}
+.fields .f{min-width:150px}
+.fields .f input{margin-top:6px}
+.beside{display:flex;gap:22px;flex-wrap:wrap;background:var(--paper);border:1px dashed var(--line);border-radius:9px;padding:10px 14px;margin:6px 0 10px;font:500 12px/1.4 var(--mono);color:var(--slate)}
+.beside b{color:var(--ink)}
+.reasons label{display:flex;gap:8px;align-items:flex-start;font:400 13.5px/1.45 var(--grotesk);padding:5px 0;cursor:pointer}
+.reasons.need legend{color:var(--clay)}
+.reasons legend{font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+fieldset{border:0;margin:10px 0;padding:0}
+.guard{border:1px solid color-mix(in srgb,var(--clay) 40%,var(--line));border-left:3px solid var(--clay);border-radius:0 9px 9px 0;padding:10px 14px;margin:10px 0;background:color-mix(in srgb,var(--clay) 5%,var(--card))}
+.guard p{font:400 13px/1.5 var(--grotesk);margin:0 0 8px}
+.missing{font:400 13px/1.55 var(--grotesk);color:var(--clay);margin:8px 0 0}
+.missing li{margin:2px 0}
+.fin .refuse{font:400 14px/1.5 var(--grotesk);color:var(--clay);margin:10px 0 0}
+.fin .done{font:400 15px/1.55 var(--serif)}
+.send{margin-top:14px;border-top:1px solid var(--line2);padding-top:14px}
+.send .attach{font:500 12px/1.4 var(--mono);color:var(--slate);margin:6px 0}
+.sentbox{font:400 13.5px/1.55 var(--grotesk);background:color-mix(in srgb,var(--green) 6%,var(--card));border:1px solid color-mix(in srgb,var(--green) 30%,var(--line));border-radius:9px;padding:12px 14px;margin-top:10px}
+.thiscar{margin-top:18px}
+.thiscar .tc{display:flex;gap:12px;font:500 12px/1.4 var(--mono);color:var(--slate);padding:6px 0;border-bottom:1px solid var(--line2)}
+.covfix{position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--line2);font:400 10.5px/1.6 var(--mono);color:var(--faint);padding:8px 0;margin-top:26px}
+@media (max-width:640px){.vals{padding:0 14px 30px}.sec7{grid-template-columns:1fr}.sec7 .no{padding:0 0 4px}.kv{grid-template-columns:1fr}.chk{grid-template-columns:1fr}.vnew{display:none}}
 @media (max-width:640px){
   .rail{display:none}
   .body{padding:18px 16px 8px}.chrome{padding:12px 16px}.chat{padding:12px 16px 16px}
@@ -242,18 +347,24 @@ table.receipts td.r{text-align:right;font-family:var(--mono);white-space:nowrap}
 <div class="screen">
   <aside class="rail">
     <div class="top"><span class="mark">S</span><span class="mark-t">Sam Desk</span></div>
+    <div class="analyst">
     <button class="new" id="newAnalysis"><span class="plus">+</span> New analysis</button>
     <div class="sec">Recent</div>
     <div id="rail-recent"><div class="item mut">Nothing yet</div></div>
+    </div>
+    <div class="valsrail" id="rail-vals" hidden></div>
     <div class="sp"></div>
-    <div class="seat"><b>Sam</b> &middot; seat: analyst</div>
+    <div class="seat" id="seatline"><b>Sam</b> &middot; seat: analyst</div>
   </aside>
   <main class="main">
     <div class="chrome">
       <div class="brand">Sam Desk</div>
       <div class="sp"></div>
+      <form class="vnew" id="vnew" hidden><input id="vnewq" type="text" autocomplete="off" placeholder="VIN or year make model" aria-label="VIN or year make model"><button type="submit">Open</button></form>
+      <div class="mode" role="tablist" aria-label="Desk mode"><button id="modeVals" role="tab" aria-selected="true">Valuations</button><button id="modeAnalyst" role="tab" aria-selected="false">Analyst</button></div>
     </div>
-    <div class="body">
+    <div class="vals" id="vals" hidden></div>
+    <div class="body analyst">
       <div id="turns" style="display:none"></div>
       <div id="readingcard"></div>
       <div id="out"></div>
@@ -263,7 +374,7 @@ table.receipts td.r{text-align:right;font-family:var(--mono);white-space:nowrap}
         <div class="examples" id="examples"></div>
       </div>
     </div>
-    <div class="chat">
+    <div class="chat analyst">
       <div class="box">
         <input id="q" type="text" autocomplete="off" placeholder="Ask the market. e.g. best F-body cars from the 90s" />
         <button class="go" id="go" title="Ask">&#8594;</button>
@@ -274,6 +385,7 @@ table.receipts td.r{text-align:right;font-family:var(--mono);white-space:nowrap}
 <div class="drawer-scrim" id="drawerScrim"></div>
 <aside class="drawer" id="drawer" aria-hidden="true"></aside>
 <div class="modal-scrim" id="methodScrim"></div>
-<script src="/dsk.20261006d/desk.js"></script>
+<script src="/dsk.20261104a/desk.js"></script>
+<script src="/dsk.20261104a/deskvals.js"></script>
 </body>
 </html>
