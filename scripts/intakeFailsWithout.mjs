@@ -13,7 +13,10 @@ const P = "lib/desk/intake/parse.js", R = "lib/desk/intake/run.js", I = "lib/des
 const PARSE = "intakeParseCheck", AUTH = "intakeAuthCheck", SEND = "sendCheck";
 const M = [
   // ---- reading a submission ----
-  [PARSE, "VIN check digit not applied: any 17 characters is a VIN", P, "if (vinCheckDigitOk(v)) {", "if (true) {"],
+  [PARSE, "structure not checked: any 17 characters is a VIN", P, "  if (!vinStructureOk(v)) return { state: \"rejected\", reason: \"structure\" };", ""],
+  [PARSE, "a failing check digit drops the VIN (the reversed rule: European market VINs lost)", P, "return knownWmi(v) ? { state: \"check_digit_not_valid\" } : { state: \"rejected\", reason: \"unknown_wmi_and_check_digit\" };", "return { state: \"rejected\", reason: \"check_digit\" };"],
+  [PARSE, "an unknown maker code with a failing check digit is accepted", P, "return knownWmi(v) ? { state: \"check_digit_not_valid\" } : { state: \"rejected\", reason: \"unknown_wmi_and_check_digit\" };", "return { state: \"check_digit_not_valid\" };"],
+  [PARSE, "a failing check digit is not marked on the row", P, "vinCheckInvalid: !!(vins.valid[0] && vins.checkDigitNotValid.includes(vins.valid[0])),", "vinCheckInvalid: false,"],
   [PARSE, "consignor taken from the newest message, not the earliest", P, "for (let i = messages.length - 1; i >= 1; i--) {", "for (let i = 1; i < messages.length; i++) {"],
   [PARSE, "More VINs flag not kept", P, "moreVins: vins.valid.slice(1),", "moreVins: [],"],
   [PARSE, "chassis (pre 1981) not read", P, "const chassis = vins.valid.length ? null : findChassis(searchable);", "const chassis = null;"],

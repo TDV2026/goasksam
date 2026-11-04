@@ -32,5 +32,5 @@ export async function loadKit(root) {
 export function reporter() {
   let fail = 0, pass = 0;
   const ok = (name, cond, detail) => { if (cond) pass++; else fail++; console.log(`${cond ? "PASS" : "FAIL"}  ${name}${!cond && detail !== undefined ? "  " + (typeof detail === "string" ? detail : JSON.stringify(detail)) : ""}`); };
-  return { ok, done: label => { console.log(`\n${label}: ${pass} pass, ${fail} fail`); process.exit(fail ? 1 : 0); } };
+  return { ok, result: () => ({ pass, fail }) };
 }

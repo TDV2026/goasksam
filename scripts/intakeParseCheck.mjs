@@ -6,20 +6,41 @@ import path from "node:path"; import { fileURLToPath } from "node:url";
 import { loadKit, reporter } from "./deskIntakeKit.mjs";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 process.chdir(root); process.env.SUPABASE_URL = ""; process.env.SUPABASE_SERVICE_ROLE_KEY = "";
-const { ok, done } = reporter();
+const { ok, result } = reporter();
 const K = await loadKit(root);
 const { processInbound } = K.run, { findVins, vinCheckDigitOk, readSubmission } = K.parse;
-const VIN_A = K.makeVin("WP0AB299", "8S745123"), VIN_B = K.makeVin("ZFFXR48A", "S0105678"), VIN_BAD = VIN_A.slice(0, 8) + (VIN_A[8] === "3" ? "4" : "3") + VIN_A.slice(9);
+const VIN_A = K.makeVin("WP0AB299", "8S745123"), VIN_B = K.makeVin("ZFFXR48A", "S0105678");
 const fetches = []; const realFetch = globalThis.fetch; globalThis.fetch = async (u, ...r) => { fetches.push(String(u)); throw new Error("network is closed in this check"); };
 
-// ---- 1. VIN check digit ----
-ok("a VIN with a correct check digit is a VIN", vinCheckDigitOk(VIN_A) && findVins(`vin ${VIN_A}`).valid[0] === VIN_A);
-ok("17 characters with a wrong check digit are NOT a VIN, and are reported", !vinCheckDigitOk(VIN_BAD) && findVins(`vin ${VIN_BAD}`).valid.length === 0 && findVins(`vin ${VIN_BAD}`).failed[0] === VIN_BAD);
+// ---- 1. VIN: structure and maker code decide, the check digit only marks (European market VINs have no North American check digit) ----
+const { classifyVin } = K.parse;
+const VIN_EU = ["WP0ZZZ99ZTS392124", "WDB1240201A123456", "ZFFXR48AXS0105678"];   // Porsche, Mercedes-Benz, Ferrari: structure valid, check digit not valid
+const VIN_NA_BAD = "1M8GDM9AXKP042789";   // a North American VIN with the wrong check digit: known maker code, valid structure
+const VIN_STRUCT = "WP0AB2990US745123";   // the model-year character is 0
+const VIN_NA_LETTERS = "1M8GDM9AXKPABCDE1";   // a North American VIN must end in five digits
+const VIN_UNKNOWN = "XYZAB29918S745123";   // maker code XYZ is not known and the check digit fails
+const VIN_UNKNOWN_OK = K.makeVin("XYZAB299", "8S745123");   // unknown maker code but a correct check digit
+ok("a VIN with a correct check digit is a VIN", vinCheckDigitOk(VIN_A) && findVins(`vin ${VIN_A}`).valid[0] === VIN_A && classifyVin(VIN_A).state === "valid");
+for (const v of VIN_EU) ok(`European VIN ${v}: structure valid, known maker code, check digit not valid = the car, marked`, !vinCheckDigitOk(v) && classifyVin(v).state === "check_digit_not_valid" && findVins(`VIN ${v}`).valid[0] === v && findVins(`VIN ${v}`).checkDigitNotValid[0] === v, classifyVin(v));
+ok("a North American VIN with a wrong check digit is also the car, marked", classifyVin(VIN_NA_BAD).state === "check_digit_not_valid" && findVins(VIN_NA_BAD).valid[0] === VIN_NA_BAD);
+ok("a string that fails structure is NOT a VIN, and is reported as rejected", [VIN_STRUCT, VIN_NA_LETTERS].every(v => classifyVin(v).state === "rejected" && findVins(`vin ${v}`).valid.length === 0 && findVins(`vin ${v}`).failed[0] === v), [classifyVin(VIN_STRUCT), classifyVin(VIN_NA_LETTERS)]);
+ok("an unknown maker code with a failing check digit is NOT a VIN; with a correct check digit it is", classifyVin(VIN_UNKNOWN).state === "rejected" && classifyVin(VIN_UNKNOWN_OK).state === "valid");
 ok("a long word is never read as a VIN", findVins("Congratulationsonyourpurchase").valid.length === 0 && findVins("INTERNATIONALISATION").failed.length === 0);
-{ const { st, deps } = K.fresh();
-  const r = await processInbound(K.mail({ from: "ann@hagerty.example", subject: "Fwd: mystery", text: `Please look. VIN ${VIN_BAD}` }), deps);
+{ const { st, deps, reads } = K.fresh();
+  const r = await processInbound(K.mail({ from: "ann@hagerty.example", subject: "Fwd: 1995 Porsche from Germany", text: `Please look. VIN ${VIN_EU[0]}\nMileage: 31,000 km` }), deps);
   const s = st._state.sheets[0];
-  ok("a mistyped VIN alone makes a Needs the car row that says which VIN failed", r.outcome === "needs_the_car" && s.status === "Needs the car" && s.vin == null && s.vin_failed_check[0] === VIN_BAD, s); }
+  ok("an email with a European VIN: a New sheet (not dropped, not Needs the car) holding that VIN, marked check digit not valid, car decoded, read started", r.outcome === "created" && s.status === "New" && s.vin === VIN_EU[0] && s.vin_check_invalid === true && s.make === "Porsche" && reads.length === 1, s); }
+{ const { st, deps } = K.fresh();
+  await processInbound(K.mail({ from: "ann@hagerty.example", subject: "x", text: `VIN ${VIN_A}` }), deps);
+  ok("a VIN with a correct check digit is not marked", st._state.sheets[0].vin === VIN_A && st._state.sheets[0].vin_check_invalid === false); }
+{ const { st, deps } = K.fresh();
+  const r = await processInbound(K.mail({ from: "ann@hagerty.example", subject: "Fwd: mystery", text: `Please look. VIN ${VIN_STRUCT}` }), deps);
+  const s = st._state.sheets[0];
+  ok("a string that fails structure alone makes a Needs the car row that lists the rejected string", r.outcome === "needs_the_car" && s.status === "Needs the car" && s.vin == null && s.vin_failed_check[0] === VIN_STRUCT, s); }
+{ const { st, deps } = K.fresh();   // a later email with the same marked VIN joins the sheet
+  await processInbound(K.mail({ id: "e1", from: "ann@hagerty.example", subject: "x", text: `VIN ${VIN_EU[2]}` }), deps);
+  const r = await processInbound(K.mail({ id: "e2", from: "bob@hagerty.example", subject: "y", text: `VIN ${VIN_EU[2]} more photos`, attachments: [K.att("a.jpg", "image/jpeg", K.fx("big.jpg"))] }), deps);
+  ok("a later email with the same European VIN adds to the same sheet", r.outcome === "added_to_sheet" && st._state.sheets.length === 1); }
 
 // ---- 2. two VINs ----
 { const { st, deps } = K.fresh();
@@ -110,4 +131,4 @@ const OUTLOOK = `FYI\n\n________________________________\nFrom: Pat Owner <pat@o
   ok("a VIN decodes to the car and the engine read is started for it with that car", reads.length === 1 && reads[0].car.make === "Porsche" && st._state.sheets[0].car_label === "2008 Porsche 911 Carrera S" && st._state.sheets[0].engine_status === "running", [reads, st._state.sheets[0].car_label]); }
 
 globalThis.fetch = realFetch;
-done("intakeParseCheck");
+{ const r = result(); console.log(`\nintakeParseCheck: ${r.pass} pass, ${r.fail} FAIL`); process.exit(r.fail ? 1 : 0); }

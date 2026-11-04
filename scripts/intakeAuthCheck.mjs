@@ -7,7 +7,7 @@ import path from "node:path"; import crypto from "node:crypto"; import { fileURL
 import { loadKit, reporter } from "./deskIntakeKit.mjs";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 process.chdir(root); process.env.SUPABASE_URL = ""; process.env.SUPABASE_SERVICE_ROLE_KEY = "";
-const { ok, done } = reporter();
+const { ok, result } = reporter();
 const K = await loadKit(root);
 const { processInbound } = K.run;
 const VIN = K.makeVin("WP0AB299", "8S745123");
@@ -75,4 +75,4 @@ for (const [name, from, authentication] of [["a seat", "ann@hagerty.example"], [
   urls.length = 0; await st.put("hagerty/sheet1/photos/a b.jpg", Buffer.from("x"), "image/jpeg");
   ok("production store: files go to the private bucket under the org's folder", urls.length === 1 && urls[0].url === "https://db.example/storage/v1/object/desk-intake/hagerty/sheet1/photos/a%20b.jpg", urls);
   globalThis.fetch = realFetch; }
-done("intakeAuthCheck");
+{ const r = result(); console.log(`\nintakeAuthCheck: ${r.pass} pass, ${r.fail} FAIL`); process.exit(r.fail ? 1 : 0); }

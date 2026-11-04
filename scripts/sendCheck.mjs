@@ -7,10 +7,10 @@ import path from "node:path"; import fs from "node:fs"; import { fileURLToPath }
 import { loadKit, reporter } from "./deskIntakeKit.mjs";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 process.chdir(root); process.env.SUPABASE_URL = ""; process.env.SUPABASE_SERVICE_ROLE_KEY = "";
-const { ok, done } = reporter();
+const { ok, result } = reporter();
 const K = await loadKit(root);
 const S = K.send;
-if (!S) { ok("lib/desk/send.js exists", false, "missing"); done("sendCheck"); }
+if (!S) { ok("lib/desk/send.js exists", false, "missing"); { const r = result(); console.log(`\nsendCheck: ${r.pass} pass, ${r.fail} FAIL`); process.exit(r.fail ? 1 : 0); } }
 const PDF = Buffer.from("%PDF-1.4\n% fixture report\n%%EOF");
 const recorder = (behaviour = () => ({ ok: true, id: "re_1" })) => { const calls = []; const fn = async args => { calls.push(args); return behaviour(calls.length, args); }; fn.calls = calls; return fn; };
 
@@ -106,4 +106,4 @@ for (const [name, mk, over, reason] of [
   ok("resend adapter: the org's own key, an idempotency key, from the org, the PDF as base64", out.ok && out.id === "re_real" && seen[0].url === "https://api.resend.com/emails" && seen[0].init.headers.Authorization === "Bearer re_test_key" && seen[0].init.headers["Idempotency-Key"] === "desk-send-1" && body.from.includes("marketplace@hagerty.example") && body.attachments[0].content === PDF.toString("base64"));
   const none = await S.providers.resend({ org: w.org, from: "x", to: "y", subject: "s", text: "t", html: "t", idempotencyKey: "k", env: { RESEND_API_KEY: "re_goasksam_key", DESK_SEND_KEY_OTHER: "re_other_org_key" }, fetchFn });
   ok("resend adapter: no key for the org means no send (never falls back to another org's key or ours)", !none.ok && none.reason === "no_provider_key" && seen.length === 1); }
-done("sendCheck");
+{ const r = result(); console.log(`\nsendCheck: ${r.pass} pass, ${r.fail} FAIL`); process.exit(r.fail ? 1 : 0); }

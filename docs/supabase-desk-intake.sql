@@ -30,7 +30,8 @@ create table if not exists desk_sheets (
   chassis          text,
   no_vin           boolean not null default false,         -- "No VIN found" box (pre 1981 chassis, or no VIN in the email)
   more_vins        text[] not null default '{}',           -- "More VINs" flag: the other VINs in the same email
-  vin_failed_check text[] not null default '{}',           -- 17 characters that did not pass the check digit
+  vin_check_invalid boolean not null default false,        -- the VIN has valid structure and a known maker code but its check digit fails (European market VINs): the expert reads it
+  vin_failed_check text[] not null default '{}',           -- 17-character strings rejected as not a VIN (bad structure, or unknown maker code and a failing check digit)
   year             int,
   make             text,
   model            text,
