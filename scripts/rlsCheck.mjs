@@ -31,6 +31,9 @@ export function staticFindings(files, extraSources = {}) {
   const revokes = [...joined.matchAll(/revoke\s+all\s+on\s+(?:table\s+)?([^;]*?)\s+from\s+anon\s*,\s*authenticated\s*;/gi)].flatMap(m => m[1].split(",").map(s => s.trim().toLowerCase()));
   const tables = new Set();
   for (const [f, t] of Object.entries(all)) for (const m of t.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(desk_\w+)/gi)) tables.add(m[1].toLowerCase());
+  // ONE TABLE, ONE DDL (Lane C, Nov 4 2026): a desk_ table is created in exactly one docs/supabase-*.sql, so two lanes can never ship two shapes of the same table.
+  { const where = new Map(); for (const [f, t] of Object.entries(all)) for (const m of t.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(desk_\w+)/gi)) { const k = m[1].toLowerCase(); where.set(k, [...new Set([...(where.get(k) || []), f])]); }
+    for (const [t, fs] of where) if (fs.length > 1) fails.push(`static: ${t} is created in ${fs.length} DDL files (${fs.join(", ")}); one table has exactly one DDL`); }
   for (const t of tables) {
     if (!new RegExp(`alter\\s+table\\s+${t}\\s+enable\\s+row\\s+level\\s+security`, "i").test(joined)) fails.push(`static: ${t} has no "enable row level security"`);
     if (!revokes.includes(t)) fails.push(`static: ${t} has no "revoke all ... from anon, authenticated"`);
@@ -167,6 +170,9 @@ export async function main() {
   // The JS half of the class: a desk_ table used in code with no DDL for it (so no lock) must fail the static sweep.
   const ghost = staticFindings(real, { "lib/desk/_ghost.js": "await supabaseSelect(env, `desk_ghost_table?select=id`);" });
   if (ghost.some(x => /desk_ghost_table/.test(x))) ok(); else bad("mutant \"a desk_ table used in code with no DDL\" was NOT caught");
+  // ONE TABLE, ONE DDL: a second file creating desk_sheets (here appended to the org DDL) must fail the static sweep.
+  const twice = staticFindings({ ...real, "supabase-desk-org.sql": real["supabase-desk-org.sql"] + "\ncreate table if not exists desk_sheets (id text primary key);\n" });
+  if (twice.some(x => /desk_sheets is created in 2 DDL files/.test(x))) ok(); else bad("mutant \"a second DDL file creates desk_sheets\" was NOT caught");
   console.log(`rlsCheck: ${pass} passed, ${fail} failed (${MUTANTS.length} DDL mutants + 1 undeclared-table mutant, each must be caught)`);
   return fail ? 1 : 0;
 }
