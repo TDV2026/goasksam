@@ -48,6 +48,7 @@ import { mapEngineAnswer, ENGINE_VERSION, partnerPositionsOf, partnerPlacesOf, P
 import { AMAZON_DEMO_CARS } from "./_amazonDemoCars.js";
 import { thinLineOf } from "../lib/pooledWords.js";
 import { runAsCaller, callerFor } from "../lib/_caller.js";
+import { vinTypedText } from "../lib/vinAsTyped.js";
 export const DEMO_CARS = ["2014 Porsche 911 GT3", "2015 Porsche 911 GT3", "2005 Porsche 911", "1965 Ford Mustang", "1957 Porsche 356 Speedster", "1966 Ferrari 275 GTB", "2023 Porsche 911 GT3"];
 const demoKey = q => { const n = String(q || "").toLowerCase().replace(/\s+/g, " ").trim(); return (DEMO_CARS.some(c => c.toLowerCase() === n) || AMAZON_DEMO_CARS.some(c => c.toLowerCase() === n)) ? "partner_last:" + n.replace(/[^a-z0-9]+/g, "_") : null; };
 const LAST_MAX_MS = 24 * 3600e3, LAST_WRITE_EVERY_MS = 30 * 60e3;
@@ -769,7 +770,7 @@ async function handlerCore(req, res) {
     if (!(h && h.appearances && h.appearances.length) && vinDecode && vinDecode.readable && Number(vinDecode.year) >= 1981 && /[0-9X]/.test(vinIn[8]) && !vinCheckDigitOk(vinIn)) return res.status(200).json({ ok: true, query: vinIn, engineVersion: null, answerType: "vin_unreadable", line: VIN_UNREADABLE_LINE, identity: null, range: null, count: null, window: null, sales: [], history: null });
     if (!id && vinDecode && vinDecode.readable && vinDecode.make && vinDecode.model) id = { year: vinDecode.year, make: vinDecode.make, model: vinDecode.model, family: vinDecode.model, trim: vinDecode.trim || null, fromDecode: true };
     if (vinDecode && vinDecode.readable === false && !id) return res.status(200).json({ ok: true, query: vinIn, engineVersion: null, answerType: "vin_unreadable", line: VIN_UNREADABLE_LINE, identity: null, range: null, count: null, window: null, sales: [], history });
-    if (!text || VIN_RE.test(normVin(text))) text = id ? [id.year, id.make, id.family || id.model].filter(Boolean).join(" ") : "";
+    if (!text || VIN_RE.test(normVin(text))) text = id ? vinTypedText({ year: id.year, make: id.make, model: id.family || id.model, trim: id.trim, nameModel: id.family || id.model }) : "";   // the car's trim is part of the words, as typed (lib/vinAsTyped.js)
     if (!text) {
       const out = { ok: true, query: vinIn, engineVersion: null, answerType: "identity_question", identity: null,
         question: { dimension: "car", text: "There are no recorded sales or listings for this VIN yet. Type the year, make and model to see what cars like it sold for.", options: [] },

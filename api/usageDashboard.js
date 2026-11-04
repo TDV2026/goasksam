@@ -2064,7 +2064,7 @@ async function handleOps(req, res) {
   if (task === "vintypedlive") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { resolveVehicle } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js"); const { oneEngineAnswer, withReadFields } = await import("../lib/onebox.js");
-    const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js"); const { vinSearchPlan, applyVinOverlay, typedWordsFor } = await import("../lib/vinAsTyped.js");
+    const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js"); const { vinSearchPlan, applyVinOverlay, vinTypedText } = await import("../lib/vinAsTyped.js"); const { decodeVinFacts } = await import("../lib/vehicle.js");   // the decode's trim is part of the VIN car's words, on both sides (a VIN with a decoded trim was compared to the BARE typed model and so could never see the Demon class)
     const limit = Math.max(1, Math.min(8, Number(req.query?.limit) || 5));
     const matchQ = String(req.query?.match || "").trim(), repeat = Math.max(1, Math.min(5, Number(req.query?.repeat) || 1));   // ?match= a title fragment (one named car), ?repeat= runs of each path (at most 5): the determinism proof
     const rows = await supabaseSelect(env, "live_listings?status=eq.live&vin_norm=not.is.null&year=not.is.null&make=not.is.null&model=not.is.null&select=vin_norm,year,make,model,listing_title&order=id.asc&limit=400" + (matchQ ? "&listing_title=ilike.*" + encodeURIComponent(matchQ) + "*" : ""));
@@ -2075,7 +2075,7 @@ async function handleOps(req, res) {
     for (const r of picks) {
       const car = { title: String(r.listing_title || "").slice(0, 70), year: r.year, make: r.make, model: r.model };
       try {
-        const vv = { year: r.year, make: r.make, model: r.model, nameModel: r.model, vin: r.vin_norm, raw: r.vin_norm }, words = typedWordsFor(vv), tr = await resolveVehicle(words, {}), tv = tr && tr.vehicle;
+        const dec = await decodeVinFacts(r.vin_norm).catch(() => null), vv = { year: r.year, make: r.make, model: r.model, nameModel: r.model, vin: r.vin_norm, raw: r.vin_norm, ...(dec && dec.readable && dec.trim ? { trim: dec.trim } : {}) }, words = vinTypedText(vv), tr = await resolveVehicle(words, {}), tv = tr && tr.vehicle;
         if (!tv || !tv.model) { out.cars.push({ ...car, typed: "unresolved: " + (tr && tr.status) }); continue; }
         const plan = await vinSearchPlan(vv, { resolveVehicle }); if (!plan || plan.unresolved) { out.cars.push({ ...car, vin: "unresolved", line: plan && plan.line }); continue; }
         const A = await answer(tv, words), Bv = await answer(plan.vehicle, plan.text), vin = applyVinOverlay(Bv.d, plan.ctx);
@@ -2093,6 +2093,35 @@ async function handleOps(req, res) {
       } catch (e) { out.cars.push({ ...car, error: String(e && e.message || e).slice(0, 100) }); }
     }
     out.identical = out.cars.filter(c => c.identical).length; out.compared = out.cars.filter(c => c.typed && c.byVin).length;
+    return res.status(200).json(out);
+  }
+  // task=vintrimsweep (Lane B, Nov 3 2026, lane-b-vintrim; READ-ONLY, zero OldCarsData, WRITES NOTHING): every live-listing VIN whose decode carries a trim or sub model, read two ways: the BARE model (what a VIN page printed before the fix) against the typed words with the trim
+  // (what the page prints now). ?limit= distinct cars (default 8, at most 12; each is a free vPIC decode and up to two reads), ?offset= to page through the live VINs. The response counts the cars that differ by make and lists them by range gap, widest first.
+  if (task === "vintrimsweep") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { resolveVehicle, decodeVinFacts } = await import("../lib/vehicle.js"); const { findGeneration } = await import("../lib/generations.js"); const { oneEngineAnswer, withReadFields } = await import("../lib/onebox.js");
+    const { warmAnswerKeyFor, readWarmAnswerDetailed } = await import("../lib/live/search.js"); const { vinTypedText, typedWordsFor } = await import("../lib/vinAsTyped.js");
+    const limit = Math.max(1, Math.min(12, Number(req.query?.limit) || 8)), offset = Math.max(0, Math.min(4000, Number(req.query?.offset) || 0));
+    const rows = await supabaseSelect(env, `live_listings?status=eq.live&vin_norm=not.is.null&year=not.is.null&make=not.is.null&model=not.is.null&select=vin_norm,year,make,model,listing_title&order=id.asc&limit=400&offset=${offset}`);
+    const seen = new Set(), picks = []; for (const r of (Array.isArray(rows) ? rows : [])) { if (String(r.vin_norm || "").length !== 17) continue; if (seen.has(r.vin_norm)) continue; seen.add(r.vin_norm); picks.push(r); }
+    const answer = async (vehicle, text) => { const generation = await findGeneration(vehicle, env).catch(() => null), st = await readWarmAnswerDetailed(env, warmAnswerKeyFor(vehicle, generation)).catch(() => null); let raw = st && st.raw; if (!raw) raw = (await oneEngineAnswer(vehicle, generation, text, { ...env, asked: 0 }, null)).raw; return withReadFields(raw, text, vehicle); };
+    const shape = d => ({ tier: d.tier, low: Array.isArray(d.cluster) ? d.cluster[0] : null, high: Array.isArray(d.cluster) ? d.cluster[1] : null, n: d.poolN ?? null });
+    const out = { task: "vintrimsweep", ocdSpend: 0, writes: 0, offset, looked: 0, withTrim: 0, differ: 0, byMake: {}, worst: [], errors: 0 }; const found = [];
+    for (const r of picks) {
+      if (found.length >= limit) break;
+      out.looked++;
+      try {
+        const dec = await decodeVinFacts(r.vin_norm).catch(() => null); if (!dec || !dec.readable || !dec.trim) continue;
+        const vv = { year: r.year, make: r.make, model: r.model, nameModel: r.model, trim: dec.trim }, bareW = typedWordsFor(vv), trimW = vinTypedText(vv); if (bareW === trimW) continue;
+        out.withTrim++;
+        const [br, tr] = await Promise.all([resolveVehicle(bareW, {}), resolveVehicle(trimW, {})]); if (!br?.vehicle?.model || !tr?.vehicle?.model) continue;
+        const B = shape(await answer(br.vehicle, bareW)), T = shape(await answer(tr.vehicle, trimW));
+        const gap = B.low != null && T.low != null ? Math.abs(B.low - T.low) + Math.abs((B.high ?? 0) - (T.high ?? 0)) : (B.low == null) !== (T.low == null) ? 1e9 : 0, differs = B.low !== T.low || B.high !== T.high || B.n !== T.n || B.tier !== T.tier;
+        found.push({ vin: r.vin_norm, bare: bareW, typed: trimW, bareRead: B, typedRead: T, gap, differs });
+      } catch (e) { out.errors++; }
+    }
+    for (const f of found) if (f.differs) { out.differ++; out.byMake[String(f.bare.split(" ")[1] || "?")] = (out.byMake[String(f.bare.split(" ")[1] || "?")] || 0) + 1; }
+    out.worst = found.filter(f => f.differs).sort((a, b) => b.gap - a.gap).slice(0, 10);
     return res.status(200).json(out);
   }
   // task=warmwhy (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, WRITES NOTHING): why a warm text stores nothing. ?list=a|b|c (up to 8 texts a call). Each text is run the way warmDemo runs it (resolve, generation, the whole engine at asked 0) and the response says what the warm
