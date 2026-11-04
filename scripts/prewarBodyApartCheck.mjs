@@ -67,7 +67,7 @@ globalThis.SHAPE = null; globalThis.CAR = null; globalThis.HOUSE = null;
 
 // THE NARROWING PATH (the live page): a body question on a pre-war car resolved by keeping the one body with three or more sales (questionRule, "Only the Sedan has three or more sales of this car"), so the page narrowed to the Sedan and retitled
 // the car. The apart rule wins before 1949: the whole car answers, every body with a sale is an option, the title and the scope line are what was typed.
-for (const [name, shape] of [["Packard 9/2/1", [["Sedan", 90000, 9], ["Convertible", 110000, 2], ["Coupe", 100000, 1]]], ["Packard 5/2/1 priced apart", [["Sedan", 60000, 5], ["Convertible", 120000, 2], ["Coupe", 90000, 1]]]]) {
+for (const [name, shape] of [["Packard 9/2/1, convertibles at twice the sedans (the price fence is read within a body)", [["Sedan", 60000, 9], ["Convertible", 120000, 2], ["Coupe", 90000, 1]]], ["Packard 9/2/1", [["Sedan", 90000, 9], ["Convertible", 110000, 2], ["Coupe", 100000, 1]]], ["Packard 5/2/1 priced apart", [["Sedan", 60000, 5], ["Convertible", 120000, 2], ["Coupe", 90000, 1]]]]) {
   globalThis.SHAPE = shape; globalThis.CAR = { make: "Packard", model: "Twelve" }; build(1934);
   const veh = { year: 1934, make: "Packard", model: "Twelve", raw: "1934 Packard Twelve" }, q = veh.raw, bd = { tier: "body_choice", askIndex: 1, bodyOptions: shape.map(x => x[0]), optionCounts: shape.map(x => x[2]), prompt: "Which body style is it?", resolvedCar: veh };
   const r = await E.questionRule(bd, veh, null, q, { ...env, asked: 1, qelig: "compute" }, null), d = E.withReadFields(E.pooledApartGuard(r, null), q, veh), o = d.options || [];

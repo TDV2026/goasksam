@@ -2060,6 +2060,12 @@ try {
   record("engine: every refine shape keys the same stored row as on main (scripts/refineKeyParityCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/groupFenceCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("engine: the price fence is read within the group a sale belongs to (body, gearbox, year, mileage band), never across a pool that prices apart (scripts/groupFenceCheck.mjs)", "PASS", (out.match(/groupFenceCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: the price fence is read within the group a sale belongs to (body, gearbox, year, mileage band), never across a pool that prices apart (scripts/groupFenceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/salesListOrderCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: every dated sales list in an answer is newest first on every tier, thin and apart included (scripts/salesListOrderCheck.mjs)", "PASS", (out.match(/salesListOrderCheck: .*/) || [""])[0]);
 } catch (e) {
