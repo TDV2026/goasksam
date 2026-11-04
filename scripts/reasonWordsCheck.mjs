@@ -91,5 +91,29 @@ ok(`the engine lines carried by ${seen} fields on the fixtures are all in the ta
 // the cold and stale lines
 const S = await import(pathToFileURL(path.join(root, "lib/live/search.js")).href);
 ok("the cold line is in the table", pats.some(p => p.id === "cold.reading" && p.re.test(S.stillReadingMarket().line)));
+
+// 4. THE ONE-PLACE LINE IS GONE AS A CLASS (Nov 4 2026, Sam's live find: 1938 Delahaye 135 and 1967 Alfa Romeo GTA printed "These sales come mostly from one place, so no range is shown."). The venue fence was removed from the
+// range path on Nov 2 (houseRulesTag), so no answer, stored row or card may carry the fence's reason or either of its sentences. Written as literals so a tree that still has the fence fails.
+const FENCE_TEXT = [/mostly from one place/i, /too one-sided/i], FENCE_REASON = "house_share";
+{ const rwSrc = fs.readFileSync(path.join(root, "lib/reasonWords.js"), "utf8");
+  ok("4a. the reason table has no house_share entry and the thin reasons have none", !("thin.house_share" in RW.REASON_TABLE) && !(RW.THIN_REASON_ID && FENCE_REASON in RW.THIN_REASON_ID) && !E.THIN_LINES[FENCE_REASON]);
+  const walk = d => fs.readdirSync(path.join(root, d), { withFileTypes: true }).flatMap(x => x.isDirectory() ? (x.name === "node_modules" ? [] : walk(path.join(d, x.name))) : [path.join(d, x.name)]);
+  const files = ["lib", "api", "js", "public"].filter(d => fs.existsSync(path.join(root, d))).flatMap(walk).filter(f => /\.(js|mjs|html)$/.test(f) && f !== path.join("lib", "reasonWords.js"));
+  const holders = files.filter(f => { const t = fs.readFileSync(path.join(root, f), "utf8").split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n"); return FENCE_TEXT.some(re => re.test(t)) || /thinReason\s*[:=]\s*"house_share"|return "house_share"/.test(t); });
+  ok("4b. no producer in lib, api or the pages holds the fence's sentences or sets its reason", holders.length === 0, holders.join(", "));
+  void rwSrc; }
+const houseSale = (year, date, price, title) => { sale(year, date, price, null, title); const r = rows[rows.length - 1]; r.platform = "Gooding & Co"; r.source_slug = "gooding"; r.raw_record.featured_image_url = null; };
+const carries = a => { const raw = a.raw || a; const found = []; const walk = (v, k) => { if (typeof v === "string") { if (FENCE_TEXT.some(re => re.test(v)) || (/reason/i.test(k) && v === FENCE_REASON)) found.push(k + ": " + v.slice(0, 60)); } else if (Array.isArray(v)) v.forEach(x => walk(x, k)); else if (v && typeof v === "object") for (const [kk, vv] of Object.entries(v)) walk(vv, kk); }; walk(raw, "root"); return found; };
+for (const [name, nHouse, nOnline] of [["six sales, five from the rooms (the 1938 Delahaye 135 shape)", 5, 1], ["twelve sales, all from the rooms (the 1967 GTA shape)", 12, 0], ["nine from the rooms, two online", 9, 2]]) {
+  rows = []; for (let i = 0; i < nHouse; i++) houseSale(1972, day(10 + i * 30), 30000 + i * 1500); for (let i = 0; i < nOnline; i++) sale(1972, day(15 + i * 30), 31000 + i * 1500);
+  const a = await E.oneEngineAnswer(base, null, "1972 Datsun 240Z", env, null).catch(e => ({ raw: { err: e.message } }));
+  ok(`4c. ${name}: no field carries the one-place line or the house_share reason`, carries(a).length === 0, carries(a).join(" | ") + " tier=" + (a.raw && a.raw.tier)); }
+{ const rows6 = [0, 1, 2, 3, 4, 5].map(i => ({ id: "r" + i, year: 1972 }));
+  const thin6 = { tier: "thin", thinReason: FENCE_REASON, thinLine: "These sales come mostly from one place, so no range is shown.", rawPool: rows6, answerLine: "The sales of this car are too one-sided to mark a range from. These are the sales we found." };
+  const f6 = E.freshenStoredText(thin6);
+  ok("4d. a stored answer of six sales under the fence reads as the few-sales line, never the one-place line", f6.thinReason === "few_sales" && f6.thinLine === E.THIN_LINES.few_sales && carries(f6).length === 0, JSON.stringify([f6.thinReason, f6.thinLine]));
+  const f12 = E.freshenStoredText({ ...thin6, rawPool: Array.from({ length: 12 }, (_, i) => ({ id: "q" + i, year: 1972 })) });
+  ok("4e. a stored answer of twelve sales under the fence prints no reason line at all (it is computed again where a reader can)", carries(f12).length === 0 && !f12.thinReason && !f12.thinLine, JSON.stringify([f12.thinReason, f12.thinLine]));
+  ok("4f. a stored Find card (core row) under the fence is not served: the core reader takes it as no row", !!RW.carriesFence && RW.carriesFence({ kind: "thin", thinReason: FENCE_REASON }) && RW.carriesFence({ kind: "thin", thinLine: thin6.thinLine }) && !RW.carriesFence({ kind: "thin", thinReason: "few_sales", thinLine: "Too few sales to show a range." }) && /carriesFence\(r\.market\)\) continue/.test(fs.readFileSync(path.join(root, "lib/live/search.js"), "utf8"))); }
 console.log(`reasonWordsCheck: ${total - failed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
