@@ -14,7 +14,7 @@ where spec_key like 'MCWARM:%'
             then jsonb_array_length(market->'raw'->'bodyOptions')
             else 0 end) >= 2
   and coalesce(market->'raw'->>'optionsState', '') <> 'apart'
-  and coalesce(market->'raw'->>'prewarBodyTag', '') <> 'pwb1-20261104';
+  and coalesce(market->'raw'->>'prewarBodyTag', '') <> 'pwb2-20261105';
 
 -- 2. The same rows by make, model and year, so the list can be read.
 select market->'raw'->'resolvedCar'->>'make' as make, market->'raw'->'resolvedCar'->>'model' as model, market->'raw'->'resolvedCar'->>'year' as year, spec_key
@@ -26,5 +26,5 @@ where spec_key like 'MCWARM:%'
             then jsonb_array_length(market->'raw'->'bodyOptions')
             else 0 end) >= 2
   and coalesce(market->'raw'->>'optionsState', '') <> 'apart'
-  and coalesce(market->'raw'->>'prewarBodyTag', '') <> 'pwb1-20261104'
+  and coalesce(market->'raw'->>'prewarBodyTag', '') <> 'pwb2-20261105'
 order by 1, 2, 3;

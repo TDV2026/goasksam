@@ -33,7 +33,7 @@ globalThis.fetch = async (url) => {
   throw new Error("offline");
 };
 const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k", qelig: "compute" };
-const build = year => { rows = []; for (const [body, base] of [["Roadster", 50000], ["Phaeton", 50150], ["Sedan", 49900]]) for (let i = 0; i < 9; i++) sale(year, body, base + (i % 5) * 700, 20 + i * 14 + (body === "Sedan" ? 3 : body === "Phaeton" ? 6 : 0)); };
+const build = year => { rows = []; for (const [body, base, cnt] of (globalThis.SHAPE || [["Roadster", 50000, 9], ["Phaeton", 50150, 9], ["Sedan", 49900, 9]])) for (let i = 0; i < cnt; i++) sale(year, body, base + (i % 5) * 700, 20 + i * 14 + (body === "Sedan" ? 3 : body === "Phaeton" ? 6 : 0)); };
 const read = async year => { build(year); const veh = { year, make: "Testmake", model: "Roadrunner" }, q = `${year} Testmake Roadrunner`; const gen = await findGeneration(veh, env).catch(() => null); return E.withReadFields((await E.oneEngineAnswer({ ...veh, raw: q }, gen, q, { ...env, asked: 0 }, null)).raw, q, veh); };   // as served: the pre-war keys are the engine's, a reader sees the plain word
 { const d = await read(1935), o = d.options || [];
   ok("1935: the answer is apart, by body", d.optionsState === "apart" && d.headlineDimension === "body", JSON.stringify({ state: d.optionsState, dim: d.headlineDimension, tier: d.tier }));
@@ -45,4 +45,12 @@ const read = async year => { build(year); const veh = { year, make: "Testmake", 
   ok("1965, the same sales: not apart (post-war cars are unchanged)", d.optionsState !== "apart", String(d.optionsState)); }
 { const a = await read(1948), b = await read(1949);
   ok("1948 is pre-war (apart) and 1949 is not", a.optionsState === "apart" && b.optionsState !== "apart", `1948 ${a.optionsState}, 1949 ${b.optionsState}`); }
+// THIN PRE-WAR VOLUMES (lane-b-names3, Nov 5 2026): live, a 1934 Packard Twelve with eight sales over three bodies read as one pooled $83,000 to $121,000, because no body held the eight sales a range needs and the apart answer was turned back to alike.
+// Pre-war bodies that hold sales stay apart whatever the counts; each body shows its count, no pooled range, the sales still listed.
+for (const shape of [[["Roadster", 50000, 3], ["Phaeton", 50150, 3], ["Sedan", 49900, 2]], [["Roadster", 83000, 4], ["Sedan", 121000, 4]], [["Roadster", 83000, 2], ["Sedan", 100000, 3], ["Phaeton", 90000, 3]]]) {
+  globalThis.SHAPE = shape; const d = await read(1934), tag = shape.map(x => x[0][0] + x[2]).join("/");
+  ok(`thin ${tag}: apart by body, not one pooled range`, d.optionsState === "apart" && d.headlineDimension === "body" && !d.cluster && !(d.referenceFigure > 0), JSON.stringify({ state: d.optionsState, cluster: d.cluster }));
+  ok(`thin ${tag}: each body with 3 or more sales is an option with its count, the sales are still listed, no pw_ key`, (d.options || []).length >= 2 && (d.options || []).every(o => o.n >= 3) && (d.cards || d.rawPool || []).length >= 8 - 2 && !/pw_/i.test(JSON.stringify([d.options.map(o => o.label), d.optionLines, d.chipLines])), JSON.stringify((d.options || []).map(o => o.label + o.n)));
+}
+globalThis.SHAPE = null;
 console.log(failed ? `\n${failed} FAILED` : "\nprewarBodyApartCheck: all pass"); process.exit(failed ? 1 : 0);

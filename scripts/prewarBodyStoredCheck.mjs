@@ -21,6 +21,7 @@ const rows = {
   oldMarked: rowOf(raw(1930), { staleSince: now }),
   oldScalarBodies: rowOf(raw(1930, { bodyOptions: "none" })),
   tagged: rowOf(raw(1930, { prewarBodyTag: TAG })),
+  oldTag: rowOf(raw(1934, { prewarBodyTag: "pwb1-20261104" })),   // recomputed under the first tag, which still pooled thin pre-war bodies (lane-b-names3)
   postwar: rowOf(raw(1965)),
   oneBody: rowOf(raw(1930, { bodyOptions: [bodies[0]] })),
   apart: rowOf(raw(1930, { optionsState: "apart" })),
@@ -29,7 +30,7 @@ const rows = {
 const f0 = globalThis.fetch;
 globalThis.fetch = async url => { const u = String(url); const m = /spec_key=eq\.([^&]+)/.exec(u); if (/spec_market_cache/.test(u) && m) return new Response(JSON.stringify([rows[decodeURIComponent(m[1])]]), { status: 200 }); return new Response("[]", { status: 200 }); };
 const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
-const served = { old: false, oldMarked: false, oldScalarBodies: true, tagged: true, postwar: true, oneBody: true, apart: true, noYear: true };
+const served = { old: false, oldMarked: false, oldScalarBodies: true, tagged: true, oldTag: false, postwar: true, oneBody: true, apart: true, noYear: true };
 for (const k of Object.keys(rows)) {
   const a = await S.readWarmAnswerDetailed(env, k), b = await S.readWarmAnswer(env, k);
   ok(`${k}: readWarmAnswerDetailed ${served[k] ? "serves" : "reads no row"}`, !!(a && a.raw) === served[k], JSON.stringify(a && a.reason));
