@@ -804,12 +804,12 @@ async function handlerCore(req, res) {
   let r;
   const vinFacts = vinIn ? { vin: vinIn, year: (id && id.year) || (vinDecode && vinDecode.year) || null, decodeTrim: (vinDecode && vinDecode.trim) || (id && id.fromDecode ? id.trim : null) || null, decodeBody: (vinDecode && vinDecode.bodyStyle) || null,
     archiveTrim: id && !id.fromDecode ? id.trim || null : null, archiveTitle: id && !id.fromDecode ? [id.year, id.make, id.model, id.trim, id.bodyStyle].filter(Boolean).join(" ") : null } : null;
-  // THE LISTING'S MILEAGE RIDES WITH THE VIN (Lane B, Nov 3 2026, lane-b-vinpool: VIN WP0CA29951S650259, a 2001 996 Carrera cabriolet listed at 153,098 miles, was answered from the whole pool, $20,500 to $30,000, while the 101,000 mile car in the pool sold for $18,750): the mileage the partner sends
+  // THE LISTING'S MILEAGE RIDES WITH THE CAR, VIN OR TYPED (Lane B, Nov 3 2026, lane-b-vinpool; Sam: one behaviour however the car was entered: VIN WP0CA29951S650259, a 2001 996 Carrera cabriolet listed at 153,098 miles, was answered from the whole pool, $20,500 to $30,000, while the 101,000 mile car in the pool sold for $18,750): the mileage the partner sends
   // is the typed mileage of the seller flow, the engine's own mileage band (refine.miTarget, banded by bandedRefine as Market Check does), never a page rule. The refine is the engine's; the echo (out.refined) stays the visitor's own choice.
-  const engineRefine = vinIn && ask && ask.mileage && !(refine && (refine.miTarget != null || refine.miMin != null)) ? { ...(refine || {}), miTarget: ask.mileage } : refine;
+  const engineRefine = ask && ask.mileage && !(refine && (refine.miTarget != null || refine.miMin != null)) ? { ...(refine || {}), miTarget: ask.mileage } : refine;
   try { r = await marketCheckAnswer(req, text, engineRefine, asked, true, vinFacts); } catch (e) {
     console.error("partnerAnswer:", (e && e.message) || e);
-    const lk0 = !refine ? demoKey(text) : null, last = lk0 && env ? await readLast(env, lk0) : null;
+    const lk0 = !engineRefine ? demoKey(text) : null, last = lk0 && env ? await readLast(env, lk0) : null;
     if (lastGoodUsable(last)) return res.status(200).json(plainOf(vinIn ? { ...last.out, history, vin: vinIn, lastGood: true } : { ...last.out, lastGood: true }));
     // No answer and no usable stored one: the plain still-reading state, with no wait of its own (the page offers Try again).
     return res.status(200).json({ ok: false, query: text, error: "unavailable", history, stillReading: true, line: null, retryAfterMs: null });
@@ -818,7 +818,7 @@ async function handlerCore(req, res) {
   if (refine && out && typeof out === "object") out.refined = refine;   // REVISION 4: the round trip echoes the chosen option (the cleaned refine), so the page carries it in the name and the address and sends it back
   // The last good answer is stored from a plain read of the car and serves the VIN views too (Oct 18 2026: the listing
   // views send the VIN, had no fallback, and showed the limit line); a VIN view keeps its own VIN history.
-  const lk = !refine ? demoKey(text) : null;
+  const lk = !engineRefine ? demoKey(text) : null;   // a mileage-banded answer is never the demo car's stored last good
   if (lk && env) {
     if (!vinIn && (fullResult(out) || (questionResult(out) && !(Number(asked) > 0)))) writeLast(env, lk, storedWithPlaced(out, r.d)).catch(() => {});   // (c): a question answer too
     else if (!out.ok) { const last = await readLast(env, lk); if (lastGoodUsable(last)) out = vinIn ? { ...last.out, history, lastGood: true } : { ...last.out, lastGood: true }; }

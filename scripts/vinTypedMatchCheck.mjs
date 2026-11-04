@@ -81,8 +81,12 @@ for (const [vin, year, make, model, trim, body] of CARS) {
   ok(`${label}: with the mileage the engine's line names it (mileageLine)`, typeof vinMi.mileageLine === "string" && vinMi.mileageLine.includes("153,098"), String(vinMi.mileageLine));
   ok(`${label}: without the mileage the engine's one line says the range is for all mileages`, vinAll.mileageLine === "The range is for all mileages." && !vinAll.rangeMileage, String(vinAll.mileageLine));
   ok(`${label}: without the mileage the VIN answer equals the typed answer (the whole pool)`, diffKeys(facts(typedAll, year), facts(vinAll, year)).length === 0);
+  // TYPED CAR WITH A MILEAGE (Sam, Nov 3 2026): the same behaviour however the car was entered. The partner page's typed car and mileage is the typed answer with that mileage, which is what Market Check gives; without the mileage the same one line.
+  { const tMi = await run(tv, words, { miTarget: MI }), tAll = await run(tv, words, null);
+    ok(`typed ${words} with ${MI.toLocaleString("en-US")} miles equals the VIN answer with the mileage (range, count, scope, cards, hero) and carries the mileage line`, diffKeys(facts(tMi, year), FV).length === 0 && typeof tMi.mileageLine === "string" && tMi.mileageLine.includes("153,098"), String(tMi.mileageLine));
+    ok(`typed ${words} without a mileage carries the engine's all-mileages line`, tAll.mileageLine === "The range is for all mileages.", String(tAll.mileageLine)); }
   { const src = fs.readFileSync(path.join(root, "api/partnerAnswer.js"), "utf8"), pg = fs.readFileSync(path.join(root, "api/partnerDemo.js"), "utf8");
-    ok("api/partnerAnswer.js hands a VIN request's mileage to the engine as the typed mileage (refine.miTarget) and prints the engine's mileageLine", /miTarget: ask\.mileage/.test(src) && /mileageLine: typeof d\.mileageLine/.test(src));
+    ok("api/partnerAnswer.js hands ANY request's mileage (VIN or typed car) to the engine as the typed mileage (refine.miTarget), never stores it as the last good, and prints the engine's mileageLine", /engineRefine = ask && ask\.mileage/.test(src) && /!engineRefine \? demoKey/.test(src) && /mileageLine: typeof d\.mileageLine/.test(src));
     ok("the demo page has a mileage field beside the VIN field, sends it, and prints the engine's line", /id="a-mileage"/.test(pg) && /mileage: mi/.test(pg) && /a\.mileageLine/.test(pg)); }
 }
 ok("the check is not vacuous: the trim changes the answer for most of the cars (the bare model reads another pool)", vacuous <= Math.floor(CARS.length / 3), `${vacuous} of ${CARS.length} read the same with and without the trim`);
