@@ -62,7 +62,7 @@ reset("ok"); { const a = await ask();
   ok("(1) healthy: a result with a reserve_split from the walk", a.raw.tier === "result" && a.raw.reserve_split && a.raw.reserve_split.a.n >= 8 && a.raw.reserve_split.b.n >= 8, `tier=${a.raw.tier} split=${JSON.stringify(a.raw.reserve_split && a.raw.reserve_split.scope_label)} walk reads=${walkLog.join(', ')}`); }
 reset("timeout"); { const a = await ask();
   ok("(2) every walk read answers 57014: the answer is not a result, and carries no reserve_split", a.raw.tier !== "result" && !a.raw.reserve_split, `tier=${a.raw.tier} reserve_split=${JSON.stringify(a.raw.reserve_split || null)} range=${JSON.stringify(a.raw.cluster || null)}`);
-  ok("(4) after a timed-out walk read the next read of the walk is not issued (no all-years model read)", !walkLog.some(x => /^0-/.test(x)), `walk reads: ${walkLog.join(", ")}`);
+  ok("(4) after a timed-out walk read the next read of the walk is not issued (one leg tried, then stop)", walkLog.length <= 1, `walk reads: ${walkLog.join(", ")}`);
   ok("(6) the failed answer is refused by the store guard", S.answerCacheable(a.raw) === false, `tier=${a.raw.tier} cacheable=${S.answerCacheable(a.raw)}`); }
 reset("leg"); { const a = await ask();
   ok("(3) one leg of the walk answers 57014 (the other leg answers rows): the answer is not a result", a.raw.tier !== "result", `tier=${a.raw.tier} reserve_split=${JSON.stringify(a.raw.reserve_split && a.raw.reserve_split.scope_label)} walk reads: ${walkLog.join(", ")}`); }
