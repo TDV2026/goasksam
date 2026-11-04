@@ -74,6 +74,8 @@
     { "source": "/cars/porsche/911/:path*", "destination": "/api/specPage?slug=/cars/porsche/911/:path*" },
     { "source": "/o/:id", "destination": "/api/publicConfig?obShare=:id" },
     { "source": "/onebox-preview", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=onebox-preview" },
+    { "source": "/preview/home", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-home" },
+    { "source": "/preview/find", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-find" },
     { "source": "/onebox-preview", "has": [{ "type": "cookie", "key": "gas_tester", "value": "t1\\..*" }], "destination": "/api/crewPage?page=onebox-preview" },
     { "source": "/privacy", "destination": "/api/legal?page=privacy" },
     { "source": "/terms", "destination": "/api/legal?page=terms" },
@@ -195,7 +197,7 @@
       "includeFiles": "data/whatsNew.json"
     },
     "api/crewPage.js": {
-      "includeFiles": "lib/crewPages/*.html"
+      "includeFiles": "lib/crewPages/**"
     },
     "api/publicConfig.js": {
       "includeFiles": "public/onebox.html"

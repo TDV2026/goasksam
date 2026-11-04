@@ -878,6 +878,13 @@ try {
 } catch (e) {
   record("Desk Valuations: the rail, the queue, company search, ownership, pick up, read only and tenant isolation (scripts/deskRailCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// previewCopyCheck (Lane E, Nov 4 2026, lane-e-home-preview): the crew previews /preview/home and /preview/find keep the copy and palette rules (no typed figure, dash, orange or red, first person Sam, competitor name, live bid), and the check catches each when injected.
+try {
+  const out = execSync("node scripts/previewCopyCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("The crew previews keep the copy and palette rules (scripts/previewCopyCheck.mjs)", "PASS", (out.match(/previewCopyCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("The crew previews keep the copy and palette rules (scripts/previewCopyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // logLinesCheck (Lane E, Nov 3 2026, lane-e-vercelcost): a hot path (Find search, Show more, enrich, the card popup, Market Check) prints at most 2 console lines per request; no un-gated diagnostic line in api/ or lib/; only runtime folders are deployable.
 try {
   const out = execSync("node scripts/logLinesCheck.mjs", { encoding: "utf8", timeout: 120000 });

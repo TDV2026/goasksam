@@ -33,11 +33,14 @@ async function call(file, url, { cookie, accept, method = "GET", body } = {}) {
 }
 
 // ---- 1. THE LIST: every address that routes to a crew function, read from vercel.json (a new one is found, not remembered)
+const { PAGES: CREW_PAGES } = await imp("api/crewPage.js");   // every page api/crewPage.js can serve: the list is read, never remembered, so a page added there is covered below (Nov 4 2026: /preview/home and /preview/find joined it)
+const PAGE_KEYS = Object.keys(CREW_PAGES);
 const vj = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
 const CREW_FUNCS = ["api/crewPage", "api/desk", "api/admin", "api/partnerDemo", "api/partnerAnswer"];
 const routed = [...(vj.rewrites || []), ...(vj.redirects || [])].filter(r => CREW_FUNCS.some(f => String(r.destination).startsWith("/" + f)) || ["/preview", "/partner-demo"].includes(r.source));
 const sources = [...new Set(routed.map(r => r.source))];
 ok(["/desk", "/onebox-preview", "/admin", "/partner-demo", "/preview"].every(s => sources.includes(s)), `vercel.json routes the crew addresses (${sources.join(", ")})`);
+for (const k of PAGE_KEYS) ok(routed.some(r => String(r.destination) === "/api/crewPage?page=" + k), `crew page ${k} has a route in vercel.json (a crew-cookie rewrite), so it can be reached and so the rule below covers it`);
 // the router hides a page the platform way: a rewrite or redirect that applies only with the crew (or tester) cookie, so without it nothing matches and the platform answers its own 404.
 // /preview is the exception: it is also the partner's door (a code, then a partner cookie), so it reaches the function, which answers the ordinary 404 itself.
 for (const s of sources.filter(x => x !== "/preview")) {
@@ -48,7 +51,7 @@ for (const s of sources.filter(x => x !== "/preview")) {
 
 // ---- 2. THE FUNCTIONS, reached anyway (a direct /api address, a forged cookie, the partner door): the ordinary 404 and nothing else
 const FUNCS = [
-  ["api/crewPage.js", "/api/crewPage?page=desk"], ["api/crewPage.js", "/api/crewPage?page=onebox-preview"], ["api/desk.js", "/api/desk"], ["api/admin.js", "/api/admin?page=1"],
+  ...PAGE_KEYS.map(k => ["api/crewPage.js", "/api/crewPage?page=" + k]), ["api/desk.js", "/api/desk"], ["api/admin.js", "/api/admin?page=1"],
   ["api/partnerDemo.js", "/preview"], ["api/partnerDemo.js", "/preview?view=b"], ["api/partnerDemo.js", "/preview?img=logo"], ["api/partnerDemo.js", "/preview?k=wrong"], ["api/partnerAnswer.js", "/api/partnerAnswer"]
 ];
 for (const [file, url] of FUNCS) {
@@ -68,13 +71,13 @@ for (const [file, url, body] of [["api/admin.js", "/api/admin", { part: "me" }],
 }
 
 // ---- 3. WITH THE COOKIE the page works as today
-for (const [file, url] of [["api/crewPage.js", "/api/crewPage?page=desk"], ["api/crewPage.js", "/api/crewPage?page=onebox-preview"], ["api/partnerDemo.js", "/preview"], ["api/admin.js", "/api/admin?page=1"]]) {
+for (const [file, url] of [...PAGE_KEYS.map(k => ["api/crewPage.js", "/api/crewPage?page=" + k]), ["api/partnerDemo.js", "/preview"], ["api/admin.js", "/api/admin?page=1"]]) {
   const r = await call(file, url, { cookie: crewCookie, accept: "text/html" }).catch(e => ({ code: 0, body: e.message, h: {} }));
   ok(r.code === 200 && r.body.length > 2000 && r.body !== NATIVE(true).body, `${url} with the crew cookie: 200 and the page (${r.code}, ${r.body.length} bytes)`);
 }
 
 // ---- 4. NO PUBLIC FILE OR PAGE NAMES A CREW ADDRESS
-const NAMES = ["/desk", "/onebox-preview", "/partner-demo", "/admin", "/preview"];
+const NAMES = [...new Set(["/desk", "/onebox-preview", "/partner-demo", "/admin", "/preview", ...sources])];   // every crew address vercel.json routes, so /preview/home and /preview/find are named-checked too
 const refs = [];
 const publicFiles = execSync("git ls-files public data", { encoding: "utf8" }).split("\n").filter(f => f && /\.(html|txt|xml|json|js|webmanifest|md)$/.test(f));
 const retired = new Set((vj.redirects || []).filter(r => /\.html$/.test(r.source) && !(r.has || []).length).map(r => "public" + r.source));   // a public/*.html a redirect answers for is never served as a file
@@ -118,7 +121,7 @@ if (LIVE) {
   ok(!!byp, "live: the automation bypass is available");
   for (const accept of ["text/html", "*/*"]) {
     const ref = await get("/zz-never-" + Math.random().toString(36).slice(2, 8), accept);
-    for (const p of ["/desk", "/onebox-preview", "/preview", "/partner-demo", "/admin", "/api/crewPage?page=desk", "/api/desk", "/api/admin?page=1", "/api/partnerDemo", "/api/partnerAnswer"]) {
+    for (const p of [...NAMES, ...PAGE_KEYS.map(k => "/api/crewPage?page=" + k), "/api/desk", "/api/admin?page=1", "/api/partnerDemo", "/api/partnerAnswer"]) {
       const r = await get(p, accept);
       ok(r.status === ref.status && r.ct === ref.ct && r.hn === ref.hn && r.hash === ref.hash, `live ${p} (${accept}): same status, content type, header names and body as an unknown address (${r.status} ${r.len}B ${r.hash} ${r.hn === ref.hn ? "" : "headers differ: " + r.hn} against ${ref.status} ${ref.len}B ${ref.hash})`);
     }
