@@ -18,18 +18,42 @@ const VIN_EU = ["WP0ZZZ99ZTS392124", "WDB1240201A123456", "ZFFXR48AXS0105678"]; 
 const VIN_NA_BAD = "1M8GDM9AXKP042789";   // a North American VIN with the wrong check digit: known maker code, valid structure
 const VIN_STRUCT = "WP0AB2990US745123";   // the model-year character is 0
 const VIN_NA_LETTERS = "1M8GDM9AXKPABCDE1";   // a North American VIN must end in five digits
-const VIN_UNKNOWN = "XYZAB29918S745123";   // maker code XYZ is not known and the check digit fails
+const VIN_UNKNOWN = "XYZAB29918S745123";   // maker code XYZ is not known AND the check digit fails: still tried as the car
 const VIN_UNKNOWN_OK = K.makeVin("XYZAB299", "8S745123");   // unknown maker code but a correct check digit
 ok("a VIN with a correct check digit is a VIN", vinCheckDigitOk(VIN_A) && findVins(`vin ${VIN_A}`).valid[0] === VIN_A && classifyVin(VIN_A).state === "valid");
 for (const v of VIN_EU) ok(`European VIN ${v}: structure valid, known maker code, check digit not valid = the car, marked`, !vinCheckDigitOk(v) && classifyVin(v).state === "check_digit_not_valid" && findVins(`VIN ${v}`).valid[0] === v && findVins(`VIN ${v}`).checkDigitNotValid[0] === v, classifyVin(v));
 ok("a North American VIN with a wrong check digit is also the car, marked", classifyVin(VIN_NA_BAD).state === "check_digit_not_valid" && findVins(VIN_NA_BAD).valid[0] === VIN_NA_BAD);
 ok("a string that fails structure is NOT a VIN, and is reported as rejected", [VIN_STRUCT, VIN_NA_LETTERS].every(v => classifyVin(v).state === "rejected" && findVins(`vin ${v}`).valid.length === 0 && findVins(`vin ${v}`).failed[0] === v), [classifyVin(VIN_STRUCT), classifyVin(VIN_NA_LETTERS)]);
-ok("an unknown maker code with a failing check digit is NOT a VIN; with a correct check digit it is", classifyVin(VIN_UNKNOWN).state === "rejected" && classifyVin(VIN_UNKNOWN_OK).state === "valid");
+ok("an unknown maker code is a marker, never a gate: structure alone decides; an unknown code with a failing check digit is tried as the car, both markers set", classifyVin(VIN_UNKNOWN).state === "check_digit_not_valid" && classifyVin(VIN_UNKNOWN).makerUnknown === true && findVins(`vin ${VIN_UNKNOWN}`).valid[0] === VIN_UNKNOWN && findVins(`vin ${VIN_UNKNOWN}`).makerUnknown[0] === VIN_UNKNOWN && findVins(`vin ${VIN_UNKNOWN}`).checkDigitNotValid[0] === VIN_UNKNOWN, classifyVin(VIN_UNKNOWN));
+ok("a known maker code is not marked unknown; a correct check digit with an unknown code is a VIN marked maker code unknown only", classifyVin(VIN_EU[0]).makerUnknown === false && classifyVin(VIN_UNKNOWN_OK).state === "valid" && classifyVin(VIN_UNKNOWN_OK).makerUnknown === true);
+ok("structure is the only rejection: the same unknown maker code with a bad model-year character is rejected", classifyVin("XYZAB2990US745123").state === "rejected" && findVins("vin XYZAB2990US745123").valid.length === 0);
 ok("a long word is never read as a VIN", findVins("Congratulationsonyourpurchase").valid.length === 0 && findVins("INTERNATIONALISATION").failed.length === 0);
 { const { st, deps, reads } = K.fresh();
   const r = await processInbound(K.mail({ from: "ann@hagerty.example", subject: "Fwd: 1995 Porsche from Germany", text: `Please look. VIN ${VIN_EU[0]}\nMileage: 31,000 km` }), deps);
   const s = st._state.sheets[0];
   ok("an email with a European VIN: a New sheet (not dropped, not Needs the car) holding that VIN, marked check digit not valid, car decoded, read started", r.outcome === "created" && s.status === "New" && s.vin === VIN_EU[0] && s.vin_check_invalid === true && s.make === "Porsche" && reads.length === 1, s); }
+{ // unknown maker code + failing check digit: the engine's decode decides
+  const { st, deps, reads } = K.fresh();
+  deps.decodeVin = async vin => (vin === VIN_UNKNOWN ? { year: 1991, make: "Ferrari", model: "348", trim: "TB", body: "Coupe" } : null);
+  deps.resolveVehicle = async t => ({ status: "valid", vehicle: { year: 1991, make: "Ferrari", model: "348", trim: "TB" } });
+  const r = await processInbound(K.mail({ from: "ann@hagerty.example", subject: "Fwd: car", text: `VIN ${VIN_UNKNOWN}` }), deps);
+  const s = st._state.sheets[0];
+  ok("unknown maker code, bad check digit, decode finds a car: a New sheet, both markers set, the decoded car, the read started", r.outcome === "created" && s.status === "New" && s.vin === VIN_UNKNOWN && s.vin_check_invalid === true && s.vin_maker_unknown === true && s.make === "Ferrari" && reads.length === 1, s); }
+{ const { st, deps, reads } = K.fresh();
+  deps.decodeVin = async () => null;
+  const r = await processInbound(K.mail({ id: "u1", from: "ann@hagerty.example", subject: "Fwd: car", text: `Seller says VIN ${VIN_UNKNOWN}` }), deps);
+  const s = st._state.sheets[0];
+  ok("...decode finds no car: Needs the car, the string shown on the row (VIN and both markers), no read started, original kept", r.outcome === "needs_the_car" && s.status === "Needs the car" && s.vin === VIN_UNKNOWN && s.vin_check_invalid && s.vin_maker_unknown && reads.length === 0 && st._state.objects.has(s.original_path), s);
+  const r2 = await processInbound(K.mail({ id: "u2", from: "ann@hagerty.example", subject: "Re: car", text: `VIN ${VIN_UNKNOWN} more photos`, attachments: [K.att("a.jpg", "image/jpeg", K.fx("big.jpg"))] }), deps);
+  ok("...a later email with the same string joins the sheet and does NOT turn it into a New car by itself", r2.outcome === "added_to_sheet" && st._state.sheets.length === 1 && st._state.sheets[0].status === "Needs the car"); }
+{ const { st, deps } = K.fresh();
+  deps.decodeVin = async () => null;
+  await processInbound(K.mail({ from: "ann@hagerty.example", subject: "Fwd: 1965 Ferrari 275 GTB", text: `VIN ${VIN_UNKNOWN}` }), deps);
+  ok("...decode finds nothing but the email names the car in words: New, the VIN kept with its markers", st._state.sheets[0].status === "New" && st._state.sheets[0].vin === VIN_UNKNOWN && st._state.sheets[0].vin_maker_unknown === true && st._state.sheets[0].year === 1965, st._state.sheets[0]); }
+{ const { st, deps } = K.fresh();
+  deps.decodeVin = async () => null;
+  await processInbound(K.mail({ from: "ann@hagerty.example", subject: "Fwd", text: `VIN ${VIN_EU[0]}` }), deps);
+  ok("a KNOWN maker code with a failing check digit and no decode is still a New sheet (the marker is not a gate either way)", st._state.sheets[0].status === "New" && st._state.sheets[0].vin_maker_unknown === false); }
 { const { st, deps } = K.fresh();
   await processInbound(K.mail({ from: "ann@hagerty.example", subject: "x", text: `VIN ${VIN_A}` }), deps);
   ok("a VIN with a correct check digit is not marked", st._state.sheets[0].vin === VIN_A && st._state.sheets[0].vin_check_invalid === false); }

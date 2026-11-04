@@ -13,16 +13,18 @@ const P = "lib/desk/intake/parse.js", R = "lib/desk/intake/run.js", I = "lib/des
 const PARSE = "intakeParseCheck", AUTH = "intakeAuthCheck", SEND = "sendCheck";
 const M = [
   // ---- reading a submission ----
-  [PARSE, "structure not checked: any 17 characters is a VIN", P, "  if (!vinStructureOk(v)) return { state: \"rejected\", reason: \"structure\" };", ""],
-  [PARSE, "a failing check digit drops the VIN (the reversed rule: European market VINs lost)", P, "return knownWmi(v) ? { state: \"check_digit_not_valid\" } : { state: \"rejected\", reason: \"unknown_wmi_and_check_digit\" };", "return { state: \"rejected\", reason: \"check_digit\" };"],
-  [PARSE, "an unknown maker code with a failing check digit is accepted", P, "return knownWmi(v) ? { state: \"check_digit_not_valid\" } : { state: \"rejected\", reason: \"unknown_wmi_and_check_digit\" };", "return { state: \"check_digit_not_valid\" };"],
+  [PARSE, "structure not checked: any 17 characters is a VIN", P, "  if (!vinStructureOk(v)) return { state: \"rejected\", makerUnknown: false, reason: \"structure\" };", ""],
+  [PARSE, "a failing check digit drops the VIN (the reversed rule: European market VINs lost)", P, "return { state: vinCheckDigitOk(v) ? \"valid\" : \"check_digit_not_valid\", makerUnknown: !knownWmi(v) };", "return vinCheckDigitOk(v) ? { state: \"valid\", makerUnknown: !knownWmi(v) } : { state: \"rejected\", reason: \"check_digit\" };"],
+  [PARSE, "an unknown maker code with a failing check digit is rejected (the maker list used as a gate)", P, "return { state: vinCheckDigitOk(v) ? \"valid\" : \"check_digit_not_valid\", makerUnknown: !knownWmi(v) };", "return !vinCheckDigitOk(v) && !knownWmi(v) ? { state: \"rejected\", makerUnknown: true, reason: \"unknown_wmi\" } : { state: vinCheckDigitOk(v) ? \"valid\" : \"check_digit_not_valid\", makerUnknown: !knownWmi(v) };"],
+  [PARSE, "the maker-unknown marker is not set", P, "makerUnknown: !knownWmi(v) };", "makerUnknown: false };"],
+  [PARSE, "a tried VIN with no decode and no car in the words becomes a New sheet", R, "const hasIdentity = !!(car || read.chassis || (read.vin && !triedOnly));", "const hasIdentity = !!(car || read.chassis || read.vin);"],
   [PARSE, "a failing check digit is not marked on the row", P, "vinCheckInvalid: !!(vins.valid[0] && vins.checkDigitNotValid.includes(vins.valid[0])),", "vinCheckInvalid: false,"],
   [PARSE, "consignor taken from the newest message, not the earliest", P, "for (let i = messages.length - 1; i >= 1; i--) {", "for (let i = 1; i < messages.length; i++) {"],
   [PARSE, "More VINs flag not kept", P, "moreVins: vins.valid.slice(1),", "moreVins: [],"],
   [PARSE, "chassis (pre 1981) not read", P, "const chassis = vins.valid.length ? null : findChassis(searchable);", "const chassis = null;"],
   [PARSE, "a later email on the same thread makes a second sheet", R, "if (!match && threadIds.length) {", "if (false) {"],
   [PARSE, "a later email with the same VIN makes a second sheet", R, "if (read.vin) { match = (await store.sheetsOfOrg(org.id, { vin: read.vin }))[0] || null; if (match) matchBy = \"vin\"; }", ""],
-  [PARSE, "a mail with no car is dropped instead of becoming Needs the car", R, "const hasIdentity = !!(read.vin || read.chassis || car);", "const hasIdentity = !!(read.vin || read.chassis || car); if (!hasIdentity) return finish(\"dropped_no_car\", { org_id: org.id });"],
+  [PARSE, "a mail with no car is dropped instead of becoming Needs the car", R, "const hasIdentity = !!(car || read.chassis || (read.vin && !triedOnly));", "const hasIdentity = !!(car || read.chassis || (read.vin && !triedOnly)); if (!hasIdentity) return finish(\"dropped_no_car\", { org_id: org.id });"],
   [PARSE, "HEIC is stored as sent, not converted", I, "if (isHeicBytes(input) || /heic|heif/i.test(contentType) || HEIC_EXT.test(filename)) {", "if (false) {"],
   [PARSE, "photos are not turned upright", I, "      .rotate()\n", "\n"],
   [PARSE, "photos are not resized", I, "withoutEnlargement: true", "withoutEnlargement: true, kernel: undefined, width: undefined"],
