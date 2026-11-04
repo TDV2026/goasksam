@@ -626,6 +626,7 @@ export function partnerShape(d, text, asked, extra = {}) {
     cardWithRows: cardWithRowsOf(d),   // additive (Oct 20 2026, the Amazon demo's tab c): Market Check's own card WITH its sale rows
     quarter: latestQuarterRowHtml({ ...d, trendQuarters: mapEngineAnswer(d).trendQuarters }) || null,
     lines: linesOf(d),
+    mileageLine: typeof d.mileageLine === "string" ? d.mileageLine : null,   // the engine's one line about mileage on a VIN answer: the band it applied, or that the range is for all mileages
     carPhoto: carPhotoOf(d, (identityOf(d, extra.id) || {}).year || (/^(\d{4})\b/.exec(String(text || "")) || [])[1] || null),
     history: extra.history || null
   };
@@ -803,7 +804,10 @@ async function handlerCore(req, res) {
   let r;
   const vinFacts = vinIn ? { vin: vinIn, year: (id && id.year) || (vinDecode && vinDecode.year) || null, decodeTrim: (vinDecode && vinDecode.trim) || (id && id.fromDecode ? id.trim : null) || null, decodeBody: (vinDecode && vinDecode.bodyStyle) || null,
     archiveTrim: id && !id.fromDecode ? id.trim || null : null, archiveTitle: id && !id.fromDecode ? [id.year, id.make, id.model, id.trim, id.bodyStyle].filter(Boolean).join(" ") : null } : null;
-  try { r = await marketCheckAnswer(req, text, refine, asked, true, vinFacts); } catch (e) {
+  // THE LISTING'S MILEAGE RIDES WITH THE VIN (Lane B, Nov 3 2026, lane-b-vinpool: VIN WP0CA29951S650259, a 2001 996 Carrera cabriolet listed at 153,098 miles, was answered from the whole pool, $20,500 to $30,000, while the 101,000 mile car in the pool sold for $18,750): the mileage the partner sends
+  // is the typed mileage of the seller flow, the engine's own mileage band (refine.miTarget, banded by bandedRefine as Market Check does), never a page rule. The refine is the engine's; the echo (out.refined) stays the visitor's own choice.
+  const engineRefine = vinIn && ask && ask.mileage && !(refine && (refine.miTarget != null || refine.miMin != null)) ? { ...(refine || {}), miTarget: ask.mileage } : refine;
+  try { r = await marketCheckAnswer(req, text, engineRefine, asked, true, vinFacts); } catch (e) {
     console.error("partnerAnswer:", (e && e.message) || e);
     const lk0 = !refine ? demoKey(text) : null, last = lk0 && env ? await readLast(env, lk0) : null;
     if (lastGoodUsable(last)) return res.status(200).json(plainOf(vinIn ? { ...last.out, history, vin: vinIn, lastGood: true } : { ...last.out, lastGood: true }));

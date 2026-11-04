@@ -34,7 +34,7 @@ const poolFor = (year, make, model, ownVin) => Array.from({ length: 40 }, (_, i)
 const MILEAGE_FACTS = ["rangeMileage", "nearestSales", "nearestSalesHeading"];
 const MILEAGE_GUARDS = { rangeMileage: ["A", "B"], nearestSales: ["A", "B", "C"], nearestSalesHeading: ["A", "B", "D"] };
 const ranGuards = new Set();
-const KEEP_OUT = new Set(["readAt", "latencyMs", "timings", "snapshotId", "dedup"]), VIN_ADDS = new Set(["ownSales", "matchedOption", "options", "optionLines", "headlineLines", "optionsNote", "refineOptions", "optionsRemainder", "chart", ...MILEAGE_FACTS]);
+const KEEP_OUT = new Set(["readAt", "latencyMs", "timings", "snapshotId", "dedup"]), VIN_ADDS = new Set(["ownSales", "matchedOption", "options", "optionLines", "headlineLines", "optionsNote", "refineOptions", "optionsRemainder", "chart", "mileageLine", ...MILEAGE_FACTS]);
 const strip = (d, dropAdds) => { const o = {}; for (const [k, v] of Object.entries(d || {})) { if (KEEP_OUT.has(k)) continue; if (dropAdds && VIN_ADDS.has(k)) continue; o[k] = v; } return o; };
 const env = rows => ({ supabaseUrl: "https://fake.supabase.test", supabaseKey: "k", asked: 0, poolSeed: { rows } });
 for (const [vin, year, make, model, body, gear, label] of CARS) {

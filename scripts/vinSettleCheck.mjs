@@ -93,6 +93,6 @@ if (E.settleQuestionFromVin) {
 { const fs = await import("node:fs"); const sd = fs.readFileSync(path.join(root, "api/sellerDecision.js"), "utf8"), pa = fs.readFileSync(path.join(root, "api/partnerAnswer.js"), "utf8");
   ok("api/sellerDecision.js settles a VIN car's question before the VIN overlay", /settleVinAnswer\(oneBox, vinCtx/.test(sd) && sd.indexOf("settleVinAnswer(oneBox, vinCtx") < sd.indexOf("if (vinCtx) oneBox = applyVinOverlay(oneBox, vinCtx)"));
   ok("api/sellerDecision.js reads the archive record of the exact VIN for the plan", /findVinArchiveMatch\(\{ supabaseUrl, supabaseKey \}, \{ vin: vehicle\.vin \|\| vehicle\.chassis \}\)/.test(sd) && /vinSearchPlan\(vehicle, \{ resolveVehicle, archive: vinArchive, live: vinLive(?:, rerunWords: [^}]*)? \}\)/.test(sd));
-  ok("the partner demo passes the VIN's facts to the engine's read", /marketCheckAnswer\(req, text, refine, asked, true, vinFacts\)/.test(pa) && /vinFacts/.test(sd)); }
+  ok("the partner demo passes the VIN's facts to the engine's read", /marketCheckAnswer\(req, text, (?:refine|engineRefine), asked, true, vinFacts\)/.test(pa) && /vinFacts/.test(sd)); }
 console.log(fail ? `vinSettleCheck: ${fail} failure(s)` : "vinSettleCheck: all pass");
 process.exit(fail ? 1 : 0);

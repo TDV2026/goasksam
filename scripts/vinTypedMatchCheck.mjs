@@ -63,6 +63,28 @@ for (const [vin, year, make, model, trim, body] of CARS) {
   const viaPlan = viaPlanD ? facts(viaPlanD, year) : null;
   ok(`${label}: the VIN plan's answer equals the typed answer on pool count, range, scope line, cards and hero photo`, !!viaPlan && diffKeys(F, viaPlan).length === 0, viaPlan ? diffKeys(F, viaPlan).join(", ") : "no plan");
 }
+// MILEAGE RIDES WITH THE VIN (lane-b-vinpool item 3): VIN WP0CA29951S650259, a 2001 996 Carrera cabriolet listed at 153,098 miles, was answered from the whole pool ($20,500 to $30,000) while the 101,000 mile car in it sold for $18,750.
+// With the listing's mileage the VIN answer is the typed answer with that mileage (the engine's own band, refine.miTarget); without it the engine's one line says the range is for all mileages.
+{
+  const year = 2001, make = "Porsche", model = "911", trim = "Carrera", body = "cabriolet", vin = "WP0CA29951S650259", MI = 153098, label = "2001 Porsche 911 Carrera cabriolet at 153,098 miles";
+  const rows = Array.from({ length: 40 }, (_, i) => { const mi = 20000 + i * 3700, price = Math.round(31000 - mi * 0.09 + (i % 3) * 150); return { id: "m" + i, price: i === 20 ? 18750 : price, _usd: i === 20 ? 18750 : price, auction_end_date: `2026-0${1 + (i % 9)}-${10 + (i % 9)}`, year, make, model, raw_title: `${year} ${make} ${model} ${trim} ${body}`, rtitle: `${year} ${make} ${model} ${trim} ${body}`, mileage: String(i === 20 ? 101000 : mi), vin_norm: "ZZM" + (100000 + i), transmission: "Automatic", image: `https://img.test/m${i}.jpg`, source: "bringatrailer", platform: "bringatrailer" }; });
+  const words = `${year} ${make} ${model} ${trim} ${body}`, tr = await V.resolveVehicle(words, {}), tv = tr && tr.vehicle;
+  const run = async (vehicle, text, refine) => E.withReadFields((await E.oneEngineAnswer(vehicle, null, text, env(rows), refine || null)).raw, text, vehicle);
+  const vinVehicle = { year, make, model, nameModel: model, trim, bodyStyle: body, transmission: null, vin, raw: vin };
+  const viaVin = async refine => { const plan = await A.vinSearchPlan(vinVehicle, { resolveVehicle: V.resolveVehicle }); const b0 = A.applyVinOverlay(await run(plan.vehicle, plan.text, refine), plan.ctx);
+    const rr = typeof A.decodeTrimRerun === "function" ? await A.decodeTrimRerun(b0, { ...plan.ctx, text: plan.text }, { resolveVehicle: V.resolveVehicle }) : null;
+    if (!rr) return b0; const p2 = await A.vinSearchPlan(vinVehicle, { resolveVehicle: V.resolveVehicle, rerunWords: [rr.trim, rr.body].filter(Boolean).join(" ") }); return A.applyVinOverlay(await run(p2.vehicle, p2.text, refine), p2.ctx); };
+  const typedAll = await run(tv, words, null), typedMi = await run(tv, words, { miTarget: MI }), vinMi = await viaVin({ miTarget: MI }), vinAll = await viaVin(null);
+  ok(`${label}: the mileage changes the answer (the whole pool's range is not the 153k band's)`, JSON.stringify(typedAll.cluster) !== JSON.stringify(typedMi.cluster) || typedAll.poolN !== typedMi.poolN, `all ${JSON.stringify(typedAll.cluster)} n=${typedAll.poolN}; at ${MI} ${JSON.stringify(typedMi.cluster)} n=${typedMi.poolN}`);
+  const FM = facts(typedMi, year), FV = facts(vinMi, year);
+  ok(`${label}: the VIN answer with the mileage equals the typed answer with the mileage on pool count, range, scope line, cards and hero photo`, diffKeys(FM, FV).length === 0, diffKeys(FM, FV).join(", "));
+  ok(`${label}: with the mileage the engine's line names it (mileageLine)`, typeof vinMi.mileageLine === "string" && vinMi.mileageLine.includes("153,098"), String(vinMi.mileageLine));
+  ok(`${label}: without the mileage the engine's one line says the range is for all mileages`, vinAll.mileageLine === "The range is for all mileages." && !vinAll.rangeMileage, String(vinAll.mileageLine));
+  ok(`${label}: without the mileage the VIN answer equals the typed answer (the whole pool)`, diffKeys(facts(typedAll, year), facts(vinAll, year)).length === 0);
+  { const src = fs.readFileSync(path.join(root, "api/partnerAnswer.js"), "utf8"), pg = fs.readFileSync(path.join(root, "api/partnerDemo.js"), "utf8");
+    ok("api/partnerAnswer.js hands a VIN request's mileage to the engine as the typed mileage (refine.miTarget) and prints the engine's mileageLine", /miTarget: ask\.mileage/.test(src) && /mileageLine: typeof d\.mileageLine/.test(src));
+    ok("the demo page has a mileage field beside the VIN field, sends it, and prints the engine's line", /id="a-mileage"/.test(pg) && /mileage: mi/.test(pg) && /a\.mileageLine/.test(pg)); }
+}
 ok("the check is not vacuous: the trim changes the answer for most of the cars (the bare model reads another pool)", vacuous <= Math.floor(CARS.length / 3), `${vacuous} of ${CARS.length} read the same with and without the trim`);
 // the partner endpoint must build its text with the one function (a page that builds its own words drifts)
 { const src = fs.readFileSync(path.join(root, "api/sellerDecision.js"), "utf8"); ok("api/sellerDecision.js runs decodeTrimRerun on a finished VIN answer, for the VIN page and the partner read alike", /decodeTrimRerun\(oneBox, vinCtx/.test(src)); }

@@ -536,6 +536,8 @@ const JS = String.raw`
   });
   // ---- view a: before listing
   var aLast = null;
+  // the engine's one line about mileage on a VIN answer (the band it applied, or that the range is for all mileages); the page prints it and decides nothing
+  function mileageLineHtml(a){ return a && a.mileageLine ? '<p class="vin-line" id="a-mileage-line" style="margin:8px 0 0">' + esc(a.mileageLine) + "</p>" : ""; }
   function drawA(a){
     noteLines("a", a);
     aLast = a;
@@ -545,7 +547,7 @@ const JS = String.raw`
     var idn = a.identity ? [a.identity.year, a.identity.make, a.identity.model, a.identity.variant].filter(Boolean).join(" ") : "";
     $("a-head").textContent = a.vin ? (nameOf(a) || a.vin) : (idn || a.query || CAR);
     $("a-vin").hidden = !(a.vin && nameOf(a)); $("a-vin").textContent = a.vin && nameOf(a) ? "VIN " + a.vin : "";
-    $("a-out").innerHTML = (a.question ? "" : priorPanel(a, !!a.vin)) + (a.question ? "" : mainPhotoHtml(a)) + (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + rangePanel(a, { lines: "a" })) + ((a.vin || (a.history && a.history.length)) && !soldRows(a).length ? historyPanel(a) : "") +
+    $("a-out").innerHTML = (a.question ? "" : priorPanel(a, !!a.vin)) + (a.question ? "" : mainPhotoHtml(a)) + (a.question ? rangePanel(a, { slot: "a", chips: true }) : (idChips(a) ? '<div style="margin:0 0 16px">' + idChips(a) + "</div>" : "") + rangePanel(a, { lines: "a" }) + mileageLineHtml(a)) + ((a.vin || (a.history && a.history.length)) && !soldRows(a).length ? historyPanel(a) : "") +
       (!a.question && a.sales && a.sales.length ? '<section class="full-a"><h2>What cars like this sold for</h2>' + salesList(a, "a") + "</section>" : "") +
       '<div style="margin-top:20px"><button type="button" class="btn pri" id="a-list">List it</button></div>';
   }
@@ -692,7 +694,7 @@ const JS = String.raw`
     if (slot === "c") return run("c", D ? Object.assign({ vin: D.vin, prices: { item_price: D.price } }, send) : send, drawListing);
   });
   document.addEventListener("click", function(e){ if (e.target && e.target.id === "a-list") e.preventDefault(); });   // the demo's List it does nothing
-  $("a-form").addEventListener("submit", function(e){ e.preventDefault(); var v = String($("a-q").value || "").trim(); if (v) runA({ q: v }); });
+  $("a-form").addEventListener("submit", function(e){ e.preventDefault(); var v = String($("a-q").value || "").trim(); var mi = wholeOf($("a-mileage").value); if (v) runA(mi ? { q: v, mileage: mi } : { q: v }); });
   $("b-format").addEventListener("change", function(){ bFormat(); bRead(true); });
   // A price or the mileage is READ when it is committed (leaving the field, or Return), once, never per keystroke (Sam, Nov 1 2026). The field still formats as it is typed.
   ["b-start", "b-reserve", "b-bin", "b-price", "b-miles"].forEach(function(id){
@@ -783,7 +785,7 @@ ${carBar}
 <main>
 <section class="sec-view wrap" id="view-a"${v === "a" ? "" : " hidden"}>
   <div class="lead"><h1 id="a-head">What have cars like yours sold for?</h1><p class="vin-line" id="a-vin" hidden></p>
-  <form class="ask" id="a-form"><input id="a-q" name="q" autocomplete="off" placeholder="Type your car or paste a VIN" aria-label="Car or VIN"><button class="btn pri" type="submit">Check</button></form>
+  <form class="ask" id="a-form"><input id="a-q" name="q" autocomplete="off" placeholder="Type your car or paste a VIN" aria-label="Car or VIN"><input id="a-mileage" name="mileage" inputmode="numeric" autocomplete="off" placeholder="Mileage (optional)" aria-label="Mileage" style="max-width:150px"><button class="btn pri" type="submit">Check</button></form>
   <div id="a-out" style="margin-top:22px"></div></div>
 </section>
 <section class="sec-view wrap" id="view-b"${v === "b" ? "" : " hidden"}>
