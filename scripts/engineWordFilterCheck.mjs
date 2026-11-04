@@ -64,4 +64,25 @@ for (const [w, key] of ENGINE.filter(e => !/speed|spd/.test(e[0]))) ok(`stored s
     ok(`... the listing that says nothing is marked "engine" not stated, the ones that state it are not`, titles.every((t, i) => (t === "2017 Ford Mustang Coupe") === unk[i].includes("engine")), JSON.stringify(unk));
   }
   globalThis.fetch = f1; }
+
+// (7) THE FIND CHAT PATH (lane-b-rick2, Nov 5 2026). Live: Find "Ford Mustang V8" returned no cards. CAUSE: the chat tool sent has: "V8", the page-button filter that holds a listing to a TITLE that prints the word, so every Mustang whose title does not print "V8" was out. The
+// engine word filter (a listing that states another layout is out, one that says nothing stays, marked "engine" not stated) was never reached. THE CLASS: every word the chat can send as `has` that names a class with its own filter. Each goes to its own filter (routeHas, lib/live/search.js);
+// a word that is only a title word (GT3, Z06) and turbo / supercharged (Buy's "which kind of fast?" buttons mean the trim) stay `has`.
+{ const C = await import(pathToFileURL(path.join(ROOT, "lib/live/samChat.js")).href);
+  const mkL = (id, title, desc, tx) => ({ ...live(id, title, desc, tx || null), listing_title: title });
+  const FEED = [mkL(21, "2017 Ford Mustang GT", "Coyote 5.0L V8", "6-Speed Manual"), mkL(22, "2016 Shelby GT350 Mustang", "Flat-plane crank 5.2L V8", "6-Speed Manual"), mkL(23, "2017 Ford Mustang Coupe", "A clean example"), mkL(24, "2017 Ford Mustang EcoBoost", "2.3L four-cylinder turbo", "Automatic"), mkL(25, "2015 Ford Mustang V6", "3.7L V6", "Automatic")];
+  const f2 = globalThis.fetch; globalThis.fetch = async (url) => { const u = new URL(String(url)); return new Response(u.pathname.endsWith("/live_listings") ? JSON.stringify(FEED) : "[]", { status: 200 }); };
+  const chat = async (has, extra = {}) => { try { return await C.runSearch(env, { make: "Ford", model: "Mustang", has, ...extra }); } catch (e) { return { f: {}, matches: [], err: e.message }; } };
+  const titles = r => (r.matches || []).map(m => String(m.r.listing_title)).sort();
+  { const r = await chat("V8"), all = await chat("V8", { include_unstated: true });
+    ok("chat has:\"V8\" is the engine filter, not a title word", !r.f.has && (r.f.attrWords || []).includes("v8"), JSON.stringify({ has: r.f.has, attrWords: r.f.attrWords }));
+    ok("... the listings that state V8 are returned (the Mustang GT and the Shelby)", JSON.stringify(titles(r)) === JSON.stringify(["2016 Shelby GT350 Mustang", "2017 Ford Mustang GT"]), JSON.stringify(titles(r)));
+    ok("... the listing that says nothing is not dropped: it is counted as not stating the engine, and returned marked \"engine\" with include_unstated", r.unstated === 1 && titles(all).includes("2017 Ford Mustang Coupe") && (all.matches.find(m => m.r.listing_title === "2017 Ford Mustang Coupe").unknown || []).includes("engine") && !titles(all).includes("2015 Ford Mustang V6") && !titles(all).includes("2017 Ford Mustang EcoBoost"), JSON.stringify({ unstated: r.unstated, all: titles(all) })); }
+  for (const [w, key] of [["V6", "v6"], ["v10", "v10"], ["V12", "v12"], ["flat-six", "flat6"], ["straight-six", "inline6"], ["four-cylinder", "four"], ["diesel", "diesel"], ["6-speed", "speed6"], ["5 speed", "speed5"]]) { const r = await chat(w);
+    ok(`chat has:"${w}" goes to attrWords (${key}), never a title word`, !r.f.has && (r.f.attrWords || []).includes(key), JSON.stringify({ has: r.f.has, attrWords: r.f.attrWords })); }
+  for (const w of ["manual", "automatic", "PDK", "stick shift"]) { const r = await chat(w); ok(`chat has:"${w}" goes to the gearbox filter`, !r.f.has && !!r.f.gearbox, JSON.stringify({ has: r.f.has, gearbox: r.f.gearbox })); }
+  for (const w of ["red", "silver"]) { const r = await chat(w); ok(`chat has:"${w}" goes to the colour filter`, !r.f.has && (r.f.colours || []).length > 0, JSON.stringify({ has: r.f.has, colours: r.f.colours })); }
+  for (const w of ["coupe", "convertible", "targa"]) { const r = await chat(w); ok(`chat has:"${w}" goes to the body filter`, !r.f.has && (r.f.bodies || []).length > 0, JSON.stringify({ has: r.f.has, bodies: r.f.bodies })); }
+  for (const w of ["GT3", "Z06", "Turbo", "Turbo S", "supercharged"]) { const r = await chat(w); ok(`chat has:"${w}" stays a title word (the page's own button)`, r.f.has === w && !(r.f.attrWords || []).length, JSON.stringify({ has: r.f.has, attrWords: r.f.attrWords })); }
+  globalThis.fetch = f2; }
 console.log(failed ? `\n${failed} FAILED` : "\nengineWordFilterCheck: all pass"); process.exit(failed ? 1 : 0);
