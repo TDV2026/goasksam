@@ -46,4 +46,22 @@ const run = async text => { const { filters } = S.parseQuery(text); try { const 
   ok("searchLive: a 5-speed search drops the 6-speed listings and keeps the 5-speed one", !!rows && rows.some(x => x.r.id === 4) && !rows.some(x => x.r.id === 1 || x.r.id === 2), rows && JSON.stringify(rows.map(x => x.r.id))); }
 // the stored sales read the same words
 for (const [w, key] of ENGINE.filter(e => !/speed|spd/.test(e[0]))) ok(`stored sales: typedAttributesIn reads "${w}"`, T.typedAttributesIn("Mustang " + w, mustang).some(a => a.key === key));
+
+// (6) THE REAL CHAIN, a typed "Ford Mustang V8" (lane-b-names3, Nov 5 2026). Live, Find returned no matches while Mustang GT and Shelby listings were live. CAUSE: the resolver read the V8 as the car's TRIM, and the live search holds a listing to the trim, so every listing that did not print
+// "V8" in its title was out; the filter below it (the rule from lane-b-rick) never got a listing. WHO ELSE: every engine and gearbox word typed after a car on Find, Buy, Tasks and the chat tool. The rule: a listing that states another layout is out, one that says nothing stays marked
+// "engine" not stated, one that states the layout stays. Run with the resolver as it was (noNameGuard) and as it is: both must hold.
+{ const R = await import(pathToFileURL(path.join(ROOT, "lib/vehicle.js")).href);
+  const mkL = (id, title, desc) => ({ ...live(id, title, desc, null), listing_title: title });
+  const FEED = [mkL(11, "2017 Ford Mustang GT", "Coyote 5.0L V8"), mkL(12, "2016 Shelby GT350 Mustang", "Flat-plane crank 5.2L V8"), mkL(13, "2017 Ford Mustang Coupe", "A clean example"), mkL(14, "2017 Ford Mustang EcoBoost", "2.3L four-cylinder turbo"), mkL(15, "2015 Ford Mustang V6", "3.7L V6")];
+  const f1 = globalThis.fetch; globalThis.fetch = async (url) => { const u = new URL(String(url)); return new Response(u.pathname.endsWith("/live_listings") ? JSON.stringify(FEED) : "[]", { status: 200 }); };
+  for (const ng of [true, false]) for (const [w, key] of [["V8", "v8"], ["V6", "v6"]]) {
+    const q = "Ford Mustang " + w, r = await R.resolveVehicle(q, { noNameGuard: ng }), v = r && r.vehicle;
+    const { filters } = S.parseQuery(q, new Set([String((v && v.model) || "").toLowerCase()]));
+    let out = null; try { out = await S.searchLive(env, v, filters, q, {}); } catch (e) { out = { rows: null }; }
+    const titles = ((out && out.rows) || []).map(x => String(x.r && (x.r.listing_title || x.r.title) || "")), unk = ((out && out.rows) || []).map(x => (x.unknown || []).join(","));
+    const want = key === "v8" ? ["2017 Ford Mustang GT", "2016 Shelby GT350 Mustang", "2017 Ford Mustang Coupe"] : ["2017 Ford Mustang Coupe", "2015 Ford Mustang V6"];
+    ok(`"${q}" (${ng ? "resolver as it was" : "resolver now"}): the listings that state ${w} stay, a listing that states another layout is out, one that says nothing stays`, JSON.stringify(titles.slice().sort()) === JSON.stringify(want.slice().sort()), JSON.stringify({ trim: v && v.trim, titles }));
+    ok(`... the listing that says nothing is marked "engine" not stated, the ones that state it are not`, titles.every((t, i) => (t === "2017 Ford Mustang Coupe") === unk[i].includes("engine")), JSON.stringify(unk));
+  }
+  globalThis.fetch = f1; }
 console.log(failed ? `\n${failed} FAILED` : "\nengineWordFilterCheck: all pass"); process.exit(failed ? 1 : 0);
