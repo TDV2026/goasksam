@@ -97,5 +97,14 @@ eq("Jaguar E-Type V12 keeps the V12 trim", await read("1973 Jaguar E-Type V12"),
     if (D.CURATED_MODELS[mk.toLowerCase()] && D.CURATED_MODELS[mk.toLowerCase()].includes(md) && !(bv && bv.model)) unresolved.push(t); }
   ok(`${n} known make and model pairs: the guard blanks none that the resolver read`, !blanked.length, blanked.slice(0, 6).join(" | "));
   ok("every curated model resolves", !unresolved.length, unresolved.slice(0, 6).join(" | ")); }
+// 7. A MULTI-WORD MODEL NEVER LOSES ITS FIRST WORD (lane-b-names3, Nov 5 2026). Live: "1949 Rolls-Royce Silver Wraith" was titled "1949 Rolls-Royce Wraith", the 2013 to 2021 car. CAUSES: a colour word (Silver) is stripped before the model is read; a model the taxonomy files
+// under its second word (Ferrari 166 MM read as MM); a Roman numeral read alone (Jaguar Mark VIII read as VIII). WHO ELSE: every page that names a car from the resolver. The list is the real cars the sweep of 294 multi-word models found; a control proves the one-word cars stay.
+for (const [mk, y, names] of [["Rolls-Royce", 1955, ["Silver Wraith", "Silver Ghost", "Silver Dawn", "Silver Cloud", "Silver Shadow", "Silver Spirit", "Silver Spur", "Silver Seraph"]], ["Ferrari", 1960, ["166 MM", "166 Inter", "195 Inter", "212 Export", "212 Inter", "340 America", "342 America", "410 Superamerica", "288 GTO"]],
+  ["Lamborghini", 1965, ["350 GT", "400 GT"]], ["Maserati", 1960, ["5000 GT"]], ["Alfa Romeo", 1936, ["8C 2900"]], ["Bentley", 1953, ["R-Type Continental"]], ["Jaguar", 1955, ["Mark VII", "Mark VIII", "Mark IX", "Mark X"]]])
+  for (const n of names) { const g = await read(`${y} ${mk} ${n}`); ok(`${mk} ${n} keeps its first word`, g && g.model === n, JSON.stringify(g)); }
+eq("1949 Rolls-Royce Silver Wraith is not the Wraith", await read("1949 Rolls-Royce Silver Wraith Touring Limousine"), { model: "Silver Wraith" });
+eq("control: 2015 Rolls-Royce Wraith stays the Wraith", await read("2015 Rolls-Royce Wraith"), { model: "Wraith" });
+eq("control: 2012 Rolls-Royce Ghost stays the Ghost", await read("2012 Rolls-Royce Ghost"), { model: "Ghost" });
+eq("control: Bentley Continental GT keeps Continental and GT", await read("2005 Bentley Continental GT"), { model: "Continental", trim: "GT" });
 console.error = quiet;
 log(fail ? `\nnameGuardCheck: ${fail} FAILED` : "\nnameGuardCheck: all passed"); process.exit(fail ? 1 : 0);
