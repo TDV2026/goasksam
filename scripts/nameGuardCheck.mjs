@@ -16,7 +16,7 @@ const read = async t => { const r = await resolveVehicle(t, {}).catch(() => null
 const eq = (n, got, want) => ok(n, got && Object.entries(want).every(([k, w]) => (got[k] ?? null) === w), JSON.stringify(got));
 // 1. Rick's names, one title each (the title the name came from)
 eq("Chrysler By -> Chrysler Imperial, coachbuilder Ghia", await read("1958 Chrysler Imperial Crown Southampton by Ghia"), { model: "Imperial", coachbuilder: "Ghia" });
-eq("Delahaye By -> no model 'By'; coachbuilder Chapron", await read("1936 Delahaye 135 by Chapron"), { model: null, coachbuilder: "Chapron" });
+eq("Delahaye By -> model 135, never 'By'; coachbuilder Chapron", await read("1936 Delahaye 135 by Chapron"), { model: "135", coachbuilder: "Chapron" });
 eq("Delahaye 135M by Figoni et Falaschi keeps 135M", await read("1938 Delahaye 135M Roadster by Figoni et Falaschi"), { model: "135M", coachbuilder: "Figoni et Falaschi" });
 eq("Dodge Hemi R T -> no model 'Hemi'; trim R/T", await read("1969 Dodge Hemi R/T"), { model: null, trim: "R/T" });
 eq("Dodge Hemi Challenger R/T -> Challenger R/T", await read("1970 Dodge Hemi Challenger R/T"), { model: "Challenger", trim: "R/T" });
@@ -64,5 +64,35 @@ eq("control: Ferrari 250 GTO", await read("1962 Ferrari 250 GTO"), { model: "250
   for (const k of Object.keys(rows)) { const a = await S.readWarmAnswerDetailed(env, k), b = await S.readWarmAnswer(env, k); ok(`stored ${k}: both readers ${served[k] ? "serve" : "read no row"}`, !!(a && a.raw) === served[k] && !!b === served[k]); }
   globalThis.fetch = f0;
   ok("badNameOf names the pattern for each of Rick's stored names", N.badNameOf({ make: "Delahaye", model: "By" }) === "connective" && N.badNameOf({ make: "Jaguar", model: "Mark" }) === "partial_model" && N.badNameOf({ make: "Dodge", model: "Hemi" }) === "engine_or_gearbox_as_model" && N.badNameOf({ make: "Alfa Romeo", model: "GTA" }) === "badge_only_model" && N.badNameOf({ make: "Ford", model: "Mustang", trim: "GT V8" }) === "engine_or_gearbox_in_trim" && N.badNameOf({ make: "Ford", model: "Mustang", trim: "GT" }) === null); }
+// 6. A KNOWN MODEL NEVER BLANKS (lane-b-names2, Nov 4 2026). CAUSE: the taxonomy did not hold Delahaye 135, 175, 235 ("1936 Delahaye 135" had no model), the 1750 and 2000 GTV read as GTV and 2000, and a guard keyed on the word alone would blank McLaren F1,
+// Aston Martin V8, Ford V8 and F-1, Lagonda V12, Cadillac V-8 (real cars named like an engine). Per make, so "Ferrari F1" and "Chevrolet LT1" stay unnamed.
+for (const m of ["135", "135M", "135MS", "148", "175", "235"]) eq(`Delahaye ${m} resolves`, await read(`1938 Delahaye ${m}`), { model: m });
+eq("Delahaye 135 by Chapron keeps 135 and the coachbuilder", await read("1936 Delahaye 135 by Chapron"), { model: "135", coachbuilder: "Chapron" });
+eq("Alfa Romeo 1750 GTV", await read("1969 Alfa Romeo 1750 GTV"), { model: "1750 GTV" });
+eq("Alfa Romeo 2000 GTV", await read("1972 Alfa Romeo 2000 GTV"), { model: "2000 GTV" });
+eq("Alfa Romeo 1750 Berlina", await read("1969 Alfa Romeo 1750 Berlina"), { model: "1750 Berlina" });
+eq("Alfa Romeo 2000 Spider", await read("1960 Alfa Romeo 2000 Spider"), { model: "2000 Spider" });
+eq("control: the 1995 to 2006 Alfa Romeo GTV stays GTV", await read("1998 Alfa Romeo GTV"), { model: "GTV" });
+eq("2021 Giulia GTA", await read("2021 Alfa Romeo Giulia GTA"), { model: "Giulia", trim: "GTA" });
+eq("McLaren F1 keeps F1", await read("1995 McLaren F1"), { model: "F1" });
+eq("Aston Martin V8 keeps V8", await read("1975 Aston Martin V8"), { model: "V8" });
+eq("Ford V8 keeps V8", await read("1934 Ford V8"), { model: "V8" });
+eq("Ford F-1 keeps F1", await read("1948 Ford F-1"), { model: "F1" });
+eq("Lagonda V12 keeps V12", await read("1938 Lagonda V12"), { model: "V12" });
+eq("Cadillac V-8 keeps V8", await read("1932 Cadillac V-8"), { model: "V8" });
+eq("Jaguar E-Type V12 keeps the V12 trim", await read("1973 Jaguar E-Type V12"), { model: "E-Type", trim: "V12" });
+{ // the class: every model the engine knows by name (generation table, curated models, model aliases, Rick's marque and model pairs) reads the same with and without the guard, and a curated model always resolves
+  const G = await imp("lib/generations.js"), D = await imp("lib/vehicleData.js");
+  const pairs = new Map(); const add = (mk, md) => { if (mk && md) pairs.set(mk + "|" + md, [mk, md]); };
+  for (const g of G.CURATED_GENERATIONS) add(g.make, g.model);
+  for (const [mk, ms] of Object.entries(D.CURATED_MODELS)) for (const m of ms) add(mk, m);
+  for (const a of D.MODEL_ALIASES) add(a.make, a.model);
+  for (const l of fs.readFileSync("docs/rick-nomenclature.csv", "utf8").split("\n").slice(1)) { const c = l.split(","); if (c[2] && c[3]) add(c[2].trim(), c[3].trim()); }
+  let blanked = [], unresolved = [], n = 0;
+  for (const [mk, md] of pairs.values()) { n++; const t = `1965 ${mk} ${md}`; const a = await resolveVehicle(t, { noNameGuard: true }).catch(() => null), b = await resolveVehicle(t, {}).catch(() => null), av = a && a.vehicle, bv = b && b.vehicle;
+    if (av && av.model && !(bv && bv.model)) blanked.push(t);
+    if (D.CURATED_MODELS[mk.toLowerCase()] && D.CURATED_MODELS[mk.toLowerCase()].includes(md) && !(bv && bv.model)) unresolved.push(t); }
+  ok(`${n} known make and model pairs: the guard blanks none that the resolver read`, !blanked.length, blanked.slice(0, 6).join(" | "));
+  ok("every curated model resolves", !unresolved.length, unresolved.slice(0, 6).join(" | ")); }
 console.error = quiet;
 log(fail ? `\nnameGuardCheck: ${fail} FAILED` : "\nnameGuardCheck: all passed"); process.exit(fail ? 1 : 0);
