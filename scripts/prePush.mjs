@@ -802,6 +802,13 @@ try {
 } catch (e) {
   record("popupSalesCheck (scripts/popupSalesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// cardPopupCountCheck (Lane B, Nov 3 2026, lane-b-genline): a Find card and its popup count one pool (the near-miles card, the whole-pool card, two cars, two mileages); fails on any difference in count or sales.
+try {
+  const out = execSync("node scripts/cardPopupCountCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("cardPopupCountCheck (scripts/cardPopupCountCheck.mjs)", "PASS", (out.match(/cardPopupCountCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("cardPopupCountCheck (scripts/cardPopupCountCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });
