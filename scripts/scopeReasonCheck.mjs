@@ -34,14 +34,14 @@ const V = (yr) => ({ make: "Datsun", model: "240Z", trim: "", year: yr, bodyStyl
 rows = [];
 for (let i = 0; i < 9; i++) sale(1972 + (i % 2), day(10 + i * 9), 21000 + i * 300, true);
 let a = await askV(V(1974), "1974 Datsun 240Z");
-ok("no sale of the typed year", a.raw.scope_reason === "No 1974 sales yet, showing 1972 to 1973", String(a.raw.scope_reason) + " / " + JSON.stringify(a.raw.poolYears));
+ok("no sale of the typed year", a.raw.scope_reason === "There are no 1974 sales yet, so 1972 to 1973 cars are counted here.", String(a.raw.scope_reason) + " / " + JSON.stringify(a.raw.poolYears));
 ok("the field reaches the mapped answer", a.scope_reason === a.raw.scope_reason);
 // a few of the typed year, not enough: "Too few 2006 sales"
 rows = [];
 for (let i = 0; i < 3; i++) sale(1972, day(10 + i * 9), 30000 + i * 300, true);
 for (let i = 0; i < 7; i++) sale(1971 + (i % 2) * 2, day(40 + i * 9), 26000 + i * 300, true);
 a = await askV(V(1972), "1972 Datsun 240Z");
-ok("some of the typed year, under the floor", /^Too few 1972 sales, showing 1971 to 1973$/.test(String(a.raw.scope_reason)), String(a.raw.scope_reason) + " / " + JSON.stringify(a.raw.poolYears));
+ok("some of the typed year, under the floor", /^There are too few 1972 sales, so 1971 to 1973 cars are counted here\.$/.test(String(a.raw.scope_reason)), String(a.raw.scope_reason) + " / " + JSON.stringify(a.raw.poolYears));
 // the pool is the typed year: null
 rows = [];
 for (let i = 0; i < 10; i++) sale(1972, day(10 + i * 9), 30000 + i * 300, true);
@@ -54,7 +54,7 @@ ok("no typed year, a span, or no pool read: null", scopeReasonOf({ tier: "result
 { const { coreOf } = await import(pathToFileURL(path.join(root, "lib/live/search.js")).href);
   rows = []; for (let i = 0; i < 9; i++) sale(1972 + (i % 2), day(10 + i * 9), 21000 + i * 300, true);
   const x = await askV(V(1974), "1974 Datsun 240Z"); const core = coreOf(x.raw, { v: V(1974), generation: null, refine: null });
-  ok("the stored core carries scope_reason unchanged", core && core.scope_reason === "No 1974 sales yet, showing 1972 to 1973", String(core && core.scope_reason)); }
+  ok("the stored core carries scope_reason unchanged", core && core.scope_reason === "There are no 1974 sales yet, so 1972 to 1973 cars are counted here.", String(core && core.scope_reason)); }
 // the receipts gate: 325xi is a 325i
 rows = [];
 for (let i = 0; i < 5; i++) sale(2006, day(10 + i * 20), 7000 + i * 300, true, "BMW", "325i", "2006 BMW 325i Sedan");

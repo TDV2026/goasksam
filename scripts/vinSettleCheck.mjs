@@ -64,9 +64,9 @@ for (const f of F) {
     ok(`${f.n}: it reads ${f.settled} sales, not the whole car's (cluster starts above ${f.minCluster || 40000})`, out.tier === "result" && Array.isArray(out.cluster) && out.cluster[0] > (f.minCluster || 40000), JSON.stringify(out.cluster));
   } else if (f.asks) {
     ok(`${f.n}: still a question, about the ${f.asks} only`, out.tier === `${f.asks}_choice` && out.vinSettled === undefined, out.tier);
-    ok(`${f.n}: the engine says why in a plain line, and the prompt the page prints starts with it`, typeof out.vinAskLine === "string" && /^The VIN /.test(out.vinAskLine) && String(out.prompt).startsWith(out.vinAskLine) && !/[–—]/.test(out.vinAskLine), out.vinAskLine);
+    ok(`${f.n}: the engine says why in a plain line, and the prompt the page prints starts with it`, typeof out.vinAskLine === "string" && /^(The VIN |Going by the VIN,)/.test(out.vinAskLine) && String(out.prompt).startsWith(out.vinAskLine) && !/[–—]/.test(out.vinAskLine), out.vinAskLine);
     ok(`${f.n}: the chips are exactly ${f.chips.join(", ")}`, JSON.stringify(labels(out, dim)) === JSON.stringify(f.chips), JSON.stringify(labels(out, dim)));
-    if (f.narrowed) ok(`${f.n}: the chips list no trim the VIN rules out`, !labels(out, dim).includes("Turbo") && /narrows/.test(out.vinAskLine));
+    if (f.narrowed) ok(`${f.n}: the chips list no trim the VIN rules out`, !labels(out, dim).includes("Turbo") && /only these .* are possible/.test(out.vinAskLine));
   } else if (f.whole) {
     ok(`${f.n}: no question, no chips of other trims`, !/_choice$/.test(String(out.tier)) && !out.trimChips, out.tier);
     ok(`${f.n}: said as a fact of the answer (vinSettled names the trim and where it came from)`, Array.isArray(out.vinSettled) && out.vinSettled.some(s => s.dimension === "trim"), JSON.stringify(out.vinSettled));

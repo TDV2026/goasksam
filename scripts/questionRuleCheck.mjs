@@ -111,7 +111,7 @@ const gv = m => ({ make: "Acme", model: m, trim: "", year: 1985, bodyStyle: null
   reads = 0; const again = await QR({ tier: "gearbox_choice", gearboxOptions: ["Manual", "Automatic"], optionCounts: [6, 6], prompt: "Manual or Automatic?" }, iotaCoupe, null, "1985 Acme Iota coupe", live, null);
   ok("live: the next ask of the same spec reads the stored row, no option reads", reads <= 1, `${reads} reads`);
   ok("live: the cap is 1.5 seconds", E.QUESTION_CAP_MS === 1500);
-  ok("live: the unchecked and cap wording says what scope was used", /every gearbox/.test(String(scopeReasonOf({ tier: "thin", poolYears: [1985, 1985], rawPool: [], questionResolved: { dimension: "gearbox", kept: null, dropped: [], why: "cap_exceeded" } }, { year: 1985 }))));
+  ok("live: the unchecked and cap wording says what scope was used", /every gearbox/i.test(String(scopeReasonOf({ tier: "thin", poolYears: [1985, 1985], rawPool: [], questionResolved: { dimension: "gearbox", kept: null, dropped: [], why: "cap_exceeded" } }, { year: 1985 }))));
   globalThis.fetch = f0; }
 // 4. the rule over everything asked above
 for (const { text, a } of asked) {

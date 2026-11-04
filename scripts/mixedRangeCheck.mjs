@@ -49,7 +49,7 @@ const fast = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
 const zeta = { make: "Acme", model: "Zeta", trim: "", year: 1972, bodyStyle: null };
 // 1. past the cap, coupes near 20,000 and convertibles near 70,000: no range
 const a = (await E.oneEngineAnswer(zeta, null, "1972 Acme Zeta", live, null)).raw;
-ok("cap: the question was not settled inside the cap, the whole car answers and says so", a.questionResolved && a.questionResolved.why === "cap_exceeded" && /every body/.test(String(a.scope_reason)), `tier ${a.tier} ${JSON.stringify(a.questionResolved || null)} reason ${a.scope_reason}`);
+ok("cap: the question was not settled inside the cap, the whole car answers and says so", a.questionResolved && a.questionResolved.why === "cap_exceeded" && /every body/i.test(String(a.scope_reason)), `tier ${a.tier} ${JSON.stringify(a.questionResolved || null)} reason ${a.scope_reason}`);
 ok("cap: a pool of coupes and convertibles 3.5 times apart never prints one range", !a.cluster && a.thinReason === "mixed_prices" && a.poolN === 12, `cluster ${JSON.stringify(a.cluster)}, reason ${a.thinReason}, pool ${a.poolN}`);
 ok("cap: the sales themselves are shown (all twelve, no range, a reason line)", a.thin_sales && a.thin_sales.count === 12 && /very different price ranges/.test(String(a.thinLine)), JSON.stringify(a.thin_sales && a.thin_sales.count));
 ok("cap: the spec is queued for the next warm", [...store.keys()].some(k => k.startsWith("QELIGMISS|")), [...store.keys()].join(","));
