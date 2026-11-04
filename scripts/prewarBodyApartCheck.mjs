@@ -1,4 +1,5 @@
 // Pre-war body style check (Lane B, Nov 4 2026, job lane-b-rick point 3, Rick Carey's launch-day feedback). THE CLASS: before 1949 a body style is a different car (a roadster, a phaeton and a sedan of one
+// clock: real-ok every date in the fixture is relative to the one now read at the top (days ago, hours ahead), so the verdict does not change with the day (Lane B, Nov 4 2026)
 // marque and year price and are collected apart), but the engine made body an apart dimension only when the medians happened to split, so a pre-war answer pooled them into one range. Now: for any car
 // before 1949 two or more bodies each holding sales are an APART answer by default, each body with its own range, through the same options/popup as mileage bands; a post-war car is unchanged.
 // Must hold on a fixture where the bodies' prices are close (so the old split rule could not fire):

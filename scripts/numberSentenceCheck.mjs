@@ -15,7 +15,7 @@ const rows = Array.from({ length: 6 }, (_, i) => sale(i, `2026-0${1 + i}-10`));
 const stored = { tier: "result", poolN: 17, rawPool: rows, cluster: [30000, 40000],
   trend: { quarters: [], priorYear: { low: 31000.4, high: 44999.6 } },
   ownSales: { sales: [], lastSale: { price: 52000, date: "2026-03-14", placing: "inside the range" } },
-  cards: [{ title: "x", price: 1, soldBefore: { date: "2024-06-02", price: 41000 } }, { title: "y", price: 2, soldBefore: { date: "2023-01-09", price: null } }, { title: "z", price: 3 }],
+  cards: [{ title: "x", price: 1, date: "2026-10-03", soldBefore: { date: "2024-06-02", price: 41000 } }, { title: "y", price: 2, date: "2026-09-03", soldBefore: { date: "2023-01-09", price: null } }, { title: "z", price: 3, date: "2026-08-03" }],
   factsBlock: { count: 6, window: "since June 2025", lowest: 20000, highest: 31000, latestPrice: 28000, latestMonth: "2026-03" },
   trendQuarters: [{ period: "2026-Q1", low: 30000, high: 36000, count: 9, thin: false }] };
 const s = E.withReadFields(stored, "2001 BMW M3", { year: 2001 });

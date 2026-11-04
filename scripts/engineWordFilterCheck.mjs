@@ -1,4 +1,5 @@
 // Engine-word filter check (Lane B, Nov 4 2026, job lane-b-rick point 2, Rick Carey's launch-day feedback: a "Mustang V8" search printed "Sam didn't use 'v8' in this search"). THE CLASS: the live
+// clock: real-ok every date in the fixture is relative to the one now read at the top (days ago, hours ahead), so the verdict does not change with the day (Lane B, Nov 4 2026)
 // search (Find, Buy, Tasks) took a gearbox word out of the text and filtered on it, but left every engine word (V8, V6, V10, V12, flat-six, straight-six, four-cylinder, turbo, supercharged, diesel) and the
 // N-speed word in the text, where the leftover-words line named it as unused. ONE table (lib/typedAttributes.js) now serves the engine's stored sales and the live listings. Must hold:
 //  (1) EVERY engine word and N-speed word the parser knows is taken out of the text into filters.attrWords, and no applied word is ever named in the "didn't use" line;
