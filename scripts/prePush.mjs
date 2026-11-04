@@ -2041,6 +2041,12 @@ try {
   record("engine: before 1949 body style is an apart dimension by default, each body with its own range, plain labels (scripts/prewarBodyApartCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/salesListOrderCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: every dated sales list in an answer is newest first on every tier, thin and apart included (scripts/salesListOrderCheck.mjs)", "PASS", (out.match(/salesListOrderCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: every dated sales list in an answer is newest first on every tier, thin and apart included (scripts/salesListOrderCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/poolSourceCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: a house-heavy car's Market Check pool is the whole record, house sales included; an online-heavy car keeps the online band (scripts/poolSourceCheck.mjs)", "PASS", (out.match(/poolSourceCheck: .*/) || [""])[0]);
 } catch (e) {
