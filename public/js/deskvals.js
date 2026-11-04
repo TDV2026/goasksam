@@ -177,7 +177,7 @@
   function s6(h, rd, ev, ed, dis) {
     var d = h.draft.decision, m = rd.market, cd = rd.condition, e = ev || { guards: [], missing: [], given: null };
     var beside = '<div class="beside"><span>Market range <b class="num">' + (cd.tooFew && m.wider ? usd(m.wider.low) + " to " + usd(m.wider.high) + " (wider pool)" : usd(m.p25) + " to " + usd(m.p75)) + '</b></span><span>Starting figure <b class="num">' + (m.startingFigure ? usd(m.startingFigure) : "none") + "</b></span></div>";
-    var mode = '<span class="seg"><button type="button" data-mode="reserve" class="' + (d.mode === "reserve" ? "on" : "") + '"' + dis + '>Reserve</button><button type="button" data-mode="range" class="' + (d.mode === "range" ? "on" : "") + '"' + dis + ">Range</button></span>";
+    var mode = '<span class="seg"><button type="button" data-dmode="reserve" class="' + (d.mode === "reserve" ? "on" : "") + '"' + dis + '>Reserve</button><button type="button" data-dmode="range" class="' + (d.mode === "range" ? "on" : "") + '"' + dis + ">Range</button></span>";
     var fields = d.mode === "reserve" ? '<div class="fields"><div class="f"><label>Reserve</label><input class="vin mono" data-k="d-reserve" inputmode="numeric" value="' + esc(d.reserve) + '"' + dis + "></div></div>"
       : d.mode === "range" ? '<div class="fields"><div class="f"><label>Low</label><input class="vin mono" data-k="d-low" inputmode="numeric" value="' + esc(d.low) + '"' + dis + '></div><div class="f"><label>High</label><input class="vin mono" data-k="d-high" inputmode="numeric" value="' + esc(d.high) + '"' + dis + "></div></div>" : "";
     var place = e.given ? '<p style="margin:0 0 6px"><span class="chip ' + (e.inRange ? "ok" : "warn") + '">' + (e.inRange ? "Inside the market range" : "Outside the market range") + "</span></p>" : "";
@@ -224,7 +224,7 @@
     var tr = t.closest("[data-tier]"); if (tr) { save(id, { tier: Number(tr.getAttribute("data-tier")) }, true); return; }
     var hero = t.closest("[data-hero]"); if (hero) { save(id, { heroId: hero.getAttribute("data-hero") }, true); return; }
     var ck = t.closest("[data-chk]"); if (ck) { var k = ck.getAttribute("data-chk"), cur = h.draft.checklist[k] || {}; cur.state = ck.getAttribute("data-state"); h.draft.checklist[k] = cur; save(id, { checklist: h.draft.checklist }, true); return; }
-    var md = t.closest("[data-mode]"); if (md) { h.draft.decision.mode = md.getAttribute("data-mode"); save(id, draftPatch(h), true); return; }
+    var md = t.closest("[data-dmode]"); if (md) { h.draft.decision.mode = md.getAttribute("data-dmode"); save(id, draftPatch(h), true); return; }
     if (t.closest("[data-finalise]")) { h.fin = ""; api("sheet_finalise", { id: id }).then(function (r) { if (r.ok) { h.v = r; h.fin = ""; } else h.fin = r.why || "The sheet was not finalised."; renderAll(); loadLists(); }); return; }
     if (t.closest("[data-pdf]")) { api("sheet_pdf", { id: id }).then(function (r) { if (!r.ok) { h.msg = r.why || "The PDF could not be made."; renderAll(); return; } var bin = atob(r.pdf_b64), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([u], { type: "application/pdf" })); a.download = r.filename; document.body.appendChild(a); a.click(); a.remove(); }); return; }
     if (t.closest("[data-correct]")) { api("sheet_correct", { id: id }).then(function (r) { if (r.ok) { loadLists(); openSheet(r.id); } else flash(r.why || "Could not start a correction."); }); return; }
