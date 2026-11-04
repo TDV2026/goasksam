@@ -2041,6 +2041,12 @@ try {
   record("engine: before 1949 body style is an apart dimension by default, each body with its own range, plain labels (scripts/prewarBodyApartCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/poolSourceCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: a house-heavy car's Market Check pool is the whole record, house sales included; an online-heavy car keeps the online band (scripts/poolSourceCheck.mjs)", "PASS", (out.match(/poolSourceCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a house-heavy car's Market Check pool is the whole record, house sales included; an online-heavy car keeps the online band (scripts/poolSourceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/nameGuardCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("names: a coachbuilder phrase, a lot or reference number, an engine or gearbox word and the front half of a two-word model never become a car's name, and a stored row under such a name is read as no row (scripts/nameGuardCheck.mjs)", "PASS", (out.match(/nameGuardCheck: .*/) || [""])[0]);
 } catch (e) {
