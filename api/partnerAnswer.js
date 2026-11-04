@@ -284,7 +284,9 @@ export function salesOf(d) {
 // is already that car's generation and trim, with halo trims set aside. A sale of the same year first, newest first;
 // then any included sale. No photo on any included sale means no photo. The id is served by the same ?photo= path.
 export function carPhotoOf(d, year) {
-  const rows = salesOf(d).filter(r => r.photo);
+  // THE HERO PHOTO IS A SALE OF THE ANSWER'S OWN POOL, never a wider one (lane-b-vinpool item 2): a sale outside the pool the range was built from (not in rawPool when the answer carries it) or one the engine set aside is not a candidate; no candidate, no photo
+  const poolIdList = Array.isArray(d && d.rawPool) ? d.rawPool.map(rowId).filter(Boolean) : [], poolIds = poolIdList.length ? new Set(poolIdList) : null, asideIds = new Set([...(Array.isArray(d && d.asideCards) ? d.asideCards : []), ...(Array.isArray(d && d.setAsideRows) ? d.setAsideRows : [])].map(rowId).filter(Boolean));
+  const rows = salesOf(d).filter(r => r.photo && (!poolIds || poolIds.has(r.photo)) && !asideIds.has(r.photo));
   if (!rows.length) return null;
   const yr = r => { const m = /^(\d{4})\b/.exec(String(r.name || "")); return m ? Number(m[1]) : null; };
   const newest = (a, b) => String(b.date || "").localeCompare(String(a.date || ""));
@@ -794,7 +796,8 @@ async function handlerCore(req, res) {
   if (!refine && !(Number(asked) > 0)) {
     const qk = demoKey(text), qlast = qk && env ? await readLast(env, qk) : null;
     if (!vinIn && lastGoodUsable(qlast) && questionResult(qlast.out)) return res.status(200).json({ ...servedFromStored(qlast.out, null), history, storedQuestion: true });
-    if (lastGoodUsable(qlast) && fullResult(qlast.out)) {
+    // A VIN IS NEVER ANSWERED FROM A DEMO CAR'S STORED ANSWER (lane-b-vinpool item 2): the stored answer is the bare words' pool, with that pool's photo; a VIN's decoded trim, body, code ruling and mileage make it another pool, and a stored answer cannot say so (a 997 VIN page showed a 997 GT3 as "a car like this one")
+    if (!vinIn && lastGoodUsable(qlast) && fullResult(qlast.out)) {
       if (storedDemoServable(qlast, await currentEpoch(env).catch(() => null))) {
         const base = servedFromStored(qlast.out, ask);   // null: this request needs the live engine (a typed mileage, another order, or a stored answer from before the placed sales)
         const out = !base ? null : vinIn ? { ...base, history, vin: vinIn, carName: carNameOf(id), storedDemo: true } : { ...base, storedDemo: true };

@@ -131,6 +131,29 @@ for (const [vin, year, make, model, trim, body] of CARS) {
     ok(`${lab}: the engine says which trims the VIN rules out`, !!A.ruledOutLineOf && /settles which trims/.test(String(A.ruledOutLineOf(ruling))), String(A.ruledOutLineOf && A.ruledOutLineOf(ruling)));
   }
 }
+// HERO PHOTO (lane-b-vinpool item 2): the partner page showed a 997 GT3 as "a car like this one" on a 997 Carrera VIN. The hero photo is a sale of the answer's OWN pool, never a wider one; no photo in the pool, no photo.
+{
+  const { photoId } = await import(pathToFileURL(path.join(root, "lib/_salePhoto.js")).href);
+  const card = (id, title, price) => ({ id, title, rtitle: title, price, date: "2026-03-01", mi: 40000, image: "https://img.test/" + id + ".jpg" });
+  const inPoolSale = card("11111111-1111-4111-8111-111111111111", "2005 Porsche 911 Carrera", 52000), outSale = card("22222222-2222-4222-8222-222222222222", "2005 Porsche 911 GT3", 150000);
+  // (a) a card outside the pool the range was built from is never the hero, whatever else is in the answer
+  const dOut = { tier: "result", cards: [outSale, inPoolSale], rawPool: [inPoolSale], cluster: [50000, 54000] };
+  const pOut = P.carPhotoOf(dOut, 2005);
+  ok("hero photo: a sale outside the answer's pool (a 997 GT3 on a Carrera VIN) is never the hero", !!pOut && pOut.photo === photoId(inPoolSale.id), JSON.stringify(pOut));
+  // (b) a sale the engine set aside is never the hero
+  const pAside = P.carPhotoOf({ tier: "result", cards: [outSale, inPoolSale], rawPool: [inPoolSale, outSale], asideCards: [outSale], cluster: [50000, 54000] }, 2005);
+  ok("hero photo: a set-aside sale is never the hero", !!pAside && pAside.photo === photoId(inPoolSale.id), JSON.stringify(pAside));
+  // (c) the only photo is outside the pool: no photo at all
+  const pNone = P.carPhotoOf({ tier: "result", cards: [outSale], rawPool: [inPoolSale], cluster: [50000, 54000] }, 2005);
+  ok("hero photo: when the pool has no photo the page shows none", pNone === null, JSON.stringify(pNone));
+  // (d) a real answer: the 997 pool with GT3 sales in the archive; the hero is a sale of the pool
+  const rows = [["Carrera", 52000], ["Carrera S", 71000], ["GT3", 150000], ["GT3 RS", 200000]].flatMap(([t, p]) => Array.from({ length: 10 }, (_, i) => ({ id: String(5000 + t.length * 100 + p / 1000 + i), price: p + i * 300, _usd: p + i * 300, auction_end_date: `2026-0${1 + (i % 9)}-${10 + (i % 9)}`, year: 2005, make: "Porsche", model: "911", raw_title: `2005 Porsche 911 ${t}`, rtitle: `2005 Porsche 911 ${t}`, mileage: String(20000 + i * 900), vin_norm: "ZZ" + t.replace(/\W/g, "") + i, transmission: "Manual", image: "https://img.test/" + t.replace(/\W/g, "") + i + ".jpg", source: "bringatrailer", platform: "bringatrailer" })));
+  const r5 = await V.resolveVehicle("2005 Porsche 911", {}), d5 = E.withReadFields((await E.oneEngineAnswer(r5.vehicle, null, "2005 Porsche 911", { ...env(rows), asked: 9 }, null)).raw, "2005 Porsche 911", r5.vehicle), hero = P.carPhotoOf(d5, 2005);
+  const poolPhotoIds = new Set((d5.rawPool || []).map(r => photoId(r.id)));
+  ok("hero photo: on the engine's own 997 answer the hero is a sale of that answer's pool", !hero || poolPhotoIds.has(hero.photo), JSON.stringify(hero));
+  { const src = fs.readFileSync(path.join(root, "api/partnerAnswer.js"), "utf8");
+    ok("api/partnerAnswer.js never answers a VIN from a demo car's stored answer (that pool, and that pool's photo, is the bare words')", /if \(!vinIn && lastGoodUsable\(qlast\) && fullResult\(qlast\.out\)\)/.test(src)); }
+}
 ok("the check is not vacuous: the trim changes the answer for most of the cars (the bare model reads another pool)", vacuous <= Math.floor(CARS.length / 3), `${vacuous} of ${CARS.length} read the same with and without the trim`);
 // the partner endpoint must build its text with the one function (a page that builds its own words drifts)
 { const src = fs.readFileSync(path.join(root, "api/sellerDecision.js"), "utf8"); ok("api/sellerDecision.js runs decodeTrimRerun on a finished VIN answer, for the VIN page and the partner read alike", /decodeTrimRerun\(oneBox, vinCtx/.test(src)); }
