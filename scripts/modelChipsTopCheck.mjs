@@ -11,7 +11,8 @@ const c = JSON.parse(/^const CLIENT = (".*");$/m.exec(page)[1]), css = JSON.pars
 const a = c.indexOf("  var MODEL_TOP"), b = c.indexOf("  // Listings that don");
 const env = "function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\"/g,'&quot;'); } function num(n){ return Number(n).toLocaleString('en-US'); } function numWord(n){ return String(n); }\n" + c.slice(a, b) + "\nwindow.__ask = askHtml;";
 const ctx = vm.createContext({ window: {}, Number, String, Array, Object, JSON, Math }); vm.runInContext(env, ctx);
-const ask = (make, models, any) => ({ dim: "model", q: "Which model?", chips: models.map(([label, n]) => ({ label, n, patch: { model: label } })), any: { label: "Any " + make, n: any }, unstated: 0 });
+// the engine sends the model chips largest first (lib/live/samChat.js modelChips); the page keeps that order and sorts nothing (pageSortCheck, Nov 4 2026)
+const ask = (make, models, any) => ({ dim: "model", q: "Which model?", chips: models.slice().sort((x, y) => y[1] - x[1]).map(([label, n]) => ({ label, n, patch: { model: label } })), any: { label: "Any " + make, n: any }, unstated: 0 });
 const FIX = {
   BMW: ask("BMW", [["M3", 15], ["3 Series", 11], ["M5", 7], ["X5", 3], ["5 Series", 6], ["Z4", 2], ["M2", 4], ["1M", 1], ["Z3", 2], ["X3", 2], ["7 Series", 1], ["i8", 1], ["M4", 5], ["M6", 1], ["Z8", 1]], 72),
   Porsche: ask("Porsche", [["911", 23], ["Boxster", 3], ["Cayman", 4], ["928", 1], ["944", 2], ["914", 2], ["Cayenne", 2], ["356", 3], ["Macan", 1], ["Panamera", 1]], 42),
@@ -37,5 +38,7 @@ for (const [make, q] of Object.entries(FIX)) {
 }
 ok(/\.ask-ch \[hidden\]\{display:none!important\}/.test(css), "the hidden rest is really hidden");
 ok(/var am = e\.target\.closest && e\.target\.closest\("\[data-askmore\]"\); if \(am\)/.test(c) && /b\.hidden = false/.test(c), "More models opens the rest inline");
+ok(/\.sort\(\(a, b\) => b\.n - a\.n \|\| a\.label\.localeCompare\(b\.label\)\)\.map\(c => \(\{ label: c\.label, n: c\.n, patch: \{ model: c\.label \} \}\)\)/.test(fs.readFileSync(new URL("../lib/live/samChat.js", import.meta.url), "utf8")), "the engine sends the model chips largest first");
+ok(!/\.sort\(/.test(c.slice(a, b)), "the page holds no sort of the model chips");
 console.log(`modelChipsTopCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
