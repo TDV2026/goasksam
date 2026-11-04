@@ -6,6 +6,7 @@ import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import { cors as gasCors } from "../lib/_cors.js";
 import { failBody } from "../lib/_fail.js";
 import { supabaseEnv } from "../lib/_supabase.js";
+import { routeLimit, sendTooMany } from "../lib/_routeLimit.js";
 import { resolveCaller, canActOnOrg, canAdminOrg, listSeats, addSeat, deactivateSeat } from "../lib/desk/seats.js";
 import { getOrgSettings, putOrgSettings, publicSettings } from "../lib/desk/orgSettings.js";
 import { startDomainVerification, checkDomainVerification } from "../lib/desk/domain.js";
@@ -21,6 +22,7 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  { const lim = await routeLimit(env, req, "desk_org", { route: "/api/deskOrg" }); if (!lim.ok) return sendTooMany(res, lim.retryAfter); }   // a seat's line (device and address); the crew is exempt
   const body = req.body || {};
   const org = validOrg(body.org) ? body.org : caller.org;
   const deny = (status, error) => res.status(status).json({ ok: false, error });
