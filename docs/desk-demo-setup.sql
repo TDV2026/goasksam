@@ -19,13 +19,12 @@ insert into desk_seats (org_id, subject, email, role, display_name) values
 on conflict (org_id, subject) do nothing;
 
 -- 3. Sending set, as Lane S's domain check would leave it for a verified domain.
---    Sending domain: mail.goasksam.com (already in use for our mail).
---    When desk.goasksam.com is verified in Resend, change BOTH the address and the domain below to desk.goasksam.com.
+--    Sending and receiving domain: desk.goasksam.com (verified in Resend for both).
 --    The licence dates are demo dates; the trigger refuses to create a sheet for an org without a licence end.
 insert into desk_org_settings (org_id, sending_name, sending_address, sending_domain,
                                sending_domain_status, sending_domain_verified_at,
                                licence_starts_on, licence_ends_on)
-values ('hagerty', 'Hagerty Marketplace', 'hagerty@mail.goasksam.com', 'mail.goasksam.com',
+values ('hagerty', 'Hagerty Marketplace', 'hagerty@desk.goasksam.com', 'desk.goasksam.com',
         'verified', now(), '2026-11-04', '2027-11-04')
 on conflict (org_id) do update set
   sending_name = excluded.sending_name,
