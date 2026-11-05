@@ -10,7 +10,7 @@ fs.copyFileSync(path.join(here, "package.json"), path.join(tmp, "package.json"))
 fs.symlinkSync(path.join(here, "node_modules"), path.join(tmp, "node_modules"));
 
 const P = "lib/desk/intake/parse.js", R = "lib/desk/intake/run.js", I = "lib/desk/intake/images.js", S = "lib/desk/send.js", W = "lib/desk/intake/resendInbound.js", ST = "lib/desk/intake/store.js";
-const PARSE = "intakeParseCheck", AUTH = "intakeAuthCheck", SEND = "sendCheck", SIGN = "signedWebhookCheck", H = "api/deskInbound.js";
+const PARSE = "intakeParseCheck", AUTH = "intakeAuthCheck", SEND = "sendCheck", SIGN = "signedWebhookCheck", H = "api/deskInbound.js", CARS = "carNamesCheck", CN = "lib/desk/intake/carName.js";
 const M = [
   // ---- reading a submission ----
   [PARSE, "structure not checked: any 17 characters is a VIN", P, "  if (!vinStructureOk(v)) return { state: \"rejected\", makerUnknown: false, reason: \"structure\" };", ""],
@@ -53,6 +53,14 @@ const M = [
   [SIGN, "the log line prints the signature header", H, "console.warn(`deskInbound rejected: reason=${v.reason} body=${from} bytes=${raw.length}`);", "console.warn(`deskInbound rejected: reason=${v.reason} sig=${req.headers[\"svix-signature\"]}`);"],
   [SIGN, "the route reads each chunk as text (a multi byte character split across chunks is corrupted)", H, "if (chunks.length) return { raw: Buffer.concat(chunks), from: \"stream\" };", "if (chunks.length) return { raw: Buffer.from(chunks.map(c => c.toString(\"utf8\")).join(\"\"), \"utf8\"), from: \"stream\" };"],
   [SIGN, "the route leaves the body parser on", H, "export const config = { api: { bodyParser: false } };", "export const config = { api: { bodyParser: true } };"],
+  // ---- the car's plain name on the sheet (M3Ci) ----
+  [CARS, "the sheet label is the decoder's words joined (the original M3Ci bug)", R, "export const labelOf = c => carLabel(c);", "export const labelOf = c => c ? [c.year, c.make, c.model, c.trim].filter(Boolean).join(\" \") : null;"],
+  [CARS, "the decode wording is not cleaned and nothing downstream repairs it", [[R, "plainCar({ year: y, make, model, trim: trim || null, body: String(row.BodyClass || \"\").trim() || null })", "{ year: y, make, model, trim: trim || null, body: String(row.BodyClass || \"\").trim() || null }"], [R, "car = plainCar(v ?", "car = (v ?"], [R, "source: \"vin\" });\n      } else decodeNote", "source: \"vin\" });\n      } else decodeNote"], [CN, "export function carLabel(c) {\n  if (!c) return null;\n  const p = plainCar(c);", "export function carLabel(c) {\n  if (!c) return null;\n  const p = c;"]]],
+  [CARS, "BMW M suffix (M3Ci) is kept in the model", CN, "if (m && /^bmw$/i.test(make)) model = m[1].toUpperCase();", ""],
+  [CARS, "the body name is left off the label", CN, "return [...parts, body].filter(Boolean).join(\" \");", "return parts.join(\" \");"],
+  [CARS, "Porsche trim codes (C2S, TT) are shown as they came", CN, "if (PORSCHE_TRIM_CODES[k]) trim = PORSCHE_TRIM_CODES[k];", ""],
+  [CARS, "a filler trim (Base) is shown", CN, "if (trim && FILLER_TRIM.test(trim)) trim = null;", ""],
+  [CARS, "the make is left shouting (HONDA)", CN, "const make = prettyMake(c.make);", "const make = String(c.make || \"\").trim();"],
   [AUTH, "a sheet query is not scoped to the org (production store)", ST, "let p = `${S}?org_id=eq.${q(orgId)}&select=*&order=created_at.desc&limit=50`;", "let p = `${S}?select=*&order=created_at.desc&limit=50`;"],
   [AUTH, "a path in another org's folder is accepted by the storage layer", "lib/desk/storage.js", "return validOrg(org) && typeof path === \"string\" && path.startsWith(org + \"/\")", "return validOrg(org) && typeof path === \"string\" && true"],
   // ---- send ----
@@ -85,12 +93,17 @@ const run = chk => spawnSync(process.execPath, [path.join(tmp, "scripts", chk + 
 for (const c of [PARSE, AUTH, SEND]) { const r = run(c); const out = r.stdout.split("\n").filter(l => /^FAIL/.test(l)); console.log(`${r.status === 0 ? "PASS" : "FAIL"}  baseline: ${c} is green on the real tree`); if (r.status !== 0) { bad++; console.log(out.join("\n")); } }
 for (const [chk, name, file, find, repl] of M) {
   n++;
-  const f = path.join(tmp, file), orig = fs.readFileSync(f, "utf8");
-  const edits = Array.isArray(find) ? find : [[find, repl]];
-  if (!edits.every(([a]) => orig.includes(a))) { bad++; console.log(`FAIL  [${chk}] ${name}: the code to remove is not in ${file} (update this script)`); continue; }
-  fs.writeFileSync(f, edits.reduce((t, [a, b]) => t.replace(a, () => b), orig));
+  // one edit [find, repl] in one file, several in one file [[find, repl], ...], or several files [[file, find, repl], ...] (when one bug lives in more than one place)
+  const list = Array.isArray(file) ? file : [[file, ...(Array.isArray(find) ? [find] : [find, repl])]];
+  const trip = list.flatMap(e => Array.isArray(e[1]) ? e[1].map(x => [e[0], x[0], x[1]]) : [[e[0], e[1], e[2]]]);
+  const origs = new Map(trip.map(([fl]) => [fl, fs.readFileSync(path.join(tmp, fl), "utf8")]));
+  const missing = trip.find(([fl, a]) => !origs.get(fl).includes(a));
+  if (missing) { bad++; console.log(`FAIL  [${chk}] ${name}: the code to remove is not in ${missing[0]} (update this script)`); continue; }
+  for (const [fl] of trip) origs.set("w:" + fl, origs.get(fl));
+  const cur = new Map(origs); for (const [fl, a, b2] of trip) cur.set(fl, cur.get(fl).replace(a, () => b2));
+  for (const [fl] of trip) fs.writeFileSync(path.join(tmp, fl), cur.get(fl));
   const r = run(chk), failed = (r.stdout.match(/^FAIL/gm) || []).length;
-  fs.writeFileSync(f, orig);
+  for (const [fl] of trip) fs.writeFileSync(path.join(tmp, fl), origs.get(fl));
   const red = r.status !== 0 && (failed > 0 || /Error/.test(r.stderr));
   if (!red) bad++;
   console.log(`${red ? "PASS" : "FAIL"}  [${chk}] without the fix (${name}): ${red ? `red, ${failed || "crash"} ${failed ? "checks fail" : ""}` : "STAYED GREEN: the check does not cover this rule"}`);

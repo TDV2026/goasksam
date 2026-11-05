@@ -154,7 +154,7 @@ const OUTLOOK = `FYI\n\n________________________________\nFrom: Pat Owner <pat@o
 // ---- 9. an engine read starts for a known car, in the background ----
 { const { st, deps, reads } = K.fresh();
   await processInbound(K.mail({ from: "ann@hagerty.example", subject: "x", text: `VIN ${VIN_A}` }), deps);
-  ok("a VIN decodes to the car and the engine read is started for it with that car", reads.length === 1 && reads[0].car.make === "Porsche" && st._state.sheets[0].car_label === "2008 Porsche 911 Carrera S" && st._state.sheets[0].engine_status === "running", [reads, st._state.sheets[0].car_label]); }
+  ok("a VIN decodes to the car and the engine read is started for it with that car", reads.length === 1 && reads[0].car.make === "Porsche" && st._state.sheets[0].car_label === "2008 Porsche 911 Carrera S Coupe" && st._state.sheets[0].engine_status === "running", [reads, st._state.sheets[0].car_label]); }
 
 globalThis.fetch = realFetch;
 { const r = result(); console.log(`\nintakeParseCheck: ${r.pass} pass, ${r.fail} FAIL`); process.exit(r.fail ? 1 : 0); }
