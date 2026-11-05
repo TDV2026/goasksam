@@ -1,4 +1,4 @@
-// Renders the two crew previews (/preview/home, /preview/find) through the real crew page handler and saves screenshots at 1440 and 390 under docs/design/preview/.
+// Renders the two crew previews (/preview/home, /preview/find) through the real crew page handler and saves screenshots at 1440, 1024, 768 and 390 under docs/design/preview/.
 // Offline: the handler runs in process, fonts come from public/fonts, every other request is dropped. Usage: node scripts/previewShots.mjs [outDir]
 import fs from "node:fs";
 import path from "node:path";
@@ -25,7 +25,7 @@ export async function render(browser, name, width, { full = true } = {}) {
 if (import.meta.url === "file://" + process.argv[1]) {
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
-  for (const name of ["preview-home", "preview-find"]) for (const w of [1440, 390]) {
+  for (const name of ["preview-home", "preview-find"]) for (const w of [1440, 1024, 768, 390]) {
     const { page } = await render(browser, name, w); const f = path.join(OUT, `${name.replace("preview-", "")}-${w}.png`);
     await page.screenshot({ path: f, fullPage: true }); const m = await page.evaluate(() => ({ w: document.documentElement.scrollWidth, h: document.documentElement.scrollHeight })); console.log(f.replace(ROOT + "/", ""), m.w + "x" + m.h); await page.close();
   }
