@@ -1997,6 +1997,12 @@ try {
   record("engine: a stored row over 24 hours and under 7 days is served and refreshed behind the response, one refresh per row, a few at once (scripts/expiredRowServedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/prewarAnySizeCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("engine: a pre-war car whose pool holds two or more bodies shows the bodies apart at any pool size, no pooled headline, a range only at 3 or more sales (scripts/prewarAnySizeCheck.mjs)", "PASS", (out.match(/checked .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a pre-war car whose pool holds two or more bodies shows the bodies apart at any pool size, no pooled headline, a range only at 3 or more sales (scripts/prewarAnySizeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/vpicErrorCacheCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("resolver: a vPIC error is never kept as an empty list (retry after 30 s), a real empty list is (scripts/vpicErrorCacheCheck.mjs)", "PASS", (out.match(/vpicErrorCacheCheck: .*/) || [""])[0]);
 } catch (e) {
