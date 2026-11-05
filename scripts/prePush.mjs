@@ -225,7 +225,7 @@ try {
 // Desk storage (Nov 2026, Lane S; docs/supabase-desk-storage.sql): RLS on every desk_ table and bucket, retention, org settings and seats. Each check builds the
 // real DDL in a throwaway local Postgres and runs its own mutants, so it takes a minute or two: it runs only when this branch touches the Desk storage files
 // (or the changed files could not be read). With no local Postgres the database part prints SKIP and is never counted as a pass.
-if (!allChanged || allChanged.some(f => /^(lib\/desk\/(storage|retention|orgSettings|domain|seats)\.js|api\/deskOrg\.js|docs\/supabase-desk.*\.sql|scripts\/(rls|retention|orgSettings)Check\.mjs|scripts\/_desk(Pg|Db|Fakes)\.mjs)$/.test(f))) {
+if (!allChanged || allChanged.some(f => /^(lib\/desk\/(storage|retention|orgSettings|domain|seats|sheetActions)\.js|api\/deskOrg\.js|docs\/supabase-desk.*\.sql|scripts\/(rls|retention|orgSettings)Check\.mjs|scripts\/_desk(Pg|Db|Fakes|Urls)\.mjs)$/.test(f))) {
   for (const c of ["rlsCheck", "retentionCheck", "orgSettingsCheck"]) {
     try {
       const out = execSync(`node scripts/${c}.mjs`, { encoding: "utf8", timeout: 600000 });

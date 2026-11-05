@@ -15,6 +15,7 @@
 //   node scripts/rlsCheck.mjs          exit 1 on any failure; "SKIP" (never a pass) when no Postgres is installed.
 import fs from "node:fs";
 import path from "node:path";
+import { urlFindings, URL_MUTANTS } from "./_deskUrls.mjs";
 import { ROOT, readDdl, build, available, stop, U, S1, S2, denied, readsNothing } from "./_deskDb.mjs";
 
 const SCRATCH = process.env.DESK_CHECK_TMP || undefined;
@@ -158,6 +159,12 @@ export async function main() {
   const real = readDdl(); let pass = 0, fail = 0;
   const bad = m => { fail++; console.log("FAIL " + m); }, ok = () => { pass++; };
   const st = staticFindings(real); st.length ? st.forEach(bad) : ok();
+  // Signed urls: the caller's org only, one hour, never stored. Runs without Postgres; each mutant must fail.
+  const uf = await urlFindings(); uf.length ? uf.forEach(bad) : ok();
+  for (const [name, m] of URL_MUTANTS) {
+    let f; try { f = await urlFindings(m); } catch (e) { bad(`url mutant "${name}": ${e.message}`); continue; }
+    if (f.length) { ok(); if (process.env.VERBOSE) console.log(`  caught "${name}": ${f[0].slice(0, 110)}`); } else bad(`url mutant "${name}" was NOT caught`);
+  }
   if (!available()) { console.log("SKIP rlsCheck dynamic part: no local Postgres (initdb/pg_ctl/psql). The static part ran; this is NOT a pass of the dynamic part."); console.log(`rlsCheck: ${pass} passed, ${fail} failed, dynamic SKIPPED`); return fail ? 1 : 0; }
   const dyn = await dynamicFindings(real); dyn.length ? dyn.forEach(bad) : ok();
   for (const [name, mut] of MUTANTS) {
