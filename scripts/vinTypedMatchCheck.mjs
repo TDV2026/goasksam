@@ -23,7 +23,9 @@ const CARS = [
   ["1FADP3L9XEL100018", 2014, "Ford", "Focus", "ST"], ["1G1FH1R78H0100019", 2017, "Chevrolet", "Camaro", "ZL1"], ["WAUPFAFR5CA100020", 2012, "Audi", "R8", "GT"], ["SAJWA6ET5H8100021", 2017, "Jaguar", "F-Type", "SVR"],
   // body: a decoded or recorded body is part of the typed words (the 2002 BMW M3 convertible of VIN WBSBR93422EX21856 asked "Which M3? Convertible or Coupe" about a car whose own sale the engine had matched as a convertible)
   ["WBSBR93422EX21856", 2002, "BMW", "M3", null, "convertible"], ["WP0CB29978S100022", 2008, "Porsche", "911", "Carrera S", "cabriolet"], ["ZFF67NFA5D0100023", 2013, "Ferrari", "458", "Spider", null],
-  ["WBSBR93432EX21857", 2002, "BMW", "M3", "Competition", "coupe"], ["1ZVBP8JZ3E5100024", 2014, "Ford", "Mustang", null, "convertible"]
+  ["WBSBR93432EX21857", 2002, "BMW", "M3", "Competition", "coupe"], ["1ZVBP8JZ3E5100024", 2014, "Ford", "Mustang", null, "convertible"],
+  // a real single trim with a slash is the trim (lane-d-vin-slash): the VIN reads the typed answer of "R/T 392", "R/T", "Stingray 3LT w/Z51"
+  ["2C3CDZFJ5JH100005", 2018, "Dodge", "Challenger", "R/T 392"], ["2C3CDXCT5EH100008", 2014, "Dodge", "Charger", "R/T"], ["2C3CDXCT5EH100099", 1969, "Dodge", "Charger", "R/T"], ["1G1YM2D75F5100022", 2015, "Chevrolet", "Corvette", "Stingray 3LT w/Z51"]
 ];
 const BODYW = { cabriolet: "cabriolet", spider: "spider", convertible: "convertible", coupe: "coupe" }, OTHERB = { cabriolet: "coupe", spider: "coupe", convertible: "coupe", coupe: "convertible" };
 const rowsFor = (year, make, model, trim, body) => {

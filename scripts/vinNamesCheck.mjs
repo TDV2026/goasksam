@@ -20,7 +20,7 @@ const CASES = [
   ["WBSDE93422CR12345", row(2002, "BMW", "M5", "", "Sedan/Saloon", "5-Series"), "M5", null, "sedan", "live"],
   ["JHMAP11441T004798", row(2001, "HONDA", "S2000", "", "Convertible/Cabriolet"), "S2000", null, "convertible", "live"],
   ["JHMAP21405T000011", row(2005, "HONDA", "S2000", "", "Convertible/Cabriolet"), "S2000", null, "convertible", "live"],
-  ["1B3BR65E0PV200106", row(1993, "DODGE", "Viper", "RT/10", "Convertible/Cabriolet"), "Viper", null, "convertible", "live"],   // the "/" trim is dropped by cleanVinTrim, as before
+  ["1B3BR65E0PV200106", row(1993, "DODGE", "Viper", "RT/10", "Convertible/Cabriolet"), "Viper", "RT/10", "convertible", "live: a real single trim with a slash is kept"],
   ["1B3JZ69Z06V101012", row(2006, "DODGE", "Viper", "SRT-10", "Coupe", "ZB"), "Viper", "SRT-10", "coupe", "live"],
   ["WP0AC29964S692123", row(2004, "PORSCHE", "911", "GT3", "Coupe"), "911", "GT3", "coupe", "live"],
   ["WP0AB29958S750123", row(2008, "PORSCHE", "911", "S (2WD), 4S (4WD)", "Coupe", "Carrera"), "911", null, "coupe", "live: the 997 trim is a list (S or 4S), so no trim"],
@@ -34,6 +34,13 @@ const CASES = [
   ["5UXWX9C58E0000033", row(2014, "BMW", "X3", "xDrive28i", "Sport Utility Vehicle [SUV]/Multipurpose Vehicle [MPV]"), "X3", "xDrive28i", null, "live control"],
   ["WDDGF8BB3CR000042", row(2012, "MERCEDES-BENZ", "C-Class", "C300 4-MATIC", "Sedan/Saloon"), "C-Class", "C300 4-MATIC", "sedan", "live control"],
   ["JF1VA1E65G9000056", row(2016, "SUBARU", "WRX", "Premium + MR", "Sedan/Saloon"), "WRX", "Premium + MR", "sedan", "live control"],
+  ["2C3CDYBT5EH100002", row(2014, "DODGE", "Challenger", "R/T", "Coupe"), "Challenger", "R/T", "coupe", "live: slash trim kept"],
+  ["2C3CDZFJ5JH100005", row(2018, "DODGE", "Challenger", "R/T 392", "Coupe"), "Challenger", "R/T 392", "coupe", "live: slash trim kept"],
+  ["2C3CDXCT5EH100008", row(2014, "DODGE", "Charger", "R/T", "Sedan/Saloon"), "Charger", "R/T", "sedan", "live: slash trim kept"],
+  ["2C3CDXGJ5HH100009", row(2017, "DODGE", "Charger", "R/T 392", "Sedan/Saloon"), "Charger", "R/T 392", "sedan", "live: slash trim kept"],
+  ["1G1YM2D75F5100022", row(2015, "CHEVROLET", "Corvette", "Stingray 3LT w/Z51", "Coupe"), "Corvette", "Stingray 3LT w/Z51", "coupe", "live: w/ is part of the name"],
+  ["JM1NC2PF5E0100028", row(2014, "MAZDA", "MX-5", "Grand Touring/GT", "Convertible/Cabriolet"), "MX-5", null, "convertible", "live: two names for one trim, no trim"],
+  ["5TFTX4CN1FX000065", row(2015, "TOYOTA", "Tacoma", "Delux Grade", "Pickup", "TRN225L/GRN225L"), "Tacoma", "Delux Grade", null, "live control: the Series code list never becomes a trim"],
   ["WBABN53432JJ12345", row(2002, "BMW", "330Ci", "", "Coupe", "3-Series"), "330Ci", null, "coupe", "live control: a marketed name is not a code"],
   ["WDBFA68F42F123456", row(2002, "MERCEDES-BENZ", "SL-Class", "SL500", "Convertible/Cabriolet"), "SL-Class", "SL500", "convertible", "live control"],
   ["1G1YY22G025123456", row(2002, "CHEVROLET", "Corvette", "", "Coupe"), "Corvette", null, "coupe", "live control"],
@@ -72,7 +79,9 @@ for (const [vin, r, model, trim, body, kind] of CASES) {
 // other makers use (xDrive, 4MATIC, quattro, AWD).
 const TRIMS = [["S (2WD), 4S (4WD)", null], ["Carrera (2WD), Carrera 4 (4WD)", null], ["Cabriolet (2WD), 4 Cabriolet (4WD)", null], ["Base (2WD), 4 (4WD)", null], ["Base, RS", null], ["S, 4S, GTS, 4 GTS", null],
   ["quattro Premium, quattro Premium Plus", null], ["GT2 (2WD), Turbo (4WD)", null], ["S ,", "S"], [", S", "S"], ["S;", "S"], ["Carrera (2WD)", "Carrera"], ["Premium Plus (AWD)", "Premium Plus"], ["xDrive28i (4WD)", "xDrive28i"],
-  ["C300 4MATIC (AWD, 4x4)", "C300 4MATIC"], ["Sport (4WD) (Auto)", "Sport"], ["(4WD)", null], ["R (AWD)", "R"], ["Type R", "Type R"], ["Premium + MR", "Premium + MR"], ["STI-S", "STI-S"], ["S / 4S", null]];
+  ["C300 4MATIC (AWD, 4x4)", "C300 4MATIC"], ["Sport (4WD) (Auto)", "Sport"], ["(4WD)", null], ["R (AWD)", "R"], ["Type R", "Type R"],
+  ["R/T", "R/T"], ["R/T 392", "R/T 392"], ["RT/10", "RT/10"], ["GTB/4", "GTB/4"], ["Z/28", "Z/28"], ["T/A", "T/A"], ["Stingray 3LT w/Z51", "Stingray 3LT w/Z51"], ["w/o Z51", "w/o Z51"], ["R/T (A/T)", "R/T"], ["GT A/T", "GT"], ["A/T", null],
+  ["S/4S", null], ["SS/RS", null], ["GT/CS", null], ["Grand Touring/GT", null], ["Turbo/Turbo S", null], ["TRN225L/GRN225L", null], ["Carrera (2WD) / Carrera 4 (4WD)", null], ["R / T", null], ["R/T/392", null], ["Sport/Touring", null], ["XL/XLT", null], ["SLE/SLT", null], ["Premium + MR", "Premium + MR"], ["STI-S", "STI-S"], ["S / 4S", null]];
 for (const [raw, want] of TRIMS) {
   const f = V.vpicFacts(row(2008, "PORSCHE", "911", raw, "Coupe"), "WP0AB29958S750123");
   ok(`trim "${raw}" reads ${want === null ? "no trim" : `"${want}"`}`, (f.trim ?? null) === want, f.trim);
@@ -85,6 +94,13 @@ for (const [raw, want] of TRIMS) {
   rows.set("WP0AB29958S700009", row(2008, "PORSCHE", "911", "", "Coupe", "Carrera"));
   const w2 = await V.resolveVehicle("my car is WP0AB29958S700009", { vinConfirm: true }).catch(() => null), v2 = w2 && w2.vehicle;
   ok("/sell VIN wizard: an empty Trim still falls back to the Series, as before (control)", !v2 || /carrera/i.test(String(v2.trim || "")), v2 && v2.trim); }
+// SLASH TRIMS through the wizard: a real single trim with a slash is asked about as that trim; a slash between variants is no trim and the Series ("Type 991") does not stand in
+{ for (const [vin, r, re] of [["2C3CDZFJ5JH100005", row(2018, "DODGE", "Challenger", "R/T 392", "Coupe"), /R\/T 392/i], ["1B3BR65E0PV100012", row(1993, "DODGE", "Viper", "RT/10", "Convertible/Cabriolet"), /RT\/10/i]]) {
+    rows.set(vin, r); const w = await V.resolveVehicle(`my car is ${vin}`, { vinConfirm: true }).catch(() => null), wv = w && w.vehicle;
+    ok(`/sell VIN wizard: ${r.Trim} is kept as the trim`, !!wv && re.test(String(wv.trim || "")), wv && wv.trim); }
+  rows.set("WP0AA2A92JS700019", row(2018, "PORSCHE", "911", "Carrera (2WD) / Carrera 4 (4WD)", "Coupe", "Type 991"));
+  const w3 = await V.resolveVehicle("my car is WP0AA2A92JS700019", { vinConfirm: true }).catch(() => null), v3 = w3 && w3.vehicle;
+  ok("/sell VIN wizard: a slash between two variants is no trim, and the Series (Type 991) does not become the model", !!v3 && !v3.trim && String(v3.model) === "911", v3 && { m: v3.model, t: v3.trim }); }
 // the class: every code form is caught, no marketed name or other model is
 for (const [m, want] of [["M3Ci", "M3"], ["M3Cic", "M3"], ["M3is", "M3"], ["M3i", "M3"], ["M5i", "M5"], ["M6Ci", "M6"], ["M2", "M2"], ["M3", "M3"], ["330Ci", "330Ci"], ["325i", "325i"], ["Z3", "Z3"], ["X5", "X5"], ["M3 CSL", "M3 CSL"]])
   ok(`BMW model "${m}" reads "${want}"`, V.vpicFacts(row(2002, "BMW", m, "", "Coupe"), "WBSBL93402JR12345").model === want, V.vpicFacts(row(2002, "BMW", m, "", "Coupe"), "WBSBL93402JR12345").model);
