@@ -2039,6 +2039,12 @@ try {
   record("buy: a city with a distance is never asked for a zip, and cars of another year carry the engine's stated reason (scripts/distanceZipCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/noRangeCardsCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("pages: a card with no range prints the engine's line (behind its flag), keeps See the sales opening every sale, and shows pre-war bodies apart (scripts/noRangeCardsCheck.mjs)", "PASS", (out.match(/noRangeCardsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("pages: a card with no range prints the engine's line (behind its flag), keeps See the sales opening every sale, and shows pre-war bodies apart (scripts/noRangeCardsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/vpicErrorCacheCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("resolver: a vPIC error is never kept as an empty list (retry after 30 s), a real empty list is (scripts/vpicErrorCacheCheck.mjs)", "PASS", (out.match(/vpicErrorCacheCheck: .*/) || [""])[0]);
 } catch (e) {

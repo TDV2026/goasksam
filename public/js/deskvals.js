@@ -162,7 +162,9 @@
   // 3 the market
   function s3(rd) {
     var m = rd.market, f = function (l, v, cls) { return '<div class="fig ' + (cls || "") + '"><div class="l">' + l + '</div><div class="v num">' + v + "</div></div>"; };
-    var inner = '<div class="figs">' + f("Median", usd(m.median)) + f("Typical range", usd(m.p25) + " to " + usd(m.p75)) + f("Sales", nf(m.count)) + f("Newest sale", esc(day(m.newest))) + (m.startingFigure ? f("Starting figure", usd(m.startingFigure), "start") : "") + "</div>" +
+    // NO RANGE (Lane E, Nov 5 2026): when the sheet's read carries the engine's noRangeLine (WAITING ON SAM, so behind window.GAS_NORANGE) it leads the section as given; the comparables below always list every sale the read counted, newest first.
+    var nrl = window.GAS_NORANGE === true && typeof m.noRangeLine === "string" && m.noRangeLine ? '<p class="sub" style="margin:0 0 8px">' + esc(m.noRangeLine) + "</p>" : "";
+    var inner = nrl + '<div class="figs">' + f("Median", usd(m.median)) + f("Typical range", usd(m.p25) + " to " + usd(m.p75)) + f("Sales", nf(m.count)) + f("Newest sale", esc(day(m.newest))) + (m.startingFigure ? f("Starting figure", usd(m.startingFigure), "start") : "") + "</div>" +
       '<p class="sub" style="margin-top:-2px">' + esc(m.window.stated) + (m.window.fallback ? " (the wider window)" : "") + ". " + esc(m.startingNote || "") + "</p>";
     if (m.wider) inner += '<p class="sub">Wider range: <span class="num">' + usd(m.wider.low) + " to " + usd(m.wider.high) + "</span> (" + nf(m.wider.count) + " sales).</p>";
     (m.splits || []).forEach(function (sp) { inner += '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">By ' + esc(sp.dimension) + '</div><table class="vt"><tr><th>Band</th><th>Sales</th><th>Median</th><th>Range</th></tr>' + sp.options.map(function (o) { return "<tr><td>" + esc(o.label) + '</td><td class="m">' + nf(o.count) + '</td><td class="m">' + usd(o.median) + '</td><td class="m">' + usd(o.p25) + " to " + usd(o.p75) + "</td></tr>"; }).join("") + "</table>"; });

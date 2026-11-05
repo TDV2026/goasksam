@@ -1,4 +1,5 @@
 import { isCrewRequest as isSignedCrew } from "../lib/_crew.js";
+import { noRangeLineOn } from "../lib/noRangeFlag.js";
 import { buildPages, shellFoot, RAIL_TAGLINE, RECENT_JS } from "../lib/appShell.js";
 // Shared page chrome for the server-rendered public pages (history, /buy): One Box tokens + fonts,
 // the left rail (with Buy) and the phone header. Lane C.
@@ -155,7 +156,7 @@ export function railHtml(active, extra, crew, req) {
   const item = (key, href, label) => '<a class="n' + (active === key ? ' on" aria-current="page' : '') + '" href="' + href + '">' + label + '</a>';
   // A tiny inline flag so any client script loaded LATER on the same page (e.g. api/buy.js's CLIENT,
   // which builds some CTAs at runtime) can gate itself without a second cookie read.
-  const flag = '<script>window.GAS_CREW=' + (crew ? 'true' : 'false') + ';</script>';
+  const flag = '<script>window.GAS_CREW=' + (crew ? 'true' : 'false') + ';window.GAS_NORANGE=' + (noRangeLineOn(req) ? 'true' : 'false') + ';</script>';
   const pages = buildPages(req, active);
   const tasksBadgeLabel = 'Tasks<span class="tbadge" data-tasks-badge hidden></span>';
   // GOASKSAM 2.0 STAGE 1: the same rail as the shell pages (lib/appShell.js): the five products, the tagline, Recent searches (drawn by

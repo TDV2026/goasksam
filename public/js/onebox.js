@@ -2105,8 +2105,8 @@
       // A thin answer (e63, Sam, Oct 19 2026; Lane C as integrator, Lane A away): the shared card carries the engine's
       // thinLine and latest-sale line, the only explanation; the grid below carries the sales. No lead of the page's own.
       var follow = m ? "" : "A bit more detail, or a different car, and Sam pulls what actually sold.";
-      var card = appliedFiltersHtml(d) + (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "") + narrowStripHtml(d, null, false);
-      return '<div class="refusal">' + card + (follow ? samMsgHtml([lint(esc(follow), "thin.follow")], "Sam’s read") : "") + factsBlockHtml(d, false) + "</div>" + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
+      var card = appliedFiltersHtml(d) + (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true, salesHref: "#ob-sales" }) : "") + narrowStripHtml(d, null, false);
+      return '<div class="refusal">' + card + (follow ? samMsgHtml([lint(esc(follow), "thin.follow")], "Sam’s read") : "") + factsBlockHtml(d, false) + "</div>" + '<div id="ob-sales">' + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + "</div>" + sellHtml();
     }
     var follow2 = "Say which " + esc(model) + " it is and Sam compares it to the ones that match.";
     var chips = (rf.variants && rf.variants.length)
@@ -2115,10 +2115,10 @@
     // The spread refusal (Sam, Oct 19 2026; Lane C as integrator, Lane A away): the shared card carries the engine's own
     // line (its samLine, "Sales too spread out for a range.") and latest sale, the only explanation; no reason of the
     // page's own. The ask to name the car and the engine's own variant chips stay; the grid below carries the sales.
-    var card = appliedFiltersHtml(d) + (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "") + narrowStripHtml(d, null, false);
+    var card = appliedFiltersHtml(d) + (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true, salesHref: "#ob-sales" }) : "") + narrowStripHtml(d, null, false);
     var head = '<div class="refusal" data-stage="answer">' + card +
       samMsgHtml([lint(esc(follow2), "refuse.follow")], "Sam’s read") + factsBlockHtml(d, false) + chips + "</div>";
-    return head + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + sellHtml();
+    return head + '<div id="ob-sales">' + exactCarSalesHtml(d) + poolGridHtml(cards, "What has sold") + "</div>" + sellHtml();
   }
   // ============ THIN MODE render (Sep 2026, revised) ====================================
   // Two decoupled concerns: THIN MODE (render) fires whenever the online pool is too thin for a
@@ -2235,7 +2235,7 @@
     // spread-too-wide line rather than staying silent - see lib/sellsForCard.js's own FOR LANE B note.
     // e63 (Sam, Oct 19 2026; Lane C as integrator, Lane A away): ONE list. The sale tiles below are this tier's list, so the
     // card draws the engine's line and latest sale without its own rows; no sale prints twice.
-    left += appliedFiltersHtml(d) + (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true }) : "");
+    left += appliedFiltersHtml(d) + (window.sellsForCardHtml ? window.sellsForCardHtml(d, { rows: false, reasonsShown: true, interactive: true, salesHref: "#ob-sales" }) : "");
     left += narrowStripHtml(d, m, false);
     var ol = olderOutsideLine(d); if (ol) left += '<p class="hero-noband" data-stage="answer">' + lint(esc(ol), "hero.thin.older") + "</p>";
     // The page's own house/online lines are gone (Sam, Oct 19 2026; Lane C as integrator, Lane A away): the engine's line
@@ -2338,14 +2338,15 @@
     // Newest first (the honest evidence order); the engine's hammer-desc order is for its own math.
     var newestFirst = thinCardsFrom(scope);   // the engine sends the sales in its order (newest first); the page prints them as sent
     var thinTile = thinTileTreatment(d, m, newestFirst, d.setAsideRows);
-    var body = exactCarSalesHtml(d) + thinHeroHtml(d, name, scope, ht, m, thinTile, newestFirst.length);
+    // NO RANGE KEEPS ITS EVIDENCE (Lane E, Nov 5 2026): the hero card (sellsForCardHtml, salesHref) prints the engine's noRangeLine behind window.GAS_NORANGE and the See the sales button beside it; the button goes to this wrapper, which holds every sale the engine counted.
+    var body = '<div id="ob-sales">' + exactCarSalesHtml(d) + thinHeroHtml(d, name, scope, ht, m, thinTile, newestFirst.length);
     if (!(thinTile && thinTile.suppressSalesRow)) body += salesRowHtml(d, m, newestFirst);
     body += livePanelSlot();
     // Job 6a (round two): the full comparable-sales table is redundant once every sale is already a
     // tile - suppressed on the same gate as the sales-row teaser above. id="more-sales" (hero-rebuild
     // round, kept) still exists on pages that keep the table (over 16 sales).
     if (!(thinTile && thinTile.suppressSalesRow)) body += moreComparableSalesHtml(d, m, newestFirst);
-    body += distributionHtml(d);
+    body += "</div>" + distributionHtml(d);
     // One Box NEVER recommends a house or platform; "Ready to sell?" is the only bridge to /sell.
     body += sellHtml();
     body += samOnItHtml(d, m);
