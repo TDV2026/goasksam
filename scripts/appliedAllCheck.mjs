@@ -12,7 +12,7 @@ globalThis.fetch = async (url) => { const u = new URL(String(url)); if (u.hostna
 let fail = 0; const ok = (n, c, d) => { if (!c) fail++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href), V = await import(pathToFileURL(path.join(root, "lib/vehicle.js")).href);
 // 1. the sweep: every refine key the engine reads
-{ const src = fs.readFileSync("lib/onebox.js", "utf8"), keys = [...new Set([...src.matchAll(/\brefine\.([A-Za-z]+)/g)].map(m => m[1]))].filter(k => !["label", "notTrims", "miBand", "driverVal"].includes(k));
+{ const src = fs.readFileSync("lib/onebox.js", "utf8"), keys = [...new Set([...src.matchAll(/\brefine\.([A-Za-z]+)/g)].map(m => m[1]))].filter(k => !["label", "notTrims", "miBand", "driverVal", "conditionTier"]   /* conditionTier (Desk item 1, Nov 2026) is the sheet read's own tier pool: no consumer page passes it, and it narrows nothing the answer prints (withConditionTier reads the untiered answer and adds fields) */.includes(k));
   const body = src.slice(src.indexOf("export function appliedFiltersOf"), src.indexOf("export function appliedLineOf"));
   for (const k of keys) ok(`the engine reads refine.${k}: appliedFiltersOf names it`, new RegExp("refine\\." + k + "\\b|r\\." + k + "\\b").test(body)); }
 // 2. each way to narrow is named, with a clear that clears it
