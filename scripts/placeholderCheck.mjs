@@ -5,7 +5,7 @@
 //   node scripts/placeholderCheck.mjs [--live]
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { PLACEHOLDERS } from "../lib/startPlaceholders.js";
+import { PLACEHOLDERS, pillProblem } from "../lib/startPlaceholders.js";
 process.env.LAUNCH_STAGE = "2"; process.env.SELL_NEXT_ON = "1";
 const ROOT = path.resolve(new URL("..", import.meta.url).pathname); process.chdir(ROOT);
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
@@ -16,6 +16,21 @@ const pages = { home: await render("home", "/"), find: await render("buy", "/fin
 ok(PLACEHOLDERS.home.examples.every(x => pages.home.includes(esc(x)) || pages.home.includes(esc(x).replace(/'/g, "&#39;"))), "Home carries its examples");
 for (const k of ["find", "mc", "sell"]) ok(PLACEHOLDERS[k].examples.every(x => pages[k].includes(esc(x)) || pages[k].includes(esc(x).replace(/'/g, "&#39;")) || pages[k].replace(/&amp;quot;/g, "&quot;").includes(esc(x))), `${k} carries its three examples (they rotate; the real placeholder stays blank for a screen reader)`);
 for (const [k, v] of Object.entries(PLACEHOLDERS)) for (const t of (v.examples || [v.text])) ok(!/[–—]/.test(t) && !/collector/i.test(t), `${k}: "${t}" has no dash and no collector`);
+// THE VERDICT ITSELF, proved offline on the engine's real answers (captured live Nov 5 2026) and on one violation at a time: a pill that asks a
+// question or returns nothing must fail, whichever page it is on. The live run below applies the same verdict to every pill on every page.
+const GOOD = { cards: 3, unused: null, asks: 0, narrow: "quiet", zip: false, line: null, note: null };
+ok(pillProblem(GOOD).length === 0, "verdict: a populated, question-free answer passes");
+ok(pillProblem({ ...GOOD, narrow: "light", asks: 2 }).length === 0, "verdict: the light refinement (suggestions) is not a question");
+const bad = (name, patch, re) => { const w = pillProblem({ ...GOOD, ...patch }); ok(w.length > 0 && re.test(w.join(";")), `verdict fails: ${name} (${w.join("; ") || "passed"})`); };
+bad("the narrowing panel (32 manual 911s: Which body style, How many miles)", { cards: 24, narrow: "question", asks: 2 }, /narrowing/);
+bad("an ask count with no mode named", { narrow: null, asks: 1 }, /narrowing/);
+bad("zero cards (1965 Corvette near Chicago)", { cards: 0, narrow: "none" }, /no cards/);
+bad("cards for the nearest years, not the year named", { cards: 2, narrow: "none", note: "No 1965 Corvettes are live right now. These are the nearest, 1964 and 1966." }, /another car or year/);
+bad("a zip question beside the cards", { cards: 2, narrow: "none", zip: true, line: "Which zip should I use?" }, /zip/i);
+bad("any reply line that asks", { line: "Which one did you mean?" }, /asks a question/);
+bad("leftover words", { unused: "low miles" }, /unread/);
+bad("no answer at all", { cards: 0 }, /no cards/);
+ok(pillProblem(null).length > 0, "verdict: no answer fails");
 const live = process.argv.includes("--live"), KEY = process.env.PROBE_KEY, CREW = process.env.CREW || process.env.GAS_CREW_COOKIE;
 if (live && KEY && CREW) {
   const { createRequire } = await import("node:module"); const req = createRequire(path.join(ROOT, "package.json")); const puppeteer = (await import(pathToFileURL(req.resolve("puppeteer-core")).href)).default;
@@ -23,11 +38,11 @@ if (live && KEY && CREW) {
   const p = await b.newPage(); await p.setCookie({ name: "gas_crew", value: CREW, domain: "goasksam.com", path: "/" }); await p.setRequestInterception(true);
   p.on("request", r => { let own = false; try { own = new URL(r.url()).host === "goasksam.com"; } catch {} r.continue(own ? { headers: { ...r.headers(), "x-ops-key": KEY, "x-launch-stage-test": "2" } } : {}); });
   await p.goto("https://goasksam.com/find", { waitUntil: "domcontentloaded" });
-  const find = q => p.evaluate(async q => { const r = await fetch("/api/buySearch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "chat", messages: [{ role: "user", content: q }], state: {}, turns: 0, anonId: "t" + Date.now() }) }); const t = await r.text(); const dd = t.slice(t.indexOf("event: done")); let j = null; try { j = JSON.parse(dd.slice(dd.indexOf("data:") + 5).trim().split("\n")[0]); } catch (e) {} const m = (j && j.meta) || {}; return { cards: ((j && j.cards) || []).length, unused: m.unusedLine || null, asks: (m.asks || []).length }; }, q);
+  const find = q => p.evaluate(async q => { const r = await fetch("/api/buySearch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "chat", messages: [{ role: "user", content: q }], state: {}, turns: 0, anonId: "t" + Date.now() }) }); const t = await r.text(); const dd = t.slice(t.indexOf("event: done")); let j = null; try { j = JSON.parse(dd.slice(dd.indexOf("data:") + 5).trim().split("\n")[0]); } catch (e) {} const m = (j && j.meta) || {}; const o = (j && j.outcome) || {}; return { cards: ((j && j.cards) || []).length, unused: m.unusedLine || null, asks: (m.asks || []).length, narrow: m.narrow || null, zip: !!o.zipAsk, line: o.line || null, note: m.note || null }; }, q);
   const mc = q => p.evaluate(async q => { const r = await fetch("/api/sellerDecision", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ oneBox: true, anonId: "t" + Date.now(), car: { raw: q }, asked: 0 }) }); const j = await r.json().catch(() => ({})); return { cards: j.tier === "result" ? Number(j.soldCount) || 1 : 0, unused: j.unusedLine || null, asks: /choice|question/.test(String(j.tier)) ? 1 : 0 }; }, q);
   for (const [k, v] of Object.entries(PLACEHOLDERS)) { if (!v.via) continue;
-    for (const t of (v.examples || [v.text])) { if (/^Or paste a VIN$/i.test(t)) continue; const q = t.replace(/\.\.\.$/, ""); const r = await (v.via === "marketCheck" ? mc(q) : find(q)); const good = r.cards > 0 && !r.unused && r.asks === 0;
-      if (v.pending) console.log(`PENDING ${k} "${t}": ${good ? "works" : JSON.stringify(r)} (${v.pending})`); else ok(good, `${k} "${t}" gives a populated result with no leftover words and no question (${JSON.stringify(r)})`); } }
+    for (const t of (v.examples || [v.text])) { if (/^Or paste a VIN$/i.test(t)) continue; const q = t.replace(/\.\.\.$/, ""); const r = await (v.via === "marketCheck" ? mc(q) : find(q)); const why = pillProblem(r), good = !why.length;
+      if (v.pending) console.log(`PENDING ${k} "${t}": ${good ? "works" : JSON.stringify(r)} (${v.pending})`); else ok(good, `${k} "${t}" must give cards for the car it names with no question: ${why.join("; ")} (${JSON.stringify(r)})`); } }
   await b.close();
 } else console.log(live ? "SKIP the live engine run: needs PROBE_KEY and the crew cookie" : "(offline only; --live runs the engine)");
 console.log(`placeholderCheck: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

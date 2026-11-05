@@ -107,9 +107,9 @@ const SHARED = {
   const sh = [
     ["header", home, '<span class="beta">Beta</span>', ""],
     ["header", home, "<span class=\"beta\">Beta</span>", '<span class="beta">Beta</span><span class="tag">FIND &middot; CHECK &middot; SELL</span>'],
-    ["placeholder", find, "Tell Sam what you&#39;re looking for...", "A manual 911 under $80,000"],
+    ["placeholder", find, "Tell Sam what you&#39;re looking for...", "A manual 911 under $40,000"],
     ["arrowSubmit", home, '<button class="go" type="submit" aria-label="Go ask Sam"><svg', '<button class="go" type="submit" aria-label="Go ask Sam">Go ask Sam<svg'],
-    ["pills", find, "Manual 911 under $80k</a>", "Classic Range Rover</a>"],
+    ["pills", find, "Manual 911 under $40k</a>", "Classic Range Rover</a>"],
     ["footer", home, "<nav aria-label=\"Footer\">", "<nav aria-label=\"Footer\"><span>Find, check, sell.</span>"],
     ["fonts", home, "--sans:", "--x:Inter,Arial;--sans:"],
     ["noAbsoluteCentering", find, ".stage{", ".stage{left:50%;transform:translate(-50%,0);"]

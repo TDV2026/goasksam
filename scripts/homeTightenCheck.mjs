@@ -22,8 +22,8 @@ const call = async (mod, url) => { const { default: h } = await import(pathToFil
   return await new Promise(resolve => { const res = { setHeader() {}, getHeader() {}, status(c) { res.code = c; return res; }, json(b) { resolve(JSON.stringify(b)); }, send(b) { resolve(String(b)); }, end() { resolve(""); } };
     Promise.resolve(h({ method: "GET", url, query: {}, headers: { host: "goasksam.com", cookie: "" }, socket: {} }, res)).catch(e => resolve("ERR " + e)); setTimeout(() => resolve(""), 15000); }); };
 const PAGES = {
-  home: { html: await call("home", "/"), label: C.home.START_LABEL, fresh: "Live auctions now. Sales to Oct 26, 2026.", ex: ["A 1965 Chevrolet Corvette within 500 miles of Chicago", "A manual 911 under $80,000", "Low mile E46 M3, no modifications"] },
-  find: { html: await call("buy", "/find"), label: C.home.START_LABEL, fresh: "Live auctions now. Sales to Oct 26, 2026.", ex: ["A 1965 Chevrolet Corvette within 500 miles of Chicago", "A manual 911 under $80,000", "Low mile E46 M3, no modifications"] },
+  home: { html: await call("home", "/"), label: C.home.START_LABEL, fresh: "Live auctions now. Sales to Oct 26, 2026.", ex: ["A Corvette near Chicago", "A manual 911 under $40,000", "Low mile E46 M3, no modifications"] },
+  find: { html: await call("buy", "/find"), label: C.home.START_LABEL, fresh: "Live auctions now. Sales to Oct 26, 2026.", ex: ["A Corvette near Chicago", "A manual 911 under $40,000", "Low mile E46 M3, no modifications"] },
   mc: { html: await call("marketCheck", "/market-check"), label: "Describe the car or paste a VIN", fresh: "Completed sales \u00b7 Updated Oct 26, 2026", ex: ["1995 Porsche 911 Carrera", "2001 BMW M3, manual", "Or paste a VIN"] },
   sell: { html: await call("sellNext", "/api/sellNext"), label: "Describe the car you are selling or paste a VIN", fresh: "Auction data \u00b7 Updated Oct 26, 2026", ex: ["2004 Porsche 911 Carrera", "2006 BMW M5", "Or paste a VIN"] }
 };
