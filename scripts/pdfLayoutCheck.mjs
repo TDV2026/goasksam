@@ -12,7 +12,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 const LOGO = "data:image/png;base64," + fs.readFileSync("public/icon-192.png").toString("base64"), JPG = "data:image/jpeg;base64," + fs.readFileSync("public/img/sell/specialist.jpg").toString("base64");
 const SEAT = "ava.expert@example.com", ORG = { name: "Hagerty Marketplace", logo: LOGO, monthlyExportCap: 3 };
 async function finalised({ org = "pdf-org", note = "Thank you for sending your car. We would list it with a reserve near the middle of this range.", seat = SEAT } = {}) {
-  const store = memoryStore(), cx = s => ({ env: {}, org, seat: s || seat, store, orgSettings: ORG, send: async () => ({ ok: true }) });
+  const store = memoryStore(), cx = s => ({ now: "2026-11-04T12:00:00.000Z", env: {}, org, seat: s || seat, store, orgSettings: ORG, send: async () => ({ ok: true }) });
   const sh = await seed(store, { seat, org }); const s0 = await store.get(org, sh.id); s0.submission.photos = [{ id: "p1", name: "front.jpg", url: JPG }, { id: "p2", name: "rear.png", url: LOGO }, { id: "p3", name: "dash.jpg", url: JPG }]; await store.put(org, s0);
   await handleSheetAction("sheet_open", { id: sh.id }, cx());
   await handleSheetAction("sheet_save", { id: sh.id, patch: { tier: 2, photosSelected: ["p1", "p2"], heroId: "p1", pinned: "What did Elevens sell for last month?", checklist: { title: { state: "Seen", line: "Clean" }, modifications: { state: "Seen", choice: "Stock" }, service: { state: "Not supplied", line: "" } }, decision: { mode: "range", low: "67000", high: "70500", reasons: [], otherText: "", line: "", guardLines: {}, note } } }, cx());
@@ -54,7 +54,7 @@ ok(/Prepared by Hagerty Marketplace/.test(txt[0]) && !/Sam\b/.test(txt[0]), "the
 { const s = A.sheet, allowed = allowedFigures(s.read, s.final, s.state, s.submission, { pages: Array.from({ length: 30 }, (_, i) => i + 1) }); const bad = unexplained(all.replace(/Page \d+ of \d+/g, ""), allowed); ok(bad.length === 0, `every figure on the report is one the frozen read, the decision or the submission carries (unexplained: ${bad.join(", ") || "none"})`); }
 // ---- the sheet must be finalised, and only its owner exports or sends; the monthly cap
 {
-  const store = memoryStore(), cx = s => ({ env: {}, org: "pdf-org-3", seat: s, store, orgSettings: { ...ORG, monthlyExportCap: 2 }, send: async p => ({ ok: true, subject: "S" }) });
+  const store = memoryStore(), cx = s => ({ now: "2026-11-04T12:00:00.000Z", env: {}, org: "pdf-org-3", seat: s, store, orgSettings: { ...ORG, monthlyExportCap: 2 }, send: async p => ({ ok: true, subject: "S" }) });
   const sh = await seed(store, { org: "pdf-org-3", seat: "ava" }); await handleSheetAction("sheet_open", { id: sh.id }, cx("ava"));
   let r = await handleSheetAction("sheet_pdf", { id: sh.id }, cx("ava")); ok(r.refused && /Finalise the sheet first/.test(r.why), "no PDF before finalise: " + r.why);
   await handleSheetAction("sheet_save", { id: sh.id, patch: { tier: 2, decision: { mode: "reserve", reserve: "68000", reasons: [], otherText: "", line: "", guardLines: {}, note: "" } } }, cx("ava")); await handleSheetAction("sheet_finalise", { id: sh.id }, cx("ava"));
