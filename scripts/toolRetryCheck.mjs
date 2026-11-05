@@ -50,6 +50,12 @@ globalThis.fetch = realFetch;
   const html = h && h.oneBoxBlock ? h.oneBoxBlock({ tier: "unavailable", stillReading: true, retry: true }, {}, "/x", "") : "";
   ok(/id="sam-cold"/.test(html), "api/history.js oneBoxBlock draws the reading card for an unavailable answer (" + html.length + " chars)");
 }
+// 6. the Desk sheet read: an unfinished read is retry for the sheet (the Desk asks again), never null ("the car cannot be read")
+{ const sr = await import(path.join(root, "lib/sheetRead.js")).catch(() => null);
+  globalThis.fetch = async () => ({ ok: false, status: 503, text: async () => "unavailable", json: async () => ({}), headers: new Map() });
+  const out = sr && sr.sheetRead ? await sr.sheetRead(env, { year: 1969, make: "Chevrolet", model: "Camaro", mileage: 40000 }, { resolveVehicle: async () => ({ status: "valid", vehicle: { year: 1969, make: "Chevrolet", model: "Camaro", raw: "1969 Chevrolet Camaro" } }), liveFor: async () => null }).catch(e => ({ threw: String(e) })) : null;
+  ok(!!out && out.retry === true && out.retryAfterMs > 0 && /still being read/.test(String(out.line || "")) && !out.market, "sheetRead with every archive read failing answers retry with the still-reading line, no market: " + JSON.stringify(out && { retry: out.retry, line: out.line, market: !!out.market }));
+  globalThis.fetch = realFetch; }
 // 3. the class. Every caller of oneEngineAnswer outside the engine.
 const REVIEWED = {   // file: why a failed read cannot reach a visitor as a data claim or a blank there (each read for this check, Nov 5 2026)
   "lib/live/narrow.js": "a failed or slow read gives no generation question and the search falls back to decades; it prints no claim",
