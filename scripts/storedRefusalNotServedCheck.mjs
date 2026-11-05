@@ -18,7 +18,8 @@ let fail = 0; const ok = (n, c, d) => { if (!c) fail++; console.log(`${c ? "PASS
 const S = await import(pathToFileURL(path.join(root, "lib/live/search.js")).href);
 const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
 // clock: real-ok the stored row is stamped "now" and read back at once, so no assertion depends on the date
-const row = raw => ({ computed_at: new Date().toISOString(), market: { raw, engineVersion: E.ENGINE_VERSION, warmEpoch: null } });
+// a stored row as the engine writes it today (every rule tag current) unless a case names a tag to leave off (E.withCurrentTags)
+const row = (raw, omit = []) => ({ computed_at: new Date().toISOString(), market: { raw: E.withCurrentTags(raw, omit), engineVersion: E.ENGINE_VERSION, warmEpoch: null } });
 for (const failed of [["typed_words_honoured_or_wider"], ["receipts_carry_resolved_car"], ["label_span_within_receipts", "typed_words_honoured_or_wider"], ["typed_model_mismatch"], ["range_from_receipts_only"], ["identity_options_sum_to_pool"]]) {
   ROW = row({ tier: "refusal", poolN: 11, rawPool: [{ id: "a" }], refusal: { kind: "invariant_failed", failedChecks: failed } });
   const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"), p = await S.readWarmAnswer(env, "MCWARM:x");
@@ -26,6 +27,9 @@ for (const failed of [["typed_words_honoured_or_wider"], ["receipts_carry_resolv
 }
 ROW = row({ tier: "result", poolN: 14, rawPool: [{ id: "a" }], cluster: [1, 2], resolvedCar: { year: 2004 } }); { const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"); ok("a stored result is still served", !!d.raw && d.raw.tier === "result", d.reason); }
 ROW = row({ tier: "thin", poolN: 4, rawPool: [{ id: "a" }], resolvedCar: { year: 2004 } }); { const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"); ok("a stored thin answer is still served", !!d.raw && d.raw.tier === "thin", d.reason); }
+// a stored thin answer is served only with the no-range reason fields (nr1): one written before them is read as no row and computed again, by both readers
+{ ROW = row({ tier: "thin", poolN: 4, rawPool: [{ id: "a" }], resolvedCar: { year: 2004 } }, ["noRangeTag"]); const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"), p = await S.readWarmAnswer(env, "MCWARM:x"); ok("a stored thin answer without the nr1 tag is read as no row, by both readers", d.raw === null && d.reason === "norange_recheck" && !p, JSON.stringify([d.reason, !!p])); }
+{ ROW = row({ tier: "result", poolN: 14, rawPool: [{ id: "a" }], cluster: [1, 2], resolvedCar: { year: 2004 } }, ["noRangeTag"]); const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"); ok("a stored result with a range is served without the nr1 tag (the tag overtakes only rows with no range)", !!d.raw, d.reason); }
 ROW = row({ tier: "refusal", refusal: { kind: "not_a_car" } }); { const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"); ok("a stored not-a-car refusal (a junk name, no pool) is still served as it was", !!d.raw, d.reason); }
 { const src = fs.readFileSync("lib/live/search.js", "utf8"); ok("the Find core prefetch skips a core written from the invariant refusal", /refusalLine === INVARIANT_REFUSAL_LINE \|\| r\.market\.refusal_line === INVARIANT_REFUSAL_LINE\) continue/.test(src)); }
 console.log(fail ? `storedRefusalNotServedCheck: ${fail} failure(s)` : "storedRefusalNotServedCheck: all pass");

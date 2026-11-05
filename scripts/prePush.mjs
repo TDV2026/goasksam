@@ -1961,6 +1961,12 @@ try {
   record("engine: a stored could-not-be-checked refusal is never served (read as no row), so a known car is recomputed with today's rules (scripts/storedRefusalNotServedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/ruleTagsCurrentCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: a stored row carrying every current rule tag is served and every rule tag is carried by the writer, so a new tag cannot overtake a current row or be forgotten by a fixture (scripts/ruleTagsCurrentCheck.mjs)", "PASS", (out.match(/ruleTagsCurrentCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a stored row carrying every current rule tag is served and every rule tag is carried by the writer, so a new tag cannot overtake a current row or be forgotten by a fixture (scripts/ruleTagsCurrentCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/stageTimerCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: every cold compute logs its stage milliseconds (engine, trim chips, question rule, sell fields, store) (scripts/stageTimerCheck.mjs)", "PASS", (out.match(/stageTimerCheck: .*/) || [""])[0]);
 } catch (e) {

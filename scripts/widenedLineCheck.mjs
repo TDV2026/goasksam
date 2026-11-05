@@ -93,7 +93,8 @@ const src = fs.readFileSync(path.join(ROOT, "lib/onebox.js"), "utf8").split("\n"
 
 // (H) no stamp bump: a targeted recheck of the rows the rules change, no others
 { ok("(H) the engine stamp is still e99 and SPEC_V still 12 (no stamp bump: every other stored row keeps serving)", !!E && /^e99-/.test(String(E.ENGINE_VERSION)) && !!S && S.SPEC_V === 12, `${E && E.ENGINE_VERSION} ${S && S.SPEC_V}`);
-  const row = raw => ({ computed_at: new Date().toISOString(), market: { raw, engineVersion: E.ENGINE_VERSION, warmEpoch: null } });
+  // a stored row as the engine writes it today: every rule tag current EXCEPT the one under test (widenRulesTag), so only the widening rule can overtake it (E.withCurrentTags)
+  const row = raw => ({ computed_at: new Date().toISOString(), market: { raw: E.withCurrentTags(raw, ["widenRulesTag"]), engineVersion: E.ENGINE_VERSION, warmEpoch: null } });
   const pool = ys => ys.map(y => ({ year: y })), res = (year, extra) => ({ tier: "result", poolN: 14, cluster: [12500, 28000], resolvedCar: { year, make: "Volvo", model: "240" }, rawPool: pool([year]), ...extra });
   const both = async raw => { ROW = row(raw); const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"), p = await S.readWarmAnswer(env, "MCWARM:x"); return { d, p }; };
   const recheck = async raw => { const { d, p } = await both(raw); return d.raw === null && d.reason === "widened_recheck" && !p; };

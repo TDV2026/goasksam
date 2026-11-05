@@ -56,7 +56,8 @@ FIX = Array.from({ length: 12 }, (_, i) => mk(false, price(i), 1993)); { const d
   ok("(E) the houseOnlyBody rule is gone from the range path", !/rangeRuleOn\(env, "houseOnlyBody"\)/.test(src) && !(E && E.RANGE_RULES && "houseOnlyBody" in E.RANGE_RULES)); }
 
 // (F) stored rows
-{ const row = raw => ({ computed_at: new Date().toISOString(), market: { raw, engineVersion: E.ENGINE_VERSION, warmEpoch: null } });
+{ // a stored row as the engine writes it today: every rule tag current EXCEPT the one under test (houseRulesTag), so only the house rule can overtake it (E.withCurrentTags)
+  const row = raw => ({ computed_at: new Date().toISOString(), market: { raw: E.withCurrentTags(raw, ["houseRulesTag"]), engineVersion: E.ENGINE_VERSION, warmEpoch: null } });
   const rd = async raw => { ROW = row(raw); const d = await S.readWarmAnswerDetailed(env, "MCWARM:x"), p = await S.readWarmAnswer(env, "MCWARM:x"); return { d, p }; };
   const base = { tier: "thin", poolN: 9, rawPool: [{ id: "a", year: 1993 }], cluster: null, resolvedCar: { year: 1993, make: "Jaguar", model: "XJ220" } };
   { const { d, p } = await rd({ ...base, thinReason: "house_share" }); ok("(F) a row refused by house_share without the tag is read as no row, by both readers", d.raw === null && d.reason === "house_recheck" && !p, JSON.stringify([d.reason, !!p])); }
