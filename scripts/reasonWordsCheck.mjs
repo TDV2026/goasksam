@@ -14,7 +14,7 @@ const probe = new Proxy({}, { get: (_, k) => k === "n" || k === "m" ? "5" : "x" 
 const sentences = t => t.split(/(?<=[.!?])\s+/).filter(Boolean).length;
 // One sentence is the rule. A line that Sam ruled to be two sentences in one field is named here with its count (Oct 29 2026: the range footer, and the trim fallback that says what it read instead);
 // the allowance is exact, so a listed line that changes length fails, and a new two-sentence line fails until Sam's ruling is named here.
-const TWO_SENTENCES = { "footer.range": 2, "trim.fallback": 2, "nearband.line": 2, "find.near_band": 2, "card.apart_line": 2 };   // the last two: Sam's own wording for a thin mileage band, Nov 2 2026 ("Few sales under 50,000 miles. Pick a mileage band to see its range.")
+const TWO_SENTENCES = { "footer.range": 2, "trim.fallback": 2, "nearband.line": 2, "find.near_band": 2, "card.apart_line": 2, "norange.few_comparable": 2, "norange.few_comparable_house": 2 };   // the last two (Sam, Nov 5 2026): "9 sales since May 2025. 3 online sales have a photo to compare, too few for a range." - the pool, then what the range test counted; their wording and number are pinned below   // the last two: Sam's own wording for a thin mileage band, Nov 2 2026 ("Few sales under 50,000 miles. Pick a mileage band to see its range.")
 // Sam's own sentence (the launch-day ruling, Oct 30 2026): "Sales do not say their engine, so Sam could not filter by V8." names Sam; exact, for this one line
 const NAMES_SAM = new Set(["typed.not_carried"]);
 for (const [id, e] of Object.entries(RW.REASON_TABLE)) {
@@ -32,6 +32,24 @@ for (const [id, e] of Object.entries(RW.REASON_TABLE)) {
 { const olds = ["Showing the Coupe as named", "Showing every generation of this car", "The generations of this car sell for about the same, showing every generation", "Only the Coupe has three or more sales of this car, showing Coupe", "No edition of this car has three sales on its own, showing every edition", "No 1974 sales yet, showing 1973", "Too few 2006 sales, showing 2005 to 2007", "The generations of this car sell for about the same, showing every generation; No 1974 sales yet, showing 1971 to 1973"];
   const fresh = olds.map(o => E.freshenStoredText({ tier: "result", scope_reason: o }).scope_reason);
   ok("a stored machine-voice scope line is restated in the table's words at read time", fresh.every(f => !/\bshowing\b/i.test(f)) && fresh[2] === "Every generation of this car sells for about the same, so they're all counted here." && fresh[7] === "Every generation of this car sells for about the same, so they're all counted here. There are no 1974 sales yet, so 1971 to 1973 cars are counted here.", fresh.join(" | ")); }
+// 1c. THE NO-RANGE LINES SAY WHAT WAS COUNTED (Nov 5 2026, Sam's condition: the number printed must be exactly what the engine counted and true to the words). The expected line is written HERE from the counted numbers, never read back from the table.
+//   few_comparable: the range test counted online sales with a photo, so the line says "N online sales have a photo to compare" and noRangeCloseWhat is online_with_photo.
+//   few_comparable_house (house sales counted in a second read): "N are online sales with a photo or house sales", noRangeCloseWhat online_with_photo_or_house.
+{ const NRF = E.noRangeFieldsOf || (x => ({ ...x }));   // a tree without the fields fails the lines below instead of crashing
+  const thinAns = (total, close, house, reread, w) => ({ tier: "thin", thinReason: "few_comparable", thinLine: "Too few sales of this car to show a range.", thin: { totalN: total, onlineN: close, houseN: house, ...(reread ? { reread } : {}) }, cards: new Array(total).fill({}), rawPool: new Array(total).fill({}), windowWords: w });
+  const closeLead = n => n === 0 ? "No online sales have a photo to compare" : n === 1 ? "1 online sale has a photo to compare" : `${n} online sales have a photo to compare`;
+  const printed = line => { const m = /\. (No|\d[\d,]*) (?:online sales? (?:has|have)|(?:is|are) )/.exec(String(line || "")); return m ? (m[1] === "No" ? 0 : Number(m[1].replace(/,/g, ""))) : null; };
+  for (const [total, close, w] of [[9, 3, "since May 2025"], [9, 1, "since May 2025"], [9, 0, "since May 2025"], [12, 7, "in the last twelve months"], [18, 2, null]]) {
+    const d = NRF(thinAns(total, close, 0, null, w)), want = `${total} sales${w ? " " + w : ""}. ${closeLead(close)}, too few for a range.`;
+    ok(`few_comparable ${total} sales, ${close} counted: the line is exactly "${want}"`, d.noRangeLine === want && d.noRangeClose === close && d.noRangeTotal === total && d.noRangeCloseWhat === "online_with_photo", JSON.stringify([d.noRangeLine, d.noRangeClose, d.noRangeCloseWhat]));
+    ok(`... the printed number (${printed(d.noRangeLine)}) is the counted number (${close})`, printed(d.noRangeLine) === close); }
+  { const d = NRF(thinAns(18, 0, 18, { tier: "thin", kind: null, close: 6 }, "since January 2022")), want = "18 sales since January 2022. 6 are online sales with a photo or house sales, too few for a range.";
+    ok("few_comparable_house: the line is exactly the words for what was counted", d.noRangeLine === want && d.noRangeClose === 6 && d.noRangeCloseWhat === "online_with_photo_or_house" && printed(d.noRangeLine) === 6, JSON.stringify([d.noRangeLine, d.noRangeCloseWhat])); }
+  // the negative control: a line whose printed number is not the counted number FAILS the same test (the check can fail)
+  { const d = NRF(thinAns(9, 3, 0, null, "since May 2025")), wrong = d.noRangeLine.replace("3 online sales", "4 online sales");
+    ok("a printed number that differs from the counted number is caught (4 printed, 3 counted)", printed(wrong) === 4 && printed(wrong) !== d.noRangeClose && wrong !== d.noRangeLine); }
+  // the table lines must hold their numbers and words: the parameters reach the line unchanged
+  ok("the table line prints the counted number it is given, and no other", RW.reasonLine("norange.few_comparable", { total: "9 sales", window: "since May 2025", closeLead: closeLead(3) }) === "9 sales since May 2025. 3 online sales have a photo to compare, too few for a range."); }
 ok("every named two-sentence line is in the table", Object.keys(TWO_SENTENCES).every(id => RW.REASON_TABLE[id]));
 // 1b. no line prints a LIST of years, models or groups as its subject (Oct 30 2026, the 1979 911 Targa Find card: "1982, 1978 and other cars sell for different money ...").
 // A reason names the car or the fact, never a list. Static: no template interpolates a list-like parameter. Behaviour: the line the engine serves for a split pool holds none of the options' labels or years, whatever the dimension.
