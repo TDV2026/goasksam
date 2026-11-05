@@ -70,9 +70,17 @@ if (typeof SM.searchWithNearest === "function") {
       if (other.length) ok(`${name}: the sentence names the years shown`, other.every(y => line.includes(String(y))), line);
       if (!other.length) ok(`${name}: with no other year in range the sentence says none from 1964 or 1966 either`, /none from 1964 or 1966 either/.test(line), line);
       if (sr0 && sr0.beyond && sr0.beyond.count) ok(`${name}: the sentence says how many of the asked year are further away`, new RegExp(`${sr0.beyond.count} (is|are) further away`).test(line), line);
-      ok(`${name}: no dash in the sentence`, !/[–—]/.test(line));
+      ok(`${name}: no dash in the sentence`, !/[\u2013\u2014]/.test(line));
+      // meta.near is what Lane E renders as given: the full sentence and the years shown
+      if (typeof SM.nearMetaOf === "function") { const m = SM.nearMetaOf(near, sr.abroadHidden || 0, line);
+        ok(`${name}: meta.near.line is the full sentence and meta.near.years the years shown`, m && m.line === line && JSON.stringify(m.years) === JSON.stringify(other) && JSON.stringify(m.asked) === JSON.stringify([1965, 1965]) && m.reason === "asked_year_none_in_range", JSON.stringify(m)); }
+      else ok(`${name}: the engine exports nearMetaOf (meta.near.line and meta.near.years)`, false);
     }
   }
 }
+// the turn builds meta.near with that one writer (the page cannot get a near without the line)
+{ const src = (await import("node:fs")).readFileSync(path.join(ROOT, "lib/live/samChat.js"), "utf8");
+  ok("runTurn's search meta takes meta.near from nearMetaOf (line and years), never a hand-built object", /near: nearMetaOf\(near, abroadHidden, nearNote\)/.test(src) && !/near: near \? \{/.test(src)); }
+if (typeof SM.nearMetaOf === "function") ok("no near, no meta.near", SM.nearMetaOf(null, 0, null) === null);
 console.log(failed ? `distanceZipCheck: ${failed} FAIL` : "distanceZipCheck: PASS");
 process.exit(failed ? 1 : 0);
