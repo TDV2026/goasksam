@@ -27,7 +27,7 @@ const LIMITER = /\b(routeLimit|checkCeiling|beaconAllowed|followupGuard|assistGu
 const REASONS = {
   bearer: /validateBearer/,                                   // a signed-in account is the caller; per-account allowance, no anonymous path
   key: /hasServerCredential|CRON_SECRET|USAGE_DASHBOARD_KEY|ADMIN_EMAILS/,   // our own credential, a cron secret or an admin account
-  crew: /isCrewRequest/,                                      // crew only
+  crew: /isCrewRequest|deskDoor\(req/,                        // crew only (api/desk.js asks lib/desk/door.js, which holds the crew check)
   shell: /s-maxage/,                                          // a page shell served from the edge cache; reads a date or a setting, never the engine
   ledger: /countSince|record\(/,                              // its own count in the same ledger (sign-up)
   bucket: /rateLimit\(/,                                      // its own in-memory bucket (MCP): per instance only

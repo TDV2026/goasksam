@@ -34,7 +34,8 @@ ok(/^gas_tester=t1\./.test(T.testerSetCookie(NOW)) && /Max-Age=\d+/.test(T.teste
 const read = f => fs.readFileSync(new URL("../" + f, import.meta.url), "utf8");
 for (const f of ["api/crew.js", "api/desk.js"]) ok(!/gas_tester=ok|gas_tester === "ok"|\bTESTER_CODE\b/.test(read(f).replace(/\/\/.*$/gm, "")), `${f}: no plain cookie, no code`);
 ok(/testerCodeMatches\(code\)/.test(read("api/crew.js")) && /testerSetCookie\(\)/.test(read("api/crew.js")), "crew.js: the code is checked and the cookie minted by lib/_tester.js");
-ok(/isTesterRequest\(req\)/.test(read("api/desk.js")), "desk.js: the signed check");
+{ const door = read("lib/desk/door.js");   // api/desk.js asks the door; the door holds the signed crew and tester checks (whole words, so a renamed import fails)
+  ok(/deskDoor\(req/.test(read("api/desk.js")) && /import \{ isTesterRequest \} from "\.\.\/_tester\.js"/.test(door) && /isTester = isTesterRequest\b/.test(door) && /isTester\(req\)/.test(door), "desk.js: the signed check, asked through lib/desk/door.js"); }
 ok(/"key": "gas_tester", "value": "t1\\\\\.\.\*"/.test(read("vercel.json")) && !/"key": "gas_tester", "value": "ok"/.test(read("vercel.json")), "vercel.json: /desk follows the signed shape");
 console.log(`testerCheck: ${passes} passed, ${fails} failed`);
 process.exit(fails ? 1 : 0);
