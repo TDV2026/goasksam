@@ -212,7 +212,7 @@ async function refreshFeatured(env) {
     if (process.env.FEATURED_HISTORY === "0") return "off";
     const { refreshFeaturedHistory } = await import("../lib/live/featuredHistory.js");
     const r = await Promise.race([refreshFeaturedHistory(env), new Promise(res => setTimeout(() => res({ why: "timeout" }), 40000))]);
-    return r && r.why || "done";
+    return (r && r.why || "done") + (r && r.stats ? ` (eligible ${r.stats.eligible}, with a trim ${r.stats.withTrim})` : "");   // counts only: never the car
   } catch { return "error"; }
 }
 

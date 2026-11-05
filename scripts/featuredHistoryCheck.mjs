@@ -24,9 +24,9 @@ const why = (l, apps, extra) => { const r = ev(l, apps, extra); return r.ok ? "O
 { const r = ev(live(), [sale()]);
   ok("(1) a live car with a VIN, a photo, and a complete verified earlier sale is eligible", r.ok, JSON.stringify(r));
   const f = r.featured || {};
-  ok("(1) the agreed shape: kind, headline, current, previous, take, selectedAt, checkedAt, findUrl, and no other key", JSON.stringify(Object.keys(f).sort()) === JSON.stringify(["checkedAt", "current", "findUrl", "headline", "kind", "mileageDelta", "previous", "selectedAt", "take"]), Object.keys(f).join(","));
+  ok("(1) the agreed shape: kind, headline, current, previous, take, selectedAt, checkedAt, findUrl, and no other key but the announced extras (mileageWords, previous.historyUrl)", JSON.stringify(Object.keys(f).sort()) === JSON.stringify(["checkedAt", "current", "findUrl", "headline", "kind", "mileageDelta", "mileageWords", "previous", "selectedAt", "take"]), Object.keys(f).join(","));
   ok("(1) current is title, platform, url, photo, live true, endsAt, mileage", JSON.stringify(Object.keys(f.current || {}).sort()) === JSON.stringify(["endsAt", "live", "mileage", "photo", "platform", "title", "url"]) && f.current.live === true && f.current.title === "2008 Porsche 911");
-  ok("(1) previous is date (month and year), platform, mileage, price, photo, url", JSON.stringify(Object.keys(f.previous || {}).sort()) === JSON.stringify(["date", "mileage", "photo", "platform", "price", "url"]) && f.previous.date === "May 2022" && f.previous.price === 61000);
+  ok("(1) previous is date (month and year), platform, mileage, price, photo, url, and the announced historyUrl", JSON.stringify(Object.keys(f.previous || {}).sort()) === JSON.stringify(["date", "historyUrl", "mileage", "photo", "platform", "price", "url"]) && f.previous.date === "May 2022" && f.previous.price === 61000);
   ok("(1) the headline for a sold car is the agreed sentence", f.headline === "This car has sold before. Would you have known?" && f.kind === "sold");
   ok("(1) the take is the existing priorTake line, with the reliable mileage difference", f.take === "Back after selling in May 2022, now with 4,000 more miles." && f.mileageDelta === 4000, f.take);
   ok("(1) no dash in any printed word", !/[\u2013\u2014]/.test(JSON.stringify(f)));
@@ -79,8 +79,8 @@ const why = (l, apps, extra) => { const r = ev(l, apps, extra); return r.ok ? "O
 { const a = ev(live({ id: "A", end_time: new Date(NOW + 1 * DAY).toISOString() }), [sale({ priceUsd: 900000 })]);
   const b = ev(live({ id: "B", end_time: new Date(NOW + 3 * DAY).toISOString() }), [sale({ priceUsd: 30000 }), sale({ date: "2019-01-01", url: "https://bringatrailer.com/listing/z/", image: "https://img.example.com/z.jpg" })]);
   const c = ev(live({ id: "C", end_time: new Date(NOW + 3 * DAY).toISOString() }), [sale({ priceUsd: 31000 })]);
-  ok("(5) with two sold cars the one with the fewest earlier appearances wins, then the longest time left, whatever the price", F.chooseBest([a, b, c]).listingId === "C");
-  ok("(5) the choice does not read the price", F.chooseBest([a, c]).listingId === "C" && F.chooseBest([c, a]).listingId === "C"); }
+  ok("(5) with two sold cars the one with the fewest earlier appearances wins, then the longest time left, whatever the price", (F.chooseBest([a, b, c].filter(x => x.ok)) || {}).listingId === "C");
+  ok("(5) the choice does not read the price", (F.chooseBest([a, c].filter(x => x.ok)) || {}).listingId === "C" && (F.chooseBest([c, a].filter(x => x.ok)) || {}).listingId === "C"); }
 
 // (6) the store: stable, replaces itself at the end, null on a failed refresh, never stale
 const fakeDb = () => {
@@ -97,6 +97,7 @@ const fakeDb = () => {
       return []; },
     write: async (env, row) => { if (db.fail) throw new Error("write failed"); db.cfg.set(row.key, row.value); },
     clear: async env => { db.cfg.delete(F.STORE_KEY); },
+    cardName: async (env, row) => (db.names && Object.prototype.hasOwnProperty.call(db.names, row.id) ? (db.names[row.id] instanceof Error ? Promise.reject(db.names[row.id]) : db.names[row.id]) : { name: [row.year, row.make, row.model, "Carrera S"].join(" "), trim: "Carrera S" }),
     appearances: async (env, vin) => (db.apps[vin] ? { ok: true, vinNorm: vin, appearances: db.apps[vin] } : { ok: false, appearances: [] }),
     urlStatus: async () => 200 };
   return { db, d };
@@ -181,6 +182,57 @@ const CREW = "gas_crew=" + mintCrewCookieValue();
   ok("(8) vercel.json has no rewrite, cron or header for it", !NAMES.test(vj));
   const sm = ["api/sitemapPages.js", "api/specPage.js", "api/publicConfig.js", "api/home.js"].filter(f => fs.existsSync(path.join(root, f)));
   ok("(8) the sitemaps, the public config and the home route do not name it", sm.every(f => !NAMES.test(fs.readFileSync(path.join(root, f), "utf8"))), sm.join()); }
+
+// (9) THREE GAPS LANE E FOUND (Nov 2026, lane-e-featured-wire): the title, the mileage words, the history address
+{ const { db, d } = fakeDb();
+  // gap 1: the title is the Find card's name, trim included, and findUrl names the same car
+  db.live[1].end_time = new Date(NOW + 7 * DAY).toISOString(); db.live[1].model = "911"; db.live[1].year = 2008;
+  db.names = { L1: { name: "2008 Porsche 911 Carrera S", trim: "Carrera S" }, L2: { name: "2008 Porsche 911", trim: null } };
+  const r = await F.refreshFeaturedHistory(env, d), got = await F.readFeaturedHistory(env, CREW, d);
+  ok("(9) gap 1: the title carries the trim exactly as the Find card names the car", got && got.current.title === "2008 Porsche 911 Carrera S", got && got.current.title);
+  ok("(9) gap 1: findUrl searches that title, trim included", got && decodeURIComponent(got.findUrl.replace("/buy?q=", "")) === "2008 Porsche 911 Carrera S" && got.findUrl === F.findUrlFor("2008 Porsche 911 Carrera S"), got && got.findUrl);
+  ok("(9) gap 1: the count of eligible cars and of those with a trim is reported", r.stats && r.stats.eligible === 2 && r.stats.withTrim === 1, JSON.stringify(r.stats));
+  { const n2 = fakeDb(); n2.db.names = { L1: { name: "2008 Porsche 911", trim: null }, L2: { name: "2008 Porsche 911", trim: null } }; await F.refreshFeaturedHistory(env, n2.d); const g = await F.readFeaturedHistory(env, CREW, n2.d);
+    ok("(9) gap 1: a car whose card names no trim keeps the title without one, and its findUrl has none", g && g.current.title === "2008 Porsche 911" && g.findUrl === "/buy?q=2008%20Porsche%20911", g && g.current.title); }
+  { const n3 = fakeDb(); n3.db.names = { L1: { name: "2008 BMW M3 Competition", trim: "Competition" }, L2: { name: "2008 BMW M3 Competition", trim: "Competition" } }; await F.refreshFeaturedHistory(env, n3.d); const g = await F.readFeaturedHistory(env, CREW, n3.d);
+    ok("(9) gap 1: a name for another car is never used (the listing's own year, make and model instead)", g && g.current.title === "2008 Porsche 911" && !/Competition|BMW/.test(g.findUrl), g && g.current.title); }
+  { const n4 = fakeDb(); n4.db.names = { L1: new Error("resolver down"), L2: new Error("resolver down") }; await F.refreshFeaturedHistory(env, n4.d); const g = await F.readFeaturedHistory(env, CREW, n4.d);
+    ok("(9) gap 1: a failed name read falls back to year, make and model and invents no trim", g && g.current.title === "2008 Porsche 911", g && g.current.title); }
+  ok("(9) gap 1: cardTitle never adds a word the listing and the card do not both hold", F.cardTitle("2008 Porsche 911 Carrera S", { year: 2008, make: "Porsche", model: "911" }) === "2008 Porsche 911 Carrera S" && F.cardTitle("", { year: 2008, make: "Porsche", model: "911" }) === "2008 Porsche 911" && F.cardTitle(null, { year: 2008, make: "Porsche", model: "911" }) === "2008 Porsche 911");
+  // the search address lands on that car: the real resolver reads the same make, model and trim back from it
+  globalThis.fetch = async u => (/fake\.supabase/.test(String(u)) ? new Response("[]", { status: 200 }) : new Response("", { status: 500 }));
+  const { resolveVehicle } = await import(pathToFileURL(path.join(root, "lib/vehicle.js")).href);
+  const rv = got ? await resolveVehicle(decodeURIComponent((got.findUrl).replace("/buy?q=", "")), {}) : null;
+  ok("(9) gap 1: the real resolver reads the findUrl search back as the same make, model and trim", rv && rv.vehicle && rv.vehicle.make === "Porsche" && /911/.test(rv.vehicle.model) && /Carrera S/i.test(String(rv.vehicle.trim || "")), JSON.stringify(rv && rv.vehicle && [rv.vehicle.make, rv.vehicle.model, rv.vehicle.trim]));
+  // a pick stored before v2 is never served and is replaced
+  { const o = fakeDb(); await F.refreshFeaturedHistory(env, o.d); const v = o.db.cfg.get(F.STORE_KEY); const { v: _drop, ...old } = v; o.db.cfg.set(F.STORE_KEY, old);
+    ok("(9) a v1 stored pick (no store version) is never served", (await F.readFeaturedHistory(env, CREW, o.d)) === null);
+    const r2 = await F.refreshFeaturedHistory(env, o.d); ok("(9) and the next refresh replaces it with a v2 pick", r2.why === "selected" && o.db.cfg.get(F.STORE_KEY).v === F.STORE_V, r2.why); }
+  // gap 2: the mileage in words, from the same reading as the take, never "fewer", never a valuation
+  const base = (o = {}, apps) => ev(live(o), apps || [sale()]);
+  { const a = base(), f = a.featured || {};
+    ok("(9) gap 2: mileageWords is the plain count beside mileageDelta", a.ok && f.mileageDelta === 4000 && f.mileageWords === "4,000 more miles", JSON.stringify([f.mileageDelta, f.mileageWords]));
+    ok("(9) gap 2: the take carries exactly those words", f.take === "Back after selling in May 2022, now with 4,000 more miles." && F.takeAgrees(f.take, f.mileageWords)); }
+  { let bad = [];
+    for (const dlt of [1, 2, 9, 10, 99, 100, 999, 1000, 1234, 4000, 9999, 10000, 12345, 99999, 100000, 187654, 250000]) { const r = base({ mileage: 30000 + dlt }); if (!r.ok) { bad.push("rejected " + dlt); continue; } const f = r.featured, want = `${F.groupDigits(dlt)} more miles`; if (f.mileageDelta !== dlt || f.mileageWords !== want || !f.take.includes(`now with ${want}`) || !F.takeAgrees(f.take, f.mileageWords)) bad.push(dlt + ":" + f.take + "|" + f.mileageWords); }
+    ok("(9) gap 2: across 17 differences from 1 to 250,000 the words, the delta and the take always say the same number", bad.length === 0, bad.join(" ; ")); }
+  { const r = base({ mileage: 30000 }); ok("(9) gap 2: no change in miles: no words, and the take names no direction", r.ok && r.featured.mileageDelta === 0 && !("mileageWords" in r.featured) && !/more miles|fewer/.test(r.featured.take), JSON.stringify(r.featured && [r.featured.mileageDelta, r.featured.take]));
+    const q = base({ mileage: 20000 }); ok("(9) gap 2: a lower reading is never worded 'fewer miles': no delta, no words, no direction in the take", q.ok && !("mileageDelta" in q.featured) && !("mileageWords" in q.featured) && !/more miles|fewer/.test(q.featured.take), JSON.stringify(q.featured && q.featured.take));
+    const k = base({ mileage_unit: "km" }); ok("(9) gap 2: kilometres: no delta, no words", k.ok && !("mileageDelta" in k.featured) && !("mileageWords" in k.featured));
+    const huge = base({ mileage: 30000 + 250001 }); ok("(9) gap 2: a difference over 250,000 is not reliable: no delta, no words", huge.ok && !("mileageWords" in huge.featured)); }
+  { // a listed car whose LATEST earlier listing is not the record shown (it has no photo): the words describe the shown record, the take names no direction, and they cannot disagree
+    const r = ev(live(), [attempt({ date: "2021-03-02" }), attempt({ date: "2022-06-01", image: null, mileage: 29500, url: "https://carsandbids.com/auctions/zzz/" })]);
+    ok("(9) gap 2: a listed car whose latest listing is not the record shown keeps take and words in agreement", r.ok && F.takeAgrees(r.featured.take, r.featured.mileageWords) && (!r.featured.mileageWords || !/more miles/.test(r.featured.take)), JSON.stringify(r.featured && [r.featured.take, r.featured.mileageWords])); }
+  ok("(9) gap 2: takeAgrees refuses a take and words that differ, a 'fewer' anywhere, and a take that names a direction the words lack", !F.takeAgrees("Back, now with 4,000 more miles.", "5,000 more miles") && !F.takeAgrees("Back, now with 4,000 more miles.", null) && !F.takeAgrees("Back, now with 1,200 fewer miles.", "1,200 fewer miles") && !F.takeAgrees("Back.", "4,000 fewer miles") && F.takeAgrees("Back.", null) && F.takeAgrees("Back, now with 4,000 more miles.", "4,000 more miles"));
+  ok("(9) gap 2: no valuation or verdict word in any mileage words", ["1 more miles", "4,000 more miles", "250,000 more miles"].every(w => !/worth|value|price|mint|low|high|good|bad|cheap/i.test(w)) && F.mileageWordsOf(4000) === "4,000 more miles" && F.mileageWordsOf(-4000) === null && F.mileageWordsOf(0) === null && F.mileageWordsOf(NaN) === null);
+  // gap 3: the history address is the Find card's own (api/buySearch.js history_url: /vin/ plus the encoded vin_norm)
+  { const f = base().featured || {}, srcBuy = fs.readFileSync(path.join(root, "api/buySearch.js"), "utf8");
+    ok("(9) gap 3: previous.historyUrl is /vin/ and the car's VIN", f.previous.historyUrl === "/vin/" + encodeURIComponent(VIN), f.previous.historyUrl);
+    ok("(9) gap 3: it is built the way the Find card builds its history_url (the same source line)", /history_url: timeline && timeline\.length \? "\/vin\/" \+ encodeURIComponent\(x\.r\.vin_norm\) : null/.test(srcBuy));
+    ok("(9) gap 3: Find opens no card or history from an address, so findUrl stays a search address and historyUrl is the history page", /^\/buy\?q=/.test(f.findUrl === null ? "/buy?q=" : f.findUrl) && F.historyUrlOf(VIN) === "/vin/" + VIN && F.historyUrlOf("") === null && F.historyUrlOf("12") === null);
+    const stored = (await (async () => { const o = fakeDb(); await F.refreshFeaturedHistory(env, o.d); return F.readFeaturedHistory(env, CREW, o.d); })());
+    ok("(9) gap 3: the served pick carries it", stored && /^\/vin\/[A-Z0-9]+$/.test(stored.previous.historyUrl)); }
+}
 console.log(fail ? `featuredHistoryCheck: ${fail} FAIL, ${pass} pass` : `featuredHistoryCheck: ${pass} pass, 0 FAIL`);
 process.exit(fail ? 1 : 0);
 
@@ -216,10 +268,24 @@ function runMutants() {
     [L, ['if (alive && Date.parse(st.featured.current.endsAt) > now) {', 'if (again.ok) { const keep'], ['if (true) {', 'if (true) { const keep'], "(6) the next refresh replaces it"],
     [L, 'if (again.ok) { const keep', 'if (true) { const keep', "(6) a kept pick whose earlier photo is gone"],
     [L, 'const drop = async why => { await Promise.resolve(d.clear(env)).catch(() => {}); return { stored: null, why }; };', 'const drop = async why => ({ stored: null, why });', "(6) a failed refresh returns nothing"],
-    [L, 'if (st && st.featured && st.listingId) {\n      const alive', 'if (false) {\n      const alive', "(6) STABLE"],
+    [L, 'if (st && st.featured && st.listingId && st.v === STORE_V) {\n      const alive', 'if (false) {\n      const alive', "(6) STABLE"],
     [L, 'if (process.env.FEATURED_HISTORY === "0" || !isCrewRequest(reqOrCookie)) return null;', 'if (process.env.FEATURED_HISTORY === "0") return null;', "(7) no cookie: no field"],
     [L, 'export const STORE_KEY = "crew_featured_history";', 'export const STORE_KEY = "featured_history";', "(7) the stored key is a crew key"],
     ["api/featuredHistory.js", 'if (!isCrewRequest(req)) { res.statusCode = 404; res.setHeader("Cache-Control", "no-store"); return res.end(); }', '', "(7) /api/featuredHistory without the cookie is 404"],
+    [L, 'return makeOk && modelOk ? String(name).trim() : fallback;', 'return String(name).trim();', "(9) gap 1: a name for another car"],
+    [L, 'if (!name || !String(name).trim() || !n) return fallback;', 'return fallback;', "(9) gap 1: the title carries the trim"],
+    [L, 'featured.findUrl = findUrlFor(featured.current.title);', 'featured.findUrl = findUrlFor(featured.current.title.split(" ").slice(0, 3).join(" "));', "(9) gap 1: findUrl searches that title"],
+    [L, 'withTrim: [...named.values()].filter(x => x.trim).length', 'withTrim: eligibleAll.length', "(9) gap 1: the count of eligible cars"],
+    [L, 'export const mileageWordsOf = delta => (Number.isFinite(delta) && delta > 0 ? `${groupDigits(delta)} more miles` : null);', 'export const mileageWordsOf = delta => (Number.isFinite(delta) && delta > 0 ? `${groupDigits(delta)} fewer miles` : null);', "(9) gap 2: mileageWords is the plain count"],
+    [L, 'if (tail) return words === `${tail[1]} more miles`;', 'if (tail) return true;', "(9) gap 2: takeAgrees refuses"],
+    [L, 'words && speaksOfRec ? miles : null', 'words ? miles : null', "(9) gap 2: a listed car whose latest listing"],
+    [L, 'miles >= prevMiles && miles - prevMiles <= 250000', 'miles - prevMiles <= 250000', "(9) gap 2: a lower reading"],
+    [L, 'Number.isFinite(delta) && delta > 0 ?', 'Number.isFinite(delta) && delta >= 0 ?', "(9) gap 2: no change in miles"],
+    [L, '.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ",")', '.replace(/zz/g, ",")', "(9) gap 2: across 17 differences"],
+    [L, '"/vin/" + encodeURIComponent(vinNorm(vin))', '"/history/" + encodeURIComponent(vinNorm(vin))', "(9) gap 3: previous.historyUrl is /vin/"],
+    [L, ', historyUrl: historyUrlOf(live.vin_norm || live.vin) }', ' }', "(1) previous is date"],
+    [L, "|| st.v !== STORE_V) return null;", ") return null;", "(9) a v1 stored pick"],
+    [L, "st.listingId && st.v === STORE_V) {", "st.listingId) {", "(9) and the next refresh replaces it with a v2 pick"],
     ["api/home.js", '\n', '\n// featuredHistory leaked into a public route\n', "(8) only the module, its crew route, the cron refresh and the crew gated Homepage preview"],
     ["vercel.json", '"rewrites": [', '"rewrites": [ { "source": "/featured", "destination": "/api/featuredHistory" },', "(8) vercel.json has no rewrite"]
   ];
