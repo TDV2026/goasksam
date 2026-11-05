@@ -6,7 +6,7 @@ import { fixtureRead } from "../lib/desk/sheetShape.js";
 import { evaluateDecision as ev } from "../lib/desk/decisionRules.js";
 import { handleSheetAction, emptyState } from "../lib/desk/sheetActions.js";
 import { memoryStore } from "../lib/desk/sheetStore.js";
-import { startDesk, seed, wait } from "./deskValsRender.mjs";
+import { startDesk, seed, wait, press, typeIn, settle } from "./deskValsRender.mjs";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const VIN = "WP0AB29918S745123", R2 = fixtureRead({ vin: VIN, tier: 2 }), R4 = fixtureRead({ vin: VIN, tier: 4 }), R0 = fixtureRead({ vin: VIN });
 // tier 2: market range $66,900 to $70,800, starting figure $69,050 (the engine's, in the fixture)
@@ -72,16 +72,16 @@ f = await handleSheetAction("sheet_finalise", { id: s2.id }, cx()); ok(f.refused
 
 // ---- the page prints it: the reasons, the guards inline, the refusal naming what is missing
 {
-  const D = await startDesk({ org: "org-page" }); const a = await seed(D.store, { org: "org-page" }); const p = await D.open(1440); await p.click(`[data-open="${a.id}"]`); await wait(800); await p.click('[data-tier="2"]'); await wait(700);
-  await p.click('[data-dmode="reserve"]'); await wait(500); await p.type('[data-k="d-reserve"]', "82000"); await wait(900);
+  const D = await startDesk({ org: "org-page" }); const a = await seed(D.store, { org: "org-page" }); const p = await D.open(1440); await press(p, `[data-open="${a.id}"]`); await wait(800); await press(p, '[data-tier="2"]'); await wait(700);
+  await press(p, '[data-dmode="reserve"]'); await wait(500); await typeIn(p, '[data-k="d-reserve"]', "82000"); await wait(900);
   const t = await p.evaluate(() => document.querySelector('[data-sec="6"]').innerText);
   ok(/Outside the market range/i.test(t) && /at least one/i.test(t) && /\$66,900 to \$70,800/.test(t) && /\$69,050/.test(t), "the page shows outside the market range, that a reason is needed, and the engine's range and starting figure beside the field");
   ok(await p.evaluate(() => !!document.querySelector(".guard")) && /more than 15 percent from the starting figure of \$69,050/.test(await p.evaluate(() => document.querySelector(".guard").innerText)), "the guard shows inline, as the expert types, in the engine's words");
-  await p.click("[data-finalise]"); await wait(700);
+  await press(p, "[data-finalise]"); await wait(700);
   const r = await p.evaluate(() => document.querySelector('[data-sec="7"]').innerText);
   ok(/cannot be finalised yet/.test(r) && /tick at least one reason/.test(r) && /line of reasoning/.test(r) && /Type why this is away from the starting figure/.test(r), "Finalise is refused on the page and the refusal names what is missing: " + r.replace(/\s+/g, " ").slice(0, 200));
-  await p.click('[data-reason="provenance"]'); await p.type('[data-k="d-line"]', "Known history."); await p.type('[data-k="g-start"]', "Two matching private sales."); await wait(1000);
-  await p.click("[data-finalise]"); await wait(900);
+  await press(p, '[data-reason="provenance"]'); await settle(p); await typeIn(p, '[data-k="d-line"]', "Known history."); await typeIn(p, '[data-k="g-start"]', "Two matching private sales."); await settle(p); await wait(1000);
+  await press(p, "[data-finalise]"); await settle(p); await wait(900);
   const r2 = await p.evaluate(() => document.querySelector('[data-sec="7"]').innerText);
   ok(/Report\s+DV-\d{4}-\d{4}/.test(r2) && /Download the PDF/.test(r2) && await p.evaluate(() => [...document.querySelectorAll(".sheet input, .sheet textarea, .sheet select, .sheet [data-tier], .sheet [data-chk]")].filter(e => !e.closest(".send")).every(e => e.disabled)), "with the reason, the line and the guard's line the sheet finalises, and every field is locked");
   ok(p._errs.length === 0, "no page error");

@@ -3,7 +3,7 @@
 // another seat's sheet; another org sees nothing. The actions are checked directly and then on the real page.     node scripts/deskRailCheck.mjs
 import { handleSheetAction } from "../lib/desk/sheetActions.js";
 import { memoryStore, accessOf } from "../lib/desk/sheetStore.js";
-import { startDesk, seed, wait } from "./deskValsRender.mjs";
+import { startDesk, seed, wait, press, typeIn } from "./deskValsRender.mjs";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const ORG = "rail-org", SET = { name: "Hagerty Marketplace" };
 // ---- the ownership rules, on their own
@@ -50,7 +50,7 @@ for (const w of [1440, 390]) {
   ok(/Hagerty Marketplace/.test(rail.seat) && /seat: ava/.test(rail.seat), `${w}: the org and the seat sit at the bottom (${rail.seat.replace(/\s+/g, " ")})`);
   if (w === 390) { await p.click(`#l-queue [data-open="${a2.id}"]`); await wait(900); ok(await p.evaluate(() => document.querySelector(".sheet h1").textContent) === "2007 Porsche 911 Turbo" && await p.evaluate(() => document.querySelector("#rail-vals").getBoundingClientRect().width) > 300, "390: on a phone the rail is a strip above the sheet and a row opens it"); await p.close(); continue; }
   // several sheets open at once, each keeping its state
-  await p.click(`#l-queue [data-open="${a1.id}"]`); await wait(900); await p.click('[data-tier="2"]'); await wait(700); await p.click('[data-dmode="reserve"]'); await wait(500); await p.type('[data-k="d-reserve"]', "68250"); await wait(900);
+  await press(p, `#l-queue [data-open="${a1.id}"]`); await wait(900); await press(p, '[data-tier="2"]'); await wait(700); await press(p, '[data-dmode="reserve"]'); await wait(500); await typeIn(p, '[data-k="d-reserve"]', "68250"); await wait(900);
   await p.click(`#l-queue [data-open="${a2.id}"]`); await wait(900);
   ok((await p.evaluate(() => document.querySelectorAll(".vtab").length)) === 2 && (await p.evaluate(() => document.querySelector(".sheet h1").textContent)) === "2007 Porsche 911 Turbo", `${w}: two sheets open at once: two tabs, the second in front`);
   await p.click('.vtab:first-child'); await wait(500);

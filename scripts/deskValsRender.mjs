@@ -34,3 +34,8 @@ export async function seed(store, { seat = "crew", vin = "WP0AB29918S745123", st
   const sheet = { id: "s_" + Math.random().toString(16).slice(2, 10), owner_seat: seat, forwarded_by: seat, vin: vin || null, car_label: read ? read.car.label : null, status, created_at: new Date(now - minutesAgo * 60000).toISOString(), opened_at: null, submission: { consignor, mileage: 33500, photos: photos ? [{ id: "p1", name: "front", url: PHOTO }, { id: "p2", name: "rear", url: PHOTO }, { id: "p3", name: "interior", url: PHOTO }] : [], documents: [{ name: "Service history 2019 to 2024.pdf", url: "https://docs.example/1" }] }, state: emptyState(), read: null, events: [] };
   await store.insert(org, sheet); return sheet;
 }
+
+// Page actions that cannot race a re-render: the element is found and acted on inside ONE page turn, so a response that rebuilds the sheet can never leave the check holding a detached handle.
+export const press = (p, sel) => p.evaluate(s => document.querySelector(s).click(), sel);
+export const typeIn = async (p, sel, text, replace = false) => { await p.evaluate((s, r) => { const e = document.querySelector(s); e.focus(); if (r) e.select(); }, sel, replace); await p.keyboard.type(text); };
+export const settle = p => p.evaluate(() => window.__deskVals.settled());

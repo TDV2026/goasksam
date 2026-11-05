@@ -864,6 +864,13 @@ try {
 } catch (e) {
   record("Desk Valuations: the reserve, range and guard rules at finalise, refused and allowed, and printed inline (scripts/reasonRulesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// deskSaveOrderCheck (Lane S, Nov 5 2026): the Desk page's saves are merged, ordered and flushed before Finalise seals a sheet; each rule runs against a mutant that drops it.
+try {
+  const out = execSync("node scripts/deskSaveOrderCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk Valuations: saves merged, ordered and flushed before Finalise (scripts/deskSaveOrderCheck.mjs)", "PASS", (out.match(/deskSaveOrderCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk Valuations: saves merged, ordered and flushed before Finalise (scripts/deskSaveOrderCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // pdfLayoutCheck (Lane E, Nov 4 2026, lane-e-desk-valuations): Desk Valuations: the report PDF has the ten parts, the org logo, no expert's name, the footer and watermark on every page, and the Send panel.
 try {
   const out = execSync("node scripts/pdfLayoutCheck.mjs", { encoding: "utf8", timeout: 240000 });

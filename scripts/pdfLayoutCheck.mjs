@@ -7,7 +7,7 @@ import { memoryStore } from "../lib/desk/sheetStore.js";
 import { buildReport, PARTS } from "../lib/desk/reportPdf.js";
 import { pdfPages } from "../lib/pdf/mini.js";
 import { allowedFigures, unexplained } from "./figureScan.mjs";
-import { startDesk, seed, wait } from "./deskValsRender.mjs";
+import { startDesk, seed, wait, press, typeIn } from "./deskValsRender.mjs";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const LOGO = "data:image/png;base64," + fs.readFileSync("public/icon-192.png").toString("base64"), JPG = "data:image/jpeg;base64," + fs.readFileSync("public/img/sell/specialist.jpg").toString("base64");
 const SEAT = "ava.expert@example.com", ORG = { name: "Hagerty Marketplace", logo: LOGO, monthlyExportCap: 3 };
@@ -66,10 +66,10 @@ ok(/Prepared by Hagerty Marketplace/.test(txt[0]) && !/Sam\b/.test(txt[0]), "the
 {
   const sent = [], send = async p => { sent.push(p); return p.to === "bounce@example.com" ? { ok: false, why: "The address was refused." } : { ok: true, subject: "Valuation report " + p.reportNumber, messageId: "m1" }; };
   const D = await startDesk({ org: "pdf-send", seat: "ava", orgSettings: { name: "Hagerty Marketplace", standardMessage: "Thank you for sending your car. The valuation report is attached." }, send });
-  const a = await seed(D.store, { org: "pdf-send", seat: "ava" }); const p = await D.open(1440); await p.click(`[data-open="${a.id}"]`); await wait(800); await p.click('[data-tier="2"]'); await wait(600);
-  await p.click('[data-dmode="reserve"]'); await wait(400); await p.type('[data-k="d-reserve"]', "68000"); await p.type('[data-k="d-note"]', "A note for the seller."); await wait(1000);
+  const a = await seed(D.store, { org: "pdf-send", seat: "ava" }); const p = await D.open(1440); await press(p, `[data-open="${a.id}"]`); await wait(800); await press(p, '[data-tier="2"]'); await wait(600);
+  await press(p, '[data-dmode="reserve"]'); await wait(400); await typeIn(p, '[data-k="d-reserve"]', "68000"); await typeIn(p, '[data-k="d-note"]', "A note for the seller."); await wait(1000);
   ok(sent.length === 0, "nothing is sent on its own: automatic sending is off");
-  await p.click("[data-finalise]"); await wait(900); ok(sent.length === 0, "finalising does not send");
+  await press(p, "[data-finalise]"); await wait(900); ok(sent.length === 0, "finalising does not send");
   const panel = await p.evaluate(() => ({ to: document.querySelector('[data-k="send-to"]').value, msg: document.querySelector('[data-k="send-msg"]').value, text: document.querySelector(".send").innerText }));
   ok(panel.to === "seller@example.com" && /The valuation report is attached/.test(panel.msg) && /A note for the seller/.test(panel.text) && /Attached: DV-\d{4}-\d{4}\.pdf/.test(panel.text), "the Send panel: the consignor's address pre-filled, the org's message, the note, the PDF named as attached");
   await p.$eval('[data-k="send-msg"]', e => { e.value = "Edited by the expert."; e.dispatchEvent(new Event("input", { bubbles: true })); });

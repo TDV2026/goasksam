@@ -76,16 +76,27 @@
   function closeTab(id) { S.tabs = S.tabs.filter(function (t) { return t !== id; }); delete S.sheets[id]; if (S.active === id) S.active = S.tabs[S.tabs.length - 1] || null; renderAll(); }
 
   // ---------- asks ----------
-  function save(id, patch, now) {
-    var run = function () {
-      api("sheet_save", { id: id, patch: patch }).then(function (r) {
+  // Saves: patches made inside the 400 ms window are MERGED (a later patch of another kind never drops an earlier one), and a sheet's saves run ONE AT A TIME in the order made
+  // (a slow earlier save can never land after a later one). flush(id) sends what is pending and resolves when the sheet's last save is done: Finalise waits on it, so the
+  // sheet is sealed from exactly what the screen shows.
+  var pend = {}, chains = {};
+  function flush(id) {
+    clearTimeout(timers[id + "s"]); var patch = pend[id]; delete pend[id];
+    if (!patch) return chains[id] || Promise.resolve();
+    var p = (chains[id] || Promise.resolve()).then(function () {
+      return api("sheet_save", { id: id, patch: patch }).then(function (r) {
         var h = S.sheets[id]; if (!h) return;
         if (!r.ok) { h.msg = r.why || "That was not saved."; renderAll(); return; }
         h.v = r; h.msg = ""; renderAll(); loadLists();
       });
-    };
-    clearTimeout(timers[id + "s"]); if (now) run(); else timers[id + "s"] = setTimeout(run, 400);
+    });
+    chains[id] = p.catch(function () { }); return chains[id];
   }
+  function save(id, patch, now) {
+    pend[id] = Object.assign(pend[id] || {}, patch);
+    clearTimeout(timers[id + "s"]); if (now) flush(id); else timers[id + "s"] = setTimeout(function () { flush(id); }, 400);
+  }
+  function settled() { return Promise.all(Object.keys(pend).map(flush)).then(function () { return Promise.all(Object.keys(chains).map(function (k) { return chains[k]; })); }); }
   function draftPatch(h) { return { decision: h.draft.decision }; }
 
   // ---------- the sheet ----------
@@ -225,7 +236,7 @@
     var hero = t.closest("[data-hero]"); if (hero) { save(id, { heroId: hero.getAttribute("data-hero") }, true); return; }
     var ck = t.closest("[data-chk]"); if (ck) { var k = ck.getAttribute("data-chk"), cur = h.draft.checklist[k] || {}; cur.state = ck.getAttribute("data-state"); h.draft.checklist[k] = cur; save(id, { checklist: h.draft.checklist }, true); return; }
     var md = t.closest("[data-dmode]"); if (md) { h.draft.decision.mode = md.getAttribute("data-dmode"); save(id, draftPatch(h), true); return; }
-    if (t.closest("[data-finalise]")) { h.fin = ""; api("sheet_finalise", { id: id }).then(function (r) { if (r.ok) { h.v = r; h.fin = ""; } else h.fin = r.why || "The sheet was not finalised."; renderAll(); loadLists(); }); return; }
+    if (t.closest("[data-finalise]")) { h.fin = ""; flush(id).then(function () { return api("sheet_finalise", { id: id }); }).then(function (r) { if (r.ok) { h.v = r; h.fin = ""; } else h.fin = r.why || "The sheet was not finalised."; renderAll(); loadLists(); }); return; }
     if (t.closest("[data-pdf]")) { api("sheet_pdf", { id: id }).then(function (r) { if (!r.ok) { h.msg = r.why || "The PDF could not be made."; renderAll(); return; } var bin = atob(r.pdf_b64), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([u], { type: "application/pdf" })); a.download = r.filename; document.body.appendChild(a); a.click(); a.remove(); }); return; }
     if (t.closest("[data-correct]")) { api("sheet_correct", { id: id }).then(function (r) { if (r.ok) { loadLists(); openSheet(r.id); } else flash(r.why || "Could not start a correction."); }); return; }
     if (t.closest("[data-send]")) { h.sendMsg = ""; api("sheet_send", { id: id, to: h.send.to, message: h.send.message }).then(function (r) { if (r.ok) { h.v = r; h.sendMsg = ""; } else h.sendMsg = r.why || "The send did not go through."; renderAll(); loadLists(); }); return; }
@@ -256,5 +267,5 @@
   // A seat (the server sets __DESK_SEAT__ only for a signed seat cookie) opens in Valuations and has no Analyst mode: the API refuses everything but the sheet actions
   if (window.__DESK_SEAT__) { m0 = "vals"; var ab = $("modeAnalyst"); if (ab) ab.hidden = true; }
   setMode(m0 === "analyst" ? "analyst" : "vals");
-  window.__deskVals = { open: openSheet, state: S };
+  window.__deskVals = { open: openSheet, state: S, settled: settled };
 })();
