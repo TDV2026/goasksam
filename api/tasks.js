@@ -21,7 +21,8 @@ import { withTracking } from "../lib/track/log.js";
 import { supabaseEnv, supabaseSelect, supabaseBytesSoFar } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { readVisitorId } from "../lib/_visitor.js";
-import { limitFacts } from "../lib/tasks/limit.js";
+import { limitFacts, taskMaxOf } from "../lib/tasks/limit.js";
+import { taskUserFor, tapUser } from "../lib/tasks/crewGate.js";
 import { jobPhrase, notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, draftFresh, startDraft, applyEdit, slotTask, firstRun, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
 import crypto from "node:crypto";
 import { CHAT_MODEL } from "../lib/live/chatHttp.js";
@@ -56,7 +57,8 @@ async function who(req) {
   // Probe test users only: a fixed id prefix, so a probe call can never act as a real account.
   if (probeOk(req) && TEST_USER.test(String(req.headers["x-test-user"] || ""))) return { userId: String(req.headers["x-test-user"]), email: null, test: true };
   const u = await validateBearer(req.headers.authorization || "").catch(() => null);
-  return u && u.userId ? { userId: u.userId, email: u.email || null } : null;
+  // THE CREW GATE for the Task limit (Nov 5 2026, NOT live): lib/tasks/crewGate.js taskUserFor, behind isCrewRequest(req). Nothing else sets taskMax.
+  return taskUserFor(req, u);
 }
 
 async function handler(req, res) {
@@ -102,7 +104,10 @@ async function handler(req, res) {
           <form method="post" action="/api/tasks?a=${encodeURIComponent(act)}&t=${encodeURIComponent(String(q.t))}"><button type="submit">${tapEsc(w.button)}</button></form>
           <p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the Task instead</a></p>`);
       }
-      const out = await controlTask(env, { userId: task.user_id }, id, act, { via: "email_link" });
+      // An email tap is ALWAYS the free limit (tapUser carries no crew limit), whatever cookie the tapping browser holds.
+      const out = await controlTask(env, tapUser(task), id, act, { via: "email_link" });
+      // At the limit the tap changes nothing, and the page says so (it used to say "Searching again." over a Task that stayed paused).
+      if (out && out.blocked) return page(200, "Not started", `<h1>Not started.</h1><p class="task">${tapEsc(task.summary || "")}</p><p>${tapEsc(out.blocked.line)}</p><p><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open your Tasks</a></p>`);
       const after = (out && out.task) || task;
       const restart = act === "pause" && after.state === "paused" ? oneTap(id, "resume") : null;
       return page(200, w.done, `<h1>${tapEsc(w.done)}</h1><p class="task">${tapEsc(task.summary || "")}</p>${restart ? `<p>You can start it again <a href="${restart}">here</a>.</p>` : act === "stop" ? `<p>You can start a new search <a href="/buy">here</a>.</p>` : ""}<p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the Task</a></p>`);
@@ -495,8 +500,8 @@ async function handler(req, res) {
       const working = open.filter(t => ["running", "needs_you"].includes(t.state)).length;
       // count: everything active, the ONE number behind the Tasks badge on every page (Sam, Oct 29 2026): open Tasks + watches + before-it-ends emails that are on (lib/live/looking.js badgeFacts).
       const { standingCounts, badgeFacts } = await import("../lib/live/looking.js");
-      const bf = badgeFacts(working, open.length, await standingCounts(env, user.userId));
-      return res.status(200).json({ signedIn: true, active: active ? { id: active.id, state: active.state, summary: active.summary } : null, count: bf.total, counts: bf, limit: limitFacts(working), unread: tasks.reduce((k, t) => k + (t.unread || 0), 0) });
+      const bf = badgeFacts(working, open.length, await standingCounts(env, user.userId), taskMaxOf(user));
+      return res.status(200).json({ signedIn: true, active: active ? { id: active.id, state: active.state, summary: active.summary } : null, count: bf.total, counts: bf, limit: limitFacts(working, taskMaxOf(user)), unread: tasks.reduce((k, t) => k + (t.unread || 0), 0) });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
     if (!user) return res.status(401).json({ needSignIn: true });
@@ -506,7 +511,7 @@ async function handler(req, res) {
       const { lookingList } = await import("../lib/live/looking.js");
       const working = (await userTasks(env, user.userId).catch(() => [])).filter(t => ["running", "needs_you"].includes(t.state)).length;
       const openN = (await userTasks(env, user.userId).catch(() => [])).filter(t => ["running", "needs_you", "paused"].includes(t.state)).length;
-      return res.status(200).json(await lookingList(env, user, working, openN));
+      return res.status(200).json(await lookingList(env, user, working, openN, taskMaxOf(user)));
     }
     if (b.action === "looking_stop") {
       const { lookingStop } = await import("../lib/live/looking.js");
@@ -531,8 +536,8 @@ async function handler(req, res) {
       if (b.open && /^[0-9a-f-]{36}$/.test(String(b.open))) { const t = tasks.find(x => x.id === b.open); if (t) await saveTask(env, t.id, { unread: 0, last_interaction_at: new Date().toISOString() }); }
       const working = tasks.filter(t => ["running", "needs_you"].includes(t.state)).length;
       const { standingCounts, badgeFacts } = await import("../lib/live/looking.js");
-      const bf = badgeFacts(working, tasks.filter(t => ["running", "needs_you", "paused"].includes(t.state)).length, await standingCounts(env, user.userId));
-      return res.status(200).json({ tasks: withThreads, count: bf.total, counts: bf, limit: limitFacts(working), ...(b.draft ? { draft_ok: !!draftFresh(b.draft) } : {}), suggestions: await suggestions(env, user.userId).catch(() => []), notify: await (async () => { const n = await notifyPrefs(env, user).catch(() => null); if (!n) return n; const { firstAlertPending } = await import("../lib/_email.js"); return { ...n, junk: !!(n.on && working && !env.mem && await firstAlertPending(env, n.email || user.email).catch(() => false)) }; })() });
+      const bf = badgeFacts(working, tasks.filter(t => ["running", "needs_you", "paused"].includes(t.state)).length, await standingCounts(env, user.userId), taskMaxOf(user));
+      return res.status(200).json({ tasks: withThreads, count: bf.total, counts: bf, limit: limitFacts(working, taskMaxOf(user)), ...(b.draft ? { draft_ok: !!draftFresh(b.draft) } : {}), suggestions: await suggestions(env, user.userId).catch(() => []), notify: await (async () => { const n = await notifyPrefs(env, user).catch(() => null); if (!n) return n; const { firstAlertPending } = await import("../lib/_email.js"); return { ...n, junk: !!(n.on && working && !env.mem && await firstAlertPending(env, n.email || user.email).catch(() => false)) }; })() });
     }
     if (b.action === "say") {
       const text = String(b.text || "").trim().slice(0, 2000);
