@@ -2009,6 +2009,12 @@ try {
   record("engine: a model written as a number and letters (540K, 300SL, 190E) is the same car glued or spaced, and a different model is still refused (scripts/modelSpacingCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/noRangeFieldsCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("engine: every card that shows sales and no range carries the total, the close matches, the floor, a reason code and the line (scripts/noRangeFieldsCheck.mjs)", "PASS", (out.match(/noRangeFieldsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: every card that shows sales and no range carries the total, the close matches, the floor, a reason code and the line (scripts/noRangeFieldsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/vpicErrorCacheCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("resolver: a vPIC error is never kept as an empty list (retry after 30 s), a real empty list is (scripts/vpicErrorCacheCheck.mjs)", "PASS", (out.match(/vpicErrorCacheCheck: .*/) || [""])[0]);
 } catch (e) {

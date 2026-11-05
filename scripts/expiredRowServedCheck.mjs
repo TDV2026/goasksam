@@ -23,7 +23,7 @@ const H = 3600e3, D = 24 * H, ago = ms => new Date(Date.now() - ms).toISOString(
 const row = (raw, ageMs, over = {}) => ({ computed_at: ago(ageMs), market: { raw, engineVersion: E.ENGINE_VERSION, warmEpoch: EPOCH, ...over } });
 const RAW = { tier: "result", poolN: 14, rawPool: [{ id: "a" }], cluster: [1, 2], resolvedCar: { year: 2004, make: "BMW", model: "M3" } };
 // every rule tag a refreshed row carries today; fixtures captured before a tag existed are stamped with them, as the refresh behind the response would
-const TAGS = { poolSourceTag: E.POOL_SOURCE_TAG, widenRulesTag: E.WIDEN_RULES_TAG, houseRulesTag: E.HOUSE_RULES_TAG, prewarBodyTag: E.PREWAR_BODY_TAG, nameRulesTag: E.NAME_RULES_TAG };
+const TAGS = { poolSourceTag: E.POOL_SOURCE_TAG, widenRulesTag: E.WIDEN_RULES_TAG, houseRulesTag: E.HOUSE_RULES_TAG, prewarBodyTag: E.PREWAR_BODY_TAG, nameRulesTag: E.NAME_RULES_TAG, noRangeTag: E.NORANGE_TAG };
 const read = async (r) => { ROW = r; return S.readWarmAnswerDetailed(env, "MCWARM:x"); };
 // 1. the band
 let d = await read(row(RAW, 3 * H)); ok("a row 3 hours old is served fresh (unchanged)", !!d.raw && d.stale === false, d.reason);
