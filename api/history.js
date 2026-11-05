@@ -271,6 +271,7 @@ var iv=R>0?setInterval(ask,R*k):0})();</script>`;
 }
 export function oneBoxBlock(d, id, oneboxHref, ctx) {
   if (!d) return "";
+  if (d.tier === "unavailable" || d.stillReading === true) return coldCardHtml(stillReadingMarket());   // a read that did not finish asks again; it is never a blank where the card goes (Nov 2026)
   const link = "";   // no product name on public pages; the range block stands alone
   if (d.tier === "result" && d.cluster) {
     const take = d.samsTake && d.samsTake.sentence ? String(d.samsTake.sentence) : "";

@@ -2027,6 +2027,12 @@ try {
   record("engine: the sale rows a card answer serves carry only the whitelisted keys (id, price, date, mi, title, image, venue, url, gearbox), no vehicle number, person or place, under 900 bytes (scripts/servedCardKeysCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/toolRetryCheck.mjs", { encoding: "utf8", timeout: 90000 });
+  record("engine: a read that did not finish is try again, never a data claim or a blank, on every path that reads the engine (scripts/toolRetryCheck.mjs)", "PASS", (out.match(/^callers .*/m) || [""])[0]);
+} catch (e) {
+  record("engine: a read that did not finish is try again, never a data claim or a blank, on every path that reads the engine (scripts/toolRetryCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/vpicErrorCacheCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("resolver: a vPIC error is never kept as an empty list (retry after 30 s), a real empty list is (scripts/vpicErrorCacheCheck.mjs)", "PASS", (out.match(/vpicErrorCacheCheck: .*/) || [""])[0]);
 } catch (e) {
