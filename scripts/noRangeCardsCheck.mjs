@@ -58,6 +58,21 @@ try {
   // ---- a card WITH a range is untouched
   { const r = await run(true, base({ market: { kind: "range", low: 50000, high: 70000, count: 24, query: "1990 Porsche 911", countLine: "24 sales.", findAnswer: { state: "range", range: { low: 50000, high: 70000 }, lines: ["24 sales since May 2025."], noRange: null } } }), PANEL);
     ok(!r.card.text.includes(LINE) && /50,000/.test(r.card.text), "a card with a range prints the range and no no-range line " + JSON.stringify(r.card.text.slice(0, 200))); await r.p.close(); }
+  // ---- ONE OF THE TWO LINES, NEVER BOTH (Lane B's note, Nov 5 2026): the engine's findAnswer.lines[0] and findAnswer.noRange.line carry identical text (and so can the thin line and the card's own slot line). Wherever the page draws it, the text is on the screen ONCE:
+  // the Find card, the card-slots path, the popup, the shared card (Market Check's thin hero and refusal draw it). Flag on and off.
+  { const count = (t, x) => (t.split(x).length - 1);
+    for (const flag of [true, false]) {
+      const fa = { lines: [LINE, "Next: bid 50,000."], noRange: { total: 9, close: 3, floor: 8, code: "few_comparable", line: LINE } };
+      let r = await run(flag, base({}, fa), { ...PANEL, engineAnswer: { ...PANEL.engineAnswer, thinLine: LINE, basisLine: LINE } });
+      ok(count(r.card.text, LINE) === 1, `one line once, flag ${flag}: the Find card prints the text once (${count(r.card.text, LINE)})`);
+      ok(r.drawer && count(r.drawer.text, LINE) <= 1, `one line once, flag ${flag}: the popup prints the text at most once (${r.drawer ? count(r.drawer.text, LINE) : "no popup"})`); await r.p.close();
+      r = await run(flag, base({ cardLabel: "9 sales since May 2025", cardHeadline: "Too few for a range", cardLine: LINE }, { ...fa, lines: [LINE] }), PANEL);
+      ok(count(r.card.text, LINE) <= 1, `one line once, flag ${flag}: the card-slots path prints the text at most once (${count(r.card.text, LINE)})`); await r.p.close();
+    }
+    const { sellsForCardHtml } = await import(pathToFileURL(path.join(ROOT, "lib/sellsForCard.js")).href);
+    for (const flag of [true, false]) for (const opts of [{}, { rows: false, salesHref: "#ob-sales" }]) { globalThis.window = { GAS_NORANGE: flag };
+      const html = sellsForCardHtml({ tier: "thin", cluster: null, thinLine: LINE, noRangeTotal: 9, noRangeLine: LINE, cards: NINE, windowLine: "9 sales since May 2025." }, opts); delete globalThis.window;
+      ok(count(html.replace(/<[^>]+>/g, " "), LINE) === 1, `one line once, flag ${flag}${opts.rows === false ? ", hosted" : ""}: the shared card (Market Check's thin hero and refusal) prints the text once (${count(html.replace(/<[^>]+>/g, " "), LINE)})`); } }
   // ---- AN APART POPUP KEEPS ITS OWN HEAD (the stack regression, Nov 5 2026): when the sales are apart by gearbox or mileage the engine's apart line opens the popup; the no-range line (noRangeLine) never replaces it, flag on.
   { const APART = { market: { kind: "count", count: 7, query: "1990 Porsche 911" }, engineAnswer: { tier: "thin", cards: PW.slice(0, 7), cluster: null, noRangeTotal: 7, noRangeLine: "NOT THE HEAD: the no-range line", thinLine: "POOLED THIN 7 sales", optionsState: "apart", headlineDimension: "gearbox",
       options: [{ label: "Manual", n: 4, saleIds: [21, 22, 23, 24] }, { label: "Automatic", n: 3, saleIds: [25, 26, 27] }], headlineLines: ["Manual: 4 sales", "Automatic: 3 sales"], pooledApart: { state: "apart", options: [] }, basisLine: "THE ENGINE'S APART LINE: 7 sales, sold as different cars." } };
