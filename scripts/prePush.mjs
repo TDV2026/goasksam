@@ -2003,6 +2003,18 @@ try {
   record("homepage feature (CREW ONLY, NOT LIVE): the one featured car passes every eligibility rule (same VIN, live, real photos, evidence link, complete, listed never sold), stays put, replaces itself when its auction ends, is null on a failed refresh and never stale, and no public route, page, feed or cache key can return it (scripts/featuredHistoryCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/featuredWireCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("homepage feature preview (CREW ONLY, NOT LIVE): a stored sold or listed pick prints through the crew route, anything short of a complete live pick is hidden, a failed image hides the section, the route is a bare 404 without the cookie (scripts/featuredWireCheck.mjs)", "PASS", (out.match(/featuredWireCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("homepage feature preview (CREW ONLY, NOT LIVE): a stored sold or listed pick prints through the crew route, anything short of a complete live pick is hidden, a failed image hides the section, the route is a bare 404 without the cookie (scripts/featuredWireCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /FAIL/.test(l)).slice(0, 4).join(" | ") || String(e.message).slice(0, 200));
+}
+try {
+  const out = execSync("node scripts/homeFindPreviewCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Home and Find previews (CREW ONLY, NOT LIVE): copy, layout at four widths, the featured history gate, crew only and never public (scripts/homeFindPreviewCheck.mjs)", "PASS", (out.match(/homeFindPreviewCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Home and Find previews (CREW ONLY, NOT LIVE): copy, layout at four widths, the featured history gate, crew only and never public (scripts/homeFindPreviewCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /FAIL/.test(l)).slice(0, 4).join(" | ") || String(e.message).slice(0, 200));
+}
+try {
   const out = execSync("node scripts/stageTimerCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: every cold compute logs its stage milliseconds (engine, trim chips, question rule, sell fields, store) (scripts/stageTimerCheck.mjs)", "PASS", (out.match(/stageTimerCheck: .*/) || [""])[0]);
 } catch (e) {
