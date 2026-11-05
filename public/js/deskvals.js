@@ -84,9 +84,15 @@
     });
   }
   // STILL READING (Lane E, Nov 5 2026): the sheet read answered { retry, retryAfterMs, line }. The sheet shows the engine's line, never "cannot be read", and asks again after the engine's own wait, a few times at most.
+  // The page has NO wait of its own: with no retryAfterMs from the engine it sets no timer and keeps showing the engine's line; the next time the person opens the sheet (its tab, or the queue row) it asks again at once.
+  function reask(id) {
+    var cur = S.sheets[id]; if (!cur || cur.v.read) return; var was = S.tabs.indexOf(id) >= 0, act = S.active;
+    api("sheet_open", { id: id }).then(function (r) { if (!r.ok) return; S.sheets[id] = { retry: r.retry || null, tries: cur.tries, v: r, draft: cur.draft, msg: "", sendMsg: "", send: cur.send }; if (was && S.tabs.indexOf(id) < 0) S.tabs.push(id); S.active = act || id; renderAll(); askAgain(id, r.retry); });
+  }
   function askAgain(id, retry) {
     var h = S.sheets[id]; if (!retry || !h) return; h.tries = (h.tries || 0) + 1; if (h.tries > 8) return;
-    setTimeout(function () { var cur = S.sheets[id]; if (!cur || cur.v.read) return; delete S.sheets[id]; var was = S.tabs.indexOf(id) >= 0, act = S.active; api("sheet_open", { id: id }).then(function (r) { if (!r.ok) return; var prev = cur; S.sheets[id] = { retry: r.retry || null, tries: prev.tries, v: r, draft: prev.draft, msg: "", sendMsg: "", send: prev.send }; if (was && S.tabs.indexOf(id) < 0) S.tabs.push(id); S.active = act || id; renderAll(); askAgain(id, r.retry); }); }, (Number(retry.retryAfterMs) || 15000));
+    var wait = retry.retryAfterMs; if (typeof wait !== "number" || !(wait >= 0)) return;
+    setTimeout(function () { reask(id); }, wait);
   }
   function closeTab(id) { S.tabs = S.tabs.filter(function (t) { return t !== id; }); delete S.sheets[id]; if (S.active === id) S.active = S.tabs[S.tabs.length - 1] || null; renderAll(); }
 
@@ -137,7 +143,7 @@
     else if (a.role === "read_only") banner = '<div class="banner">' + esc(a.why) + "</div>";
     else if (a.role === "owner" && !ed) banner = '<div class="banner">' + esc(a.why) + "</div>";
     if (h.msg) banner += '<div class="banner">' + esc(h.msg) + "</div>";
-    if (!rd) return '<div class="sheet" data-sheet="' + esc(id) + '">' + head + banner + '<div class="banner" data-reading="' + (h.retry ? 1 : 0) + '">' + esc(h.retry ? (h.retry.line || "Still reading this car. It will fill in here.") : s.vin ? "The read is not available for this car yet." : "No car was found in this submission. Type the VIN or the year, make and model at the top.") + "</div></div>";
+    if (!rd) return '<div class="sheet" data-sheet="' + esc(id) + '">' + head + banner + '<div class="banner" data-reading="' + (h.retry ? 1 : 0) + '">' + esc(h.retry ? (h.retry.line || "") : s.vin ? "The read is not available for this car yet." : "No car was found in this submission. Type the VIN or the year, make and model at the top.") + "</div></div>";
     if (rd.fixture) banner += '<div class="banner fx">Stand-in read: these figures are fixtures until the engine&rsquo;s sheet read is switched on.</div>';
     var out = head + banner + s1(h, rd, ed, dis) + s2(rd) + s3(rd) + s4(h, rd, s, ed, dis) + s5(h, ed, dis) + s6(h, rd, ev, ed, dis) + s7(h, id, v, s, ev, a);
     out += thisCar(v);
@@ -244,7 +250,7 @@
   vals.addEventListener("click", function (e) {
     var t = e.target, id = S.active, h = id && S.sheets[id];
     var x = t.closest("[data-close]"); if (x) { e.stopPropagation(); closeTab(x.getAttribute("data-close")); return; }
-    var tab = t.closest("[data-tab]"); if (tab) { S.active = tab.getAttribute("data-tab"); renderAll(); renderRail(); return; }
+    var tab = t.closest("[data-tab]"); if (tab) { S.active = tab.getAttribute("data-tab"); renderAll(); renderRail(); if (S.sheets[S.active] && S.sheets[S.active].retry) reask(S.active); return; }
     var op = t.closest("[data-open]"); if (op) { openSheet(op.getAttribute("data-open")); return; }
     if (!h) return;
     var pk = t.closest("[data-pickup]"); if (pk) { openSheet(pk.getAttribute("data-pickup"), true); return; }

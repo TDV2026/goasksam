@@ -114,5 +114,15 @@ try {
   const r3 = await handleSheetAction("sheet_new", { text: "WP0AB29918S745123" }, D.ctxOf("crew"));
   ok(r3 && r3.ok && r3.retry && r3.retry.line === RLINE, "retry: a new sheet typed while the engine is reading is made, with the line, not refused");
   mode = "none"; useSheetEngine(null); await p.close(); await D.close();
+  // THE PAGE HAS NO WAIT OF ITS OWN (pageWaitCheck class): a retry with NO retryAfterMs still shows the engine's line, and the page sets no timer and invents no number; opening the sheet's tab asks again at once.
+  { useSheetEngine(null); const D2 = await startDesk({ calls: [] }), sh2 = await seed(D2.store, { vin: "WP0AB29918S745123" }); await D2.store.put("sam", { ...sh2, read: null, car_label: "A car" });
+    let n2 = 0; useSheetEngine(async () => { n2++; return { retry: true, line: RLINE }; });
+    const q = await D2.open(1440); await q.click(`[data-open="${sh2.id}"]`); await wait(2500); const first = n2;
+    ok((await q.evaluate(() => (document.querySelector(".sheet") || {}).innerText || "")).includes(RLINE), "retry with no wait: the sheet shows the engine's line");
+    await wait(16500); ok(n2 === first, "retry with no wait: the page invents none (no ask in 16.5 s; it asked " + (n2 - first) + " more times)");
+    await q.evaluate(() => { var t = document.querySelector("[data-tab]"); if (t) t.click(); }); await wait(700); ok(n2 > first, "retry with no wait: opening the sheet asks again at once"); await D2.close();
+    useSheetEngine(null); }
+  { const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(d + "/" + e.name) : /\.js$/.test(e.name) ? [d + "/" + e.name] : []);
+    for (const f of walk("lib/desk")) { const code = fs.readFileSync(f, "utf8").split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n"); ok(!/retryAfterMs[^;\n]{0,80}(?:\|\||\?[^:;\n]{0,40}:)\s*\d{3,}/.test(code), f + ": no wait number of the Desk's own beside retryAfterMs (the engine's wait, or none)"); } }
   const src = fs.readFileSync("lib/desk/intake/engineRead.js", "utf8"); ok(/sr\.retry === true/.test(src) && /engine_status: "reading"/.test(src), "intake: a retry from the sheet read marks the sheet reading, not done and not failed"); }
 console.log(`noRangeCardsCheck: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
