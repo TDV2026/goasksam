@@ -23,8 +23,17 @@ const CASES = [
   ["1B3BR65E0PV200106", row(1993, "DODGE", "Viper", "RT/10", "Convertible/Cabriolet"), "Viper", null, "convertible", "live"],   // the "/" trim is dropped by cleanVinTrim, as before
   ["1B3JZ69Z06V101012", row(2006, "DODGE", "Viper", "SRT-10", "Coupe", "ZB"), "Viper", "SRT-10", "coupe", "live"],
   ["WP0AC29964S692123", row(2004, "PORSCHE", "911", "GT3", "Coupe"), "911", "GT3", "coupe", "live"],
-  ["WP0AB29958S750123", row(2008, "PORSCHE", "911", "S (2WD), 4S (4WD)", "Coupe", "Carrera"), "911", "S , 4S", "coupe", "live: the ambiguous 997 trim is as decoded, not this check's business"],
-  ["WP0CB29978S750123", row(2008, "PORSCHE", "911", "S Cabriolet (2WD), 4S Cabriolet (4WD)", "Convertible/Cabriolet", "Carrera"), "911", "S Cabriolet , 4S Cabriolet", "convertible", "live: same"],
+  ["WP0AB29958S750123", row(2008, "PORSCHE", "911", "S (2WD), 4S (4WD)", "Coupe", "Carrera"), "911", null, "coupe", "live: the 997 trim is a list (S or 4S), so no trim"],
+  ["WP0CB29978S750123", row(2008, "PORSCHE", "911", "S Cabriolet (2WD), 4S Cabriolet (4WD)", "Convertible/Cabriolet", "Carrera"), "911", null, "convertible", "live: same"],
+  ["WP0AA29958S700001", row(2008, "PORSCHE", "911", "Carrera (2WD), Carrera 4 (4WD)", "Coupe", "Carrera"), "911", null, "coupe", "live: 997 Carrera or Carrera 4"],
+  ["WP0AB2A94HS700018", row(2017, "PORSCHE", "911", "S, 4S, GTS, 4 GTS", "Coupe", "Turbo/Turbo S"), "911", null, "coupe", "live: 991.2 four variants"],
+  ["WP0AC29958S700007", row(2008, "PORSCHE", "911", "Base, RS", "Coupe", "GT3"), "911", null, "coupe", "live: GT3 or GT3 RS"],
+  ["WP0AA2A92JS700019", row(2018, "PORSCHE", "911", "Carrera (2WD) / Carrera 4 (4WD)", "Coupe", "Type 991"), "911", null, "coupe", "live: the slash form, dropped before this fix too"],
+  ["WAUFGAFC7EN000027", row(2014, "AUDI", "A6", "quattro Premium, quattro Premium Plus", "Sedan/Saloon"), "A6", null, "sedan", "live: Audi list"],
+  ["WAUFFAFL1CN000021", row(2012, "AUDI", "A4", "quattro Premium Plus", "Sedan/Saloon"), "A4", "quattro Premium Plus", "sedan", "live control: one trim, kept"],
+  ["5UXWX9C58E0000033", row(2014, "BMW", "X3", "xDrive28i", "Sport Utility Vehicle [SUV]/Multipurpose Vehicle [MPV]"), "X3", "xDrive28i", null, "live control"],
+  ["WDDGF8BB3CR000042", row(2012, "MERCEDES-BENZ", "C-Class", "C300 4-MATIC", "Sedan/Saloon"), "C-Class", "C300 4-MATIC", "sedan", "live control"],
+  ["JF1VA1E65G9000056", row(2016, "SUBARU", "WRX", "Premium + MR", "Sedan/Saloon"), "WRX", "Premium + MR", "sedan", "live control"],
   ["WBABN53432JJ12345", row(2002, "BMW", "330Ci", "", "Coupe", "3-Series"), "330Ci", null, "coupe", "live control: a marketed name is not a code"],
   ["WDBFA68F42F123456", row(2002, "MERCEDES-BENZ", "SL-Class", "SL500", "Convertible/Cabriolet"), "SL-Class", "SL500", "convertible", "live control"],
   ["1G1YY22G025123456", row(2002, "CHEVROLET", "Corvette", "", "Coupe"), "Corvette", null, "coupe", "live control"],
@@ -52,12 +61,30 @@ for (const [vin, r, model, trim, body, kind] of CASES) {
   // the /sell wizard, flag on: rich decode, propose, the engine is asked about the resolved vehicle
   const on = await V.resolveVehicle(`my car is ${vin}`, { vinConfirm: true }).catch(e => ({ error: String(e.message) }));
   const ov = on && on.vehicle;
-  ok(`${tag}: /sell VIN wizard (flag on) asks the engine about ${model}`, !ov || !/M[2-8](Ci|Cic|Cis|is|ic|Ti|i|d)$/i.test(String(ov.model || "")) && (kind.startsWith("control") || !ov.model || String(ov.model).toUpperCase().replace(/\s/g, "").startsWith(model.toUpperCase().replace(/\s/g, "")) || ov.model === model), ov && ov.model);
+  ok(`${tag}: /sell VIN wizard (flag on) asks the engine about ${model}`, !ov || !/M[2-8](Ci|Cic|Cis|is|ic|Ti|i|d)$/i.test(String(ov.model || "")) && (!/^M[2-8]$/.test(model) || !ov.model || String(ov.model).toUpperCase().replace(/\s/g, "").startsWith(model.toUpperCase().replace(/\s/g, "")) || ov.model === model), ov && ov.model);
   // flag off: the silent decode
   const off = await V.resolveVehicle(`my car is ${vin}`, {}).catch(e => ({ error: String(e.message) }));
   const fv = off && off.vehicle;
   ok(`${tag}: /sell VIN decode (flag off) has no code-style model`, !fv || !/^M[2-8](Ci|Cic|Cis|is|ic|Ti|i|d)$/i.test(String(fv.model || "")), fv && fv.model);
 }
+// THE TRIM CLASS (vPIC puts a drivetrain note or several variants into one trim string): a single trim loses its note, a list is no trim, and no consumer ever
+// sees a parenthesis, a comma or a stray separator. The strings are the forms seen live on Nov 5 2026 (Porsche 911 997 and 991, Audi A6) plus the notes
+// other makers use (xDrive, 4MATIC, quattro, AWD).
+const TRIMS = [["S (2WD), 4S (4WD)", null], ["Carrera (2WD), Carrera 4 (4WD)", null], ["Cabriolet (2WD), 4 Cabriolet (4WD)", null], ["Base (2WD), 4 (4WD)", null], ["Base, RS", null], ["S, 4S, GTS, 4 GTS", null],
+  ["quattro Premium, quattro Premium Plus", null], ["GT2 (2WD), Turbo (4WD)", null], ["S ,", "S"], [", S", "S"], ["S;", "S"], ["Carrera (2WD)", "Carrera"], ["Premium Plus (AWD)", "Premium Plus"], ["xDrive28i (4WD)", "xDrive28i"],
+  ["C300 4MATIC (AWD, 4x4)", "C300 4MATIC"], ["Sport (4WD) (Auto)", "Sport"], ["(4WD)", null], ["R (AWD)", "R"], ["Type R", "Type R"], ["Premium + MR", "Premium + MR"], ["STI-S", "STI-S"], ["S / 4S", null]];
+for (const [raw, want] of TRIMS) {
+  const f = V.vpicFacts(row(2008, "PORSCHE", "911", raw, "Coupe"), "WP0AB29958S750123");
+  ok(`trim "${raw}" reads ${want === null ? "no trim" : `"${want}"`}`, (f.trim ?? null) === want, f.trim);
+  ok(`trim "${raw}": nothing a consumer would print is garbled`, f.trim == null || !/[(),;]|^\s|\s$|\s{2}/.test(f.trim), f.trim);
+}
+// the same through the /sell wizard (flag on): the Series ("Carrera") never stands in for a trim that was a list
+{ rows.set("WP0AB29958S700002", row(2008, "PORSCHE", "911", "S (2WD), 4S (4WD)", "Coupe", "Carrera"));
+  const w = await V.resolveVehicle("my car is WP0AB29958S700002", { vinConfirm: true }).catch(() => null), wv = w && w.vehicle;
+  ok("/sell VIN wizard: a 997 S or 4S is not read as a Carrera, S or 4S (no trim)", !wv || !wv.trim, wv && wv.trim);
+  rows.set("WP0AB29958S700009", row(2008, "PORSCHE", "911", "", "Coupe", "Carrera"));
+  const w2 = await V.resolveVehicle("my car is WP0AB29958S700009", { vinConfirm: true }).catch(() => null), v2 = w2 && w2.vehicle;
+  ok("/sell VIN wizard: an empty Trim still falls back to the Series, as before (control)", !v2 || /carrera/i.test(String(v2.trim || "")), v2 && v2.trim); }
 // the class: every code form is caught, no marketed name or other model is
 for (const [m, want] of [["M3Ci", "M3"], ["M3Cic", "M3"], ["M3is", "M3"], ["M3i", "M3"], ["M5i", "M5"], ["M6Ci", "M6"], ["M2", "M2"], ["M3", "M3"], ["330Ci", "330Ci"], ["325i", "325i"], ["Z3", "Z3"], ["X5", "X5"], ["M3 CSL", "M3 CSL"]])
   ok(`BMW model "${m}" reads "${want}"`, V.vpicFacts(row(2002, "BMW", m, "", "Coupe"), "WBSBL93402JR12345").model === want, V.vpicFacts(row(2002, "BMW", m, "", "Coupe"), "WBSBL93402JR12345").model);
