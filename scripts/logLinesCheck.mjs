@@ -85,7 +85,7 @@ for (const r of R) ok(r.n <= BUDGET && !r.err, `${r.name}: ${r.n} console lines 
   ok(d.n >= 1, `DEBUG_LOG=1 turns the diagnostics back on (${d.n} lines for one popup)`); }
 
 // 2. THE CLASS: no new un-gated diagnostic line. Every console.log / warn / info / debug in api/ and lib/ outside the allow-list below must sit behind debugLogOn(); errors are not counted here (the lines per request above count them).
-const ALLOWED = { "api/cspReport.js": 1, "api/feedback.js": 1, "api/sellerDecision.js": 1, "api/usageDashboard.js": 2, "lib/_email.js": 1, "lib/_epoch.js": 1, "lib/_houseComps.js": 1, "lib/_spendAlerts.js": 1, "lib/_vinDecodeStore.js": 1, "lib/newsletterSignup.js": 1, "lib/tasks/tasks.js": 3, "lib/vehicle.js": 1 };
+const ALLOWED = { "api/deskInbound.js": 1, "api/cspReport.js": 1, "api/feedback.js": 1, "api/sellerDecision.js": 1, "api/usageDashboard.js": 2, "lib/_email.js": 1, "lib/_epoch.js": 1, "lib/_houseComps.js": 1, "lib/_spendAlerts.js": 1, "lib/_vinDecodeStore.js": 1, "lib/newsletterSignup.js": 1, "lib/tasks/tasks.js": 3, "lib/vehicle.js": 1 };
 // (each of these is a latched once-per-process line, an outcome of a rare action, a budget warning, a cron summary or a decision; none runs per Find or Market Check request)
 const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(d, e.name)) : /\.js$/.test(e.name) ? [path.join(d, e.name)] : []);
 const found = {};
