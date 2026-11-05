@@ -10,14 +10,15 @@ const rd = f => fs.readFileSync(f, "utf8");
 const L = await import("../lib/live/looking.js");
 const caps = await import("../lib/live/lookingCaps.js");
 const BA = await import("../lib/live/buyAlerts.js");
+const LIM = (await import("../lib/tasks/limit.js")).FREE_TASK_LIMIT;   // the Task limit is read from lib/tasks/limit.js
 // 1. rows and counts
 const rows = L.lookingRows([{ id: "w1", kind: "spec", label: "Impala, all years", identity: "1995 Chevrolet Impala SS" }, { id: "w2", kind: "vin", label: "1994 Porsche 911 Carrera Cabriolet" }], [{ listing_id: 4412, title: "2010 Porsche 911 Carrera Cabriolet", end_time: "2026-11-03T20:00:00Z", ended: false }, { listing_id: 9, title: "ended one", ended: true }]);
 ok(rows.length === 3 && rows.map(r => r.kind).join() === "spec_watch,car_watch,alert", "the list holds a spec watch, an exact-car watch and an alert (an ended alert is not listed)");
 ok(rows.every(r => /^(w|a):/.test(r.ref) && r.what && r.detail), "each row has a ref to stop it, what it watches and a plain line");
 ok(rows[2].detail === L.LOOKING_WORDS.alert && L.LOOKING_WORDS.alert === "One email about two hours before bidding ends." && /two hours before bidding ends/.test(BA.TOGGLE_LINE), "an alert's row says 'One email about two hours before bidding ends.' (Sam, Oct 29); the toggle keeps its longer rule");
-const counts = L.lookingCounts(3, rows);
-ok(counts.tasks.working === 3 && counts.tasks.max === 3 && counts.watches.count === 2 && counts.alerts.count === 1 && counts.watches.max === caps.WATCH_CAP && counts.alerts.max === caps.ALERT_CAP, "the counts are apart: 3 of 3 Tasks, 2 watches, 1 alert, each against its own cap");
-ok(counts.tasks.max === 3, "watches and alerts never change the Task limit");
+const counts = L.lookingCounts(LIM, rows);
+ok(counts.tasks.working === LIM && counts.tasks.max === LIM && counts.watches.count === 2 && counts.alerts.count === 1 && counts.watches.max === caps.WATCH_CAP && counts.alerts.max === caps.ALERT_CAP, "the counts are apart: the Tasks at their limit, 2 watches, 1 alert, each against its own cap");
+ok(counts.tasks.max === LIM, "watches and alerts never change the Task limit");
 // 2. caps and dedupe (a fake table behind fetch)
 {
   const db = { alerts: [], next: 1 };

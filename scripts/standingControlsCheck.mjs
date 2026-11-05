@@ -57,7 +57,8 @@ globalThis.fetch = async (url, o = {}) => {
 const { setTrackSink, trackDrain } = await import("../lib/track/log.js");
 const events = []; setTrackSink(r => events.push(r));
 const watchH = (await import("../api/watch.js")).default, buyH = (await import("../api/buySearch.js")).default, tasksH = (await import("../api/tasks.js")).default;
-const L = await import("../lib/live/looking.js"), caps = await import("../lib/live/lookingCaps.js"), { limitLine } = await import("../lib/tasks/limit.js");
+const L = await import("../lib/live/looking.js"), caps = await import("../lib/live/lookingCaps.js"), { limitLine, FREE_TASK_LIMIT } = await import("../lib/tasks/limit.js");
+const LIM = FREE_TASK_LIMIT, LEFT = LIM - 2;   // the Task limit is read from lib/tasks/limit.js, never written here
 
 async function call(h, body, { token = tokenOf(U1), method = "POST", query = {} } = {}) {
   const res = { code: 200, headers: {}, body: null, setHeader(k, v) { this.headers[k] = v; }, status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; }, send(b) { this.body = b; return this; }, end() { return this; } };
@@ -74,8 +75,8 @@ db.tasks = [task("t1", "running"), task("t2", "running")];
 for (const [i, label] of ["2005 SL65", "Impala, all years", "2003 M3 Convertible", "2014 911 Carrera and Carrera S"].entries()) db.watches.push({ id: "bbbbbbbb-bbbb-4bbb-8bbb-00000000000" + i, user_id: U1, kind: "spec", key: "spec" + i, label, spec: { identity: label }, created_at: new Date().toISOString(), stopped_at: null });
 let s = await summary();
 ok(s.signedIn && s.count === 6 && s.counts.tasks.open === 2 && s.counts.watches.count === 4 && s.counts.alerts.count === 0, "Sam's account reads 6 on the badge (2 Tasks + 4 watches + 0 emails), not 2");
-ok(s.counts.line === "Tasks 2 of 3 (searches you describe). Watching 4 of 25 (cars you want to hear about when they sell). Before-it-ends emails 0 of 25 (one email about two hours before a bid ends).", "the header line gives the three counts and what each is, in Sam's order: " + s.counts.line);
-ok(s.limit.statusLine === "You have 2 of 3 Tasks running. 1 Task left.", "the Tasks status line is unchanged");
+ok(s.counts.line === `Tasks 2 of ${LIM} (searches you describe). Watching 4 of 25 (cars you want to hear about when they sell). Before-it-ends emails 0 of 25 (one email about two hours before a bid ends).`, "the header line gives the three counts and what each is, in Sam's order: " + s.counts.line);
+ok(s.limit.statusLine === `You have 2 of ${LIM} Tasks running. ${LEFT} ${LEFT === 1 ? "Task" : "Tasks"} left.`, "the Tasks status line is unchanged");
 let ls = await call(tasksH, { action: "list" });
 ok(ls.count === 6 && ls.counts.total === 6, "the Tasks list carries the same total (6)");
 
@@ -170,7 +171,7 @@ ok((await summary()).count === 7, "stop: a switched-off email leaves the badge (
   for (let i = 0; i < caps.ALERT_CAP; i++) db.alerts.push({ id: 500 + i, listing_id: 2000 + i, user_id: U2, cancelled_at: null, sent_at: null });
   r = await call(buyH, { action: "arm", listing_id: 7 }, { token: tokenOf(U2) });
   ok(r.ok === false && r.reason === "cap_alert" && /Stop one/.test(r.line) && lastArm().reason === "cap_alert", "25 emails: the next is refused, the line says what to stop, logged");
-  const t = L.taskOutcome({ blocked: { line: limitLine(3) } });
+  const t = L.taskOutcome({ blocked: { line: limitLine(LIM) } });
   ok(t.reason === "cap_task" && /Stop one to start this one/.test(t.line), "3 Tasks: a blocked create is refused with 'Stop one to start this one', mapped to a logged reason");
   const T = rd("api/tasks.js");
   ok((T.match(/logArm\(user\.userId, "task", taskOutcome\(r\)\)/g) || []).length === 2, "Tasks: both create paths (start, and the draft mode) log through logArm");
@@ -202,7 +203,7 @@ ok(/looking\.counts\.total/.test(TP) && /document\.title = \(n \? "\(" \+ n \+ "
 ok(/gasTasksBadge\(\)/.test(C) && (C.match(/gasTasksBadge\(\)/g) || []).length >= 3, "Find: the badge is refreshed after an arm, a stop and a switch-off, in the same page view");
 ok(/gasTasksBadge/.test(O), "Market Check: the badge is refreshed after the arm");
 // Tasks page: counts line under the status line, Watching always shown, never collapsed
-ok(TP.indexOf("countsline") > 0 && TP.indexOf("countsline") < TP.indexOf("h += lookingHtml()"), "Tasks page: the three-counts line sits under 'You have 2 of 3 Tasks running'");
+ok(TP.indexOf("countsline") > 0 && TP.indexOf("countsline") < TP.indexOf("h += lookingHtml()"), "Tasks page: the three-counts line sits under the Tasks status line");
 ok(/<h2>Watching ' \+ w\.length/.test(TP) && /Before-it-ends emails ' \+ a\.length/.test(TP) && !/<details class="lk/.test(TP) && /Watches and emails do not use up your Tasks\./.test(TP), "Tasks page: 'Watching N' and the emails list are headed with their counts, never collapsed, with the line that they do not use up Tasks");
 ok(TP.indexOf("h += overview(mine);") < TP.indexOf("h += lookingHtml();") && TP.indexOf("h += lookingHtml();") < TP.indexOf("h += notifyLine();"), "Tasks page: Watching sits directly under the Tasks");
 ok(!/if \(!rows\.length\) return "";/.test(TP), "Tasks page: Watching is shown even when empty (it is not a hidden feature)");

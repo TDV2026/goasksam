@@ -22,7 +22,9 @@ import { supabaseEnv, supabaseSelect, supabaseBytesSoFar } from "../lib/_supabas
 import { validateBearer } from "../lib/_auth.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { limitFacts, taskMaxOf } from "../lib/tasks/limit.js";
-import { taskUserFor, tapUser } from "../lib/tasks/crewGate.js";
+import { taskUserFor, tapUser, badgeCount } from "../lib/tasks/crewGate.js";
+import { TASKS_MAX_DURATION_S, budgetMs } from "../lib/tasks/runBudget.js";
+import { makePace } from "../lib/tasks/sendPace.js";
 import { jobPhrase, notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, draftFresh, startDraft, applyEdit, slotTask, firstRun, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
 import crypto from "node:crypto";
 import { CHAT_MODEL } from "../lib/live/chatHttp.js";
@@ -125,13 +127,16 @@ async function handler(req, res) {
       // The limits ledger keeps nothing past 24 hours (its address keys are daily salted hashes, lib/_addr.js).
       if (isCron) { const { pruneLedger } = await import("../lib/_ceilings.js"); await pruneLedger(env).catch(() => {}); }
       // Before it ends first: its own email two hours before the end, never waiting on the daily email.
+      const t0s = Date.now();
       const dry = !isCron && q.dry === "1";
       // &legacy=1 (dry runs only): the reads as they were before the Tasks read reductions, for the before/after bytes.
       const legacy = dry && q.legacy === "1";
-      const bie = await runBeforeItEnds(env, { dry, legacy }).catch(e => ({ error: String(e && e.message || e).slice(0, 120), sent: 0, ended: 0, failed: 0 }));
-      const out = await runDigest(env, { dry, legacy });
+      // One pace for the whole run (lib/tasks/sendPace.js): a gap between sends, backoff on a rate limit, and a deadline at 80% of the function limit; what it cannot send waits queued for the next run.
+      const pace = dry ? null : makePace({ deadlineAt: Date.now() + budgetMs() });
+      const bie = await runBeforeItEnds(env, { dry, legacy, pace }).catch(e => ({ error: String(e && e.message || e).slice(0, 120), sent: 0, ended: 0, failed: 0 }));
+      const out = await runDigest(env, { dry, legacy, pace });
       const bytesRead = supabaseBytesSoFar() + digestBytesSoFar() - b0;
-      if (!dry) await recordUsageEvent({ event_type: "task_email_run", route: "tasks_send", status: "ok", oldcarsdata_metered_requests: 0, metadata: { bytesRead, people: out.people, sent: out.sent + (bie.sent || 0), capped: out.capped, notDue: out.notDue, emailOff: out.emailOff, matches: out.matches + (bie.sent || 0), endedBeforeSend: bie.ended || 0, failed: out.failed + (bie.failed || 0), beforeItEnds: { sent: bie.sent || 0, off: bie.off || 0, ended: bie.ended || 0, failed: bie.failed || 0, error: bie.error } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+      if (!dry) await recordUsageEvent({ event_type: "task_email_run", route: "tasks_send", status: "ok", oldcarsdata_metered_requests: 0, metadata: { bytesRead, people: out.people, sent: out.sent + (bie.sent || 0), capped: out.capped, notDue: out.notDue, emailOff: out.emailOff, matches: out.matches + (bie.sent || 0), endedBeforeSend: bie.ended || 0, failed: out.failed + (bie.failed || 0), deferred: (out.deferred || 0) + (bie.deferred || 0), rateLimited: !!out.rateLimited || !!(pace && pace.stopReason === "rate_limited"), retried: pace ? pace.retried : 0, ms: Date.now() - t0s, beforeItEnds: { sent: bie.sent || 0, off: bie.off || 0, ended: bie.ended || 0, failed: bie.failed || 0, error: bie.error } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json({ ...out, beforeItEnds: bie, bytesRead, legacy: legacy || undefined });
     }
     if (req.method === "GET" && q.run) {
@@ -147,17 +152,19 @@ async function handler(req, res) {
         const fresh = since ? await supabaseSelect(env, `live_listings?first_seen=gt.${encodeURIComponent(since)}&select=id&limit=1`).catch(() => null) : [1];
         // ...unless the last full run is over 4 hours old: the periodic work (still-looking notes) keeps its pace.
         const stale = !l || Date.now() - Date.parse(l.created_at) > 4 * 3600e3;
-        if (fresh && !fresh.length && !stale) return res.status(200).json({ ran: 0, nothingNew: true, since });
+        // ...and never when the last run ran out of time and deferred Tasks: those are still waiting for their turn.
+        const waiting = !!(l && Number(l.metadata && l.metadata.deferred) > 0);
+        if (fresh && !fresh.length && !stale && !waiting) return res.status(200).json({ ran: 0, nothingNew: true, since });
       }
       let out;
       const b0 = supabaseBytesSoFar();
-      try { out = await runTasks(env, { apiKey, model: CHAT_MODEL }); }
+      try { out = await runTasks(env, { apiKey, model: CHAT_MODEL, budgetMs: budgetMs() }); }
       catch (e) {   // a failed run leaves a row too, so a silent cron failure is queryable
         await recordUsageEvent({ event_type: "tasks_run", route: "tasks_run", status: "error", oldcarsdata_metered_requests: 0, metadata: { error: String((e && e.message) || e).slice(0, 300), ms: Date.now() - t0 } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
         throw e;
       }
       const bytesRead = supabaseBytesSoFar() - b0;
-      await recordUsageEvent({ event_type: "tasks_run", route: "tasks_run", status: "ok", oldcarsdata_metered_requests: 0, metadata: { ran: out.ran, matched: out.report.reduce((k, r) => k + (r.matched || 0), 0), ms: Date.now() - t0, bytesRead } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+      await recordUsageEvent({ event_type: "tasks_run", route: "tasks_run", status: "ok", oldcarsdata_metered_requests: 0, metadata: { ran: out.ran, matched: out.report.reduce((k, r) => k + (r.matched || 0), 0), ms: Date.now() - t0, bytesRead, tasks: out.read, deferred: out.deferred || 0, limit_ms: TASKS_MAX_DURATION_S * 1000 } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json({ ...out, bytesRead });
     }
     // Probe: how many accounts carry a stored Task email address (accounts.task_email, no longer read since Task emails
@@ -499,9 +506,10 @@ async function handler(req, res) {
       const active = open.find(t => ["running", "needs_you"].includes(t.state)) || open[0] || null;
       const working = open.filter(t => ["running", "needs_you"].includes(t.state)).length;
       // count: everything active, the ONE number behind the Tasks badge on every page (Sam, Oct 29 2026): open Tasks + watches + before-it-ends emails that are on (lib/live/looking.js badgeFacts).
+      // CREW ONLY (Nov 5 2026, not live): the signed crew cookie gets the sum of tasks.unread instead (lib/tasks/crewGate.js badgeCount); everyone else, a forged cookie included, gets the count above.
       const { standingCounts, badgeFacts } = await import("../lib/live/looking.js");
       const bf = badgeFacts(working, open.length, await standingCounts(env, user.userId), taskMaxOf(user));
-      return res.status(200).json({ signedIn: true, active: active ? { id: active.id, state: active.state, summary: active.summary } : null, count: bf.total, counts: bf, limit: limitFacts(working, taskMaxOf(user)), unread: tasks.reduce((k, t) => k + (t.unread || 0), 0) });
+      return res.status(200).json({ signedIn: true, active: active ? { id: active.id, state: active.state, summary: active.summary } : null, count: badgeCount(isCrewRequest(req) === true, bf.total, tasks.reduce((k, t) => k + (t.unread || 0), 0)), counts: bf, limit: limitFacts(working, taskMaxOf(user)), unread: tasks.reduce((k, t) => k + (t.unread || 0), 0) });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
     if (!user) return res.status(401).json({ needSignIn: true });

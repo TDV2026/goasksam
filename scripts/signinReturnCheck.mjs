@@ -6,6 +6,7 @@
 import fs from "node:fs"; import path from "node:path"; import { pathToFileURL, fileURLToPath } from "node:url";
 process.env.LAUNCH_STAGE = "2"; process.env.LAUNCH_BUSINESS = "1";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."), SHOTS = process.argv.includes("--shots") ? process.argv[process.argv.indexOf("--shots") + 1] : null;
+const { FREE_TASK_LIMIT } = await import(pathToFileURL(path.join(ROOT, "lib/tasks/limit.js")).href);   // read, never written (taskLimitLiteralCheck)
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL  " + m); } };
 const puppeteer = (await import(pathToFileURL(path.join(ROOT, "node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js")).href).catch(() => import("puppeteer-core"))).default;
 const render = async (mod, url, query = {}) => { const { default: h } = await import(pathToFileURL(path.join(ROOT, "api", mod + ".js")).href + "?t=" + Date.now());
@@ -24,7 +25,7 @@ async function session(w, pagePath, { newAccount }) {
     if (u.pathname === "/api/publicConfig") return j({ supabaseUrl: "https://sb.test", anonKey: "anon" });
     if (u.pathname === "/api/signup") return j(newAccount ? { ok: true, ticket: "t1" } : { ok: true });
     if (u.pathname === "/api/account") return j({ email: "me@example.com", tier: "free", dailyLimit: 10, dailyUsed: 0, dailyRemaining: 10 });
-    if (u.pathname === "/api/tasks") return j({ signedIn: true, count: 0, tasks: [], limit: { max: 3 } });
+    if (u.pathname === "/api/tasks") return j({ signedIn: true, count: 0, tasks: [], limit: { max: FREE_TASK_LIMIT } });
     if (u.host === "goasksam.com") { const rel = u.pathname.replace(/^\/(js|obx)\.[0-9a-z]+\//, "/js/"); const f = path.join(ROOT, "public", rel); if (fs.existsSync(f) && fs.statSync(f).isFile()) return r.respond({ status: 200, contentType: mime(f), body: fs.readFileSync(f) }); }
     return r.respond({ status: 204, body: "" });
   });

@@ -26,6 +26,8 @@ async function load(mut = {}) {
 const { mintCrewCookieValue, CREW_MAX_AGE_S } = await import("../lib/_crew.js");
 const { mintTesterCookieValue } = await import("../lib/_tester.js");
 const { mintSeatCookieValue } = await import("../lib/desk/seatCookie.js");
+// FREE and CREW are READ from lib/tasks/limit.js, never written here (scripts/taskLimitLiteralCheck.mjs).
+const { FREE_TASK_LIMIT: FREE, CREW_TASK_LIMIT: CREW } = await import("../lib/tasks/limit.js");
 const NAMES = [["Porsche", "911"], ["Ford", "Mustang"], ["Chevrolet", "Camaro"], ["BMW", "M3"], ["Toyota", "Supra"], ["Dodge", "Charger"], ["Jaguar", "E-Type"], ["Mazda", "Miata"], ["Nissan", "Skyline"], ["Honda", "NSX"], ["Ferrari", "308"], ["Lotus", "Esprit"], ["Audi", "Quattro"]];
 const draftOf = (make, model) => ({ kind: "hunt", filters: { make, model }, words: `${make} ${model}`, summary: `Sam is looking for ${make} ${model}s.` });
 const opts = { rows: [], testDrafts: [] };
@@ -46,21 +48,21 @@ export async function findings(mut = {}) {
   const tryN = async (user, n) => { const env = { mem: T.memStore() }, out = []; for (let i = 0; i < n; i++) out.push(await T.startDraft(env, user, draftOf(...NAMES[i]), opts)); return { env, out }; };
   // free doors: three start, the 4th is refused with max 3
   for (const [name, req] of Object.entries(free)) {
-    const user = G.taskUserFor(req, { userId: uid(), email: null }), { out } = await tryN(user, 4);
-    if (!out.slice(0, 3).every(r => r.task && !r.blocked)) fails.push(`${name}: the first three Tasks did not all start`);
-    if (!(out[3].blocked && out[3].blocked.max === 3 && !out[3].task)) fails.push(`${name}: a 4th Task was not refused with max 3 (${out[3].task ? "it STARTED" : JSON.stringify(out[3].blocked && out[3].blocked.max)})`);
+    const user = G.taskUserFor(req, { userId: uid(), email: null }), { out } = await tryN(user, FREE + 1);
+    if (!out.slice(0, FREE).every(r => r.task && !r.blocked)) fails.push(`${name}: the Tasks up to the free limit did not all start`);
+    if (!(out[FREE].blocked && out[FREE].blocked.max === FREE && !out[FREE].task)) fails.push(`${name}: a Task past the free limit was not refused with the free max (${out[FREE].task ? "it STARTED" : JSON.stringify(out[FREE].blocked && out[FREE].blocked.max)})`);
   }
   for (const [name, taskMax] of [["a made-up taskMax of 99", 99], ["a string \"10\"", "10"], ["true", true]]) {
-    const user = { userId: uid(), email: null, taskMax }, { out } = await tryN(user, 4);
-    if (!(out[3].blocked && out[3].blocked.max === 3)) fails.push(`a user object carrying ${name}: the 4th Task was not refused with max 3`);
+    const user = { userId: uid(), email: null, taskMax }, { out } = await tryN(user, FREE + 1);
+    if (!(out[FREE].blocked && out[FREE].blocked.max === FREE)) fails.push(`a user object carrying ${name}: the Task past the free limit was not refused with the free max`);
   }
   // the crew door: ten start, the 11th is refused with max 10, the status line reads of 10
   {
-    const user = G.taskUserFor(reqOf({ cookie: "gas_crew=" + crewVal }), { userId: uid(), email: null }), { env, out } = await tryN(user, 11);
-    if (!out.slice(0, 10).every(r => r.task && !r.blocked)) fails.push(`the signed crew cookie: Tasks 1 to 10 did not all start (${out.slice(0, 10).filter(r => !r.task).length} refused)`);
-    if (!(out[10].blocked && out[10].blocked.max === 10 && !out[10].task)) fails.push("the signed crew cookie: the 11th Task was not refused with max 10");
-    const f7 = L.limitFacts(7, L.taskMaxOf(user)); if (f7.statusLine !== "You have 7 of 10 Tasks running. 3 Tasks left.") fails.push(`the crew status line reads "${f7.statusLine}"`);
-    const f3 = L.limitFacts(2, L.taskMaxOf(G.taskUserFor(reqOf(), { userId: "x" }))); if (f3.statusLine !== "You have 2 of 3 Tasks running. 1 Task left.") fails.push(`the free status line reads "${f3.statusLine}"`);
+    const user = G.taskUserFor(reqOf({ cookie: "gas_crew=" + crewVal }), { userId: uid(), email: null }), { env, out } = await tryN(user, CREW + 1);
+    if (!out.slice(0, CREW).every(r => r.task && !r.blocked)) fails.push(`the signed crew cookie: Tasks up to the crew limit did not all start (${out.slice(0, CREW).filter(r => !r.task).length} refused)`);
+    if (!(out[CREW].blocked && out[CREW].blocked.max === CREW && !out[CREW].task)) fails.push("the signed crew cookie: the Task past the crew limit was not refused with the crew max");
+    const f7 = L.limitFacts(7, L.taskMaxOf(user)); if (f7.statusLine !== `You have 7 of ${CREW} Tasks running. ${CREW - 7} Tasks left.`) fails.push(`the crew status line reads "${f7.statusLine}"`);
+    const f3 = L.limitFacts(2, L.taskMaxOf(G.taskUserFor(reqOf(), { userId: "x" }))); if (f3.statusLine !== `You have 2 of ${FREE} Tasks running. ${FREE - 2} ${FREE - 2 === 1 ? "Task" : "Tasks"} left.`) fails.push(`the free status line reads "${f3.statusLine}"`);
     // the crew account's setup turn is not blocked at 5 and is blocked at 10
     // ---- the email tap: a crew account with 5 working Tasks and a paused one. The tap resumes nothing (free limit), keep_looking neither.
     const env2 = { mem: T.memStore() }, crewUser = G.taskUserFor(reqOf({ cookie: "gas_crew=" + crewVal }), { userId: uid(), email: null });
@@ -69,7 +71,7 @@ export async function findings(mut = {}) {
     for (const act of ["resume", "keep_looking"]) {
       const tapped = await T.controlTask(env2, G.tapUser({ user_id: crewUser.userId }), all[0].id, act, { via: "email_link" });
       const st = (await T.getTask(env2, all[0].id)).state;
-      if (!(tapped.blocked && tapped.blocked.max === 3) || st !== "paused") fails.push(`the email ${act} tap on a crew account with 5 Tasks working: not refused with max 3 (state ${st}, max ${tapped.blocked && tapped.blocked.max})`);
+      if (!(tapped.blocked && tapped.blocked.max === FREE) || st !== "paused") fails.push(`the email ${act} tap on a crew account with 5 Tasks working: not refused with max 3 (state ${st}, max ${tapped.blocked && tapped.blocked.max})`);
     }
     const viaPage = await T.controlTask(env2, crewUser, all[0].id, "resume"); if (!(viaPage.task && viaPage.task.state === "running")) fails.push("the crew account could not resume its paused Task from the Tasks page (5 working, limit 10)");
   }

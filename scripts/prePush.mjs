@@ -864,6 +864,48 @@ try {
 } catch (e) {
   record("Desk Valuations: the reserve, range and guard rules at finalise, refused and allowed, and printed inline (scripts/reasonRulesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// tasksCrewLimitCheck (Lane S, Nov 5 2026, lane-s-tasks10): Tasks: the crew-only limit of ten fails closed on every other door.
+try {
+  const out = execSync("node scripts/tasksCrewLimitCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("Tasks: the crew-only limit of ten fails closed on every other door (scripts/tasksCrewLimitCheck.mjs)", "PASS", (out.match(/tasksCrewLimitCheck[^\n]*: .*/) || out.trim().split("\n").slice(-1))[0]);
+} catch (e) {
+  record("Tasks: the crew-only limit of ten fails closed on every other door (scripts/tasksCrewLimitCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// taskLimitLiteralCheck (Lane S, Nov 5 2026, lane-s-tasks10): Tasks: no hard coded limit, the limit checks pass with the constant at 3 and at 10.
+try {
+  const out = execSync("node scripts/taskLimitLiteralCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("Tasks: no hard coded limit, the limit checks pass with the constant at 3 and at 10 (scripts/taskLimitLiteralCheck.mjs)", "PASS", (out.match(/taskLimitLiteralCheck[^\n]*: .*/) || out.trim().split("\n").slice(-1))[0]);
+} catch (e) {
+  record("Tasks: no hard coded limit, the limit checks pass with the constant at 3 and at 10 (scripts/taskLimitLiteralCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// tasksMatcherReadCheck (Lane S, Nov 5 2026, lane-s-tasks10): Tasks: the matcher reads every running Task, fairly, inside its time budget.
+try {
+  const out = execSync("node scripts/tasksMatcherReadCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("Tasks: the matcher reads every running Task, fairly, inside its time budget (scripts/tasksMatcherReadCheck.mjs)", "PASS", (out.match(/tasksMatcherReadCheck[^\n]*: .*/) || out.trim().split("\n").slice(-1))[0]);
+} catch (e) {
+  record("Tasks: the matcher reads every running Task, fairly, inside its time budget (scripts/tasksMatcherReadCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// tasksSendPaceCheck (Lane S, Nov 5 2026, lane-s-tasks10): Tasks: the email runs pace, back off on a rate limit and lose no queued update.
+try {
+  const out = execSync("node scripts/tasksSendPaceCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("Tasks: the email runs pace, back off on a rate limit and lose no queued update (scripts/tasksSendPaceCheck.mjs)", "PASS", (out.match(/tasksSendPaceCheck[^\n]*: .*/) || out.trim().split("\n").slice(-1))[0]);
+} catch (e) {
+  record("Tasks: the email runs pace, back off on a rate limit and lose no queued update (scripts/tasksSendPaceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// tasksBadgeCheck (Lane S, Nov 5 2026, lane-s-tasks10): Tasks: the crew-only unread badge, everyone else byte for byte as before.
+try {
+  const out = execSync("node scripts/tasksBadgeCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("Tasks: the crew-only unread badge, everyone else byte for byte as before (scripts/tasksBadgeCheck.mjs)", "PASS", (out.match(/tasksBadgeCheck[^\n]*: .*/) || out.trim().split("\n").slice(-1))[0]);
+} catch (e) {
+  record("Tasks: the crew-only unread badge, everyone else byte for byte as before (scripts/tasksBadgeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// tasksRunTimeCheck (Lane S, Nov 5 2026, lane-s-tasks10): Tasks: the nightly run time check's own logic.
+try {
+  const out = execSync("node scripts/tasksRunTimeCheck.mjs --selftest", { encoding: "utf8", timeout: 600000 });
+  record("Tasks: the nightly run time check's own logic (scripts/tasksRunTimeCheck.mjs)", "PASS", (out.match(/tasksRunTimeCheck[^\n]*: .*/) || out.trim().split("\n").slice(-1))[0]);
+} catch (e) {
+  record("Tasks: the nightly run time check's own logic (scripts/tasksRunTimeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // deskDoorsCheck (Lane S, Nov 5 2026): Desk doors: a crew + seat person, the View as switch, org isolation, the seat cookie at sign in.
 try {
   const out = execSync("node scripts/deskDoorsCheck.mjs", { encoding: "utf8", timeout: 240000 });

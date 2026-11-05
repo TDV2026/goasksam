@@ -13,32 +13,33 @@ process.env.LAUNCH_STAGE = "2"; process.env.LAUNCH_BUSINESS = "1";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SHOTS = process.argv.includes("--shots");
 const puppeteer = (await import(pathToFileURL(path.join(ROOT, "node_modules/puppeteer-core/lib/esm/puppeteer/puppeteer-core.js")).href).catch(() => import("puppeteer-core"))).default;
-const { limitFacts } = await import(pathToFileURL(path.join(ROOT, "lib/tasks/limit.js")).href);
+const { limitFacts, FREE_TASK_LIMIT } = await import(pathToFileURL(path.join(ROOT, "lib/tasks/limit.js")).href);
+const LIM = FREE_TASK_LIMIT;   // the Task limit is read from lib/tasks/limit.js, never written here (taskLimitLiteralCheck runs this at 3 and at 10)
 const { overviewFacts } = await import(pathToFileURL(path.join(ROOT, "lib/tasks/overview.js")).href);   // the count lines come from the server module, never the page
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL  " + m); } };
 const now = Date.now(), soon = h => new Date(now + h * 3600e3).toISOString(), ago = h => new Date(now - h * 3600e3).toISOString();
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="432"><rect width="100%" height="100%" fill="#8ab"/></svg>`;
 const card = (id, t, extra) => Object.assign({ id, title: t, make: "Porsche", url: "https://auction.test/" + id, source: "Bring a Trailer", sourceSlug: "bringatrailer", photo_url: "https://img.test/" + id + ".jpg", end_time: soon(14), reserve: "none", current_bid_usd: 40000 + id * 1000, bid_at: ago(0.4), miles: 30000 + id * 1000, location: "King of Prussia, PA", country: "US", chips: ["Manual", "Guards Red"], market: { kind: "range", low: 55000, high: 78000, count: 24, query: "1995 Porsche 911", basisLine: "Based on 24 sales, the latest in October 2026." }, sam_lines: [{ kind: "range", rung: [], placing: "below the range", text: "The middle half of 911 sales landed at $55,000 to $78,000 since December 2025. The bid is below the range." }], timeline: [], seen_before: { n: 0 }, history_url: null }, extra || {});
 const CARDS = [card(1, "1995 Porsche 911 Carrera"), card(2, "1996 Porsche 911 Carrera 4"), card(3, "1994 Porsche 964 Carrera RS")];
-const mkTask = (n, state = "running", extra = {}) => ({ id: "00000000-0000-4000-8000-00000000000" + n, state, kind: "hunt", summary: ["Sam is looking for red manual Porsche 911s.", "Sam is looking for G-body sedans.", "Sam is looking for a 1995 Land Rover Defender under $100,000.", "Sam is looking for Ford Mustangs."][n - 1], filters: {}, unread: 0, created_at: ago(5), updates: [{ id: 100 + n, role: "sam", kind: "system", created_at: ago(5), text: "Started. Sam checks every new listing and tells you when one matches." }, { id: 200 + n, role: "sam", kind: "match", created_at: ago(4.9), text: "x", data: { opening: true, total: 3, line: "3 live cars match.", cards: CARDS.map(c => ({ id: c.id, title: c.title, url: c.url })) } }], ...extra });
+const mkTask = (n, state = "running", extra = {}) => ({ id: "00000000-0000-4000-8000-00000000000" + n, state, kind: "hunt", summary: ["Sam is looking for red manual Porsche 911s.", "Sam is looking for G-body sedans.", "Sam is looking for a 1995 Land Rover Defender under $100,000.", "Sam is looking for Ford Mustangs."][n - 1] || `Sam is looking for car number ${n}.`, filters: {}, unread: 0, created_at: ago(5), updates: [{ id: 100 + n, role: "sam", kind: "system", created_at: ago(5), text: "Started. Sam checks every new listing and tells you when one matches." }, { id: 200 + n, role: "sam", kind: "match", created_at: ago(4.9), text: "x", data: { opening: true, total: 3, line: "3 live cars match.", cards: CARDS.map(c => ({ id: c.id, title: c.title, url: c.url })) } }], ...extra });
 
 // A fake account: tasks mutate with the page's calls, the way the server would; counts and the limit come from the same limitFacts.
 function account(tasks, opts = {}) {
   const A = { tasks, calls: [], notify: { on: true, email: "me@example.com", every: "daily", everyReady: true }, firstDelay: opts.firstDelay || 0, cardsDelay: opts.cardsDelay || 0, enrich: opts.enrich || (() => ({ cards: [] })) };
   A.working = () => A.tasks.filter(t => ["running", "needs_you"].includes(t.state)).length;
   A.list = () => ({  tasks: A.tasks.map(t => ({ ...t, overview: overviewFacts(t), updates: (t.updates || []).map(u => ({ ...u, task_id: t.id, data: u.data ? { ...u.data, full: undefined } : u.data })) })), count: A.tasks.filter(t => t.state !== "done").length, limit: limitFacts(A.working()), suggestions: [], notify: { ...A.notify, junk: !!A.junk } });
-  A.blocked = () => { const w = A.tasks.filter(t => ["running", "needs_you"].includes(t.state)); return { blocked: { task_id: w[0].id, max: 3, line: limitFacts(w.length).line, tasks: w.map(t => ({ id: t.id, summary: t.summary })) } }; };
+  A.blocked = () => { const w = A.tasks.filter(t => ["running", "needs_you"].includes(t.state)); return { blocked: { task_id: w[0].id, max: LIM, line: limitFacts(w.length).line, tasks: w.map(t => ({ id: t.id, summary: t.summary })) } }; };
   A.handle = async b => {
     A.calls.push(b.action + (b.act ? ":" + b.act : "") + (b.event ? ":" + b.event : ""));
     if (b.action === "list") return b.draft ? { ...A.list(), draft_ok: !!b.draft.at && Date.now() - Date.parse(b.draft.at) < 864e5 } : A.list();
     if (b.action === "say" && !b.task_id && A.sayFn) return A.sayFn(b);
-    if (b.action === "say" && !b.task_id) { if (A.working() >= 3) return A.blocked(); const w = String(b.text); return { draft: { words: w, kind: "hunt", filters: { make: "X" }, question: null, summary: "Sam is looking for " + w + ".", thread: [{ role: "sam", text: "Sam will look for " + w + ". Start?" }] }, reply: "Sam will look for " + w + ". Start?" }; }
-    if (b.action === "start") { if (A.working() >= 3) return A.blocked(); const t = mkTask(A.tasks.length + 1, "running", { summary: b.draft.summary, updates: [{ id: 900 + A.tasks.length, role: "sam", kind: "system", created_at: new Date().toISOString(), text: "Started. Sam checks every new listing and tells you when one matches." }] }); A.tasks.unshift(t); A.newest = t; return { task: { ...t, starting: !!b.defer } }; }
+    if (b.action === "say" && !b.task_id) { if (A.working() >= LIM) return A.blocked(); const w = String(b.text); return { draft: { words: w, kind: "hunt", filters: { make: "X" }, question: null, summary: "Sam is looking for " + w + ".", thread: [{ role: "sam", text: "Sam will look for " + w + ". Start?" }] }, reply: "Sam will look for " + w + ". Start?" }; }
+    if (b.action === "start") { if (A.working() >= LIM) return A.blocked(); const t = mkTask(A.tasks.length + 1, "running", { summary: b.draft.summary, updates: [{ id: 900 + A.tasks.length, role: "sam", kind: "system", created_at: new Date().toISOString(), text: "Started. Sam checks every new listing and tells you when one matches." }] }); A.tasks.unshift(t); A.newest = t; return { task: { ...t, starting: !!b.defer } }; }
     if (b.action === "first") { if (A.firstDelay) await new Promise(r => setTimeout(r, A.firstDelay)); const t = A.tasks.find(x => x.id === b.task_id); t.updates.push(mkTask(1).updates[1]); return { task: t, ran: true }; }
     if (b.action === "cards") { if (A.cardsDelay) await new Promise(r => setTimeout(r, A.cardsDelay)); const t = A.tasks.find(x => x.id === b.task_id); return { updates: (t.updates || []).filter(u => u.data && u.data.cards).map(u => ({ id: u.id, full: A.cardsOf ? A.cardsOf() : CARDS.map(c => ({ ...c })) })) }; }
-    if (b.action === "control") { const t = A.tasks.find(x => x.id === b.task_id); if (b.act === "stop") t.state = "done"; else if (b.act === "pause") t.state = "paused"; else if (b.act === "resume") { if (A.working() >= 3) return { ...A.blocked(), task: t }; t.state = "running"; } return { task: t }; }
-    if (b.action === "limit") { if (b.event === "stop") { const t = A.tasks.find(x => x.id === b.task_id); if (t) t.state = "done"; if (b.mode === "draft" && b.draft) { if (A.working() >= 3) return A.blocked(); const n = mkTask(A.tasks.length + 1, "running", { summary: b.draft.summary }); A.tasks.unshift(n); return { ok: true, task: { ...n, starting: true } }; } } return { ok: true }; }
-    if (b.action === "looking") { if (!A.lookingRows) return { rows: [], counts: {} }; const W = A.lookingRows.filter(r => r.kind !== "alert").length, E = A.lookingRows.filter(r => r.kind === "alert").length; return { rows: A.lookingRows, counts: { tasks: { working: A.working(), max: 3 }, watches: { count: W, max: 25 }, alerts: { count: E, max: 25 }, total: A.working() + W + E, line: "Tasks " + A.working() + " of 3 (searches you describe). Watching " + W + " of 25 (cars you want to hear about when they sell). Before-it-ends emails " + E + " of 25 (one email about two hours before a bid ends)." } }; }
+    if (b.action === "control") { const t = A.tasks.find(x => x.id === b.task_id); if (b.act === "stop") t.state = "done"; else if (b.act === "pause") t.state = "paused"; else if (b.act === "resume") { if (A.working() >= LIM) return { ...A.blocked(), task: t }; t.state = "running"; } return { task: t }; }
+    if (b.action === "limit") { if (b.event === "stop") { const t = A.tasks.find(x => x.id === b.task_id); if (t) t.state = "done"; if (b.mode === "draft" && b.draft) { if (A.working() >= LIM) return A.blocked(); const n = mkTask(A.tasks.length + 1, "running", { summary: b.draft.summary }); A.tasks.unshift(n); return { ok: true, task: { ...n, starting: true } }; } } return { ok: true }; }
+    if (b.action === "looking") { if (!A.lookingRows) return { rows: [], counts: {} }; const W = A.lookingRows.filter(r => r.kind !== "alert").length, E = A.lookingRows.filter(r => r.kind === "alert").length; return { rows: A.lookingRows, counts: { tasks: { working: A.working(), max: LIM }, watches: { count: W, max: 25 }, alerts: { count: E, max: 25 }, total: A.working() + W + E, line: "Tasks " + A.working() + " of " + LIM + " (searches you describe). Watching " + W + " of 25 (cars you want to hear about when they sell). Before-it-ends emails " + E + " of 25 (one email about two hours before a bid ends)." } }; }
     if (b.action === "looking_stop") { A.lookingRows = (A.lookingRows || []).filter(r => r.ref !== b.ref); return { ok: true }; }
     if (b.action === "notify") { if (typeof b.on === "boolean") A.notify.on = b.on; if (b.every) A.notify.every = b.every; return A.notify; }
     return {};
@@ -110,12 +111,12 @@ const gone = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); 
 
 try {
   for (const W of [1440, 390]) {
-    const resident = () => account([mkTask(1), mkTask(2), mkTask(3)]);
+    const resident = () => account(Array.from({ length: LIM }, (_, i) => mkTask(i + 1)));
     // ---- B. the limit card
     { const A = resident(); const p = await open(A, W); await wait(700);
-      ok(!!(await p.$(".limitbox")), `[${W}] 3 of 3: the limit card shows`);
+      ok(!!(await p.$(".limitbox")), `[${W}] ${LIM} of ${LIM}: the limit card shows`);
       await p.click("[data-limit-keep]"); await wait(400);
-      ok(await gone(p, ".limitbox"), `[${W}] Never mind closes the limit card`); ok(!!(await p.$("#tkq")) && (await badge(p)) === "3", `[${W}] after Never mind: the page is usable (box back), badge still 3`);
+      ok(await gone(p, ".limitbox"), `[${W}] Never mind closes the limit card`); ok(!!(await p.$("#tkq")) && (await badge(p)) === String(LIM), `[${W}] after Never mind: the page is usable (box back), badge still ${LIM}`);
       await p.type("#tkq", "find me a Mustang"); await p.keyboard.press("Enter"); await wait(800);
       ok(!!(await p.$(".limitbox")), `[${W}] a new attempt at the limit opens the card again`);
       await p.click("[data-limit-keep]"); await wait(400); ok(await gone(p, ".limitbox"), `[${W}] and Never mind closes it a second time`); ok(p._errs.length === 0, `[${W}] no page errors ${JSON.stringify(p._errs)}`); await p.close(); }
@@ -129,15 +130,15 @@ try {
       ok(await gone(p, ".limitbox"), `[${W}] seed: Escape closes the card`); await p.close(); }
     { const A = resident(); const p = await open(A, W, "&seed=typed&words=find%20me%20a%20Mustang"); await wait(700);
       await p.click(".limitbox .lrow:nth-of-type(2) button"); await wait(1200);
-      ok(await gone(p, ".limitbox") && A.working() === 2, `[${W}] Stop and start this one: that Task is stopped (2 working) and the card is closed`);
+      ok(await gone(p, ".limitbox") && A.working() === LIM - 1, `[${W}] Stop and start this one: that Task is stopped (${LIM - 1} working) and the card is closed`);
       await p.click("[data-start]"); await wait(1000); const t = await text(p);
-      ok(A.working() === 3 && (await badge(p)) === "3" && A.tasks.length === 4, `[${W}] ...and the new Task is started: 3 working, badge 3 (${await badge(p)})`);
+      ok(A.working() === LIM && (await badge(p)) === String(LIM) && A.tasks.length === LIM + 1, `[${W}] ...and the new Task is started: ${LIM} working, badge ${LIM} (${await badge(p)})`);
       ok(!/Stopping|Sam will look for/.test(t), `[${W}] ...and no half-finished line is left`); await p.close(); }
     // ---- C. the sweep: every dismiss-type control on the page, in each state
     const DISMISS = /^(never mind|discard|close|cancel|dismiss|not now|no thanks|hide cars|hide|×|x)$/i;
     const states = [
-      ["limit card", () => account([mkTask(1), mkTask(2), mkTask(3)]), "", null, ""],
-      ["limit card with a new job", () => account([mkTask(1), mkTask(2), mkTask(3)]), "&seed=typed&words=g%20body%20sedans", null, ""],
+      ["limit card", () => account(Array.from({ length: LIM }, (_, i) => mkTask(i + 1))), "", null, ""],
+      ["limit card with a new job", () => account(Array.from({ length: LIM }, (_, i) => mkTask(i + 1))), "&seed=typed&words=g%20body%20sedans", null, ""],
       ["unfinished draft", () => account([]), "", { words: "red porsche", summary: "Sam is looking for red porsche.", at: new Date().toISOString(), question: null, filters: { make: "Porsche" }, kind: "hunt" }, ""],
       ["an opened Task", () => account([mkTask(1)]), "", null, "open"],
     ];
