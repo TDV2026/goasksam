@@ -2078,6 +2078,12 @@ try {
   record("engine: a house-heavy car's Market Check pool is the whole record, house sales included; an online-heavy car keeps the online band (scripts/poolSourceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/sheetReadCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk item 2: the one sheet read call carries Market Check's figures for twenty cars (count, range, window, splits, tier pool, starting figure), reads a VIN's car, returns null for a car it cannot read (scripts/sheetReadCheck.mjs)", "PASS", (out.match(/all passed/) || [""])[0]);
+} catch (e) {
+  record("Desk item 2: the one sheet read call carries Market Check's figures for twenty cars (count, range, window, splits, tier pool, starting figure), reads a VIN's car, returns null for a car it cannot read (scripts/sheetReadCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/tierAssignCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk item 1: every sale gets a condition tier from its own listing (every evidence line, Untiered, hard negatives), the nightly job writes batches with a pause and is resumable, the SQL carries RLS (scripts/tierAssignCheck.mjs)", "PASS", (out.match(/all passed/) || [""])[0]);
 } catch (e) {
