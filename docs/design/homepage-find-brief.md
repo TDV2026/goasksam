@@ -281,13 +281,13 @@ That must be corrected.
 
 Use a single shared pill component.
 
-Use these three examples:
+Use these three examples (Sam's Nov 5 2026 decision replaces the brief's original $80k, E46 M3 and 1965 wording, which the live engine answered with a question panel or no cars):
 
-**Manual 911 under $80k**
+**Manual 911 under $40k**
 
-**E46 M3 with low miles**
+**Red Ferrari under 10k miles**
 
-**1965 Corvette near Chicago**
+**Corvette near Chicago**
 
 These are short enough to remain visually balanced while still demonstrating natural-language searching.
 
