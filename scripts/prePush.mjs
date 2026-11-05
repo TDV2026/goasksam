@@ -2003,6 +2003,12 @@ try {
   record("engine: a pre-war car whose pool holds two or more bodies shows the bodies apart at any pool size, no pooled headline, a range only at 3 or more sales (scripts/prewarAnySizeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/modelSpacingCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("engine: a model written as a number and letters (540K, 300SL, 190E) is the same car glued or spaced, and a different model is still refused (scripts/modelSpacingCheck.mjs)", "PASS", (out.match(/modelSpacingCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a model written as a number and letters (540K, 300SL, 190E) is the same car glued or spaced, and a different model is still refused (scripts/modelSpacingCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/vpicErrorCacheCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("resolver: a vPIC error is never kept as an empty list (retry after 30 s), a real empty list is (scripts/vpicErrorCacheCheck.mjs)", "PASS", (out.match(/vpicErrorCacheCheck: .*/) || [""])[0]);
 } catch (e) {

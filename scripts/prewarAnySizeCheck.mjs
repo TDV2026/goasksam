@@ -9,7 +9,7 @@ const likeRe = v => new RegExp("^" + String(v).replace(/[.+?^${}()|[\]\\]/g, "\\
 let rows = [], n = 0; let MK = "Testmake"; const day = i => new Date(Date.now() - i * 864e5).toISOString().slice(0, 10);
 const sale = (year, body, price, ago) => { n++; const CAR = globalThis.CAR || { make: "Testmake", model: "Roadrunner" }, HOUSE = globalThis.HOUSE && globalThis.HOUSE(n, body); const title = `${year} ${CAR.make} ${CAR.model} ${body}`; rows.push({ id: "00000000-0000-4000-8000-" + String(n).padStart(12, "0"), source_id: "pb" + n, sale_price: price, sale_date: day(ago), platform: HOUSE ? "Gooding & Co" : "Bring a Trailer", source_slug: HOUSE ? "gooding" : "bringatrailer", make: CAR.make, model: CAR.model, year,
   listing_title: title, vin_norm: "V" + n, stated_mileage: null, project_flag: null, desc_facts: null, has_reserve: null, vehicle_type: "car", sale_price_usd: price,
-  raw_record: { featured_image_url: HOUSE ? null : "https://x/i.jpg", mileage: String(30000 + n * 300), body_style: body, modifications: null, title, currency: "USD", transmission: null, exterior_color: null, title_status: null, url: "https://u/" + n, source_url: null, city: "Austin", state: "TX", country_code: "US", auction_end_precision: null } }); };
+  raw_record: { featured_image_url: (HOUSE || (globalThis.NOPHOTO && globalThis.NOPHOTO(n))) ? null : "https://x/i.jpg", mileage: String(30000 + n * 300), body_style: body, modifications: null, title, currency: "USD", transmission: null, exterior_color: null, title_status: null, url: "https://u/" + n, source_url: null, city: "Austin", state: "TX", country_code: "US", auction_end_precision: null } }); };
 globalThis.fetch = async (url) => {
   const u = new URL(String(url));
   if (u.pathname.endsWith("/sales_archive")) {
@@ -67,6 +67,12 @@ for (const [name, shape, yr] of [["one body only", [["Roadster", 90000, 4]], 193
   ok(`${name} (${yr}): not apart, no body options, the pool stays one`, d.optionsState !== "apart" && !(d.options || []).some(x => x.dimension === "body" && x.saleIds) && !d.bodyNotStated, JSON.stringify({ tier: d.tier, state: d.optionsState }));
 }
 globalThis.SHAPE = null; globalThis.CAR = null;
+// A THIN POOL OF ANY SIZE (live, the 1931 Duesenberg Model J: 18 sales, none online with a photo, read as one thin list with no range and no bodies): a thin tier has no range whatever its size, so it takes the rule too
+{ globalThis.CAR = { make: "Duesenberg", model: "Model J" }; globalThis.SHAPE = [["Convertible Coupe", 2000000, 5], ["Phaeton", 3000000, 4], ["Town Car", 1100000, 3], ["Convertible Sedan", 1900000, 3], ["Berline", 1500000, 3]]; globalThis.NOPHOTO = () => true;
+  const d = await read(1931), o = d.options || [];
+  ok("eighteen sales and no online photo: a thin tier is shown apart by body at any size", d.tier !== "thin" || (d.optionsState === "apart" && o.length >= 2 && !d.cluster), JSON.stringify({ tier: d.tier, state: d.optionsState, opts: o.map(x => x.label + " " + x.n) }));
+  ok("... when it is thin, every body with a sale is an option and the ids are named", d.tier !== "thin" || ((d.cards || []).length === 18 && o.reduce((t, x) => t + (x.saleIds || []).length, 0) + ((d.bodyNotStated && d.bodyNotStated.n) || 0) === 18), JSON.stringify({ cards: (d.cards || []).length, opts: o.map(x => x.n), unstated: d.bodyNotStated && d.bodyNotStated.n }));
+  globalThis.NOPHOTO = null; globalThis.SHAPE = null; globalThis.CAR = null; }
 // a model whose own name is a body word (the Auburn Speedster): every title names that one body, so it is one body and keeps its single pool - the rule counts bodies the titles name, it does not invent a second one
 { globalThis.CAR = { make: "Auburn", model: "Speedster" }; globalThis.SHAPE = [["", 90000, 4], ["", 95000, 2]]; const d = await read(1935);
   ok("1935 Auburn Speedster: the model's own body word is one body, the single pool stays", d.optionsState !== "apart" && !d.bodyNotStated, JSON.stringify({ tier: d.tier, state: d.optionsState, opts: (d.options || []).map(x => x.label + " " + x.n) })); globalThis.SHAPE = null; globalThis.CAR = null; }
