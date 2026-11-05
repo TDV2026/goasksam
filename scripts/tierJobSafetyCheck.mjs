@@ -1,3 +1,4 @@
+// clock: real-ok it times a write that hangs against a few-second request ceiling to prove the abort fires; no date is asserted, only an elapsed time under a bound (Lane B, Nov 5 2026)
 // CONDITION TIER JOB, SAFE ON THE LIVE SITE (Lane B, Nov 5 2026). No database, no network (a fake PostgREST). After the first Actions run took 40 to 66 s for 500 rows and a max typed "0 to 500"
 // ran unbounded, the job must hold, for EVERY run and every model, not only the example:
 //  (1) args: a max, batch, pause or minutes that is not a whole number (text, "0 to 500", a decimal, empty, a bare flag, 0 for max, out of range) FAILS loudly; unset takes a finite default; nothing means "all";
