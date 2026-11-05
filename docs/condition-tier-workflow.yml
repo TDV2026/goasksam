@@ -1,0 +1,27 @@
+# Condition tier job (Lane B, Nov 2026). COPY to .github/workflows/condition-tier.yml (the CI PAT lacks the workflow scope, so Sam adds it).
+# Prereq, once in the Supabase SQL editor: docs/supabase-condition-tier.sql. ZERO OldCarsData. Resumable: only rows not at the current tier version are touched.
+# Backfill: run from the Actions tab (workflow_dispatch). Nightly: assigns the sales the ingest added. Batches of 500 with a 1.5 s pause; a slow batch doubles the pause (CPU watched).
+name: Condition tier
+on:
+  workflow_dispatch:
+    inputs:
+      batch: { description: "Rows per batch", required: false, default: "500" }
+      pause: { description: "Pause between batches, ms", required: false, default: "1500" }
+      max:   { description: "Stop after this many rows (0 = all)", required: false, default: "0" }
+  schedule:
+    - cron: "40 8 * * *"   # after the 07:11 ingest
+permissions:
+  contents: read
+jobs:
+  tier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Assign tiers
+        run: node scripts/assignConditionTier.mjs --batch="${{ github.event.inputs.batch || '500' }}" --pause="${{ github.event.inputs.pause || '1500' }}" --max="${{ github.event.inputs.max || '0' }}"

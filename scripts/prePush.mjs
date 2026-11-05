@@ -2078,6 +2078,18 @@ try {
   record("engine: a house-heavy car's Market Check pool is the whole record, house sales included; an online-heavy car keeps the online band (scripts/poolSourceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/tierAssignCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk item 1: every sale gets a condition tier from its own listing (every evidence line, Untiered, hard negatives), the nightly job writes batches with a pause and is resumable, the SQL carries RLS (scripts/tierAssignCheck.mjs)", "PASS", (out.match(/all passed/) || [""])[0]);
+} catch (e) {
+  record("Desk item 1: every sale gets a condition tier from its own listing (every evidence line, Untiered, hard negatives), the nightly job writes batches with a pause and is resumable, the SQL carries RLS (scripts/tierAssignCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/tierPoolCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk item 1: refine.conditionTier returns the same tier pool, the pool after tier and mileage band and a starting figure (median, null under five); no tier passed changes nothing (scripts/tierPoolCheck.mjs)", "PASS", (out.match(/all passed/) || [""])[0]);
+} catch (e) {
+  record("Desk item 1: refine.conditionTier returns the same tier pool, the pool after tier and mileage band and a starting figure (median, null under five); no tier passed changes nothing (scripts/tierPoolCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/nameGuardCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("names: a coachbuilder phrase, a lot or reference number, an engine or gearbox word and the front half of a two-word model never become a car's name, and a stored row under such a name is read as no row (scripts/nameGuardCheck.mjs)", "PASS", (out.match(/nameGuardCheck: .*/) || [""])[0]);
 } catch (e) {
