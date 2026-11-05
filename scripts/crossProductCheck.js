@@ -254,7 +254,7 @@ async function buyLane(env, v, f) {
 
 // ---- Lane 3: Sell (fetchOnlinePool, the shared pool buildSharedAnalysis aggregates from) ----
 async function sellLane(vehicle, generation, env) {
-  const { spec, pool, cluster, referenceFigure, recent3, windowLabel, poolYears } = await fetchOnlinePool(vehicle, generation, env);
+  const { spec, pool, cluster, referenceFigure, recent3, windowLabel, poolYears, fallbackRung: engFallbackRung, rungLabel: engRungLabel, siblingName: engSiblingName, counts: engCounts } = await fetchOnlinePool(vehicle, generation, env);
   if (!spec) return { ok: false, reason: "no spec (vehicle did not resolve to a buildable spec)" };
   if (!pool.length) return { ok: false, reason: "empty pool (genuinely zero online sales on record)" };
   const priced = pool.map(r => ({ ...r, _usd: Number.isFinite(r._usd) ? r._usd : hammerUsd(r) })).filter(r => Number.isFinite(r._usd) && r._usd > 0);
@@ -286,11 +286,13 @@ async function sellLane(vehicle, generation, env) {
   // file) does not surface runOneBox's new `counts` field, so this reuses the SAME askingResult
   // call just above (a second runOneBox invocation that already exists for the asking-line
   // verification) rather than adding a third call or editing platformPick.js.
-  const counts = (askingResult && askingResult.counts) || null;
+  // (Nov 5 2026, nightly #132) the rung and its label come from the engine ANSWER Sell reads (fetchOnlinePool passes them through), never from this second runOneBox call: that call never sees oneEngineAnswer's
+  // trim-dropped suffix, so the Cobra Roadster read as a mismatch that Sell never printed. scripts/sellLabelCheck.mjs pins both.
+  const counts = engCounts || (askingResult && askingResult.counts) || null;
   // fallbackRung/rungLabel/siblingName (Round 5 Lane B job, Oct 2026): fetchOnlinePool
   // (lib/platformPick.js, Lane C's file) does not surface these either, same gap as counts above -
   // reuses the SAME askingResult call rather than adding a third runOneBox invocation.
-  return { ok: true, label, low, high, span, count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent, referenceFigure: referenceFigure || null, askingLineLow, askingLineHigh, counts, window: windowLabel || null, poolYears: Array.isArray(poolYears) ? poolYears : null, fallbackRung: (askingResult && askingResult.fallbackRung) || null, rungLabel: (askingResult && askingResult.rungLabel) || null, siblingName: (askingResult && askingResult.siblingName) || null };
+  return { ok: true, label, low, high, span, count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent, referenceFigure: referenceFigure || null, askingLineLow, askingLineHigh, counts, window: windowLabel || null, poolYears: Array.isArray(poolYears) ? poolYears : null, fallbackRung: engFallbackRung || null, rungLabel: engRungLabel || null, siblingName: engSiblingName || null };
 }
 
 // ---- comparison ----
