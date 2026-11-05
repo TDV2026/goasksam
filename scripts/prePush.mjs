@@ -2097,6 +2097,12 @@ try {
   record("Desk item 1: every sale gets a condition tier from its own listing (every evidence line, Untiered, hard negatives), the nightly job writes batches with a pause and is resumable, the SQL carries RLS (scripts/tierAssignCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/tierJobSafetyCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk item 1: the condition tier job is safe on the live site (a max or batch that is not a whole number fails, bounded batches, a failed read is never 'no band', no half written row, slow batches stop the run, schedule outside the ingest) (scripts/tierJobSafetyCheck.mjs)", "PASS", (out.match(/all passed/) || [""])[0]);
+} catch (e) {
+  record("Desk item 1: the condition tier job is safe on the live site (a max or batch that is not a whole number fails, bounded batches, a failed read is never 'no band', no half written row, slow batches stop the run, schedule outside the ingest) (scripts/tierJobSafetyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/tierPoolCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk item 1: refine.conditionTier returns the same tier pool, the pool after tier and mileage band and a starting figure (median, null under five); no tier passed changes nothing (scripts/tierPoolCheck.mjs)", "PASS", (out.match(/all passed/) || [""])[0]);
 } catch (e) {

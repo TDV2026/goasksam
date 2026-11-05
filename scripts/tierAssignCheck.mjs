@@ -85,7 +85,7 @@ const before = calls.filter(c => c.rpc).length; const out2 = await run({ batch: 
 ok("(4) resumable: a second run finds nothing to do and writes nothing", out2.done === 0 && calls.filter(c => c.rpc).length === before);
 // slow batches double the pause
 for (const r of ROWS) r.condition_version = null; calls.length = 0; pauses.length = 0; slowAfter = 0; nowT = 0;
-await run({ batch: 250, pause: 1000, slow: 4000 });
+await run({ batch: 250, pause: 1000, slow: 4000, strikes: 20, hardMs: 1e9 });
 ok("(4) CPU watched: a slow batch doubles the pause (capped), so the pause grows while the database is slow", pauses.length >= 3 && pauses[1] > pauses[0] && pauses[2] > pauses[1], JSON.stringify(pauses));
 // (5) sql and workflow files
 const sql = fs.readFileSync(path.join(ROOT, "docs/supabase-condition-tier.sql"), "utf8").replace(/--[^\n]*/g, "");
