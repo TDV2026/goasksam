@@ -32,7 +32,7 @@ const evalItem = (row, item) => { const ci = item.indexOf(":"); const hasAlias =
 globalThis.fetch = async (url) => {
   const u = new URL(String(url)); const sel = u.searchParams.get("select") || "", dec = decodeURIComponent(String(url));
   if (!u.pathname.endsWith("/sales_archive")) return new Response("[]", { status: 200 });
-  if (/condition_tier/.test(sel)) { const ids = (u.searchParams.get("id") || "").replace(/^in\.\(|\)$/g, "").split(",").filter(Boolean); return new Response(JSON.stringify(ids.map(id => ({ id, condition_tier: tierOf(id), condition_version: "ct1-20261105" }))), { status: 200 }); }
+  if (/condition_tier/.test(sel)) { const ids = (u.searchParams.get("id") || "").replace(/^in\.\(|\)$/g, "").split(",").filter(Boolean); return new Response(JSON.stringify(ids.map(id => ({ id, condition_tier: tierOf(id), condition_version: "ct2-20261105" }))), { status: 200 }); }
   if (u.searchParams.get("id")) return new Response("[]", { status: 200 });
   if (/^model$/.test(sel)) return new Response(JSON.stringify(CARS.map(c => ({ model: c[1] }))), { status: 200 });
   const hit = CARS.find(c => dec.toLowerCase().includes(c[1].toLowerCase()));

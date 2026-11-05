@@ -29,19 +29,19 @@ explain (analyze, buffers) select id from sales_archive where id > '00000000-000
 -- ===== THE RESULT FOR SENSE (Desk Valuations spec, condition tier review) =====
 set statement_timeout = '120s';
 -- A. Counts by tier at the current version (null = Untiered).
-select condition_tier, count(*) from sales_archive where condition_version = 'ct1-20261105' group by 1 order by 1;
+select condition_tier, count(*) from sales_archive where condition_version = 'ct2-20261105' group by 1 order by 1;
 -- B. What drives Untiered: how many signals the listing showed (the evidence array length), and the share by venue.
-select jsonb_array_length(condition_evidence) as signals_seen, count(*) from sales_archive where condition_version = 'ct1-20261105' and condition_tier is null group by 1 order by 1;
+select jsonb_array_length(condition_evidence) as signals_seen, count(*) from sales_archive where condition_version = 'ct2-20261105' and condition_tier is null group by 1 order by 1;
 select source_slug, count(*) filter (where condition_tier is null) as untiered, count(*) as all_rows, round(100.0 * count(*) filter (where condition_tier is null) / count(*), 1) as pct_untiered,
        count(*) filter (where description is null or btrim(description) = '') as no_description
-  from sales_archive where condition_version = 'ct1-20261105' group by 1 order by 3 desc;
+  from sales_archive where condition_version = 'ct2-20261105' group by 1 order by 3 desc;
 -- C. Ten sales per tier (a stable pseudo-random pick), with the evidence lines that produced the tier.
 select * from (
   select condition_tier, source_slug, left(listing_title, 70) as title, mileage_text, title_status,
          (select string_agg(e->>'points' || ' ' || (e->>'line'), ' | ') from jsonb_array_elements(condition_evidence) e) as evidence,
          row_number() over (partition by condition_tier order by md5(id::text)) as n
-    from sales_archive where condition_version = 'ct1-20261105' and condition_tier is not null) t
+    from sales_archive where condition_version = 'ct2-20261105' and condition_tier is not null) t
  where n <= 10 order by condition_tier, n;
 -- D. Ten Untiered, with what little was seen.
 select source_slug, left(listing_title, 70) as title, left(coalesce(description, ''), 60) as description_start, (select string_agg(e->>'line', ' | ') from jsonb_array_elements(condition_evidence) e) as seen
-  from sales_archive where condition_version = 'ct1-20261105' and condition_tier is null order by md5(id::text) limit 10;
+  from sales_archive where condition_version = 'ct2-20261105' and condition_tier is null order by md5(id::text) limit 10;

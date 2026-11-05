@@ -2097,6 +2097,12 @@ try {
   record("Desk item 1: every sale gets a condition tier from its own listing (every evidence line, Untiered, hard negatives), the nightly job writes batches with a pause and is resumable, the SQL carries RLS (scripts/tierAssignCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/tierWordsCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk item 1: no common word flips a condition tier on its own (project, custom, incomplete, crash, collision, struck, receipts, numbers matching, factory paint, tuned, lowered, swapped, upgraded, a none modifications field, Not salvage), the real cases still fire, ct2 (scripts/tierWordsCheck.mjs)", "PASS", (out.match(/all passed/) || [""])[0]);
+} catch (e) {
+  record("Desk item 1: no common word flips a condition tier on its own (project, custom, incomplete, crash, collision, struck, receipts, numbers matching, factory paint, tuned, lowered, swapped, upgraded, a none modifications field, Not salvage), the real cases still fire, ct2 (scripts/tierWordsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/tierJobSafetyCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk item 1: the condition tier job is safe on the live site (a max or batch that is not a whole number fails, bounded batches, a failed read is never 'no band', no half written row, slow batches stop the run, schedule outside the ingest) (scripts/tierJobSafetyCheck.mjs)", "PASS", (out.match(/all passed/) || [""])[0]);
 } catch (e) {

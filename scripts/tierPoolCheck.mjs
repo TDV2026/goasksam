@@ -35,7 +35,7 @@ globalThis.fetch = async (url, init = {}) => {
     tierReads++;
     if (tierColumnMissing) return new Response(JSON.stringify({ code: "42703", message: "column sales_archive.condition_tier does not exist" }), { status: 400 });
     const ids = (u.searchParams.get("id") || "").replace(/^in\.\(|\)$/g, "").split(",").filter(Boolean);
-    return new Response(JSON.stringify(ids.map(id => { const i = Number(id.replace("uuid-", "")); return { id, condition_tier: tierOf(i), condition_version: assignedAll ? "ct1-20261105" : null }; })), { status: 200 });
+    return new Response(JSON.stringify(ids.map(id => { const i = Number(id.replace("uuid-", "")); return { id, condition_tier: tierOf(i), condition_version: assignedAll === "old" ? "ct1-20261105" : assignedAll ? "ct2-20261105" : null }; })), { status: 200 });
   }
   if (/condition_tier|condition_version/.test(url)) anyTierColumnInPoolRead++;
   if (u.searchParams.get("id") || /^model$/.test(sel)) return new Response(/^model$/.test(sel) ? JSON.stringify([{ model: "911" }, { model: "Cayman" }]) : "[]", { status: 200 });
@@ -83,6 +83,8 @@ for (const t of [1, 2, 3, 4]) {
 // (5) unreadable / unassigned
 tierColumnMissing = true; { const d = await ask({ conditionTier: 1 });
   ok("(5) the tier column cannot be read: 'unavailable', no figure, no counts", d.tierPoolState === "unavailable" && d.startingFigure === null && d.tierPoolN === null && d.tierBandN === null); } tierColumnMissing = false;
+assignedAll = "old"; { const d = await ask({ conditionTier: 1 });
+  ok("(5) rows still at the old tier version (ct1) are not assigned: no_tier_data, never a tier of the old rules", d.tierPoolState === "no_tier_data" && d.startingFigure === null, d.tierPoolState); }
 assignedAll = false; { const d = await ask({ conditionTier: 1 });
   ok("(5) no sale assigned yet: 'no_tier_data', no figure", d.tierPoolState === "no_tier_data" && d.startingFigure === null); } assignedAll = true;
 // (6) same pool reads as the plain answer

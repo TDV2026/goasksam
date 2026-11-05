@@ -56,7 +56,7 @@ const r1 = car({ mileage_text: "12,400", description: "One owner, service record
 ok("(3) the same listing gets the same tier and lines", JSON.stringify(T.assignTier(r1, bands)) === JSON.stringify(T.assignTier({ ...r1 }, bands)));
 const all = T.assignTier(car({ mileage_text: "12,400", description: "One owner, service records, no accidents, original paint.", title_status: "Clean", modifications: "x" }), bands);
 ok("(3) every line is a statement about the listing (Listed / The listing), never present tense about the car", all.evidence.length >= 5 && all.evidence.every(e => /^(Listed with|The listing)/.test(e.line)));
-ok("(3) the version is stored with the tier", all.version === T.TIER_VERSION && /^ct1-/.test(T.TIER_VERSION));
+ok("(3) the version is stored with the tier", all.version === T.TIER_VERSION && /^ct2-/.test(T.TIER_VERSION));
 ok("(3) the model bands are the quartiles of the listed miles, and need 20 odometers", T.modelMileBands(Array.from({ length: 100 }, (_, i) => (i + 1) * 1000)).q25 === 25750 && T.modelMileBands([1000, 2000]) === null);
 // (4) the job, against a fake PostgREST
 const mkRow = i => ({ id: "00000000-0000-4000-8000-" + String(i).padStart(12, "0"), year: 1999, make: "Porsche", model: "911", listing_title: "1999 Porsche 911", description: i % 3 === 0 ? "One owner, service records, no accidents." : i % 3 === 1 ? "Restored in 2019." : "", mileage_text: String(5000 + (i % 40) * 2000), stated_mileage: null, title_status: "Clean", modifications: null, project_flag: null, condition_version: null });
