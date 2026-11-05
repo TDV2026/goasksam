@@ -85,6 +85,15 @@ try {
   const desk = fs.readFileSync("public/js/deskvals.js", "utf8"); ok(/m\.noRangeLine/.test(desk) && /GAS_NORANGE/.test(desk), "Desk sheet: prints the read's noRangeLine behind the flag; its comparables list every sale");
   const near = fs.readFileSync("api/buy.js", "utf8"); ok(/nr\.line === 'string'/.test(near) || /nr\.line === \\"string\\"/.test(near), "Find: meta.near.line is the opener when the engine sends it");
 }
+// ---- THE NEAREST-YEARS OPENER (Lane B's nearMetaOf, lane-b-distance): meta.near.line is printed as the engine gives it, meta.near.years as given; a near without a line keeps the older sentence
+{ const src = fs.readFileSync("api/buy.js", "utf8"), i = src.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.parse(src.slice(i, src.indexOf('";\n', i) + 1));
+  const a = c.indexOf("  function nearText("), bb = c.indexOf("\n  function ", a + 10), nearText = new Function(c.slice(a, bb) + "\nreturn nearText;")();
+  const NL = "No 1965 Corvettes are live within 150 miles of Chicago. 3 are further away. These are the nearest, 1964 and 1966.";
+  ok(nearText({ near: { asked: [1965, 1965], years: [1964, 1966], abroad: 0, line: NL, reason: "asked_year_none_in_range" } }, "1965 Corvettes") === NL, "meta.near.line is the opener exactly as given");
+  ok(nearText({ near: { asked: [1965, 1965], years: [1964, 1966], abroad: 0, line: NL } }, "") === NL, "meta.near.line is printed even when the page has no name of its own to write with");
+  const older = nearText({ near: { asked: [1965, 1965], years: [1964, 1966], abroad: 0 } }, "1965 Corvettes");
+  ok(/^No 1965 Corvettes are live right now\. These are the nearest, 1964 and 1966\.$/.test(older), "no line (an older engine): the page's older sentence from near.years, as before (" + older + ")");
+  ok(nearText({ near: null }, "x") === "" && nearText({}, "x") === "", "no near: nothing"); }
 // ---- A RETRY ANSWER IS NOT A FAILURE (Lane E, Nov 5 2026): readSheet() answers { retry: true, retryAfterMs, line } while the engine is still reading. The sheet shows the engine's line, never "cannot be read" or "not available", never stores the retry as the sheet's read, never replaces a read it already has, and asks again after retryAfterMs.
 { const { startDesk, seed, wait } = await import("./deskValsRender.mjs"), { useSheetEngine } = await import(pathToFileURL(path.join(ROOT, "lib/desk/sheetRead.js")).href), { handleSheetAction } = await import(pathToFileURL(path.join(ROOT, "lib/desk/sheetActions.js")).href);
   const RLINE = "Sam is still reading this car. It fills in here when the read lands.";
