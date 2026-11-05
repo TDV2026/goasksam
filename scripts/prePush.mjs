@@ -1997,6 +1997,12 @@ try {
   record("engine: a spec key is read back as the car it names, so the recompute never writes a row for a different car than its key (scripts/specKeyRoundTripCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || String(e.message || e).slice(0, 300));
 }
 try {
+  const out = execSync("node scripts/featuredHistoryCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("homepage feature (CREW ONLY, NOT LIVE): the one featured car passes every eligibility rule (same VIN, live, real photos, evidence link, complete, listed never sold), stays put, replaces itself when its auction ends, is null on a failed refresh and never stale, and no public route, page, feed or cache key can return it (scripts/featuredHistoryCheck.mjs)", "PASS", (out.match(/featuredHistoryCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("homepage feature (CREW ONLY, NOT LIVE): the one featured car passes every eligibility rule (same VIN, live, real photos, evidence link, complete, listed never sold), stays put, replaces itself when its auction ends, is null on a failed refresh and never stale, and no public route, page, feed or cache key can return it (scripts/featuredHistoryCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/stageTimerCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: every cold compute logs its stage milliseconds (engine, trim chips, question rule, sell fields, store) (scripts/stageTimerCheck.mjs)", "PASS", (out.match(/stageTimerCheck: .*/) || [""])[0]);
 } catch (e) {
