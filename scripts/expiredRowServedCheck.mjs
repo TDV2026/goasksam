@@ -22,6 +22,8 @@ const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
 const H = 3600e3, D = 24 * H, ago = ms => new Date(Date.now() - ms).toISOString();
 const row = (raw, ageMs, over = {}) => ({ computed_at: ago(ageMs), market: { raw, engineVersion: E.ENGINE_VERSION, warmEpoch: EPOCH, ...over } });
 const RAW = { tier: "result", poolN: 14, rawPool: [{ id: "a" }], cluster: [1, 2], resolvedCar: { year: 2004, make: "BMW", model: "M3" } };
+// every rule tag a refreshed row carries today; fixtures captured before a tag existed are stamped with them, as the refresh behind the response would
+const TAGS = { poolSourceTag: E.POOL_SOURCE_TAG, widenRulesTag: E.WIDEN_RULES_TAG, houseRulesTag: E.HOUSE_RULES_TAG, prewarBodyTag: E.PREWAR_BODY_TAG, nameRulesTag: E.NAME_RULES_TAG };
 const read = async (r) => { ROW = r; return S.readWarmAnswerDetailed(env, "MCWARM:x"); };
 // 1. the band
 let d = await read(row(RAW, 3 * H)); ok("a row 3 hours old is served fresh (unchanged)", !!d.raw && d.stale === false, d.reason);
@@ -36,11 +38,25 @@ d = await read(row(RAW, 3 * H, { warmEpoch: "2026-10-01T00:00:00.000Z" })); ok("
 d = await read(row({ tier: "refusal", refusal: { kind: "invariant_failed", failedChecks: ["x"] }, poolN: 3 }, 30 * H)); ok("an expired invariant refusal is still never served", d.raw === null, d.reason);
 // 2. the served output equals a fresh row's, for three cars (answer fields; the stale marker, dated line and snapshot id are the wire's, not the answer's)
 for (const f of ["answer-325i.json", "answer-diablo.json", "answer-stag.json"]) {
-  const a = JSON.parse(fs.readFileSync(path.join("scripts/fixtures", f), "utf8")), raw = a.raw || a, car = { year: raw.resolvedCar && raw.resolvedCar.year || 2000 };
+  const a = JSON.parse(fs.readFileSync(path.join("scripts/fixtures", f), "utf8")), raw = { ...(a.raw || a), ...TAGS }, car = { year: raw.resolvedCar && raw.resolvedCar.year || 2000 };
   const exp = await read(row(raw, 30 * H)), fresh = await read(row(raw, 1 * H));
   const out = x => JSON.stringify(E.withReadFields(JSON.parse(JSON.stringify(x.raw)), "x", car));
   ok(`${f}: the expired row serves the answer a fresh row serves (bid line, time left, updatedLine, chart, options)`, !!exp.raw && !!fresh.raw && out(exp) === out(fresh) && exp.stale && !fresh.stale);
 }
+// 2b. THE CLASS: a stored row is read the same whether it is fresh or expired, whatever rule tag it carries (Lane B, Nov 4 2026). The Stag fixture is a row from before POOL_SOURCE_TAG ps2 that sets sales aside, so the tag rule reads it as no row;
+// that must hold at every age (never "fresh computes cold, expired serves", never the other way), and the same row carrying the current tag must serve at every age with the same fields.
+{ const a = JSON.parse(fs.readFileSync("scripts/fixtures/answer-stag.json", "utf8")), base = a.raw || a, car = { year: base.resolvedCar && base.resolvedCar.year || 2000 };
+  const out = x => JSON.stringify(E.withReadFields(JSON.parse(JSON.stringify(x.raw)), "x", car));
+  const cases = [
+    ["a pre-ps2 row that sets sales aside (no tag)", { ...base, ...TAGS, poolSourceTag: undefined }, false],
+    ["a ps1 row that sets sales aside", { ...base, ...TAGS, poolSourceTag: "ps1-20261105" }, false],
+    ["a row with the current pool tag", { ...base, ...TAGS }, true],
+    ["a row with the current tags and the one-place line stored (restated on read)", { ...base, ...TAGS, thinReason: "house_share", thinLine: "These sales come mostly from one place, so no range is shown." }, null]];
+  for (const [n, raw, serves] of cases) {
+    const ex = await read(row(raw, 30 * H)), fr = await read(row(raw, 1 * H));
+    const same = (!!ex.raw === !!fr.raw) && (!ex.raw || out(ex) === out(fr));
+    ok(`${n}: expired and fresh read the same`, same && (serves === null || !!fr.raw === serves), `fresh=${fr.reason || "served"} expired=${ex.reason || "served"}`);
+    if (ex.raw && fr.raw) ok(`${n}: no one-place line in either`, !/mostly from one place/.test(out(ex)) && !/mostly from one place/.test(out(fr))); } }
 // 3. one refresh per row, a few at once
 ok("lib/refreshGate.js exists", !!G);
 if (G) {
