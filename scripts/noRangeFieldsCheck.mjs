@@ -30,22 +30,25 @@ const read = async year => { build(year); const CAR = globalThis.CAR || { make: 
 // fields from oneEngineAnswer, so no page counts or explains anything. Live, a 1998 911 Carrera 4 Cabriolet card read "9 sales since May 2025" over "Too few for a range": nine sales were in the pool, but a range needs eight ONLINE sales with a photo to compare,
 // and three had them. Must hold on every no-range answer:
 //  (1) noRangeTotal (sales in the pool), noRangeClose (sales that count toward the range test), noRangeFloor (8), noRangeCode and noRangeLine are all present;
-//  (2) few_comparable: total 9, close 3, the line says both ("9 sales since ... 3 are close matches, too few for a range."); few_sales: all are close, the line says too few; options_apart and varied have their own codes;
+//  (2) few_comparable: total 9, close 3, the line says both ("9 sales since ... 3 online sales have a photo to compare, too few for a range."); few_sales: all are close, the line says too few; options_apart and varied have their own codes;
 //  (3) an answer WITH a range, a choice, or no sales carries the fields as null (never a reason beside a range);
 //  (4) no dash, no source count, no competitor in any line; (5) a stored no-range row without the tag is read as no row, with it kept, a range row untouched.
 //   node scripts/noRangeFieldsCheck.mjs [repo root]      (a tree without the fields fails it)
 const noRangeShown = d => { const t = String(d.tier || ""), hasRange = Array.isArray(d.cluster) && d.cluster.length === 2; const sales = (d.cards || []).length || (d.rawPool || []).length; return sales > 0 && (t === "thin" || (t === "refusal" && d.refusal && /^(varied|thin)$/.test(d.refusal.kind)) || (t === "result" && !hasRange)); };
 const FIELDS = ["noRangeTotal", "noRangeClose", "noRangeFloor", "noRangeCode", "noRangeLine"];
-const sees = (name, d) => ok(`${name}: shows a count and no range, so it carries the numbers and the reason`, !noRangeShown(d) || FIELDS.every(f => d[f] != null && d[f] !== ""), JSON.stringify(Object.fromEntries(FIELDS.map(f => [f, d[f]]))));
+const sees = (name, d) => ok(`${name}: shows a count and no range, so it carries the numbers and the reason`, !noRangeShown(d) || FIELDS.every(f => (d[f] != null && d[f] !== "") || (f === "noRangeClose" && d.noRangeCode === "no_cluster")),   // no_cluster: the re-read found no result for a reason the engine does not count, so no close number is claimed; the code and the engine's own thin line stay
+ JSON.stringify(Object.fromEntries(FIELDS.map(f => [f, d[f]]))));
 const SHOWN = [];
 // the Carrera 4 Cabriolet case: nine sales, six without a photo (a range needs eight online sales with a photo to compare), three with one
 { globalThis.CAR = { make: "Testmake", model: "Roadrunner" }; globalThis.SHAPE = [["Cabriolet", 60000, 9]]; globalThis.NOPHOTO = n => n <= 6;
   const d = await read(1998); SHOWN.push(["9 sales, 3 online with a photo", d]);
   ok("nine sales, three comparable: a thin card with the reason few_comparable", d.tier === "thin" && d.thinReason === "few_comparable" && d.noRangeCode === "few_comparable", JSON.stringify({ tier: d.tier, reason: d.thinReason, code: d.noRangeCode }));
   ok("... total 9, close 3, floor 8", d.noRangeTotal === 9 && d.noRangeClose === 3 && d.noRangeFloor === 8, JSON.stringify([d.noRangeTotal, d.noRangeClose, d.noRangeFloor]));
-  ok("... the line says both numbers and the reason", /^9 sales( [a-z]+ [A-Za-z]+ \d{4}| in the last [a-z ]+)?\. 3 are close matches, too few for a range\.$/.test(String(d.noRangeLine || "")), d.noRangeLine);
+  ok("... the line says both numbers and what the second counts (online sales with a photo)", /^9 sales( [a-z]+ [A-Za-z]+ \d{4}| in the last [a-z ]+)?\. 3 online sales have a photo to compare, too few for a range\.$/.test(String(d.noRangeLine || "")), d.noRangeLine);
+  { const withPhoto = rows.filter(r => r.raw_record && r.raw_record.featured_image_url && r.source_slug === "bringatrailer").length;
+    ok("the number printed is exactly what the engine counted, and what the words say: the fixture's online sales with a photo", d.noRangeClose === withPhoto && d.noRangeCloseWhat === "online_with_photo" && withPhoto === 3, JSON.stringify([d.noRangeClose, d.noRangeCloseWhat, withPhoto])); }
   { const fa = E.findAnswerOf(d, { title: "1998 Testmake Roadrunner Cabriolet", year: 1998 });
-    ok("the Find card for it keeps its lines and carries the numbers and the reason beside them", !!fa && fa.state === "few" && Array.isArray(fa.lines) && fa.lines.length >= 1 && !!fa.noRange && fa.noRange.total === 9 && fa.noRange.close === 3 && fa.noRange.code === "few_comparable" && /3 are close matches, too few for a range\.$/.test(String(fa.noRange.line)), JSON.stringify(fa && { lines: fa.lines, noRange: fa.noRange })); } }
+    ok("the Find card for it keeps its lines and carries the numbers and the reason beside them", !!fa && fa.state === "few" && Array.isArray(fa.lines) && fa.lines.length >= 1 && !!fa.noRange && fa.noRange.total === 9 && fa.noRange.close === 3 && fa.noRange.code === "few_comparable" && /3 online sales have a photo to compare, too few for a range\.$/.test(String(fa.noRange.line)), JSON.stringify(fa && { lines: fa.lines, noRange: fa.noRange })); } }
 globalThis.NOPHOTO = null;
 for (const [name, shape, total] of [["five sales", [["Cabriolet", 60000, 5]], 5], ["one sale", [["Cabriolet", 60000, 1]], 1]]) {
   globalThis.SHAPE = shape; const d = await read(1998); SHOWN.push([name, d]);
@@ -53,6 +56,13 @@ for (const [name, shape, total] of [["five sales", [["Cabriolet", 60000, 5]], 5]
 { globalThis.SHAPE = [["Cabriolet", 60000, 12]]; const d = await read(1998);
   ok("twelve online sales: a range, and every no-range field is null (never a reason beside a range)", Array.isArray(d.cluster) && FIELDS.every(f => d[f] == null) && d.noRangeTag === E.NORANGE_TAG && !!E.NORANGE_TAG, JSON.stringify([d.tier, d.cluster, d.noRangeCode])); }
 // the pre-war bodies apart (pwb4) and the other no-range states, through the same function the engine stamps with
+// a car with house sales is read again with house sales counted; what that read found is the reason (the 1931 Duesenberg Model J: 18 sales, all at houses, none online)
+for (const [name, rr, code, close, re] of [
+  ["18 house sales, read again, still too spread out", { tier: "refusal", kind: "varied" }, "varied", 18, /^18 sales .*too spread out for a range\.$/],
+  ["18 sales, read again with house sales, six counted", { tier: "thin", kind: null, close: 6 }, "few_comparable_house", 6, /^18 sales.*\. 6 are online sales with a photo or house sales, too few for a range\.$/],
+  ["18 sales, read again, no result for another reason", { tier: "refusal", kind: "invariant_failed" }, "no_cluster", null, /^Too few sales of this car/]]) {
+  const d = (E.noRangeFieldsOf || (x => x))({ tier: "thin", thinReason: "few_comparable", thinLine: "Too few sales of this car to show a range.", thin: { totalN: 18, onlineN: 0, houseN: 18, reread: rr }, cards: new Array(18).fill({}), rawPool: new Array(18).fill({}), windowWords: "since January 2022" }); SHOWN.push([name, d]);
+  ok(`${name}: code ${code}, close ${close}, the line is the true reason`, d.noRangeCode === code && d.noRangeClose === close && re.test(String(d.noRangeLine || "")), JSON.stringify([d.noRangeCode, d.noRangeClose, d.noRangeCloseWhat, d.noRangeLine])); }
 for (const [name, ans, code] of [
   ["a pre-war pool shown apart by body", { tier: "thin", thinReason: "few_sales", pooledApart: { state: "apart" }, cards: [{}, {}, {}, {}], rawPool: [{}, {}, {}, {}], windowWords: "since May 2025" }, "options_apart"],
   ["a refusal: sold too spread out", { tier: "refusal", refusal: { kind: "varied" }, cards: new Array(11).fill({}), rawPool: new Array(11).fill({}), windowWords: "in the last twelve months" }, "varied"],
@@ -64,10 +74,10 @@ for (const [name, ans] of [["a choice", { tier: "body_choice", cards: [{}] }], [
   const d = (E.noRangeFieldsOf || (x => x))(ans); ok(`${name}: every no-range field is null`, FIELDS.every(f => d[f] == null) && d.noRangeTag === E.NORANGE_TAG); }
 // the class: every answer above that shows a count and no range carries the fields
 for (const [name, d] of SHOWN) sees(name, d);
-ok("the class check sees at least eight no-range cards", SHOWN.filter(([, d]) => noRangeShown(d)).length >= 7, String(SHOWN.filter(([, d]) => noRangeShown(d)).length));
+ok("the class check sees at least ten no-range cards", SHOWN.filter(([, d]) => noRangeShown(d)).length >= 10, String(SHOWN.filter(([, d]) => noRangeShown(d)).length));
 // copy
 { const lines = SHOWN.map(([, d]) => d.noRangeLine).filter(Boolean);
-  ok("no dash, no source name, no AI in any line", lines.length >= 7 && lines.every(l => !/[\u2013\u2014]/.test(l) && !/bring a trailer|cars and bids|bonhams|gooding|rm sotheby|mecum|hagerty|\bAI\b/i.test(l)), JSON.stringify(lines)); }
+  ok("no dash, no source name, no AI in any line", lines.length >= 9 && lines.every(l => !/[\u2013\u2014]/.test(l) && !/bring a trailer|cars and bids|bonhams|gooding|rm sotheby|mecum|hagerty|\bAI\b/i.test(l)), JSON.stringify(lines)); }
 // the stored rows
 { const o = E.storedNoRangeOvertaken || (() => false), T = E.NORANGE_TAG || "";
   ok("the tag is nr1 or later", /^nr\d+-/.test(T));
