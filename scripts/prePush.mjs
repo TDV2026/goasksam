@@ -2015,6 +2015,12 @@ try {
   record("engine: every card that shows sales and no range carries the total, the close matches, the floor, a reason code and the line (scripts/noRangeFieldsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/servedCardKeysCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("engine: the sale rows a card answer serves carry only the whitelisted keys (id, price, date, mi, title, image, venue, url, gearbox), no vehicle number, person or place, under 900 bytes (scripts/servedCardKeysCheck.mjs)", "PASS", (out.match(/servedCardKeysCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: the sale rows a card answer serves carry only the whitelisted keys (id, price, date, mi, title, image, venue, url, gearbox), no vehicle number, person or place, under 900 bytes (scripts/servedCardKeysCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
   const out = execSync("node scripts/vpicErrorCacheCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("resolver: a vPIC error is never kept as an empty list (retry after 30 s), a real empty list is (scripts/vpicErrorCacheCheck.mjs)", "PASS", (out.match(/vpicErrorCacheCheck: .*/) || [""])[0]);
 } catch (e) {
