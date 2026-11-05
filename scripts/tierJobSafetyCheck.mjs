@@ -137,7 +137,10 @@ const runOn = (w, o = {}) => J.runJob({ env, log: () => {}, sleep: async ms => {
   const cron = (yml.match(/cron:\s*"([^"]+)"/) || [])[1] || "";
   const [mi, hh] = cron.split(" ").map(Number);
   const minutesOfDay = hh * 60 + mi;
-  ok("(6) the schedule is after the 07:11 ingest and the 10:20 admin refresh and ends before the 12:00 fill (capped run)", minutesOfDay >= 10 * 60 + 30 && minutesOfDay + 70 <= 12 * 60, cron);
+  // Nov 5 2026 (Lane C): the nightly does not start at 07:11 UTC, GitHub starts it between 12:00 and 17:00 UTC and it can run past 18:00, so a fixed morning slot overlapped it. The job follows the work.
+  ok("(6) the tier job starts when the nightly chain ends (workflow_run of Nightly checks), not at a clock time that can fall inside the nightly", /workflow_run:\s*\n\s*workflows:\s*\["Nightly checks"\]/.test(yml));
+  ok("(6) its fallback clock slot is outside the nightly's real window (12:00 to 20:00 UTC) and a capped run ends before it", (minutesOfDay + 70 <= 12 * 60 || minutesOfDay >= 20 * 60), cron);
+  ok("(6) a run that finds the nightly or its checks running ends at once instead of running beside them", /nightly\.yml nightly-checks\.yml/.test(yml) && /in_progress/.test(yml) && /queued/.test(yml) && /busy != '1'/.test(yml));
   ok("(6) the workflow has a concurrency group (no two runs at once) and a timeout under 2 hours", /concurrency:/.test(yml) && /cancel-in-progress:\s*false/.test(yml) && /timeout-minutes:\s*(\d+)/.test(yml) && Number(yml.match(/timeout-minutes:\s*(\d+)/)[1]) <= 120);
   ok("(6) the workflow default for max is a bounded whole number and never 0", /max:[^\n]*default:\s*"(\d+)"/.test(yml) && Number(yml.match(/max:[^\n]*default:\s*"(\d+)"/)[1]) > 0 && !/max \|\| '0'/.test(yml));
   ok("(6) the workflow passes max, minutes, batch and pause to the job", /--max=/.test(yml) && /--minutes=/.test(yml) && /--batch=/.test(yml) && /--pause=/.test(yml));

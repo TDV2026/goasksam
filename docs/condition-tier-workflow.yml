@@ -2,8 +2,13 @@
 # Prereq, once in the Supabase SQL editor: docs/supabase-condition-tier.sql. ZERO OldCarsData. Resumable: only rows not at the current tier version are touched, a cancelled run leaves no half written row.
 # Safe against the live site: batches of 100 with a 2 s pause, every request aborted after 6 s, a slow batch doubles the pause, 3 slow batches in a row (or one over 15 s) STOP the run with a warning,
 # and every run is bounded by --max rows and --minutes. A max, batch or pause that is not a whole number FAILS the run; nothing means "all rows".
-# SCHEDULE: 10:50 UTC. The 07:11 ingest and the jobs that wait on it (premium, cube) are done, the 08:00 depth, 09:40/09:50 photo checks and 10:20 admin night refresh have run, and the 12:00 cache fill has not started.
-#   About 3:50 am Pacific, before the US morning. A run is capped at 70 minutes, so it ends before the 12:00 fill.
+# SCHEDULE (Nov 5 2026, Lane C, replaces the fixed 10:50 UTC slot). The nightly does not start at 07:11 UTC: GitHub starts it between 12:00 and 17:00 UTC and it can run past 18:00, so a fixed 10:50 slot
+#   overlapped it (runs 112 to 132). The tier job now follows the work instead of guessing the clock:
+#   1. PRIMARY: it starts when "Nightly checks" (.github/workflows/nightly-checks.yml, which itself starts when "Nightly ingest and warm" ends) has finished. Ingest, the caches, the cross-product check are all done.
+#   2. FALLBACK: 03:30 UTC (7:30 pm Pacific), for a night the chain did not run. It is idempotent (only rows not at the current tier version are touched), so a second run the same day finds little to do.
+#   3. NEVER TOGETHER: the first step asks GitHub whether "Nightly ingest and warm" or "Nightly checks" is queued or running; if so this run ends at once with a notice (a skipped run, not a failure) and the next trigger picks it up.
+#      A manual dispatch skips the guard (you meant it).
+#   A run is capped at 70 minutes.
 # FULL BACKFILL: let the nightly run do it (50,000 rows a night, resumes where it stopped), or dispatch by hand with batch 100, pause 2000, max 2000000, minutes 70, and rerun until the log says "finished, 0 rows".
 name: Condition tier
 on:
@@ -13,13 +18,17 @@ on:
       pause:   { description: "Pause between batches, ms, a whole number", required: false, default: "2000" }
       max:     { description: "Stop after this many rows, a whole number 1 to 2000000 (no 0, no text)", required: false, default: "5000" }
       minutes: { description: "Stop after this many minutes, a whole number 1 to 300", required: false, default: "70" }
+  workflow_run:
+    workflows: ["Nightly checks"]
+    types: [completed]
   schedule:
-    - cron: "50 10 * * *"
+    - cron: "30 3 * * *"
 concurrency:
   group: condition-tier
   cancel-in-progress: false
 permissions:
   contents: read
+  actions: read   # the guard step reads whether the nightly is running
 jobs:
   tier:
     runs-on: ubuntu-latest
@@ -27,9 +36,30 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    # a nightly that was cancelled has no fresh data to tier; any other ending, red included, still has
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion != 'cancelled'
     steps:
+      - name: Never run together with the nightly
+        id: guard
+        if: github.event_name != 'workflow_dispatch'
+        timeout-minutes: 2
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          busy=0
+          for wf in nightly.yml nightly-checks.yml; do
+            for st in in_progress queued; do
+              n=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/${wf}/runs?status=${st}&per_page=1" | jq '.total_count' || echo 0)
+              if [ "${n:-0}" -gt 0 ]; then busy=1; echo "::notice::${wf} has a run ${st}; the condition tier waits for its next trigger."; fi
+            done
+          done
+          echo "busy=${busy}" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
+        if: steps.guard.outputs.busy != '1'
       - uses: actions/setup-node@v4
+        if: steps.guard.outputs.busy != '1'
         with: { node-version: 22 }
       - name: Assign tiers
+        if: steps.guard.outputs.busy != '1'
         run: node scripts/assignConditionTier.mjs --batch="${{ github.event.inputs.batch || '100' }}" --pause="${{ github.event.inputs.pause || '2000' }}" --max="${{ github.event.inputs.max || '50000' }}" --minutes="${{ github.event.inputs.minutes || '70' }}"
