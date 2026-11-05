@@ -79,6 +79,8 @@
     { "source": "/preview/tasks", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-tasks" },
     { "source": "/preview/tasks/mine", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-tasks-mine" },
     { "source": "/preview/tasks/api", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-tasks-api" },
+    { "source": "/preview/desk", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-desk" },
+    { "source": "/preview/desk/api", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-desk-api" },
     { "source": "/onebox-preview", "has": [{ "type": "cookie", "key": "gas_tester", "value": "t1\\..*" }], "destination": "/api/crewPage?page=onebox-preview" },
     { "source": "/privacy", "destination": "/api/legal?page=privacy" },
     { "source": "/terms", "destination": "/api/legal?page=terms" },
@@ -200,7 +202,7 @@
       "includeFiles": "data/whatsNew.json"
     },
     "api/crewPage.js": {
-      "includeFiles": "lib/crewPages/**"
+      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json}"
     },
     "api/publicConfig.js": {
       "includeFiles": "public/onebox.html"

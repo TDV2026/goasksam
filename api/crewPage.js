@@ -12,19 +12,26 @@ import { resolveViewAs } from "../lib/desk/viewAs.js";
 import { PREVIEW_PAGES, homeHtmlFor } from "../lib/preview/previewPages.js";
 import { tasksPublicHtml, crewLimitMax } from "../lib/preview/tasksPreview.js";
 import { tasksMineHtml, previewTasksApi } from "../lib/preview/tasksMine.js";
+import { renderDeskPreview, previewDeskApi } from "../lib/preview/deskPreview.js";
 // The crew preview of the Homepage reads Lane B's featuredHistory (the same read GET /api/featuredHistory answers with, crew cookie required inside it). FEATURED is the seam the local run swaps for a test store.
 export const FEATURED = { read: async req => { const { historyEnv } = await import("./_historyData.js"), env = historyEnv(); if (!env) return null; const { readFeaturedHistory } = await import("../lib/live/featuredHistory.js"); return readFeaturedHistory(env, req); }, now: () => Date.now() };
 // A page is a file in lib/crewPages/ or a render function (the design previews /preview/home and /preview/find, built from the engine's approved copy at request time). hiddenCrewCheck reads this list, so a page added here is covered by it.
 // The Tasks redesign (crew only, not live): the public page reads Lane B's demo field when lib/live/tasksDemo.js exists (tasksDemo(env, req) -> the field or null) and the crew limit when Lane S's exists; otherwise the centrepiece is hidden and the live limit is printed.
 export const TASKS_DEMO = { read: async req => { try { const { historyEnv } = await import("./_historyData.js"), env = historyEnv(); if (!env) return null; const m = await import("../lib/live/tasksDemo.js"); return typeof m.tasksDemo === "function" ? await m.tasksDemo(env, req) : null; } catch { return null; } }, now: () => Date.now() };
 const tasksPublicFor = async req => { let demo = null; try { demo = await TASKS_DEMO.read(req); } catch { demo = null; } return tasksPublicHtml({ max: await crewLimitMax(), demo, now: TASKS_DEMO.now() }); };
-export const PAGES = { "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: FEATURED.read, now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"] } };
+export const PAGES = { "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-desk": { render: renderDeskPreview }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: FEATURED.read, now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"] } };
 export default async function handler(req, res) {
   const name = String((req.query && req.query.page) || "").toLowerCase(), p = PAGES[name];
   if (name === "preview-tasks-api") {   // the Tasks preview's own door: crew only, POST only; the live handler answers (lib/preview/tasksMine.js)
     if (req.method !== "POST" || !isCrewRequest(req)) return sendDisguisedNotFound(res, req);
     if (typeof req.body === "string") { try { req.body = JSON.parse(req.body); } catch { req.body = {}; } }
     return previewTasksApi(req, res);
+  }
+  if (name === "preview-desk-api") {   // the redesigned Desk preview's own door (lib/preview/deskPreview.js): crew only, POST only, sample sheets only
+    if (req.method !== "POST" || !isCrewRequest(req)) return sendDisguisedNotFound(res, req);
+    let b = req.body; if (typeof b === "string") { try { b = JSON.parse(b); } catch { b = {}; } }
+    const out = await previewDeskApi(b || {}); res.setHeader("Content-Type", "application/json; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store"); res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    return res.status(200).send(JSON.stringify(out));
   }
   let seat = false;
   if (p && name === "desk" && !(isCrewRequest(req) || (p.tester && isTesterRequest(req)))) {   // a seat: a signed gas_seat cookie whose seat is still active (re-read here); the page opens in Valuations mode
