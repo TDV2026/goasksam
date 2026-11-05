@@ -59,6 +59,7 @@ create or replace function swap_vin_index()
 returns void
 language plpgsql
 security definer
+set statement_timeout = '600s'   -- Nov 5 2026: the API request's own timeout ended the swap (57014, runs 129 and 130); see docs/supabase-vin-swap-timeout.sql
 as $$
 begin
   truncate vin_index;

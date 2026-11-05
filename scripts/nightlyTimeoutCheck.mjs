@@ -35,5 +35,6 @@ function judge(label, file, hard) {
   else console.log(`${bad.length ? "NOTE" : "PASS"}  ${line}${bad.length ? "  (Sam copies docs/nightly-workflow.yml over it)" : ""}`);
 }
 judge("docs/nightly-workflow.yml", path.join(root, "docs/nightly-workflow.yml"), true);
+judge("docs/nightly-checks-workflow.yml", path.join(root, "docs/nightly-checks-workflow.yml"), true);
 judge(".github/workflows/nightly.yml", path.join(root, ".github/workflows/nightly.yml"), false);
 process.exit(fail ? 1 : 0);

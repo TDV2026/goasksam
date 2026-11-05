@@ -119,7 +119,7 @@ jobs:
     # never delay warm/attempts/premium/cube, none of which need anything in this job. 55 min keeps
     # today's effective ceiling for this slower tail (VIN index + VIN rollout cache are the two
     # genuinely multi-minute steps; crossProductCheck at 53 specs is the newest and least bounded).
-    timeout-minutes: 110   # every step below has its own cap; their sum (99) stays under this, so no one step can run the job into the cancel (run 127, Oct 28: the cross-product check ran 35 minutes and the 80 minute cap cancelled the job)
+    timeout-minutes: 90   # every step below has its own cap; their sum (82, the cross-product and search checks now run in nightly-checks.yml) stays under this, so no one step can run the job into the cancel (run 127, Oct 28: the cross-product check ran 35 minutes and the 80 minute cap cancelled the job)
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -156,7 +156,7 @@ jobs:
         timeout-minutes: 5
         id: recomputespec
         continue-on-error: true
-        run: node scripts/recomputeSpecCache.js --cap=60
+        run: node scripts/recomputeSpecCache.js --cap=400 --minutes=4
       # Builds the Market Check landing example once a night
       - name: Build Market Check landing example (what the example car sold for)
         timeout-minutes: 3
@@ -183,22 +183,10 @@ jobs:
         id: vinrollout
         continue-on-error: true
         run: node scripts/buildVinRolloutCache.js
-      - name: Search rules check (public pages)
-        timeout-minutes: 3
-        env:
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-        run: node scripts/searchCheck.js
-        continue-on-error: true
-      # Proves Buy, Sell, Market Check and Tasks read the same pool. continue-on-error is set so the
-      # table still prints and later steps still run even on a mismatch; the explicit "Fail the job"
-      # step below is what actually turns the job red (Oct 2026, M3 Competition mismatch job - the
-      # count comparison is now exact-match, not the 10%-tolerance low/high use, so this is a real
-      # gate again, not advisory).
-      - name: Cross-product engine check (Buy/Sell/Market Check/Tasks agree)
-        timeout-minutes: 13
-        id: crossproductcheck
-        continue-on-error: true
-        run: node scripts/crossProductCheck.js
+      # Nov 5 2026: the Search rules check and the Cross-product engine check MOVED to their own workflow
+      # (docs/nightly-checks-workflow.yml, .github/workflows/nightly-checks.yml), which starts when this one
+      # ends. They READ the database to judge it; they build nothing. Inside this job a finding there (or a slow
+      # night) read as a red or cancelled nightly while every cache above was built (runs 127 to 132).
       - name: Fail the job if the VIN index step failed
         timeout-minutes: 1
         if: steps.vinindex.outcome == 'failure'
@@ -228,12 +216,6 @@ jobs:
         if: steps.sellexample.outcome == 'failure'
         run: |
           echo "::error::Sell landing example build failed (see the Build Sell landing example step above). Later steps still ran, but the job must end red. The landing still builds its example within its own wait meanwhile. This is a cache freshness regression, not a correctness outage."
-          exit 1
-      - name: Fail the job if the cross-product engine check found a mismatch
-        timeout-minutes: 1
-        if: steps.crossproductcheck.outcome == 'failure'
-        run: |
-          echo "::error::Buy/Sell/Market Check/Tasks disagreed on at least one spec (see the Cross-product engine check step above for which field and which specs). The one-engine rule means the same car must give the same sales count, range and venue in every product - this is a real correctness regression, not advisory."
           exit 1
       - name: Fail the job if the Sam Desk example step failed
         timeout-minutes: 1
