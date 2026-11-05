@@ -10,7 +10,8 @@ export default async function handler(req, res) {
   const env = supabaseEnv();
   if (req.method !== "POST" || !env) return sendDisguisedNotFound(res, req);
   const lim = await routeLimit(env, req, "desk_seat", { route: "/api/deskSeat" }); if (!lim.ok) return sendTooMany(res, lim.retryAfter);
-  let caller = null; try { caller = await resolveCaller(req, { env }); } catch { caller = null; }
+  // the ACCOUNT's own seat, whatever crew cookie the browser also holds (a crew person who is also a seat still gets the seat cookie)
+  let caller = null; try { caller = await resolveCaller(req, { env, isCrew: () => false }); } catch { caller = null; }
   if (!caller || caller.kind !== "seat") return sendDisguisedNotFound(res, req);
   const v = mintSeatCookieValue(caller.seatId); if (!v) return sendDisguisedNotFound(res, req);
   res.setHeader("Set-Cookie", seatCookieHeader(v)); res.setHeader("Cache-Control", "no-store");

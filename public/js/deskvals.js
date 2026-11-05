@@ -7,7 +7,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var vals = $("vals"), rail = $("rail-vals"), form = $("vnew");
   if (!vals || !rail) return;
-  var S = { mode: "vals", seat: "", org: "", lists: { queue: [], mine: [], company: [] }, cq: "", tabs: [], active: null, sheets: {} };
+  var S = { mode: "vals", seat: "", org: "", lists: { queue: [], mine: [], company: [] }, seatName: "", viewAs: null, vaSeats: null, cq: "", tabs: [], active: null, sheets: {} };
   var timers = {};
 
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -33,7 +33,7 @@
 
   // ---------- the rail ----------
   function loadLists() {
-    api("sheet_queue", { view: "queue" }).then(function (r) { if (r.ok) { S.lists.queue = r.rows; S.seat = r.seat; S.org = r.org; renderRail(); } });
+    api("sheet_queue", { view: "queue" }).then(function (r) { if (r.ok) { S.lists.queue = r.rows; S.seat = r.seat; S.seatName = r.seatName || ""; S.viewAs = r.viewAs || null; S.org = r.org; renderRail(); } });
     api("sheet_queue", { view: "mine" }).then(function (r) { if (r.ok) { S.lists.mine = r.rows; renderRail(); } });
     api("sheet_queue", { view: "company", q: S.cq }).then(function (r) { if (r.ok) { S.lists.company = r.rows; renderRail(); } });
   }
@@ -48,9 +48,19 @@
     rail.innerHTML = '<div class="sec">Today&rsquo;s queue</div><div id="l-queue">' + listHtml(S.lists.queue) + "</div>" +
       '<div class="sec">My sheets</div><div id="l-mine">' + listHtml(S.lists.mine) + "</div>" +
       '<div class="sec">Company</div><input class="csearch" id="csearch" type="text" autocomplete="off" placeholder="VIN, car, expert, date, status" value="' + esc(S.cq) + '"><div id="l-company">' + listHtml(S.lists.company) + "</div>";
-    $("seatline").innerHTML = "<b>" + esc(S.org || "Sam") + "</b> &middot; seat: " + esc(S.seat || "analyst");
+    // The footer says who is looking. A crew person viewing as a seat is told so, with the way back; the crew (not a seat, not viewing) gets the "View as" switch. The server decides all of it; this only prints it.
+    var who = esc(S.seatName || S.seat || "analyst"), line = "<b>" + esc(S.org || "Sam") + "</b> &middot; seat: " + who;
+    if (S.viewAs) line += ' &middot; viewing as, crew <button type="button" class="vbtn" id="vaBack">Back to crew view</button>';
+    else if (!window.__DESK_SEAT__ && S.vaSeats && S.vaSeats.length) line += '<br><select id="vaPick" aria-label="View as a seat"><option value="">View as&hellip;</option>' + S.vaSeats.map(function (x) { return '<option value="' + x.seatId + '">' + esc(x.org + " &middot; " + x.label) + "</option>"; }).join("") + "</select>";
+    $("seatline").innerHTML = line;
     if (focus) { var c = $("csearch"); c.focus(); c.setSelectionRange(c.value.length, c.value.length); }
   }
+  var seatlineEl = $("seatline");
+  if (seatlineEl) {
+    seatlineEl.addEventListener("click", function (e) { if (e.target.id === "vaBack") api("viewas_clear").then(function () { location.reload(); }); });
+    seatlineEl.addEventListener("change", function (e) { if (e.target.id === "vaPick" && e.target.value) api("viewas_set", { seatId: Number(e.target.value) }).then(function (r) { if (r.ok) location.reload(); else flash(r.error || "Could not switch."); }); });
+  }
+  if (!window.__DESK_SEAT__ && !window.__DESK_VIEWAS__) api("viewas_list").then(function (r) { if (r && r.ok && r.seats) { S.vaSeats = r.seats; renderRail(); } });
   rail.addEventListener("click", function (e) { var b = e.target.closest("[data-open]"); if (b) openSheet(b.getAttribute("data-open")); });
   rail.addEventListener("input", function (e) {
     if (e.target.id !== "csearch") return; S.cq = e.target.value; clearTimeout(timers.cq);
@@ -265,7 +275,7 @@
 
   var m0 = "vals"; try { m0 = sessionStorage.getItem("desk_mode") || "vals"; } catch (e) { }
   // A seat (the server sets __DESK_SEAT__ only for a signed seat cookie) opens in Valuations and has no Analyst mode: the API refuses everything but the sheet actions
-  if (window.__DESK_SEAT__) { m0 = "vals"; var ab = $("modeAnalyst"); if (ab) ab.hidden = true; }
+  if (window.__DESK_SEAT__ || window.__DESK_VIEWAS__) { m0 = "vals"; var ab = $("modeAnalyst"); if (ab) ab.hidden = true; }
   setMode(m0 === "analyst" ? "analyst" : "vals");
   window.__deskVals = { open: openSheet, state: S, settled: settled };
 })();

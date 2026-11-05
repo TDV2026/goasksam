@@ -8,9 +8,9 @@ import { memoryStore } from "../lib/desk/sheetStore.js";
 export const ROOT = path.resolve(new URL("..", import.meta.url).pathname);
 export const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 export const PHOTO = "data:image/svg+xml;base64," + Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220"><rect width="320" height="220" fill="#8a9"/></svg>').toString("base64");
-export async function startDesk({ seat = "crew", org = "sam", orgSettings = { name: "Hagerty Marketplace" }, store = memoryStore(), send = null, calls = [], mutateJs = null } = {}) {
+export async function startDesk({ seat = "crew", org = "sam", orgSettings = { name: "Hagerty Marketplace" }, store = memoryStore(), send = null, calls = [], mutateJs = null, ctxExtra = {} } = {}) {
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
-  const ctxOf = s => ({ env: {}, org, seat: s || seat, store, orgSettings, send, fetchImage: async () => null });
+  const ctxOf = s => ({ env: {}, org, seat: s || seat, store, orgSettings, send, fetchImage: async () => null, ...ctxExtra });
   const state = { seat, setSeat(s) { state.seat = s; } };
   async function open(width = 1440, opts = {}) {
     const page = await browser.newPage(); await page.setViewport({ width, height: 1000 }); const errs = []; page.on("pageerror", e => errs.push(e.message)); page.on("console", m => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) errs.push(m.text()); });

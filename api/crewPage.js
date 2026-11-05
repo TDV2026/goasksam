@@ -7,6 +7,7 @@ import { isCrewRequest } from "../lib/_crew.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import { resolveSeatCookie } from "../lib/desk/seatCookie.js";
+import { resolveViewAs } from "../lib/desk/viewAs.js";
 import { PREVIEW_PAGES } from "../lib/preview/previewPages.js";
 // A page is a file in lib/crewPages/ or a render function (the design previews /preview/home and /preview/find, built from the engine's approved copy at request time). hiddenCrewCheck reads this list, so a page added here is covered by it.
 export const PAGES = { "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true }, "preview-home": { render: PREVIEW_PAGES["preview-home"] }, "preview-find": { render: PREVIEW_PAGES["preview-find"] } };
@@ -17,9 +18,12 @@ export default async function handler(req, res) {
     const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
     seat = !!(url && await resolveSeatCookie(req, { env: { supabaseUrl: url, supabaseKey: key } }).catch(() => null));
   }
+  let viewing = false;   // the crew, switched to view as one seat: the page opens as that seat does (Valuations only) with the way back
+  if (p && name === "desk" && isCrewRequest(req)) { const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY; viewing = !!(url && await resolveViewAs(req, { env: { supabaseUrl: url, supabaseKey: key } }).catch(() => null)); }
   if (!p || !(seat || isCrewRequest(req) || (p.tester && isTesterRequest(req)))) return sendDisguisedNotFound(res, req);
   let html; try { html = p.render ? p.render() : fs.readFileSync(path.join(process.cwd(), "lib/crewPages", p.file), "utf8"); } catch { return sendDisguisedNotFound(res, req); }
   if (seat) html = html.replace("<script>", "<script>window.__DESK_SEAT__=1;</script><script>");
+  else if (viewing) html = html.replace("<script>", "<script>window.__DESK_VIEWAS__=1;</script><script>");
   res.setHeader("Content-Type", "text/html; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store"); res.setHeader("X-Robots-Tag", "noindex, nofollow");
   res.status(200).send(html);
 }

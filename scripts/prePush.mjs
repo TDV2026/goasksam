@@ -864,6 +864,20 @@ try {
 } catch (e) {
   record("Desk Valuations: the reserve, range and guard rules at finalise, refused and allowed, and printed inline (scripts/reasonRulesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// deskDoorsCheck (Lane S, Nov 5 2026): Desk doors: a crew + seat person, the View as switch, org isolation, the seat cookie at sign in.
+try {
+  const out = execSync("node scripts/deskDoorsCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk doors: a crew + seat person, the View as switch, org isolation, the seat cookie at sign in (scripts/deskDoorsCheck.mjs)", "PASS", (out.match(/deskDoorsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk doors: a crew + seat person, the View as switch, org isolation, the seat cookie at sign in (scripts/deskDoorsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// deskViewAsPageCheck (Lane S, Nov 5 2026): Desk footer says who is looking and offers the way back.
+try {
+  const out = execSync("node scripts/deskViewAsPageCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk footer says who is looking and offers the way back (scripts/deskViewAsPageCheck.mjs)", "PASS", (out.match(/deskViewAsPageCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk footer says who is looking and offers the way back (scripts/deskViewAsPageCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // deskSaveOrderCheck (Lane S, Nov 5 2026): the Desk page's saves are merged, ordered and flushed before Finalise seals a sheet; each rule runs against a mutant that drops it.
 try {
   const out = execSync("node scripts/deskSaveOrderCheck.mjs", { encoding: "utf8", timeout: 240000 });
