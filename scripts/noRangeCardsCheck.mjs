@@ -85,4 +85,25 @@ try {
   const desk = fs.readFileSync("public/js/deskvals.js", "utf8"); ok(/m\.noRangeLine/.test(desk) && /GAS_NORANGE/.test(desk), "Desk sheet: prints the read's noRangeLine behind the flag; its comparables list every sale");
   const near = fs.readFileSync("api/buy.js", "utf8"); ok(/nr\.line === 'string'/.test(near) || /nr\.line === \\"string\\"/.test(near), "Find: meta.near.line is the opener when the engine sends it");
 }
+// ---- A RETRY ANSWER IS NOT A FAILURE (Lane E, Nov 5 2026): readSheet() answers { retry: true, retryAfterMs, line } while the engine is still reading. The sheet shows the engine's line, never "cannot be read" or "not available", never stores the retry as the sheet's read, never replaces a read it already has, and asks again after retryAfterMs.
+{ const { startDesk, seed, wait } = await import("./deskValsRender.mjs"), { useSheetEngine } = await import(pathToFileURL(path.join(ROOT, "lib/desk/sheetRead.js")).href), { handleSheetAction } = await import(pathToFileURL(path.join(ROOT, "lib/desk/sheetActions.js")).href);
+  const RLINE = "Sam is still reading this car. It fills in here when the read lands.";
+  const D = await startDesk({ calls: [] }); const sh = await seed(D.store, { vin: "WP0AB29918S745123" }); await D.store.put("sam", { ...sh, read: null, car_label: "A car" }); const good = await seed(D.store, { vin: "WP0AB29918S745123" });
+  let asked = 0, mode = "retry"; useSheetEngine(async () => { asked++; return mode === "retry" ? { retry: true, retryAfterMs: 1200, line: RLINE } : null; });
+  const p = await D.open(1440); await p.click(`[data-open="${sh.id}"]`); await wait(700);
+  const t1 = await p.evaluate(() => (document.querySelector(".sheet") || {}).innerText || "");
+  ok(t1.includes(RLINE) && !/not available|cannot be read|could not be read/i.test(t1), "retry: the sheet shows the engine's line and no failure wording");
+  const stored = (await D.store.list("sam")).find(x => x.id === sh.id);
+  ok(stored && !stored.read, "retry: the retry answer is not stored as the sheet's read");
+  const before = asked; await wait(1900);
+  ok(asked > before, "retry: the page asks again after the engine's own wait (" + before + " then " + asked + ")");
+  // a sheet that already has a read keeps it when a re-read answers retry
+  const had = JSON.stringify((await D.store.list("sam")).find(x => x.id === good.id).read);
+  const r2 = await handleSheetAction("sheet_save", { id: good.id, patch: { mileage: "41000" } }, D.ctxOf("crew"));
+  const after = JSON.stringify((await D.store.list("sam")).find(x => x.id === good.id).read);
+  ok(r2 && r2.ok && r2.retry && r2.retry.line === RLINE && had === after, "retry: a re-read that answers retry leaves the read the sheet already has, and tells the page to ask again");
+  const r3 = await handleSheetAction("sheet_new", { text: "WP0AB29918S745123" }, D.ctxOf("crew"));
+  ok(r3 && r3.ok && r3.retry && r3.retry.line === RLINE, "retry: a new sheet typed while the engine is reading is made, with the line, not refused");
+  mode = "none"; useSheetEngine(null); await p.close(); await D.close();
+  const src = fs.readFileSync("lib/desk/intake/engineRead.js", "utf8"); ok(/sr\.retry === true/.test(src) && /engine_status: "reading"/.test(src), "intake: a retry from the sheet read marks the sheet reading, not done and not failed"); }
 console.log(`noRangeCardsCheck: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
