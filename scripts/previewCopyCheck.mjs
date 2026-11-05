@@ -47,7 +47,7 @@ const SEARCH = html => part(html, /<form class="sb"[\s\S]*?<\/form>/);
 const PILLS = html => part(html, /<div class="pills">[\s\S]*?<\/div>/);
 const FOOT = html => part(html, /<footer class="ft">[\s\S]*?<\/footer>/);
 const SHARED = {
-  header: html => /Beta<\/span>/.test(HEADER(html)) && !/FIND\s*(?:&middot;|·)\s*CHECK|Find, check, sell/i.test(textOf(html)) && [">Find<", ">Market Check<", ">Sell<", ">Tasks<", ">Sign in<"].every(w => HEADER(html).includes(w)) ? null : "the header lacks Beta or one of Find, Market Check, Sell, Tasks, Account, or carries the Find Check Sell tag",
+  header: html => /Beta<\/span>/.test(HEADER(html)) && !/FIND\s*(?:&middot;|·)\s*CHECK|Find, check, sell/i.test(textOf(html)) && [">Find<", ">Market Check<", ">Sell<", ">Tasks<", ">Account<"].every(w => HEADER(html).includes(w)) ? null : "the header lacks Beta or one of Find, Market Check, Sell, Tasks, Account, or carries the Find Check Sell tag",
   placeholder: html => SEARCH(html).includes('placeholder="Tell Sam what you&#39;re looking for..."') ? null : "the search placeholder is not exactly: Tell Sam what you're looking for...",
   arrowSubmit: html => /<button class="go" type="submit" aria-label="Go ask Sam"><svg/.test(SEARCH(html)) && !/>\s*Go ask Sam\s*</.test(SEARCH(html).replace(/aria-label="[^"]*"/g, "")) && /id="pq-mic"/.test(SEARCH(html)) ? null : "the submit is not a compact arrow only button with the microphone beside it",
   pills: html => { const l = [...PILLS(html).matchAll(/<a class="pill" href="\/find\?q=([^"]*)">([^<]*)<\/a>/g)].map(m => [decodeURIComponent(m[1]), decode(m[2])]); return l.length === 3 && l.every(([q, t], i) => q === t && t === PLACEHOLDERS.preview.examples[i]) && /Go ask Sam:/.test(PILLS(html)) ? null : "the pills are not the three approved examples, each linking to its own Find search"; },
@@ -68,12 +68,12 @@ const SHARED = {
   ok(/class="hero"/.test(home) && /--forest:#0B3126/.test(home), "home: a full width hero in the deep forest green");
   ok(textOf(home).includes(copy("home.START_TITLE")) && t.includes("Find your next car. See real sales. Discover where to sell."), "home: the approved headline and supporting line");
   ok(["Find", "Market Check", "Sell"].every(w => new RegExp('<h2 class="t-h3">' + w + '</h2>').test(home)) && (home.match(/<a class="way"/g) || []).length === 3 && !/<a class="btn/.test(home), "home: three clickable columns (Find, Market Check, Sell), no feature buttons");
-  ok(/class="ex"/.test(home) && /placeholder/i.test(t) && t.includes("Same car. Different auctions. Real selling prices.") && !/<img[^>]*class="ex/.test(home), "home: the real sales block is a labelled placeholder until the engine field lands");
+  ok(!/class="ex"|data-featured-history|Photo of one real car|Real example, placeholder/.test(home), "home: no placeholder block and no featured history in the served page (the section is hidden until the engine field is read)");
   ok((home.match(/<div class="rule">/g) || []).length === 4 && /<section class="how wrap"/.test(home) && /HOW SAM DECIDES|How Sam decides/i.test(t), "home: How Sam decides is an intro column plus four numbered columns");
-  ok(/<aside class="rail"/.test(find) && /Tasks/.test(textOf(find)) && /rail-head/.test(find) && PLACEHOLDERS.preview.examples.every(e => textOf(find).includes(e)), "find: the rail (searches, Tasks) is filled from the engine's approved searches when the visitor has no history");
-  ok(/Searches to try/.test(textOf(find)) && !/Recent searches/.test(textOf(find)), "find: a visitor with no history is not shown a Recent searches heading");
+  ok(/<aside class="rail"/.test(find) && /Tasks/.test(textOf(find)) && /id="rail-head" hidden/.test(find) && !/class="it"/.test(find), "find: the rail has Tasks and an empty, hidden Recent searches that a signed in visitor's own history fills");
+  ok(!/Searches to try/.test(find) && /id="rail-head" hidden>Recent searches</.test(find), "find: no suggestions are shown as history, and the Recent searches heading is hidden until there is history");
   ok(t.includes("Find") && textOf(find).includes("Search live and recent auctions across multiple platforms.") && textOf(find).includes(copy("find.START_TITLE")), "find: title, supporting line and the central headline");
-  ok(/class="deco"[^>]*>\s*<div class="car"/.test(find) && !/position:absolute[^}]*\.stage|\.stage[^}]*position:absolute/.test(find), "find: the Porsche sits in its own block after the search, never over it");
+  ok(/<div class="deco"[^>]*aria-hidden="true"><\/div>/.test(find) && !/position:absolute[^}]*\.stage|\.stage[^}]*position:absolute/.test(find), "find: the Porsche sits in its own block after the search, never over it");
   ok(/noindex/.test(home) && /noindex/.test(find), "both previews are noindex");
   const src = fs.readFileSync("lib/preview/previewPages.js", "utf8");
   ok(!/\bfetch\(|supabase|oneEngineAnswer\(|Math\.random|Date\.now|new Date/.test(src.replace(/\/\/.*$/gm, "")), "the preview pages compute nothing: no fetch, no database, no date, no random in the page code");
@@ -86,17 +86,17 @@ const SHARED = {
   const cases = [
     ["dash", "Find your next car. See real sales.", "Find your next car — see real sales."],
     ["dash", "Find your next car. See real sales.", "Find your next car. See real-sales."],
-    ["palette", ".way{display:flex", ".way{background:#E8542B;display:flex"],
+    ["palette", ".way{display:grid", ".way{background:#E8542B;display:grid"],
     ["palette", ".hero{position:relative;", ".hero{border-color:rgb(220,60,40);position:relative;"],
     ["wordmark", '<b>GoAskSam</b><span class="beta">', '<b>GO ASK SAM</b><span class="beta">'],
-    ["firstPerson", "in your own words.", "in your own words. Sam found it for me and I think it is good."],
-    ["names", "Same car. Different auctions. Real selling prices.", "This BMW M3 sold at Bonhams and Broad Arrow."],
-    ["ai", "in your own words.", "in your own words. AI powered search for cars."],
-    ["figures", "Date</span><span>Platform", "2023</span><span>Platform $72,800"],
-    ["figures", "in your own words.", "in your own words. Search 19 sources."],
-    ["liveBid", "Date</span><span>Platform", "Now live with a bid</span><span>Platform"],
-    ["vroom", 'Real example, placeholder', 'Example from The Daily Vroom'],
-    ["rulesVerbatim", "A sale is a sale.", "A sale is a sale, mostly."],
+    ["firstPerson", "Explore comparable sales with real evidence.", "Explore comparable sales with real evidence. Sam found it for me and I think it is good."],
+    ["names", "Discover where and how to sell your car.", "This BMW M3 sold at Bonhams and Broad Arrow."],
+    ["ai", "Explore comparable sales with real evidence.", "Explore comparable sales with real evidence. AI powered search for cars."],
+    ["figures", "Find live auctions across multiple platforms.", "Find live auctions across multiple platforms. 2023 $72,800"],
+    ["figures", "Explore comparable sales with real evidence.", "Explore comparable sales with real evidence. Search 19 sources."],
+    ["liveBid", "Find live auctions across multiple platforms.", "Find live auctions across multiple platforms. Now live with a bid"],
+    ["vroom", "Find live auctions across multiple platforms.", "Example from The Daily Vroom"],
+    ["rulesVerbatim", "We use actual selling prices, not", "We use actual selling prices (mostly), not"],
     ["dash", "Find your next car.", "Find your next car (and bid) -- now."]
   ];
   for (const [k, from, to] of cases.slice(0, -1)) { const m = inject(from, to); ok(m !== home, `self-test: the injected text for ${k} is in the page ("${from.slice(0, 30)}")`); ok(!!AUDIT[k](m), `self-test: ${k} flags "${to.slice(0, 50)}"`); }

@@ -1,0 +1,17 @@
+// The layout measures shared by scripts/homeFindShots.mjs and scripts/homeFindPreviewCheck.mjs (Lane E, Nov 5 2026): run in the page, they report facts (horizontal scroll, clipped text, overlaps, one centre line in the search, pill rows, alignment).
+export const MEASURE = () => {
+  const r = e => e.getBoundingClientRect(), vis = e => { const c = getComputedStyle(e), q = r(e); return c.display !== "none" && c.visibility !== "hidden" && q.width > 0 && q.height > 0; };
+  const out = { hscroll: document.documentElement.scrollWidth > innerWidth + 1, clipped: [], overlaps: [] };
+  for (const e of document.querySelectorAll("a,button,h1,h2,h3,p,span,input,label,div.n")) { if (!vis(e) || e.closest(".sr")) continue; const c = getComputedStyle(e); if ((c.overflow === "hidden" || c.overflowX === "hidden") && c.textOverflow !== "ellipsis" && e.scrollWidth > e.clientWidth + 1 && e.children.length === 0 && !e.closest(".hero .photo")) out.clipped.push((e.textContent || "").trim().slice(0, 40)); }
+  const sb = document.querySelector(".sb"), pills = [...document.querySelectorAll(".pill")].filter(vis), deco = document.querySelector(".deco");
+  if (sb) { const s = r(sb), ic = sb.querySelector(".ico"), inp = sb.querySelector("input"), mic = sb.querySelector(".mic"), go = sb.querySelector(".go"); const mid = x => x && vis(x) ? Math.round((r(x).top + r(x).bottom) / 2) : null; out.searchMid = [mid(sb), mid(ic), mid(inp), mid(mic), mid(go)]; out.searchW = Math.round(s.width); const cv = document.createElement("canvas").getContext("2d"), cs = getComputedStyle(inp); cv.font = cs.fontWeight + " " + cs.fontSize + " " + cs.fontFamily; out.placeholderFits = Math.round(cv.measureText(inp.placeholder).width) <= inp.clientWidth - 2; out.placeholderPx = [Math.round(cv.measureText(inp.placeholder).width), inp.clientWidth]; }
+  if (pills.length) { out.pillRows = new Set(pills.map(p => Math.round(r(p).top))).size; out.pillH = [...new Set(pills.map(p => Math.round(r(p).height)))]; out.pillRight = Math.round(Math.max(...pills.map(p => r(p).right))); }
+  if (deco && vis(deco)) { const d = r(deco); out.decoOverlap = [sb, ...pills, ...document.querySelectorAll(".stage h2,.rail a")].filter(Boolean).some(e => { const q = r(e); return q.width && q.left < d.right && q.right > d.left && q.top < d.bottom && q.bottom > d.top; }); }
+  const lefts = [".hero h1", ".hero .sub", ".hero .sb", ".hero .pills"].map(q => document.querySelector(q)).filter(Boolean).map(e => Math.round(r(e).left)); if (lefts.length) out.heroLefts = lefts;
+  const ft = document.querySelector(".ft .wrap"); if (ft) out.footerLeft = Math.round(r(ft.querySelector(".wm")).left);
+  const hd = document.querySelector(".gh .wm"); if (hd) out.headerLeft = Math.round(r(hd).left);
+  out.headerH = Math.round(r(document.querySelector(".gh")).height); out.navLinks = [...document.querySelectorAll(".gh .tabs a")].map(a => a.textContent.trim());
+  const w = [...document.querySelectorAll(".way")].map(x => Math.round(r(x).width)); if (w.length) out.wayW = w, out.wayH2Top = [...document.querySelectorAll(".way h2")].map(x => Math.round(r(x).top));
+  const fp = document.querySelector(".fh-photo"), pp = document.querySelector(".fh-pp"); if (fp && pp) { out.photoBig = Math.round(r(fp).width * r(fp).height), out.photoSmall = Math.round(r(pp).width * r(pp).height); const body = document.querySelector(".fh-body"); out.smallBesideDetails = Math.abs(r(pp).top - r(body.querySelector(".fh-d")).top) < 40; }
+  return out;
+};
