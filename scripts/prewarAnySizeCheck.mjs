@@ -3,6 +3,7 @@ import { fileURLToPath, pathToFileURL } from "url";
 import { findGeneration } from "../lib/generations.js";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href);
+const { marketOf } = await import(pathToFileURL(path.join(root, "lib/live/search.js")).href);
 let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 const ev = (row, it) => { const ci = it.indexOf(":"); const alias = ci > 0 && it[ci + 1] !== ":" ? it.slice(0, ci) : null; const expr = alias ? it.slice(ci + 1) : it; if (expr.startsWith("raw_record->>")) { const k = expr.slice(13); const v = row.raw_record[k]; return [alias || k, v == null ? null : String(v)]; } return [alias || expr, row[expr] === undefined ? null : row[expr]]; };
 const likeRe = v => new RegExp("^" + String(v).replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$", "i");
@@ -59,6 +60,12 @@ for (const [make, model, year] of CARS) for (const shape of SHAPES) {
   if (unst) ok(`${tag}: the sales that name no body are one "Body not stated" line with their count`, !!d.bodyNotStated && d.bodyNotStated.n === unst && /^Body not stated, \d+ sales?$/.test(d.bodyNotStated.line) && !o.some(x => /not stated/i.test(x.label)), JSON.stringify(d.bodyNotStated));
   else ok(`${tag}: no body-not-stated line when every sale names a body`, !d.bodyNotStated);
   ok(`${tag}: no engine key and no dash in any line`, !/pw_/i.test(JSON.stringify([o.map(x => x.label), d.optionLines, d.chipLines, d.pickLines, d.headlineLines, d.bodyNotStated])) && !/[\u2013\u2014]/.test(JSON.stringify([d.optionLines, d.bodyNotStated])));
+  findCardCheck(tag, d);
+}
+// THE FIND CARD READS THE ENGINE'S optionsState, never the retired pooledApart (e96PagesCheck's static scan, red on 7d1053af): the same answer with pooledApart removed must give the same card
+function findCardCheck(tag, d) {
+  const { pooledApart, ...bare } = d, m = marketOf(bare), want = d.headlineLines || [];
+  ok(`${tag}: the Find card is a count carrying the engine's body lines, with no pooledApart field to read`, !!m && m.kind === "count" && m.low === undefined && want.length > 0 && want.every(l => (m.optionLines || []).includes(l)) && (!d.bodyNotStated || (m.bodyNotStated && m.bodyNotStated.n === d.bodyNotStated.n)), JSON.stringify(m));
 }
 console.log(`checked ${checked} pre-war car and pool combinations`);
 // (5) one body only keeps the single pool; post-war is untouched
