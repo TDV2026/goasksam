@@ -12,20 +12,27 @@ let pass = 0, fail = 0; const ok = (n, c, d) => { if (c) pass++; else { fail++; 
 // [vin, vPIC row fields, the model the engine should be asked about, trim as decoded, bodyStyle as decoded]  ("live": fetched from vPIC Nov 5 2026; "shaped": same fields, not fetched)
 const row = (y, make, model, trim, body, series = "") => ({ ModelYear: String(y), Make: make, Model: model, Trim: trim, Series: series, BodyClass: body });
 const CASES = [
+  // live: fetched from vPIC on Nov 5 2026 (the VINs are pattern VINs for the model, the rows are what vPIC returned)
   ["WBSBR93422EX21856", row(2002, "BMW", "M3Ci", "", "Convertible/Cabriolet", "3-Series"), "M3", null, "convertible", "live"],
+  ["WBSBR93432EX12345", row(2002, "BMW", "M3Ci", "", "Convertible/Cabriolet", "3-Series"), "M3", null, "convertible", "live"],
   ["WBSBL93402JR12345", row(2002, "BMW", "M3", "", "Coupe", "3-Series"), "M3", null, "coupe", "live"],
+  ["WBSKG9C50BE123456", row(2011, "BMW", "M3", "", "Coupe", "3-Series"), "M3", null, "coupe", "live"],
+  ["WBSDE93422CR12345", row(2002, "BMW", "M5", "", "Sedan/Saloon", "5-Series"), "M5", null, "sedan", "live"],
   ["JHMAP11441T004798", row(2001, "HONDA", "S2000", "", "Convertible/Cabriolet"), "S2000", null, "convertible", "live"],
+  ["JHMAP21405T000011", row(2005, "HONDA", "S2000", "", "Convertible/Cabriolet"), "S2000", null, "convertible", "live"],
   ["1B3BR65E0PV200106", row(1993, "DODGE", "Viper", "RT/10", "Convertible/Cabriolet"), "Viper", null, "convertible", "live"],   // the "/" trim is dropped by cleanVinTrim, as before
+  ["1B3JZ69Z06V101012", row(2006, "DODGE", "Viper", "SRT-10", "Coupe", "ZB"), "Viper", "SRT-10", "coupe", "live"],
+  ["WP0AC29964S692123", row(2004, "PORSCHE", "911", "GT3", "Coupe"), "911", "GT3", "coupe", "live"],
+  ["WP0AB29958S750123", row(2008, "PORSCHE", "911", "S (2WD), 4S (4WD)", "Coupe", "Carrera"), "911", "S , 4S", "coupe", "live: the ambiguous 997 trim is as decoded, not this check's business"],
+  ["WP0CB29978S750123", row(2008, "PORSCHE", "911", "S Cabriolet (2WD), 4S Cabriolet (4WD)", "Convertible/Cabriolet", "Carrera"), "911", "S Cabriolet , 4S Cabriolet", "convertible", "live: same"],
+  ["WBABN53432JJ12345", row(2002, "BMW", "330Ci", "", "Coupe", "3-Series"), "330Ci", null, "coupe", "live control: a marketed name is not a code"],
+  ["WDBFA68F42F123456", row(2002, "MERCEDES-BENZ", "SL-Class", "SL500", "Convertible/Cabriolet"), "SL-Class", "SL500", "convertible", "live control"],
+  ["1G1YY22G025123456", row(2002, "CHEVROLET", "Corvette", "", "Coupe"), "Corvette", null, "coupe", "live control"],
+  // shaped: the same fields as the code family, NOT seen from vPIC (no live VIN found that decodes this way)
   ["WBSBR93432EX00001", row(2003, "BMW", "M3Cic", "", "Convertible/Cabriolet"), "M3", null, "convertible", "shaped"],
   ["WBSBR93432EX00002", row(2002, "BMW", "M3is", "", "Coupe"), "M3", null, "coupe", "shaped"],
-  ["WBSDE93422CR00003", row(2002, "BMW", "M5i", "", "Sedan/Saloon"), "M5", null, "sedan", "shaped"],
   ["WBSNB93422CR00004", row(2008, "BMW", "M6Ci", "", "Convertible/Cabriolet"), "M6", null, "convertible", "shaped"],
-  ["WP0AB29928S750005", row(2008, "PORSCHE", "911", "C2S", "Coupe"), "911", "C2S", "coupe", "shaped"],          // trim codes are the resolver's (it already reads C2S as Carrera S): untouched here
-  ["WP0AB29922S650008", row(2002, "PORSCHE", "911", "TT", "Coupe"), "911", "TT", "coupe", "shaped"],
-  ["JHMAP21405T000011", row(2005, "HONDA", "S2000", "Base", "Roadster"), "S2000", "Base", "convertible", "shaped"],   // a roadster is already a convertible in the bodyStyle vocabulary, as before
-  ["WBABN53432JJ00013", row(2003, "BMW", "330Ci", "", "Convertible/Cabriolet"), "330Ci", null, "convertible", "control: a marketed name is not a code"],
-  ["WDBFA68F42F000014", row(2002, "MERCEDES-BENZ", "SL500", "", "Convertible/Cabriolet"), "SL500", null, "convertible", "control"],
-  ["1G1YY22G025000015", row(2002, "CHEVROLET", "Corvette", "Z06", "Coupe"), "Corvette", "Z06", "coupe", "control"]
+  ["WP0AB29922S650008", row(2002, "PORSCHE", "911", "TT", "Coupe"), "911", "TT", "coupe", "shaped control: trim codes are not touched here"]
 ];
 const rows = new Map(CASES.map(c => [c[0], c[1]]));
 globalThis.fetch = async url => {
