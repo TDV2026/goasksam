@@ -805,6 +805,37 @@ export function checkDepthWinsFixtures() {
   return { ok: cases.every(c => c.pass), cases };
 }
 
+// PICK FIXTURES (Nov 5 2026): synthetic engine answers handed to the REAL pickPlatform, buildSharedAnalysis and decide (their `answer` pass-through), so the rush, tie and depth rules are exercised on every run whatever the archive holds.
+// Each case names the venue both pages must show. A rush pool where the short-auction venue differs from the standard venue shows a speed pick; where they are the same venue, no distinct speed pick exists and both show it.
+export async function checkPickFixtures() {
+  const veh = { year: 1965, make: "Chevrolet", model: "Corvette" }, k = x => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const pool = spec => spec.flatMap(([src, n, base, day]) => Array.from({ length: n }, (_, i) => ({ source: src, _usd: base + i * 500, year: 1965, auction_end_date: day, id: src + i })));
+  const answer = spec => ({ tier: "result", resolvedCar: { make: "Chevrolet", model: "Corvette", year: 1965 }, windowLabel: "the last 3 years", cluster: [60000, 90000], rawPool: pool(spec) });
+  const CASES = [
+    { name: "rush, the short-auction venue differs from the standard venue: both show the speed pick", rush: true, spec: [["bringatrailer", 20, 70000, "2026-10-01"], ["hagerty", 12, 68000, "2026-10-02"], ["hemmings", 4, 60000, "2026-09-01"]], want: "hagerty", speed: true },
+    { name: "rush, the standard venue already is a short-auction venue: no distinct speed pick, both show the standard pick", rush: true, spec: [["hagerty", 20, 70000, "2026-10-01"], ["bringatrailer", 5, 68000, "2026-10-02"]], want: "hagerty", speed: false },
+    { name: "no rush: both show the standard pick, never the speed pick", rush: false, spec: [["bringatrailer", 20, 70000, "2026-10-01"], ["hagerty", 12, 68000, "2026-10-02"]], want: "bringatrailer", speed: false },
+    { name: "a tie on sales: the more recent sale wins on both pages", rush: false, spec: [["bringatrailer", 6, 70000, "2026-09-01"], ["carsandbids", 6, 70000, "2026-10-10"]], want: "carsandbids", speed: false },
+    { name: "depth: the venue with more sales wins on both pages", rush: false, spec: [["carsandbids", 9, 70000, "2026-10-10"], ["bringatrailer", 4, 70000, "2026-10-01"]], want: "carsandbids", speed: false }
+  ];
+  const cases = [];
+  for (const c of CASES) {
+    const ans = answer(c.spec), criteria = getSellerCriteria({ raw: "1965 Chevrolet Corvette", region: "US", state: "California", timeline: c.rush ? "As soon as possible" : "No rush" });
+    const shared = await pickPlatform(veh, null, {}, criteria, ans), analysis = await buildSharedAnalysis(veh, null, {}, criteria, ans), dec = analysis ? decide(analysis, criteria, veh) : null;
+    const sellVenue = c.rush ? (dec && (dec.speedPick || dec.recommendedPath)) : (dec && dec.recommendedPath), sharedVenue = shared && (shared.platformDisplay || shared.platform);
+    const pass = !!sellVenue && !!sharedVenue && (k(sellVenue) === k(sharedVenue) || k(sellVenue) === k(shared.platform)) && (k(sharedVenue) === k(c.want) || k(shared.platform) === k(c.want)) && (!c.rush || (!!(dec && dec.speedPick) === c.speed && (shared.reasonCode === "speed") === c.speed));
+    cases.push({ name: c.name, want: c.want, sell: sellVenue || null, shared: sharedVenue || null, speedPick: dec ? dec.speedPick || null : null, pass });
+  }
+  return { ok: cases.every(c => c.pass), cases };
+}
+// How a live pick case reads (pure, covered by scripts/onePickFixtureCheck.mjs): two empty picks AGREE (there is nothing to show, and that is what both pages do) but prove nothing, so they are UNEXERCISED; a pick on one side only, or two
+// different venues, is a DISAGREE. altShared: the shared pick's platform slug, accepted as the same venue as its display name.
+export function pickRowState(row, altShared) {
+  const k = x => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const none = !row.sell && !row.shared;
+  const agree = none || (!!row.sell && !!row.shared && (k(row.sell) === k(row.shared) || k(row.sell) === k(altShared)));
+  return { agree, state: !agree ? "DISAGREE" : none ? "UNEXERCISED (no pick on either side: no pool)" : row.exercised ? "PASS" : "UNEXERCISED (the archive no longer holds this shape; the rule is proved by the fixtures)" };
+}
 export async function checkSinglePick(env) {
   const out = { ok: true, tieBreakCopies: [], cases: [] };
   out.depthWinsFixtures = checkDepthWinsFixtures();
@@ -817,6 +848,13 @@ export async function checkSinglePick(env) {
   }
   if (out.tieBreakCopies.length) out.ok = false;
   const k = x => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  // ONE PICK, MEANINGFUL (Lane B, Nov 5 2026, nightly #132 "ONE PICK FAIL": the 1993 Carrera RS Targa and the 1965 Corvette rush both read sell:null, shared:null, agree:false).
+  // CAUSE, proven on production: (1) rush. pickPlatform returns the SPEED pick when one differs from the standard pick and the standard pick otherwise, and decide() shows speedPick only when it differs, so on a 1965 Corvette
+  // where the rush venue IS the standard venue both sides are rightly null for "a different rush pick"; the old code compared "speed pick or null" and called two agreeing nulls a disagreement. (2) the 1993 Carrera RS Targa
+  // is not a car the engine can read today (Market Check: not_tracked, a question; Sell: zero online sales), so no pick exists to compare; "agree" needed a pick on both sides, so it failed every night. SELL DOES RETURN A PICK for the
+  // 1965 Corvette rush (its standard venue); the check could not see it. NOW: rush compares what each page SHOWS (the speed pick, else the standard pick); two empty picks agree and the case is reported UNEXERCISED, never passed as if
+  // it had proved the rule; a real disagreement (a pick on one side only, or two different venues) fails. The rules themselves are proved on synthetic pools through the real pickPlatform, buildSharedAnalysis and decide
+  // (checkPickFixtures), which cannot drift with the archive. scripts/onePickFixtureCheck.mjs runs the fixtures offline.
   for (const c of PICK_CASES) {
     const row = { q: c.q, kind: c.kind };
     try {
@@ -828,24 +866,23 @@ export async function checkSinglePick(env) {
       const dec = analysis ? decide(analysis, criteria, vehicle) : null;
       const shared = await pickPlatform(vehicle, generation, env, criteria);
       if (c.kind === "rush") {
-        row.sell = dec && dec.speedPick; row.shared = shared && shared.reasonCode === "speed" ? (shared.platformDisplay || shared.platform) : null;
-        row.exercised = !!row.shared;
+        row.sell = (dec && (dec.speedPick || dec.recommendedPath)) || null; row.shared = (shared && (shared.platformDisplay || shared.platform)) || null;
+        row.exercised = !!(dec && dec.speedPick) && !!shared && shared.reasonCode === "speed";
       } else {
-        row.sell = dec && dec.recommendedPath; row.shared = shared && (shared.platformDisplay || shared.platform);
+        row.sell = (dec && dec.recommendedPath) || null; row.shared = (shared && (shared.platformDisplay || shared.platform)) || null;
         const sp = analysis && analysis.sharedPick && analysis.sharedPick.baseline;
         if (c.kind === "specialist") row.exercised = !!(sp && sp.reasonCode !== "specialist" && k(sp.platform) !== k(c.notVenue));
         if (c.kind === "tie") { const top = (analysis.platformPerformance || []).filter(v => v.evidenceSales > 0).sort((a, b) => b.evidenceSales - a.evidenceSales); row.exercised = top.length > 1 && top[0].evidenceSales === top[1].evidenceSales; }
       }
-      row.agree = !!row.sell && !!row.shared && (k(row.sell) === k(row.shared) || k(row.sell) === k(shared && shared.platform));
-    } catch (e) { row.error = String(e && e.message || e); }
-    // Gate on agree alone (job 11): whether Sell's real decide() and the shared pickPlatform land on
-    // the same venue for a real car is a genuine invariant. Whether today's live archive happens to
-    // still hold the exact tie/specialist/rush shape named for this car (`exercised`) is reported for
-    // visibility but no longer gates ok - the archive moves nightly and a broken tie is not a
-    // regression. The tie-break LOGIC itself is covered deterministically by depthWinsFixtures above.
+      Object.assign(row, pickRowState(row, shared && shared.platform));
+    } catch (e) { row.error = String(e && e.message || e); row.agree = false; row.state = "ERROR"; }
+    // Gate on a real disagreement or an error. A case that cannot exercise its rule today is REPORTED as unexercised (out.unexercised) and never counted as a pass of that rule.
     if (!row.agree) out.ok = false;
     out.cases.push(row);
   }
+  out.unexercised = out.cases.filter(r => /^UNEXERCISED/.test(r.state || "")).map(r => r.q);
+  out.fixtures = await checkPickFixtures();
+  if (!out.fixtures.ok) out.ok = false;
   return out;
 }
 
