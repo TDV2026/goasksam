@@ -5,12 +5,12 @@
 import fs from "node:fs"; import os from "node:os"; import path from "node:path"; import { execFileSync, spawnSync } from "node:child_process"; import { fileURLToPath } from "node:url";
 const here = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const tmp = fs.mkdtempSync(path.join(process.env.TMPDIR || os.tmpdir(), "intake-mut-"));
-for (const d of ["lib", "scripts", "docs"]) fs.cpSync(path.join(here, d), path.join(tmp, d), { recursive: true, filter: s => !/proofs|node_modules/.test(s) && !/docs[\\/](screens|mockups|desk-mockups)/.test(s) });
+for (const d of ["lib", "scripts", "docs", "api"]) fs.cpSync(path.join(here, d), path.join(tmp, d), { recursive: true, filter: s => !/proofs|node_modules/.test(s) && !/docs[\\/](screens|mockups|desk-mockups)/.test(s) });
 fs.copyFileSync(path.join(here, "package.json"), path.join(tmp, "package.json"));
 fs.symlinkSync(path.join(here, "node_modules"), path.join(tmp, "node_modules"));
 
 const P = "lib/desk/intake/parse.js", R = "lib/desk/intake/run.js", I = "lib/desk/intake/images.js", S = "lib/desk/send.js", W = "lib/desk/intake/resendInbound.js", ST = "lib/desk/intake/store.js";
-const PARSE = "intakeParseCheck", AUTH = "intakeAuthCheck", SEND = "sendCheck";
+const PARSE = "intakeParseCheck", AUTH = "intakeAuthCheck", SEND = "sendCheck", SIGN = "signedWebhookCheck", H = "api/deskInbound.js";
 const M = [
   // ---- reading a submission ----
   [PARSE, "structure not checked: any 17 characters is a VIN", P, "  if (!vinStructureOk(v)) return { state: \"rejected\", makerUnknown: false, reason: \"structure\" };", ""],
@@ -42,6 +42,17 @@ const M = [
   [AUTH, "a dropped mail is not logged", R, "const finish = async (outcome, extra = {}) => { await store.setLog(emailId, { outcome, ...extra }).catch(() => {}); return { outcome, ...extra }; };", "const finish = async (outcome, extra = {}) => ({ outcome, ...extra });"],
   [AUTH, "the webhook timestamp is not checked (replay)", W, "Math.abs(nowMs / 1000 - t) > WEBHOOK_TOLERANCE_S", "false"],
   [AUTH, "the webhook signature is not compared", W, "if (got.length === want.length && crypto.timingSafeEqual(got, want)) return { ok: true };", "return { ok: true };"],
+  // ---- the signed webhook (a genuine Resend delivery refused as "bad signature") ----
+  [SIGN, "the signed content is built from a re-stringified body", W, "toBytes(raw)])).digest();", "Buffer.from(JSON.stringify(JSON.parse(Buffer.isBuffer(raw) ? raw.toString(\"utf8\") : raw)))])).digest();"],
+  [SIGN, "the body is decoded as latin1 instead of kept as bytes", W, "const toBytes = raw => Buffer.isBuffer(raw) ? raw : Buffer.from(String(raw == null ? \"\" : raw), \"utf8\");", "const toBytes = raw => Buffer.from(Buffer.isBuffer(raw) ? raw.toString(\"latin1\") : String(raw == null ? \"\" : raw), \"utf8\");"],
+  [SIGN, "the secret is not cleaned (quotes, space and newline break it)", W, "  let s = String(secret == null ? \"\" : secret).trim();\n  s = s.replace(/^[\"'`]+|[\"'`]+$/g, \"\").trim();\n  return s.replace(/^whsec_/i, \"\").trim();", "  return String(secret == null ? \"\" : secret).replace(/^whsec_/, \"\");"],
+  [SIGN, "the secret without the whsec_ prefix is refused", W, "  return s.replace(/^whsec_/i, \"\").trim();", "  if (!/^whsec_/.test(s)) return \"\";\n  return s.slice(6);"],
+  [SIGN, "only the first entry of the signature header is tried", W, "for (const part of sig.split(/\\s+/)) {", "for (const part of sig.split(/\\s+/).slice(0, 1)) {"],
+  [SIGN, "the five minute tolerance is gone (a late delivery or retry is refused)", W, "export const WEBHOOK_TOLERANCE_S = 300;", "export const WEBHOOK_TOLERANCE_S = 0;"],
+  [SIGN, "every refusal is a bare message with no reason code", H, "return res.status(401).json({ error: \"bad signature\", reason: v.reason, body: from });", "return res.status(401).json({ error: \"bad signature\" });"],
+  [SIGN, "the log line prints the signature header", H, "console.warn(`deskInbound rejected: reason=${v.reason} body=${from} bytes=${raw.length}`);", "console.warn(`deskInbound rejected: reason=${v.reason} sig=${req.headers[\"svix-signature\"]}`);"],
+  [SIGN, "the route reads each chunk as text (a multi byte character split across chunks is corrupted)", H, "if (chunks.length) return { raw: Buffer.concat(chunks), from: \"stream\" };", "if (chunks.length) return { raw: Buffer.from(chunks.map(c => c.toString(\"utf8\")).join(\"\"), \"utf8\"), from: \"stream\" };"],
+  [SIGN, "the route leaves the body parser on", H, "export const config = { api: { bodyParser: false } };", "export const config = { api: { bodyParser: true } };"],
   [AUTH, "a sheet query is not scoped to the org (production store)", ST, "let p = `${S}?org_id=eq.${q(orgId)}&select=*&order=created_at.desc&limit=50`;", "let p = `${S}?select=*&order=created_at.desc&limit=50`;"],
   [AUTH, "a path in another org's folder is accepted by the storage layer", "lib/desk/storage.js", "return validOrg(org) && typeof path === \"string\" && path.startsWith(org + \"/\")", "return validOrg(org) && typeof path === \"string\" && true"],
   // ---- send ----
