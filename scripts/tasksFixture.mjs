@@ -1,15 +1,15 @@
 // FIXTURES FOR THE TASKS PREVIEW CHECKS AND SCREENSHOTS ONLY (Lane E, Nov 5 2026): never imported by anything the site serves. The demo field stands in for Lane B's tasksDemo (not built yet); its photos are generated stand-ins, not photographs.
 // The task rows are shaped like api/tasks.js action list (words, filters, summary, state, unread, overview) with the limit facts from lib/tasks/limit.js limitFacts, so the page prints what the real API would send.
 import { limitFacts } from "../lib/tasks/limit.js";
-import { reasonLine } from "../lib/reasonWords.js";   // the figure lines come from the reason table, as the engine builds them
+// the four figure lines are written as the engine sends them (Lane B: lane-b-demomiles): this file is a stand-in for the field and is never served
 const pic = (label, a, b) => "data:image/svg+xml;base64," + Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="900" height="600" fill="url(#g)"/><text x="40" y="560" font-family="Georgia,serif" font-size="34" fill="#fff" fill-opacity=".8">${label}</text></svg>`).toString("base64");
 // Every moment is built from the real clock (the hour), so no verdict changes the day it runs; a fixed 2022 sale is a past fact and cannot expire.
 export const NOW = Math.floor(Date.now() / 3600e3) * 3600e3;
 export const HOUR = 3600e3, at = h => new Date(NOW + h * HOUR).toISOString();
 export const demoFixture = () => ({ request: "Find me a black manual 997 Carrera under $70,000 within 300 miles of Chicago",
-  car: { title: "2008 Porsche 911 Carrera", platform: "Sample Platform", url: "https://example.test/live/997", photo: pic("Sample photo, live match", "#2c4a63", "#8aa3b8"), live: true, endsAt: at(72), priceLabel: "Current bid $54,000", mileage: 41200, mileageLine: reasonLine("history.miles", { miles: 41200 }), location: "Naperville, Illinois", why: "Matches: black, manual, a 997, under $70,000, within 300 miles of Chicago." },
+  car: { title: "2008 Porsche 911 Carrera", platform: "Sample Platform", url: "https://example.test/live/997", photo: pic("Sample photo, live match", "#2c4a63", "#8aa3b8"), live: true, endsAt: at(72), priceLabel: "Current bid $54,000", mileage: 41200, mileageLine: "41,200 miles", location: "Naperville, Illinois", why: "Matches: black, manual, a 997, under $70,000, within 300 miles of Chicago." },
   criteria: ["Porsche 911 Carrera (997)", "Black", "Manual gearbox", "Under 60,000 miles", "Under $70,000", "Within 300 miles of Chicago"],
-  previous: { kind: "sold", date: "May 2022", platform: "Sample Platform", mileage: 36800, mileageLine: reasonLine("history.miles", { miles: 36800 }), price: 61000, priceLine: reasonLine("demo.prior_sale", { price: 61000 }), photo: pic("Sample photo, earlier sale", "#3b3a36", "#9a9486"), url: "https://example.test/sold/997", historyUrl: "/vin/WP0AB29988S783456" },
+  previous: { kind: "sold", date: "May 2022", platform: "Sample Platform", mileage: 36800, mileageLine: "36,800 miles at that sale", price: 61000, priceLine: "Previously sold for $61,000", photo: pic("Sample photo, earlier sale", "#3b3a36", "#9a9486"), url: "https://example.test/sold/997", historyUrl: "/vin/WP0AB29988S783456" },
   matchedAt: at(-3), checkedAt: at(-0.5) });
 const ov = (live, fresh) => ({ live: live ? `${live} live ${live === 1 ? "car meets" : "cars meet"} the whole Task.` : "No live car meets the whole Task yet.", fresh: fresh ? `${fresh} new since you last looked.` : "", liveCount: live, cars: live === 1 ? "car" : "cars" });
 export const tasksFixture = (max = 10) => { const tasks = [
