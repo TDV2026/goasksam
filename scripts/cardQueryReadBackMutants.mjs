@@ -6,16 +6,19 @@ import { execFileSync, spawnSync } from "node:child_process";
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const F = "lib/live/search.js";
 const M = [
-  ["the card path no longer asks the read-back", F, "mk.query = await readBackQuery(env, spec, mk.query);", ""],
-  ["the read-back returns the resolved words", F, "if (!spec || !spec.key || !query || spec.refine) return query;", "return query;"],
+  ["the serve no longer uses the read-back", F, "mk.query = readBackNow(env, spec, mk.query);", ""],
+  ["the serve waits for the read-back again (reads before the answer)", F, "mk.query = readBackNow(env, spec, mk.query);", "mk.query = await readBackQuery(env, spec, mk.query);", "staleMarkCheck.mjs"],
+  ["the refresh does not store the verified question", F, "core.readBack = await readBackQuery(env, spec, specQuery(spec, core.step), { ms: 8000 });", "core.readBack = null;"],
+  ["the card ignores the stored question", F, "m.query = (typeof core.readBack === \"string\" && core.readBack) || specQuery(spec, core.step);", "m.query = specQuery(spec, core.step);"],
+  ["the read-back returns the resolved words", F, "export async function readBackQuery(env, spec, query, opts = {}) {\n  if (!spec || !spec.key || !query || spec.refine) return query;", "export async function readBackQuery(env, spec, query, opts = {}) {\n  return query;"],
   ["the listing's own words are not tried", F, "for (const t of [query, String(spec.title || \"\").trim()])", "for (const t of [query])"],
   ["any text counts as reading back", F, "return !!sp && sp.key === spec.key; };", "return !!sp; };"],
-  ["a narrowed spec is rewritten too", F, "if (!spec || !spec.key || !query || spec.refine) return query;", "if (!spec || !spec.key || !query) return query;"],
+  ["a narrowed spec is rewritten too", F, "export async function readBackQuery(env, spec, query, opts = {}) {\n  if (!spec || !spec.key || !query || spec.refine) return query;", "export async function readBackQuery(env, spec, query, opts = {}) {\n  if (!spec || !spec.key || !query) return query;"],
   ["a question nothing reads back becomes empty", F, "const out = got || query;", "const out = got || \"\";"],
   ["the live sample asks the listing title again", "scripts/buyEngineMatch.mjs", "const askOf = c => (c.market && c.market.query) ||", "const askOf = c => (null) ||"]
 ];
 let survived = 0;
-for (const [name, file, from, to] of M) {
+for (const [name, file, from, to, script = "cardQueryReadBackCheck.mjs"] of M) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cqrb-"));
   try {
     execFileSync("rsync", ["-a", "--exclude", ".git", "--exclude", "node_modules", "--exclude", "proofs", ROOT + "/", dir + "/"]);
@@ -23,7 +26,7 @@ for (const [name, file, from, to] of M) {
     const f = path.join(dir, file); let s = fs.readFileSync(f, "utf8");
     if (!s.includes(from)) { console.log(`ERROR  mutant "${name}": text not found in ${file}`); survived++; continue; }
     fs.writeFileSync(f, s.replace(from, to));
-    const r = spawnSync("node", [path.join(dir, "scripts/cardQueryReadBackCheck.mjs"), dir], { encoding: "utf8" });
+    const r = spawnSync("node", [path.join(dir, "scripts/" + script), dir], { encoding: "utf8" });
     const killed = /^FAIL /m.test(r.stdout || "") || r.status !== 0;
     if (!killed) survived++;
     console.log(`${killed ? "KILLED  " : "SURVIVED"} ${name}`);

@@ -40,7 +40,8 @@ const slow = await S.readBackQuery(env, { ...slowSpec, title: slowSpec.title, v:
 ok("(3) an unanswered or failed read returns the question as written", typeof slow === "string" && slow.length > 0);
 // (4)
 const src = fs.readFileSync(path.join(ROOT, "lib/live/search.js"), "utf8");
-ok("(4) listingMarket puts the card's question through the read-back", /mk\.query = await readBackQuery\(env, spec, mk\.query\)/.test(src));
+ok("(4) the serve (listingMarket) reads no pool: it uses the verified question or starts the read-back behind the response", /mk\.query = readBackNow\(env, spec, mk\.query\)/.test(src) && !/mk\.query = await readBackQuery/.test(src));
+ok("(4) refreshSpec verifies the question where the pool is read anyway and stores it with the core; the card prefers it", /core\.readBack = await readBackQuery\(env, spec, specQuery\(spec, core\.step\)/.test(src) && /m\.query = \(typeof core\.readBack === "string" && core\.readBack\) \|\| specQuery/.test(src));
 const live = fs.readFileSync(path.join(ROOT, "scripts/buyEngineMatch.mjs"), "utf8");
 ok("(4) the live sample reads Market Check with the card's own question (market.query), not the title", /askOf = c => \(c\.market && c\.market\.query\)/.test(live) && /t = askOf\(c\)/.test(live) && /want = \[\.\.\.new Set\(\(e\.cards \|\| \[\]\)\.map\(askOf\)\)\]/.test(live));
 console.log(failed ? `\n${failed} FAILED` : "\ncardQueryReadBackCheck: all passed");
