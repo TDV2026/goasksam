@@ -1,0 +1,44 @@
+// ONE HEADER, ONE POSITION (Lane E, Nov 6 2026; Sam's refinement brief, item 1; crew only previews). CAUSE: on Find the rail sat in a full width grid while the header's logo sat inside the page's centred 1440px wrap,
+// so the logo started to the right of "+ New search" (40px against 20px at 1440, and further apart on a wider screen). FIX: the shell is inside the same .wrap as the header, so the logo, the rail content and the footer wordmark
+// take the left edge from ONE rule. PAGES AFFECTED: Find, Tasks (public and dashboard), the Home preview, and the Market Check and Sell pages the day they are previewed (they use the same header() and doc()); this check renders all of them.
+//   node scripts/previewHeaderCheck.mjs      (offline; headless Chrome; the mutants put the old layout back and must be caught)
+import path from "node:path";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
+const ROOT = path.resolve(new URL("..", import.meta.url).pathname); process.chdir(ROOT);
+const imp = f => import(pathToFileURL(path.join(ROOT, f)).href);
+const puppeteer = createRequire(path.join(ROOT, "package.json"))("puppeteer-core");
+const PP = await imp("lib/preview/previewPages.js"), T = await imp("lib/preview/tasksPreview.js"), M = await imp("lib/preview/tasksMine.js");
+const { header, footer, doc, CSS } = PP.SHARED;
+let pass = 0, fail = 0; const out = []; const ok = (c, m) => { if (c) pass++; else { fail++; out.push("FAIL " + m); } };
+// the four pages of the brief. Market Check and Sell have no preview yet: they are the shared header and footer in the shared document, active item set, which is all a preview of them will add to.
+const lastStyle = (h, css) => { const i = h.lastIndexOf("</style>"); return h.slice(0, i) + css + h.slice(i); };
+const stand = key => doc("GoAskSam preview: " + key, "", header(key) + '<main class="wrap" style="min-height:300px"></main>' + footer());
+const PAGES = [["find", PP.findHtml(), "find"], ["market-check", stand("market-check"), "market-check"], ["sell", stand("sell"), "sell"], ["tasks", T.tasksPublicHtml({ max: 10 }), "tasks"], ["tasks dashboard", M.tasksMineHtml(), "tasks"], ["home", PP.homeHtml(), ""]];
+const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
+async function measure(html, w) { const p = await b.newPage(); await p.setViewport({ width: w, height: 900 }); if (/id="tkapp"/.test(html)) await p.evaluateOnNewDocument(() => localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "t", expires_at: 9999999999 }))); await p.setRequestInterception(true); p.on("request", r => r.isNavigationRequest() ? r.respond({ status: 200, contentType: "text/html", body: html }) : r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ tasks: [], count: 0, counts: { total: 0 }, limit: {}, suggestions: [], notify: null }) }));
+  await p.goto("https://goasksam.com/x", { waitUntil: "networkidle2" }).catch(() => {}); await new Promise(r => setTimeout(r, 200));
+  const m = await p.evaluate(() => { const r = e => { const q = e.getBoundingClientRect(); return { x: Math.round(q.left * 10) / 10, y: Math.round(q.top * 10) / 10, r: Math.round(q.right * 10) / 10, h: Math.round(q.height * 10) / 10, w: Math.round(q.width * 10) / 10 }; };
+    const wm = document.querySelector(".gh .wm"), nav = document.querySelector(".gh .tabs"), hd = document.querySelector(".gh"), nw = document.querySelector(".new"), cur = document.querySelector(".gh .tabs a[aria-current]"), fw = document.querySelector(".ft .wm");
+    return { logo: r(wm), nav: r(nav), hdr: r(hd), tabsY: [...document.querySelectorAll(".gh .tabs a")].map(a => r(a).y), tabsX: [...document.querySelectorAll(".gh .tabs a")].map(a => r(a).x), newX: nw ? r(nw).x : null, cur: cur ? { t: cur.textContent, bg: getComputedStyle(cur).backgroundColor } : null, fw: fw ? r(fw).x : null, vw: innerWidth, hscroll: document.documentElement.scrollWidth > innerWidth + 1 }; });
+  await p.close(); return m; }
+for (const w of [1920, 1440, 1024, 768, 390]) {
+  const ms = []; for (const [n, html] of PAGES) ms.push([n, await measure(html, w)]);
+  const ref = ms[0][1], same = (k, f) => ms.every(([, m]) => f(m) === f(ref));
+  ok(same("logo", m => m.logo.x + "," + m.logo.y + "," + m.logo.w + "," + m.logo.h), `@${w}: the logo is in one position on every page (${ms.map(([n, m]) => n + " " + m.logo.x + "," + m.logo.y).join("; ")})`);
+  ok(same("nav", m => m.nav.x + "," + m.nav.y + "," + m.nav.r), `@${w}: the nav is in one position on every page`);
+  ok(same("hdr", m => m.hdr.h + "," + m.hdr.w), `@${w}: the header is one height on every page (${ref.hdr.h}px)`);
+  ok(same("tabs", m => m.tabsX.join(",") + "|" + m.tabsY.join(",")), `@${w}: every nav item is at the same place on every page`);
+  ok(same("fw", m => m.fw), `@${w}: the footer wordmark is at the same place on every page`);
+  const find = ms[0][1]; if (w > 860) ok(find.newX === find.logo.x, `@${w}: Find's "+ New search" starts exactly where the logo starts (${find.newX} v ${find.logo.x})`);
+  ok(ms.every(([, m]) => !m.hscroll), `@${w}: no horizontal scroll`);
+  ok(ms.filter(([, m]) => m.cur).every(([n, m]) => /rgb\(248, 244, 236\)/.test(m.cur.bg)) && ms.find(([n]) => n === "market-check")[1].cur.t === "Market Check" && ms.find(([n]) => n === "sell")[1].cur.t === "Sell", `@${w}: the selected page keeps the cream pill`);
+  if (w <= 860) ok(ms.every(([, m]) => m.nav.r <= m.vw + 0.5 && m.nav.x >= 0), `@${w}: the mobile nav fits the screen on every page`);
+}
+// mutants: the old Find layout (the shell outside the wrap, the rail inset 20px) and a header with its own padding are caught
+{ const old = lastStyle(PP.findHtml().replace('class="shell wrap"', 'class="shell"'), ".rail{padding-left:20px}"), m = await measure(old, 1440), m2 = await measure(old, 1920); ok(m.newX !== m.logo.x && m2.newX !== m2.logo.x, `mutant: the old Find layout (rail outside the header's wrap) is caught (${m.newX} v ${m.logo.x} at 1440, ${m2.newX} v ${m2.logo.x} at 1920)`);
+  const pad = await measure(lastStyle(PP.findHtml(), ".gh .wrap{padding-left:60px}"), 1440), base = await measure(PP.findHtml(), 1440); ok(pad.logo.x !== base.logo.x, "mutant: a page that pads its own header moves the logo and is told apart");
+  const hh = await measure(lastStyle(stand("sell"), ".gh .wrap{height:90px}"), 1440); ok(hh.hdr.h !== base.hdr.h, "mutant: a page with its own header height is told apart"); }
+await b.close();
+out.forEach(l => console.log(l)); console.log(`previewHeaderCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

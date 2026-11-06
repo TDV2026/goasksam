@@ -6,7 +6,8 @@ const pic = (label, a, b) => "data:image/svg+xml;base64," + Buffer.from(`<svg xm
 export const NOW = Math.floor(Date.now() / 3600e3) * 3600e3;
 export const HOUR = 3600e3, at = h => new Date(NOW + h * HOUR).toISOString();
 export const demoFixture = () => ({ request: "Find me a black manual 997 Carrera under $70,000 within 300 miles of Chicago",
-  car: { title: "2008 Porsche 911 Carrera", platform: "Sample Platform", url: "https://example.test/live/997", photo: pic("Sample photo, live match", "#2c4a63", "#8aa3b8"), live: true, endsAt: at(72), priceLabel: "Current bid $54,000", mileage: 41200, location: "Naperville, Illinois", why: "Black, manual, a 997 and inside your budget and distance." },
+  car: { title: "2008 Porsche 911 Carrera", platform: "Sample Platform", url: "https://example.test/live/997", photo: pic("Sample photo, live match", "#2c4a63", "#8aa3b8"), live: true, endsAt: at(72), priceLabel: "Current bid $54,000", mileage: 41200, location: "Naperville, Illinois", why: "Matches: black, manual, a 997, under $70,000, within 300 miles of Chicago." },
+  criteria: ["Porsche 911 Carrera (997)", "Black", "Manual gearbox", "Under 60,000 miles", "Under $70,000", "Within 300 miles of Chicago"],
   previous: { kind: "sold", date: "May 2022", platform: "Sample Platform", mileage: 36800, price: 61000, photo: pic("Sample photo, earlier sale", "#3b3a36", "#9a9486"), url: "https://example.test/sold/997", historyUrl: "/vin/WP0AB29988S783456" },
   matchedAt: at(-3), checkedAt: at(-0.5) });
 const ov = (live, fresh) => ({ live: live ? `${live} live ${live === 1 ? "car meets" : "cars meet"} the whole Task.` : "No live car meets the whole Task yet.", fresh: fresh ? `${fresh} new since you last looked.` : "", liveCount: live, cars: live === 1 ? "car" : "cars" });

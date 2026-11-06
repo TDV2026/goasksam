@@ -2114,6 +2114,12 @@ try {
   record("Home and Find previews (CREW ONLY, NOT LIVE): copy, layout at four widths, the featured history gate, crew only and never public (scripts/homeFindPreviewCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /FAIL/.test(l)).slice(0, 4).join(" | ") || String(e.message).slice(0, 200));
 }
 try {
+  const out = execSync("node scripts/previewHeaderCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("preview header (CREW ONLY, NOT LIVE): one logo, nav, height and padding position on Find, Market Check, Sell and Tasks at five widths; Find's rail starts where the logo starts (scripts/previewHeaderCheck.mjs)", "PASS", (out.match(/previewHeaderCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("preview header (CREW ONLY, NOT LIVE): one logo, nav, height and padding position on Find, Market Check, Sell and Tasks at five widths; Find's rail starts where the logo starts (scripts/previewHeaderCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || String(e.message || e).slice(0, 300));
+}
+try {
   const out = execSync("node scripts/tasksPreviewCheck.mjs", { encoding: "utf8", timeout: 300000 });
   record("Tasks previews (CREW ONLY, NOT LIVE): Sam's copy, the crew gate, nothing of it in any live page, no hard coded limit, a typed request carried through sign in, every live control kept, the dashboard prints what the API sends (scripts/tasksPreviewCheck.mjs)", "PASS", (out.match(/tasksPreviewCheck: .*/) || [""])[0]);
 } catch (e) {

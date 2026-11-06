@@ -22,7 +22,7 @@ const cssOf = html => [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map
 const rules = rulesOf();
 const APPROVED = [...PLACEHOLDERS.preview.examples, ...PLACEHOLDERS.home.examples, ...PLACEHOLDERS.find.examples, rules.lead, ...rules.rules.flatMap(r => [r.h, r.b]), copy("home.START_TITLE"), copy("find.START_SUB"), copy("find.START_TITLE"),
   // Sam's Tasks copy (the Tasks previews): his own questions and lines, and the two free lines the limit builds
-  ...TCOPY.faq(tWord(TMAX)).flat(), ...TCOPY.faq(tWord(10)).flat(), tFree(TMAX).line, tFree(TMAX).sub, tFree(10).line, tFree(10).sub, TCOPY.heading, TCOPY.support, TCOPY.more, TCOPY.under, TCOPY.eyebrow];
+  ...TCOPY.faq(TMAX).flat(), ...TCOPY.faq(10).flat(), tFree(TMAX).line, tFree(TMAX).sub, tFree(10).line, tFree(10).sub, TCOPY.heading, TCOPY.support, TCOPY.notHead, ...TCOPY.not, TCOPY.placeholder, TCOPY.eyebrow];
 const stripApproved = t => APPROVED.reduce((a, w) => a.split(w).join(" "), t);
 
 function hue(hex) { const n = hex.replace("#", ""), f = n.length === 3 ? n.split("").map(c => c + c).join("") : n; const r = parseInt(f.slice(0, 2), 16) / 255, g = parseInt(f.slice(2, 4), 16) / 255, b = parseInt(f.slice(4, 6), 16) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (!d) return { h: 0, s: 0 }; const h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return { h: h * 60, s: d }; }
@@ -108,13 +108,13 @@ const SHARED = {
     ["palette", ".way{display:grid", ".way{background:#E8542B;display:grid"],
     ["palette", ".hero{position:relative;", ".hero{border-color:rgb(220,60,40);position:relative;"],
     ["wordmark", '<b>GoAskSam</b><span class="beta">', '<b>GO ASK SAM</b><span class="beta">'],
-    ["firstPerson", "Explore comparable sales with real evidence.", "Explore comparable sales with real evidence. Sam found it for me and I think it is good."],
-    ["names", "Discover where and how to sell your car.", "This BMW M3 sold at Bonhams and Broad Arrow."],
-    ["ai", "Explore comparable sales with real evidence.", "Explore comparable sales with real evidence. AI powered search for cars."],
-    ["figures", "Find live auctions across multiple platforms.", "Find live auctions across multiple platforms. 2023 $72,800"],
-    ["figures", "Explore comparable sales with real evidence.", "Explore comparable sales with real evidence. Search 19 sources."],
-    ["liveBid", "Find live auctions across multiple platforms.", "Find live auctions across multiple platforms. Now live with a bid"],
-    ["vroom", "Find live auctions across multiple platforms.", "Example from The Daily Vroom"],
+    ["firstPerson", "See what comparable cars actually sold for.", "See what comparable cars actually sold for. Sam found it for me and I think it is good."],
+    ["names", "Find where similar cars sold successfully.", "This BMW M3 sold at Bonhams and Broad Arrow."],
+    ["ai", "See what comparable cars actually sold for.", "See what comparable cars actually sold for. AI powered search for cars."],
+    ["figures", "Search live car auctions in one place.", "Search live car auctions in one place. 2023 $72,800"],
+    ["figures", "See what comparable cars actually sold for.", "See what comparable cars actually sold for. Search 19 sources."],
+    ["liveBid", "Search live car auctions in one place.", "Search live car auctions in one place. Now live with a bid"],
+    ["vroom", "Search live car auctions in one place.", "Example from The Daily Vroom"],
     ["rulesVerbatim", "We use actual selling prices, not", "We use actual selling prices (mostly), not"],
     ["dash", "Find your next car.", "Find your next car (and bid) -- now."]
   ];
