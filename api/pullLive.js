@@ -154,6 +154,7 @@ async function handler(req, res) {
       const out = { mode, pages: pagesRead, ocdRequests: used(), fetched: rows.length, newListings: fresh, upserted: up, endedPast, order, coveredHoursAhead: lastEndAt ? Math.round((lastEndAt - Date.now()) / 360e3) / 10 : null, cappedShort: mode === "ending" && pagesRead >= cap && lastEndAt != null && lastEndAt < Date.now() + ENDING_AHEAD_MS, started_by: starter.by, started_detail: starter.detail };
       await recordUsageEvent({ event_type: "pull_live_mode", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: out }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       out.featuredRefresh = await refreshFeatured(env);
+      out.tasksDemoRefresh = await refreshTasksDemoWord(env);
       return res.status(200).json({ ok: true, ...out });
     }
     // 1. Walk every page of the live feed, bounded by --max-requests.
@@ -198,7 +199,8 @@ async function handler(req, res) {
     // backlog are readable afterwards (the cron's own HTTP response is not kept anywhere).
     await recordUsageEvent({ event_type: "pull_live_summary", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: { started_by: starter.by, started_detail: starter.detail, stepMs, fetched: rows.length, ocdRequests: used(), newListings: fresh, upserted: up, ended, finals, stats: { withVin: stats.withVin, vinsChecked: stats.vinsChecked, vinsLeft: stats.vinsLeft, budgetHit: stats.budgetHit } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
     const featuredRefresh = await refreshFeatured(env);
-    return res.status(200).json({ ok: true, featuredRefresh, ocdRequests: used(), maxRequests: maxReq, truncated, stoppedForReserve, feedTotal: total, fetched: rows.length, newListings: fresh, perSource, upserted: up, ended, finals, stepMs, ...stats });
+    const tasksDemoRefresh = await refreshTasksDemoWord(env);
+    return res.status(200).json({ ok: true, featuredRefresh, tasksDemoRefresh, ocdRequests: used(), maxRequests: maxReq, truncated, stoppedForReserve, feedTotal: total, fetched: rows.length, newListings: fresh, perSource, upserted: up, ended, finals, stepMs, ...stats });
   } catch (e) {
     await flushOcdUsage().catch(() => {});
     return res.status(500).json({ ok: false, ocdRequests: used(), error: String((e && e.message) || e).slice(0, 300) });
@@ -213,6 +215,16 @@ async function refreshFeatured(env) {
     const { refreshFeaturedHistory } = await import("../lib/live/featuredHistory.js");
     const r = await Promise.race([refreshFeaturedHistory(env), new Promise(res => setTimeout(() => res({ why: "timeout" }), 40000))]);
     return (r && r.why || "done") + (r && r.stats ? ` (eligible ${r.stats.eligible}, with a trim ${r.stats.withTrim})` : "");   // counts only: never the car
+  } catch { return "error"; }
+}
+
+// The crew-only Tasks centrepiece's stored pick (lib/live/tasksDemo.js): kept while every rule passes again, replaced when its auction ends or a check fails. Zero OCD, best effort, bounded; a word, never the car.
+async function refreshTasksDemoWord(env) {
+  try {
+    if (process.env.TASKS_DEMO === "0") return "off";
+    const { refreshTasksDemo } = await import("../lib/live/tasksDemo.js");
+    const r = await Promise.race([refreshTasksDemo(env), new Promise(res => setTimeout(() => res({ why: "timeout" }), 40000))]);
+    return (r && r.why || "done") + (r && r.tried != null ? ` (tried ${r.tried}${r.history ? ", with an earlier record" : ""})` : "");
   } catch { return "error"; }
 }
 

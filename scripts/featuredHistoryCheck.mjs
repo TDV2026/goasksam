@@ -164,7 +164,7 @@ const CREW = "gas_crew=" + mintCrewCookieValue();
   ok("(7) with the cookie it answers 200 with the field key, private and not cached", b.code === 200 && b.body && "featuredHistory" in b.body && /no-store/.test(b.headers["Cache-Control"] || ""), JSON.stringify([b.code, Object.keys(b.body || {}), b.headers])); }
 
 // (8) NO PUBLIC SURFACE CAN RETURN IT: every file that names the field, the store key or the module is on the short list
-{ const ALLOWED = new Set(["lib/live/featuredHistory.js", "api/featuredHistory.js", "api/pullLive.js", "api/crewPage.js", "lib/preview/previewPages.js"]);   // + the crew gated Homepage preview (Lane E, Nov 5 2026): its route and its page, no other
+{ const ALLOWED = new Set(["lib/live/featuredHistory.js", "api/featuredHistory.js", "api/pullLive.js", "api/crewPage.js", "lib/preview/previewPages.js", "lib/live/tasksDemo.js"]);   // + the crew gated Homepage preview (Lane E) and tasksDemo, which reuses the eligibility rules (crew only too)
   const NAMES = /featuredHistory|featured_history|FEATURED_HISTORY/;
   const hits = [];
   const walk = (dir) => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { if (e.name === "node_modules" || e.name === ".git" || e.name === ".claude" || e.name === "proofs") continue; const p = path.join(dir, e.name); if (e.isDirectory()) walk(p); else if (/\.(js|mjs|json|html|xml|css|txt|md)$/.test(e.name)) { const rel = path.relative(root, p); if (rel.startsWith("scripts/") || rel.startsWith("docs/")) continue; if (NAMES.test(fs.readFileSync(p, "utf8"))) hits.push(rel); } } };
