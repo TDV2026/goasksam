@@ -37,7 +37,7 @@ const cx = (seat = "ava", over = {}) => ({ now: "2026-11-04T12:00:00.000Z", env:
 const sent = [];
 const run = (a, b, seat) => A.handleSheetAction(a, b, cx(seat));
 const sh = await seed(store, { seat: "ava", org });
-const stripMark = s => { const c = JSON.parse(JSON.stringify(s)); if (c.state) delete c.state.mark; if (c.final) delete c.final.mark; return c; };
+const stripMark = s => { const c = JSON.parse(JSON.stringify(s)); if (c.state) delete c.state.mark; if (c.final) delete c.final.mark; delete c.version; return c; };   // a save moves the sheet's version (two tabs, Nov 2026); that is not a field the engine said
 const opened = await run("sheet_open", { id: sh.id });
 ok(opened.ok && opened.ladder && opened.ladder.tiers.length === 4 && opened.ladder.untiered.line === CT.UNTIERED_LADDER.line && opened.ladder.tiers.every(t => t.line === CT.TIER_LADDER[t.tier].line), "the sheet view carries the ladder from the one source");
 ok(opened.read && !("mark" in opened.read) && !("mark" in (opened.read.condition || {})), "the engine's read carries no mark");

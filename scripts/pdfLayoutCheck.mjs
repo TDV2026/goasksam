@@ -35,8 +35,8 @@ ok(pages.length === rep.pages && rep.pages >= 11, `${rep.pages} pages`);
 { const dp = pages[firstOf("Decision")].join("\n"), a = dp.indexOf("MARKET RANGE"), b = dp.indexOf("STARTING FIGURE"), c = dp.search(/RANGE GIVEN|RESERVE GIVEN/); ok(a >= 0 && b > a && c > b, "the decision prints the market range, the starting figure, then the reserve or range given"); }
 ok(/Question asked of the Desk/i.test(all) && /What did Elevens sell for last month\?/.test(all), "a question pinned to the sheet prints on the report");
 // the comparables page prints each row exactly as the frozen read carries it, cell by cell, newest first (a small figure that happens to match a date part cannot hide a changed one)
-{ const cp = pages[firstOf("Comparables")], at = cp.indexOf("LINK") + 1, rows = A.sheet.read.market.comparables.slice(0, 24), usd = n => "$" + Math.round(n).toLocaleString("en-US");
-  const want = rows.flatMap(c => [c.date, c.venue, usd(c.price), Number(c.mileage).toLocaleString("en-US"), String(c.tier == null ? "-" : c.tier), String(c.url).replace(/^https?:\/\//, "").slice(0, 34)]);
+{ const cp = pages[firstOf("Comparables")], at = cp.indexOf("LINK") + 1, rows = A.sheet.read.market.comparables, usd = n => "$" + Math.round(n).toLocaleString("en-US");
+  const want = rows.flatMap(c => [c.date, c.venue, usd(c.price), Number(c.mileage).toLocaleString("en-US"), String(c.tier == null ? "-" : c.tier), ...(c.mid ? [c.mid === "median" ? "MEDIAN" : "MIDDLE"] : []), String(c.url).replace(/^https?:\/\//, "").slice(0, 34)]);
   ok(at > 0 && JSON.stringify(cp.slice(at, at + want.length)) === JSON.stringify(want) && rows.every((c, i) => i === 0 || rows[i - 1].date >= c.date), `the comparables print as the read carries them, newest first (${rows.length} rows)`); }
 // the note: its own page, only where written
 { const B = await finalised({ org: "pdf-org-2", note: "" }); const r2 = await buildReport(B.sheet, ORG, {}); ok(JSON.stringify(r2.parts) === JSON.stringify(PARTS) && !/Note to the seller/i.test(T(pdfPages(r2.bytes)).join("\n")), "with no note written there is no note page (the ten parts only)"); }

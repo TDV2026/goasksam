@@ -38,15 +38,24 @@
     api("sheet_queue", { view: "company", q: S.cq }).then(function (r) { if (r.ok) { S.lists.company = r.rows; renderRail(); } });
   }
   function stClass(s) { return s === "Finalised" ? "fin" : s === "Sent" ? "sent" : s === "Needs the car" ? "need" : ""; }
-  function rowHtml(r) {
+  function rowHtml(r, on) {
     return '<button type="button" class="qrow' + (S.active === r.id ? " on" : "") + '" data-open="' + esc(r.id) + '" data-role="' + esc(r.access) + '"><span class="qcar">' + esc(r.car) + '</span>' +
-      '<span class="qmeta"><span class="st ' + stClass(r.status) + '">' + esc(r.status) + "</span><span>" + esc(r.owner) + "</span><span>" + esc(r.timeIn) + "</span></span></button>";
+      '<span class="qmeta"><span class="st ' + stClass(r.status) + '">' + esc(r.status) + "</span><span>" + esc(r.owner) + "</span><span>" + esc(on || r.timeIn) + "</span></span></button>";
   }
-  function listHtml(rows) { return rows.length ? rows.map(rowHtml).join("") : '<div class="none">Nothing here.</div>'; }
+  // MY REPORTS: the seat's own sheets in three groups, each row with its date from the server (created, finalised or sent). A finalised or sent one opens read only.
+  function reportsHtml(rows) {
+    if (!rows.length) return '<div class="none">Nothing here.</div>';
+    var groups = [["Drafts", function (r) { return r.status !== "Finalised" && r.status !== "Sent"; }, "date"], ["Finalised", function (r) { return r.status === "Finalised"; }, "finalisedOn"], ["Sent", function (r) { return r.status === "Sent"; }, "sentOn"]];
+    return groups.map(function (g) {
+      var rs = rows.filter(g[1]); if (!rs.length) return "";
+      return '<div class="subsec" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:10px 0 2px;padding-left:8px">' + g[0] + "</div>" + rs.map(function (r) { return rowHtml(r, r[g[2]]); }).join("");
+    }).join("");
+  }
+  function listHtml(rows) { return rows.length ? rows.map(function (r) { return rowHtml(r); }).join("") : '<div class="none">Nothing here.</div>'; }
   function renderRail() {
     var focus = document.activeElement && document.activeElement.id === "csearch";
     rail.innerHTML = '<div class="sec">Today&rsquo;s queue</div><div id="l-queue">' + listHtml(S.lists.queue) + "</div>" +
-      '<div class="sec">My sheets</div><div id="l-mine">' + listHtml(S.lists.mine) + "</div>" +
+      '<div class="sec">My reports</div><div id="l-mine">' + reportsHtml(S.lists.mine) + "</div>" +
       '<div class="sec">Company</div><input class="csearch" id="csearch" type="text" autocomplete="off" placeholder="VIN, car, expert, date, status" value="' + esc(S.cq) + '"><div id="l-company">' + listHtml(S.lists.company) + "</div>";
     // The footer says who is looking. A crew person viewing as a seat is told so, with the way back; the crew (not a seat, not viewing) gets the "View as" switch. The server decides all of it; this only prints it.
     var who = esc(S.seatName || S.seat || "analyst"), line = "<b>" + esc(S.org || "Sam") + "</b> &middot; seat: " + who;
@@ -66,9 +75,19 @@
     if (e.target.id !== "csearch") return; S.cq = e.target.value; clearTimeout(timers.cq);
     timers.cq = setTimeout(function () { api("sheet_queue", { view: "company", q: S.cq }).then(function (r) { if (r.ok) { S.lists.company = r.rows; renderRail(); } }); }, 250);
   });
+  // NEW VALUATION: a VIN or year make model, miles, and photos if there are any. The same sheet the inbound email makes: the server decodes and names the car; the photos are shrunk here and checked and resized there.
+  var shrink = function (f) { return window.deskShrink ? window.deskShrink(f) : Promise.resolve(null); };
+  var vf = $("vnewf"); if (vf) vf.addEventListener("change", function () { var l = $("vnewfl"), n = vf.files ? vf.files.length : 0; if (l) l.textContent = n ? n + (n === 1 ? " photo" : " photos") : "Add photos"; });
   form.addEventListener("submit", function (e) {
-    e.preventDefault(); var q = $("vnewq"), t = q.value.trim(); if (!t) return;
-    api("sheet_new", { text: t }).then(function (r) { if (!r.ok) { flash(r.why || "Could not open that."); return; } q.value = ""; loadLists(); openSheet(r.id); });
+    e.preventDefault(); var q = $("vnewq"), mi = $("vnewm"), fi = $("vnewf"), t = q.value.trim(); if (!t) return;
+    var files = fi && fi.files ? Array.prototype.slice.call(fi.files) : [], mileage = mi ? mi.value.trim() : "";
+    api("sheet_new", { text: t, mileage: mileage }).then(function (r) {
+      if (!r.ok) { flash(r.why || "Could not open that."); return; }
+      q.value = ""; if (mi) mi.value = ""; if (fi) fi.value = ""; var fl = $("vnewfl"); if (fl) fl.textContent = "Add photos";
+      var chain = Promise.resolve(), failed = 0;
+      files.forEach(function (f) { chain = chain.then(function () { return shrink(f); }).then(function (b64) { if (!b64) { failed++; return; } return api("sheet_photo_add", { id: r.id, name: f.name, data: b64 }).then(function (x) { if (!x.ok) failed++; }); }); });
+      chain.then(function () { loadLists(); openSheet(r.id); if (failed) flash(failed + (failed === 1 ? " photo was" : " photos were") + " not added."); });
+    });
   });
   function flash(msg) { vals.insertAdjacentHTML("afterbegin", '<div class="banner" id="flash">' + esc(msg) + "</div>"); setTimeout(function () { var f = $("flash"); if (f) f.remove(); }, 4000); }
 
@@ -180,7 +199,7 @@
     if (m.wider) inner += '<p class="sub">Wider range: <span class="num">' + usd(m.wider.low) + " to " + usd(m.wider.high) + "</span> (" + nf(m.wider.count) + " sales).</p>";
     (m.splits || []).forEach(function (sp) { inner += '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">By ' + esc(sp.dimension) + '</div><table class="vt"><tr><th>Band</th><th>Sales</th><th>Median</th><th>Range</th></tr>' + sp.options.map(function (o) { return "<tr><td>" + esc(o.label) + '</td><td class="m">' + nf(o.count) + '</td><td class="m">' + usd(o.median) + '</td><td class="m">' + usd(o.p25) + " to " + usd(o.p75) + "</td></tr>"; }).join("") + "</table>"; });
     if ((m.live || []).length) inner += '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">Live now</div><table class="vt"><tr><th>Venue</th><th>Bid</th><th>Ends</th><th>Link</th></tr>' + m.live.map(function (l) { return "<tr><td>" + esc(l.venue) + '</td><td class="m">' + usd(l.bid) + '</td><td class="m">' + esc(String(l.endsAt || "").slice(0, 16).replace("T", " ")) + "</td><td>" + (l.url ? '<a href="' + esc(l.url) + '" target="_blank" rel="noopener">Open</a>' : "") + "</td></tr>"; }).join("") + "</table>";
-    inner += '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">Comparables, newest first</div><table class="vt"><tr><th>Date</th><th>Venue</th><th>Price</th><th>Miles</th><th>Tier</th><th>Link</th></tr>' + (m.comparables || []).map(function (c) { return '<tr><td class="m">' + esc(day(c.date)) + "</td><td>" + esc(c.venue) + '</td><td class="m">' + usd(c.price) + '</td><td class="m">' + nf(c.mileage) + '</td><td class="m">' + esc(c.tier == null ? "" : c.tier) + "</td><td>" + (c.url ? '<a href="' + esc(c.url) + '" target="_blank" rel="noopener">Open</a>' : "") + "</td></tr>"; }).join("") + "</table>";
+    inner += (m.startingFigure && rd.condition.bandCount != null ? '<p class="sub" style="margin:12px 0 0">The starting figure <span class="num">' + usd(m.startingFigure) + '</span> is the median of the <span class="num">' + ns(rd.condition.bandCount) + "</span> sales below, newest first. The sale marked Median, or the two marked Middle, sit at it.</p>" : "") + '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">Comparables, newest first</div><table class="vt"><tr><th>Date</th><th>Venue</th><th>Price</th><th>Miles</th><th>Tier</th><th></th><th>Link</th></tr>' + (m.comparables || []).map(function (c) { return '<tr><td class="m">' + esc(day(c.date)) + "</td><td>" + esc(c.venue) + '</td><td class="m">' + usd(c.price) + '</td><td class="m">' + nf(c.mileage) + '</td><td class="m">' + esc(c.tier == null ? "" : c.tier) + '</td><td class="m">' + (c.mid ? esc(c.mid === "median" ? "Median" : "Middle") : "") + "</td><td>" + (c.url ? '<a href="' + esc(c.url) + '" target="_blank" rel="noopener">Open</a>' : "") + "</td></tr>"; }).join("") + "</table>";
     return sec(3, "The market", "Median and quartiles of the sales, from the engine.", inner);
   }
   // 4 condition, with the submission's photos and documents
@@ -191,7 +210,7 @@
     inner += '<p class="sub" style="margin:0">Untiered: <span class="num">' + ns(cd.untiered) + "</span> stay in the wider pool.</p>";
     // The ladder, every word from the one source (lib/conditionTier.js TIER_LADDER, sent with the sheet as h.v.ladder). The page prints it.
     var lad = h.v.ladder;
-    if (lad) inner += '<ol class="ladder" style="margin:10px 0 0;padding-left:18px">' + lad.tiers.map(function (l) { return "<li><b>" + l.tier + " " + esc(l.name) + "</b>: " + esc(l.line) + "</li>"; }).join("") + "<li><b>" + esc(lad.untiered.name) + "</b>: " + esc(lad.untiered.line) + "</li></ol>";
+    if (lad) inner += '<ul class="ladder" style="margin:10px 0 0;padding-left:0;list-style:none">' + lad.tiers.map(function (l) { return "<li><b>" + l.tier + " " + esc(l.name) + "</b>: " + esc(l.line) + "</li>"; }).join("") + "<li><b>" + esc(lad.untiered.name) + "</b>: " + esc(lad.untiered.line) + "</li></ul>";
     // The evidence the engine counted, in the engine's own words (condition_evidence), or the engine's line that it counted none.
     if (cd.selected) inner += '<div class="evid" style="margin:10px 0 0">' + (cd.carEvidence ? "<ul style=\"margin:0;padding-left:18px\">" + cd.carEvidence.lines.map(function (e) { return "<li>" + esc(e.line) + "</li>"; }).join("") + "</ul>" : '<p class="sub" style="margin:0">' + esc(cd.carEvidenceNote || "") + "</p>") + "</div>";
     // The analyst's plus or minus: a judgment saved with the sheet. The engine sets none; it changes no tier, pool or figure. Controls only when a tier is on the sheet (Untiered takes none).

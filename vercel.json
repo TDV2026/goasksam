@@ -175,7 +175,8 @@
     { "source": "/dsk.20261006b/(.*)", "destination": "/js/$1" },
     { "source": "/dsk.20261006c/(.*)", "destination": "/js/$1" },
     { "source": "/dsk.20261006d/(.*)", "destination": "/js/$1" },
-    { "source": "/dsk.20261104a/(.*)", "destination": "/js/$1" }
+    { "source": "/dsk.20261104a/(.*)", "destination": "/js/$1" },
+    { "source": "/dsk.20261106a/(.*)", "destination": "/js/$1" }
   ],
   "headers": [
     {

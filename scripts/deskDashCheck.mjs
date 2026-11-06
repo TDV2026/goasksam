@@ -10,7 +10,7 @@ const DASH = /[–—]/;
 const files = [];
 const walk = d => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else if (/\.js$/.test(e.name)) files.push(p); } };
 walk("lib/desk");
-for (const f of ["public/js/deskvals.js", "public/js/desk.js", "lib/conditionTier.js", "lib/sheetRead.js", "lib/pdf/mini.js"]) if (fs.existsSync(f)) files.push(f);
+for (const f of ["public/js/deskvals.js", "public/js/desk.js", "public/js/deskphoto.js", "lib/preview/deskPreview.js", "lib/conditionTier.js", "lib/sheetRead.js", "lib/pdf/mini.js"]) if (fs.existsSync(f)) files.push(f);
 for (const e of fs.readdirSync("api")) if (/^desk.*\.js$/.test(e)) files.push(path.join("api", e));
 // code only: block comments and line comments out. A dash left is in a string, a template or a pattern, i.e. in something that can reach a user.
 const codeOf = src => src.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, " ")).split("\n").map(l => l.replace(/(^|\s)\/\/.*$/, "$1")).join("\n");

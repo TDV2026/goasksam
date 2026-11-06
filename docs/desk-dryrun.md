@@ -2,13 +2,26 @@
 
 For Sam to test from. The page text below is what the code prints (public/js/deskvals.js, lib/desk). Where a figure appears, it must equal what the engine read; the page computes nothing. Use your own mailbox and your own address for Send. Touch no real customer sheet.
 
-Branch with the latest Desk changes: lane-d-desk-dryrun (two tab version, no dashes in Desk copy). The live site runs whatever Lane C has pushed, so note the version you tested.
+Branch with the latest Desk changes: lane-d-desk-demo (New valuation, the org's own report, the whole tier pool with the median marked, My reports; on top of lane-d-desk-dryrun: two tab version, no dashes in Desk copy). The same screens are in the crew-only /preview/desk. The live site runs whatever Lane C has pushed, so note the version you tested.
+
+## 0a. Hagerty's logo and colour (once, by Sam)
+
+The report and the email use the Hagerty org's own name, logo and colour. Until they are set the report shows the name in type and the Desk's green. To set them: run docs/supabase-desk-brand-color.sql in the Supabase SQL editor (adds the `brand_color` column, RLS lines included), upload a PNG or JPG logo (not SVG) to the Storage bucket `desk-hagerty` as `hagerty/brand/logo.png`, then run the one `update desk_org_settings ...` line at the bottom of that file with Hagerty's hex colour.
 
 ## 0. Before you start
 
 1. Sign in to goasksam.com as crew. Open /desk.
 2. Open "View as" in the footer line of the left rail (a drop down that reads "View as..."). Pick "hagerty · Expert 1". The footer then says who you are looking as and shows the way back ("back to crew"). Every View as is logged (step 6).
 3. Write down the time you send the email in step 1.
+
+## 1a. Start a sheet by hand: New valuation
+
+The same sheet the inbound email makes, started from the top bar of the Desk (Valuations mode).
+
+1. In the bar at the top, type a VIN, or a year, make and model ("2008 Porsche 911 Carrera S"), the miles in the **Miles** box, and pick photos with the file box if you have them (up to 20, JPG, PNG or WebP; each is shrunk in your browser and checked and resized on the server).
+2. Press **New valuation**. The sheet opens. Check: the car is named the way an emailed one is ("2002 BMW M3 Convertible", never a maker code), the miles are on the sheet, the photos are in section 4, and the read has run (a year, make and model sheet is read from the words; a VIN sheet from the decode).
+3. If a photo cannot be added the page says how many were not added; the sheet is still made.
+4. The same row then appears under My reports as a Draft.
 
 ## 1. Intake: the email
 
@@ -27,14 +40,20 @@ Click the row. The sheet opens in a tab. It has seven sections, numbered down th
 1. **The car.** Year, make, model, trim, body, VIN, mileage (marked "from the submission"), gearbox and colour if known. Buttons: "Confirm the car" (then a "Confirmed" chip). Check: the car is named correctly, mileage matches the email, both photos are in the section 4 photo grid.
 2. **This exact car.** "Every auction appearance of this VIN." Either the earlier sales with venue, date and price, or the engine's line that there is none.
 3. **The market.** "Median and quartiles of the sales, from the engine." Window, sales count, median, typical range, newest sale, splits, live listings, comparables newest first.
-4. **Condition.** Four tier buttons with counts: Tier 1 Concours, 2 Excellent, 3 Good, 4 Fair. Below them "Untiered: N stay in the wider pool." Then the ladder, one line each (Concours: the best example anywhere, show quality; Excellent: near new, a careful restoration or an exceptional original; Good: a sound driver with wear a buyer would expect; Fair: runs and drives, visible wear or needs; Untiered: not enough evidence to place it). With a tier picked: the count in that condition and the evidence lines the engine counted for this car, or the engine's line that it counted none. Then the photos from the submission (tick the ones for the report, set the hero) and any documents.
+4. **Condition.** (Starting figure and proof below.) Four tier buttons with counts: Tier 1 Concours, 2 Excellent, 3 Good, 4 Fair. Below them "Untiered: N stay in the wider pool." Then the ladder, one line each (Concours: the best example anywhere, show quality; Excellent: near new, a careful restoration or an exceptional original; Good: a sound driver with wear a buyer would expect; Fair: runs and drives, visible wear or needs; Untiered: not enough evidence to place it). With a tier picked: the count in that condition and the evidence lines the engine counted for this car, or the engine's line that it counted none. Then the photos from the submission (tick the ones for the report, set the hero) and any documents.
 5. **What we cannot see.** Six items: Title status, Service records, Ownership history, Modifications (Stock, Period, Modified, Restomod), Accident or repair history, Provenance. Mark each Seen, Not seen or Not supplied. A free line is optional. No numbers here.
 6. **Decision.** "A reserve or a range. The engine never gives one: you do." Reserve or range, reasons, the line of reasoning, the guards, the note to the seller.
 7. **Finalise.** "Locks the sheet, stamps it, builds the report."
 
 If the car's model has no tiers yet from the overnight run, the tier buttons show no counts and the starting figure says "Condition tiers are not assigned to these sales yet." Say so in your notes and use a 911 or Corvette sheet for the rest.
 
+**Proof of the number (section 3, with a tier picked):** under the market figures the page says "The starting figure $X is the median of the N sales below, newest first." and lists **every** sale of the same tier pool (date, venue, price, miles, tier, a link that opens the sale). The sale marked **Median** (or the two marked **Middle**, for an even pool) is where the starting figure sits. The same table, with the same marks, is in the PDF's Comparables part, all of it, over as many pages as it needs.
+
 Check in section 4 after clicking a tier: "the same tier pool" count; the **starting figure** (section 3 and the Decision part) must equal the median of that same tier pool, and reads "The median of the sales in this condition and mileage band." With fewer than five sales it shows no figure and says "Too few sales in this condition. The wider pool is shown."
+
+## 2a. My reports
+
+The left rail has **Today's queue**, **My reports** and **Company**. My reports lists only this seat's sheets in three groups: **Drafts** (with the date made), **Finalised** (with the date finalised) and **Sent** (with the date sent). Click any to open it; the tabs keep each open sheet where you left it, so you can go back and forth. A finalised or sent sheet opens read only ("Finalised: the sheet is locked.").
 
 ## 3. Analyst actions: tier, plus, reserve, reload
 
@@ -52,7 +71,7 @@ Check in section 4 after clicking a tier: "the same tier pool" count; the **star
 
 1. Click **Finalise**. The section becomes "The sheet is locked." with "Finalised on <date>. Report DV-2026-NNNN." The status chip reads Finalised.
 2. Try to edit: click another tier, or type in the reserve. Expect the tier buttons and the reserve to be disabled, and the sheet to say "Finalised: the sheet is locked." If you can force a save anyway, expect a refusal in plain words and no change.
-3. Click **Download the PDF**. It opens. Check: your organisation's name and logo on the cover, the ten parts in order, the figures equal the sheet's, the ladder lines under Condition, **Engine: tier 2. Analyst: 2 plus** and your reason, the note to the seller on its own page if you wrote one, no expert's personal name anywhere, a footer with page numbers.
+3. Click **Download the PDF**. It opens. Check: your organisation's name and logo on the cover and its own colour on the figure and the marks (set from the org record, `brand_color`), no GoAskSam name anywhere in the report or the file properties, the ten parts in order, the figures equal the sheet's, the ladder lines under Condition, **Engine: tier 2. Analyst: 2 plus** and your reason, the note to the seller on its own page if you wrote one, no expert's personal name anywhere, a footer with page numbers.
 4. "Start a correction" makes a new sheet that refers to the old one. Do not press it unless you want to test it.
 
 ## 5. Send
