@@ -5,11 +5,14 @@ import path from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const M = [
-  ["Autobiography is not a trim word", "lib/vehicleData.js", '"autobiography","hse"', '"hse"'],
-  ["HSE is not a trim word", "lib/vehicleData.js", '"hse","svr"', '"svr"'],
-  ["Maybach is not a trim word", "lib/vehicleData.js", '"maybach","trackhawk"', '"trackhawk"'],
-  ["Trackhawk is not a trim word", "lib/vehicleData.js", '"trackhawk","badge"', '"badge"'],
-  ["Speed is not a trim word", "lib/vehicleData.js", '"speed","hybrid"', '"hybrid"'],
+  ["Autobiography is not a trim word", "lib/vehicleData.js", "autobiography: /^(?:land rover|range rover|jaguar)$/i, ", ""],
+  ["HSE is not a trim word", "lib/vehicleData.js", "hse: /^land rover$/i, ", ""],
+  ["Maybach is not a trim word", "lib/vehicleData.js", "maybach: /^(?:mercedes-benz|mercedes|maybach)$/i, ", ""],
+  ["Trackhawk is not a trim word", "lib/vehicleData.js", "trackhawk: /^jeep$/i, ", ""],
+  ["Speed is not a Bentley trim", "lib/vehicleData.js", ", speed: /^bentley$/i", ""],
+  ["a scoped word is a trim on any make (Speed in Mustang GT 5-Speed)", "lib/vehicle.js", "return !!make && MAKE_SCOPED_TRIM_WORDS[clean].test(String(make).trim());", "return true;"],
+  ["the make is not passed to the trim gate", "lib/vehicle.js", "trimTokenAllowed(token, make, tokens[i - 1]) || displacementSuffix", "trimTokenAllowed(token, \"Bentley\", tokens[i - 1]) || displacementSuffix"],
+  ["Tasks' trim gate ignores the make", "lib/tasks/tasks.js", "trimTokenAllowed(w, p.make, tokens[i - 1])", "trimTokenAllowed(w)"],
   ["a hyphenated make word is named unused again", "lib/live/unusedWords.js", 'if (w.includes("-") && w.split("-").filter(Boolean).length > 1 &&', 'if (false &&'],
   ["the sentence does not count the trim", "lib/onebox.js", "trimThinSentence(spec.trim, trimCarsIn(solid, spec.trim), solid.length)) || chosen.widening", "null) || chosen.widening"],
   ["the count ignores the titles", "lib/onebox.js", "return (rows || []).filter(r => { const t = String((r && (r.raw_title || r.rtitle || r.title)) || \"\").toLowerCase();", "return (rows || []).filter(r => { const t = \"autobiography\";"],

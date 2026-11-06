@@ -52,6 +52,22 @@ ok("(3) no trim sale in the pool: no pill, no count claimed", !(E.withTrimPill({
 const src = fs.readFileSync(path.join(ROOT, "lib/onebox.js"), "utf8"), vd = fs.readFileSync(path.join(ROOT, "lib/vehicleData.js"), "utf8");
 ok("(4) the widened answer's sentence counts the trim's sales (runOneBox)", /trimThinSentence\(spec\.trim, trimCarsIn\(solid, spec\.trim\), solid\.length\)/.test(src));
 ok("(4) every caller of pooledApartGuard gets the pill", /export function pooledApartGuard\(d, refine\) \{ return withTrimPill\(pooledApartGuardRead\(d, refine\)\); \}/.test(src));
-ok("(4) the trim list holds the words", ["autobiography", "hse", "svr", "vogue", "westminster", "maybach", "trackhawk", "plaid"].every(w => new RegExp(`"${w}"`).test(vd.slice(vd.indexOf("export const TRIM_VOCABULARY")))));
+ok("(4) the make-scoped table holds every added word, each for its own make", ["autobiography", "hse", "svr", "vogue", "dynamic", "westminster", "luxury", "maybach", "trackhawk", "badge", "plaid", "gr", "mc", "hybrid", "speed"].every(w => new RegExp(`\\b${w}:`).test(vd.slice(vd.indexOf("export const MAKE_SCOPED_TRIM_WORDS")))) && !/"speed"/.test(vd.slice(vd.indexOf("export const TRIM_VOCABULARY"), vd.indexOf("export const MAKE_SCOPED_TRIM_WORDS"))));
+// (5) THE THREE REDS OF THE COMBINED PREPUSH, AND THE CLASS: a make-scoped word is a trim on its own make only
+const read = async q => { const r = await V.resolveVehicle(q, {}); return r.vehicle || {}; };
+const reds = [["Turbo-Look BMW 2002", null], ["GT-Style 914", null], ["Mustang GT 5-Speed V8", "GT"], ["1969 Mustang GT 4-Speed", "GT4"], ["Porsche 911 6-Speed", null]];
+const redBad = []; for (const [q, want] of reds) { const v = await read(q); if (/speed/i.test(String(v.trim || "")) || (want !== null && String(v.trim) !== want)) redBad.push(`${q} -> ${JSON.stringify(v.trim)}`); }
+ok("(5) 'Turbo-Look BMW 2002', 'GT-Style 914', 'Mustang GT 5-Speed V8' and gearbox phrases never read Speed as a trim", redBad.length === 0, redBad.join("; "));
+ok("(5) Speed is a trim on a Bentley, after the model word and as the model's own trim", (await read("2018 Bentley Continental GT Speed")).trim === "GT Speed" && (await read("2019 Bentley Flying Spur Speed")).trim === "Speed");
+const OWN = { autobiography: ["Land Rover", "Range Rover"], hse: ["Land Rover", "Range Rover Sport"], svr: ["Jaguar", "F-Type"], vogue: ["Land Rover", "Range Rover"], dynamic: ["Land Rover", "Range Rover Evoque"], westminster: ["Land Rover", "Range Rover"], luxury: ["Land Rover", "Discovery"], maybach: ["Mercedes-Benz", "S-Class"], trackhawk: ["Jeep", "Grand Cherokee"], badge: ["Rolls-Royce", "Ghost Black"], plaid: ["Tesla", "Model S"], gr: ["Toyota", "Land Cruiser"], mc: ["Maserati", "GranTurismo"], hybrid: ["Porsche", "Cayenne Turbo S E"] };
+const leaks = [], misses = [];
+for (const [w, [mk, mdl]] of Object.entries(OWN)) {
+  const own = await read(`2019 ${mk} ${mdl} ${w}`); if (!String(own.trim || "").toLowerCase().includes(w)) misses.push(`${mk} ${mdl} ${w} -> ${JSON.stringify(own.trim)}`);
+  for (const other of ["2019 Ford Mustang GT", "2004 BMW M3", "1990 Porsche 911 Carrera", "1972 Chevrolet Corvette"]) { if (/porsche/i.test(other) && w === "hybrid") continue; for (const fmt of [`${other} ${w}`, `${other} 5-${w}`, `${w} ${other}`]) { const v = await read(fmt); if (String(v.trim || "").toLowerCase().split(/\s+/).includes(w)) leaks.push(`${fmt} -> ${JSON.stringify(v.trim)}`); } }
+}
+ok("(5) each scoped word is a trim on its own make (14 words)", misses.length === 0, misses.slice(0, 3).join("; "));
+ok("(5) no scoped word becomes a trim on another make or as a hyphen tail (Mustang, M3, 911, Corvette; word, 5-word, word first)", leaks.length === 0, leaks.slice(0, 3).join("; "));
+const TK = await imp("lib/tasks/tasks.js");
+ok("(5) Tasks keeps a scoped trim for its own make and drops it for another (knownTrim)", TK.knownTrim("Autobiography", { make: "Land Rover", model: "Range Rover" }) === "Autobiography" && TK.knownTrim("Autobiography", { make: "Ford", model: "Mustang" }) === null && TK.knownTrim("Speed", { make: "Bentley", model: "Continental" }) === "Speed");
 console.log(failed ? `\n${failed} FAILED` : "\ntrimWordKeptCheck: all passed");
 process.exit(failed ? 1 : 0);
