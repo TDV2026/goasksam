@@ -30,18 +30,19 @@ async function scenarios(js) {
     { const id = await sid(), p = await open(id); await typeIn(p, '[data-k="pinned"]', "Is the paint original?"); await typeIn(p, '[data-k="corr-colour"]', "Guards Red"); await settle(p);
       const s = await D.store.get("sv", id); if (!(s.state.pinned === "Is the paint original?" && s.state.corrections && s.state.corrections.colour === "Guards Red")) fails.push(`two kinds of change in one window: pinned "${s.state.pinned}", colour "${s.state.corrections && s.state.corrections.colour}"`); await p.close(); }
     // 4. a slow first save never lands after a later one
-    { const id = await sid(), p = await open(id), put = D.store.put.bind(D.store); let n = 0;
-      D.store.put = async (o, sh) => { const mine = ++n; if (mine === 1 && sh.state.decision.reserve) await wait(700); return put(o, sh); };
+    { const id = await sid(), p = await open(id), put = D.store.putIf.bind(D.store); let n = 0, refused = 0;   // saves go through putIf (the version check, Nov 2026)
+      D.store.putIf = async (o, sh, e) => { const mine = ++n; if (mine === 1 && sh.state.decision.reserve) await wait(700); const r = await put(o, sh, e); if (r === false) refused++; return r; };
       await typeIn(p, '[data-k="d-reserve"]', "67000"); await p.evaluate(() => { document.querySelector('[data-k="d-reserve"]').blur(); }); await wait(500);   // first save is now in flight and slow
       await typeIn(p, '[data-k="d-reserve"]', "68500", true); await settle(p); await wait(900);
-      D.store.put = put; const s = await D.store.get("sv", id); if (s.state.decision.reserve !== "68500") fails.push(`a slow earlier save landed after the later one: the sheet ended with ${s.state.decision.reserve}`); await p.close(); }
+      D.store.putIf = put; const s = await D.store.get("sv", id); if (s.state.decision.reserve !== "68500") fails.push(`a slow earlier save landed after the later one: the sheet ended with ${s.state.decision.reserve}`);
+      if (refused) fails.push(`one tab's own saves refused each other (${refused} stale): saves must queue so each carries the version the last one returned`); await p.close(); }
   } finally { await D.close(); }
   return fails;
 }
 const rep = (s, from, to) => { if (!s.includes(from)) throw new Error("mutant did not apply: " + from.slice(0, 60)); return s.replace(from, () => to); };
 let before = null; try { before = execSync("git show origin/main:public/js/deskvals.js", { encoding: "utf8", cwd: new URL("..", import.meta.url).pathname, stdio: ["ignore", "pipe", "ignore"] }); } catch {}
 const MUTANTS = [
-  ["Finalise does not flush the pending save", s => rep(s, 'flush(id).then(function () { return api("sheet_finalise", { id: id }); }).then(', 'api("sheet_finalise", { id: id }).then(')],
+  ["Finalise does not flush the pending save", s => rep(s, 'flush(id).then(function () { return api("sheet_finalise", { id: id, baseVersion: (S.sheets[id].v.sheet.version || 0) }); }).then(', 'api("sheet_finalise", { id: id }).then(')],
   ["a later patch replaces the earlier one in the window", s => rep(s, "pend[id] = Object.assign(pend[id] || {}, patch);", "pend[id] = patch;")],
   ["saves are not queued behind each other", s => rep(s, "var p = (chains[id] || Promise.resolve()).then(function () {", "var p = Promise.resolve().then(function () {")],
   ["settled() does not wait for the saves", s => rep(s, "function settled() { return", "function settled() { return Promise.resolve(); return")]

@@ -2356,6 +2356,12 @@ try {
   record("Desk tier ladder from one source, four tiers, analyst plus or minus changes nothing the engine said, Untiered refuses, finalised keeps it, PDF and email carry it (scripts/tierMarkCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/sheetVersionCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk two tabs: a sheet save or finalise names the version it read, a stale one is refused with the reload line, nothing is overwritten (scripts/sheetVersionCheck.mjs)", "PASS", (out.match(/sheetVersionCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk two tabs: a sheet save or finalise names the version it read, a stale one is refused with the reload line, nothing is overwritten (scripts/sheetVersionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/tierWordsCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk item 1: no common word flips a condition tier on its own (project, custom, incomplete, crash, collision, struck, receipts, numbers matching, factory paint, tuned, lowered, swapped, upgraded, a none modifications field, Not salvage), the real cases still fire, ct2 (scripts/tierWordsCheck.mjs)", "PASS", (out.match(/all passed/) || [""])[0]);
 } catch (e) {
