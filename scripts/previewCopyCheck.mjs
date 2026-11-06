@@ -8,6 +8,7 @@ const { PAGES } = await import("../api/crewPage.js");
 const { PLACEHOLDERS } = await import("../lib/startPlaceholders.js");
 const { copy } = await import("../lib/copy.js");
 const { rulesOf } = await import("../lib/preview/previewPages.js");
+const { COPY: TCOPY, freeLines: tFree, limitWord: tWord } = await import("../lib/preview/tasksPreview.js"), { FREE_TASK_LIMIT: TMAX } = await import("../lib/tasks/limit.js");
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const names = Object.keys(PAGES).filter(k => k.startsWith("preview-"));
 ok(names.length >= 2, `the crew previews are found in api/crewPage.js (${names.join(", ")})`);
@@ -19,7 +20,9 @@ const attrsOf = html => [...bodyOf(html).matchAll(/\b(?:placeholder|aria-label|t
 const cssOf = html => [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map(m => m[1]).filter(c => !/@font-face/.test(c) || /--brand/.test(c)).join("\n");
 // the words that are approved elsewhere and so may carry what the strict rules would otherwise flag (digits, "bid"): the engine's own example searches and the approved rules
 const rules = rulesOf();
-const APPROVED = [...PLACEHOLDERS.preview.examples, ...PLACEHOLDERS.home.examples, ...PLACEHOLDERS.find.examples, rules.lead, ...rules.rules.flatMap(r => [r.h, r.b]), copy("home.START_TITLE"), copy("find.START_SUB"), copy("find.START_TITLE")];
+const APPROVED = [...PLACEHOLDERS.preview.examples, ...PLACEHOLDERS.home.examples, ...PLACEHOLDERS.find.examples, rules.lead, ...rules.rules.flatMap(r => [r.h, r.b]), copy("home.START_TITLE"), copy("find.START_SUB"), copy("find.START_TITLE"),
+  // Sam's Tasks copy (the Tasks previews): his own questions and lines, and the two free lines the limit builds
+  ...TCOPY.faq(tWord(TMAX)).flat(), ...TCOPY.faq(tWord(10)).flat(), tFree(TMAX).line, tFree(TMAX).sub, tFree(10).line, tFree(10).sub, TCOPY.heading, TCOPY.support, TCOPY.more, TCOPY.under, TCOPY.eyebrow];
 const stripApproved = t => APPROVED.reduce((a, w) => a.split(w).join(" "), t);
 
 function hue(hex) { const n = hex.replace("#", ""), f = n.length === 3 ? n.split("").map(c => c + c).join("") : n; const r = parseInt(f.slice(0, 2), 16) / 255, g = parseInt(f.slice(2, 4), 16) / 255, b = parseInt(f.slice(4, 6), 16) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (!d) return { h: 0, s: 0 }; const h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return { h: h * 60, s: d }; }
