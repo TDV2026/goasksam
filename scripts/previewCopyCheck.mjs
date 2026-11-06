@@ -13,11 +13,11 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 const names = Object.keys(PAGES).filter(k => k.startsWith("preview-"));
 ok(names.length >= 2, `the crew previews are found in api/crewPage.js (${names.join(", ")})`);
 
-const decode = t => t.replace(/&middot;/g, "·").replace(/&rarr;/g, "→").replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
+const decode = t => t.replace(/&#(\d+);/g, (m, n) => String.fromCharCode(Number(n))).replace(/&middot;/g, "·").replace(/&rarr;/g, "→").replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
 const bodyOf = html => html.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<style[\s\S]*?<\/style>/g, " ");
 const textOf = html => decode(bodyOf(html).replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ");
 const attrsOf = html => [...bodyOf(html).matchAll(/\b(?:placeholder|aria-label|title|alt)="([^"]*)"/g)].map(m => decode(m[1])).join(" | ");
-const cssOf = html => [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map(m => m[1]).filter(c => !/@font-face/.test(c) || /--brand/.test(c)).join("\n");
+const cssOf = html => [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m => m[1]).filter(c => !/@font-face/.test(c) || /--brand/.test(c)).join("\n");
 // the words that are approved elsewhere and so may carry what the strict rules would otherwise flag (digits, "bid"): the engine's own example searches and the approved rules
 const rules = rulesOf();
 const APPROVED = [...PLACEHOLDERS.preview.examples, ...PLACEHOLDERS.home.examples, ...PLACEHOLDERS.find.examples, rules.lead, ...rules.rules.flatMap(r => [r.h, r.b]), copy("home.START_TITLE"), copy("find.START_SUB"), copy("find.START_TITLE"),
@@ -39,10 +39,26 @@ const AUDIT = {
   rulesVerbatim: html => { const t = textOf(html); const miss = rules.rules.filter(r => !t.includes(r.h) || !t.includes(r.b)); return /How Sam decides/.test(t) && !miss.length && t.includes(rules.lead) ? null : "an approved How Sam decides line changed or is missing"; }
 };
 const ONLY_HOME = ["rulesVerbatim"];
+// THE CLASS BEHIND THE DESK PREVIEW'S FAILURES (Lane E, Nov 5 2026): this audit was written for the MARKETING previews (home, find, tasks): no typed figure, no venue name, the shared footer with The Daily Vroom. The Desk preview is a working TOOL a customer's seat signs in to: its top bar prints the
+// customer's own organisation and the seat's name, and it has no marketing footer. So a tool page is audited by every rule EXCEPT the footer rule, with exactly the tenant strings it prints named below (and nothing else approved): a venue name, a dash, an orange, a typed figure or a first person anywhere else in it
+// still fails, and the self-tests below prove each. The page itself was fixed where it was wrong: the live file's HTML comments (which carried a hyphenated phrase) are stripped and its one orange is drawn in the brand forest.
+const { PREVIEW_ORG, PREVIEW_SEAT } = await import("../lib/preview/deskPreview.js");
+const TOOL = { "preview-desk": { approved: [PREVIEW_ORG.name, PREVIEW_SEAT, "Ask the market. e.g. best F-body cars from the 90s", "Preview with sample data. Nothing is saved or sent."], skip: ["vroom"] } };
+const forAudit = (n, html) => (TOOL[n] ? TOOL[n].approved.reduce((a, w) => a.split(w).join(" "), html) : html);
 for (const n of names) {
-  const html = PAGES[n].render();
-  for (const [k, f] of Object.entries(AUDIT)) { if (ONLY_HOME.includes(k) && n !== "preview-home") continue; const why = f(html); ok(!why, `${n}: ${k}${why ? " (" + why + ")" : ""}`); }
+  const html = forAudit(n, PAGES[n].render());
+  for (const [k, f] of Object.entries(AUDIT)) { if (ONLY_HOME.includes(k) && n !== "preview-home") continue; if (TOOL[n] && TOOL[n].skip.includes(k)) continue; const why = f(html); ok(!why, `${n}: ${k}${why ? " (" + why + ")" : ""}`); }
 }
+{ // the tool page is still held to every other rule: each violation, one at a time, is caught; and the two fixes are proved by putting the unfixed page back
+  const desk = PAGES["preview-desk"].render(), D = html => forAudit("preview-desk", html), inj = (a, b) => D(desk.replace(a, b));
+  ok(desk.includes("Hagerty Marketplace") && !AUDIT.names(D(desk)) && !!AUDIT.names(desk.replace("</body>", "<p>Sold at Bonhams</p></body>")), "self-test: the customer's own organisation name is approved on the Desk, and any venue name beside it is still flagged");
+  ok(!!AUDIT.dash(inj("<title>", "<title>Desk \u2014 preview ")), "self-test: a dash on the Desk preview is flagged");
+  ok(!!AUDIT.palette(inj("</style></head>", ".x{color:#E8542B}</style></head>")), "self-test: an orange on the Desk preview is flagged");
+  ok(!!AUDIT.figures(inj("</body>", "<p>Median $72,800 from 14 sales</p></body>")), "self-test: a typed figure on the Desk preview is flagged");
+  ok(!!AUDIT.firstPerson(inj("</body>", "<p>I think we found it for you</p></body>")), "self-test: a first person on the Desk preview is flagged");
+  ok(!!AUDIT.dash(D(desk.replace("</head>", "<!-- Invite: /desk?crew=<code>. There is deliberately NO public-flag fallback here. -->\n</head>"))), "self-test: the live file's comment (a hyphenated phrase) returned to the page is flagged, so stripping it is what makes the page pass");
+  ok(!!AUDIT.palette(D(desk.replace("</style></head>", ".c{color:#a4571f}</style></head>"))), "self-test: the live Desk's orange returned to the page is flagged, so drawing it in forest is what makes the page pass");
+  ok(!!AUDIT.vroom(desk) && TOOL["preview-desk"].skip.join() === "vroom", "self-test: the footer rule is skipped for the tool page only (a marketing page without it still fails)"); }
 // ---- structure
 const part = (html, re) => (html.match(re) || [""])[0];
 const HEADER = html => part(html, /<header class="gh">[\s\S]*?<\/header>/).replace(/ aria-current="page"/, "");
