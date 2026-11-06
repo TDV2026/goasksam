@@ -35,6 +35,20 @@ const OLD = ["The year before, the typical range", "Its last sale, ", "Sold befo
 const hits = []; const walk = d => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) { if (!/node_modules|\.git/.test(e.name)) walk(p); } else if (/\.(js|html)$/.test(e.name) && !/^lib\/(reasonWords|_flags)\.js$/.test(p)) { const t = fs.readFileSync(p, "utf8").replace(/\/\/[^\n]*/g, ""); for (const w of OLD) if (t.includes(w)) hits.push(p + ": " + w); } } };
 for (const d of ["api", "lib", "public"]) walk(d);
 ok("no page, card, email or api file writes any of those sentences (only the reason table does)", hits.length === 0, hits.join(" | "));
+// THE CREW PREVIEWS (Lane E, Nov 6 2026; Lane C's red on "Previously sold for"): the Tasks example and the featured history band print a figure line the engine sends. Four reason entries build them, the engine builds them (withFigureLines), the gate hides a field
+// without them, and no preview file formats a figure (toLocaleString, a "$" prefix, a "miles" suffix) or writes one of the sentences. The mutant is the old page text, and it must be caught.
+const FIG = ["history.miles", "history.sold_for", "history.now_miles", "demo.prior_sale"];
+ok("the four figure lines are in the reason table and read as the pages' old sentences", FIG.every(id => R.REASON_TABLE[id]) && R.reasonLine("demo.prior_sale", { price: 325000 }) === "Previously sold for $325,000" && R.reasonLine("history.sold_for", { price: 116000 }) === "Sold for $116,000" && R.reasonLine("history.miles", { miles: 4783 }) === "4,783 miles" && R.reasonLine("history.now_miles", { miles: 29000, words: "4,000 more miles" }) === "Now 29,000 miles (4,000 more miles)");
+const fhSrc = fs.readFileSync("lib/live/featuredHistory.js", "utf8");
+ok("the engine builds the featured history lines through the reason table, at the build and at the serve", /reasonLine\("history\.miles"/.test(fhSrc) && /reasonLine\("history\.sold_for"/.test(fhSrc) && /reasonLine\("history\.now_miles"/.test(fhSrc) && (fhSrc.match(/withFigureLines\(/g) || []).length >= 3);
+const previewFiles = fs.readdirSync("lib/preview").filter(f => /\.js$/.test(f) && f !== "tasksAppFork.js").map(f => "lib/preview/" + f);
+const FIGURE_WRITERS = [/toLocaleString\(/, /["'`]\$["'`]\s*\+/, /\$\$?\{[^}]*(?:usd|money)\(/, /\+\s*["'`] miles/, /Previously sold for|Sold for \$|Sold for \$\{/];
+const figureHits = src => FIGURE_WRITERS.filter(re => re.test(src.replace(/\/\/[^\n]*/g, ""))).map(String);
+const figHits = []; for (const f of previewFiles) { const h = figureHits(fs.readFileSync(f, "utf8")); if (h.length) figHits.push(f + ": " + h.join(" ")); }
+ok("no crew preview file formats a figure or writes a figure sentence (the engine's lines are printed as given)", figHits.length === 0, figHits.join(" | "));
+ok("the sweep catches the old page text (mutant: the three old builders)", figureHits('const usd = n => "$" + Number(n).toLocaleString("en-US");').length >= 2 && figureHits("`Previously sold for ${esc(usd(p.price))}`").length >= 1 && figureHits('Number(x).toLocaleString("en-US") + " miles"').length >= 1);
+const prevSrc = fs.readFileSync("lib/preview/previewPages.js", "utf8") + fs.readFileSync("lib/preview/tasksPreview.js", "utf8");
+ok("the previews print the engine's lines", ["priceLine", "mileageLine", "nowLine"].every(f => prevSrc.includes(f)));
 const page = fs.readFileSync("public/js/onebox.js", "utf8");
 ok("the page prints the engine fields", ["priorYearLine", "lastSaleLine", "soldBefore.line", "distSubLine", "fb.line", "priorSaleLine"].every(f => page.includes(f)) && fs.readFileSync("lib/sellsForCard.js", "utf8").includes("latestQuarterLine"));
 // ratchet: the label sites are the only number-with-words builds on the page
