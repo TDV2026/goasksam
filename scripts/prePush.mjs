@@ -864,6 +864,13 @@ try {
 } catch (e) {
   record("prewarYearlessCheck (scripts/prewarYearlessCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// smallLabelsCheck (Lane B, Nov 6 2026): a numeric nameplate carries its make in the label (the Delahaye 135), the Auburn Speedster is one body by its titles, the comparing line names the years the answer used (the 1998 Carrera 4 Cabriolet); mutants in scripts/smallLabelsCheck.mjs --mutants.
+try {
+  const out = execSync("node scripts/smallLabelsCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("smallLabelsCheck (scripts/smallLabelsCheck.mjs)", "PASS", (out.match(/smallLabelsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("smallLabelsCheck (scripts/smallLabelsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });
