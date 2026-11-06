@@ -109,5 +109,23 @@ ok(/"fxOpt", "fxSlots", "fxFindHtml", "fxCount", "fxBid", "rangeFirst", "noRange
     ok(Math.max(...hs) - Math.min(...hs) <= 18, `card height at ${w}: every state is one height, within one small line (${names.map((n, k) => n + " " + hs[k]).join("; ")})`);
   }
   await b.close(); }
+// THE TRIM'S NARROW BY PILL (Lane B, lane-b-trimword 07126930; Lane E, Nov 5 2026): when the answer widened past a named trim with too few sales of its own, the engine adds { dimension: "trim", label, value, n, refine: { trim } } to refineOptions.
+// The shared card (lib/sellsForCard.js, which Market Check prints under one Narrow by heading and Find's See the sales opens) prints it as a pill with the engine's label and count, and a click sends refine back UNCHANGED. Find's own card builds no pill:
+// it reads the engine's findAnswer and its button opens Market Check. The page builds nothing, so nothing here is the page's own word.
+{ const { sellsForNarrowHtml } = await import("../lib/sellsForCard.js");
+  const trimOpt = { dimension: "trim", label: "Autobiography", value: "autobiography", n: 3, refine: { trim: "Autobiography" } };
+  const pill = (html, lbl) => { const m = new RegExp('<button[^>]*data-dim="trim"[^>]*>', "i").exec(html); const b = m ? m[0] : ""; const r = /data-refine="([^"]*)"/.exec(b); return { b, refine: r ? JSON.parse(r[1].replace(/&quot;/g, '"').replace(/&amp;/g, "&")) : undefined, shown: html.includes(lbl) }; };
+  const html = sellsForNarrowHtml({ refineOptions: [trimOpt] }, { interactive: true }), p = pill(html, "Autobiography");
+  ok(!!p.b && p.shown && /sfc-pn">3</.test(html), "trim pill: the card prints the engine's trim pill with its label and its count of 3");
+  ok(JSON.stringify(p.refine) === JSON.stringify(trimOpt.refine), "trim pill: a click sends the engine's refine unchanged ({trim: Autobiography}), nothing added or lowercased by the page");
+  ok(sellsForNarrowHtml({ refineOptions: [trimOpt] }, {}) === "", "trim pill: a page that is not interactive prints no pill (the pills act, so they print only where they can)");
+  ok(sellsForNarrowHtml({ refineOptions: [{ ...trimOpt, ofOptions: true }] }, { interactive: true }) === "", "trim pill: an option the headline already shows (ofOptions) is not printed twice");
+  const ob = fs.readFileSync("public/js/onebox.js", "utf8"), nb = fs.readFileSync("api/buy.js", "utf8");
+  ok(/class="sfc-label">Narrow by</.test(ob) && /querySelectorAll\("\[data-refine\]"\)/.test(ob) && /JSON\.parse\(b\.getAttribute\("data-refine"\)\)/.test(ob) && /mergeRefine\(Object\.assign\(\{\}, ref, \{ label: label \}\)\)/.test(ob), "trim pill: Market Check prints it under Narrow by and re-asks the engine with the pill's own refine");
+  ok(!/refineOptions/.test(nb) && !/sellsForNarrowHtml/.test(nb), "trim pill: Find's own page builds no refine pill (its See the sales opens Market Check, which prints the engine's)");
+  // mutants: a page that rebuilds the refine from the label, or drops the count, is caught by the same assertions
+  const mutHtml = html.replace(/data-refine="[^"]*"/, 'data-refine="' + JSON.stringify({ trim: "autobiography" }).replace(/"/g, "&quot;") + '"'), pm = pill(mutHtml, "Autobiography");
+  ok(JSON.stringify(pm.refine) !== JSON.stringify(trimOpt.refine), "trim pill mutant: a refine rebuilt from the label is caught");
+  ok(!/sfc-pn">3</.test(html.replace(/<span class="sfc-pn">3<\/span>/, "")), "trim pill mutant: a pill with no count is caught"); }
 console.log(`findCardShapeCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

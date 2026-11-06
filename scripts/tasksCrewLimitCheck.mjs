@@ -1,3 +1,4 @@
+// clock: real-ok the only reads of the clock are the forged and expired crew cookie times, built from the real now, and no date here is written as a literal (Lane E, Nov 5 2026)
 // TASKS CREW LIMIT CHECK (Lane S, Nov 5 2026; NOT live). Ten active Tasks for the signed crew cookie only; three for everyone else. It tries a 4th Task on every door that must stay at three and requires refusal with max 3,
 // and proves the crew door gets ten (11th refused, status line "of 10"):
 //   free (max 3): no cookie, a forged crew cookie, an expired one (valid signature), a tester cookie, a seat cookie, a shape-only "gas_crew=ok", a ?crew=<code> query, an x-crew header, a user object carrying a made-up taskMax,

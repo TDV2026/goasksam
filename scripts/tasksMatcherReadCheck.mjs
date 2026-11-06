@@ -1,3 +1,4 @@
+// clock: real-ok every date is built from the real now (the run's own moment), no literal date, so the verdict does not change with the day (Lane E, Nov 5 2026)
 // TASKS MATCHER READ CHECK (Lane S, Nov 5 2026). The matcher used to read at most 500 Tasks, unordered ("tasks?state=in.(running,needs_you,paused)&select=*&limit=500"), so past 500 running or paused Tasks
 // some were silently never matched (50 full accounts at ten each is 500). Now: an ordered, paged read with no cap, a run that stops STARTING Tasks at 80% of the function limit and defers the rest, and a fair order
 // (least recently looked at first) so deferred Tasks head the next run. This check uses more than 500 fixtures:

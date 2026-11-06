@@ -16,7 +16,7 @@ const F = await imp("lib/live/featuredHistory.js"), { mintCrewCookieValue } = aw
 const { MEASURE } = await imp("scripts/homeFindMeasure.mjs");
 const SHOTS = process.argv.includes("--shots") ? path.resolve(process.argv[process.argv.indexOf("--shots") + 1] || "docs/design/preview") : null; if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 let pass = 0, fail = 0; const out = []; const ok = (c, m) => { if (c) pass++; else { fail++; out.push("FAIL " + m); } };
-const NOW = Date.parse("2026-11-05T12:00:00Z"), DAY = 86400000, VIN = "WP0AB29988S783456", crew = "gas_crew=" + mintCrewCookieValue();
+const NOW = Math.floor(Date.now() / 3600e3) * 3600e3, DAY = 86400000, VIN = "WP0AB29988S783456", crew = "gas_crew=" + mintCrewCookieValue();
 const live = (o = {}) => ({ id: "L1", source: "bringatrailer", url: "https://bringatrailer.com/listing/2008-porsche-911-1/", listing_title: "2008 Porsche 911 Carrera", year: 2008, make: "Porsche", model: "911", vin_norm: VIN, mileage: 34000, mileage_unit: "miles", end_time: new Date(NOW + 2 * DAY).toISOString(), photo_url: "https://img.example.com/cur-1.jpg", status: "live", ...o });
 const sale = (o = {}) => ({ kind: "sale", date: "2022-05-14", house: "Bring a Trailer", url: "https://bringatrailer.com/listing/2008-porsche-911-0/", mileage: 30000, priceUsd: 61000, image: "https://img.example.com/prev-0.jpg", year: 2008, make: "Porsche", model: "911", vinNorm: VIN, ...o });
 const attempt = (o = {}) => ({ kind: "attempt", date: "2021-03-02", house: "Cars & Bids", url: "https://carsandbids.com/auctions/abc/", mileage: 29000, bidUsd: 52000, status: "not_sold", image: "https://img.example.com/prev-a.jpg", year: 2008, make: "Porsche", model: "911", vinNorm: VIN, ...o });

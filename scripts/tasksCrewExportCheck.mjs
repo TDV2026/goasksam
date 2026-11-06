@@ -1,3 +1,4 @@
+// clock: real-ok the only reads of the clock are the forged and expired crew cookie times, built from the real now, and no date here is written as a literal (Lane E, Nov 5 2026)
 // TASKS CREW EXPORT AND BADGE CHECK (Lane S, Nov 5 2026; crew only, NOT live). Two things Lane E's Tasks preview reads, and the proof a non crew request can never read them.
 //   crewTaskLimit() / CREW_TASK_LIMIT (lib/tasks/limit.js): page code reads the crew number there and never types it. The number is code, not a grant, so:
 //     - the API door tells a crew request ten (limit.max, limit.statusLine, counts.tasks.max, counts.line) and EVERY other request three, in the summary and in the list;

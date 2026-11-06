@@ -1,3 +1,4 @@
+// clock: real-ok the one window is built from the real now (36 hours back), no literal date, so the verdict does not change with the day (Lane E, Nov 5 2026)
 // TASKS RUN TIME CHECK (Lane S, Nov 5 2026). Nightly: reads the last 36 hours of the matcher's own log rows (app_usage_events, event_type tasks_run, written by api/tasks.js on every run with ms, tasks, deferred and limit_ms) and FAILS when
 // any run took more than 60% of the function limit (lib/tasks/runBudget.js ALARM_FRACTION), or when runs are deferring Tasks (the budget is already biting). It also prints the real numbers: runs, Tasks per run, slowest run, deferred.
 //   node scripts/tasksRunTimeCheck.mjs            needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (the nightly job has them); prints SKIP, never a pass, without

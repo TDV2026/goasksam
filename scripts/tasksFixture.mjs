@@ -2,11 +2,13 @@
 // The task rows are shaped like api/tasks.js action list (words, filters, summary, state, unread, overview) with the limit facts from lib/tasks/limit.js limitFacts, so the page prints what the real API would send.
 import { limitFacts } from "../lib/tasks/limit.js";
 const pic = (label, a, b) => "data:image/svg+xml;base64," + Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="900" height="600" fill="url(#g)"/><text x="40" y="560" font-family="Georgia,serif" font-size="34" fill="#fff" fill-opacity=".8">${label}</text></svg>`).toString("base64");
-export const NOW = Date.parse("2026-11-05T12:00:00Z");
+// Every moment is built from the real clock (the hour), so no verdict changes the day it runs; a fixed 2022 sale is a past fact and cannot expire.
+export const NOW = Math.floor(Date.now() / 3600e3) * 3600e3;
+export const HOUR = 3600e3, at = h => new Date(NOW + h * HOUR).toISOString();
 export const demoFixture = () => ({ request: "Find me a black manual 997 Carrera under $70,000 within 300 miles of Chicago",
-  car: { title: "2008 Porsche 911 Carrera", platform: "Sample Platform", url: "https://example.test/live/997", photo: pic("Sample photo, live match", "#2c4a63", "#8aa3b8"), live: true, endsAt: "2026-11-08T18:00:00Z", priceLabel: "Current bid $54,000", mileage: 41200, location: "Naperville, Illinois", why: "Black, manual, a 997 and inside your budget and distance." },
+  car: { title: "2008 Porsche 911 Carrera", platform: "Sample Platform", url: "https://example.test/live/997", photo: pic("Sample photo, live match", "#2c4a63", "#8aa3b8"), live: true, endsAt: at(72), priceLabel: "Current bid $54,000", mileage: 41200, location: "Naperville, Illinois", why: "Black, manual, a 997 and inside your budget and distance." },
   previous: { kind: "sold", date: "May 2022", platform: "Sample Platform", mileage: 36800, price: 61000, photo: pic("Sample photo, earlier sale", "#3b3a36", "#9a9486"), url: "https://example.test/sold/997", historyUrl: "/vin/WP0AB29988S783456" },
-  matchedAt: "2026-11-05T09:00:00Z", checkedAt: "2026-11-05T11:30:00Z" });
+  matchedAt: at(-3), checkedAt: at(-0.5) });
 const ov = (live, fresh) => ({ live: live ? `${live} live ${live === 1 ? "car meets" : "cars meet"} the whole Task.` : "No live car meets the whole Task yet.", fresh: fresh ? `${fresh} new since you last looked.` : "", liveCount: live, cars: live === 1 ? "car" : "cars" });
 export const tasksFixture = (max = 10) => { const tasks = [
   { id: "11111111-1111-4111-8111-111111111111", kind: "hunt", state: "running", words: "A black manual 997 Carrera under $70k within 300 miles of Chicago", filters: { colour: "black", gearbox: "manual", budget_max: 70000, location: "Chicago", radius_miles: 300 }, criteria: ["black", "manual", "under $70,000", "within 300 miles of Chicago"], summary: "Sam is looking for a black manual 997 Carrera under $70,000 within 300 miles of Chicago.", unread: 2, overview: ov(2, 2), updates: [] },
@@ -19,4 +21,4 @@ export const tasksFixture = (max = 10) => { const tasks = [
 export const lookingFixture = () => ({ rows: [
   { ref: "w1", kind: "watch", what: "Any 964 Carrera under $90,000", detail: "A watch on every new 964 Carrera listing.", start_href: "", start_label: "" },
   { ref: "w2", kind: "watch", what: "This exact car: 2003 BMW M3, VIN WBSBL93403JR12345", detail: "Watching this car.", start_href: "", start_label: "" },
-  { ref: "a1", kind: "alert", what: "1996 Porsche 993 Carrera", detail: "An email about two hours before bidding ends.", ends_at: "2026-11-08T18:00:00Z" }], counts: { total: 3, line: "2 watches and 1 before-it-ends email. They do not use up your Tasks." } });
+  { ref: "a1", kind: "alert", what: "1996 Porsche 993 Carrera", detail: "An email about two hours before bidding ends.", ends_at: at(72) }], counts: { total: 3, line: "2 watches and 1 before-it-ends email. They do not use up your Tasks." } });
