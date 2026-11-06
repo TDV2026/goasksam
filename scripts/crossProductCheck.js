@@ -380,7 +380,7 @@ function compareField(name, values) {
 // Best-effort "why" for a mismatching spec, grounded in the actual code paths (not guessed) -
 // per Sam's ask: "Print the reason where you can tell". Each reason names the file and function
 // on each side so the mismatch can be assigned. Silent when no known pattern explains it.
-function diagnoseReasons(row, { marketCheck, buy, sell, tasks }) {
+export function diagnoseReasons(row, { marketCheck, buy, sell, tasks }) {
   const out = [];
   const countMismatch = row.compare.find(c => c.field === "count" && c.status === "MISMATCH");
   const lowHighMismatch = row.compare.some(c => (c.field === "low" || c.field === "high") && c.status === "MISMATCH");
@@ -405,10 +405,13 @@ function diagnoseReasons(row, { marketCheck, buy, sell, tasks }) {
   // (specOf's resolvedVehicle param -> enrichForBuy, never resolveVehicle a second time). A mismatch
   // still landing on this branch after that fix is a NEW regression, not this historical class.
   if ((!buy.ok || !tasks.ok) && (marketCheck.ok || sell.ok)) {
-    out.push("Buy/Tasks (lib/live/search.js specOf, via familyMarket's resolvedVehicle param) failed " +
-      "to resolve this spec while resolveVehicle (lib/vehicle.js, used directly by Market Check/Sell, " +
-      "and by Buy/Tasks' own first resolve) did - since the one-resolver fix this should no longer be " +
-      "a lossy double-resolve; check specOf/enrichForBuy directly for what dropped the car.");
+    // Say what each failing lane ITSELF reported (Nov 2026, nightly #132 item 4): a cold stored row ("pending") was worded as a failed resolve, which sent the 1985 Ferrari 308 GTS Spider
+    // reading to the resolver when the spec had simply not been stored yet. The resolver sentence is kept for a lane that really did not resolve.
+    const failing = [["Buy", buy], ["Tasks", tasks]].filter(([, l]) => !l.ok);
+    const pending = failing.filter(([, l]) => /^pending\b/.test(String(l.reason || ""))), unresolved = failing.filter(([, l]) => /no spec|did not resolve|unresolved|no market read/i.test(String(l.reason || ""))), other = failing.filter(x => !pending.includes(x) && !unresolved.includes(x));
+    if (pending.length) out.push(`${pending.map(([n]) => n).join(" and ")} (lib/live/search.js listingMarket) found no stored spec_market_cache row for this spec yet and started the engine behind the response: a COLD STORED ROW, not a resolver failure. The same spec read again after the row is written; the nightly spec-market warm is what fills it.`);
+    if (unresolved.length) out.push(`${unresolved.map(([n]) => n).join(" and ")} (lib/live/search.js specOf, via familyMarket's resolvedVehicle param) did not resolve this spec while resolveVehicle (lib/vehicle.js, used directly by Market Check/Sell) did; check specOf/enrichForBuy directly for what dropped the car. A miss is no longer pinned past a minute (lib/_negCache.js).`);
+    for (const [n, l] of other) out.push(`${n} reported: ${String(l.reason || "no reason given").slice(0, 200)}`);
   }
 
   // Sell diverging on count/latest (rare after the Oct 2026 "one engine ladder" fix - fetchOnlinePool

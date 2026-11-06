@@ -16,6 +16,7 @@ if (args.includes("--mutants")) {
     ["the resolved vehicle is out of specOf's key", "lib/live/search.js", s => s.replace(' + "|" + vehicleFingerprint(resolvedVehicle);', ";"), /\(3\)|\(4\)/],
     ["fingerprint ignores the model", "lib/_negCache.js", s => s.replace("[v.make, v.model, v.parentModel", "[v.make, v.parentModel"), /\(4\)/],
     ["a not-found phrase is kept for good (archiveResolveToken)", "lib/onebox.js", s => s.replace("makeNegCache({ ttlMs: 10 * 60000, max: 2000 })", "makeNegCache({ ttlMs: 1e15, max: 2000 })"), /\(5\)/],
+    ["a pending lane is worded as a failed resolve", "scripts/crossProductCheck.js", s => s.replace("const pending = failing.filter(([, l]) => /^pending\\b/", "const pending = failing.filter(([, l]) => /^NEVERpending\\b/"), /\(6\)/],
     ["a found value expires too", "lib/_negCache.js", s => s.replace("if (e.value != null) return { hit: true, value: e.value };", ""), /\(1\)/]
   ];
   let survivors = 0;
@@ -75,5 +76,14 @@ const O = await imp("lib/onebox.js");
   const realNow = Date.now; Date.now = () => realNow() + 11 * 60000; hits = 1;
   let r2; try { r2 = await O.archiveResolveToken(["Wibblewobble"], env, []); } finally { Date.now = realNow; }
   ok("(5) after ten minutes the phrase is looked up again and the archive that grew now places it", r2 && r2.make === "Foomaker", JSON.stringify(r2)); }
+// (6) the reason printed for a failing Buy/Tasks lane is the lane's own: a cold stored row is not worded as a failed resolve
+{ const X = await imp("scripts/crossProductCheck.js");
+  const row = { compare: [] }, okL = { ok: true }, pend = { ok: false, reason: "pending (spec_market_cache miss, engine call in flight)" }, unres = { ok: false, reason: "no spec (vehicle did not resolve to a buildable spec)" };
+  const p1 = X.diagnoseReasons(row, { marketCheck: okL, sell: okL, buy: pend, tasks: okL }).join(" ");
+  ok("(6) a pending Buy lane is named a cold stored row, not a failed resolve (the 1985 Ferrari 308 GTS Spider reading)", /COLD STORED ROW/.test(p1) && !/did not resolve/.test(p1), p1.slice(0, 120));
+  const p2 = X.diagnoseReasons(row, { marketCheck: okL, sell: okL, buy: okL, tasks: unres }).join(" ");
+  ok("(6) a lane that really did not resolve keeps the resolver sentence", /did not resolve this spec/.test(p2) && !/COLD STORED ROW/.test(p2));
+  const p3 = X.diagnoseReasons(row, { marketCheck: okL, sell: okL, buy: { ok: false, reason: "boom" }, tasks: okL }).join(" ");
+  ok("(6) any other failure prints the lane's own reason", /Buy reported: boom/.test(p3)); }
 console.log(failed ? `\nspecPinCheck: ${failed} FAILED` : "\nspecPinCheck: all passed");
 process.exit(failed ? 1 : 0);
