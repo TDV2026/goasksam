@@ -878,6 +878,13 @@ try {
 } catch (e) {
   record("oneOptionPoolCheck (scripts/oneOptionPoolCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// warmResolveCheck (Lane B, Nov 6 2026): the warm resolves a typed name the way the page does (the six pre-war cars the warm refused as rung_label_blank were an identity with no model, not an apart answer with no label); the guard names the cause; no warm uses the bare resolver; mutants in scripts/warmResolveCheck.mjs --mutants.
+try {
+  const out = execSync("node scripts/warmResolveCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("warmResolveCheck (scripts/warmResolveCheck.mjs)", "PASS", (out.match(/warmResolveCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("warmResolveCheck (scripts/warmResolveCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });

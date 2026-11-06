@@ -7,7 +7,7 @@ import { unusedFieldsFor } from "../lib/live/unusedWords.js";
 import { tryRefresh } from "../lib/refreshGate.js";
 import { resolveVehicle, sanitizeResolvedVehicle, primeResolver } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
-import { mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
+import { archiveTitleModel, mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
 import { timedShareId } from "../lib/shareId.js";
 import { typedAttributesIn, typedAttributeByKey } from "../lib/typedAttributes.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
@@ -3307,11 +3307,8 @@ async function handler(req, res) {
         // title resolution, so an unresolved make+token ("Eagle Talon", a pre-war marque) resolves
         // from the sale titles instead of a generic re-ask.
         if (!(resolution.vehicle && resolution.vehicle.model) && !car.acceptModelLevel && typeof rawSearch === "string") {
-          const cleaned = rawSearch.replace(/\b(19|20)\d\d\b/g, " ").replace(/\s+/g, " ").trim();
-          const toks = cleaned.split(/\s+/).filter(t => t.length >= 2);
-          const phrases = [cleaned, ...toks.filter(t => t.length >= 3)].filter((v, i, a) => v && a.indexOf(v) === i);
           try {
-            const tok = await archiveResolveToken(phrases, { supabaseUrl, supabaseKey }, toks);
+            const tok = await archiveTitleModel(rawSearch, { supabaseUrl, supabaseKey });   // the one title read (lib/vehicle.js), the same the warm uses
             if (tok && tok.make && tok.model) {
               // Trust the archive-resolved make (issue 1): a typed make that exists in the titles must
               // win over the resolver's fuzzy guess ("Eagle Talon" -> Eagle Talon, never "Talbot").
