@@ -69,7 +69,8 @@ globalThis.fetch = async (url, init = {}) => {
     const sel = u.searchParams.get("select") || "";
     if (sel === "mileage_text") return new Response(JSON.stringify(ROWS.map(r => ({ mileage_text: r.mileage_text })).concat(ROWS.map(r => ({ mileage_text: r.mileage_text })))), { status: 200 });
     const gt = (u.searchParams.get("id") || "").replace("gt.", ""), lim = Number(u.searchParams.get("limit") || 500);
-    const todo = ROWS.filter(r => r.id > gt && r.condition_version !== J_VERSION).slice(0, lim); calls.push({ read: todo.length }); nowT += calls.length > slowAfter && slowAfter >= 0 ? 9000 : 100;
+    const sp = u.searchParams, col = (k, r) => { const c = sp.get(k); if (!c) return true; if (c.startsWith("eq.")) return r[k] === c.slice(3); if (c.startsWith("gt.")) return String(r[k]) > c.slice(3); if (c.startsWith("ilike.")) return String(r[k] || "").toLowerCase() === c.slice(6).toLowerCase(); if (c === "not.is.null") return r[k] != null; return true; };
+    const todo = ROWS.filter(r => r.id > gt && (!sp.has("or") || r.make == null || r.model == null) && col("make", r) && col("model", r) && r.condition_version !== J_VERSION).sort((x, y) => (x.id < y.id ? -1 : 1)).slice(0, lim); calls.push({ read: todo.length }); nowT += calls.length > slowAfter && slowAfter >= 0 ? 9000 : 100;
     return new Response(JSON.stringify(todo), { status: 200 });
   }
   return new Response("[]", { status: 200 });

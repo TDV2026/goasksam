@@ -58,10 +58,13 @@ function world(n, opts = {}) {
       }
       reads.push(u.search);
       if (st.failBatchRead) return new Response("boom", { status: 500 });
-      const gt = (u.searchParams.get("id") || "").replace("gt.", ""), lim = Number(u.searchParams.get("limit") || 500), isNull = u.searchParams.has("condition_version") && /is\.null/.test(u.searchParams.get("condition_version"));
+      const gt = (u.searchParams.get("id") || "gt.").replace("gt.", ""), lim = Number(u.searchParams.get("limit") || 500), isNull = u.searchParams.has("condition_version") && /is\.null/.test(u.searchParams.get("condition_version"));
       const stale = /neq\./.test(u.searchParams.get("condition_version") || "");
       const hasOr = u.searchParams.has("or");
-      const todo = rows.filter(r => r.id > gt && (hasOr ? r.condition_version !== T.TIER_VERSION : isNull ? r.condition_version == null : stale ? r.condition_version != null && r.condition_version !== T.TIER_VERSION : true)).slice(0, lim);
+      const f = k => u.searchParams.get(k) || "", ilike = (v, pat) => String(v || "").toLowerCase() === pat.replace("ilike.", "").toLowerCase();
+      const col = (k, r) => { const c = f(k); if (!c) return true; if (c.startsWith("eq.")) return r[k] === c.slice(3); if (c.startsWith("gt.")) return String(r[k]) > c.slice(3); if (c.startsWith("ilike.")) return ilike(r[k], c); if (c === "not.is.null") return r[k] != null; return true; };
+      let todo = rows.filter(r => r.id > gt && col("make", r) && col("model", r) && (hasOr ? (r.make == null || r.model == null) && r.condition_version == null : isNull ? r.condition_version == null : stale ? r.condition_version != null && r.condition_version !== T.TIER_VERSION : true));
+      const ord = f("order") || "id"; todo = todo.slice().sort((x, y) => ord === "id" ? (x.id < y.id ? -1 : 1) : /^model/.test(ord) ? String(x.model).localeCompare(String(y.model)) || (x.id < y.id ? -1 : 1) : String(x.make).localeCompare(String(y.make)) || String(x.model).localeCompare(String(y.model)) || (x.id < y.id ? -1 : 1)).slice(0, lim);
       st.now += st.readMs; return new Response(JSON.stringify(todo.map(({ writes: _w, condition_tier: _t, condition_evidence: _e, ...r }) => r)), { status: 200 });
     }
     return new Response("[]", { status: 200 });
