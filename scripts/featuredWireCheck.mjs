@@ -1,3 +1,4 @@
+// clock: real-ok every moment is built from the real hour (NOW) and the fixtures' dates are offsets from it; the one literal dates are past sales, which cannot expire (Lane E, Nov 5 2026)
 // THE FEATURED HISTORY, WIRED TO LANE B'S FIELD (Lane E, Nov 5 2026; crew only, NOT LIVE). A local run, no network and no production data: Lane B's own refresh (lib/live/featuredHistory.js refreshFeaturedHistory) fills a fake store from one live car and its earlier
 // record, readFeaturedHistory serves it, and the real crew route api/crewPage.js (page=preview-home, crew cookie) prints it. What it proves, each with a mutant that must fail without the fix:
 //   1 SOLD, LISTED, HIDDEN: a stored sold pick prints the sold layout; a stored listed pick prints "No completed sale confirmed" and no price; no pick, a stale pick, an ended auction, a listing no longer live, an unreadable store or a reader that throws prints NO section.
