@@ -2308,6 +2308,12 @@ try {
   record("Desk item 1: no common word flips a condition tier on its own (project, custom, incomplete, crash, collision, struck, receipts, numbers matching, factory paint, tuned, lowered, swapped, upgraded, a none modifications field, Not salvage), the real cases still fire, ct2 (scripts/tierWordsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/cardQueryReadBackCheck.mjs", { encoding: "utf8", timeout: 400000 });
+  record("Find card: the Market Check question a card carries reads back as the card's own spec (1995 Ferrari F355 Spider read 14 sales on the card and 12 behind its button), and the live sample asks the card's own question (scripts/cardQueryReadBackCheck.mjs, mutants in cardQueryReadBackMutants.mjs)", "PASS", (out.match(/cardQueryReadBackCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find card: the Market Check question a card carries reads back as the card's own spec (1995 Ferrari F355 Spider read 14 sales on the card and 12 behind its button), and the live sample asks the card's own question (scripts/cardQueryReadBackCheck.mjs, mutants in cardQueryReadBackMutants.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || String(e.message || e).slice(0, 300));
+}
+try {
   const out = execSync("node scripts/tierSpeedCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk item 1: the condition tier job takes sales model by model (each model read once), gives the same tiers as the id-order job, judges slowness on the database's own request times, and tiers the Desk's and most searched models first (scripts/tierSpeedCheck.mjs)", "PASS", (out.match(/tierSpeedCheck: .*/) || [""])[0]);
 } catch (e) {

@@ -27,14 +27,17 @@ for (const q of qs) {
   for (let i = 0; i < 8; i++) { e = await enrich(ids); if (!(e.cards || []).some(c => !c.market || c.market.kind === "pending")) break; await new Promise(r => setTimeout(r, 15000)); }
   const titles = await p.evaluate(ids => Object.fromEntries(ids.map(id => { const a = document.querySelector(`article.car[data-id="${id}"]`); return [id, { title: a.querySelector(".trow h3").textContent.trim(), sam: [...a.querySelectorAll(".sl p")].map(x => x.textContent).join(" ") }]; })), ids);
   const v0 = e.engineVersion;
-  const want = [...new Set((e.cards || []).map(c => asTyped(titles[c.id] && titles[c.id].title)))];
+  // THE CARD'S OWN QUESTION (Nov 5 2026): the Market Check read is the one the card's button asks (market.query), not the listing title: "1995 Ferrari F355 Spider" read 14 sales, the card's own
+  // question "1995 Ferrari 355 Spider" read 12. A card with no question falls back to its title, cleaned as before.
+  const askOf = c => (c.market && c.market.query) || asTyped(titles[c.id] && titles[c.id].title);
+  const want = [...new Set((e.cards || []).map(askOf))];
   const rows = {};
   for (let i = 0; i < want.length; i += 3) { const j = await engine(want.slice(i, i + 3)); for (const r of (j.rows || [])) rows[r.q] = r; }
   const v1 = (await enrich(ids.slice(0, 1))).engineVersion;
   console.log(`== ${q}  (engine ${v0}${v1 !== v0 ? `, CHANGED to ${v1} during the check` : ""})`);
   if (v1 !== v0) diff++;
   for (const c of e.cards || []) {
-    const t = asTyped(titles[c.id] && titles[c.id].title), m = c.market || {}, mc = rows[t] && rows[t].lanes && rows[t].lanes.marketCheck;
+    const m = c.market || {}, t = askOf(c), mc = rows[t] && rows[t].lanes && rows[t].lanes.marketCheck;
     if (!m.kind || m.kind === "pending") { pend++; console.log(`  PENDING ${c.id} "${t}"`); continue; }
     if (!mc) { diff++; console.log(`  NO ENGINE READ ${c.id} "${t}"`); continue; }
     const cl = m.kind === "range" ? [m.low, m.high] : [null, null], el = [mc.low ?? null, mc.high ?? null];
