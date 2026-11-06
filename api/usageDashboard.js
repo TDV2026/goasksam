@@ -3364,7 +3364,8 @@ if (task === "optiondetail") {
     return res.status(200).json({ task: "livesearch", dbBytes: supabaseBytesSoFar() - dbBytes0, q, vehicle: { make: v.make, model: v.model, parentModel: v.parentModel || null, trim: v.trim || null, genCode: v.genCode || null, year: v.year || null }, gens: f.gens, noun: nounFor(v, f), count: rows.length, yearWindow,
       panel: panel && !panel.error ? { count: panel.total, yearWindow: panel.yearWindow, titles: (panel.rows || []).map(r => r.listing_title) } : panel,
       cards: rows.map(x => ({ id: x.r.id, title: x.r.listing_title, year: x.r.year, model: x.r.model || null, source: x.r.source, country: x.r.country || null, unknown: x.unknown })),
-      leftOut: why, modelWordLeftOut: trace.filter(t => t.why === "model word not in title").slice(0, 40).map(t => t.title) });
+      leftOut: why, modelWordLeftOut: trace.filter(t => t.why === "model word not in title").slice(0, 40).map(t => t.title),
+      excluded: trace.filter(t => /^engine exclusion/.test(t.why)).slice(0, 40).map(t => ({ title: t.title, why: t.why })) });   // Nov 2026: each exclusion names its reason
   }
   // task=bodyaudit (Lane B, Oct 15 2026, Sam's Job 1c, read-only): for one venue since a date, how the stored
   // body_style relates to the listing's own title and to the model's own facts (lib/modelRules.js). Zero OCD.

@@ -961,30 +961,65 @@ export const LIVE_LISTING_CASES = [
   { q: "1989 BMW", url: "https://bringatrailer.com/listing/1989-bmw-325i-230/", expectAbroadMention: true },
   { q: "2021 BMW X3 M40i", url: "https://carsandbids.com/auctions/rj0VnZW2/2021-bmw-x3-m40i", expectAbroadMention: false }
 ];
-export async function checkLiveListingDisclosure(env, cases = LIVE_LISTING_CASES) {
+// A live_listings row is LIVE only while its status is live AND its end time has not passed (the engine's own rule: lib/live/search.js
+// skips "ended" rows). The pull marks a row ended up to a quarter hour late, so a row can read status "live" past its end; that car
+// is ended, and a search must never be expected to show it (Nov 2026: the two named BMWs had ended, the check expected them live).
+export function liveStateOf(row, now = Date.now()) {
+  if (!row) return "absent";
+  if (String(row.status || "").toLowerCase() !== "live") return "ended";
+  if (row.end_time && Date.parse(row.end_time) <= now) return "ended";
+  return "live";
+}
+// deps: { select, converse, now } so the check runs offline. The two rules: a LIVE car is found or disclosed (abroad) and never reported
+// as not live; an ENDED or absent car is never shown as a live match.
+export async function checkLiveListingDisclosure(env, cases = LIVE_LISTING_CASES, deps = {}) {
+  const select = deps.select || (q => supabaseSelect(env, q)), say = deps.converse || (a => converse(env, a)), now = deps.now ? deps.now() : Date.now();
   const out = { ok: true, cases: [] };
   for (const c of cases) {
     const row = { q: c.q, url: c.url };
     try {
-      const inPool = await supabaseSelect(env, `live_listings?url=eq.${encodeURIComponent(c.url)}&select=id,status&limit=1`).catch(() => null);
-      row.inPool = Array.isArray(inPool) && inPool.length > 0;
-      const r = await converse(env, { messages: [c.q] });
+      const got = await select(`live_listings?url=eq.${encodeURIComponent(c.url)}&select=id,status,end_time&limit=1`).catch(() => null);
+      row.state = liveStateOf(Array.isArray(got) ? got[0] : null, now);
+      row.inPool = row.state !== "absent";
+      const r = await say({ messages: [c.q] });
       row.say = (r && r.say) || null;
       row.near = (r && r.near) || null;
-      if (!row.inPool) {
-        // A listing genuinely absent from our own pool can never be asserted as found - that is a
-        // pull/vendor question, not an engine-logic one (see the job's lane-notes entry). Only check
-        // that the engine never CLAIMS a found-but-filtered car does not exist, which needs no live
-        // row to verify (the sentence shape itself is what regressed before).
-        row.note = "not in live_listings - pull/vendor gap, not asserted as found (see lane-notes)";
-      } else if (r && r.type === "results" && (r.matches || []).some(x => x && x.r && x.r.url === c.url)) {
-        row.found = true;
-      } else if (c.expectAbroadMention) {
-        const mentionsAbroad = /\babroad\b/i.test(String(row.say || ""));
-        row.foundViaAbroadDisclosure = mentionsAbroad;
-        if (!mentionsAbroad) { row.ok = false; out.ok = false; }
-      } else {
-        row.ok = false; out.ok = false; row.reason = "expected to find the car (in pool, no abroad fence expected) but it was not in matches";
+      const shown = !!(r && r.type === "results" && (r.matches || []).some(x => x && x.r && x.r.url === c.url));
+      if (row.state === "live") {
+        if (shown) row.found = true;
+        else if (c.expectAbroadMention) {
+          row.foundViaAbroadDisclosure = /\babroad\b/i.test(String(row.say || ""));
+          if (!row.foundViaAbroadDisclosure) { row.ok = false; out.ok = false; row.reason = "a live car was reported as not live: no match and no abroad disclosure"; }
+        } else { row.ok = false; out.ok = false; row.reason = "a live car was reported as not live: in the pool, live, no abroad fence expected, and not in matches"; }
+      } else if (shown) {
+        row.ok = false; out.ok = false; row.reason = row.state === "ended" ? "an ended auction was shown as a live match" : "a car that is not in the pool was shown as a live match";
+      } else row.note = row.state === "ended" ? "ended: correctly not shown as live (the check no longer expects it)" : "not in live_listings: a pull/vendor gap, not asserted as found";
+    } catch (e) { row.error = String(e && e.message || e); out.ok = false; }
+    out.cases.push(row);
+  }
+  return out;
+}
+
+// LIVE CARS ARE FOUND (Nov 2026): n real live cars (status live, ending in the future), each searched as "year make model" through the same
+// converse entry the page uses; every one must be in the matches, or its search must say why (abroad). A miss names the engine's reason
+// when the injected `why` can (searchLive's trace). deps: { select, converse, why, now }.
+export async function checkLiveCarsFound(env, { n = 12 } = {}, deps = {}) {
+  const select = deps.select || (q => supabaseSelect(env, q)), say = deps.converse || (a => converse(env, a)), now = deps.now ? deps.now() : Date.now();
+  const rows = await select(`live_listings?status=eq.live&end_time=gt.${encodeURIComponent(new Date(now + 3600e3).toISOString())}&year=not.is.null&model=not.is.null&select=id,url,listing_title,year,make,model,end_time&order=id.desc&limit=${Math.max(n * 6, 60)}`);
+  if (!Array.isArray(rows)) return { ok: false, error: "live_listings could not be read", cases: [] };
+  // one per make, so the sample spans the pool instead of one dealer's batch
+  const seen = new Set(), pick = [];
+  for (const r of rows) { const k = String(r.make || "").toLowerCase(); if (!k || seen.has(k) && pick.length < n - 3) continue; seen.add(k); pick.push(r); if (pick.length >= n) break; }
+  const out = { ok: true, checked: pick.length, found: 0, cases: [] };
+  for (const r of pick) {
+    const q = [r.year, r.make, r.model].filter(Boolean).join(" "), row = { q, url: r.url, title: r.listing_title };
+    try {
+      const res = await say({ messages: [q] });
+      row.found = !!(res && res.type === "results" && (res.matches || []).some(x => x && x.r && x.r.url === r.url));
+      if (row.found) out.found++;
+      else {
+        row.disclosed = /\babroad\b/i.test(String((res && res.say) || ""));
+        if (!row.disclosed) { row.ok = false; out.ok = false; row.reason = deps.why ? await deps.why(r, q).catch(() => null) : null; }
       }
     } catch (e) { row.error = String(e && e.message || e); out.ok = false; }
     out.cases.push(row);
