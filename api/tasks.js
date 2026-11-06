@@ -22,7 +22,7 @@ import { supabaseEnv, supabaseSelect, supabaseBytesSoFar } from "../lib/_supabas
 import { validateBearer } from "../lib/_auth.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { limitFacts, taskMaxOf } from "../lib/tasks/limit.js";
-import { taskUserFor, tapUser, badgeCount } from "../lib/tasks/crewGate.js";
+import { taskUserFor, tapUser, badgeCount, badgeFor } from "../lib/tasks/crewGate.js";
 import { TASKS_MAX_DURATION_S, budgetMs } from "../lib/tasks/runBudget.js";
 import { makePace } from "../lib/tasks/sendPace.js";
 import { jobPhrase, notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, draftFresh, startDraft, applyEdit, slotTask, firstRun, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
@@ -109,7 +109,7 @@ async function handler(req, res) {
       // An email tap is ALWAYS the free limit (tapUser carries no crew limit), whatever cookie the tapping browser holds.
       const out = await controlTask(env, tapUser(task), id, act, { via: "email_link" });
       // At the limit the tap changes nothing, and the page says so (it used to say "Searching again." over a Task that stayed paused).
-      if (out && out.blocked) return page(200, "Not started", `<h1>Not started.</h1><p class="task">${tapEsc(task.summary || "")}</p><p>${tapEsc(out.blocked.line)}</p><p><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open your Tasks</a></p>`);
+      if (out && out.blocked) return page(200, "Still paused", `<h1>Still paused.</h1><p class="task">${tapEsc(task.summary || "")}</p><p>Sam can't start it yet. ${tapEsc(out.blocked.line)}</p><p><a href="/tasks/mine">Open your Tasks</a></p>`);
       const after = (out && out.task) || task;
       const restart = act === "pause" && after.state === "paused" ? oneTap(id, "resume") : null;
       return page(200, w.done, `<h1>${tapEsc(w.done)}</h1><p class="task">${tapEsc(task.summary || "")}</p>${restart ? `<p>You can start it again <a href="${restart}">here</a>.</p>` : act === "stop" ? `<p>You can start a new search <a href="/buy">here</a>.</p>` : ""}<p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the Task</a></p>`);
@@ -545,7 +545,8 @@ async function handler(req, res) {
       const working = tasks.filter(t => ["running", "needs_you"].includes(t.state)).length;
       const { standingCounts, badgeFacts } = await import("../lib/live/looking.js");
       const bf = badgeFacts(working, tasks.filter(t => ["running", "needs_you", "paused"].includes(t.state)).length, await standingCounts(env, user.userId), taskMaxOf(user));
-      return res.status(200).json({ tasks: withThreads, count: bf.total, counts: bf, limit: limitFacts(working, taskMaxOf(user)), ...(b.draft ? { draft_ok: !!draftFresh(b.draft) } : {}), suggestions: await suggestions(env, user.userId).catch(() => []), notify: await (async () => { const n = await notifyPrefs(env, user).catch(() => null); if (!n) return n; const { firstAlertPending } = await import("../lib/_email.js"); return { ...n, junk: !!(n.on && working && !env.mem && await firstAlertPending(env, n.email || user.email).catch(() => false)) }; })() });
+      { const badge = badgeFor(isCrewRequest(req) === true, tasks, /^[0-9a-f-]{36}$/.test(String(b.open || "")) ? b.open : null);   // crew only; the key is absent for everyone else and at zero
+      return res.status(200).json({ tasks: withThreads, count: bf.total, counts: bf, ...(badge ? { badge } : {}), limit: limitFacts(working, taskMaxOf(user)), ...(b.draft ? { draft_ok: !!draftFresh(b.draft) } : {}), suggestions: await suggestions(env, user.userId).catch(() => []), notify: await (async () => { const n = await notifyPrefs(env, user).catch(() => null); if (!n) return n; const { firstAlertPending } = await import("../lib/_email.js"); return { ...n, junk: !!(n.on && working && !env.mem && await firstAlertPending(env, n.email || user.email).catch(() => false)) }; })() }); }
     }
     if (b.action === "say") {
       const text = String(b.text || "").trim().slice(0, 2000);
