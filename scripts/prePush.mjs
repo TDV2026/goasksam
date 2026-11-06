@@ -1967,6 +1967,36 @@ try {
   record("engine: a stored row carrying every current rule tag is served and every rule tag is carried by the writer, so a new tag cannot overtake a current row or be forgotten by a fixture (scripts/ruleTagsCurrentCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/sellLabelCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: cross-product Sell lane prints the engine's own label, rung, sibling and counts as given (scripts/sellLabelCheck.mjs)", "PASS", (out.match(/sellLabelCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: cross-product Sell lane prints the engine's own label, rung, sibling and counts as given (scripts/sellLabelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || String(e.message || e).slice(0, 300));
+}
+try {
+  const out = execSync("node scripts/onePickFixtureCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: ONE PICK compares what each page shows and the pick rules hold on synthetic pools through the real pickPlatform and decide (scripts/onePickFixtureCheck.mjs)", "PASS", (out.match(/onePickFixtureCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: ONE PICK compares what each page shows and the pick rules hold on synthetic pools through the real pickPlatform and decide (scripts/onePickFixtureCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || String(e.message || e).slice(0, 300));
+}
+try {
+  const out = execSync("node scripts/liveListingStatusCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: the live-listing check is status aware: an ended auction is never expected live and a live car is never reported as not live (scripts/liveListingStatusCheck.mjs)", "PASS", (out.match(/liveListingStatusCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: the live-listing check is status aware: an ended auction is never expected live and a live car is never reported as not live (scripts/liveListingStatusCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || String(e.message || e).slice(0, 300));
+}
+try {
+  const out = execSync("node scripts/specPinCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: a failed spec resolution is never pinned: a miss expires, a find is kept, and the resolved vehicle is in the spec key (scripts/specPinCheck.mjs)", "PASS", (out.match(/specPinCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a failed spec resolution is never pinned: a miss expires, a find is kept, and the resolved vehicle is in the spec key (scripts/specPinCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || String(e.message || e).slice(0, 300));
+}
+try {
+  const out = execSync("node scripts/specKeyRoundTripCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("engine: a spec key is read back as the car it names, so the recompute never writes a row for a different car than its key (scripts/specKeyRoundTripCheck.mjs)", "PASS", (out.match(/specKeyRoundTripCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engine: a spec key is read back as the car it names, so the recompute never writes a row for a different car than its key (scripts/specKeyRoundTripCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || String(e.message || e).slice(0, 300));
+}
+try {
   const out = execSync("node scripts/stageTimerCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: every cold compute logs its stage milliseconds (engine, trim chips, question rule, sell fields, store) (scripts/stageTimerCheck.mjs)", "PASS", (out.match(/stageTimerCheck: .*/) || [""])[0]);
 } catch (e) {
