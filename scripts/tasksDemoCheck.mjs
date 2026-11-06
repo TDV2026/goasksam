@@ -23,6 +23,8 @@ if (args.includes("--mutants")) {
     [L, 'if (bad.length) return { ok: false, why: "not_honoured:" + bad.join("+") };', '', "(2) every stated criterion holds on the car"],
     [L, 'priceLine: reasonLine("tasks.demo_prior_price", { price: p.price })', 'priceLine: "Sold for $" + p.price', "(4) the earlier-sale line is written inline, not from the reason table"],
     [L, 'priceLabel: reasonLine("tasks.demo_current_bid", { price: bid }),', 'priceLabel: `Current bid $${bid}`,', "(4) the current-bid line is written inline, not from the reason table"],
+    [L, 'bid = num(facts && facts.priceUsd);', 'bid = num(facts && facts.priceUsd) || num(row.current_bid_usd);', "(3) a bid the trust layer cannot state is used from current_bid_usd"],
+    [L, '  const bid = num(facts.priceUsd);\n  const car = {', '  const bid = num(row.current_bid_usd);\n  const car = {', "(3) the price line reads current_bid_usd, not the trust layer"],
     [L, 'if (!liveNow(row, now)) return { ok: false, why: "not_live" };', '', "(3) a car that is not live"],
     [L, 'if (!genuinePhoto(row.photo_url) ||', 'if (false ||', "(3) a placeholder photo"],
     [L, 'const e = evaluateCandidate(row, appearances, { nowMs: now, urlStatus: us });\n      if (e.ok) {', 'const e = pre;\n      if (e.ok) {', "(3) an earlier record whose evidence link is gone"],
@@ -62,7 +64,7 @@ const D = await imp("lib/live/tasksDemo.js"), G = await imp("lib/live/geo.js"), 
 const geo = { listingCoord: G.listingCoord, placeCoord: G.placeCoord, milesBetween: G.milesBetween };
 const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
 const NOW = Math.floor(Date.now() / 3600e3) * 3600e3, IN = h => new Date(NOW + h * 3600e3).toISOString();
-const car = (o = {}) => ({ id: 1, source: "sothebysmotorsport", url: "https://example.test/lot/1", listing_title: "2007 Ferrari F430 6-Speed", year: 2007, make: "Ferrari", model: "F430", vin_norm: "ZFFEW59A670150000", mileage: 18500, mileage_unit: "miles", current_bid_usd: 90000, location: "Williamsburg, VA", country: "US", transmission: "Manual", exterior_color: "Red", photo_url: "https://img.example.test/f430.jpg", end_time: IN(30), status: "live", ...o });
+const car = (o = {}) => ({ id: 1, source: "sothebysmotorsport", url: "https://example.test/lot/1", listing_title: "2007 Ferrari F430 6-Speed", year: 2007, make: "Ferrari", model: "F430", vin_norm: "ZFFEW59A670150000", mileage: 18500, mileage_unit: "miles", current_bid: 90000, current_bid_usd: 90000, currency: "USD", location: "Williamsburg, VA", country: "US", transmission: "Manual", exterior_color: "Red", photo_url: "https://img.example.test/f430.jpg", end_time: IN(30), status: "live", ...o });
 const facts = r => S.listingFacts(r);
 const rec = (o = {}) => ({ kind: "sale", date: "2023-06-01", house: "Bring a Trailer", url: "https://bringatrailer.com/listing/2007-ferrari-f430/", image: "https://img.example.test/old.jpg", mileage: 15000, priceUsd: 181888, vinNorm: "ZFFEW59A670150000", ...o });
 // the injected world: a store, live rows, a matcher that is the honest one by default
@@ -99,8 +101,21 @@ const honest = (f, r) => { const fx = facts(r); return String(r.make).toLowerCas
   ok("(1) a car whose place cannot be placed gets no distance at all", rn && !rn.filters.location && !/within/.test(rn.text), rn && rn.text);
   const abroad = car({ location: "Munich, Germany", country: "DE" }), ra = D.requestFor(abroad, facts(abroad), geo);
   ok("(1) a car abroad gets no distance either", ra === null || !ra.filters.location);
-  const nomiles = car({ mileage: null }), nob = car({ current_bid_usd: null });
+  const nomiles = car({ mileage: null }), nob = car({ current_bid: null, current_bid_usd: null });
   ok("(1) no stated mileage or no price: no request is written", D.requestFor(nomiles, facts(nomiles), geo) === null && D.requestFor(nob, facts(nob), geo) === null);
+}
+// (1b) THE PRICE IS THE TRUST LAYER'S (Nov 6 2026): a bid liveTrust cannot state in dollars is no price. The demo never falls back to current_bid_usd, never prints "Current bid $X" for it, and has no car without a price (the budget criterion needs one).
+{
+  const cases = [["a currency not stated", { currency: null }], ["a pound figure with no dollar conversion", { currency: "GBP", current_bid_usd: null }], ["a $0 bid", { current_bid: 0, current_bid_usd: 0 }], ["a figure that may not be dollars (a euro lot stored as USD)", { currency: "USD", location: "Munich, Germany", country: "DE" }]];
+  for (const [name, o] of cases) {
+    const r = car(o), fx = facts(r), W = world([r]), p = await D.proveCar(env, r, W.d);
+    ok(`(1) ${name}: the trust layer states no dollar price (${fx.priceState})`, fx.priceUsd == null || fx.priceState === "suspect" || fx.priceState === "unconverted" || !(Number(fx.priceUsd) > 0), `${fx.priceUsd} ${fx.priceState}`);
+    ok(`(3) ${name}: no request, no demo car, so no "Current bid" line`, D.requestFor(r, fx, geo) === null && p.ok === false && !(p.field && p.field.car), p.why);
+  }
+  const good = car({ currency: "GBP", current_bid: 70000, current_bid_usd: 91000 }), gf = facts(good), gp = await D.proveCar(env, good, world([good]).d);
+  const only = car({ currency: "USD", current_bid: 88000, current_bid_usd: null }), of = facts(only), op = await D.proveCar(env, only, world([only]).d);
+  ok("(3) a dollar lot whose figure is only on current_bid prints that figure, never a $0 or a column the trust layer did not state", op.ok && of.priceUsd === 88000 && op.field.car.priceLabel === "Current bid $88,000", op.ok ? op.field.car.priceLabel : op.why);
+  ok("(4) a pound lot with a stated dollar conversion prints the trust layer's dollar figure, not the pound one", gp.ok && gp.field.car.priceLabel === "Current bid $" + Math.round(gf.priceUsd).toLocaleString("en-US"), gp.ok ? gp.field.car.priceLabel : gp.why);
 }
 // (2) reader, matcher and honouring
 {

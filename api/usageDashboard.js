@@ -2151,6 +2151,34 @@ async function handleOps(req, res) {
       return res.status(200).json({ task: "resolvestages", ocdSpend: 0, writes: 0, direct, rows });
     } finally { globalThis.fetch = realFetch; }
   }
+  // task=crewkeys (Lane B, Nov 6 2026; READ-ONLY, zero OldCarsData, zero writes): what the two crew keys (the Homepage history pick and the Tasks demo pick) hold now: held or not, the car, the request and criteria, the earlier record, when it was
+  // selected and last checked. &funnel=1 also runs each refresh's selection on the live pool with the stored pick hidden and nothing written, and returns the counts at each step (live, with a VIN, with an earlier record, screened, eligible,
+  // tried, and why each tried car failed). Lane F reads it. Behind the header credential like every ops task.
+  if (task === "crewkeys") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { crewKeysReport } = await import("./pullLive.js");
+    return res.status(200).json(await crewKeysReport(env, { funnel: String(req.query?.funnel || "") === "1" }));
+  }
+  // task=bodyaudit (Lane B, Nov 6 2026; READ-ONLY, zero OldCarsData, zero writes): how many rows carry a stored body the model never came in (lib/modelBodies.js), every body value swept, the models with the most, and the models with an
+  // open body stored and nothing known about them (the next MODEL_BODY_FACTS candidates). Live listings always; &archive=1 also reads the newest &pages= (default 20, max 200) pages of 1,000 archive sales.
+  if (task === "bodyaudit") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { auditBodies } = await import("../lib/bodyAudit.js");
+    const live = await supabaseSelectAll(env, "live_listings?status=eq.live&select=id,source,listing_title,make,model,year,body,mileage,mileage_unit,current_bid,current_bid_usd,currency,country,location");
+    const out = { task: "bodyaudit", ocdSpend: 0, writes: 0, live: Array.isArray(live) ? auditBodies(live) : { readFailed: true } };
+    if (String(req.query?.archive || "") === "1") {
+      const pages = Math.max(1, Math.min(200, Number(req.query?.pages) || 20)), size = 1000, rows = []; let before = null, failedPage = null;
+      for (let pg = 0; pg < pages; pg++) {
+        const got = await supabaseSelect(env, `sales_archive?select=sale_date,listing_title,make,model,year,body_style&vehicle_type=eq.car${before ? `&sale_date=lt.${before}` : ""}&order=sale_date.desc&limit=${size}`);
+        if (!Array.isArray(got)) { failedPage = pg; break; }
+        if (!got.length) break;
+        rows.push(...got); before = got[got.length - 1].sale_date;
+        if (got.length < size) break;
+      }
+      out.archive = { newestScanned: rows.length, oldestSaleDate: before, failedPage, ...auditBodies(rows) };
+    }
+    return res.status(200).json(out);
+  }
   // task=foreigncars (Lane B, Oct 31 2026; READ-ONLY, zero OldCarsData, zero writes): the cars whose sales in the archive were listed in pounds or euros (raw_record currency), newest first, grouped by year make model with the sale countries, so a check can compare a stored read of them.
   if (task === "foreigncars") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });

@@ -829,6 +829,20 @@ try {
 } catch (e) {
   record("cardPopupCountCheck (scripts/cardPopupCountCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// bodyTrustCheck (Lane B, Nov 6 2026): a stored body is trusted only for a body the model came in (lib/modelBodies.js); the WRX, WRX STI and Lancer Evolution stored as Convertible are not convertibles; a sample per body value; the title wins; nothing is guessed; mutants in scripts/bodyTrustCheck.mjs --mutants.
+try {
+  const out = execSync("node scripts/bodyTrustCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("bodyTrustCheck (scripts/bodyTrustCheck.mjs)", "PASS", (out.match(/bodyTrustCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("bodyTrustCheck (scripts/bodyTrustCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// crewKeysCheck (Lane B, Nov 6 2026): ops task=crewkeys reports what the two crew keys hold and the funnel counts, read only, behind the ops key; mutants in scripts/crewKeysCheck.mjs --mutants.
+try {
+  const out = execSync("node scripts/crewKeysCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("crewKeysCheck (scripts/crewKeysCheck.mjs)", "PASS", (out.match(/crewKeysCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("crewKeysCheck (scripts/crewKeysCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // pillFenceCheck (Lane B, Nov 6 2026): every pill Find shows fences the pool on every path (body, title word, venue, ends within, colour, trim; truck is a pickup; an unknown value fences to nothing); a pill with no cars prints "No live cars match: ..." and keeps its words; mutants in scripts/pillFenceCheck.mjs --mutants.
 try {
   const out = execSync("node scripts/pillFenceCheck.mjs", { encoding: "utf8", timeout: 280000 });

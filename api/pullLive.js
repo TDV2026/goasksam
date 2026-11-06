@@ -228,6 +228,10 @@ async function refreshTasksDemoWord(env) {
   } catch { return "error"; }
 }
 
+// OPS, KEYED AND READ ONLY (Lane B, Nov 6 2026): what the two crew keys hold now, and (funnel=1) the counts the refresh finds on the live pool, without writing. api/usageDashboard.js task=crewkeys calls this behind the ops key; no cron
+// branch, route or page does. It names the cars of the stored picks (the ops key is the only way in), never anything to the cron response.
+export async function crewKeysReport(env, opts) { return (await import("../lib/live/tasksDemo.js")).crewKeysReport(env, opts); }
+
 // The starter of one call (see the handler). The endpoint keeps only the named parameters, so the key never lands in a row.
 const ENDPOINT_PARAMS = ["mode", "max-requests", "maxRequests", "probe", "probePage", "limit", "sort", "direction", "fromEnd", "dryrun", "date"];
 export function startedBy(req, isCron, probeOk) {
