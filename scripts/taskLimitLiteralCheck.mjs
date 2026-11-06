@@ -31,11 +31,11 @@ function read(ref) {
   for (const d of dirs) if (fs.existsSync(path.join(ROOT, d))) walk(d);
   return out;
 }
-// The checks that depend on the limit. fast: no browser. tasksCrewLimitCheck is not in this list: it asserts the crew number against the free one, which the override at 10 would make equal.
+// The checks that depend on the limit (pendingCardFillCheck reads limitFacts only as a mock and never finishes without a network, so it is covered by the scan, not by a run). fast: no browser. tasksCrewLimitCheck is not in this list: it asserts the crew number against the free one, which the override at 10 would make equal.
 export const LIMIT_CHECKS = [
   { name: "tasksLimitCheck", fast: true }, { name: "slotLimitCheck", fast: true }, { name: "standingControlsCheck", fast: true }, { name: "findWatchCheck", fast: true },
   { name: "standingNoticesCheck", fast: true }, { name: "taskCountsCheck", fast: true }, { name: "taskFiltersCheck", fast: true },
-  { name: "tasksDismissCountCheck", fast: false }, { name: "tasksPageShots", fast: false }, { name: "pendingCardFillCheck", fast: false }
+  { name: "tasksDismissCountCheck", fast: false }, { name: "tasksPageShots", fast: false }
 ];
 function run(script, limit) {
   const env = { ...process.env }; if (limit) env.TASK_LIMIT_OVERRIDE = String(limit); else delete env.TASK_LIMIT_OVERRIDE;
