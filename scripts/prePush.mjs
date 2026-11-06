@@ -2098,6 +2098,18 @@ try {
   record("Tasks demo (crew only, not live): the request is written from a real live car, read back and matched by the Task matcher, stable, crew gated, no public surface (scripts/tasksDemoCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || String(e.message || e).slice(0, 300));
 }
 try {
+  const out = execSync("node scripts/tasksPreferredCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Tasks preferred versus required (crew only, not live): a wish is flagged and ordered first, never a requirement; a Task without it runs the code it ran before (scripts/tasksPreferredCheck.mjs)", "PASS", (out.match(/tasksPreferredCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Tasks preferred versus required (crew only, not live): a wish is flagged and ordered first, never a requirement; a Task without it runs the code it ran before (scripts/tasksPreferredCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || String(e.message || e).slice(0, 300));
+}
+try {
+  const out = execSync("node scripts/tasksAnyModelCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Tasks any model (crew only, not live): a make with something else wanted starts as any model and reads back so; everyone else is asked as before (scripts/tasksAnyModelCheck.mjs)", "PASS", (out.match(/tasksAnyModelCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Tasks any model (crew only, not live): a make with something else wanted starts as any model and reads back so; everyone else is asked as before (scripts/tasksAnyModelCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || String(e.message || e).slice(0, 300));
+}
+try {
   const out = execSync("node scripts/stageTimerCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("engine: every cold compute logs its stage milliseconds (engine, trim chips, question rule, sell fields, store) (scripts/stageTimerCheck.mjs)", "PASS", (out.match(/stageTimerCheck: .*/) || [""])[0]);
 } catch (e) {
