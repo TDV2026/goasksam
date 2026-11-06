@@ -2308,6 +2308,12 @@ try {
   record("Desk item 1: no common word flips a condition tier on its own (project, custom, incomplete, crash, collision, struck, receipts, numbers matching, factory paint, tuned, lowered, swapped, upgraded, a none modifications field, Not salvage), the real cases still fire, ct2 (scripts/tierWordsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/trimWordKeptCheck.mjs", { encoding: "utf8", timeout: 400000 });
+  record("A real trim word is never silently dropped (2024 Range Rover Autobiography printed \"Sam didn't use 'autobiography'\" and read the bare model): Land Rover, Jaguar, Maybach, Jeep, Rolls-Royce, Tesla, Toyota, Maserati, Bentley, Porsche trim words are read, a thin trim says how many of the sales are its own and offers a Narrow by pill (scripts/trimWordKeptCheck.mjs, mutants in trimWordKeptMutants.mjs)", "PASS", (out.match(/trimWordKeptCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("A real trim word is never silently dropped (2024 Range Rover Autobiography printed \"Sam didn't use 'autobiography'\" and read the bare model): Land Rover, Jaguar, Maybach, Jeep, Rolls-Royce, Tesla, Toyota, Maserati, Bentley, Porsche trim words are read, a thin trim says how many of the sales are its own and offers a Narrow by pill (scripts/trimWordKeptCheck.mjs, mutants in trimWordKeptMutants.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || String(e.message || e).slice(0, 300));
+}
+try {
   const out = execSync("node scripts/cardQueryReadBackCheck.mjs", { encoding: "utf8", timeout: 400000 });
   record("Find card: the Market Check question a card carries reads back as the card's own spec (1995 Ferrari F355 Spider read 14 sales on the card and 12 behind its button), and the live sample asks the card's own question (scripts/cardQueryReadBackCheck.mjs, mutants in cardQueryReadBackMutants.mjs)", "PASS", (out.match(/cardQueryReadBackCheck: .*/) || [""])[0]);
 } catch (e) {
