@@ -16,6 +16,8 @@ if (process.argv.includes("--mutants")) {
   const muts = [
     ["lib/onebox.js", " || (row && row._pwPool === true)) && /^(roadster|cabriolet|convertible)$/", ") && /^(roadster|cabriolet|convertible)$/", "the body key follows the row's own year, so a pool across 1949 lists Cabriolet twice"],
     ["lib/onebox.js", "for (const r of chosen.rows) if (r && typeof r === \"object\") r._pwPool = pw;", "", "the pool's era is never marked on its rows"],
+    ["lib/onebox.js", "result.rungLabel = loA != null && hiA != null && loA !== hiA ? `${nameplate || spec.make}, ${loA} to ${hiA}` : (nameplate || spec.make);", "result.rungLabel = nameplate || spec.make;", "a query with no year prints no years in its label"],
+    ["lib/onebox.js", "else if (!m && p0 !== p1 && /with equivalent (?!\\d{4})/.test(result.resolvedSpec)) result.resolvedSpec =", "else if (false) result.resolvedSpec =", "a query with no year prints no years in its comparing line"],
     ["lib/onebox.js", "if (ys.length) return ys[Math.floor((ys.length - 1) / 2)] < PREWAR_BEFORE;", "if (ys.length) return ys[ys.length - 1] < PREWAR_BEFORE;", "the pool's NEWEST year decides (the live Delahaye bug)"],
     ["lib/onebox.js", "const preWarCar = (vehicle, generation, d) => isPreWarPool({ year: vehicle && vehicle.year, rows: d && d.rawPool, poolYears: d && d.poolYears, genEnd: generation && generation.yearEnd });", "const preWarCar = (vehicle, generation, d) => isPreWarPool({ year: vehicle && vehicle.year, genEnd: generation && generation.yearEnd });", "the body question ignores the pool's years"],
     ["lib/onebox.js", "poolYears: poolYearsOfRows(result.rawPool || []), wideSpread: true", "wideSpread: true", "the wide-spread body question carries no pool years"],
@@ -97,6 +99,16 @@ for (const [make, model, year, sales, era] of CARS) {
     continue;
   }
   ANSWERS.push({ tag, rick: RICK.has(model), bare, asked });
+  { // THE YEARS A LINE PRINTS ARE THE YEARS OF THE POOL IT COUNTS (Nov 6 2026): the bare Delahaye 135 counts 1937 to 1949 and says so in its label, scope line and comparing line; the year query counts 1937 to 1938 and says that. The two differ because they count different pools; each agrees with its own.
+    const yrs = t => (String(t || "").match(/\b(1[89]\d\d|20\d\d)\b/g) || []).map(Number);
+    for (const [kind, x] of [["bare", bare], ["asked", asked]]) {
+      const [p0, p1] = x.poolYears || [], spec = String(x.resolvedSpec || ""), eq = spec.includes("equivalent") ? spec.slice(spec.indexOf("equivalent")) : "";
+      const bad = [["label", x.rungLabel], ["scope line", String(x.scopeLine || "").split("·")[0]], ["comparing line", eq]].filter(([, t]) => { const y = yrs(t); return y.length && (!y.every(v => v === p0 || v === p1) || (p0 !== p1 && !(y.includes(p0) && y.includes(p1)))); }).map(([n, t]) => n + ": " + t);
+      const need = p0 !== p1 ? [["label", x.rungLabel], ["comparing line", eq]].filter(([, t]) => !(yrs(t).includes(p0) && yrs(t).includes(p1))).map(([n, t]) => n + " names no years: " + t) : [];
+      ok(`${tag} (${kind}): every year printed is the pool's (${p0}${p1 !== p0 ? " to " + p1 : ""}), and a pool of several years says so in the label and the comparing line`, bad.length === 0 && need.length === 0, bad.concat(need).slice(0, 3).join(" || "));
+      ok(`${tag} (${kind}): the scope line never says "opens"`, !/\bopens?\b/i.test(String(x.scopeLine || "")) && !/\bopens?\b/i.test(String(x.rungLabel || "")), String(x.scopeLine));
+    }
+  }
   { // ONE OPTION PER BODY, AND ITS CHIP OPENS ITS ROWS (Nov 6 2026): a pool across 1949 lists Cabriolet once, and the option's own refine opens exactly the sales it counts
     const labs = (bare.options || []).map(o => o.label);
     ok(`${tag}: each body is listed once (${labs.join(", ")})`, new Set(labs).size === labs.length, labs.join(" | "));
