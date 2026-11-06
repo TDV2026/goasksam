@@ -21,6 +21,8 @@ if (args.includes("--mutants")) {
     [L, 'if (off.length) return { ok: false, why: "reader_disagrees:" + off.join("+") };', '', "(2) the reader must give every criterion back"],
     [L, 'if (!hit) return { ok: false, why: "matcher_does_not_return_the_car" };', '', "(2) the matcher must return the car"],
     [L, 'if (bad.length) return { ok: false, why: "not_honoured:" + bad.join("+") };', '', "(2) every stated criterion holds on the car"],
+    [L, 'priceLine: reasonLine("tasks.demo_prior_price", { price: p.price })', 'priceLine: "Sold for $" + p.price', "(4) the earlier-sale line is written inline, not from the reason table"],
+    [L, 'priceLabel: reasonLine("tasks.demo_current_bid", { price: bid }),', 'priceLabel: `Current bid $${bid}`,', "(4) the current-bid line is written inline, not from the reason table"],
     [L, 'if (!liveNow(row, now)) return { ok: false, why: "not_live" };', '', "(3) a car that is not live"],
     [L, 'if (!genuinePhoto(row.photo_url) ||', 'if (false ||', "(3) a placeholder photo"],
     [L, 'const e = evaluateCandidate(row, appearances, { nowMs: now, urlStatus: us });\n      if (e.ok) {', 'const e = pre;\n      if (e.ok) {', "(3) an earlier record whose evidence link is gone"],
@@ -59,7 +61,7 @@ const imp = f => import(pathToFileURL(path.join(root, f)).href);
 const D = await imp("lib/live/tasksDemo.js"), G = await imp("lib/live/geo.js"), S = await imp("lib/live/search.js"), C = await imp("lib/_crew.js"), FH = await imp("lib/live/featuredHistory.js");
 const geo = { listingCoord: G.listingCoord, placeCoord: G.placeCoord, milesBetween: G.milesBetween };
 const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
-const NOW = Date.parse("2026-11-05T12:00:00Z"), IN = h => new Date(NOW + h * 3600e3).toISOString();
+const NOW = Math.floor(Date.now() / 3600e3) * 3600e3, IN = h => new Date(NOW + h * 3600e3).toISOString();
 const car = (o = {}) => ({ id: 1, source: "sothebysmotorsport", url: "https://example.test/lot/1", listing_title: "2007 Ferrari F430 6-Speed", year: 2007, make: "Ferrari", model: "F430", vin_norm: "ZFFEW59A670150000", mileage: 18500, mileage_unit: "miles", current_bid_usd: 90000, location: "Williamsburg, VA", country: "US", transmission: "Manual", exterior_color: "Red", photo_url: "https://img.example.test/f430.jpg", end_time: IN(30), status: "live", ...o });
 const facts = r => S.listingFacts(r);
 const rec = (o = {}) => ({ kind: "sale", date: "2023-06-01", house: "Bring a Trailer", url: "https://bringatrailer.com/listing/2007-ferrari-f430/", image: "https://img.example.test/old.jpg", mileage: 15000, priceUsd: 181888, vinNorm: "ZFFEW59A670150000", ...o });
@@ -157,6 +159,8 @@ const honest = (f, r) => { const fx = facts(r); return String(r.make).toLowerCas
   const row = car(), W = world([row]), r = await D.refreshTasksDemo(env, W.d), f = r.stored && r.stored.field;
   const keys = f ? Object.keys(f) : [];
   ok("(4) the shape Lane E reads: request, car {title, platform, url, photo, live, endsAt, priceLabel, mileage, location, why}, matchedAt, checkedAt", f && ["request", "car", "matchedAt", "checkedAt"].every(k => k in f) && ["title", "platform", "url", "photo", "live", "endsAt", "priceLabel", "mileage", "location", "why"].every(k => k in f.car) && f.car.live === true, keys.join());
+  { const Wp = world([car()], { apps: { ZFFEW59A670150000: [rec()] } }), rp = await D.refreshTasksDemo(env, Wp.d), lp = rp.stored && rp.stored.field && rp.stored.field.previous; ok("(4) the earlier sale comes as an engine sentence: previous.priceLine \"Previously sold for $181,888\" (reason table tasks.demo_prior_price), beside the figure", !!lp && lp.priceLine === "Previously sold for $181,888" && lp.price === 181888, lp && lp.priceLine);
+    const RW = await imp("lib/reasonWords.js"); ok("(4) both number lines are in the reason table, and the field is made from the table, not written inline", RW.reasonLine("tasks.demo_current_bid", { price: 199000 }) === "Current bid $199,000" && RW.reasonLine("tasks.demo_prior_price", { price: 325000 }) === "Previously sold for $325,000" && /reasonLine\("tasks\.demo_current_bid"/.test(fs.readFileSync("lib/live/tasksDemo.js", "utf8")) && /reasonLine\("tasks\.demo_prior_price"/.test(fs.readFileSync("lib/live/tasksDemo.js", "utf8"))); }
   ok("(4) the price label is printed as given: Current bid $90,000", f && f.car.priceLabel === "Current bid $90,000");
   const t = await imp("lib/tasks/tasks.js");
   ok("(4) why and the criteria come from the engine's own matchReasonList and read the request back", f && f.criteria.length >= 4 && f.car.why === `Matches: ${t.matchReasonList(f.filters || { gearbox: "manual", colour: "red", miles_max: 25000, budget_max: 115000, location: "Richmond, VA", radius_miles: 100 }).join(", ")}.`, f && f.car.why);

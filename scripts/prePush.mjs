@@ -836,6 +836,13 @@ try {
 } catch (e) {
   record("pillFenceCheck (scripts/pillFenceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// clockShiftCheck (Lane B, Nov 6 2026): every check that pins a calendar date and does not use the fake clock passes with the real clock at +0, +3 and +60 days (tasksDemoCheck passed at 06:00 UTC and was red from 18:00 UTC on a fixture date written in the file); --mutants restores the old pin.
+try {
+  const out = execSync("node scripts/clockShiftCheck.mjs", { encoding: "utf8", timeout: 590000 });
+  record("clockShiftCheck (scripts/clockShiftCheck.mjs)", "PASS", (out.match(/clockShiftCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("clockShiftCheck (scripts/clockShiftCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });
