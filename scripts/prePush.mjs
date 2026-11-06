@@ -857,6 +857,13 @@ try {
 } catch (e) {
   record("clockShiftCheck (scripts/clockShiftCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// prewarYearlessCheck (Lane B, Nov 6 2026): a query with no year reads the same pre-war car as the year query (the live "Delahaye 135": one pooled "Too few sales" list over a 1937 to 1949 pool); twelve cars, the engine and the real Market Check page in Chrome; mutants in scripts/prewarYearlessCheck.mjs --mutants.
+try {
+  const out = execSync("node scripts/prewarYearlessCheck.mjs", { encoding: "utf8", timeout: 590000 });
+  record("prewarYearlessCheck (scripts/prewarYearlessCheck.mjs)", "PASS", (out.match(/prewarYearlessCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("prewarYearlessCheck (scripts/prewarYearlessCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });
