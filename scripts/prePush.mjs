@@ -871,6 +871,13 @@ try {
 } catch (e) {
   record("smallLabelsCheck (scripts/smallLabelsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// oneOptionPoolCheck (Lane B, Nov 6 2026): the question rule never drops a body the pool shows (the live 1963 Corvette: "Only the Convertible" over 31 coupes and 14 convertibles); a decision expires with its row; a failed option read is unknown, never zero; the four products read the same 45; mutants in scripts/oneOptionPoolCheck.mjs --mutants.
+try {
+  const out = execSync("node scripts/oneOptionPoolCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("oneOptionPoolCheck (scripts/oneOptionPoolCheck.mjs)", "PASS", (out.match(/oneOptionPoolCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("oneOptionPoolCheck (scripts/oneOptionPoolCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });
