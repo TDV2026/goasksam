@@ -40,7 +40,7 @@ export async function jsFindings(t = {}) {
   const d = os.effectiveSettings(null);
   eq([d.threshold_pct, d.venue_choice, d.reserve_or_range, d.auto_send, d.sending_address, os.sendingReady(d)], [15, false, "either", false, null, false], "defaults");
   // 2. the editable list
-  eq([...os.EDITABLE_FIELDS].sort(), ["auto_send", "logo_path", "reserve_or_range", "sending_address", "sending_name", "signature", "standard_message", "threshold_pct", "venue_choice"], "org-editable fields are exactly the spec list");
+  eq([...os.EDITABLE_FIELDS].sort(), ["auto_send", "brand_color", "logo_path", "reserve_or_range", "sending_address", "sending_name", "signature", "standard_message", "threshold_pct", "venue_choice"], "org-editable fields are exactly the spec list");
   for (const f of ["seat_limit", "licence_starts_on", "licence_ends_on", "sending_domain_status", "sending_domain", "sending_domain_provider_id", "org_id"]) bad({ [f]: f.includes("licence") ? "2030-01-01" : f === "seat_limit" ? 9 : "verified" }, `an org may set ${f}`);
   good({ seat_limit: 3, licence_ends_on: "2027-10-31" }, "the operator sets seat limit and licence end", { operator: true });
   bad({ licence_ends_on: null }, "the licence end cannot be cleared", { operator: true });
