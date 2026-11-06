@@ -40,7 +40,7 @@ async function loadHandler(apiSrc, gateSrc) {
 }
 const API = fs.readFileSync(path.join(ROOT, "api/tasks.js"), "utf8"), GATE = fs.readFileSync(path.join(ROOT, "lib/tasks/crewGate.js"), "utf8");
 let OLD = null; try { OLD = execSync("git show origin/main:api/tasks.js", { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }); } catch {}
-const ALLOWED = /^(lib\/tasks\/limit\.js|lib\/tasks\/crewGate\.js|scripts\/tasksCrew(Limit|Export)Check\.mjs|scripts\/taskLimitLiteralCheck\.mjs|scripts\/tasksPreviewCheck\.mjs|scripts\/prePush\.mjs|lib\/preview\/|lib\/crewPages\/)/;
+const ALLOWED = /^(lib\/tasks\/limit\.js|lib\/tasks\/crewGate\.js|scripts\/tasks(Crew(Limit|Export)|Left)Check\.mjs|scripts\/taskLimitLiteralCheck\.mjs|scripts\/tasksPreviewCheck\.mjs|scripts\/prePush\.mjs|lib\/preview\/|lib\/crewPages\/)/;
 export function importers(files) { return Object.entries(files).filter(([f, t]) => /\b(crewTaskLimit|CREW_TASK_LIMIT)\b/.test(t) && !ALLOWED.test(f)).map(([f]) => f); }
 function readAll() { const out = {}, walk = d => { for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) { const rel = path.join(d, e.name); if (e.isDirectory()) { if (e.name !== "node_modules") walk(rel); } else if (/\.(m?js|html)$/.test(e.name) && !/^__/.test(e.name)) out[rel] = fs.readFileSync(path.join(ROOT, rel), "utf8"); } }; for (const d of ["api", "lib", "public", "scripts"]) walk(d); return out; }
 

@@ -899,6 +899,13 @@ try {
 } catch (e) {
   record("Tasks: the crew limit export and badge.unread are crew only and a non crew answer is unchanged (scripts/tasksCrewExportCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// tasksLeftCheck (Lane S, Nov 6 2026, lane-s-tasks10-left): Tasks: limit.left and counts.tasks.left are max minus working, never below zero, and no page subtracts.
+try {
+  const out = execSync("node scripts/tasksLeftCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("Tasks: limit.left is max minus working for three and ten, and no page subtracts (scripts/tasksLeftCheck.mjs)", "PASS", (out.match(/tasksLeftCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Tasks: limit.left is max minus working for three and ten, and no page subtracts (scripts/tasksLeftCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // tasksTapPageCheck (Lane S, Nov 5 2026, lane-s-tasks10-exports): Tasks: the email tap page when the account is at its limit.
 try {
   const out = execSync("node scripts/tasksTapPageCheck.mjs", { encoding: "utf8", timeout: 600000 });
