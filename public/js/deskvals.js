@@ -189,6 +189,19 @@
     var inner = '<div class="tiers">' + cd.tiers.map(function (t) { return '<button type="button" class="tier' + (cd.selected === t.tier ? " on" : "") + '" data-tier="' + t.tier + '"' + dis + '><span class="n">TIER ' + t.tier + '</span>' + esc(t.label) + '<span class="c">' + ns(t.count) + "</span></button>"; }).join("") + "</div>";
     if (cd.selected) inner += '<p class="sub" style="margin:0 0 6px"><span class="num">' + ns(cd.sameTierCount) + "</span> in this condition. " + esc(cd.tooFewLine || "The comparables above are the same tier.") + "</p>";
     inner += '<p class="sub" style="margin:0">Untiered: <span class="num">' + ns(cd.untiered) + "</span> stay in the wider pool.</p>";
+    // The ladder, every word from the one source (lib/conditionTier.js TIER_LADDER, sent with the sheet as h.v.ladder). The page prints it.
+    var lad = h.v.ladder;
+    if (lad) inner += '<ol class="ladder" style="margin:10px 0 0;padding-left:18px">' + lad.tiers.map(function (l) { return "<li><b>" + l.tier + " " + esc(l.name) + "</b>: " + esc(l.line) + "</li>"; }).join("") + "<li><b>" + esc(lad.untiered.name) + "</b>: " + esc(lad.untiered.line) + "</li></ol>";
+    // The evidence the engine counted, in the engine's own words (condition_evidence), or the engine's line that it counted none.
+    if (cd.selected) inner += '<div class="evid" style="margin:10px 0 0">' + (cd.carEvidence ? "<ul style=\"margin:0;padding-left:18px\">" + cd.carEvidence.lines.map(function (e) { return "<li>" + esc(e.line) + "</li>"; }).join("") + "</ul>" : '<p class="sub" style="margin:0">' + esc(cd.carEvidenceNote || "") + "</p>") + "</div>";
+    // The analyst's plus or minus: a judgment saved with the sheet. The engine sets none; it changes no tier, pool or figure. Controls only when a tier is on the sheet (Untiered takes none).
+    var mk = st.mark;
+    if (h.v.markLine) inner += '<p class="markline" style="margin:10px 0 0"><b>' + esc(h.v.markLine) + "</b>" + (mk && mk.reason ? ": " + esc(mk.reason) : "") + "</p>";
+    if (cd.selected && ed) inner += '<div class="markbar" style="margin:8px 0 0"><button type="button" class="tier' + (mk && mk.mark === "plus" ? " on" : "") + '" data-mark="plus">Plus</button> <button type="button" class="tier' + (mk && mk.mark === "minus" ? " on" : "") + '" data-mark="minus">Minus</button> <button type="button" class="tier" data-mark="">No mark</button>' + (mk ? ' <input type="text" maxlength="200" data-k="mark-reason" value="' + esc(mk.reason || "") + '" style="width:60%"> ' : "") + "</div>";
+    if (mk && rd.market) {   // the read only hint: the sales of the engine's own same tier pool on the mark's side (ranked by the engine read, no figure made here)
+      var side = mk.mark === "plus" ? "upper" : "lower", hs = (rd.market.comparables || []).filter(function (c) { return c.half === side; });
+      if (hs.length) inner += '<p class="sub" style="margin:8px 0 2px">' + side + " half of the same tier sales:</p><ul style=\"margin:0;padding-left:18px\">" + hs.map(function (c) { return "<li>" + esc(c.venue) + ", " + esc(day(c.date)) + ", " + usd(c.price) + "</li>"; }).join("") + "</ul>";
+    }
     var ph = sub.photos || [];
     if (ph.length) inner += '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:16px 0 4px">Photos from the submission: tick the ones for the report, set the hero</div><div class="photos">' + ph.map(function (p) {
       var on = sel.indexOf(p.id) >= 0; return '<div class="ph' + (on ? " on" : "") + '"><img src="' + esc(p.url) + '" alt="' + esc(p.name || "") + '" loading="lazy"><div class="pb"><label><input type="checkbox" data-photo="' + esc(p.id) + '"' + (on ? " checked" : "") + dis + "> Report</label><button type=\"button\" class=\"hero" + (st.heroId === p.id ? " on" : "") + '" data-hero="' + esc(p.id) + '"' + dis + ">Hero</button></div></div>";
@@ -255,6 +268,7 @@
     if (!h) return;
     var pk = t.closest("[data-pickup]"); if (pk) { openSheet(pk.getAttribute("data-pickup"), true); return; }
     if (t.closest("[data-confirm]")) { save(id, { confirmed: true }, true); return; }
+    var mkb = t.closest("[data-mark]"); if (mkb) { var mv = mkb.getAttribute("data-mark"), cm = (h.v.sheet.state.mark) || {}; save(id, { mark: mv ? { mark: mv, reason: cm.reason || "" } : null }, true); return; }
     var tr = t.closest("[data-tier]"); if (tr) { save(id, { tier: Number(tr.getAttribute("data-tier")) }, true); return; }
     var hero = t.closest("[data-hero]"); if (hero) { save(id, { heroId: hero.getAttribute("data-hero") }, true); return; }
     var ck = t.closest("[data-chk]"); if (ck) { var k = ck.getAttribute("data-chk"), cur = h.draft.checklist[k] || {}; cur.state = ck.getAttribute("data-state"); h.draft.checklist[k] = cur; save(id, { checklist: h.draft.checklist }, true); return; }
@@ -277,6 +291,7 @@
     var D = h.draft.decision;
     if (k === "d-reserve") D.reserve = t.value; else if (k === "d-low") D.low = t.value; else if (k === "d-high") D.high = t.value; else if (k === "d-line") D.line = t.value; else if (k === "d-note") D.note = t.value; else if (k === "d-other") D.otherText = t.value;
     else if (k === "g-prior" || k === "g-start") { D.guardLines = D.guardLines || {}; D.guardLines[k.slice(2)] = t.value; }
+    else if (k === "mark-reason") { var m0_ = h.v.sheet.state.mark; if (m0_) save(id, { mark: { mark: m0_.mark, reason: t.value } }); return; }
     else if (k === "pinned") { h.draft.pinned = t.value; save(id, { pinned: t.value }); return; }
     else if (k === "corr-gearbox" || k === "corr-colour") { h.draft.corr[k.slice(5)] = t.value; save(id, { corrections: h.draft.corr }); return; }
     else if (k.indexOf("chkl-") === 0) { var key = k.slice(5), c = h.draft.checklist[key] || {}; c.line = t.value; h.draft.checklist[key] = c; save(id, { checklist: h.draft.checklist }); return; }
