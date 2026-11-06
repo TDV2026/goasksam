@@ -1,3 +1,4 @@
+// clock: real-ok seat cookie expiry is built from the real now in the same process, so the hour of the day changes nothing
 // SEAT ACCESS (Lane C, Nov 4 2026; job: lane-c-desk-seats). A Hagerty seat reaches the Desk through a signed gas_seat cookie that /api/deskSeat sets after resolveCaller confirms an active seat.
 //   node scripts/seatAccessCheck.mjs      offline: the real handlers (api/deskSeat.js, api/desk.js, api/crewPage.js) run against a stand-in for Supabase's REST and auth endpoints.
 // COVERS: active seat in; removed seat out on the very next call; a seat cannot run crew (analyst) actions; no cookie, a forged, an expired, a crew-cookie-as-seat and a seat-cookie-as-crew all get the platform's own 404;

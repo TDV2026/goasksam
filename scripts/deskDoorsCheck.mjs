@@ -1,3 +1,4 @@
+// clock: real-ok row times are the real now in the same process, so the hour of the day changes nothing
 // DESK DOORS CHECK (Lane S, Nov 5 2026). The class: ONE person can hold more than one door (the signed crew cookie AND an active seat, as Sam does: zysblat@hotmail.com is crew and Hagerty
 // Expert 1), and every endpoint must pick the right door and never show a caller another org's data. Runs the REAL api/desk.js, api/deskSeat.js and lib/desk/* in-process against a fake PostgREST
 // (fetch stubbed), no network. It proves:

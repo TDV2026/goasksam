@@ -1,7 +1,7 @@
-// clock: real-ok the one window is built from the real now (36 hours back), no literal date, so the verdict does not change with the day (Lane E, Nov 5 2026)
+// clock: real-ok the 36 hour window is an offset from the real now and the rows it reads are the real log
 // TASKS RUN TIME CHECK (Lane S, Nov 5 2026). Nightly: reads the last 36 hours of the matcher's own log rows (app_usage_events, event_type tasks_run, written by api/tasks.js on every run with ms, tasks, deferred and limit_ms) and FAILS when
 // any run took more than 60% of the function limit (lib/tasks/runBudget.js ALARM_FRACTION), or when runs are deferring Tasks (the budget is already biting). It also prints the real numbers: runs, Tasks per run, slowest run, deferred.
-//   node scripts/tasksRunTimeCheck.mjs            needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (the nightly job has them); prints SKIP, never a pass, without
+//   node scripts/tasksRunTimeCheck.mjs            needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (the nightly job has them); prints a summary line that says SKIP, never a pass, without
 //   node scripts/tasksRunTimeCheck.mjs --selftest the pass/fail logic on fixed rows, no network (prePush runs this)
 import { TASKS_MAX_DURATION_S, ALARM_FRACTION } from "../lib/tasks/runBudget.js";
 
@@ -29,7 +29,7 @@ async function main() {
     console.log(`tasksRunTimeCheck selftest: ${bad ? bad + " FAIL" : "ok"}`); process.exit(bad ? 1 : 0);
   }
   const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) { console.log("SKIP tasksRunTimeCheck: no SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (this is NOT a pass)"); process.exit(0); }
+  if (!url || !key) { console.log("tasksRunTimeCheck: SKIP, no SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY, so no run was read (this is NOT a pass)"); process.exit(0); }
   const since = new Date(Date.now() - 36 * 3600e3).toISOString();
   const res = await fetch(`${url}/rest/v1/app_usage_events?event_type=eq.tasks_run&created_at=gte.${encodeURIComponent(since)}&select=status,metadata,created_at&order=created_at.desc&limit=1000`, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
   if (!res.ok) { console.log(`FAIL could not read the run log (${res.status})`); process.exit(1); }

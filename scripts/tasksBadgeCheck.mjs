@@ -1,4 +1,4 @@
-// clock: real-ok the only reads of the clock are the forged and expired crew cookie times, built from the real now (an expiry is relative to the moment the cookie is read), and no date here is written as a literal (Lane E, Nov 5 2026)
+// clock: real-ok every date is built from the real now in the same process (cookie expiry and row times are offsets from it), so the hour of the day changes nothing
 // TASKS UNREAD BADGE, CREW ONLY (Lane S, Nov 5 2026; NOT live). The nav badge number comes from /api/tasks?summary=1 `count`. For a request with the SIGNED crew cookie it is the sum of tasks.unread for the person, and nothing at zero;
 // every other request (no cookie, a forged or expired cookie, a tester or seat cookie, a ?crew= query) gets the old count, byte for byte what the code on origin/main answers. Runs the real handler in-process over a fake PostgREST.
 //   1. crew, unread 2 + 0 + 3 over three Tasks (one paused, one done): count 5; all zero: 0; the old count (open Tasks + watches + alerts) is NOT shown to crew;

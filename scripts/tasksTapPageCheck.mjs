@@ -1,4 +1,4 @@
-// clock: real-ok every date in it is built from the real now, no literal date, so the verdict does not change with the day (Lane E, Nov 5 2026)
+// clock: real-ok row times are offsets from the real now in the same process, so the hour of the day changes nothing
 // TASKS EMAIL TAP PAGE (Lane S, Nov 5 2026). The page a person lands on after tapping Start it again or Keep looking in a Task email, read as a person would hear it, for the case the tap cannot start the Task because the account is at its limit
 // (a paused Task now takes a slot like any resume). Runs the real handler over a fake PostgREST.
 //   at the limit:   "Still paused." / the Task's words / "Sam can't start it yet. the engine's limit sentence (limitLine)" / a link to the Tasks page. The Task stays paused and nothing is written.

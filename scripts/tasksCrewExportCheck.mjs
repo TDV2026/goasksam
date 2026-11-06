@@ -1,4 +1,4 @@
-// clock: real-ok the only reads of the clock are the forged and expired crew cookie times, built from the real now, and no date here is written as a literal (Lane E, Nov 5 2026)
+// clock: real-ok every date is built from the real now in the same process (cookie expiry and row times are offsets from it), so the hour of the day changes nothing
 // TASKS CREW EXPORT AND BADGE CHECK (Lane S, Nov 5 2026; crew only, NOT live). Two things Lane E's Tasks preview reads, and the proof a non crew request can never read them.
 //   crewTaskLimit() / CREW_TASK_LIMIT (lib/tasks/limit.js): page code reads the crew number there and never types it. The number is code, not a grant, so:
 //     - the API door tells a crew request ten (limit.max, limit.statusLine, counts.tasks.max, counts.line) and EVERY other request three, in the summary and in the list;
@@ -40,7 +40,7 @@ async function loadHandler(apiSrc, gateSrc) {
 }
 const API = fs.readFileSync(path.join(ROOT, "api/tasks.js"), "utf8"), GATE = fs.readFileSync(path.join(ROOT, "lib/tasks/crewGate.js"), "utf8");
 let OLD = null; try { OLD = execSync("git show origin/main:api/tasks.js", { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }); } catch {}
-const ALLOWED = /^(lib\/tasks\/limit\.js|lib\/tasks\/crewGate\.js|scripts\/tasksCrew(Limit|Export)Check\.mjs|scripts\/tasksPreviewCheck\.mjs|scripts\/taskLimitLiteralCheck\.mjs|lib\/preview\/|lib\/crewPages\/)/;
+const ALLOWED = /^(lib\/tasks\/limit\.js|lib\/tasks\/crewGate\.js|scripts\/tasksCrew(Limit|Export)Check\.mjs|scripts\/taskLimitLiteralCheck\.mjs|scripts\/tasksPreviewCheck\.mjs|scripts\/prePush\.mjs|lib\/preview\/|lib\/crewPages\/)/;
 export function importers(files) { return Object.entries(files).filter(([f, t]) => /\b(crewTaskLimit|CREW_TASK_LIMIT)\b/.test(t) && !ALLOWED.test(f)).map(([f]) => f); }
 function readAll() { const out = {}, walk = d => { for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) { const rel = path.join(d, e.name); if (e.isDirectory()) { if (e.name !== "node_modules") walk(rel); } else if (/\.(m?js|html)$/.test(e.name) && !/^__/.test(e.name)) out[rel] = fs.readFileSync(path.join(ROOT, rel), "utf8"); } }; for (const d of ["api", "lib", "public", "scripts"]) walk(d); return out; }
 

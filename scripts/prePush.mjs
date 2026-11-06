@@ -920,6 +920,21 @@ try {
 } catch (e) {
   record("Tasks: the nightly run time check's own logic (scripts/tasksRunTimeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// tasksRunTimeCheck, the nightly read itself (Lane S, Nov 5 2026, lane-s-tasks10-offline): with no Supabase it prints "tasksRunTimeCheck: SKIP ..." and exits 0, which is a SKIP here, never a pass. With Supabase it reads the real log and the 60% rule decides.
+try {
+  const out = execSync("node scripts/tasksRunTimeCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  const line = (out.match(/tasksRunTimeCheck: .*/) || [""])[0];
+  record("Tasks: the nightly run time read (scripts/tasksRunTimeCheck.mjs)", /SKIP/.test(line) ? "SKIP" : "PASS", line);
+} catch (e) {
+  record("Tasks: the nightly run time read (scripts/tasksRunTimeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// skipSummaryCheck (Lane S, Nov 5 2026): a check that skips as a whole prints its own "<name>: ... SKIP" line, so prePush reads it as a SKIP, not a FAIL.
+try {
+  const out = execSync("node scripts/skipSummaryCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("a whole-check SKIP prints its own summary line (scripts/skipSummaryCheck.mjs)", "PASS", (out.match(/skipSummaryCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("a whole-check SKIP prints its own summary line (scripts/skipSummaryCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // deskDoorsCheck (Lane S, Nov 5 2026): Desk doors: a crew + seat person, the View as switch, org isolation, the seat cookie at sign in.
 try {
   const out = execSync("node scripts/deskDoorsCheck.mjs", { encoding: "utf8", timeout: 240000 });
