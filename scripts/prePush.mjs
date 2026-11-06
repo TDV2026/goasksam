@@ -829,6 +829,13 @@ try {
 } catch (e) {
   record("cardPopupCountCheck (scripts/cardPopupCountCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// pillFenceCheck (Lane B, Nov 6 2026): every pill Find shows fences the pool on every path (body, title word, venue, ends within, colour, trim; truck is a pickup; an unknown value fences to nothing); a pill with no cars prints "No live cars match: ..." and keeps its words; mutants in scripts/pillFenceCheck.mjs --mutants.
+try {
+  const out = execSync("node scripts/pillFenceCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("pillFenceCheck (scripts/pillFenceCheck.mjs)", "PASS", (out.match(/pillFenceCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("pillFenceCheck (scripts/pillFenceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });
