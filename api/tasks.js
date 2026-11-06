@@ -555,11 +555,11 @@ async function handler(req, res) {
       // Per account per day (lib/_ceilings.js tasksAllowance, crew exempt): past it, the turn is answered with the
       // paused sentence and nothing else changes (lib/tasks/tasks.js modelTurn).
       const paused = !(await gateOf(req, user)("setup"));
-      if (/^[0-9a-f-]{36}$/.test(String(b.task_id || ""))) return res.status(200).json(await taskTurn(env, user, { taskId: b.task_id, text, pending: b.pending || null, apiKey, model: CHAT_MODEL, paused }));
+      if (/^[0-9a-f-]{36}$/.test(String(b.task_id || ""))) return res.status(200).json(await taskTurn(env, user, { taskId: b.task_id, text, pending: b.pending || null, apiKey, model: CHAT_MODEL, paused, crew: isCrewRequest(req) }));
       // No task_id: this is the START of a brand-new task's conversation (nothing is written until
       // "start" below confirms it) - gated the same as "start" itself (Job 3: "Task creation").
       if (!isReleased("tasks", req)) return notReleasedJson(res);
-      return res.status(200).json(await draftTurn(env, user, { draft: b.draft || null, text, seed: b.seed || null, apiKey, model: CHAT_MODEL, paused, gate: gateOf(req, user) }));
+      return res.status(200).json(await draftTurn(env, user, { draft: b.draft || null, text, seed: b.seed || null, apiKey, model: CHAT_MODEL, paused, gate: gateOf(req, user), crew: isCrewRequest(req) }));
     }
     // On or off and how often only: the address is the sign-in address, never a setting (b.email is ignored).
     if (b.action === "notify") return res.status(200).json(await setNotifyPrefs(env, user, { on: typeof b.on === "boolean" ? b.on : undefined, every: typeof b.every === "string" ? b.every : undefined }));
@@ -580,7 +580,7 @@ async function handler(req, res) {
       if (!isReleased("tasks", req)) return notReleasedJson(res);
       // defer: true (the Tasks page): the Task is created and running at once; the first match run is action "first".
       { const { logArm, taskOutcome } = await import("../lib/live/looking.js");
-        const r = await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req), gate: gateOf(req, user), defer: b.defer === true });
+        const r = await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req), gate: gateOf(req, user), defer: b.defer === true, crew: isCrewRequest(req) });
         logArm(user.userId, "task", taskOutcome(r)); return res.status(200).json(r); }
     }
     // The first match run of a deferred start (the start email, then the cars live right now). Managing an existing Task: never gated.
@@ -607,11 +607,11 @@ async function handler(req, res) {
       if (running && ["running", "needs_you"].includes(running.state)) await controlTask(env, user, running.id, "stop", { apiKey, model: CHAT_MODEL });
       if (b.mode === "resume" && /^[0-9a-f-]{36}$/.test(String(b.resume_id || ""))) return res.status(200).json({ ok: true, ...(await controlTask(env, user, String(b.resume_id), "resume", { apiKey, model: CHAT_MODEL })) });
       if (b.mode === "draft" && b.draft) { const { logArm, taskOutcome } = await import("../lib/live/looking.js");
-        const r = await startDraft(env, user, b.draft, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req), gate: gateOf(req, user), defer: b.defer === true });
+        const r = await startDraft(env, user, b.draft, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req), gate: gateOf(req, user), defer: b.defer === true, crew: isCrewRequest(req) });
         logArm(user.userId, "task", taskOutcome(r)); return res.status(200).json({ ok: true, ...r }); }
       return res.status(200).json({ ok: true, closed: running ? running.id : null });
     }
-    if (b.action === "apply") return res.status(200).json(await applyEdit(env, user, String(b.task_id || ""), b.pending || null, { apiKey, model: CHAT_MODEL }));
+    if (b.action === "apply") return res.status(200).json(await applyEdit(env, user, String(b.task_id || ""), b.pending || null, { apiKey, model: CHAT_MODEL, crew: isCrewRequest(req) }));
     if (b.action === "control") {
       return res.status(200).json(await controlTask(env, user, String(b.task_id || ""), String(b.act || ""), { apiKey, model: CHAT_MODEL }));
     }
