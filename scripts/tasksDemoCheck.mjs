@@ -217,12 +217,14 @@ const honest = (f, r) => { const fx = facts(r); return String(r.make).toLowerCas
 }
 // (7) no public surface; zero OCD
 {
-  const ALLOWED = new Set(["lib/live/tasksDemo.js", "api/pullLive.js"]);
+  // The agreed list (Lane B and Lane E, docs/lane-notes.md, Nov 5 2026): the module and the cron refresh MUST name it; the crew gated Tasks preview (its page lib/preview/tasksPreview.js and the crew route api/crewPage.js, which hands the
+  // crew the stored field) MAY. Nothing else may: a public route, a sitemap or a script-served file naming it fails.
+  const REQUIRED = ["lib/live/tasksDemo.js", "api/pullLive.js"], ALLOWED = new Set([...REQUIRED, "lib/preview/tasksPreview.js", "api/crewPage.js"]);
   const NAMES = /tasksDemo|tasks_demo|TASKS_DEMO/;
   const hits = [];
   const walk = dir => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { if (["node_modules", ".git", ".claude", "proofs"].includes(e.name)) continue; const p = path.join(dir, e.name); if (e.isDirectory()) walk(p); else if (/\.(js|mjs|json|html|xml|css|txt|md)$/.test(e.name)) { const rel = path.relative(root, p); if (NAMES.test(fs.readFileSync(p, "utf8"))) hits.push(rel); } } };
   for (const top of ["api", "lib", "public", "vercel.json"]) { const p = path.join(root, top); if (!fs.existsSync(p)) continue; if (fs.statSync(p).isDirectory()) walk(p); else if (NAMES.test(fs.readFileSync(p, "utf8"))) hits.push(top); }
-  ok("(7) only the module and the cron refresh name the field, the store key or the module", hits.every(h => ALLOWED.has(h)) && hits.length === ALLOWED.size, hits.join(", "));
+  ok("(7) only the module and the cron refresh name the field, the store key or the module", hits.every(h => ALLOWED.has(h)) && REQUIRED.every(h => hits.includes(h)), hits.join(", "));
   const lib = fs.readFileSync(path.join(root, "lib/live/tasksDemo.js"), "utf8");
   { const fn = lib.slice(lib.indexOf("export async function tasksDemo(")); ok("(7) the reader checks the crew cookie before it reads the store", fn.indexOf("isCrewRequest(reqOrCookie)") > 0 && fn.indexOf("isCrewRequest(reqOrCookie)") < fn.indexOf("readStore(env, d)")); }
   const pl = fs.readFileSync(path.join(root, "api/pullLive.js"), "utf8");
