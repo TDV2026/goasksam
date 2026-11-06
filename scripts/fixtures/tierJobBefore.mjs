@@ -40,7 +40,8 @@ export function parseArgs(argv) {
 export function payloadFor(rows, bandsFor) {
   return rows.map(r => { const a = assignTier(r, bandsFor(r)); return { id: r.id, tier: a.tier, evidence: a.evidence, version: a.version }; });
 }
-const keyOf = r => `${r.make}|${r.model}`;
+import { poolOf, poolKeyOf, poolFilter } from "../../lib/tierPool.js";   // ct3: the frozen id-order job, with only the pool changed, so the check compares ORDER and nothing else
+const keyOf = poolKeyOf;
 
 export async function runJob({ env, batch = LIMITS.batch[2], pause = LIMITS.pause[2], slow = LIMITS.slow[2], max = LIMITS.max[2], minutes = LIMITS.minutes[2], strikes = LIMITS.strikes[2],
   bandReads = BAND_READS, requestMs = REQUEST_MS, hardMs = HARD_MS, dry = false, log = console.log, sleep = ms => new Promise(r => setTimeout(r, ms)), now = Date.now, fetchImpl = fetch }) {
@@ -51,7 +52,7 @@ export async function runJob({ env, batch = LIMITS.batch[2], pause = LIMITS.paus
 
   // One model's quartiles. { bands } on a read, { failed:true } when the read did not come back (timeout, 5xx): the caller must NOT treat that as "no band".
   const readBands = async r => {
-    const got = await supabaseSelect(env, `sales_archive?make=eq.${encodeURIComponent(r.make)}&model=eq.${encodeURIComponent(r.model)}&mileage_text=not.is.null&select=mileage_text&limit=1000`);
+    const got = await supabaseSelect(env, `sales_archive?${poolFilter(poolOf(r))}&mileage_text=not.is.null&select=mileage_text&limit=1000`);
     if (!Array.isArray(got)) return { failed: true };
     return { bands: modelMileBands(got.map(x => x.mileage_text)) };
   };

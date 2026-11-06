@@ -74,6 +74,6 @@ a = A(OWN); ok("(3) score 3 is tier 2, not tier 1", a.tier === 2 && a.score === 
 a = A("Nice car.", { mileage_text: "30,000" }); ok("(3) two signals (mileage, clean title) stay Untiered", a.tier === null && a.observed === 2);
 ok("(3) MIN_SIGNALS is still 3", T.MIN_SIGNALS === 3);
 // (4) version
-ok("(4) the version is ct2", /^ct2-/.test(T.TIER_VERSION), T.TIER_VERSION);
+ok("(4) the version is ct3 (the band pool changed: lib/tierPool.js)", /^ct3-/.test(T.TIER_VERSION), T.TIER_VERSION);
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");
 process.exit(failed ? 1 : 0);

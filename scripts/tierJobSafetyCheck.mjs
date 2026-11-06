@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
+import { poolRows, poolParam } from "./fixtures/poolFake.mjs";
 const ROOT = path.resolve(process.argv[2] || path.join(path.dirname(new URL(import.meta.url).pathname), ".."));
 let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 const T = await import(pathToFileURL(path.join(ROOT, "lib/conditionTier.js")).href);
@@ -52,9 +53,9 @@ function world(n, opts = {}) {
     if (u.pathname.endsWith("/sales_archive")) {
       const sel = u.searchParams.get("select") || "";
       if (sel === "mileage_text") {
-        st.bandCalls++; const model = (u.searchParams.get("model") || "").replace("eq.", "");
+        st.bandCalls++; const model = poolParam(u.searchParams).replace("eq.", "");
         if (st.bandFail.has(model)) return new Response("boom", { status: 500 });
-        return new Response(JSON.stringify(rows.filter(r => r.model === model).map(r => ({ mileage_text: r.mileage_text }))), { status: 200 });
+        return new Response(JSON.stringify(poolRows(rows, u.searchParams).map(r => ({ mileage_text: r.mileage_text }))), { status: 200 });
       }
       reads.push(u.search);
       if (st.failBatchRead) return new Response("boom", { status: 500 });

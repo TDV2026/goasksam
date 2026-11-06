@@ -13,6 +13,7 @@
 //   node scripts/assignConditionTier.mjs [--batch=100] [--pause=2000] [--slow=3000] [--max=5000] [--minutes=60] [--strikes=3] [--dry]
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 import { assignTier, modelMileBands, TIER_VERSION } from "../lib/conditionTier.js";
+import { poolOf, poolKeyOf, poolFilter } from "../lib/tierPool.js";
 
 export const COLS = "id,year,make,model,listing_title,description,mileage_text,stated_mileage,title_status,modifications::text,project_flag";
 export const LIMITS = { batch: [25, 500, 100], pause: [0, 60000, 2000], slow: [500, 60000, 2500], max: [1, 2000000, 5000], minutes: [1, 300, 60], strikes: [1, 20, 3] };
@@ -40,7 +41,7 @@ export function parseArgs(argv) {
 export function payloadFor(rows, bandsFor) {
   return rows.map(r => { const a = assignTier(r, bandsFor(r)); return { id: r.id, tier: a.tier, evidence: a.evidence, version: a.version }; });
 }
-const keyOf = r => `${r.make}|${r.model}`;
+const keyOf = poolKeyOf;   // ct3: a sale is banded against its Desk family and generation (lib/tierPool.js), not its raw model value
 
 // THE ORDER AND THE CLOCK (Lane B, Nov 5 2026, Condition tier run #2: "models 8" in 1.9 to 3.0 s on every batch, stopped after 3 slow batches, 100 rows in a minute).
 // CAUSE: rows were read in id order, and an id is a random uuid, so the 100 rows of a batch belonged to about 100 different models. A model's mileage quartiles need one read of up to 1,000 of its
@@ -62,9 +63,10 @@ export async function runJob({ env, batch = LIMITS.batch[2], pause = LIMITS.paus
 
   // One model's quartiles. { bands } on a read, { failed:true } when the read did not come back (timeout, 5xx): the caller must NOT treat that as "no band".
   const readBands = async r => {
-    if (r.model == null || r.model === "") return { bands: null };   // a sale with no model has no model to take quartiles of
+    const pool = poolOf(r);
+    if (!pool) return { bands: null };   // a sale with no model has no pool to take quartiles of
     const t0 = now();
-    const got = await supabaseSelect(env, `sales_archive?make=eq.${q(r.make)}&model=eq.${q(r.model)}&mileage_text=not.is.null&select=mileage_text&limit=1000`);
+    const got = await supabaseSelect(env, `sales_archive?${poolFilter(pool, q)}&mileage_text=not.is.null&select=mileage_text&limit=1000`);
     const ms = now() - t0; dbBandMs += ms; dbBandMax = Math.max(dbBandMax, ms); bandsThisBatch++; modelsRead++;
     if (!Array.isArray(got)) return { failed: true };
     return { bands: modelMileBands(got.map(x => x.mileage_text)) };
@@ -99,7 +101,6 @@ export async function runJob({ env, batch = LIMITS.batch[2], pause = LIMITS.paus
       await sleep(Math.max(wait, 2000));
     }
   };
-  const keyOf = r => `${r.make}|${r.model}`;
 
   // rows with their bands, waiting to be written as one batch
   let acc = [];

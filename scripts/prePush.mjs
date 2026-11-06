@@ -2201,6 +2201,12 @@ try {
   record("Desk item 1: the condition tier job takes sales model by model (each model read once), gives the same tiers as the id-order job, judges slowness on the database's own request times, and tiers the Desk's and most searched models first (scripts/tierSpeedCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || String(e.message || e).slice(0, 300));
 }
 try {
+  const out = execSync("node scripts/tierBandPoolCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk item 1: a condition tier reads a sale's mileage against its Desk family and generation (911, 996 and 997 are one family, each generation its own pool), one quartile read per pool (scripts/tierBandPoolCheck.mjs, mutants in tierBandPoolMutants.mjs)", "PASS", (out.match(/tierBandPoolCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk item 1: a condition tier reads a sale's mileage against its Desk family and generation (911, 996 and 997 are one family, each generation its own pool), one quartile read per pool (scripts/tierBandPoolCheck.mjs, mutants in tierBandPoolMutants.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 6).join(" | ") || String(e.message || e).slice(0, 300));
+}
+try {
   const out = execSync("node scripts/tierJobSafetyCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk item 1: the condition tier job is safe on the live site (a max or batch that is not a whole number fails, bounded batches, a failed read is never 'no band', no half written row, slow batches stop the run, schedule outside the ingest) (scripts/tierJobSafetyCheck.mjs)", "PASS", (out.match(/all passed/) || [""])[0]);
 } catch (e) {

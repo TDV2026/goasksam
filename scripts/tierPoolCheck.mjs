@@ -35,7 +35,7 @@ globalThis.fetch = async (url, init = {}) => {
     tierReads++;
     if (tierColumnMissing) return new Response(JSON.stringify({ code: "42703", message: "column sales_archive.condition_tier does not exist" }), { status: 400 });
     const ids = (u.searchParams.get("id") || "").replace(/^in\.\(|\)$/g, "").split(",").filter(Boolean);
-    return new Response(JSON.stringify(ids.map(id => { const i = Number(id.replace("uuid-", "")); return { id, condition_tier: tierOf(i), condition_version: assignedAll === "old" ? "ct1-20261105" : assignedAll ? "ct2-20261105" : null }; })), { status: 200 });
+    return new Response(JSON.stringify(ids.map(id => { const i = Number(id.replace("uuid-", "")); return { id, condition_tier: tierOf(i), condition_version: assignedAll === "old" ? "ct1-20261105" : assignedAll ? "ct3-20261105" : null }; })), { status: 200 });
   }
   if (/condition_tier|condition_version/.test(url)) anyTierColumnInPoolRead++;
   if (u.searchParams.get("id") || /^model$/.test(sel)) return new Response(/^model$/.test(sel) ? JSON.stringify([{ model: "911" }, { model: "Cayman" }]) : "[]", { status: 200 });

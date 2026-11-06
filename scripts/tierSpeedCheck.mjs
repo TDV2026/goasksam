@@ -7,6 +7,7 @@
 //   (4) priority: the Desk's models, then the most searched, then the rest; a run stopped early leaves the priority pools complete
 //   node scripts/tierSpeedCheck.mjs [repo root]      --mutants proves each rule by breaking the job in a copy
 import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { fileURLToPath, pathToFileURL } from "node:url"; import { spawnSync } from "node:child_process";
+import { poolRows, poolParam } from "./fixtures/poolFake.mjs";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2), rootArg = args.find(a => !a.startsWith("--"));
 const ROOT = path.resolve(rootArg || path.join(here, ".."));
@@ -63,7 +64,7 @@ function world(rows, opts = {}) {
     }
     if (u.pathname.endsWith("/sales_archive")) {
       const sp = u.searchParams, sel = sp.get("select") || "";
-      if (sel === "mileage_text") { st.bands++; st.now += st.bandMs; const model = (sp.get("model") || "").replace("eq.", ""); return new Response(JSON.stringify(w.rows.filter(r => r.model === model).map(r => ({ mileage_text: r.mileage_text }))), { status: 200 }); }
+      if (sel === "mileage_text") { st.bands++; st.now += st.bandMs; return new Response(JSON.stringify(poolRows(w.rows, sp).map(r => ({ mileage_text: r.mileage_text }))), { status: 200 }); }
       st.rowReads++; st.now += st.readMs; if (st.failRead) return new Response("boom", { status: 500 });
       const gt = (sp.get("id") || "gt.").replace("gt.", ""), lim = Number(sp.get("limit") || 500), cv = sp.get("condition_version") || "", ord = sp.get("order") || "id";
       const col = (k, r) => { const c = sp.get(k); if (!c) return true; if (c.startsWith("eq.")) return r[k] === c.slice(3); if (c.startsWith("gt.")) return String(r[k]) > c.slice(3); if (c.startsWith("ilike.")) return String(r[k] || "").toLowerCase() === c.slice(6).toLowerCase(); if (c === "not.is.null") return r[k] != null; return true; };
@@ -126,7 +127,7 @@ const base = makeRows(2400, 120);
   ok("(3) one request over the hard ceiling stops the run at once", oh.stopped === "slow" && oh.flushes <= 1, `flushes ${oh.flushes}, done ${oh.done}`);
   const f = world(base); f.st.failRead = true; let t = null; try { await run(NEW, f, { batch: 100 }); } catch (e) { t = e; }
   ok("(3) a failed read throws (fails closed): nothing written, no quiet 'finished'", !!t && f.st.rpc === 0, t ? t.message.slice(0, 80) : "no throw");
-  const fm = world(base); const orig = fm.f; let bad = base[0].model; globalThis.fetch = fm.f = async (url, init) => { const u = new URL(String(url)); if ((u.searchParams.get("select") === "mileage_text") && u.searchParams.get("model") === "eq." + bad) return new Response("boom", { status: 500 }); return orig(url, init); };
+  const fm = world(base); const orig = fm.f; let bad = base[0].model; globalThis.fetch = fm.f = async (url, init) => { const u = new URL(String(url)); if ((u.searchParams.get("select") === "mileage_text") && poolParam(u.searchParams) === "eq." + bad || u.searchParams.get("model_family") === "eq." + bad) return new Response("boom", { status: 500 }); return orig(url, init); };
   let tm = null; try { await run(NEW, fm, { batch: 100, bandReads: 8, fetchImpl: fm.f }); } catch (e) { tm = e; }
   ok("(3) a failed model read is not 'no band': its sales are not stamped and the run says so", !!tm && fm.rows.filter(r => r.model === bad).every(r => !r.condition_version), tm ? tm.message.slice(0, 70) : "no throw");
 }
