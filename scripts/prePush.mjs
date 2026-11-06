@@ -864,12 +864,12 @@ try {
 } catch (e) {
   record("Desk Valuations: the reserve, range and guard rules at finalise, refused and allowed, and printed inline (scripts/reasonRulesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
-// tasksCrewExportCheck (Lane S, Nov 5 2026, lane-s-tasks10-exports): Tasks: crewTaskLimit and badge.unread are crew only and a non crew answer is unchanged.
+// tasksCrewExportCheck (Lane S, Nov 5 2026, lane-s-tasks10-exports): Tasks: the crew limit export and badge.unread are crew only and a non crew answer is unchanged.
 try {
   const out = execSync("node scripts/tasksCrewExportCheck.mjs", { encoding: "utf8", timeout: 600000 });
-  record("Tasks: crewTaskLimit and badge.unread are crew only and a non crew answer is unchanged (scripts/tasksCrewExportCheck.mjs)", "PASS", (out.match(/tasksCrewExportCheck: .*/) || [""])[0]);
+  record("Tasks: the crew limit export and badge.unread are crew only and a non crew answer is unchanged (scripts/tasksCrewExportCheck.mjs)", "PASS", (out.match(/tasksCrewExportCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("Tasks: crewTaskLimit and badge.unread are crew only and a non crew answer is unchanged (scripts/tasksCrewExportCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+  record("Tasks: the crew limit export and badge.unread are crew only and a non crew answer is unchanged (scripts/tasksCrewExportCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // tasksTapPageCheck (Lane S, Nov 5 2026, lane-s-tasks10-exports): Tasks: the email tap page when the account is at its limit.
 try {

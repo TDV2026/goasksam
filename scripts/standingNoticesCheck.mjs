@@ -97,6 +97,8 @@ ok(!SEND_FILES.some(f => /watch_requests/.test(rd(f).split("\n").filter(l => !/^
     ["api/buy.js", /email you when/, "Task email"], ["api/buy.js", /Email me before bidding ends/, "before-it-ends email"],
     ["api/tasksPage.js", /emails you when one fits|Sam tells you what it is|gets its own email|Email me before bidding ends|hear about before bidding ends/, "Task email"],
     ["api/tasks.js", /you get an email when a car fits|an email when/, "Task email"],
+    ["lib/preview/tasksAppFork.js", /emails you when one fits|Sam tells you what it is|gets its own email|Email me before bidding ends|hear about before bidding ends/, "Task email"],   // the Tasks preview's copy of the live task app (the same sentences as api/tasksPage.js)
+    ["lib/preview/tasksPreview.js", /hear about matches|email notifications/, "Task email"],   // Sam's FAQ on the Tasks preview
     ["api/watch.js", /tells you again when the next one sells/, "watch email"],
     ["lib/appShell.js", /email you when/, "Task email"],
     ["lib/legal/privacyText.js", /email you when something fits/, "Task email"], ["lib/legal/privacyText.js", /we will tell you in the service or by email/, "none, a legal commitment made by hand"],

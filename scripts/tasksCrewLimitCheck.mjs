@@ -88,7 +88,7 @@ export async function findings(mut = {}) {
   // static: the crew number is chosen in exactly one place, behind isCrewRequest, and nothing else assigns taskMax
   {
     const tracked = [];
-    for (const d of ["api", "lib"]) { const walk = dir => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const f = path.join(dir, e.name); if (e.isDirectory()) walk(f); else if (/\.js$/.test(e.name) && !/__crewmut/.test(e.name)) tracked.push(f); } }; walk(path.join(ROOT, d)); }
+    for (const d of ["api", "lib"]) { const walk = dir => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { const f = path.join(dir, e.name); if (e.isDirectory()) walk(f); else if (/\.js$/.test(e.name) && !/__crewmut/.test(e.name) && !/^lib[\\/](preview|crewPages)[\\/]/.test(path.relative(ROOT, f))) tracked.push(f); } }; walk(path.join(ROOT, d)); }   // the crew only previews (lib/preview, lib/crewPages) read the limit to print it; scripts/tasksCrewExportCheck.mjs proves they are crew gated and never under public/
     const uses = tracked.filter(f => /CREW_TASK_LIMIT|taskMax\s*[:=]/.test(fs.readFileSync(f, "utf8").replace(/\/\/.*$/gm, ""))).map(f => path.relative(ROOT, f)).sort();
     if (JSON.stringify(uses) !== JSON.stringify(["lib/tasks/crewGate.js", "lib/tasks/limit.js"])) fails.push(`the crew limit is referenced outside limit.js and crewGate.js: ${uses.join(", ")}`);
     const gateSrc = fs.readFileSync(path.join(LIB, "crewGate.js"), "utf8"), api = fs.readFileSync(path.join(ROOT, "api/tasks.js"), "utf8");
