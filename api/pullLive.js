@@ -155,6 +155,7 @@ async function handler(req, res) {
       await recordUsageEvent({ event_type: "pull_live_mode", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: out }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       out.featuredRefresh = await refreshFeatured(env);
       out.tasksDemoRefresh = await refreshTasksDemoWord(env);
+      out.examplesRefresh = await refreshExamplesWord(env);
       return res.status(200).json({ ok: true, ...out });
     }
     // 1. Walk every page of the live feed, bounded by --max-requests.
@@ -200,7 +201,8 @@ async function handler(req, res) {
     await recordUsageEvent({ event_type: "pull_live_summary", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: { started_by: starter.by, started_detail: starter.detail, stepMs, fetched: rows.length, ocdRequests: used(), newListings: fresh, upserted: up, ended, finals, stats: { withVin: stats.withVin, vinsChecked: stats.vinsChecked, vinsLeft: stats.vinsLeft, budgetHit: stats.budgetHit } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
     const featuredRefresh = await refreshFeatured(env);
     const tasksDemoRefresh = await refreshTasksDemoWord(env);
-    return res.status(200).json({ ok: true, featuredRefresh, tasksDemoRefresh, ocdRequests: used(), maxRequests: maxReq, truncated, stoppedForReserve, feedTotal: total, fetched: rows.length, newListings: fresh, perSource, upserted: up, ended, finals, stepMs, ...stats });
+    const examplesRefresh = await refreshExamplesWord(env);
+    return res.status(200).json({ ok: true, featuredRefresh, tasksDemoRefresh, examplesRefresh, ocdRequests: used(), maxRequests: maxReq, truncated, stoppedForReserve, feedTotal: total, fetched: rows.length, newListings: fresh, perSource, upserted: up, ended, finals, stepMs, ...stats });
   } catch (e) {
     await flushOcdUsage().catch(() => {});
     return res.status(500).json({ ok: false, ocdRequests: used(), error: String((e && e.message) || e).slice(0, 300) });
@@ -226,6 +228,12 @@ async function refreshTasksDemoWord(env) {
     const r = await Promise.race([refreshTasksDemo(env), new Promise(res => setTimeout(() => res({ why: "timeout" }), 40000))]);
     return (r && r.why || "done") + (r && r.tried != null ? ` (tried ${r.tried}${r.history ? ", with an earlier record" : ""})` : "");
   } catch { return "error"; }
+}
+
+// The crew-only Find examples and Tasks watching card (lib/live/findExamples.js, lib/live/watchingDemo.js): kept while they pass, replaced when an auction ends. Zero OCD, best effort, bounded; a word, never a car.
+async function refreshExamplesWord(env) {
+  const run = async (off, mod, fn) => { try { if (process.env[off] === "0") return "off"; const m = await import(mod); const r = await Promise.race([m[fn](env), new Promise(res => setTimeout(() => res({ why: "timeout" }), 40000))]); return (r && r.why || "done") + (r && r.funnel && r.funnel.chosen != null ? ` (${r.funnel.kept} kept, ${r.funnel.chosen} new)` : ""); } catch { return "error"; } };
+  return { findExamples: await run("FIND_EXAMPLES", "../lib/live/findExamples.js", "refreshFindExamples"), watchingDemo: await run("WATCHING_DEMO", "../lib/live/watchingDemo.js", "refreshWatchingDemo") };
 }
 
 // OPS, KEYED AND READ ONLY (Lane B, Nov 6 2026): what the two crew keys hold now, and (funnel=1) the counts the refresh finds on the live pool, without writing. api/usageDashboard.js task=crewkeys calls this behind the ops key; no cron
