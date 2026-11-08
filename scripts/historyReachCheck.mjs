@@ -26,7 +26,7 @@ if (args.includes("--mutants")) {
     ["the sibling hubs", "lib/historyLinks.js", "siblings: sibs.slice(0, cap)", "siblings: []"],
     ["the nearby VINs", "lib/historyLinks.js", ".slice(0, n).map(o => o.x);", ".slice(0, 0).map(o => o.x);"],
     ["the Market Check receipt link", "public/js/onebox.js", "extra: marks, vinNorm: rc.vinNorm });", "extra: marks });"],
-    ["the Find card link", "api/buy.js", "(l.history_url ? '<a class=\\\"hplain\\\"", "(false ? '<a class=\\\"hplain\\\""]
+    ["the Find card link", "api/buy.js", "&& l.history_url ? '<a class=\\\"hplain\\\"", "&& false ? '<a class=\\\"hplain\\\""]
   ];
   let bad = 0;
   for (const [name, file, from, to] of MUT) {
@@ -197,7 +197,7 @@ if (!LIVE) {
   ok(/vinNorm: \(c\.hasHistoryPage && c\.vinNorm && c\.soldBefore/.test(mc), "Market Check: a result card beside its Sold before line prints the plain link");
   ok(/histPlainHtml\(c\.vinNorm, "inrow"\)/.test(mc), "Market Check: each row of All comparable sales prints the plain link");
   const buy = fs.readFileSync(path.join(ROOT, "api/buy.js"), "utf8");
-  ok(/\(l\.history_url \? '<a class=\\"hplain\\" href=\\"' \+ esc\(l\.history_url\)/.test(buy), "Find: the live card prints a plain link to l.history_url beside the Sold before chip");
+  ok(/&& l\.history_url \? '<a class=\\"hplain\\" href=\\"' \+ esc\(l\.history_url\)/.test(buy), "Find: the live card prints a plain link to l.history_url beside the Sold before chip (chipsHtml only, the email chip is untouched)");
   ok(/hp-hist/.test(buy), "Find: a sale's modal carries the plain history link");
 }
 
