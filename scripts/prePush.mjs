@@ -2216,6 +2216,18 @@ try {
   record("Crew previews on a local run with Lane B's real readers: three Find cards and two Task cards, real components, lined up (scripts/crewLocalRun.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/crewReadCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("A failed crew preview read is never silent and its module is in the bundle (scripts/crewReadCheck.mjs)", "PASS", (out.match(/crewReadCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("A failed crew preview read is never silent and its module is in the bundle (scripts/crewReadCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/livePreviewCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Crew previews render their sections (offline self-test; the live run is node scripts/livePreviewCheck.mjs --live with GAS_CREW_COOKIE) (scripts/livePreviewCheck.mjs)", "PASS", (out.match(/livePreviewCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Crew previews render their sections (offline self-test; the live run is node scripts/livePreviewCheck.mjs --live with GAS_CREW_COOKIE) (scripts/livePreviewCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/crewWiringCheck.mjs", { encoding: "utf8", timeout: 120000 });
   record("Crew previews read the engine's fallbacks: live first, fallback when null, three Find cards and two Task cards (scripts/crewWiringCheck.mjs)", "PASS", (out.match(/crewWiringCheck: .*/) || [""])[0]);
 } catch (e) {

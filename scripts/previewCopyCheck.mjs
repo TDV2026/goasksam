@@ -20,7 +20,7 @@ const attrsOf = html => [...bodyOf(html).matchAll(/\b(?:placeholder|aria-label|t
 const cssOf = html => [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m => m[1]).filter(c => !/@font-face/.test(c) || /--brand/.test(c)).join("\n");
 // the words that are approved elsewhere and so may carry what the strict rules would otherwise flag (digits, "bid"): the engine's own example searches and the approved rules
 const rules = rulesOf();
-const APPROVED = [...PLACEHOLDERS.preview.examples, ...PLACEHOLDERS.home.examples, ...PLACEHOLDERS.find.examples, rules.lead, ...rules.rules.flatMap(r => [r.h, r.b]), copy("home.START_TITLE"), copy("find.START_SUB"), copy("find.START_TITLE"),
+const APPROVED = [...PLACEHOLDERS.preview.examples, ...PLACEHOLDERS.previewFind.examples, ...PLACEHOLDERS.home.examples, ...PLACEHOLDERS.find.examples, rules.lead, ...rules.rules.flatMap(r => [r.h, r.b]), copy("home.START_TITLE"), copy("find.START_SUB"), copy("find.START_TITLE"),
   // Sam's Tasks copy (the Tasks previews): his own questions and lines, and the two free lines the limit builds
   ...TCOPY.faq(TMAX).flat(), ...TCOPY.faq(10).flat(), tFree(TMAX).line, tFree(TMAX).sub, tFree(10).line, tFree(10).sub, TCOPY.heading, TCOPY.support, TCOPY.notHead, ...TCOPY.not, TCOPY.placeholder, TCOPY.eyebrow];
 const stripApproved = t => APPROVED.reduce((a, w) => a.split(w).join(" "), t);
@@ -69,7 +69,7 @@ const SHARED = {
   header: html => /Beta<\/span>/.test(HEADER(html)) && !/FIND\s*(?:&middot;|·)\s*CHECK|Find, check, sell/i.test(textOf(html)) && [">Find<", ">Market Check<", ">Sell<", ">Tasks<", ">Account<"].every(w => HEADER(html).includes(w)) ? null : "the header lacks Beta or one of Find, Market Check, Sell, Tasks, Account, or carries the Find Check Sell tag",
   placeholder: html => SEARCH(html).includes('placeholder="Tell Sam what you&#39;re looking for..."') ? null : "the search placeholder is not exactly: Tell Sam what you're looking for...",
   arrowSubmit: html => /<button class="go" type="submit" aria-label="Go ask Sam"><svg/.test(SEARCH(html)) && !/>\s*Go ask Sam\s*</.test(SEARCH(html).replace(/aria-label="[^"]*"/g, "")) && /id="pq-mic"/.test(SEARCH(html)) ? null : "the submit is not a compact arrow only button with the microphone beside it",
-  pills: html => { const l = [...PILLS(html).matchAll(/<a class="pill" href="\/find\?q=([^"]*)">([^<]*)<\/a>/g)].map(m => [decodeURIComponent(m[1]), decode(m[2])]); return l.length === 3 && l.every(([q, t], i) => q === t && t === PLACEHOLDERS.preview.examples[i]) && /Go ask Sam:/.test(PILLS(html)) ? null : "the pills are not the three approved examples, each linking to its own Find search"; },
+  pills: html => { const l = [...PILLS(html).matchAll(/<a class="pill" href="\/find\?q=([^"]*)">([^<]*)<\/a>/g)].map(m => [decodeURIComponent(m[1]), decode(m[2])]); return l.length === 3 && l.every(([q, t], i) => q === t && t === (/class="shell wrap"/.test(html) ? PLACEHOLDERS.previewFind : PLACEHOLDERS.preview).examples[i]) && /Go ask Sam:/.test(PILLS(html)) ? null : "the pills are not the three approved examples, each linking to its own Find search"; },
   footer: html => /The Daily Vroom/.test(FOOT(html)) && ["/about", "/business", "/whats-new", "/feedback", "/terms", "/privacy"].every(h => FOOT(html).includes('href="' + h + '"')) && !/Find, check, sell|Find\. Check\. Sell/i.test(FOOT(html)) ? null : "the footer lost a link or carries the Find Check Sell tagline",
   fonts: html => { const fam = [...cssOf(html).matchAll(/font-family:([^;}]*)/g)].map(m => m[1]); const bad = [...cssOf(html).matchAll(/font:[^;}]*?\b(?:var\(--(?:sans|serif)\)|[A-Za-z"' ,-]+)\s*(?:;|})/g)]; return /Newsreader/.test(cssOf(html)) && /Instrument Sans/.test(cssOf(html)) && !/Inter\b|Arial|Helvetica|Roboto|Playfair|Georgia\s*,\s*serif;/.test(cssOf(html).replace(/--serif:[^;]*;|--sans:[^;]*;/g, "")) ? null : "a font other than the two site families is named in the CSS"; },
   noAbsoluteCentering: html => /translate\(-50%|left:50%/.test(cssOf(html)) ? "the layout is centred by absolute positioning or a transform" : null
@@ -79,7 +79,7 @@ const SHARED = {
   for (const [k, f] of Object.entries(SHARED)) for (const [n, h] of [["home", home], ["find", find]]) { const why = f(h); ok(!why, `${n}: shared ${k}${why ? " (" + why + ")" : ""}`); }
   ok(HEADER(home) === HEADER(find), "the header is byte for byte the same on both pages (apart from the active Find mark)");
   ok(SEARCH(home) === SEARCH(find) && SEARCH(home).length > 100, "the search box is byte for byte the same on both pages");
-  ok(PILLS(home) === PILLS(find) && PILLS(home).length > 100, "the pills are byte for byte the same on both pages");
+  ok(PILLS(home).length > 100 && PILLS(find).length > 100 && PILLS(home).replace(/>[^<]*<\/a>/g, "></a>").replace(/href="[^"]*"/g, "") === PILLS(find).replace(/>[^<]*<\/a>/g, "></a>").replace(/href="[^"]*"/g, ""), "the pills are the same three links in the same markup on both pages (each page carries its own approved set: Find's is Sam's longer one, Nov 8 2026)");
   ok(FOOT(home) === FOOT(find) && FOOT(home).length > 100, "the footer is byte for byte the same on both pages");
   ok(/aria-current="page">Find</.test(find) && !/aria-current="page"/.test(home), "Find is the active tab on Find only");
   ok(!/<aside|id="gas-rail"/.test(home), "home: no rail");
@@ -96,7 +96,7 @@ const SHARED = {
   ok(/noindex/.test(home) && /noindex/.test(find), "both previews are noindex");
   const src = fs.readFileSync("lib/preview/previewPages.js", "utf8");
   ok(!/\bfetch\(|supabase|oneEngineAnswer\(|Math\.random|Date\.now|new Date/.test(src.replace(/\/\/.*$/gm, "")), "the preview pages compute nothing: no fetch, no database, no date, no random in the page code");
-  ok(PLACEHOLDERS.preview && PLACEHOLDERS.preview.via === "find" && PLACEHOLDERS.preview.examples.length === 3, "the three pills are an entry in the engine's approved example list (placeholderCheck --live runs them)");
+  ok(PLACEHOLDERS.preview && PLACEHOLDERS.preview.via === "find" && PLACEHOLDERS.preview.examples.length === 3 && PLACEHOLDERS.previewFind && PLACEHOLDERS.previewFind.via === "find" && PLACEHOLDERS.previewFind.examples.length === 3, "the three pills are an entry in the engine's approved example list (placeholderCheck --live runs them)");
 }
 // ---- THE CHECK PROVES ITSELF: one violation at a time, each must be caught (these are the things the mockups did)
 {
