@@ -17,7 +17,10 @@ if (args.includes("--mutants")) {
     [TD, "const why = T.matchReasonLine(task.filters, c, b.bid);", "const why = \"Matches your Task.\";", "(1) the reason line is typed, not the email's"],
     [TD, "if (!b || !b.cardHtml || !b.cardText) continue;", "if (!b) continue;", "(2) a car whose card cannot be read is shown"],
     [TD, "block: { ...b, card: c } };\n  }\n  return null;\n}", "block: { ...b, card: c } };\n  }\n  return { source: \"latest\", update: { id: 0, at: new Date().toISOString() }, subject: \"Sam found a 1995 BMW M3, live now\", why: \"Matches your Task: a BMW from 1995.\", block: { id: 1, car: \"A 1995 BMW M3.\", cardHtml: \"<table></table>\", cardText: \"1995 BMW M3\" } };\n}", "(3) an invented example when nothing is stored"],
-    [TD, "update: { id: u.id, at: at.toISOString() }, subject: T.taskEmailSubject([c]), why, block: { ...b, card: c } };", "update: { id: u.id, at: at.toISOString(), task: u.task_id }, subject: T.taskEmailSubject([c]), why, block: { ...b, card: c } };", "(4) the Task's id is returned"],
+    [TD, "task: { summary, filters: task.filters }, block:", "block:", "(1) the Task's sentence and criteria are left out"],
+    [TD, "const summary = typeof task.summary === \"string\" && task.summary.trim() ? task.summary.trim() : \"Sam is looking for \" + T.jobPhrase(task.filters) + \".\";", "const summary = \"Sam is looking for cars.\";", "(1) the read back sentence is typed, not the stored one"],
+    [TD, "task: { summary, filters: task.filters }, block:", "task: { summary, filters: task.filters, id: u.task_id }, block:", "(4) the Task's id rides in the answer"],
+    [TD, "update: { id: u.id, at: at.toISOString() }, subject", "update: { id: u.id, at: at.toISOString(), task: u.task_id }, subject", "(4) the Task's id is returned"],
     [TD, "const ups = await d.select(env, \"task_updates?kind=eq.match&role=eq.sam&", "const ups = await d.select(env, \"task_updates?kind=eq.match&role=eq.user&", "(3) the stored update is read from the wrong rows"]
   ];
   let survivors = 0;
@@ -51,11 +54,11 @@ function world({ updates, tasks, rows }) {
   listings = rows;
   return { now: () => AT + 60 * 60e3, select: async (e, q) => {
     if (/^task_updates\?/.test(q)) return /kind=eq\.match/.test(q) && /role=eq\.sam/.test(q) ? updates : [];
-    let m = /^tasks\?id=eq\.([^&]+)/.exec(q); if (m) return tasks[decodeURIComponent(m[1])] ? [{ filters: tasks[decodeURIComponent(m[1])] }] : [];
+    let m = /^tasks\?id=eq\.([^&]+)/.exec(q); if (m) return tasks[decodeURIComponent(m[1])] ? [{ filters: tasks[decodeURIComponent(m[1])], summary: SUMMARIES[decodeURIComponent(m[1])] || null }] : [];
     m = /^live_listings\?id=eq\.([^&]+)/.exec(q); if (m) return rows.filter(r => String(r.id) === decodeURIComponent(m[1])).slice(0, 1);
     return []; } };
 }
-const TASKS = { tA: filtersBMW, tB: filtersPorsche };
+const TASKS = { tA: filtersBMW, tB: filtersPorsche }, SUMMARIES = { tA: "Sam is looking for BMWs from 1995.", tB: null };
 { // (1) preferred
   const updates = [upd("u3", "tB", AT + 3 * 36e5, card(OTHER)), upd("u2", "tA", AT, card(M3)), upd("u1", "tB", AT - 36e5, card(OTHER))];
   const w = world({ updates, tasks: TASKS, rows: [M3, OTHER] }), got = await TD.tasksEmailExample(env, CREW, w);
@@ -68,12 +71,16 @@ const TASKS = { tA: filtersBMW, tB: filtersPorsche };
   ok("(1) the bid is worded as the email read at the update's time: the last bid seen was $1,000", b && /last bid seen was \$1,000/i.test(String(b.bidLine || "") + " " + String(b.lines || "") + " " + String(b.cardText)), b && JSON.stringify([b.bidLine, b.lines]));
   const direct = (await T.taskEmailBlocks(env, [M3], [card(M3)], new Date(AT)))[0];
   ok("(1) the block is exactly what the template's own function gives for that update (no field added, none left out) plus the card", b && JSON.stringify({ ...b, card: undefined }) === JSON.stringify({ ...direct, card: undefined }) && b.card.id === 501);
-  ok("(4) no user, email or Task id anywhere in the answer", got && (function walk(o) { return !o || typeof o !== "object" || Object.entries(o).every(([k, v]) => !/^(user_id|task_id|task|email|user)$/.test(k) && v !== "tA" && v !== "tB" && walk(v)); })(got), JSON.stringify(got && got.update));
+  ok("(1) the Task the update belongs to: its stored read back sentence and its criteria, for the email body's summary line", got && got.task && got.task.summary === "Sam is looking for BMWs from 1995." && JSON.stringify(got.task.filters) === JSON.stringify(filtersBMW) && Object.keys(got.task).sort().join() === "filters,summary", JSON.stringify(got && got.task));
+  { const body = T.taskEmailBody({ id: "00000000-0000-4000-8000-000000000000", summary: got.task.summary, filters: got.task.filters }, [got.block], { first: false }); const txt = typeof body === "string" ? body : (body.text || JSON.stringify(body));
+    ok("(1) the real taskEmailBody prints that summary line", txt.includes("Sam is looking for BMWs from 1995."), txt.slice(0, 80)); }
+  ok("(4) no user, email or Task id anywhere in the answer", got && (function walk(o) { return !o || typeof o !== "object" || Object.entries(o).every(([k, v]) => !/^(user_id|task_id|email|user)$/.test(k) && v !== "tA" && v !== "tB" && walk(v)); })(got), JSON.stringify(got && got.update));
 }
 { // (2) aged out
   const updates = [upd("u9", "tB", AT + 2 * 36e5, card(BROKEN, { id: 777 })), upd("u8", "tB", AT + 36e5, card(OTHER)), upd("u7", "tB", AT, card(OTHER, { id: 999 }))];
   const w = world({ updates, tasks: TASKS, rows: [OTHER] }), got = await TD.tasksEmailExample(env, CREW, w);
   ok("(2) no 1995 M3 update: the most recent real update whose car can be read (source latest), skipping a gone listing", got && got.source === "latest" && got.update.id === "u8" && got.block.card.id === 502, JSON.stringify(got && [got.source, got.update]));
+  ok("(2) a Task stored with no read back sentence gets the engine's own (jobPhrase), not a typed one", got && got.task.summary === "Sam is looking for " + T.jobPhrase(filtersPorsche) + "." && /^Sam is looking for .*Porsche/.test(got.task.summary), got && got.task.summary);
   ok("(2) its reason line is the email's for its own Task", got && got.why === "Matches your Task: a Porsche from 1999.", got && got.why);
   const gone = await TD.tasksEmailExample(env, CREW, world({ updates: [upd("u1", "tB", AT, card(OTHER))], tasks: {}, rows: [OTHER] }));
   ok("(2) a Task with no criteria on file is skipped, nothing filled in", gone === null);
