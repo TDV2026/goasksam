@@ -959,6 +959,13 @@ try {
 } catch (e) {
   record("findPickCheck (scripts/findPickCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// hourlyRevalidateCheck (Lane B, Nov 8 2026): the Tasks example and the Homepage pick are confirmed live hourly by keyed reads only (no matcher, no OldCarsData); an ended one is cleared and the fallback serves.
+try {
+  const out = execSync("node scripts/hourlyRevalidateCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("hourlyRevalidateCheck (scripts/hourlyRevalidateCheck.mjs)", "PASS", (out.match(/hourlyRevalidateCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("hourlyRevalidateCheck (scripts/hourlyRevalidateCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });

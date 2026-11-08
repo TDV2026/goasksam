@@ -94,8 +94,9 @@ async function handler(req, res) {
         const endedPast = await markEndedPast(env, new Date().toISOString(), 60 * 60e3).catch(e => ({ error: String(e && e.message).slice(0, 120) }));
         // THE HOURLY REVALIDATION (Nov 8 2026): the first quarter of every hour, day and night, the Find examples and the watching card are confirmed live by keyed reads and an ended one is replaced. Zero OCD (database only), the existing every-15-minute cron.
         let examplesRefresh = "skipped";
-        if (new Date().getUTCMinutes() < 15) examplesRefresh = await refreshExamplesWord(env);
-        return res.status(200).json({ ok: true, slot, nothing: true, ocdRequests: 0, endedPast, examplesRefresh });
+        let revalidated = "skipped";
+        if (new Date().getUTCMinutes() < 15) { examplesRefresh = await refreshExamplesWord(env); revalidated = await revalidateCrewWord(env); }
+        return res.status(200).json({ ok: true, slot, nothing: true, ocdRequests: 0, endedPast, examplesRefresh, revalidated });
       }
       mode = slot.mode === "full" ? "" : slot.mode;
       if (starter.by === "scheduled") { starter.detail = `${slot.mode === "full" ? "full walk" : "ending soonest"} ${slot.hhmm} ${slot.zone}`; configureOcdUsage({ job: "pull_live", startedBy: starter.by, startedDetail: starter.detail }); }
@@ -234,6 +235,12 @@ async function refreshTasksDemoWord(env) {
     const r = await Promise.race([refreshTasksDemo(env), new Promise(res => setTimeout(() => res({ why: "timeout" }), 40000))]);
     return (r && r.why || "done") + (r && r.tried != null ? ` (tried ${r.tried}${r.history ? ", with an earlier record" : ""})` : "");
   } catch { return "error"; }
+}
+
+// The hourly revalidation of the Tasks example and the Homepage pick (Nov 8 2026): keyed reads only (lib/live/tasksDemo.js revalidateTasksDemo, lib/live/featuredHistory.js revalidateFeaturedHistory), no matcher, no search, zero OCD; a word, never a car.
+async function revalidateCrewWord(env) {
+  const run = async (off, mod, fn) => { try { if (process.env[off] === "0") return "off"; const m = await import(mod); const r = await Promise.race([m[fn](env), new Promise(res => setTimeout(() => res({ why: "timeout" }), 20000))]); return (r && r.why) || "done"; } catch { return "error"; } };
+  return { tasksExample: await run("TASKS_DEMO", "../lib/live/tasksDemo.js", "revalidateTasksDemo"), homepagePick: await run("FEATURED_HISTORY", "../lib/live/featuredHistory.js", "revalidateFeaturedHistory") };
 }
 
 // The crew-only Find examples and Tasks watching card (lib/live/findExamples.js, lib/live/watchingDemo.js): kept while they pass, replaced when an auction ends. Zero OCD, best effort, bounded; a word, never a car.

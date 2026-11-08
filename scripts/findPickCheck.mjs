@@ -24,7 +24,7 @@ if (args.includes("--mutants")) {
     [FE, "if (!genuinePhoto(row.photo_url) || !isHttps(row.url)) return false;", "if (!isHttps(row.url)) return false;", "(2) a car with no photo is picked"],
     [FE, "const pickable = row => Number(row.year) > 1885 && ", "const pickable = row => true && ", "(2) a car with no year in its title is picked"],
     [FE, "(!haveSold && c.sold ? 1000 : 0) + ", "0 + ", "(2) a car sold before is not brought in when one is available"],
-    [PL, "if (new Date().getUTCMinutes() < 15) examplesRefresh = await refreshExamplesWord(env);", "", "(5) the hourly revalidation has no cron slot"]
+    [PL, "if (new Date().getUTCMinutes() < 15) { examplesRefresh = await refreshExamplesWord(env); revalidated = await revalidateCrewWord(env); }", "if (false) { examplesRefresh = await refreshExamplesWord(env); revalidated = await revalidateCrewWord(env); }", "(5) the hourly revalidation has no cron slot"]
   ].filter(m => !/^\(x\)/.test(m[3]));
   let survivors = 0;
   for (const [file, from, to, want] of muts) {
@@ -126,7 +126,7 @@ const POOL = () => { id = 0; return [
 }
 { // (5) the cron slot and the spend
   const pl = fs.readFileSync(path.join(ROOT, "api/pullLive.js"), "utf8"), i = pl.indexOf("if (!slot.mode)"), seg = pl.slice(i, i + 900);
-  ok("(5) the quarter hours with no pull still revalidate once an hour (first quarter, existing cron), via the one examples refresh", /getUTCMinutes\(\) < 15\) examplesRefresh = await refreshExamplesWord\(env\)/.test(seg), seg.slice(0, 120));
+  ok("(5) the quarter hours with no pull still revalidate once an hour (first quarter, existing cron), via the one examples refresh", /getUTCMinutes\(\) < 15\) \{ examplesRefresh = await refreshExamplesWord\(env\)/.test(seg), seg.slice(0, 120));
   ok("(5) zero OldCarsData across every pick and revalidation", metered === 0, "calls " + metered);
   process.env.FIND_EXAMPLES = "0"; const w = world(POOL()); const r = await FE.refreshFindExamples(env, w.d); ok("(5) kill switch FIND_EXAMPLES=0", r.why === "off" && (await FE.findExamples(env, CREW, w.d)) === null); delete process.env.FIND_EXAMPLES;
 }
