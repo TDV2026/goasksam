@@ -2544,6 +2544,12 @@ try {
   record("Desk v3 stage 1: the case record (scripts/deskCaseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/deskShapesCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("Desk v3 shapes: case.stage, case.queue and case.handling.lines come from the server, the page counts nothing (scripts/deskShapesCheck.mjs)", "PASS", (out.match(/deskShapesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 shapes (scripts/deskShapesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/deskTypedSentenceCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("Desk typed sentences: no Desk file types an engine reason line, reads optionsNote/windowNote, or joins a count to a plural by hand (scripts/deskTypedSentenceCheck.mjs)", "PASS", (out.match(/deskTypedSentenceCheck: .*/) || [""])[0]);
 } catch (e) {
