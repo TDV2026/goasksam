@@ -938,6 +938,20 @@ try {
 } catch (e) {
   record("sheetPoolCheck (scripts/sheetPoolCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// tasksEmailExampleCheck (Lane B, Nov 8 2026): the Task email example: the block the email template renders for a stored match update (the 1995 BMW M3 Coupe, else the latest real one), never invented, crew gated.
+try {
+  const out = execSync("node scripts/tasksEmailExampleCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("tasksEmailExampleCheck (scripts/tasksEmailExampleCheck.mjs)", "PASS", (out.match(/tasksEmailExampleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("tasksEmailExampleCheck (scripts/tasksEmailExampleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// findPickVarietyCheck (Lane B, Nov 8 2026): the Find examples' pick prefers three platforms, then decades, colours and bodies; always different makes.
+try {
+  const out = execSync("node scripts/findPickVarietyCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("findPickVarietyCheck (scripts/findPickVarietyCheck.mjs)", "PASS", (out.match(/findPickVarietyCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("findPickVarietyCheck (scripts/findPickVarietyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });
