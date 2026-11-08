@@ -7,12 +7,13 @@
   var $ = function (id) { return document.getElementById(id); };
   var vals = $("vals"), rail = $("rail-vals"), form = $("vnew");
   if (!vals || !rail) return;
-  var S = { mode: "vals", seat: "", org: "", lists: { queue: [], mine: [], company: [] }, seatName: "", viewAs: null, vaSeats: null, cq: "", tabs: [], active: null, sheets: {} };
+  var S = { mode: "vals", seat: "", org: "", lists: { queue: [], mine: [], company: [] }, seatName: "", viewAs: null, vaSeats: null, cq: "", tabs: [], active: null, sheets: {}, opening: {} };
   var timers = {};
 
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function usd(n) { return n == null ? "n/a" : "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 }); }   // formatting only
   function nf(n) { return n == null ? "n/a" : Number(n).toLocaleString("en-US"); }
+  function np(n) { return nf(n) + (Number(n) === 1 ? " photo" : " photos"); }
   function ns(n) { return nf(n) + (Number(n) === 1 ? " sale" : " sales"); }   // a count and its noun
   function day(d) { return d ? String(d).slice(0, 10) : ""; }
   function api(action, body) {
@@ -92,10 +93,17 @@
   function flash(msg) { vals.insertAdjacentHTML("afterbegin", '<div class="banner" id="flash">' + esc(msg) + "</div>"); setTimeout(function () { var f = $("flash"); if (f) f.remove(); }, 4000); }
 
   // ---------- open sheets: each keeps its own state while another is in front ----------
+  // ONE PRESS OPENS A SHEET AND SAYS SO AT ONCE (Nov 8 2026): the tab and a loading card show in the same turn as the click, a second press while it loads is ignored, and a failure removes the tab and says why.
+  function rowLabel(id) { var all = [].concat(S.lists.queue, S.lists.mine, S.lists.company); for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i].car; return "Opening"; }
   function openSheet(id, pickUp) {
-    if (S.sheets[id] && !pickUp) { S.active = id; renderAll(); return; }
+    if (S.sheets[id] && !pickUp && !S.sheets[id].loading) { S.active = id; renderAll(); return; }
+    if (S.opening[id]) return; S.opening[id] = true;
+    if (!S.sheets[id]) { S.sheets[id] = { loading: true, v: { sheet: { car_label: rowLabel(id) } } }; if (S.tabs.indexOf(id) < 0) S.tabs.push(id); }
+    else S.sheets[id].working = true;
+    S.active = id; renderAll(); renderRail();
     api("sheet_open", { id: id, pickUp: pickUp === true }).then(function (r) {
-      if (!r.ok) { flash(r.why || "Could not open that sheet."); return; }
+      delete S.opening[id];
+      if (!r.ok) { if (S.sheets[id] && S.sheets[id].loading) { S.tabs = S.tabs.filter(function (t) { return t !== id; }); delete S.sheets[id]; S.active = S.tabs[S.tabs.length - 1] || null; } else if (S.sheets[id]) S.sheets[id].working = false; renderAll(); flash(r.why || "Could not open that sheet."); return; }
       var st = r.sheet.state;
       S.sheets[id] = { retry: r.retry || null, v: r, draft: { decision: JSON.parse(JSON.stringify(st.decision)), checklist: JSON.parse(JSON.stringify(st.checklist || {})), corr: JSON.parse(JSON.stringify(st.corrections || {})), mileage: st.askedMileage || "", pinned: st.pinned || "" }, msg: "", sendMsg: "", send: { to: (r.sheet.submission.consignor && r.sheet.submission.consignor.email) || "", message: r.org.standardMessage || "" } };
       if (S.tabs.indexOf(id) < 0) S.tabs.push(id);
@@ -126,13 +134,18 @@
     var p = (chains[id] || Promise.resolve()).then(function () {
       return api("sheet_save", { id: id, patch: patch, baseVersion: (S.sheets[id].v.sheet.version || 0) }).then(function (r) {
         var h = S.sheets[id]; if (!h) return;
+        if (!pend[id]) { h.opt = null; h.working = false; }
         if (!r.ok) { h.msg = r.why || "That was not saved."; renderAll(); return; }
         h.v = r; h.msg = ""; renderAll(); loadLists();
       });
     });
     chains[id] = p.catch(function () { }); return chains[id];
   }
+  // A click that asks the engine to read again (tier, body, analyst figure, reserve or range) shows at once: the pill lights from the sheet's own optimistic state (h.opt) in this turn, the sections dim with
+  // "Reading the market", and the server's answer settles it. Nothing is computed here: h.opt holds only what was clicked.
   function save(id, patch, now) {
+    var h0 = S.sheets[id];
+    if (now && h0 && !h0.loading) { h0.opt = h0.opt || {}; if ("tier" in patch) h0.opt.tier = patch.tier; if ("picks" in patch) h0.opt.picks = patch.picks; if ("analystFigure" in patch) h0.opt.analyst = patch.analystFigure; h0.working = "tier" in patch || "picks" in patch || "analystFigure" in patch || "mileage" in patch; renderAll(); }
     pend[id] = Object.assign(pend[id] || {}, patch);
     clearTimeout(timers[id + "s"]); if (now) flush(id); else timers[id + "s"] = setTimeout(function () { flush(id); }, 400);
   }
@@ -154,7 +167,10 @@
   function kv(rows) { return '<div class="kv">' + rows.map(function (r) { return '<div class="k">' + esc(r[0]) + "</div><div>" + r[1] + "</div>"; }).join("") + "</div>"; }
 
   function sheetHtml(id) {
-    var h = S.sheets[id], v = h.v, s = v.sheet, a = v.access, rd = v.read, ev = v.evaluation, ed = a.canEdit, dis = ed ? "" : " disabled";
+    var h = S.sheets[id];
+    if (h.loading) return '<div class="sheet" data-sheet="' + esc(id) + '" data-loading="1"><div class="shead"><h1>' + esc(h.v.sheet.car_label || "Opening") + '</h1></div><div class="loadcard" role="status">Opening the sheet&hellip;</div></div>';
+    optPicks = h.opt && h.opt.picks ? h.opt.picks : null;
+    var v = h.v, s = v.sheet, a = v.access, rd = v.read, ev = v.evaluation, ed = a.canEdit, dis = ed ? "" : " disabled";
     var head = '<div class="shead"><h1>' + esc(s.car_label || "Needs the car") + '</h1><div class="vin">' + esc(s.vin || "No VIN found") + "</div>" +
       '<div class="chips"><span class="chip ' + (s.status === "Finalised" || s.status === "Sent" ? "ok" : "") + '">' + esc(s.status) + '</span><span class="chip">' + esc(s.owner_seat) + "</span>" + (s.final ? '<span class="chip ok">' + esc(s.final.reportNumber) + "</span>" : "") + (s.corrects ? '<span class="chip">Corrects ' + esc(s.correctsReport || "") + "</span>" : "") + "</div></div>";
     var banner = "";
@@ -164,13 +180,26 @@
     if (h.msg) banner += '<div class="banner">' + esc(h.msg) + "</div>";
     if (!rd) return '<div class="sheet" data-sheet="' + esc(id) + '">' + head + banner + '<div class="banner" data-reading="' + (h.retry ? 1 : 0) + '">' + esc(h.retry ? (h.retry.line || "") : s.vin ? "The read is not available for this car yet." : "No car was found in this submission. Type the VIN or the year, make and model at the top.") + "</div></div>";
     if (rd.fixture) banner += '<div class="banner fx">Stand-in read: these figures are fixtures until the engine&rsquo;s sheet read is switched on.</div>';
-    var out = head + banner + s1(h, rd, ed, dis) + s2(rd) + s3(rd, dis) + s4(h, rd, s, ed, dis) + s5(h, ed, dis) + s6(h, rd, ev, ed, dis) + s7(h, id, v, s, ev, a);
+    var out = (h.working ? '<div class="workline" role="status" data-working="1">Reading the market&hellip;</div>' : "") + head + banner + s1(h, rd, ed, dis) + s2(rd) + s3(h, rd, ed, dis) + s4(h, rd, s, ed, dis) + s5(h, ed, dis) + s6(h, rd, ev, ed, dis) + s7(h, id, v, s, ev, a);
     out += thisCar(v);
     out += '<div class="covfix">' + esc(rd.coverage.footer) + " " + esc(rd.coverage.methodology) + "</div>";
-    return '<div class="sheet" data-sheet="' + esc(id) + '">' + out + "</div>";
+    return '<div class="sheet' + (h.working ? " working" : "") + '" data-sheet="' + esc(id) + '">' + out + "</div>";
   }
 
   // 1 the car
+  // THE PHOTOS, at the top of the sheet: every photo as a thumbnail, the cover marked (the first photo, or the one set as the cover), photos addable at any time while the sheet is open. A photo whose picture could not be fetched
+  // shows its name in the tile, never a blank.
+  function photoStrip(h, ed, dis) {
+    var sub = h.v.sheet.submission || {}, ph = sub.photos || [], cover = h.v.cover, work = h.photoWork;
+    var tiles = ph.map(function (p) {
+      var isC = p.id === cover;
+      return '<div class="pt' + (isC ? " cover" : "") + '" data-thumb="' + esc(p.id) + '">' + (p.url ? '<img src="' + esc(p.url) + '" alt="' + esc(p.name || "photo") + '">' : '<div class="noimg">' + esc(p.name || "photo") + "</div>") +
+        '<div class="pl">' + (isC ? '<span class="cv">Cover</span>' : '<button type="button" data-hero="' + esc(p.id) + '"' + dis + ">Make cover</button>") + "</div></div>";
+    }).join("");
+    var add = ed ? '<label class="vbtn addph" style="cursor:pointer">Add photos<input type="file" accept="image/*" multiple hidden data-addphoto="1"></label>' : "";
+    return '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">' + (ph.length ? np(ph.length) + ", the first is the cover" : "No photos yet") + "</div>" +
+      (ph.length ? '<div class="pstrip">' + tiles + "</div>" : "") + '<p style="margin:6px 0 0">' + add + (work ? ' <span class="sub" role="status" data-photowork="1">' + esc(work) + "</span>" : "") + "</p>";
+  }
   function s1(h, rd, ed, dis) {
     var c = rd.car, d = c.decode, m = c.mileage, pr = c.prior, rows = [
       ["Vehicle", esc(d.year + " " + d.make + " " + d.model + (d.trim ? " " + d.trim : "") + (d.body ? ", " + d.body : ""))], ["VIN", '<span class="num">' + esc(c.vin) + "</span>"], ["Identified from", d.source === "vin" ? "VIN decode" : "Typed description"],
@@ -179,7 +208,7 @@
       ["Gearbox", '<input class="vin" data-k="corr-gearbox" placeholder="' + esc(c.gearbox || "") + '" value="' + esc(h.draft.corr.gearbox || "") + '"' + dis + ">"], ["Colour", '<input class="vin" data-k="corr-colour" placeholder="' + esc(c.colour || "") + '" value="' + esc(h.draft.corr.colour || "") + '"' + dis + ">"]];
     if (pr) rows.push(["Last listing", esc([pr.colour, pr.gearbox, pr.mileage ? nf(pr.mileage) + " miles at the last sale" : "", day(pr.lastSaleDate)].filter(Boolean).join(", "))]);
     var conf = h.v.sheet.state.confirmed;
-    return sec(1, "The car", "From the VIN decode or the typed words. Confirm it, or correct it.", kv(rows) + '<p style="margin:12px 0 0">' + (conf ? '<span class="chip ok">Confirmed</span>' : '<button type="button" class="vbtn" data-confirm="1"' + dis + ">Confirm the car</button>") + "</p>");
+    return sec(1, "The car", "From the VIN decode or the typed words. Confirm it, or correct it.", kv(rows) + photoStrip(h, ed, dis) + '<p style="margin:12px 0 0">' + (conf ? '<span class="chip ok">Confirmed</span>' : '<button type="button" class="vbtn" data-confirm="1"' + dis + ">Confirm the car</button>") + "</p>");
   }
   // 2 this exact car
   function s2(rd) {
@@ -191,31 +220,47 @@
   }
   // 3 the market
   // THE QUESTION A SPLIT POOL ASKS: one chip row per question the engine asked, built from its own options (label, count, window); the picked one is on, one the VIN named says so. A click only names the option; the server asks the engine.
+  var optPicks = null;   // the picks just clicked, until the server answers (set by s3/s4 from the sheet's h.opt)
   function asksHtml(m, dis) {
+    var opt = optPicks;
     return (m.asks || []).map(function (q) {
+      var sel = q.selected; if (opt) { for (var oi = 0; oi < opt.length; oi++) if (opt[oi].dimension === q.dimension) sel = opt[oi].value; }
       return '<div class="askrow" style="margin:10px 0 4px"><p class="sub" style="margin:0 0 4px"><b>' + esc(q.prompt) + "</b>" + (q.note ? " " + esc(q.note) : "") + '</p><div class="tiers">' + q.options.map(function (o) {
-        return '<button type="button" class="tier' + (q.selected === o.value ? " on" : "") + '" data-pick-dim="' + esc(q.dimension) + '" data-pick-val="' + esc(o.value) + '"' + dis + ">" + esc(o.label) + '<span class="c">' + nf(o.count) + " sales" + (o.windowWords ? ", " + esc(o.windowWords) : "") + "</span></button>";
+        return '<button type="button" class="tier' + (sel === o.value ? " on" : "") + '" data-pick-dim="' + esc(q.dimension) + '" data-pick-val="' + esc(o.value) + '"' + dis + ">" + esc(o.label) + '<span class="c">' + ns(o.count) + (o.windowWords ? ", " + esc(o.windowWords) : "") + "</span></button>";
       }).join("") + "</div>" + (q.fromVin ? '<p class="sub" style="margin:4px 0 0">Preselected from the VIN.</p>' : "") + "</div>";
     }).join("");
   }
-  function s3(rd, dis) {
+  // THE RANGE METER, the centre of the sheet: the engine's typical range for the picked body and tier pool (low, median marked, high) with the sales dotted on it, and the analyst's marker on it. The marker is a native range input
+  // (min, max and step come from the engine's meter): it starts at the engine median, dragging it sets the analyst's figure, the server saves it and sends the line back. The page maps nothing.
+  function meterHtml(h, rd, ed) {
+    var mt = rd.market.meter; if (!mt) return "";
+    var an = h.v.analyst || {}, fig = h.opt && h.opt.analyst !== undefined ? h.opt.analyst : an.figure;
+    var dots = mt.dots.map(function (d, i) { return '<i class="mdot' + (d.inTier ? " hl" : "") + (mt.scope === "tier" && d.inBand === false ? " dim" : "") + '" style="left:' + d.pct + "%;top:" + ((i % 3) * 8 + 2) + 'px" title="' + esc(usd(d.price) + (d.date ? ", " + day(d.date) : "")) + '"></i>'; }).join("");
+    return '<div class="meter" data-meter="' + esc(mt.scope) + '"><div class="mtrack"><div class="mline"></div><div class="mband" style="left:' + mt.lowPct + "%;width:" + mt.bandWidthPct + '%"></div>' + dots +
+      '<div class="mmed" style="left:' + mt.medianPct + '%" title="Engine median"></div><input type="range" class="mkr" data-analyst="1" min="' + mt.axisMin + '" max="' + mt.axisMax + '" step="' + mt.step + '" value="' + (fig || mt.median) + '" aria-label="Analyst figure"' + (ed ? "" : " disabled") + "></div>" +
+      '<div class="mlabels"><span>' + usd(mt.axisMin) + "</span><span>Low " + usd(mt.low) + "</span><b>Median " + usd(mt.median) + "</b><span>High " + usd(mt.high) + "</span><span>" + usd(mt.axisMax) + "</span></div>" +
+      (an.line ? '<p class="sub" style="margin:8px 0 0" data-mkline="1"><b>' + esc(an.line) + "</b> <span data-mout=\"1\"></span>" + (ed && fig ? ' <button type="button" class="vbtn" data-analyst-clear="1">Clear</button>' : "") + "</p>" : "") +
+      (rd.market.poolLine ? '<p class="sub" style="margin:4px 0 0" data-meterline="1">' + esc(rd.market.poolLine) + "</p>" : "") +
+      (ed ? '<p class="sub" style="margin:4px 0 0">Drag the marker to set your figure. It starts at the engine median, and the engine\u2019s median does not move.</p>' : "") + "</div>";
+  }
+  function s3(h, rd, ed, dis) {
     var m = rd.market, f = function (l, v, cls) { return '<div class="fig ' + (cls || "") + '"><div class="l">' + l + '</div><div class="v num">' + v + "</div></div>"; };
     // NO RANGE (Lane E, Nov 5 2026): when the sheet's read carries the engine's noRangeLine (WAITING ON SAM, so behind window.GAS_NORANGE) it leads the section as given; the comparables below always list every sale the read counted, newest first.
     var nrl = window.GAS_NORANGE === true && typeof m.noRangeLine === "string" && m.noRangeLine ? '<p class="sub" style="margin:0 0 8px">' + esc(m.noRangeLine) + "</p>" : "";
-    var inner = nrl + '<div class="figs">' + f("Median", usd(m.median)) + f("Typical range", usd(m.p25) + " to " + usd(m.p75)) + f("Sales", nf(m.count)) + f("Newest sale", esc(day(m.newest))) + (m.startingFigure ? f("Starting figure", usd(m.startingFigure), "start") : "") + "</div>" +
-      '<p class="sub" style="margin-top:-2px">' + esc(m.window.stated) + (m.window.fallbackLine ? " " + m.window.fallbackLine : "") + ". " + esc(m.startingNote || "") + "</p>"
+    var inner = nrl + meterHtml(h, rd, ed) + '<div class="figs">' + (m.meter ? "" : f("Median", usd(m.median)) + f("Typical range", usd(m.p25) + " to " + usd(m.p75))) + f("Sales", nf(m.count)) + f("Newest sale", esc(day(m.newest))) + "</div>" +
+      '<p class="sub" style="margin-top:-2px">' + esc(m.window.stated) + (m.window.fallbackLine ? " " + m.window.fallbackLine : "") + (m.meter ? "." : ". " + esc(m.startingNote || "")) + "</p>"
     inner += asksHtml(m, dis || "");
-    if (m.rangeLine) inner += '<p class="sub">' + esc(m.rangeLine) + "</p>";
+    if (m.rangeLine && !m.meter) inner += '<p class="sub">' + esc(m.rangeLine) + "</p>";
     (m.splits || []).forEach(function (sp) { inner += '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">By ' + esc(sp.dimension) + '</div><table class="vt"><tr><th>Band</th><th>Sales</th><th>Median</th><th>Range</th><th>Counted</th></tr>' + sp.options.map(function (o) { return "<tr><td>" + esc(o.label) + '</td><td class="m">' + nf(o.count) + '</td><td class="m">' + usd(o.median) + '</td><td class="m">' + (o.low != null ? usd(o.low) + " to " + usd(o.high) : "") + '</td><td class="m">' + esc(o.windowWords || "") + "</td></tr>"; }).join("") + "</table>"; });
     if (m.splitsNote) inner += '<p class="sub" style="margin:6px 0 0">' + esc(m.splitsNote) + "</p>";
     if ((m.live || []).length) inner += '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">Live now</div><table class="vt"><tr><th>Venue</th><th>Bid</th><th>Ends</th><th>Link</th></tr>' + m.live.map(function (l) { return "<tr><td>" + esc(l.venue) + '</td><td class="m">' + usd(l.bid) + '</td><td class="m">' + esc(String(l.endsAt || "").slice(0, 16).replace("T", " ")) + "</td><td>" + (l.url ? '<a href="' + esc(l.url) + '" target="_blank" rel="noopener">Open</a>' : "") + "</td></tr>"; }).join("") + "</table>";
-    inner += (m.startingFigure && rd.condition.proofLine ? '<p class="sub" style="margin:12px 0 0">' + esc(rd.condition.proofLine) + " The sale marked Median, or the two marked Middle, sit at the starting figure.</p>" : "") + '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">' + (rd.condition.proofLine ? "Every sale of the same tier, newest first" : "Comparables, newest first") + '</div><table class="vt"><tr><th>Date</th><th>Venue</th><th>Price</th><th>Miles</th><th>Tier</th><th>Mileage band</th><th></th><th>Link</th></tr>' + (m.comparables || []).map(function (c) { return '<tr' + (c.inBand === false ? ' style="color:var(--faint)"' : "") + '><td class="m">' + esc(day(c.date)) + "</td><td>" + esc(c.venue) + '</td><td class="m">' + usd(c.price) + '</td><td class="m">' + nf(c.mileage) + '</td><td class="m">' + esc(c.tier == null ? "" : c.tier) + '</td><td class="m">' + (c.inBand == null ? "" : c.inBand ? "In band" : "Outside") + '</td><td class="m">' + (c.mid ? esc(c.mid === "median" ? "Median" : "Middle") : "") + "</td><td>" + (c.url ? '<a href="' + esc(c.url) + '" target="_blank" rel="noopener">Open</a>' : "") + "</td></tr>"; }).join("") + "</table>";
+    inner += (m.meter && m.meter.scope === "tier" && rd.condition.proofLine ? '<p class="sub" style="margin:12px 0 0">' + esc(rd.condition.proofLine) + " The sale marked Median, or the two marked Middle, sit at the engine median.</p>" : "") + '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">' + (rd.condition.proofLine ? "Every sale of the same tier, newest first" : "Comparables, newest first") + '</div><table class="vt"><tr><th>Date</th><th>Venue</th><th>Price</th><th>Miles</th><th>Tier</th><th>Mileage band</th><th></th><th>Link</th></tr>' + (m.comparables || []).map(function (c) { return '<tr' + (c.inTier ? ' class="hl"' : "") + (c.inBand === false ? ' style="color:var(--faint)"' : "") + '><td class="m">' + esc(day(c.date)) + "</td><td>" + esc(c.venue) + '</td><td class="m">' + usd(c.price) + '</td><td class="m">' + nf(c.mileage) + '</td><td class="m">' + esc(c.tier == null ? "" : c.tier) + '</td><td class="m">' + (c.inBand == null ? "" : c.inBand ? "In band" : "Outside") + '</td><td class="m">' + (c.mid ? esc(c.mid === "median" ? "Median" : "Middle") : "") + "</td><td>" + (c.url ? '<a href="' + esc(c.url) + '" target="_blank" rel="noopener">Open</a>' : "") + "</td></tr>"; }).join("") + "</table>";
     return sec(3, "The market", "Median and quartiles of the sales, from the engine.", inner);
   }
   // 4 condition, with the submission's photos and documents
   function s4(h, rd, s, ed, dis) {
     var cd = rd.condition, sub = s.submission, st = s.state, sel = st.photosSelected || [];
-    var inner = '<div class="tiers">' + cd.tiers.map(function (t) { return '<button type="button" class="tier' + (cd.selected === t.tier ? " on" : "") + '" data-tier="' + t.tier + '"' + dis + '><span class="n">TIER ' + t.tier + '</span>' + esc(t.label) + '<span class="c">' + ns(t.count) + "</span></button>"; }).join("") + "</div>";
+    var inner = '<div class="tiers">' + cd.tiers.map(function (t) { return '<button type="button" class="tier' + ((h.opt && h.opt.tier !== undefined ? h.opt.tier : cd.selected) === t.tier ? " on" : "") + '" data-tier="' + t.tier + '"' + dis + '><span class="n">TIER ' + t.tier + '</span>' + esc(t.label) + '<span class="c">' + ns(t.count) + "</span></button>"; }).join("") + "</div>";
     if (cd.state === "needs_choice") inner += asksHtml(rd.market, dis) + '<p class="sub" style="margin:6px 0 6px">' + esc(rd.market.startingNote || "") + "</p>";
     else if (cd.selected) inner += '<p class="sub" style="margin:0 0 6px"><span class="num">' + ns(cd.sameTierCount) + "</span> in this condition. " + esc(cd.tooFewLine || cd.proofLine || "The comparables above are the same tier.") + "</p>";
     inner += '<p class="sub" style="margin:0">' + esc(cd.untieredLine || "") + "</p>";
@@ -223,11 +268,12 @@
     var lad = h.v.ladder;
     if (lad) inner += '<ul class="ladder" style="margin:10px 0 0;padding-left:0;list-style:none">' + lad.tiers.map(function (l) { return "<li><b>" + l.tier + " " + esc(l.name) + "</b>: " + esc(l.line) + "</li>"; }).join("") + "<li><b>" + esc(lad.untiered.name) + "</b>: " + esc(lad.untiered.line) + "</li></ul>";
     // The evidence the engine counted, in the engine's own words (condition_evidence), or the engine's line that it counted none.
-    if (cd.selected) inner += '<div class="evid" style="margin:10px 0 0">' + (cd.carEvidence ? "<ul style=\"margin:0;padding-left:18px\">" + cd.carEvidence.lines.map(function (e) { return "<li>" + esc(e.line) + "</li>"; }).join("") + "</ul>" : '<p class="sub" style="margin:0">' + esc(cd.carEvidenceNote || "") + "</p>") + "</div>";
-    // The analyst's plus or minus: a judgment saved with the sheet. The engine sets none; it changes no tier, pool or figure. Controls only when a tier is on the sheet (Untiered takes none).
+    if (cd.selected && (cd.carEvidence || !cd.noListing)) inner += '<div class="evid" style="margin:10px 0 0">' + (cd.carEvidence ? "<ul style=\"margin:0;padding-left:18px\">" + cd.carEvidence.lines.map(function (e) { return "<li>" + esc(e.line) + "</li>"; }).join("") + "</ul>" : '<p class="sub" style="margin:0">' + esc(cd.carEvidenceNote || "") + "</p>") + "</div>";
+    // THE TIER, BOTH SIDES (Nov 8 2026): before a pick, the engine's own line says it suggests no tier (or what it counted); after a pick, "Engine: no suggestion. Analyst: tier 2 plus." The plus or minus is the marker on the meter in section 3 (its side of the engine median), no longer a button here.
     var mk = st.mark;
-    if (h.v.markLine) inner += '<p class="markline" style="margin:10px 0 0"><b>' + esc(h.v.markLine) + "</b>" + (mk && mk.reason ? ": " + esc(mk.reason) : "") + "</p>";
-    if (cd.selected && ed) inner += '<div class="markbar" style="margin:8px 0 0"><button type="button" class="tier' + (mk && mk.mark === "plus" ? " on" : "") + '" data-mark="plus">Plus</button> <button type="button" class="tier' + (mk && mk.mark === "minus" ? " on" : "") + '" data-mark="minus">Minus</button> <button type="button" class="tier" data-mark="">No mark</button>' + (mk ? ' <input type="text" maxlength="200" data-k="mark-reason" value="' + esc(mk.reason || "") + '" style="width:60%"> ' : "") + "</div>";
+    if (!cd.selected && cd.carEvidenceNote) inner += '<p class="sub" style="margin:10px 0 0" data-tierline="engine">' + esc(cd.carEvidenceNote) + "</p>";
+    if (h.v.markLine) inner += '<p class="markline" style="margin:10px 0 0" data-tierline="statement"><b>' + esc(h.v.markLine) + "</b>" + (mk && mk.reason ? " " + esc(mk.reason) : "") + "</p>";
+    if (mk && ed) inner += '<div class="markbar" style="margin:6px 0 0"><input type="text" maxlength="200" data-k="mark-reason" placeholder="One line on why, if you want one" value="' + esc(mk.reason || "") + '" style="width:60%"></div>';
     if (mk && rd.market) {   // the read only hint: the sales of the engine's own same tier pool on the mark's side (ranked by the engine read, no figure made here)
       var side = mk.mark === "plus" ? "upper" : "lower", hs = (rd.market.comparables || []).filter(function (c) { return c.half === side; });
       if (hs.length) inner += '<p class="sub" style="margin:8px 0 2px">' + side + " half of the same tier sales:</p><ul style=\"margin:0;padding-left:18px\">" + hs.map(function (c) { return "<li>" + esc(c.venue) + ", " + esc(day(c.date)) + ", " + usd(c.price) + "</li>"; }).join("") + "</ul>";
@@ -253,7 +299,7 @@
   // 6 decision
   function s6(h, rd, ev, ed, dis) {
     var d = h.draft.decision, m = rd.market, cd = rd.condition, e = ev || { guards: [], missing: [], given: null };
-    var beside = '<div class="beside"><span>Market range <b class="num">' + (cd.tooFew && m.meter ? usd(m.meter.low) + " to " + usd(m.meter.high) + " (" + nf(m.meter.count) + " sales)" : usd(m.p25) + " to " + usd(m.p75)) + '</b></span><span>Starting figure <b class="num">' + (m.startingFigure ? usd(m.startingFigure) : "none") + "</b></span></div>";
+    var an = h.v.analyst || {}, beside = '<div class="beside"><span>Market range <b class="num">' + (m.meter ? usd(m.meter.low) + " to " + usd(m.meter.high) : "none") + '</b></span><span>Engine median <b class="num">' + (m.meter ? usd(m.meter.median) : "none") + '</b></span><span>Analyst figure <b class="num">' + (an.figure ? usd(an.figure) : "not set") + "</b></span></div>";
     var mode = '<span class="seg"><button type="button" data-dmode="reserve" class="' + (d.mode === "reserve" ? "on" : "") + '"' + dis + '>Reserve</button><button type="button" data-dmode="range" class="' + (d.mode === "range" ? "on" : "") + '"' + dis + ">Range</button></span>";
     var fields = d.mode === "reserve" ? '<div class="fields"><div class="f"><label>Reserve</label><input class="vin mono" data-k="d-reserve" inputmode="numeric" value="' + esc(d.reserve) + '"' + dis + "></div></div>"
       : d.mode === "range" ? '<div class="fields"><div class="f"><label>Low</label><input class="vin mono" data-k="d-low" inputmode="numeric" value="' + esc(d.low) + '"' + dis + '></div><div class="f"><label>High</label><input class="vin mono" data-k="d-high" inputmode="numeric" value="' + esc(d.high) + '"' + dis + "></div></div>" : "";
@@ -264,7 +310,7 @@
     var line = '<div class="fields"><div class="f" style="flex:1"><label>The line of reasoning' + (e.reasonsNeeded ? " (required)" : "") + '</label><textarea class="vin" data-k="d-line"' + dis + ">" + esc(d.line) + "</textarea></div></div>";
     var guards = (e.guards || []).map(function (g) { return '<div class="guard"><p>' + esc(g.text) + '</p><textarea class="vin" data-k="g-' + g.key + '" placeholder="Why"' + dis + ">" + esc((d.guardLines || {})[g.key] || "") + "</textarea></div>"; }).join("");
     var note = '<div class="fields"><div class="f" style="flex:1"><label>Note to the seller (its own page in the report and in the email; never changes a figure)</label><textarea class="vin" data-k="d-note"' + dis + ">" + esc(d.note) + "</textarea></div></div>";
-    var pin = '<div class="fields"><div class="f" style="flex:1"><label>Pinned question (prints on the report)</label><input class="vin" data-k="pinned" value="' + esc(h.draft.pinned) + '"' + dis + "></div></div>";
+    var pin = '<div class="fields"><div class="f" style="flex:1"><label>Question for the seller (prints on the report)</label><input class="vin" data-k="pinned" value="' + esc(h.draft.pinned) + '"' + dis + '><p class="sub" style="margin:4px 0 0">One question. It prints on the Decision page of the report, under your reasoning.</p></div></div>';
     return sec(6, "Decision", "A reserve or a range. The engine never gives one: you do.", beside + mode + fields + place + reasons + line + guards + note + pin);
   }
   // 7 finalise
@@ -289,6 +335,19 @@
     }).join("") + "</div>";
   }
 
+  // PHOTOS CAN BE ADDED AT ANY TIME while the sheet is open (Nov 8 2026): the pending saves go first, then each picture is shrunk here and sent one at a time (the server checks it and keeps it), the strip shows "Adding photo 2 of 3"
+  // while it works, and every answer carries the whole sheet back, so each new picture shows as a thumbnail as soon as it is in.
+  function addPhotos(id, input) {
+    var h = S.sheets[id], files = input.files ? Array.prototype.slice.call(input.files) : []; input.value = ""; if (!h || !files.length || h.photoWork) return;
+    var failed = 0, i = 0;
+    var step = function () {
+      if (i >= files.length) { h.photoWork = ""; renderAll(); loadLists(); if (failed) flash(failed + (failed === 1 ? " photo was" : " photos were") + " not added."); return; }
+      var f = files[i]; i++; h.photoWork = "Adding photo " + i + " of " + files.length; renderAll();
+      shrink(f).then(function (b64) { if (!b64) { failed++; return; } return api("sheet_photo_add", { id: id, name: f.name, data: b64 }).then(function (r) { if (r.ok) h.v = r; else { failed++; if (r.why) h.msg = r.why; } }); }).then(step, step);
+    };
+    flush(id).then(step);
+  }
+
   // ---------- events ----------
   vals.addEventListener("click", function (e) {
     var t = e.target, id = S.active, h = id && S.sheets[id];
@@ -301,6 +360,7 @@
     var mkb = t.closest("[data-mark]"); if (mkb) { var mv = mkb.getAttribute("data-mark"), cm = (h.v.sheet.state.mark) || {}; save(id, { mark: mv ? { mark: mv, reason: cm.reason || "" } : null }, true); return; }
     var pk = t.closest("[data-pick-dim]"); if (pk) { var qs = (h.v.read.market.asks || []), dm = pk.getAttribute("data-pick-dim"), ix = qs.findIndex(function (q) { return q.dimension === dm; }); save(id, { picks: qs.slice(0, ix < 0 ? 0 : ix).map(function (q) { return { dimension: q.dimension, value: q.selected }; }).concat([{ dimension: dm, value: pk.getAttribute("data-pick-val") }]) }, true); return; }
     var tr = t.closest("[data-tier]"); if (tr) { save(id, { tier: Number(tr.getAttribute("data-tier")) }, true); return; }
+    if (t.closest("[data-analyst-clear]")) { save(id, { analystFigure: null }, true); return; }
     var hero = t.closest("[data-hero]"); if (hero) { save(id, { heroId: hero.getAttribute("data-hero") }, true); return; }
     var ck = t.closest("[data-chk]"); if (ck) { var k = ck.getAttribute("data-chk"), cur = h.draft.checklist[k] || {}; cur.state = ck.getAttribute("data-state"); h.draft.checklist[k] = cur; save(id, { checklist: h.draft.checklist }, true); return; }
     var md = t.closest("[data-dmode]"); if (md) { h.draft.decision.mode = md.getAttribute("data-dmode"); save(id, draftPatch(h), true); return; }
@@ -311,6 +371,8 @@
   });
   vals.addEventListener("change", function (e) {
     var t = e.target, id = S.active, h = id && S.sheets[id]; if (!h) return;
+    if (t.hasAttribute("data-analyst")) { save(id, { analystFigure: Number(t.value) }, true); return; }
+    if (t.hasAttribute("data-addphoto")) { addPhotos(id, t); return; }
     if (t.hasAttribute("data-photo")) { var cur = (h.v.sheet.state.photosSelected || []).slice(), pid = t.getAttribute("data-photo"), i = cur.indexOf(pid); if (t.checked && i < 0) cur.push(pid); if (!t.checked && i >= 0) cur.splice(i, 1); save(id, { photosSelected: cur }, true); return; }
     if (t.hasAttribute("data-reason")) { var r = h.draft.decision.reasons, k = t.getAttribute("data-reason"), j = r.indexOf(k); if (t.checked && j < 0) r.push(k); if (!t.checked && j >= 0) r.splice(j, 1); save(id, draftPatch(h), true); return; }
     var kk = t.getAttribute("data-k");
@@ -318,7 +380,9 @@
     if (kk && kk.indexOf("chkc-") === 0) { var key = kk.slice(5), c = h.draft.checklist[key] || {}; c.choice = t.value || null; h.draft.checklist[key] = c; save(id, { checklist: h.draft.checklist }, true); }
   });
   vals.addEventListener("input", function (e) {
-    var t = e.target, id = S.active, h = id && S.sheets[id], k = t.getAttribute && t.getAttribute("data-k"); if (!h || !k) return;
+    var t = e.target, id = S.active, h = id && S.sheets[id], k = t.getAttribute && t.getAttribute("data-k");
+    if (h && t.hasAttribute && t.hasAttribute("data-analyst")) { var o = vals.querySelector("[data-mout]"); if (o) o.textContent = "Now " + usd(Number(t.value)); return; }   // the marker under the finger: formatting only; the figure is saved when it is let go
+    if (!h || !k) return;
     var D = h.draft.decision;
     if (k === "d-reserve") D.reserve = t.value; else if (k === "d-low") D.low = t.value; else if (k === "d-high") D.high = t.value; else if (k === "d-line") D.line = t.value; else if (k === "d-note") D.note = t.value; else if (k === "d-other") D.otherText = t.value;
     else if (k === "g-prior" || k === "g-start") { D.guardLines = D.guardLines || {}; D.guardLines[k.slice(2)] = t.value; }

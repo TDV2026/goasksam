@@ -952,6 +952,13 @@ try {
 } catch (e) {
   record("findPickVarietyCheck (scripts/findPickVarietyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// findPickCheck (Lane B, Nov 8 2026): the Find examples' daily pick (Bring a Trailer, Cars & Bids, a third platform; three makes; never the three newest; a real photo; a car sold before) and the hourly revalidation (an ended or withdrawn car replaced at once; the existing cron slot).
+try {
+  const out = execSync("node scripts/findPickCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("findPickCheck (scripts/findPickCheck.mjs)", "PASS", (out.match(/findPickCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("findPickCheck (scripts/findPickCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });
@@ -2490,6 +2497,12 @@ try {
   record("Desk demo blockers: a pool that splits asks the body first and reads that body's tier pool, every same tier sale with real miles and the mileage band marked, a draft PDF before finalise, the no-listing line (scripts/deskBlockersCheck.mjs)", "PASS", (out.match(/deskBlockersCheck: .*/) || [""])[0]);
 } catch (e) {
   record("Desk demo blockers: a pool that splits asks the body first and reads that body's tier pool, every same tier sale with real miles and the mileage band marked, a draft PDF before finalise, the no-listing line (scripts/deskBlockersCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskDryrun2Check.mjs", { encoding: "utf8", timeout: 280000 });
+  record("Desk dry run 2: photos addable any time with a cover and a strip, every click lights under 100 ms with a working state, one press opens a sheet, the range meter follows the picked body and tier, the analyst marker, the reserve held against the meter's range, the question for the seller, the engine's tier lines (scripts/deskDryrun2Check.mjs)", "PASS", (out.match(/deskDryrun2Check: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk dry run 2: photos addable any time with a cover and a strip, every click lights under 100 ms with a working state, one press opens a sheet, the range meter follows the picked body and tier, the analyst marker, the reserve held against the meter's range, the question for the seller, the engine's tier lines (scripts/deskDryrun2Check.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
   const out = execSync("node scripts/deskTypedSentenceCheck.mjs", { encoding: "utf8", timeout: 60000 });

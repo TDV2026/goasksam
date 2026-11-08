@@ -120,7 +120,7 @@ await run("sheet_open", { id: mk.id });
   ok(r.ok && !r.retry && sh.read.condition.selected === 2 && !/^Pick a condition tier/.test(sh.read.market.startingNote), "a tier click on the split sheet stores a read that knows the tier is picked: " + sh.read.market.startingNote); }
 { const r = await run("sheet_save", { id: mk.id, baseVersion: sh.version, patch: { picks: [{ dimension: "body", value: "coupe" }, { dimension: "bogus", value: "x" }] } }); sh = await store.get(org, mk.id);
   ok(r.ok && JSON.stringify(sh.state.picks) === JSON.stringify([{ dimension: "body", value: "coupe" }]) && sh.read.condition.state !== "needs_choice" && sh.read.market.asks[0].selected === "coupe" && (sh.read.condition.state !== "ok" || sh.read.market.startingFigure > 0), "the pick is saved (a bogus one is not) and the tier pool for it is read: " + sh.read.condition.state); }
-ok(sh.read.condition.carEvidence == null && sh.read.condition.carEvidenceNote === CT.NO_LISTING_LINE && CT.NO_LISTING_LINE === "No listing for this car yet; the tier is the analyst's call", "a typed car carries the one no-listing line");
+ok(sh.read.condition.carEvidence == null && sh.read.condition.carEvidenceNote === CT.NO_LISTING_LINE && CT.NO_LISTING_LINE === "No listing for this car in the record, so the engine suggests no tier. Pick the tier the photos show.", "a typed car carries the one no-listing line");
 { const o = await run("sheet_open", { id: mk.id }); ok(o.sheet.state.picks.length === 1 && o.read.market.asks[0].selected === "coupe", "reopening the sheet keeps the pick"); }
 // a read that fails on a click is said, not left looking like the answer
 { RS.useSheetEngine(async () => null); const r = await run("sheet_save", { id: mk.id, baseVersion: sh.version, patch: { tier: 3 } }); ok(r.ok && r.retry && /could not be refreshed/.test(r.retry.line), "a read that fails after a click says so (the earlier read is not passed off as the new one)"); RS.useSheetEngine((e, input) => S.sheetRead(env, input, mkDeps(c0))); sh = await store.get(org, mk.id); }
@@ -139,7 +139,12 @@ await run("sheet_save", { id: mk.id, baseVersion: sh.version, patch: { tier: 2 }
   const other = await run("sheet_pdf", { id: mk.id, draft: true }, "ben"); ok(other.refused, "a seat that cannot edit the sheet gets no draft of it");
   // the draft shows the whole proof: every sale of the pool, the band, the no-listing line
   const plain = text.replace(/\\\(/g, "(").replace(/\\\)/g, ")");
-  ok(/IN BAND/.test(plain) && /OUTSIDE/.test(plain) && plain.includes(CT.NO_LISTING_LINE), "the draft carries the mileage band marks and the no-listing line"); }
+  ok(/IN BAND/.test(plain) && /OUTSIDE/.test(plain) && plain.includes("Engine: no suggestion. Analyst: tier"), "the draft carries the mileage band marks and, after a tier pick, the engine-no-suggestion statement");
+  // before any tier: the engine's own line says it suggests none (the PDF as well as the page)
+  sh = await store.get(org, mk.id); await run("sheet_save", { id: mk.id, baseVersion: sh.version, patch: { tier: null } });
+  const d0 = await run("sheet_pdf", { id: mk.id, draft: true }), t0 = d0.ok ? Buffer.from(d0.pdf_b64, "base64").toString("latin1").replace(/\\\(/g, "(").replace(/\\\)/g, ")") : "";
+  ok(d0.ok && t0.includes("so the engine suggests no tier. Pick the tier the photos show."), "an untiered draft carries the engine's no-listing line");
+  sh = await store.get(org, mk.id); await run("sheet_save", { id: mk.id, baseVersion: sh.version, patch: { tier: 2 } }); }
 
 // finalise: allowed once the question is answered, and the real report is not a draft
 { const dec = { mode: "reserve", reserve: "69000", reasons: ["documentation"], otherText: "", line: "Close inspection.", guardLines: { prior: "", start: "On purpose." }, note: "" };
@@ -161,4 +166,46 @@ ok(/data-pdf="draft"/.test(page) && /draft: true/.test(page), "the page has the 
 ok(/cd\.state === "needs_choice"/.test(page) && /c\.inBand/.test(page) && /cd\.proofLine/.test(page), "the page shows the engine's reason when a pick is open, the band mark and the proof line");
 ok(!/p25: q\(pick/.test(fs.readFileSync("lib/desk/sheetShape.js", "utf8")), "the sample splits use the read's own field names (low, high), not names the page never reads");
 console.error = quiet;
+
+// ---------- DRY RUN 2 (Lane D, Nov 8 2026): the live cars, the range meter and its tier, the engine's settle time. Same four split cars, every body, every tier.
+//  3. LIVE NOW is the picked body's cars only, or none: no live search with the question open, and the search is asked for the picked body (the VIN's decoded body never stands in).
+//  4/5. THE METER FOLLOWS THE PICKED BODY AND TIER: the median and the range on the sheet are the meter's, an independent median of that tier's in-band sales matches it, the dots are every sale of that pool, and a tier with fewer than 5
+//       in-band sales shows the body pool with the tier's sales marked and the engine's line "N sales in tier T shown on the body pool". CAUSE of "the range did not change": the median and quartiles were cut from the body pool for every tier.
+//  2. THE ENGINE SETTLES under 3 s on a stored row (the stored-row stand-in here is the in-memory archive).
+{
+  const liveCalls = [], MEDS = []; let sawTier = 0, sawBody = 0;
+  for (const c of CARS) {
+    const tag = `${c.year} ${c.make} ${c.model}`, base = { text: textOf(c), mileage: MILES };
+    const deps = { ...mkDeps(c), liveFor: async (e, v) => { liveCalls.push({ body: v.bodyStyle || null }); return { rows: [], total: 0 }; } };
+    liveCalls.length = 0; await S.sheetRead(env, { ...base, tier: 2 }, deps);
+    ok(liveCalls.length === 0, `${tag}: with the body question open there is no live search (none shown)`);
+    for (const [label, val] of [[c.a, "coupe"], [c.b, c.bv]]) {
+      const picks = [{ dimension: "body", value: val }];
+      liveCalls.length = 0; const t0 = Date.now(); const r = await S.sheetRead(env, { ...base, tier: 2, picks }, deps), ms = Date.now() - t0;
+      ok(liveCalls.length === 1 && (label === c.a ? /coupe/i : /convertible|cabriolet/i).test(liveCalls[0].body || ""), `${tag} ${label}: the live search is for the picked body (${liveCalls[0] && liveCalls[0].body})`);
+      ok(ms < 3000, `${tag} ${label}: the engine settles a tier pick in ${ms} ms (under 3000)`);
+      const pool = ((await E.oneEngineAnswer({ year: c.year, make: c.make, model: c.model, ...(c.trim ? { trim: c.trim } : {}) }, null, textOf(c), env, { body: val })).raw.rawPool || []).filter(r0 => (r0._usd ?? r0._allin ?? r0._hammer) > 0), price = r0 => Math.round(r0._usd ?? r0._allin ?? r0._hammer);
+      const inBandRow = r0 => { const mi = Number(r0.mileage) || 0; return mi >= BAND.miMin && mi <= BAND.miMax; };
+      for (const t of [1, 2, 3, 4]) {
+        const rt = await S.sheetRead(env, { ...base, tier: t, picks }, deps), mt = rt && rt.market.meter;
+        const same = pool.filter(r0 => TIERS.get(r0.id) === t), inb = same.filter(inBandRow);
+        ok(mt && [mt.low, mt.p25, mt.median, mt.p75, mt.high].every(Number.isFinite) && mt.axisMin <= Math.min(mt.low, mt.median, ...mt.dots.map(d => d.price)) && mt.axisMax >= Math.max(mt.high, mt.median, ...mt.dots.map(d => d.price)) && mt.step > 0 && mt.dots.every(d => d.pct >= 0 && d.pct <= 100), `${tag} ${label} tier ${t}: the meter carries low, p25, median, p75, high inside a drawn axis`);
+        if (!mt) continue;
+        if (inb.length >= 5) {
+          ok(mt.scope === "tier" && mt.median === med(inb.map(price)) && mt.count === inb.length && mt.dots.length === same.length && !rt.market.poolLine, `${tag} ${label} tier ${t}: the meter is the tier's in-band pool (${inb.length} sales, median ${mt.median} vs ${med(inb.map(price))}), every tier sale dotted (${mt.dots.length} of ${same.length})`);
+          ok(rt.market.comparables.length === same.length && rt.market.comparables.every(x => x.tier === t), `${tag} ${label} tier ${t}: the comparables are that tier's pool`);
+          MEDS.push(`${tag}|${label}|${mt.median}`); sawTier++;
+        } else {
+          sawBody++;
+          ok(mt.scope === "body" && mt.count === pool.length && mt.median === med(pool.map(price)) && mt.dots.length === pool.length && mt.dots.filter(d => d.inTier).length === same.length, `${tag} ${label} tier ${t}: under five in the band, the meter is the body pool (${pool.length}) with the tier's ${same.length} marked`);
+          ok(new RegExp(`sales? of this body.* ${same.length} in tier ${t}, shown on the full set\\.$`).test(rt.market.poolLine || ""), `${tag} ${label} tier ${t}: the engine says how many tier sales are on the body pool ("${rt.market.poolLine}")`);
+          ok(rt.market.comparables.filter(x => x.tier === t).length === same.length && rt.market.comparables.length === pool.length, `${tag} ${label} tier ${t}: the comparables are the body pool with the tier's sales marked`);
+        }
+      }
+    }
+  }
+  ok(sawTier >= 8 && sawBody >= 8, `the sample reaches both meter bases (${sawTier} tier, ${sawBody} body)`);
+  const byCar = new Map(); for (const m of MEDS) { const [car, lab, v] = m.split("|"); const k = car + "|" + lab; byCar.set(k, new Set([...(byCar.get(k) || []), v])); }
+  ok([...byCar.values()].some(v => v.size >= 2), "a tier changes the median: at least one body has two tiers with different medians (they were the same for every tier)");
+}
 console.log(`deskBlockersCheck: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

@@ -20,7 +20,7 @@ if (args.includes("--mutants")) {
     [FE, "(!haveSold && c.sold ? 1000 : 0) + ", "0 + ", "(3) a sold-before car is not preferred when one is available"],
     [FE, "return !!(e.ok && e.featured.kind === \"sold\");", "return !!e.ok;", "(3) a listed-only earlier record counts as sold before"],
     [FE, "us[u] = await d.urlStatus(u);", "us[u] = 200;", "(3) a gone evidence link still counts as sold before"],
-    [FE, "if (eligibleRow(row, facts, now) && !kept.some(", "if (false && !kept.some(", "(4) a stored car is not kept while it passes"],
+    [FE, "if (eligibleRow(row, facts, now) && pickable(row) && !kept.some(", "if (false && !kept.some(", "(4) a stored car is not kept while it passes"],
     [FE, "if (!eligibleRow(row, facts, now) || seen.has(norm(row.make))) continue;", "if (seen.has(norm(row.make))) continue;", "(1) a car not live right now is served"],
     [FE, "|| !(Date.parse(st.checkedAt) > now - MAX_CHECK_AGE_MS)", "", "(5) a stored pick not re-checked in 90 minutes is served"],
     [FE, "if (process.env.FIND_EXAMPLES === \"0\" || !isCrewRequest(reqOrCookie)) return null;", "if (process.env.FIND_EXAMPLES === \"0\") return null;", "(6) no cookie: the examples"],
@@ -121,6 +121,11 @@ const GOOD = () => [car("Porsche", "911", 1995, { colour: "White", h: 40 }), car
   ok("(3) an earlier record of another year is not the same car: false (the Audi)", !by("Audi") || by("Audi").soldBefore === false);
   ok("(3) a completed sale whose evidence link is gone is false (the Ford)", !by("Ford") || by("Ford").soldBefore === false);
   ok("(3) a sold-before car is chosen when one is available", items.some(i => i.soldBefore === true));
+  // the same rules, car by car (the daily pick may leave a car out of the three, so each is judged on its own)
+  const rowOf = v => g.find(r => r.vin_norm === v), sb = async v => FE.soldBefore(env, rowOf(v), W.d, W.clock);
+  ok("(3) soldBefore, car by car: the Ferrari true; the BMW (listed only), the Audi (another year) and the Ford (evidence link gone) false", (await sb(vinS)) === true && (await sb(vinL)) === false && (await sb(vinW)) === false && (await sb(vinG)) === false);
+  { const plain = { row: { id: 1, make: "A", year: 2001, end_time: new Date(NOW0 + 3600e3).toISOString() }, facts: { colour: "Red", body: "coupe" }, sold: false }, old = { row: { id: 2, make: "B", year: 2001, end_time: new Date(NOW0 + 3600e3).toISOString() }, facts: { colour: "Red", body: "coupe" }, sold: true }, fresh = { row: { id: 3, make: "C", year: 1975, end_time: new Date(NOW0 + 9 * 3600e3).toISOString() }, facts: { colour: "Blue", body: "convertible" }, sold: false };
+    ok("(3) a car sold before is chosen first over a more varied car", FE.chooseNext([fresh, plain, old], []).row.id === 2); }
   ok("(3) the Porsche with no history is false", items.filter(i => /Porsche/.test(i.title)).every(i => i.soldBefore === false));
 }
 // ---- (4) stable, replaced on end

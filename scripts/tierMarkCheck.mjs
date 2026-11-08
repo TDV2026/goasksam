@@ -65,7 +65,7 @@ ok(after.state.mark.reason === "Cleaner than the tier median car. Second line", 
 ok(engineCalls === 0, "a mark does not ask the engine again (" + engineCalls + " calls)");
 ok(JSON.stringify(after.read) === baseRead && after.state.tier === baseTier, "the tier, the pool and the starting figure are as before");
 ok(JSON.stringify(stripMark(after)) === JSON.stringify(stripMark(base)) , "every stored field but the mark is as before");
-ok(r1.markLine === "Engine: tier 2. Analyst: 2 plus", 'the sheet prints "Engine: tier 2. Analyst: 2 plus": ' + r1.markLine);
+ok(r1.markLine === "Engine: no suggestion. Analyst: tier 2 plus.", 'the sheet prints "Engine: no suggestion. Analyst: tier 2 plus.": ' + r1.markLine);
 { const bad = await run("sheet_save", { id: sh.id, patch: { mark: { mark: "double plus" } } }); ok(bad.ok && (await store.get(org, sh.id)).state.mark === null, "an invalid mark is no mark"); }
 await run("sheet_save", { id: sh.id, patch: { mark: { mark: "minus", reason: "" } } });
 ok((await store.get(org, sh.id)).state.mark.mark === "minus", "a minus replaces a plus");
@@ -93,18 +93,18 @@ ok(fin.ok && fs_.final && fs_.final.mark && fs_.final.mark.mark === "plus" && fs
 { const r = await run("sheet_save", { id: sh.id, patch: { mark: { mark: "minus" } } }); ok(r.refused, "a finalised sheet refuses a new mark"); ok((await store.get(org, sh.id)).final.mark.mark === "plus", "...and keeps the old one"); }
 const rep = await RP.buildReport(await store.get(org, sh.id), { name: "Hagerty Marketplace", logo: null }, {});
 const text = PM.pdfPages(rep.bytes).map(p => p.join(" | ")).join("\n");
-ok(/Engine: tier 2\. Analyst: 2 plus/.test(text), "the PDF prints Engine: tier 2. Analyst: 2 plus");
+ok(/Engine: no suggestion\. Analyst: tier 2 plus/.test(text), "the PDF prints Engine: no suggestion. Analyst: tier 2 plus");
 ok(/Better than the median car in its tier/.test(text), "the PDF prints the analyst's one line reason");
 ok(PM.pdfPages(rep.bytes).map(p => p.join(" ")).join(" ").includes(CT.TIER_LADDER[2].line.slice(0, 20)), "the PDF prints the ladder line from the one source");
 const out = await run("sheet_send", { id: sh.id, to: "seller@example.com", message: "Hello." });
-ok(out.ok && sent.length === 1 && /Engine: tier 2\. Analyst: 2 plus/.test(sent[0].note) && /Better than the median car/.test(sent[0].note) && /A note\./.test(sent[0].note), "the Send email carries the analyst's mark and reason with the note: " + JSON.stringify(sent[0] && sent[0].note));
+ok(out.ok && sent.length === 1 && /Engine: no suggestion\. Analyst: tier 2 plus/.test(sent[0].note) && /Better than the median car/.test(sent[0].note) && /A note\./.test(sent[0].note), "the Send email carries the analyst's mark and reason with the note: " + JSON.stringify(sent[0] && sent[0].note));
 // a finalised sheet with no mark prints none
 { const s2 = await seed(store, { seat: "ava", org }); await run("sheet_open", { id: s2.id }); await run("sheet_save", { id: s2.id, patch: { tier: 2, decision: { mode: "reserve", reserve: "68000", reasons: [], otherText: "", line: "", guardLines: {}, note: "" } } }); await run("sheet_finalise", { id: s2.id });
-  const r2 = await RP.buildReport(await store.get(org, s2.id), { name: "H", logo: null }, {}); ok(!/Analyst: /.test(PM.pdfPages(r2.bytes).map(p => p.join(" ")).join(" ")), "no mark, no analyst line on the PDF"); }
+  const r2 = await RP.buildReport(await store.get(org, s2.id), { name: "H", logo: null }, {}); ok(!/Analyst: tier \d (plus|minus)/.test(PM.pdfPages(r2.bytes).map(p => p.join(" ")).join(" ")), "no mark, no analyst line on the PDF"); }
 
 // ---- the page: it prints the ladder and the mark from the server, and types neither
 { const page = fs.readFileSync("public/js/deskvals.js", "utf8");
-  ok(/h\.v\.ladder/.test(page) && /data-mark/.test(page) && /markLine/.test(page), "the page prints h.v.ladder and markLine and has the plus and minus buttons");
+  ok(/h\.v\.ladder/.test(page) && /data-analyst/.test(page) && /markLine/.test(page), "the page prints h.v.ladder and markLine and has the analyst marker (plus or minus is the marker's side of the median)");
   ok(!/"Engine: tier|Engine: tier \d/.test(page.replace(/markLine/g, "")), "the page does not type the Engine line"); }
 
 console.log(`tierMarkCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
