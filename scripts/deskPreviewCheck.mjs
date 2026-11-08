@@ -27,18 +27,18 @@ async function callWith(handler, url, { cookie, method = "GET", body } = {}) {
 }
 async function crewAssertions(handler, tag) {
   const bad = [];
-  const page = await callWith(handler, "/api/crewPage?page=preview-desk"), api = await callWith(handler, "/api/crewPage?page=preview-desk-api", { method: "POST", body: { action: "sheet_queue", view: "queue" } });
+  const page = await callWith(handler, "/api/crewPage?page=preview-desk-valuations"), api = await callWith(handler, "/api/crewPage?page=preview-desk-api", { method: "POST", body: { action: "sheet_queue", view: "queue" } });
   if (page.code !== 404 || /GoAskSam|Valuations|tb-org/.test(page.body)) bad.push("the page answered a request with no cookie");
   if (api.code !== 404 || /"ok"|rows|sheet/.test(api.body)) bad.push("the API door answered a request with no cookie");
-  const forged = await callWith(handler, "/api/crewPage?page=preview-desk", { cookie: "gas_crew=v1.9999999999999.forged" }); if (forged.code !== 404) bad.push("a forged crew cookie got the page");
+  const forged = await callWith(handler, "/api/crewPage?page=preview-desk-valuations", { cookie: "gas_crew=v1.9999999999999.forged" }); if (forged.code !== 404) bad.push("a forged crew cookie got the page");
   const getApi = await callWith(handler, "/api/crewPage?page=preview-desk-api", { cookie: crew }); if (getApi.code !== 404) bad.push("the API door answered a GET");
-  const good = await callWith(handler, "/api/crewPage?page=preview-desk", { cookie: crew }); if (good.code !== 200 || !/class="topbar"/.test(good.body)) bad.push("the crew cookie did not get the page");
+  const good = await callWith(handler, "/api/crewPage?page=preview-desk-valuations", { cookie: crew }); if (good.code !== 200 || !/class="topbar"/.test(good.body)) bad.push("the crew cookie did not get the page");
   if (!/noindex/.test(good.h["x-robots-tag"] || "")) bad.push("the page carries no noindex header");
   const q = await callWith(handler, "/api/crewPage?page=preview-desk-api", { cookie: crew, method: "POST", body: { action: "sheet_queue", view: "queue" } }); let j = null; try { j = JSON.parse(q.body); } catch {} if (!(j && j.ok && j.rows && j.rows.length >= 4)) bad.push("the crew cookie did not get the sample queue from the API door");
   return bad;
 }
 const bad1 = await crewAssertions(crewPage); ok(bad1.length === 0, `1 crew only: ${bad1.join("; ") || "ok"}`);
-{ const vj = JSON.parse(fs.readFileSync("vercel.json", "utf8")); for (const [src, page] of [["/preview/desk", "preview-desk"], ["/preview/desk/api", "preview-desk-api"]]) { const r = (vj.rewrites || []).filter(x => x.source === src); ok(r.length === 1 && r[0].destination === "/api/crewPage?page=" + page && (r[0].has || []).length === 1 && r[0].has[0].key === "gas_crew", `1 vercel.json routes ${src} only with the crew cookie`); } }
+{ const vj = JSON.parse(fs.readFileSync("vercel.json", "utf8")); for (const [src, page] of [["/preview/desk-valuations", "preview-desk-valuations"], ["/preview/desk/api", "preview-desk-api"]]) { const r = (vj.rewrites || []).filter(x => x.source === src); ok(r.length === 1 && r[0].destination === "/api/crewPage?page=" + page && (r[0].has || []).length === 1 && r[0].has[0].key === "gas_crew", `1 vercel.json routes ${src} only with the crew cookie`); } }
 // mutant: the gate removed (a handler that serves whoever asks) must be caught
 { const leaky = async (req, res) => { const { renderDeskPreview: r, previewDeskApi: a } = await imp("lib/preview/deskPreview.js"); if (/preview-desk-api/.test(req.url)) { res.setHeader("Content-Type", "application/json"); return res.status(200).send(JSON.stringify(await a(req.body))); } res.setHeader("Content-Type", "text/html"); return res.status(200).send(r()); };
   const bad = await crewAssertions(leaky); ok(bad.length >= 3, `1 mutant: a page and API door with no cookie gate are caught (${bad.length} findings)`); }
@@ -56,7 +56,7 @@ async function open(b, width, mode, { html, js }) {
     const m = /^\/dsk\.[^/]+\/([\w.-]+\.js)$/.exec(u.pathname); if (u.host === "goasksam.com" && m) return r.respond({ status: 200, contentType: "application/javascript", body: m[1] === "deskvals.js" ? js : fs.readFileSync(path.join(ROOT, "public/js", m[1]), "utf8") });
     if (u.host === "goasksam.com" && u.pathname === "/preview/desk/api" && r.method() === "POST") { let bd = {}; try { bd = JSON.parse(r.postData() || "{}"); } catch {} return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(await previewDeskApi(bd)) }); }
     return r.respond({ status: 204, body: "" }); });
-  await page.goto("https://goasksam.com/preview/desk", { waitUntil: "networkidle2" }).catch(() => {}); await wait(450); page._errs = errs; return page;
+  await page.goto("https://goasksam.com/preview/desk-valuations", { waitUntil: "networkidle2" }).catch(() => {}); await wait(450); page._errs = errs; return page;
 }
 const click = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); if (e) e.click(); }, sel);
 const SCREENS = [["queue", "vals", async () => {}], ["sheet", "vals", async p => { await click(p, '[data-open="pv_m3"]'); await wait(700); await click(p, '[data-tier="3"]'); await wait(700); }], ["thin pool", "vals", async p => { await click(p, '[data-open="pv_m3"]'); await wait(700); await click(p, '[data-tier="1"]'); await wait(700); }],

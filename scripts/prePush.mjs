@@ -2262,6 +2262,12 @@ try {
   record("Market Check and Sell on the shared shell, entry and results: one Find header, the Find rail per product, one footer, no old navigation, nothing inside the results changed, the approved entry copy (scripts/mcSellShellCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/deskV3ShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 shell: the case rail, the operations block from Lane D's lines, the compact case header, flat and two colours, nothing computed on the page (scripts/deskV3ShellCheck.mjs)", "PASS", (out.match(/deskV3ShellCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 shell: the case rail, the operations block from Lane D's lines, the compact case header, flat and two colours, nothing computed on the page (scripts/deskV3ShellCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/mcSellResultsCheck.mjs", { encoding: "utf8", timeout: 580000 });
   record("Market Check and Sell results inside the shell are the live results: every section, figure, chart, table, link and style the same at 1440, 1024 and 390, from recorded engine answers (scripts/mcSellResultsCheck.mjs)", "PASS", (out.match(/mcSellResultsCheck: .*/) || [""])[0]);
 } catch (e) {

@@ -20,7 +20,7 @@ async function open(width, mode) {
     const m = /^\/dsk\.[^/]+\/([\w.-]+\.js)$/.exec(u.pathname); if (u.host === "goasksam.com" && m) return r.respond({ status: 200, contentType: "application/javascript", body: fs.readFileSync(path.join(ROOT, "public/js", m[1]), "utf8") });
     if (u.host === "goasksam.com" && u.pathname === "/preview/desk/api" && r.method() === "POST") { let body = {}; try { body = JSON.parse(r.postData() || "{}"); } catch {} return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(await previewDeskApi(body)) }); }
     return r.respond({ status: 204, body: "" }); });
-  await page.goto("https://goasksam.com/preview/desk", { waitUntil: "networkidle2" }).catch(() => {}); await wait(500); page._errs = errs; return page;
+  await page.goto("https://goasksam.com/preview/desk-valuations", { waitUntil: "networkidle2" }).catch(() => {}); await wait(500); page._errs = errs; return page;
 }
 const click = (p, sel) => p.evaluate(s => document.querySelector(s).click(), sel);
 const typeIn = async (p, sel, text) => { await p.evaluate(s => { const e = document.querySelector(s); e.focus(); e.select(); }, sel); await p.keyboard.type(text); await wait(350); };
