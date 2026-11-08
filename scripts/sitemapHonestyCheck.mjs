@@ -8,7 +8,7 @@ const UA = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.h
 const arg = (n, d) => ((process.argv.find(a => a.startsWith("--" + n + "=")) || "").split("=").slice(1).join("=")) || d;
 const per = Number(arg("per-file", "8")), listArg = arg("list", ""), BASE = arg("base", "https://goasksam.com"), only = arg("files", "");
 const H = { "user-agent": UA, ...(B ? { "x-vercel-protection-bypass": B } : {}) };
-if (!B && !listArg && !process.argv.includes("--no-bypass")) { console.log("SKIP  no VERCEL_AUTOMATION_BYPASS_SECRET (or BYP): the edge challenge would answer 429 for every page"); process.exit(0); }
+if (!B && !listArg && !process.argv.includes("--no-bypass")) { console.log("sitemapHonestyCheck: SKIP  no VERCEL_AUTOMATION_BYPASS_SECRET (or BYP): the edge challenge would answer 429 for every page"); process.exit(0); }
 const allFiles = ["sitemap-pages.xml", "sitemap-vins-hubs.xml", "sitemap-motorcycles.xml", "sitemap-other.xml"];
 const sample = (a, n) => Array.from({ length: Math.min(n, a.length) }, (_, i) => a[Math.floor((i + 0.37) * a.length / Math.min(n, a.length))]);
 const get = async (u, o = {}) => { for (let k = 0; k < 2; k++) { try { return await fetch(u, { headers: H, ...o }); } catch (e) { if (k) throw e; await new Promise(r => setTimeout(r, 1500)); } } };
@@ -18,7 +18,7 @@ else {
   const idx = await get(BASE + "/sitemap-index.xml"); const it = await idx.text();
   const listed = [...it.matchAll(/<loc>([^<]+)/g)].map(m => m[1].replace(/^https?:\/\/[^/]+\//, ""));
   const files = (only ? only.split(",") : listed.length ? listed : allFiles);
-  if (process.argv.includes("--gate-required")) { const hr = await get(BASE + "/sitemap-vins-hubs.xml"); if ((hr.headers.get("x-sitemap-gate") || "") !== "verified") { console.log("SKIP  the live hub file was built before the hub gate (no X-Sitemap-Gate: verified); the nightly rollout writes the first gated list"); process.exit(0); } }
+  if (process.argv.includes("--gate-required")) { const hr = await get(BASE + "/sitemap-vins-hubs.xml"); if ((hr.headers.get("x-sitemap-gate") || "") !== "verified") { console.log("sitemapHonestyCheck: SKIP  the live hub file was built before the hub gate (no X-Sitemap-Gate: verified); the nightly rollout writes the first gated list"); process.exit(0); } }
   for (const f of files) { const r = await get(BASE + "/" + f), t = await r.text(); const l = [...t.matchAll(/<loc>([^<]+)/g)].map(m => m[1]); for (const u of sample(l, per)) urls.push({ f, u }); }
 }
 const bad = {}; let n = 0;

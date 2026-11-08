@@ -63,7 +63,7 @@ for (const t of [1, 2, 3, 4]) {
   const same = pool.filter(r => tierOf(idNum(r)) === t);
   ok(`(1) tier ${t}: tierPoolN is the pool rows of that tier`, d.tierPoolN === same.length && d.conditionTier === t, `got ${d.tierPoolN}, expected ${same.length}`);
   const ex = same.length >= 5 ? Math.round(med(same.map(priceOf))) : null;
-  ok(`(1) tier ${t}: startingFigure is the median of the tier pool (null under five)`, d.startingFigure === ex && (same.length >= 5 ? d.tierPoolState === "ok" : d.tierPoolState === "too_few" && /Too few sales in this condition/.test(d.tierPoolLine || "")), `got ${d.startingFigure}, expected ${ex}, state ${d.tierPoolState}`);
+  ok(`(1) tier ${t}: startingFigure is the median of the tier pool (null under five)`, d.startingFigure === ex && (same.length >= 5 ? d.tierPoolState === "ok" : d.tierPoolState === "too_few" && /sales of this body( since [A-Z][a-z]+ \d{4})?\. \d+ in tier \d, shown on the full set\./.test(d.tierPoolLine || "")), `got ${d.startingFigure}, expected ${ex}, state ${d.tierPoolState}`);
   ok(`(3) tier ${t}: untiered sales are in the wider pool and in no tier pool`, d.tierUntieredN === pool.filter(r => tierOf(idNum(r)) == null).length && d.rawPool.length === pool.length && d.tierCounts && Object.values(d.tierCounts).reduce((a, b) => a + b, 0) + d.tierUntieredN === pool.length);
 }
 // mileage band: miTarget 40000 (a 10,000 mile band each side in the engine's small-band rule)
@@ -74,7 +74,7 @@ for (const t of [1, 2, 3, 4]) {
   ok("... the comparables are those sales, newest read from the engine's own cards", Array.isArray(d.tierComparables) && d.tierComparables.length === inb.length && d.tierComparables.every(c => c.conditionTier === 2)); }
 // (2) a thin tier: only the first four of tier 3 are assigned, the rest are other tiers
 { const keep = tierOf; tierOf = i => (i < 8 && i % 2 === 0 ? 3 : (i % 5 === 0 ? 1 : 2)); const d = await ask({ conditionTier: 3 });
-  ok("(2) under five in the tier: no starting figure, 'Too few sales in this condition', the wider pool is still the answer", d.startingFigure === null && d.tierPoolState === "too_few" && /Too few sales in this condition/.test(d.tierPoolLine) && d.rawPool.length === pool.length, `n ${d.tierBandN}`); tierOf = keep; }
+  ok("(2) under five in the tier: no starting figure, the count line (N sales of this body since [month]. M in tier T, shown on the full set.), the wider pool is still the answer", d.startingFigure === null && d.tierPoolState === "too_few" && /sales of this body( since [A-Z][a-z]+ \d{4})?\. \d+ in tier \d, shown on the full set\./.test(d.tierPoolLine) && d.rawPool.length === pool.length, `n ${d.tierBandN}`); tierOf = keep; }
 // (4) every non-tier field equals the plain answer
 { const d = await ask({ conditionTier: 1 }); const again = await ask(null); const noisy = Object.keys(plain).filter(k => JSON.stringify(plain[k]) !== JSON.stringify(again[k]));
   const strip = x => JSON.stringify(Object.fromEntries(Object.entries(x).filter(([k]) => !TIERKEYS.includes(k) && !noisy.includes(k) && k !== "latencyMs" && k !== "latency").sort()));
