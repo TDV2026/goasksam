@@ -37,6 +37,7 @@ const REGISTRY = [
   ["lib/live/search.js", /const within = p =>/, P, "specCore is keepAlive'd and stores its row; the resolver half is not an archive read"],
   ["lib/newsletterSignup.js", /sub\.promise/, N, "a signup"],
   ["lib/onebox.js", /const rows = await Promise\.race\(\[$/, N, "the pool_columns_enabled flag read"],
+  ["lib/onebox.js", /^\s+rows = await Promise\.race\(\[$/, A, "title read time budget (archiveResolveToken): the timer calls ctrl.abort() and the signal reaches supabaseSelect"],
   ["lib/onebox.js", /Promise\.race\(\[attempt,/, P, "question eligibility: finished late, it is stored and the next ask is instant"],
   ["lib/onebox.js", /Promise\.race\(\[ensureFxReady/, N, "the exchange-rate table"],
   ["lib/sell/sellBlock.js", /const first = await Promise\.race\(\[run,/, A, "Sell's cap: keeps computing on purpose and stores its row, EXCEPT with noStore, where it is stopped"],
