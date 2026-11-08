@@ -2508,6 +2508,36 @@ try {
   record("Desk item 2: the one sheet read call carries Market Check's figures for twenty cars (count, range, window, splits, tier pool, starting figure), reads a VIN's car, returns null for a car it cannot read (scripts/sheetReadCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/deskEvidenceCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 stage 1: desk.evidence (as of date, count, median, quartiles, range, latest sale, stale flag) equals the meter for every Desk model; an insufficient population carries a sentence and no number; the stale flag flips at the threshold; eight mutants (scripts/deskEvidenceCheck.mjs)", "PASS", (out.match(/deskEvidenceCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 1: desk.evidence (as of date, count, median, quartiles, range, latest sale, stale flag) equals the meter for every Desk model; an insufficient population carries a sentence and no number; the stale flag flips at the threshold; eight mutants (scripts/deskEvidenceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/deskCompsCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 stage 2: desk.comparables are decided by verified year, generation, body, gearbox and miles (never the model name), why sentences come from the reason table, a photo is the one that passed the photo rule or null, outside groups are never inside the population; eleven mutants (scripts/deskCompsCheck.mjs)", "PASS", (out.match(/deskCompsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 2: desk.comparables are decided by verified year, generation, body, gearbox and miles (never the model name), why sentences come from the reason table, a photo is the one that passed the photo rule or null, outside groups are never inside the population; eleven mutants (scripts/deskCompsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/deskQuarterCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 stage 3: a quarter under DESK_QUARTER_MIN sales has shown false and no median; live listings are typed bid, ask or no_sale and never in the evidence or the comparables; seven mutants (scripts/deskQuarterCheck.mjs)", "PASS", (out.match(/deskQuarterCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 3: a quarter under DESK_QUARTER_MIN sales has shown false and no median; live listings are typed bid, ask or no_sale and never in the evidence or the comparables; seven mutants (scripts/deskQuarterCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/deskFactorsCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 stage 4: desk.condition (one of the four rungs, from the case, the car's listing or the sales near its miles) and desk.factors (an effect only where both groups have three sales and their prices do not overlap, no fixed dollar figure, service_ims the 996 family only, sentences from the reason table); ten mutants (scripts/deskFactorsCheck.mjs)", "PASS", (out.match(/deskFactorsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 4: desk.condition (one of the four rungs, from the case, the car's listing or the sales near its miles) and desk.factors (an effect only where both groups have three sales and their prices do not overlap, no fixed dollar figure, service_ims the 996 family only, sentences from the reason table); ten mutants (scripts/deskFactorsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/deskRecomputeCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 stage 5: desk.original is the untouched evidence; note_only changes nothing, report_comps changes the comparables only, market_calc changes the market figures and not the comparables; nothing is written; eight mutants (scripts/deskRecomputeCheck.mjs)", "PASS", (out.match(/deskRecomputeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 5: desk.original is the untouched evidence; note_only changes nothing, report_comps changes the comparables only, market_calc changes the market figures and not the comparables; nothing is written; eight mutants (scripts/deskRecomputeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/tierAssignCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk item 1: every sale gets a condition tier from its own listing (every evidence line, Untiered, hard negatives), the nightly job writes batches with a pause and is resumable, the SQL carries RLS (scripts/tierAssignCheck.mjs)", "PASS", (out.match(/all passed/) || [""])[0]);
 } catch (e) {
