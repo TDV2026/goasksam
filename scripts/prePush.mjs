@@ -2150,6 +2150,12 @@ try {
   record("homepage feature preview (CREW ONLY, NOT LIVE): a stored sold or listed pick prints through the crew route, anything short of a complete live pick is hidden, a failed image hides the section, the route is a bare 404 without the cookie (scripts/featuredWireCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /FAIL/.test(l)).slice(0, 4).join(" | ") || String(e.message).slice(0, 200));
 }
 try {
+  const out = execSync("node scripts/previewFallbackCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Previews never empty: Find examples and the two Tasks cards print the engine's live car or fallback (scripts/previewFallbackCheck.mjs)", "PASS", (out.match(/previewFallbackCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Previews never empty: Find examples and the two Tasks cards print the engine's live car or fallback (scripts/previewFallbackCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/homeFindPreviewCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Home and Find previews (CREW ONLY, NOT LIVE): copy, layout at four widths, the featured history gate, crew only and never public (scripts/homeFindPreviewCheck.mjs)", "PASS", (out.match(/homeFindPreviewCheck: .*/) || [""])[0]);
 } catch (e) {
