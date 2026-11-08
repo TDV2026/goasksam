@@ -12,6 +12,7 @@ import { resolveViewAs } from "../lib/desk/viewAs.js";
 import { PREVIEW_PAGES, homeHtmlFor, findHtml } from "../lib/preview/previewPages.js";
 import { tasksPublicHtml, crewLimitMax } from "../lib/preview/tasksPreview.js";
 import { tasksMineHtml, previewTasksApi } from "../lib/preview/tasksMine.js";
+import { cardField, findField, needFindFallback } from "../lib/preview/fieldCompose.js";
 import { renderDeskPreview, previewDeskApi } from "../lib/preview/deskPreview.js";
 // The crew preview of the Homepage reads Lane B's featuredHistory (the same read GET /api/featuredHistory answers with, crew cookie required inside it). FEATURED is the seam the local run swaps for a test store.
 export const FEATURED = { read: async req => { const { historyEnv } = await import("./_historyData.js"), env = historyEnv(); if (!env) return null; const { readFeaturedHistory } = await import("../lib/live/featuredHistory.js"); return readFeaturedHistory(env, req); }, now: () => Date.now() };
@@ -22,8 +23,20 @@ export const TASKS_DEMO = { read: async req => { try { const { historyEnv } = aw
 const readField = async (file, fn, req) => { try { const { historyEnv } = await import("./_historyData.js"), env = historyEnv(); if (!env) return null; const m = await import(file); return typeof m[fn] === "function" ? await m[fn](env, req) : null; } catch { return null; } };
 export const FIND_EXAMPLES = { read: req => readField("../lib/live/findExamples.js", "findExamples", req), now: () => Date.now() };
 export const WATCHING_DEMO = { read: req => readField("../lib/live/watchingDemo.js", "watchingDemo", req), now: () => Date.now() };
-const tasksPublicFor = async req => { let demo = null, watching = null; try { demo = await TASKS_DEMO.read(req); } catch { demo = null; } try { watching = await WATCHING_DEMO.read(req); } catch { watching = null; } return tasksPublicHtml({ max: await crewLimitMax(), demo, watching, now: TASKS_DEMO.now() }); };
-const findFor = async req => { let examples = null; try { examples = await FIND_EXAMPLES.read(req); } catch { examples = null; } return findHtml({ examples, now: FIND_EXAMPLES.now() }); };
+// THE FALLBACK READERS (Lane B, lib/live/*.js findExamplesFallback, tasksDemoFallback, watchingDemoFallback; crew gated inside, null without the signed crew cookie). Read ONLY when the live field is null (Find: fewer than three live cars): lib/preview/fieldCompose.js holds the order, the page never picks.
+export const FIND_FALLBACK = { read: req => readField("../lib/live/findExamples.js", "findExamplesFallback", req) };
+export const TASKS_FALLBACK = { read: req => readField("../lib/live/tasksDemo.js", "tasksDemoFallback", req) };
+export const WATCHING_FALLBACK = { read: req => readField("../lib/live/watchingDemo.js", "watchingDemoFallback", req) };
+const safe = async f => { try { return await f(); } catch { return null; } };
+const tasksPublicFor = async req => {
+  const demo = cardField(await safe(() => TASKS_DEMO.read(req)), null), watching = cardField(await safe(() => WATCHING_DEMO.read(req)), null);
+  const d2 = demo != null ? demo : cardField(null, await safe(() => TASKS_FALLBACK.read(req))), w2 = watching != null ? watching : cardField(null, await safe(() => WATCHING_FALLBACK.read(req)));
+  return tasksPublicHtml({ max: await crewLimitMax(), demo: d2, watching: w2, now: TASKS_DEMO.now() });
+};
+const findFor = async req => {
+  const live = await safe(() => FIND_EXAMPLES.read(req)), fb = needFindFallback(live) ? await safe(() => FIND_FALLBACK.read(req)) : null;
+  return findHtml({ examples: findField(live, fb), now: FIND_EXAMPLES.now() });
+};
 export const PAGES = { "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-desk": { render: renderDeskPreview }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: FEATURED.read, now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"], renderAsync: findFor } };
 export default async function handler(req, res) {
   const name = String((req.query && req.query.page) || "").toLowerCase(), p = PAGES[name];

@@ -2182,6 +2182,12 @@ try {
   record("homepage feature preview (CREW ONLY, NOT LIVE): a stored sold or listed pick prints through the crew route, anything short of a complete live pick is hidden, a failed image hides the section, the route is a bare 404 without the cookie (scripts/featuredWireCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /FAIL/.test(l)).slice(0, 4).join(" | ") || String(e.message).slice(0, 200));
 }
 try {
+  const out = execSync("node scripts/crewWiringCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Crew previews read the engine's fallbacks: live first, fallback when null, three Find cards and two Task cards (scripts/crewWiringCheck.mjs)", "PASS", (out.match(/crewWiringCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Crew previews read the engine's fallbacks: live first, fallback when null, three Find cards and two Task cards (scripts/crewWiringCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/previewRealCardCheck.mjs", { encoding: "utf8", timeout: 120000 });
   record("Preview cards are the real cards: Find's card and the dashboard's Task card, same components, aligned, with the engine's fallback (scripts/previewRealCardCheck.mjs)", "PASS", (out.match(/previewRealCardCheck: .*/) || [""])[0]);
 } catch (e) {
