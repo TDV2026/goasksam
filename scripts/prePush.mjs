@@ -924,6 +924,13 @@ try {
 } catch (e) {
   record("exampleFallbackCheck (scripts/exampleFallbackCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// engineCardShapeCheck (Lane B, Nov 8 2026): the three crew fields in Lane E's refine8 shapes (Find's engine card with its bid badge, platform tag, pills and SAM block lines; the Task row with Sam's read back sentence and the live count; the watching row), live and ended (card.sold).
+try {
+  const out = execSync("node scripts/engineCardShapeCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("engineCardShapeCheck (scripts/engineCardShapeCheck.mjs)", "PASS", (out.match(/engineCardShapeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engineCardShapeCheck (scripts/engineCardShapeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });
