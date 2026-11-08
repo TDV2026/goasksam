@@ -904,8 +904,8 @@ try {
 for (const [label, cmd, to] of [["hubOneGateCheck (scripts/hubOneGateCheck.mjs)", "node scripts/hubOneGateCheck.mjs", 120000], ["vinFirstVisitCheck (scripts/vinFirstVisitCheck.mjs)", "node scripts/vinFirstVisitCheck.mjs", 180000], ["sitemapHonestyCheck (scripts/sitemapHonestyCheck.mjs, live sample)", "node scripts/sitemapHonestyCheck.mjs --gate-required --per-file=6", 280000]]) {
   try {
     const out = execSync(cmd, { encoding: "utf8", timeout: to });
-    const skip = out.match(/^SKIP .*/m);
-    record(label, skip ? "SKIP" : "PASS", skip ? skip[0].slice(5, 140) : (out.match(/(hubOneGateCheck|vinFirstVisitCheck|sitemapHonestyCheck): .*/) || [""])[0]);
+    const skip = out.match(/^(?:\w+: )?SKIP .*/m);
+    record(label, skip ? "SKIP" : "PASS", skip ? skip[0].replace(/^(?:\w+: )?SKIP\s*/, "").slice(0, 140) : (out.match(/(hubOneGateCheck|vinFirstVisitCheck|sitemapHonestyCheck): .*/) || [""])[0]);
   } catch (e) {
     record(label, "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
   }

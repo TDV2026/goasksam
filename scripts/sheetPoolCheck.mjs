@@ -15,18 +15,18 @@ if (args.includes("--mutants")) {
     [SR, "cardsOf.slice(0, MAX_PROOF_ROWS)", "cardsOf.slice(0, 12)", "(1) the comparables capped at twelve rows"],
     [SR, "venue: c.platformName || c.platform ||", "venue: c.platformSlug || c.platform ||", "(1) the venue as a slug, not its display name"],
     [SR, "tier: c.conditionTier != null ? Number(c.conditionTier) : null,", "tier: null,", "(1) a sale with no tier tag"],
-    [SR, "const cardsOf = tierOk && Array.isArray(a.tierComparables) ? a.tierComparables : bodyAll;", "const cardsOf = Array.isArray(a.tierComparables) && a.tierComparables.length ? a.tierComparables : bodyAll;", "(1) a thin tier shows only its own few sales"],
+    [SR, "const cardsOf = tierOk && !openAsk && poolCards ? poolCards : bodyAll;", "const cardsOf = Array.isArray(a.tierComparables) && a.tierComparables.length ? a.tierComparables : bodyAll;", "(1) a thin tier shows only its own few sales"],
     [OB, "fields.tierBodyComparables = bodyCards;", "", "(1) the engine does not tag the body pool with tiers"],
     [RW, "shown on the full set.`", "shown on the wider pool.`", "(2) the pool line says wider pool"],
-    [RW, "text: p => `Range from ${Number(p.n).toLocaleString(\"en-US\")}", "text: p => `Sorry, the wider range from ${Number(p.n).toLocaleString(\"en-US\")}", "(2) an apology in the range line"],
-    [RW, "text: p => `The median of ${Number(p.n).toLocaleString(\"en-US\")} sales in tier ${p.tier} and the mileage band.` },", "text: p => `Unfortunately only ${Number(p.n)} sales in tier ${p.tier}.` },", "(2) unfortunately in the starting note"],
+    [RW, "text: p => `Range from ${p.sales}", "text: p => `Sorry, the wider range from ${p.sales}", "(2) an apology in the range line"],
+    [RW, "text: p => `Tier ${p.tier} holds ${Number(p.m).toLocaleString(\"en-US\")} of ${p.sales} and has no range of its own", "text: p => `Unfortunately only ${p.sales}; tier ${p.tier} holds ${Number(p.m).toLocaleString(\"en-US\")} and has no range of its own", "(2) unfortunately in the starting note"],
     [RW, "text: () => \"Too few sales to show a range.\"", "text: () => \"N sales.\"", "(2) the consumer page's line changed"],
     [SR, "(wantBody ? liveRaw.rows.filter(", "(false ? liveRaw.rows.filter(", "(3) a live car of the wrong body"],
     [SR, "total: wantBody ? liveRows.length : liveRaw.total", "total: liveRaw.total", "(3) the live count includes the wrong body"],
     [SR, "if (input.bodyStyle && !vehicle.bodyStyle)", "if (false)", "(3) the picked body is not applied"],
-    [SR, "meter: metaPrices.length ?", "meter: false ?", "(4) no range meter"],
+    [SR, "meter: metaPrices.length && !openAsk ?", "meter: false ?", "(4) no range meter"],
     [SR, "p25: quant(metaPrices, 0.25), median: quant(metaPrices, 0.5), p75: quant(metaPrices, 0.75)", "p25: null, median: quant(metaPrices, 0.5), p75: quant(metaPrices, 0.75)", "(4) the meter has no p25"],
-    [SR, "rangeLine: isResult", "rangeLine: false && isResult", "(2) no range line"]
+    [SR, "rangeLine: headlineOk", "rangeLine: false && headlineOk", "(2) no range line"]
   ];
   let survivors = 0;
   for (const [file, from, to, want] of muts) {
