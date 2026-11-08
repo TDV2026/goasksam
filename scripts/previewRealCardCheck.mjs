@@ -1,7 +1,9 @@
-// THE PREVIEW CARDS ARE THE REAL CARDS (Lane E, Nov 8 2026). CAUSE: the Find examples and the Tasks cards on the previews were drawn by the preview's own markup (fx-card, sf-photo and the like), so they could never look like the card a person sees on Find or on a Task.
-// CLASS: any card on any preview page. A preview card must be the live component fed an engine object: Find's card(l) (api/buy.js client, via lib/findCardKit.js) and the dashboard's compactCard(t) and lookingItem(r) (lib/preview/tasksApp.js, via lib/preview/realTaskCards.js),
-// lifted by name, never copied. This check proves (1) the lifted code is a verbatim slice of the live source, (2) the rendered markup is that component's output with its class names, (3) no preview source or page carries a card of its own, (4) the cards line up (same width,
-// height, photo aspect, title and button positions), (5) the gates (an engine card or nothing; live, then fallback; the sale prints SOLD FOR), and (6) each failure mode is caught by a mutant. Offline, needs Chrome.
+// THE PREVIEW CARDS ARE THE REAL CARDS (Lane E, Nov 8 2026; final form the same day). CAUSE: the Find examples and the Tasks cards on the previews were drawn by the preview's own markup, so they could never match what a person sees; then Sam simplified both.
+// CLASS: any card or email on any preview page. A preview shows the live component or template fed an engine object, never a copy of it:
+//   FIND LANDING ROW  Find's own client card(l) (api/buy.js, lifted by name through lib/findCardKit.js) with the rest of it hidden by CSS: the real photo, the car's own title, the platform tag and the Sold before label; no bid overlay, SAM block, range, spec chips or See the sales; the whole card is one link to the car's Find result.
+//   TASKS EMAIL       the real Task match email: lib/tasks/tasks.js taskEmailBody and lib/tasks/digest.js composeDigest, handed the inputs a send is handed (its geometry and content are asserted in scripts/tasksPreviewCheck.mjs, section 7).
+// This check proves (1) the lifted card code is a verbatim slice of the live source, (2) the markup on the page is that component's own, (3) no preview source or page carries a card of its own and the Tasks page calls the real email templates, (4) the row is compact, three across (one column on a phone), of one width and aspect, subordinate to the search,
+// with the hidden parts hidden and the whole card one link, (5) the gates (an engine card or nothing; live cars only, three at most; a sale is never "at auction"), and (6) each failure mode is caught by a mutant. Offline, needs Chrome.
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -9,82 +11,73 @@ const ROOT = path.resolve(new URL("..", import.meta.url).pathname); process.chdi
 const puppeteer = createRequire(path.join(ROOT, "package.json"))("puppeteer-core");
 process.env.LAUNCH_STAGE = "2";
 let pass = 0, fail = 0; const out = []; const ok = (c, m) => { if (c) pass++; else { fail++; out.push("FAIL " + m); } };
-const PP = await import(ROOT + "/lib/preview/previewPages.js"), TP = await import(ROOT + "/lib/preview/tasksPreview.js");
-const RC = await import(ROOT + "/lib/preview/realCards.js"), RT = await import(ROOT + "/lib/preview/realTaskCards.js");
-const KIT = await import(ROOT + "/lib/findCardKit.js"), BUY = await import(ROOT + "/api/buy.js"), TA = await import(ROOT + "/lib/preview/tasksApp.js");
-const EX = await import(ROOT + "/scripts/findExamplesFixture.mjs"), FX = await import(ROOT + "/scripts/tasksFixture.mjs");
+const PP = await import(ROOT + "/lib/preview/previewPages.js");
+const KIT = await import(ROOT + "/lib/findCardKit.js"), BUY = await import(ROOT + "/api/buy.js");
+const EX = await import(ROOT + "/scripts/findExamplesFixture.mjs");
 const opt = { now: EX.NOW, allowData: true };
 const strip = h => h.replace(/<style[\s\S]*?<\/style>/g, "").replace(/<script[\s\S]*?<\/script>/g, "");
 // ---------- 1 the lifted code is the live code ----------
 { const kit = KIT.buildKitSource(); const decl = name => { const m = new RegExp("^  function " + name + "\\(", "m").exec(BUY.BUY_CLIENT_SOURCE); return m ? BUY.BUY_CLIENT_SOURCE.slice(m.index) : ""; };
   const cardText = kit.code.slice(kit.code.indexOf("  function card(")).split("\n").slice(0, 6).join("\n");
-  ok(BUY.BUY_CLIENT_SOURCE.includes(cardText.split("\n")[0]) && decl("card").startsWith(cardText.split("\n").slice(0, 3).join("\n")), "1 Find's card(l) in the kit is a verbatim slice of the live Find client (api/buy.js)");
-  const tk = RT.buildTaskKitSource();
-  ok(RT.TASK_KIT_NAMES.every(n => tk.code.split("\n").some(l => l.startsWith("  function " + n + "(") && TA.TASKS_APP_JS.includes(l))), "1 the Task card kit (esc, status, compactCard, lookingItem) is a verbatim slice of the dashboard client (lib/preview/tasksApp.js)");
-  ok(/function compactCard\(t\)/.test(TA.TASKS_APP_JS) && /function lookingItem\(r\)/.test(TA.TASKS_APP_JS), "1 the dashboard still declares the Task card and the watching row by those names"); }
-// ---------- 3 no preview source draws a card of its own ----------
+  ok(BUY.BUY_CLIENT_SOURCE.includes(cardText.split("\n")[0]) && decl("card").startsWith(cardText.split("\n").slice(0, 3).join("\n")), "1 Find's card(l) in the kit is a verbatim slice of the live Find client (api/buy.js)"); }
+// ---------- 3 no preview source draws a card or an email of its own ----------
 const OWN = /class="(?:[^"]*\s)?(?:fx-card|fx-photo|fx-ct|fx-t|fx-m|fx-b|fx-sb|sf-photo|sf-bid|sf-req|sf-ct|sf-meta|sf-st|sf-prev|sf-pl|sf-pm|sf-pp)(?:\s[^"]*)?"/;
 const ownMarkup = html => OWN.test(strip(html)) || /\bfx-card\b|\bsf-photo\b/.test(html.replace(/<script[\s\S]*?<\/script>/g, ""));
 const SRC = ["lib/preview/previewPages.js", "lib/preview/tasksPreview.js"].map(f => [f, fs.readFileSync(f, "utf8")]);
 for (const [f, t] of SRC) ok(!/class="(?:fx-card|fx-photo|fx-ct|sf-photo|sf-bid|sf-req|sf-ct|sf-prev)"/.test(t) && !/class=\\?"fx-card/.test(t), `3 ${f} holds no card markup of its own`);
-ok(/window\.GASCARD\.card\(/.test(fs.readFileSync("lib/preview/previewPages.js", "utf8")) && /window\.GASCARD\.card\(/.test(fs.readFileSync("lib/preview/tasksPreview.js", "utf8")) && /GASTASK\.card\(/.test(fs.readFileSync("lib/preview/tasksPreview.js", "utf8")) && /GASTASK\.watching\(/.test(fs.readFileSync("lib/preview/tasksPreview.js", "utf8")), "3 both pages hand their cards to the live components (GASCARD.card, GASTASK.card, GASTASK.watching)");
-const FIND = PP.findHtml({ examples: EX.examplesFixture(), ...opt }), FINDMIX = PP.findHtml({ examples: { cars: [EX.examplesFixture()[0]], fallback: EX.fallbackFixture() }, ...opt });
-const TASKS = TP.tasksPublicHtml({ max: 10, demo: FX.tasksDemoFixture(), watching: FX.watchingDemoFixture(), ...opt }), TASKSFB = TP.tasksPublicHtml({ max: 10, demo: FX.tasksFallbackFixture(), watching: FX.watchingFallbackFixture(), ...opt });
-ok(![FIND, FINDMIX, TASKS, TASKSFB].some(ownMarkup), "3 no served preview page carries a card of its own");
-ok(FIND.includes(KIT.findCardKitJs()) && TASKS.includes(KIT.findCardKitJs()) && TASKS.includes(RT.taskKitJs()), "3 the pages carry the live kits' own script, byte for byte");
+const tSrc = fs.readFileSync("lib/preview/tasksPreview.js", "utf8"), pSrc = fs.readFileSync("lib/preview/previewPages.js", "utf8");
+ok(/window\.GASCARD\.card\(/.test(pSrc) && /taskEmailBody\(/.test(tSrc) && /composeDigest\(/.test(tSrc) && !/GASTASK|compactCard|lookingItem/.test(tSrc), "3 Find hands its cards to the live card (GASCARD.card); Tasks calls the real email templates (taskEmailBody, composeDigest), and the old Task card and watching row are gone");
+const WITHSOLD = i => { const x = EX.examplesFixture(); x[i].card.timeline = [{ date: "2023-05-02", result: "sold", price: 21000, miles: 140000, house: "Bring a Trailer", url: null }]; x[i].card.seen_before = { n: 1 }; x[i].card.history_url = "/vin/ABC"; return x; };
+const ROW = WITHSOLD(1); ROW[2].findUrl = "/find?q=chevrolet+camaro";
+const FIND = PP.findHtml({ examples: ROW, ...opt });
+ok(!ownMarkup(FIND), "3 the served Find page carries no card of its own");
+ok(FIND.includes(KIT.findCardKitJs()), "3 the page carries the live card kit's own script, byte for byte");
 // ---------- 5 gates ----------
 const cards = h => (strip(h).match(/data-find-examples="(\d)"/) || [])[1] | 0;
 ok(cards(PP.findHtml({ examples: null, ...opt })) === 0 && cards(PP.findHtml({ examples: [], ...opt })) === 0, "5 Find: the engine sent nothing, no section");
-ok(cards(FIND) === 3 && cards(PP.findHtml({ examples: EX.examplesFixture().slice(0, 2), ...opt })) === 2, "5 Find: three live engine cards show three; fewer than three show only those");
-ok(cards(FINDMIX) === 3 && /data-fallback="2"/.test(FINDMIX) && cards(PP.findHtml({ examples: { cars: [], fallback: EX.fallbackFixture() }, ...opt })) === 3, "5 Find: live cars first, then the engine's fallback sales, up to three");
+ok(cards(FIND) === 3 && cards(PP.findHtml({ examples: EX.examplesFixture().slice(0, 2), ...opt })) === 2 && cards(PP.findHtml({ examples: EX.examplesFixture().concat(EX.examplesFixture()), ...opt })) === 3, "5 Find: three live engine cards show three; fewer show only those; never more than three");
+ok(/<h2 class="fx-h">A few cars currently at auction<\/h2>/.test(FIND) && !/A few cars Sam found/.test(FIND), "5 Find: the section heading is \"A few cars currently at auction\"");
+ok(cards(PP.findHtml({ examples: { cars: [], fallback: EX.fallbackFixture() }, ...opt })) === 0 && cards(PP.findHtml({ examples: { cars: EX.examplesFixture().slice(0, 1), fallback: EX.fallbackFixture() }, ...opt })) === 1, "5 Find: a completed sale is not \"at auction\": the engine's fallback sales are not drawn here");
 { const old = [{ title: "1991 Porsche 911 Carrera 2", platform: "Bring a Trailer", url: "https://a.test/1", photo: "https://a.test/p.jpg", live: true, endsAt: new Date(EX.NOW + 3600e3).toISOString(), findUrl: "/find?q=x", priceLabel: "Current bid $1" }];
-  ok(cards(PP.findHtml({ examples: old, ...opt })) === 0, "5 Find: an item with no engine card (the old hand-drawn shape) is not drawn at all");
+  ok(cards(PP.findHtml({ examples: old, ...opt })) === 0, "5 Find: an item with no engine card (the old hand drawn shape) is not drawn");
   const c = EX.examplesFixture()[0].card, bad = [{ ...c, id: null }, { ...c, title: "" }, { ...c, url: "http://a.test" }, { ...c, photo_url: "http://a.test/p.jpg" }, { ...c, end_time: new Date(EX.NOW - 3600e3).toISOString() }, { ...c, sold: { price: "$1", when: "x" } }].map(x => ({ card: x }));
   ok(bad.every(b => cards(PP.findHtml({ examples: [b], ...opt })) === 0), "5 Find: a card with no id, no title, a non https link or photo, an ended auction, or a sale in the live slot is refused");
-  const f = EX.fallbackFixture()[0].card, badf = [{ ...f, sold: null }, { ...f, sold: { price: "$1", when: "" } }, { ...f, sold: { price: "a bargain", when: "x" } }].map(x => ({ card: x }));
-  ok(badf.every(b => cards(PP.findHtml({ examples: { cars: [], fallback: [b] }, ...opt })) === 0), "5 Find: a fallback card with no sale, no date or valuation words is refused"); }
-{ const T = (d, w) => TP.tasksPublicHtml({ max: 10, demo: d, watching: w, ...opt }), has = (h, k) => new RegExp('data-sf="' + k + '"').test(strip(h));
-  ok(has(TASKS, "task") && has(TASKS, "watching") && /data-tasks-demo/.test(TASKS) && /data-watching-demo/.test(TASKS), "5 Tasks: a live Task and a live watched car show both cards");
-  ok(has(TASKSFB, "task") && has(TASKSFB, "watching") && /data-fallback/.test(TASKSFB) && /Recent example/.test(TASKSFB), "5 Tasks: with no live car the engine's fallback shows both cards, labelled Recent example");
-  ok(has(T(FX.tasksDemoFixture(), FX.watchingFallbackFixture()), "watching") && has(T(FX.tasksFallbackFixture(), FX.watchingDemoFixture()), "task"), "5 Tasks: each card falls back on its own");
-  ok(T(null, null) === TP.tasksPublicHtml({ max: 10, ...opt }) && !has(T(null, null), "task") && !has(T({}, {}), "task"), "5 Tasks: the engine sent nothing, no cards");
-  const old = { request: "x", shortRequest: "x", car: { title: "t", platform: "p", url: "https://a.test", photo: "https://a.test/p.jpg", live: true } };
-  ok(!has(T(old, old), "task"), "5 Tasks: the old hand drawn field shape (no engine Task row, no engine card) draws nothing");
-  const rows = FX.tasksDemoFixture(); rows.task.summary = "Sam found a bargain"; ok(!has(T(rows, null), "task"), "5 Tasks: valuation words in Sam's read back refuse the card");
-  const r2 = FX.tasksDemoFixture(); r2.task.state = "weird"; ok(!has(T(r2, null), "task"), "5 Tasks: an unknown Task state refuses the card"); }
-// ---------- 2 and 4 the rendered cards ----------
+  const u = x => (PP.findHtml({ examples: [{ card: c, findUrl: x }], ...opt }).match(/"findUrl":"([^"]*)"/) || [])[1];
+  ok(u("/find?q=a") === "/find?q=a" && u("https://evil.test") === "/find?q=" + encodeURIComponent(c.title) && u("//evil.test") === "/find?q=" + encodeURIComponent(c.title) && u(undefined) === "/find?q=" + encodeURIComponent(c.title), "5 Find: a card links to the engine's findUrl (a Find address only); otherwise to the plain Find search for the card's own title"); }
+// ---------- 2 and 4 the rendered row ----------
 const b = await puppeteer.launch({ executablePath: process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless: "new", args: ["--no-sandbox"] });
 async function load(html, w) { const p = await b.newPage(); await p.setViewport({ width: w, height: 1000 }); p.on("pageerror", e => out.push("FAIL page error: " + e.message)); await p.setContent(html, { waitUntil: "load" }); await new Promise(r => setTimeout(r, 450)); return p; }
-const GEO = sel => [...document.querySelectorAll(sel)].map(a => { const r = a.getBoundingClientRect(), ph = a.querySelector(".ph").getBoundingClientRect(), t = a.querySelector(".ttl").getBoundingClientRect(), v = a.querySelector(".acts").getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height), asp: Math.round(ph.width / ph.height * 100) / 100, ty: Math.round(t.top), vy: Math.round(v.top) }; });
-const same = (a, k) => a.every(c => c[k] === a[0][k]), rowSame = (a, k) => a.every(c => a.filter(d => d.y === c.y).every(d => d[k] === c[k]));
-{ const p = await load(FINDMIX, 1440);
-  const fr = await p.evaluate(() => [...document.querySelectorAll("#fx-grid article.car")].map(a => ({ html: a.outerHTML, cls: a.className, mlab: (a.querySelector(".mlab") || {}).textContent || "", pill: (a.querySelector(".chip") || {}).textContent || "", has: ["ph", "chips", "tx", "ttl", "meta", "specs", "acts"].every(c => !!a.querySelector("." + c)) })));
-  ok(fr.length === 3 && fr.every(c => c.cls === "car" && c.has), "2 Find: three article.car cards with the live card's own parts (ph, chips, tx, ttl, meta, specs, acts)");
-  ok(/LAST BID SEEN/.test(fr[0].mlab) && /SOLD FOR/.test(fr[1].mlab) && /\$90,000/.test(fr[1].mlab) && /October 10, 2026/.test(fr[1].mlab) && !/LAST BID SEEN/.test(fr[1].mlab) && /Sold$/.test(fr[1].pill), "2 Find: a live card carries the LAST BID SEEN badge and the platform and time tag; a sale card carries SOLD FOR with the engine's price and date where the badge goes, and the tag reads Sold");
-  const skel = el => [...el.querySelectorAll("*")].map(e => e.tagName + "." + e.className).join("|");
-  const sk = await p.evaluate(() => { const L = JSON.parse(document.getElementById("fx-data").textContent), d = document.createElement("div"); d.innerHTML = window.GASCARD.card(L[0]); const f = e => [e, ...e.querySelectorAll("*")].map(x => x.tagName + "." + x.className).join("|"); return [f(d.firstElementChild), f(document.querySelector("#fx-grid article.car"))]; });
-  ok(sk[0] === sk[1], "2 Find: the markup on the page is exactly what the live card function returns for the engine card");
-  await p.close(); }
-for (const w of [1440, 1024]) { const p = await load(FINDMIX, w), g = await p.evaluate(GEO, "#fx-grid article.car"); await p.close();
-  const rows = new Set(g.map(c => c.y)).size;
-  ok(g.length === 3 && same(g, "w") && same(g, "asp") && (w >= 1440 ? same(g, "y") && same(g, "ty") && same(g, "vy") && same(g, "h") : rowSame(g, "h") && rowSame(g, "ty") && rowSame(g, "vy")), `4 Find @${w}: three cards of one width and one height, photos of one aspect (${g.map(c => c.asp).join(", ")})${w >= 1440 ? ", titles and buttons on one baseline (" + g.map(c => c.ty + "/" + c.vy).join(", ") + ")" : ""}`); }
-for (const [name, html] of [["live", TASKS], ["fallback", TASKSFB]]) for (const w of [1440, 1024]) { const p = await load(html, w);
-  const m = await p.evaluate(() => ({ tc: [...document.querySelectorAll(".sf-card .tc, .sf-card .lkdemo li")].map(e => { const r = e.getBoundingClientRect(); return { y: Math.round(r.top), h: Math.round(r.height) }; }), car: [...document.querySelectorAll(".sf-card article.car")].map(a => { const r = a.getBoundingClientRect(), ph = a.querySelector(".ph").getBoundingClientRect(), t = a.querySelector(".ttl").getBoundingClientRect(); return { y: Math.round(r.top), h: Math.round(r.height), w: Math.round(r.width), asp: Math.round(ph.width / ph.height * 100) / 100, ty: Math.round(t.top) }; }),
-    dis: [...document.querySelectorAll(".sf-card .tbtns button, .sf-card [data-lk-stop]")].every(x => x.disabled), nbtn: document.querySelectorAll(".sf-card .tbtns button, .sf-card [data-lk-stop]").length, pill: (document.querySelector(".sf-card .pill") || {}).textContent || "", hs: document.documentElement.scrollWidth > innerWidth + 1 }));
-  ok(m.tc.length === 2 && m.tc[0].y === m.tc[1].y && m.tc[0].h === m.tc[1].h && m.car.length === 2 && same(m.car, "y") && same(m.car, "h") && same(m.car, "w") && same(m.car, "asp") && same(m.car, "ty") && !m.hs, `4 Tasks ${name} @${w}: the Task card and the watching row are one height, the two Find cards one size, one photo aspect and one title baseline (${JSON.stringify(m.tc)} ${JSON.stringify(m.car)})`);
-  ok(m.dis && m.nbtn >= 3 && /Running|Done|Stopped/.test(m.pill), `2 Tasks ${name} @${w}: the dashboard's own Task card (status pill ${m.pill}) with Pause, Stop and the watching Stop shown disabled (${m.nbtn} controls)`);
-  await p.close(); }
-{ const p = await load(TASKS, 1440), d = await p.evaluate(() => { const t = document.querySelector(".sf-card .tc"); return { html: t.outerHTML, pill: !!t.querySelector(".pill"), thit: !!t.querySelector(".thit"), line: (t.querySelector(".tline") || {}).textContent, count: (t.querySelector(".tcount") || {}).textContent }; }); await p.close();
-  const fx = FX.tasksDemoFixture(); ok(d.pill && d.thit && d.line === fx.task.summary && d.count.startsWith(fx.task.overview.live), "2 Tasks: the Task card prints the engine's read back sentence and live car count as sent, in the dashboard's own markup (pill, thit, tline, tcount)"); }
+const ROWFN = () => { const vis = e => !!e && getComputedStyle(e).display !== "none" && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().height > 0, q = document.querySelector(".stage");
+  return { search: q ? Math.round(q.getBoundingClientRect().bottom) : 0, cards: [...document.querySelectorAll("#fx-grid .fx-item")].map(it => { const a = it.querySelector("article.car"), r = it.getBoundingClientRect(), vp = innerHeight, ph = a.querySelector(".ph"), pr = ph.getBoundingClientRect(), t = a.querySelector(".ttl"), link = it.querySelector("a.fx-open"), lr = link.getBoundingClientRect(), cx = Math.round(r.left + r.width / 2), cy = Math.round(r.top + r.height / 2), hit = (() => { const sy = scrollY; scrollTo(0, Math.max(0, r.top + sy - 200)); const q = it.getBoundingClientRect(), e = document.elementFromPoint(Math.round(q.left + q.width / 2), Math.round(q.top + q.height / 2)); scrollTo(0, sy); return e; })();
+    return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height), phH: Math.round(pr.height), asp: Math.round(pr.width / pr.height * 100) / 100, imgOk: !!ph.querySelector("img"), title: t.textContent, titleSize: parseFloat(getComputedStyle(t).fontSize), ty: Math.round(t.getBoundingClientRect().top), tag: (a.querySelector(".chip") || {}).textContent || "", tagVis: vis(a.querySelector(".chip")), sold: vis(a.querySelector(".hchip")), soldText: (a.querySelector(".hchip") || {}).textContent || "",
+      hidden: { bid: !vis(a.querySelector(".mlab")), sam: !vis(a.querySelector(".sl")), acts: !vis(a.querySelector(".acts")), meta: !vis(a.querySelector(".meta")), chips: [...a.querySelectorAll(".specs .spec:not(.hchip)")].every(s => !vis(s)) }, linkOk: Math.abs(lr.width - r.width) < 2 && Math.abs(lr.height - r.height) < 2, href: link.getAttribute("href"), hitIsLink: hit === link }; }), hs: document.documentElement.scrollWidth > innerWidth + 1 }; };
+const same = (a, k) => a.every(c => c[k] === a[0][k]);
+async function rowAssertions(html) {
+  const bad = [];
+  for (const w of [1440, 1024, 390]) { const p = await load(html, w), r = await p.evaluate(ROWFN); await p.close(); const c = r.cards;
+    if (c.length !== 3 || !c.every(x => x.imgOk)) { bad.push(`@${w}: ${c.length} cards`); continue; }
+    if (!same(c, "w") || !same(c, "asp")) bad.push(`@${w}: widths ${c.map(x => x.w)} or aspects ${c.map(x => x.asp)} differ`);
+    if (w >= 1440 && !(same(c, "y") && same(c, "h") && same(c, "ty"))) bad.push(`@${w}: not three across on one baseline (${c.map(x => x.y + "/" + x.h + "/" + x.ty)})`);
+    if (w === 390 && !(new Set(c.map(x => x.x)).size === 1 && c[1].y > c[0].y && c[2].y > c[1].y)) bad.push("@390: not stacked");
+    if (!c.every(x => x.hidden.bid && x.hidden.sam && x.hidden.acts && x.hidden.meta && x.hidden.chips)) bad.push(`@${w}: a hidden part shows (${JSON.stringify(c[0].hidden)})`);
+    if (!c.every(x => x.tagVis && /Bring a Trailer/.test(x.tag) && x.title.length > 5)) bad.push(`@${w}: no platform tag or title`);
+    if (!(c[1].sold && /Sold before/.test(c[1].soldText)) || c[0].sold || c[2].sold) bad.push(`@${w}: the Sold before label is not on exactly the verified car (${c.map(x => x.sold)})`);
+    if (!c.every(x => x.linkOk && x.hitIsLink && /^\/find\?q=/.test(x.href))) bad.push(`@${w}: the whole card is not one link to Find (${c.map(x => x.linkOk + "/" + x.hitIsLink + "/" + x.href)})`);
+    if (w >= 1440 && !(c.every(x => x.phH <= 200 && x.titleSize <= 18 && x.h <= 300) && c[0].y >= r.search)) bad.push(`@${w}: the row is not compact and below the search (card ${c[0].h}px, photo ${c[0].phH}px, title ${c[0].titleSize}px, top ${c[0].y} v search ${r.search})`);
+    if (r.hs) bad.push(`@${w}: sideways scroll`); }
+  return bad;
+}
+const badRow = await rowAssertions(FIND); ok(badRow.length === 0, `4 the Find landing row is the real card's photo, title and platform tag with the rest hidden, one link per card, three across and compact (one column on a phone): ${badRow.slice(0, 3).join("; ") || "ok"}`);
+{ const p = await load(FIND, 1440); const sk = await p.evaluate(() => { const L = JSON.parse(document.getElementById("fx-data").textContent), d = document.createElement("div"); d.innerHTML = window.GASCARD.card(L[0].card); const f = e => [e, ...e.querySelectorAll("*")].map(x => x.tagName + "." + x.className).join("|"); return [f(d.firstElementChild), f(document.querySelector("#fx-grid article.car"))]; }); await p.close();
+  ok(sk[0] === sk[1], "2 the markup on the page is exactly what the live card function returns for the engine card"); }
 // ---------- 6 mutants ----------
 { ok(ownMarkup(FIND.replace('<div class="fx-grid cgrid" id="fx-grid">', '<div class="fx-grid cgrid" id="fx-grid"><a class="fx-card" href="/find"><span class="fx-photo"></span></a>')), "6 mutant: a Find page that draws its own card is caught");
-  ok(ownMarkup(TASKS.replace('<div class="sf-slot" data-sf-slot="task">', '<div class="sf-slot" data-sf-slot="task"><div class="sf-photo"></div>')), "6 mutant: a Tasks page that draws its own card is caught");
-  ok(!/window\.GASCARD\.card\(/.test(fs.readFileSync("lib/preview/previewPages.js", "utf8").replace(/window\.GASCARD\.card\(/g, "own(")), "6 mutant: a source that no longer calls the live card is caught");
-  const tall = FINDMIX.replace("height:100%}", "height:auto;align-self:start}"), p = await load(tall, 1440), g = await p.evaluate(GEO, "#fx-grid article.car"); await p.close();
-  ok(!same(g, "h"), `6 mutant: cards that stop filling their row (different heights ${g.map(c => c.h).join(", ")}) are caught`);
-  const asp = FINDMIX.replace(".fx-grid .car .ph{aspect-ratio:16/10}", ".fx-grid .car:first-child .ph{aspect-ratio:1}"), p2 = await load(asp, 1440), g2 = await p2.evaluate(GEO, "#fx-grid article.car"); await p2.close();
-  ok(!same(g2, "asp"), `6 mutant: one photo with its own aspect (${g2.map(c => c.asp).join(", ")}) is caught`);
-  const taskTall = TASKS.replace(".sf-card{display:grid;grid-row:span 3;grid-template-rows:subgrid;min-width:0}", ".sf-card{display:flex;flex-direction:column;min-width:0;align-self:start}"), p3 = await load(taskTall, 1440), m3 = await p3.evaluate(() => [...document.querySelectorAll(".sf-card article.car")].map(a => Math.round(a.getBoundingClientRect().top))); await p3.close();
-  ok(m3.length === 2 && m3[0] !== m3[1], `6 mutant: Task and watching cards that no longer share rows (car tops ${m3.join(", ")}) are caught`); }
+  ok(!/window\.GASCARD\.card\(/.test(pSrc.replace(/window\.GASCARD\.card\(/g, "own(")), "6 mutant: a source that no longer calls the live card is caught");
+  ok(!(/taskEmailBody\(/.test(tSrc.replace(/taskEmailBody\(/g, "ownEmail(")) && /composeDigest\(/.test(tSrc)), "6 mutant: a Tasks page that no longer calls the real email template is caught");
+  const showBid = FIND.replace(".fx-grid .car .mlab,", ".fx-grid .car .zz,"); const m1 = await rowAssertions(showBid); ok(showBid !== FIND && m1.length > 0, `6 mutant: the bid overlay left showing is caught (${m1[0] || "NOT CAUGHT"})`);
+  const showSam = FIND.replace(".fx-grid .car .sl,", ".fx-grid .car .zz2,"); const m2 = await rowAssertions(showSam); ok(showSam !== FIND && m2.length > 0, `6 mutant: the SAM block left showing is caught (${m2[0] || "NOT CAUGHT"})`);
+  const noLink = FIND.replace(".fx-open{position:absolute;inset:0;z-index:4;", ".fx-open{position:static;display:inline;z-index:4;"); const m3 = await rowAssertions(noLink); ok(noLink !== FIND && m3.length > 0, `6 mutant: a card that is not wholly one link is caught (${m3[0] || "NOT CAUGHT"})`);
+  const tall = FIND.replace(".fx-grid .car .ph{aspect-ratio:16/9;", ".fx-grid .car .ph{aspect-ratio:1/1;"); const m4 = await rowAssertions(tall); ok(tall !== FIND && m4.length > 0, `6 mutant: a big photo (not compact) is caught (${m4[0] || "NOT CAUGHT"})`);
+  const wide = FIND.replace(".fx-grid.cgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))", ".fx-grid.cgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))"); const m5 = await rowAssertions(wide); ok(wide !== FIND && m5.length > 0, `6 mutant: two across instead of three is caught (${m5[0] || "NOT CAUGHT"})`); }
 await b.close();
 out.forEach(l => console.log(l)); console.log(`previewRealCardCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
