@@ -10,6 +10,7 @@ let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "
 const A = "aborts", P = "on-purpose", N = "not-archive";
 const REGISTRY = [
   ["api/_historyData.js", /Promise\.race\(\[eng,/, A, "VIN page: nothing is stored behind the response, so its deadline stops the read (a hub, with a stored-row key, keeps computing on purpose and passes no signal)"],
+  ["api/_historyData.js", /Promise\.race\(\[job\.catch/, P, "VIN page first visit: the 1.5 s wait on the exact read, which keepAlive finishes and stores as the HVIN row (the page draws the reading placeholder and asks again)"],
   ["api/_historyData.js", /const capped = q => Promise\.race\(\[supabaseSelect/, N, "one small VIN-keyed read, capped"],
   ["api/buy.js", /function inTime/, P, "afterResponse(p): the read finishes behind the response"],
   ["api/buySearch.js", /Promise\.race\(\[read, new Promise/, P, "asideRowsFor fills the engine's range cache; the page fetches the card again"],
