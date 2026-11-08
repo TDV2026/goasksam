@@ -64,7 +64,7 @@ for (const c of CASES) {
     const same_ = pool.filter(r => tierOf(r.id) === tier), inb = same_.filter(r => miOf(r) >= band.miMin && miOf(r) <= band.miMax);
     const exp = inb.length >= 5 ? Math.round(medianOf(inb.map(priceOf))) : null;
     tierChecked++;
-    ok(`${label} tier ${tier}: same tier count, band count and starting figure are the engine's`, t && t.condition.sameTierCount === same_.length && t.condition.bandCount === inb.length && t.market.startingFigure === exp && (exp === null ? t.condition.tooFew && /sales of this body( since [A-Z][a-z]+ \d{4})?\. \d+ in tier \d, shown on the full set\./.test(t.condition.tooFewLine) : !t.condition.tooFew), `tier pool ${t && t.condition.sameTierCount}/${same_.length}, band ${t && t.condition.bandCount}/${inb.length}, figure ${t && t.market.startingFigure}/${exp}`);
+    ok(`${label} tier ${tier}: same tier count, band count and starting figure are the engine's`, t && t.condition.sameTierCount === same_.length && t.condition.bandCount === inb.length && t.market.startingFigure === exp && (exp === null ? t.condition.tooFew && /sales of this body( since [A-Z][a-z]+ \d{4})?\, \d+ in tier \d, shown on the full set\./.test(t.condition.tooFewLine) : !t.condition.tooFew), `tier pool ${t && t.condition.sameTierCount}/${same_.length}, band ${t && t.condition.bandCount}/${inb.length}, figure ${t && t.market.startingFigure}/${exp}`);
     ok(`${label} tier ${tier}: the market figures do not move with the tier (same pool)`, t && t.market.count === m.count && t.market.low === m.low && t.market.high === m.high);
   }
 }

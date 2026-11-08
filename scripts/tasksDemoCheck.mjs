@@ -77,7 +77,7 @@ const rec = (o = {}) => ({ kind: "sale", date: "2023-06-01", house: "Bring a Tra
 function world(rows, { apps = {}, matcher = null, reader = null } = {}) {
   const cfg = new Map(), w = { cfg, reads: [], clock: NOW, rows };
   const d = {
-    now: () => w.clock,
+    now: () => w.clock, head: async () => ({ status: 200, bytes: 1000, type: "image/jpeg" }), 
     select: async (e, q) => { w.reads.push(q); if (w.failSelect) return null; if (/^app_config/.test(q)) { const v = cfg.get(D.STORE_KEY); return v ? [{ value: v }] : []; } const m = /live_listings\?id=eq\.([^&]+)/.exec(q); if (m) return rows.filter(r => String(r.id) === decodeURIComponent(m[1])); return rows.filter(r => r.status === "live" && Date.parse(r.end_time) > w.clock); },
     write: async (e, row) => { cfg.set(row.key, row.value); }, clear: async () => { cfg.delete(D.STORE_KEY); },
     appearances: async (e, vin) => (apps[vin] ? { ok: true, vinNorm: vin, appearances: apps[vin] } : { ok: true, vinNorm: vin, appearances: [] }),
@@ -251,7 +251,7 @@ const honest = (f, r) => { const fx = facts(r); return String(r.make).toLowerCas
 {
   // The agreed list (Lane B and Lane E, docs/lane-notes.md, Nov 5 2026): the module and the cron refresh MUST name it; the crew gated Tasks preview (its page lib/preview/tasksPreview.js and the crew route api/crewPage.js, which hands the
   // crew the stored field) MAY. Nothing else may: a public route, a sitemap or a script-served file naming it fails.
-  const REQUIRED = ["lib/live/tasksDemo.js", "api/pullLive.js"], ALLOWED = new Set([...REQUIRED, "lib/preview/tasksPreview.js", "api/crewPage.js", "lib/preview/previewPages.js", "lib/preview/fieldCompose.js", "lib/live/findExamples.js", "lib/live/watchingDemo.js"]);   // + the Find examples and the watching card (Nov 7 2026): the same crew gate, the same cron, the same route list
+  const REQUIRED = ["lib/live/tasksDemo.js", "api/pullLive.js"], ALLOWED = new Set([...REQUIRED, "lib/preview/tasksPreview.js", "api/crewPage.js", "lib/preview/previewPages.js", "lib/preview/fieldCompose.js", "lib/live/entryExamples.js", "lib/live/findExamples.js", "lib/live/watchingDemo.js"]);   // + the Find examples and the watching card (Nov 7 2026): the same crew gate, the same cron, the same route list
   const NAMES = /tasksDemo|tasks_demo|TASKS_DEMO|findExamples|find_examples|FIND_EXAMPLES|watchingDemo|watching_demo|WATCHING_DEMO/;
   const hits = [];
   const walk = dir => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { if (["node_modules", ".git", ".claude", "proofs"].includes(e.name)) continue; const p = path.join(dir, e.name); if (e.isDirectory()) walk(p); else if (/\.(js|mjs|json|html|xml|css|txt|md)$/.test(e.name)) { const rel = path.relative(root, p); if (NAMES.test(fs.readFileSync(p, "utf8"))) hits.push(rel); } } };

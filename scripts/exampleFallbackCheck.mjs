@@ -127,7 +127,7 @@ const facts = r => S.listingFacts(r);
 const honest = (f, r) => { const fx = facts(r); return String(r.make).toLowerCase() === f.make.toLowerCase() && String(r.model).toLowerCase() === f.model.toLowerCase() && (!f.gearbox || fx.gearbox === f.gearbox) && (!f.colour || fx.colour === f.colour) && fx.miles <= f.miles_max && Number(r.current_bid_usd) <= f.budget_max && r.status === "live"; };
 function world(rows) {
   const w = { store: new Map(), rows, clock: NOW, failSelect: false, unreadableRow: false };
-  w.d = { now: () => w.clock,
+  w.d = { now: () => w.clock, head: async () => ({ status: 200, bytes: 1000, type: "image/jpeg" }), 
     select: async (e, q) => { if (w.failSelect) return null; let m = /^app_config\?key=eq\.([a-z_]+)/.exec(q); if (m) { const v = w.store.get(m[1]); return v ? [{ value: v }] : []; }
       m = /live_listings\?id=eq\.([^&]+)/.exec(q); if (m) { if (w.unreadableRow) return null; return w.rows.filter(r => String(r.id) === decodeURIComponent(m[1])).slice(0, 1); }
       if (/^live_listings\?status=eq\.live/.test(q)) return w.rows.filter(r => r.status === "live" && r.photo_url && Date.parse(r.end_time) > w.clock);
@@ -207,7 +207,7 @@ const ended = (w, h = 1) => { w.clock = NOW + 30 * 3600e3 + h * 3600e3; };   // 
   // every crew live field is classified: it has a fallback, or it is named as without one. A new exported crew reader fails here until it is classified.
   const read = f => fs.readFileSync(path.join(root, f), "utf8"), liveDir = path.join(root, "lib/live");
   const readers = []; for (const f of fs.readdirSync(liveDir).filter(x => /\.js$/.test(x))) { const src = read("lib/live/" + f); for (const m of src.matchAll(/export async function (\w+)\(env, (?:reqOrCookie|req)[,)][^{]*\{\s*(?:const [^\n]*\n\s*)?(?:[^\n]*\n\s*){0,2}[^\n]*isCrewRequest\(/g)) { if (!/(Fallback|Field)$/.test(m[1])) readers.push(f + ":" + m[1]); } }
-  const KNOWN = { "findExamples.js:findExamples": "findExamplesFallback", "tasksDemo.js:tasksDemo": "tasksDemoFallback", "tasksDemo.js:tasksEmailExample": "tasksEmailExample", "watchingDemo.js:watchingDemo": "watchingDemoFallback", "featuredHistory.js:readFeaturedHistory": null };
+  const KNOWN = { "findExamples.js:findExamples": "findExamplesFallback", "tasksDemo.js:tasksDemo": "tasksDemoFallback", "tasksDemo.js:tasksEmailExample": "tasksEmailExample", "entryExamples.js:marketCheckExampleSales": "marketCheckExampleSales", "entryExamples.js:sellExample": "sellExample", "watchingDemo.js:watchingDemo": "watchingDemoFallback", "featuredHistory.js:readFeaturedHistory": null };
   const unclassified = readers.filter(r => !(r in KNOWN)), missing = Object.entries(KNOWN).filter(([r, fb]) => fb && !read("lib/live/" + r.split(":")[0]).includes("export async function " + fb + "("));
   ok("(4) every crew live reader is classified (a fallback, or named as without one)", unclassified.length === 0 && missing.length === 0, "unclassified " + unclassified.join(", ") + " missing " + missing.map(m => m[1]).join(", ") + " found " + readers.join(", "));
 }

@@ -64,7 +64,7 @@ const car = (make, model, year, o = {}) => ({ id: ++id, source: "bringatrailer",
 function world(rows, { apps = {}, urlStatus = {}, now = NOW0 } = {}) {
   const w = { rows, store: new Map(), apps, urlStatus, clock: now, writes: 0 };
   w.d = {
-    now: () => w.clock,
+    now: () => w.clock, head: async () => ({ status: 200, bytes: 1000, type: "image/jpeg" }), 
     select: async (e, q) => {
       if (w.fail) return null;
       let m = /^app_config\?key=eq\.([a-z_]+)/.exec(q); if (m) { const v = w.store.get(m[1]); return v ? [{ value: v }] : []; }

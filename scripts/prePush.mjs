@@ -959,6 +959,27 @@ try {
 } catch (e) {
   record("findPickCheck (scripts/findPickCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// hourlyRevalidateCheck (Lane B, Nov 8 2026): the Tasks example and the Homepage pick are confirmed live hourly by keyed reads only (no matcher, no OldCarsData); an ended one is cleared and the fallback serves.
+try {
+  const out = execSync("node scripts/hourlyRevalidateCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("hourlyRevalidateCheck (scripts/hourlyRevalidateCheck.mjs)", "PASS", (out.match(/hourlyRevalidateCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("hourlyRevalidateCheck (scripts/hourlyRevalidateCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// photoRuleCheck (Lane B, Nov 8 2026): every crew example pick HEADs its first photo at selection (a 200 image under 600 KB), else the listing's next photo, else the car is skipped.
+try {
+  const out = execSync("node scripts/photoRuleCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("photoRuleCheck (scripts/photoRuleCheck.mjs)", "PASS", (out.match(/photoRuleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("photoRuleCheck (scripts/photoRuleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// entryExamplesCheck (Lane B, Nov 8 2026): marketCheckExampleSales (three real sales of one model that show mileage moving the price) and sellExample (one model's record by venue from the Sell engine): daily pick, crew gate, never invented.
+try {
+  const out = execSync("node scripts/entryExamplesCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("entryExamplesCheck (scripts/entryExamplesCheck.mjs)", "PASS", (out.match(/entryExamplesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("entryExamplesCheck (scripts/entryExamplesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });
