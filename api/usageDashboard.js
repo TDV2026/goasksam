@@ -5931,7 +5931,10 @@ if (task === "optiondetail") {
     { const g = await (await import("../lib/warmDay.js")).warmGateFor(env, { supabaseSelect, readIngestDone: (await import("../lib/_epoch.js")).readIngestDone, force: req.query?.force === "1", isCron }); if (!g.ok) return res.status(200).json({ task: "warmVin", refused: "ingest_not_done", writes: 0, line: g.line, doneAt: g.doneAt, via: g.via }); }
     const { warmVinPage } = await import("./history.js");
     let vins = req.query?.vins ? String(req.query.vins).split("|").filter(Boolean) : null;
-    if (!vins) { const rr = await supabaseSelect(env, "vin_rollout_cache?key=eq.current&select=data&limit=1"); const dd = rr && rr[0] && rr[0].data; const linked = new Set((dd && dd.linkedVins) || []); vins = ((dd && dd.vins) || []).map(u => u.vin).filter(v => linked.has(v)); }
+    if (!vins) {
+      // A FAILED READ IS NOT AN EMPTY LIST (Nov 8 2026): a database failure answers "could not read", never "nothing to warm"
+      let rr; try { rr = mustRows(await supabaseSelect(env, "vin_rollout_cache?key=eq.current&select=data&limit=1"), "ops warmVin vin_rollout_cache"); } catch (e) { return res.status(503).json({ task: "warmVin", error: "could not read", line: "Could not read the VIN list (vin_rollout_cache), so nothing was warmed.", writes: 0, listed: null }); }
+      const dd = rr && rr[0] && rr[0].data; const linked = new Set((dd && dd.linkedVins) || []); vins = ((dd && dd.vins) || []).map(u => u.vin).filter(v => linked.has(v)); }
     const budgetMs = Math.min(270000, Number(req.query?.budget) || 200000), width = Math.min(3, Math.max(1, Number(req.query?.width) || 2)), limit = Math.max(1, Number(req.query?.limit) || 400), t0 = Date.now();
     const out = { task: "warmVin", listed: vins.length, asked: 0, stored: 0, fresh: 0, other: 0, notReached: 0, states: {}, ms: 0 };
     let qi = 0;
