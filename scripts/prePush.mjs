@@ -917,6 +917,13 @@ try {
 } catch (e) {
   record("liveExamplesCheck (scripts/liveExamplesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// exampleFallbackCheck (Lane B, Nov 8 2026): the three crew fallbacks (Find: three recent completed Porsche 911 sales; Tasks and watching: the last proved car kept after it ends, "Ended" and "Recent example", "Last bid $X"), figures only from the record, never a live label on an ended car, crew gated.
+try {
+  const out = execSync("node scripts/exampleFallbackCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("exampleFallbackCheck (scripts/exampleFallbackCheck.mjs)", "PASS", (out.match(/exampleFallbackCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("exampleFallbackCheck (scripts/exampleFallbackCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });
