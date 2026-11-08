@@ -899,6 +899,17 @@ try {
 } catch (e) {
   record("warmGateCheck (scripts/warmGateCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// hubOneGateCheck, vinFirstVisitCheck, sitemapHonestyCheck (Lane B, Nov 8 2026, Lane F's sitemap audit): the hub page and the sitemap's hub file ask ONE gate (hubGate), the VIN files list only VINs a verified hub links, a first visit to a VIN page is a stored read inside a time bound,
+// and the live sitemap is sampled (every file) for URLs that are not 200, indexable and self-canonical. The live sample SKIPs without the bypass secret, and while the live hub file predates the gate (--gate-required), so the push that ships the gate is not blocked by the list it replaces.
+for (const [label, cmd, to] of [["hubOneGateCheck (scripts/hubOneGateCheck.mjs)", "node scripts/hubOneGateCheck.mjs", 120000], ["vinFirstVisitCheck (scripts/vinFirstVisitCheck.mjs)", "node scripts/vinFirstVisitCheck.mjs", 180000], ["sitemapHonestyCheck (scripts/sitemapHonestyCheck.mjs, live sample)", "node scripts/sitemapHonestyCheck.mjs --gate-required --per-file=6", 280000]]) {
+  try {
+    const out = execSync(cmd, { encoding: "utf8", timeout: to });
+    const skip = out.match(/^SKIP .*/m);
+    record(label, skip ? "SKIP" : "PASS", skip ? skip[0].slice(5, 140) : (out.match(/(hubOneGateCheck|vinFirstVisitCheck|sitemapHonestyCheck): .*/) || [""])[0]);
+  } catch (e) {
+    record(label, "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+  }
+}
 // liveExamplesCheck (Lane B, Nov 7 2026): the Find examples (up to three live cars, different makes, soldBefore only on a VIN-confirmed completed sale, stable while live), the Tasks watching card (a different make from the Tasks example, status only within 24 hours, no reminder claim) and tasksDemo.shortRequest; crew gated; mutants in scripts/liveExamplesCheck.mjs --mutants.
 try {
   const out = execSync("node scripts/liveExamplesCheck.mjs", { encoding: "utf8", timeout: 280000 });

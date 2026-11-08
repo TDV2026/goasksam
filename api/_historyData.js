@@ -11,6 +11,7 @@ import { supabaseSelect } from "../lib/_supabase.js";
 import { isPartsListing, isMemorabilia } from "../lib/_classify.js";
 import { genFor, warmAnswerKeyFor, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable, markComputing, readComputing, clearComputing } from "../lib/live/search.js";
 import { keepAlive } from "../lib/keepAlive.js";
+import { tryRefresh } from "../lib/refreshGate.js";
 import { normalizeListingUrl } from "../lib/_urlNorm.js";
 
 export function normVin(s) { return String(s == null ? "" : s).toUpperCase().replace(/[^A-Z0-9]/g, ""); }
@@ -247,6 +248,54 @@ function slimStored(ob) {
   if (out.htMeta && typeof out.htMeta === "object") { const { receipts, pairs, cards, rawPool, ...keep } = out.htMeta; out.htMeta = keep; }
   return out;
 }
+// A FIRST VISIT TO A VIN PAGE IS NEVER A LIVE ENGINE READ (Lane B, Nov 8 2026; Lane F's audit: three of twenty cold VIN pages took 10, 22 and 32 seconds, 0.35 s once cached). CAUSE: the page's market block is the engine read WITH the car's own sale (exactSale), which has no stored row of its own,
+// so every first visit computed the pool from the archive in the request (40 second deadline): 3 to 5 s on a small family, 10 to 32 s on a big one (Corvette, Mustang, 911), and Googlebot's first request is always a first visit. NOW, in order, every step a stored row or a short wait:
+//   1. the VIN's own stored row (HVIN:<vin>, written by the engine read behind an earlier visit or by ops task=warmVin): served at once, a stale one is refreshed behind the response;
+//   2. else the family's stored Market Check answer (the same row the hub page reads): served at once as the stand-in (opts.cold.standIn), and the exact read runs behind the response and stores the VIN row;
+//   3. else the exact read gets VIN_FIRST_READ_MS (1.5 s); a read that has not finished returns null (opts.cold.timedOut: the page says it is still reading and is not cached) and finishes behind the response, storing the row for the next visit.
+// The page prints whatever it is given; it computes nothing. The refresh gate keeps it to one read per row and a few at once.
+export const VIN_ROW_PREFIX = "HVIN:";
+export const VIN_FIRST_READ_MS = 1500;
+export const vinRowKey = vin => VIN_ROW_PREFIX + String(vin || "").toUpperCase();
+// the exact read of one VIN page (the car's own sale in the read), stored as the VIN's row; the page's read behind a response and ops task=warmVin both call it
+export async function storeVinRow(env, vehicle, generation, text, exactSale, vin) {
+  let r = (await oneEngineAnswer(vehicle, generation, text, { ...env, exactSale, asked: 0 }, null)).raw;
+  if (r && /_choice$/.test(String(r.tier || ""))) r = (await oneEngineAnswer(vehicle, generation, text, { ...env, exactSale, asked: 2 }, null)).raw;
+  if (r && r.tier && answerCacheable(r) && !/_choice$/.test(String(r.tier))) await writeWarmAnswer(env, vinRowKey(vin), slimStored(r)).catch(() => {});
+  return r && r.tier ? r : null;
+}
+// the VIN's row for ops task=warmVin: the same vehicle, generation and words oneBoxFor builds, the same exact read, stored. "fresh" = a row of today's stamp and epoch is already there (nothing computed).
+export async function warmVinRow(env, id, exactSale, vin) {
+  const st = await readWarmAnswerDetailed(env, vinRowKey(vin)).catch(() => null);
+  if (st && st.raw && st.raw.tier && !st.stale) return { vin, state: "fresh" };
+  const vehicle = { ...id.vehicle }; if (id.bodyStyle && !vehicle.bodyStyle) vehicle.bodyStyle = id.bodyStyle;
+  const text = [id.year, id.make, id.family].filter(Boolean).join(" "); vehicle.raw = vehicle.raw || text;
+  const generation = await findGeneration(vehicle, env);
+  const r = await storeVinRow(env, vehicle, generation, text, exactSale, vin);
+  return { vin, state: r ? "stored" : "no_answer", tier: r ? r.tier : null };
+}
+async function vinPageAnswer(env, vehicle, generation, text, exactSale, opts) {
+  const vkey = vinRowKey(opts.vin), cold = opts.cold || {};
+  const exact = () => storeVinRow(env, vehicle, generation, text, exactSale, opts.vin);
+  const behind = () => { const g = tryRefresh(vkey, async () => { try { await exact(); } finally { await clearComputing(env, vkey).catch(() => {}); } }); if (g.promise) keepAlive(g.promise); return g.state; };
+  const own = await readWarmAnswerDetailed(env, vkey).catch(() => null);
+  if (own && own.raw && own.raw.tier) { cold.source = "vin_row"; if (own.stale) behind(); return own.raw; }
+  const wkey = warmAnswerKeyFor(vehicle, generation, null);
+  const fam = wkey ? await readWarmAnswerDetailed(env, wkey).catch(() => null) : null;
+  if (fam && fam.raw && fam.raw.tier === "result" && (Array.isArray(fam.raw.cluster) || (Array.isArray(fam.raw.options) && fam.raw.options.length))) {
+    cold.source = "family_row"; cold.standIn = true;
+    if (!(await readComputing(env, vkey))) { markComputing(env, vkey).catch(() => {}); behind(); }
+    return fam.raw;
+  }
+  if (await readComputing(env, vkey)) { cold.source = "computing"; cold.timedOut = true; return null; }
+  markComputing(env, vkey).catch(() => {});
+  const job = exact().finally(() => clearComputing(env, vkey).catch(() => {}));
+  keepAlive(job);
+  const first = await Promise.race([job.catch(() => null), new Promise(r => setTimeout(() => r("late"), VIN_FIRST_READ_MS))]);
+  if (first === "late") { cold.source = "reading"; cold.timedOut = true; return null; }
+  cold.source = "live_read";
+  return first && first.tier ? first : null;
+}
 export async function oneBoxFor(env, id, exactSale, opts) {
   try {
     const vehicle = { ...id.vehicle };
@@ -254,6 +303,7 @@ export async function oneBoxFor(env, id, exactSale, opts) {
     const text = [id.year, id.make, id.family].filter(Boolean).join(" ");
     vehicle.raw = vehicle.raw || text;
     const generation = await findGeneration(vehicle, env);
+    if (exactSale && opts && opts.vin) return await vinPageAnswer(env, vehicle, generation, text, exactSale, opts);
     // COLD SPEC (Sam, Oct 28 2026, no dead ends): a hub (no exact car) reads the stored Market Check answer for its market first, the way every other page does; a read
     // that has to compute outlasts the 15 second page clock behind the response (keepAlive) and stores its row, and opts.cold.timedOut tells the caller to draw the
     // reading placeholder that asks again (history.js coldCardHtml), never a missing card.

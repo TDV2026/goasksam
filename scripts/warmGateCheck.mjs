@@ -78,10 +78,10 @@ else {
   const src = fs.readFileSync(path.join(ROOT, "api/usageDashboard.js"), "utf8");
   const re = /\n  if \(task === "([A-Za-z0-9]+)"(?: \|\| task === "[A-Za-z0-9]+")*\) \{\n/g, starts = []; let mm;
   while ((mm = re.exec(src))) starts.push({ t: mm[1], i: mm.index });
-  const WRITES = /storeWarmResult|writeWarmAnswer\(|writeQuestionRow|refreshDemoAnswer|warmSellBlock|warmLiveSpecs|settleSpecRows|persistCore\(/;
+  const WRITES = /storeWarmResult|writeWarmAnswer\(|writeQuestionRow|refreshDemoAnswer|warmSellBlock|warmLiveSpecs|settleSpecRows|persistCore\(|warmVinPage|storeVinRow/;
   const writers = []; 
   for (let k = 0; k < starts.length; k++) { const blk = src.slice(starts[k].i, k + 1 < starts.length ? starts[k + 1].i : undefined); if (/^warm/i.test(starts[k].t) && (WRITES.test(blk) || starts[k].t === "warmBuy")) writers.push({ t: starts[k].t, gated: /warmGateFor\(env/.test(blk) }); }
-  ok(`the scan finds the warm writers (${writers.map(w => w.t).join(", ")})`, writers.length >= 5 && ["warmDemo", "warmDemoCheck", "warmBuy", "warmMC"].every(t => writers.some(w => w.t === t)));
+  ok(`the scan finds the warm writers (${writers.map(w => w.t).join(", ")})`, writers.length >= 5 && ["warmDemo", "warmDemoCheck", "warmBuy", "warmMC", "warmVin"].every(t => writers.some(w => w.t === t)));
   for (const w of writers) ok(`task ${w.t} is gated`, w.gated);
   ok("warmBuy's final reply carries epochNote as the others do", (() => { const i = src.indexOf('if (task === "warmBuy") {'), j = src.indexOf('tag: "warm_buy"', i); return /epochNote = await/.test(src.slice(j, j + 1500)); })());
 }

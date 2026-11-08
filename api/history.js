@@ -15,6 +15,7 @@ import { withTracking } from "../lib/track/log.js";
 import { vinsForUrls } from "./_historyData.js";
 import { PAGES } from "./sitemapPages.js";
 import { newestDate } from "../lib/whatsNew.js";
+import { warmVinRow } from "./_historyData.js";
 import { houseName, historyEnv, normVin, vinAppearances, carIdentity, oneBoxFor, parseHubSlug, hubVins, titleInHub, hubHasRows, liveListing, carSlug, hubSlug, familyOf, slugify, listingSaid, familySales, SITEMAP_PAGE, resolveText, cleanTitle, canonicalHub } from "./_historyData.js";
 import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
 import { PAGE_CSS as CSS, FONT_LINKS, railHtml, whyResultHtml, isCrewRequest } from "./_chrome.js";
@@ -313,6 +314,18 @@ function sellHref(id) {
 }
 // A family name a hub link may carry (the archive's family key can be a placeholder).
 function saneLinkFamily(f) { const t = String(f || "").trim(); return !!slugify(t) && !/^(unknown|other|n\/?a|none)$/i.test(t); }
+// ops task=warmVin: one VIN page's market block read and stored (api/_historyData.js warmVinRow), the same appearances, identity and exact sale the page uses
+export async function warmVinPage(env, vin) {
+  const { appearances, vinNorm, ok } = await vinAppearances(env, vin);
+  if (!ok) return { vin, state: "unreadable" };
+  if (!appearances.length) return { vin, state: "no_rows" };
+  const id = await identityFor(env, appearances, vinNorm);
+  if (!id) return { vin, state: "no_identity" };
+  const lastSale = appearances.filter(a => a.kind === "sale")[0] || null;
+  const exactSale = lastSale && lastSale.priceUsd ? { price: lastSale.priceUsd, mileage: lastSale.mileage, soldDate: lastSale.date } : null;
+  if (!exactSale) return { vin, state: "no_sale" };
+  return await warmVinRow(env, id, exactSale, vinNorm);
+}
 async function carPage(req, res, env, slug, vin) {
   const crew = isCrewRequest(req);
   const { appearances, vinNorm, ok, source: dataSource } = await vinAppearances(env, vin);
@@ -370,7 +383,8 @@ async function carPage(req, res, env, slug, vin) {
   }
   // 5. CARS LIKE IT (the engine, read-only) + LIVE NOW, in parallel
   const exactSale = lastSale && lastSale.priceUsd ? { price: lastSale.priceUsd, mileage: lastSale.mileage, soldDate: lastSale.date } : null;
-  const [d, live, said, others] = await Promise.all([oneBoxFor(env, id, exactSale), liveListing(env, vinNorm), listingSaid(env, vinNorm).catch(() => null), familySales(env, id, vinNorm, 200).catch(() => null)]);
+  const vinCold = {};
+  const [d, live, said, others] = await Promise.all([oneBoxFor(env, id, exactSale, { vin: vinNorm, cold: vinCold }), liveListing(env, vinNorm), listingSaid(env, vinNorm).catch(() => null), familySales(env, id, vinNorm, 200).catch(() => null)]);
   const story = storyOf(live);
   // The vehicle's own word (Lane A's road buckets): "this motorcycle", "this tractor", else "this car".
   const roadBucket = classifyRoad({ title: (newest && newest.title) || name, make: id.make });
@@ -460,7 +474,8 @@ ${whyResultHtml(crew)}
   const pricedCount = appearances.filter(a => a.priceUsd || a.bidUsd || a.nativeBid).length;
   const index = roadBucket !== "nonroad" && pricedCount >= 2 && realVin(vinNorm) && !!(id.family && id.make) && !(await deadPhotos(env)).vins.has(vinNorm);
   await logPageView(env, { path: canonical.replace(SITE, ""), referer: req.headers["referer"] || req.headers["referrer"], userAgent: req.headers["user-agent"] });
-  send(res, 200, page({ title: `${name}, VIN ${vinNorm}: auction history`, description: story, canonical, body: body2, ld, index, crew, req }), {}, index, crew, req);
+  // a page that went out without its market block, or with the family's stand-in, is not cached: the next visit has the stored row (lib/_historyData.js vinPageAnswer)
+  send(res, 200, page({ title: `${name}, VIN ${vinNorm}: auction history`, description: story, canonical, body: body2, ld, index, crew, req }), vinCold.timedOut || vinCold.standIn ? { "Cache-Control": "private, no-store" } : {}, index, crew, req);
 }
 // The specific word for an "other" self-propelled vehicle, else a neutral "vehicle".
 function otherNoun(title) {
@@ -658,32 +673,47 @@ function liveNowHtml(l) {
 }
 
 // ---------------------------------------------------------------- hub page
+// THE ONE HUB GATE (Lane B, Nov 8 2026; Lane F's sitemap audit: 20 percent of the 4,545 listed hubs answered 404 or noindex, because the nightly file applied a copy of the rule). The hub page and the sitemap's hub file both ask this function, so they cannot disagree:
+// { status 200, index true } is a hub the page serves and Google may index; 404 = no car rows (or an unreadable slug); 301 = an alias of another hub; 503 = the archive could not be read (the file leaves it out, it does not guess).
+// pre.list passes rows already read (the page reads them once); pre.timing is the profiling object.
+export async function hubGate(env, slug, pre) {
+  const hub = parseHubSlug(slug);
+  if (!hub) return { status: 404, index: false, reason: "unparseable_slug", hub: null };
+  { const c = canonicalHub(hub.makeSlug.replace(/-/g, " "), hub.modelSlug.replace(/-/g, " "));
+    const canon = [hub.year, slugify(c.make), slugify(c.family)].filter(Boolean).join("-");
+    if (canon !== slug && slugify(c.make) !== hub.makeSlug) return { status: 301, index: false, reason: "alias_redirect", hub, canon }; }
+  const list = pre && pre.list !== undefined ? pre.list : await hubVins(env, hub, pre && pre.timing);
+  if (list == null) return { status: 503, index: false, reason: "unreadable", hub };
+  if (!list.length) return { status: 404, index: false, reason: "no_rows", hub, list };
+  // Name + One Box family from the resolver on the slug text (same resolver One Box uses).
+  let v = null;
+  try { const r = await resolveVehicle([hub.year, hub.makeSlug.replace(/-/g, " "), hub.modelSlug.replace(/-/g, " ")].filter(Boolean).join(" "), {}); v = r && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null; } catch {}
+  // Unresolvable model: the known make plus the model as listed, cleaned ("AC Cobra", "Fiat Dino Spider").
+  const fbMake = v && v.make && v.model ? null : await knownMake(hub.makeSlug.replace(/-/g, " "));
+  const id = v && v.make && v.model ? { year: hub.year, make: v.make, model: v.model, trim: v.trim || null, family: familyOf(v), genCode: v.genCode || null, bodyStyle: v.bodyStyle || null, vehicle: { ...v, year: hub.year } }
+    : { year: hub.year, make: fbMake || hub.makeSlug.replace(/(^|-)\w/g, s => s.toUpperCase()), model: cleanModelName(hub.modelSlug), family: cleanModelName(hub.modelSlug), vehicle: null };
+  const salesN = list.reduce((k, g) => k + g.apps.filter(a => a.kind === "sale").length, 0);
+  let reason = null;
+  if (hub.year) reason = "year_hub";
+  else if (!list.some(g => g.apps.some(a => a.image))) reason = "no_photo";
+  else if (!(!!id.vehicle || (!!fbMake && salesN >= 5 && !!id.family && !GENERIC_MODEL.test(id.family)))) reason = "model_not_named";
+  else if ((await deadPhotos(env)).hubs.has(slug)) reason = "photos_dead";
+  return { status: 200, index: reason == null, reason, hub, list, id, v, fbMake, salesN };
+}
 async function hubPage(req, res, env, slug) {
   const crew = isCrewRequest(req);
   // Profiling only (Oct 2026): a Server-Timing header reporting each step's real elapsed time on
   // THIS request. Never changes a query, a result, or anything visible in the page body.
   const prof = {}, profMark = k => { prof[k] = Date.now(); };
   profMark("t0");
-  const hub = parseHubSlug(slug);
-  if (!hub) return notFound(req, res, slug);
-  // An alias hub ("ford-shelby-gt500") is the same page as its canonical one ("shelby-gt500").
-  { const c = canonicalHub(hub.makeSlug.replace(/-/g, " "), hub.modelSlug.replace(/-/g, " "));
-    const canon = [hub.year, slugify(c.make), slugify(c.family)].filter(Boolean).join("-");
-    if (canon !== slug && slugify(c.make) !== hub.makeSlug) { res.setHeader("Location", `/history/${canon}`); res.setHeader("Cache-Control", "public, s-maxage=3600"); return res.status(301).end(); } }
   const hubVinsTiming = {};
-  const list = await hubVins(env, hub, hubVinsTiming);
-  profMark("hubVinsDone");
-  if (list == null) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam is busy right now, try again in a minute.</p></section>`, req }), {}, false, crew, req);
-  if (!list.length) return notFound(req, res, slug.replace(/-/g, " "));
-  // Name + One Box family from the resolver on the slug text (same resolver One Box uses).
-  let v = null;
-  try { const r = await resolveVehicle([hub.year, hub.makeSlug.replace(/-/g, " "), hub.modelSlug.replace(/-/g, " ")].filter(Boolean).join(" "), {}); v = r && r.vehicle ? (sanitizeResolvedVehicle(r.vehicle) || r.vehicle) : null; } catch {}
-  profMark("resolveDone");
-  // Unresolvable model: the known make plus the model as listed, cleaned ("AC Cobra", "Fiat Dino Spider").
-  const fbMake = v && v.make && v.model ? null : await knownMake(hub.makeSlug.replace(/-/g, " "));
-  profMark("knownMakeDone");
-  const id = v && v.make && v.model ? { year: hub.year, make: v.make, model: v.model, trim: v.trim || null, family: familyOf(v), genCode: v.genCode || null, bodyStyle: v.bodyStyle || null, vehicle: { ...v, year: hub.year } }
-    : { year: hub.year, make: fbMake || hub.makeSlug.replace(/(^|-)\w/g, s => s.toUpperCase()), model: cleanModelName(hub.modelSlug), family: cleanModelName(hub.modelSlug), vehicle: null };
+  // THE ONE HUB GATE (Lane B, Nov 8 2026): what this page answers (404, 301, 503) and whether it is indexable is decided by hubGate, the same function the sitemap's hub file asks, so a hub is listed only when this page serves it 200 and indexable.
+  const gate = await hubGate(env, slug, { timing: hubVinsTiming });
+  profMark("hubVinsDone"); profMark("resolveDone"); profMark("knownMakeDone");
+  if (gate.status === 404) return notFound(req, res, gate.reason === "no_rows" ? slug.replace(/-/g, " ") : slug);
+  if (gate.status === 301) { res.setHeader("Location", `/history/${gate.canon}`); res.setHeader("Cache-Control", "public, s-maxage=3600"); return res.status(301).end(); }
+  if (gate.status === 503) return send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam is busy right now, try again in a minute.</p></section>`, req }), {}, false, crew, req);
+  const { hub, list, id } = gate;
   const name = [id.year, id.make, id.family].filter(Boolean).join(" ");
   const cold = {};
   const d = id.vehicle ? await oneBoxFor(env, id, null, { skipBareRetry: true, cold }) : null;
@@ -715,7 +745,7 @@ ${whyResultHtml(crew)}
   const ld = [{ "@context": "https://schema.org", "@type": "ItemList", name: `${name} auction results`, url: canonical,
     itemListElement: list.slice(0, 200).map((g, i) => ({ "@type": "ListItem", position: i + 1, url: hub.year ? `${SITE}/history/${slug}/${g.vin}` : `${SITE}/vin/${g.vin}`, name: `${name}, VIN ${g.vin}` })) }];
   profMark("renderDone");
-  const hubIndex = !hub.year && list.some(g => g.apps.some(a => a.image)) && (!!id.vehicle || (!!fbMake && salesN >= 5 && !!id.family && !GENERIC_MODEL.test(id.family))) && !(await deadPhotos(env)).hubs.has(slug);
+  const hubIndex = gate.index;   // decided by hubGate, above
   profMark("deadPhotosDone");
   // Profiling header only (Oct 2026): per-step elapsed ms on this request, never anything in the body.
   const serverTiming = [
@@ -934,7 +964,7 @@ async function rollout(env, opts = {}) {
   // re-creation, evocation or loose continuation is left out, as every pool leaves those out (lib/_classify.js). String
   // tests only, no extra reads.
   let pageDisagrees = 0, replicaHubs = 0;
-  const hubKeys = [...hubs.keys()].filter(k => { if (!hubPageAgrees(k, hubs.get(k).make)) { pageDisagrees++; return false; } if (replicaHub(k)) { replicaHubs++; return false; } return true; }), okHubs = [], fallback = [];
+  const hubKeys = [...hubs.keys()].filter(k => { if (!hubPageAgrees(k, hubs.get(k).make)) { pageDisagrees++; return false; } if (replicaHub(k)) { replicaHubs++; return false; } return true; }), fallback = []; let okHubs = [];
   for (let i = 0; i < hubKeys.length; i += 50) {
     if (Date.now() - t0 > BUDGET_MS) break;
     const part = await Promise.all(hubKeys.slice(i, i + 50).map(async k => {
@@ -946,13 +976,43 @@ async function rollout(env, opts = {}) {
     }));
     for (const x of part) if (x) { okHubs.push(x.k); if (x.fb) fallback.push({ url: `/history/${x.k}`, name: x.fb, sales: hubs.get(x.k).sales }); }
   }
+  // THE HUB FILE LISTS ONLY WHAT THE PAGE SERVES (Lane B, Nov 8 2026): each hub that passed the string tests above is asked of hubGate, the page's own gate. A hub is listed only when it answers 200 and indexable; the rows each verified hub shows (its first 200 VINs, the page's own list) are the VINs that have an inbound link, which is what the sitemap's VIN files are capped to (sitemapView).
+  // hubGateBudgetMs: 0 on the live path (a request cannot afford 4,500 reads: it lists no hub rather than an unchecked one); the nightly job passes a long budget. Largest hubs first, so a budget that runs out leaves the smallest unlisted, not the biggest.
+  const gated = await gateHubs(env, okHubs, k => (hubs.get(k) || {}).sales || 0, Number(opts.hubGateBudgetMs) || 0);
+  const linkedSet = gated.linked, gateCounts = gated.counts, noindexReasons = gated.reasons;
+  counts.hubs_before_gate = okHubs.length;
+  okHubs = gated.verified;
+  counts.hubs_gate = gateCounts; counts.hubs_gate_noindex_reasons = noindexReasons; counts.linked_vins = linkedSet.size;
   counts.multi_indexable = vins.length; counts.motorcycles_indexable = motos.length; counts.other_indexable = others.length;
   counts.hubs_candidates = hubs.size; counts.hubs_page_disagrees = pageDisagrees; counts.hubs_replica = replicaHubs; counts.hubs_indexable = okHubs.length; counts.hubs_fallback_named = fallback.length;
   counts.hubs_alias_merged = merged.size;
   const hubPhotos = {}; for (const k of okHubs) hubPhotos[k] = hubs.get(k).photos;
   const hubLast = {}; for (const k of okHubs) if (hubs.get(k).last) hubLast[k] = hubs.get(k).last;   // the newest appearance among the hub's cars: the hub's sitemap lastmod
-  ROLL = { counts, hubs: okHubs.sort(), hubPhotos, hubLast, vins, motos, others, fallback, merged: [...merged.entries()].map(([from, to]) => ({ from: "/history/" + from, to: "/history/" + to })) }; ROLL_AT = Date.now();
+  ROLL = { counts, hubs: okHubs.sort(), hubsVerified: true, linkedVins: [...linkedSet], hubPhotos, hubLast, vins, motos, others, fallback, merged: [...merged.entries()].map(([from, to]) => ({ from: "/history/" + from, to: "/history/" + to })) }; ROLL_AT = Date.now();
   return ROLL;
+}
+// Ask hubGate (the page's own gate) of every candidate hub, three at a time, largest first, within budgetMs (0 = ask none, so none is listed). Returns the hubs that answer 200 and indexable, the VINs their pages link (each page's first 200 rows),
+// and the counts by outcome. Exported so scripts/hubGateCheck.mjs runs the very loop the nightly rollout runs.
+export async function gateHubs(env, keys, salesOf, budgetMs) {
+  const linked = new Set(), counts = { checked: 0, listed: 0, no_rows: 0, noindex: 0, alias: 0, unreadable: 0, unreached: 0 }, reasons = {}, verified = [];
+  const queue = keys.slice().sort((a, b) => (salesOf(b) || 0) - (salesOf(a) || 0)), tg = Date.now();
+  let qi = 0;
+  const worker = async () => {
+    while (qi < queue.length) {
+      if (Date.now() - tg > budgetMs) return;
+      const k = queue[qi++]; let g = null;
+      try { g = await hubGate(env, k); } catch { g = null; }
+      counts.checked++;
+      if (!g || g.status === 503) { counts.unreadable++; continue; }
+      if (g.status === 200 && g.index) { verified.push(k); counts.listed++; for (const x of (g.list || []).slice(0, 200)) linked.add(x.vin); }
+      else if (g.status === 404) counts.no_rows++;
+      else if (g.status === 301) counts.alias++;
+      else { counts.noindex++; reasons[g.reason || "?"] = (reasons[g.reason || "?"] || 0) + 1; }
+    }
+  };
+  if (budgetMs > 0) await Promise.all([worker(), worker(), worker()]);
+  counts.unreached = Math.max(0, queue.length - counts.checked);
+  return { verified, linked, counts, reasons };
 }
 // Exported for scripts/buildVinRolloutCache.js (the nightly precompute) to call directly - the ONE
 // rollout(), never a second implementation, just a caller with a bigger time budget.
@@ -1011,11 +1071,22 @@ async function rolloutCached(env) {
   const live = await rollout(env);
   return live ? { ...live, _source: "live", _computedAt: null } : live;
 }
+// THE SITEMAP LISTS ONLY WHAT IS LINKED (Lane B, Nov 8 2026, Sam's rollout pause after Lane F's audit: Search Console read 11,569 URLs and crawled none; the whole /history graph was an island). Until the first batch is crawled and indexed the files list the verified hubs and only
+// the VIN pages that have an inbound link: a VIN in the first 200 rows of a verified, indexable hub (the page's own list). Motorcycles and other vehicles have no hub, so those two files list nothing yet. Set SITEMAP_LINKED_ONLY=0 to list everything again. A cache row written before this change
+// (no linkedVins) is served as it was until the nightly job writes the new one.
+export function sitemapView(r) {
+  if (!r || !Array.isArray(r.vins)) return r;
+  const full = { vins: r.vins.length, motos: (r.motos || []).length, others: (r.others || []).length, hubs: (r.hubs || []).length };
+  if (process.env.SITEMAP_LINKED_ONLY === "0" || !Array.isArray(r.linkedVins)) return { ...r, uncapped: full };
+  const linked = new Set(r.linkedVins);
+  return { ...r, vins: r.vins.filter(u => linked.has(u.vin)), motos: [], others: [], uncapped: full };
+}
 async function sitemap(res, env, which) {
-  if (which === "stats") { const r = await rolloutCached(env); res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store"); return res.status(200).send(JSON.stringify({ source: r._source, computed_at: r._computedAt, ...r.counts, fallback_examples: r.fallback.slice().sort((a, b) => b.sales - a.sales).slice(0, 20), alias_merged: r.merged }, null, 1)); }
+  if (which === "stats") { const r = await rolloutCached(env); res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store"); return res.status(200).send(JSON.stringify({ source: r._source, computed_at: r._computedAt, listed: (v => ({ hubs: (v.hubs || []).length, vins: (v.vins || []).length, motorcycles: (v.motos || []).length, other: (v.others || []).length, uncapped: v.uncapped }))(sitemapView(r)), ...r.counts, fallback_examples: r.fallback.slice().sort((a, b) => b.sales - a.sales).slice(0, 20), alias_merged: r.merged }, null, 1)); }
   res.setHeader("Content-Type", "application/xml; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=86400");
-  const r = await rolloutCached(env);
+  const r = sitemapView(await rolloutCached(env));
+  res.setHeader("X-Sitemap-Gate", r && r.hubsVerified ? "verified" : "legacy");   // "verified": the hub file was built by hubGate, the page's own gate (scripts/sitemapHonestyCheck.mjs --gate-required reads it)
   // No rollout (the table and the live build both failed): a sitemap that says nothing is worse than one that asks again, so Search Console is told to retry.
   if (!r || !Array.isArray(r.vins)) { res.setHeader("Cache-Control", "no-store"); res.setHeader("Retry-After", "300"); return res.status(503).send(`<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></sitemapindex>`); }
   const urlset = list => `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${list.map(u => `<url><loc>${xmlEsc(u.loc)}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ""}</url>`).join("")}</urlset>`;
@@ -1081,7 +1152,7 @@ async function photoCheck(req, res, env, kind) {
   if (!hasServerCredential(req)) return res.status(401).json({ error: "Unauthorized." });
   if (kind !== "vins" && kind !== "hubs") return res.status(400).json({ error: "photocheck=vins|hubs" });
   const t0 = Date.now(), BUDGET = 240e3, RATE = 8;
-  const r = await rollout(env);
+  const r = await rolloutCached(env);   // the nightly row (verified hubs); the live rollout lists none until the gate has run
   const items = kind === "vins" ? r.vins.map(u => ({ key: u.vin, photos: u.photos || [] })) : r.hubs.map(h => ({ key: h, photos: r.hubPhotos[h] || [] }));
   const prev = await deadPhotos(env), deadSet = new Set(kind === "vins" ? prev.vins : prev.hubs);
   const counts = { kind, pages: items.length, live: 0, live_after_fallback: 0, dead: 0, unknown: 0, unchecked: 0, restored: 0, newly_dead: 0, requests: 0 };

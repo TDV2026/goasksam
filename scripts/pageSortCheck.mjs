@@ -19,6 +19,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 // [file, a pattern on the 150 characters around the sort, kind, why]. kind: "not an engine list" (layout, chart axis, a fixed example, the page's own words, the data layer's own
 // rows) or "DEBT" (the page ranks or picks from engine data; not a sales list; the engine sends no order for it yet, reported in lane-notes).
 const REVIEWED = [
+  ["api/history.js", /keys\.slice\(\)\.sort\(\(a, b\) => \(salesOf\(b\)/, "not an engine list", "the nightly sitemap build asks the hub gate of the largest hubs first (a work order for the job, never printed on a page)"],
   ["public/js/desk.js", /byReason/, "not an engine list", "Desk (crew analytics): the order of reason keys under a chart, a display order of the page's own labels"],
   ["public/js/desk.js", /cats\.slice\(\)\.sort\(\)/, "not an engine list", "Desk chart axis: year categories in calendar order"],
   ["public/js/desk.js", /rowsByCat\[b\]/, "not an engine list", "Desk chart axis: categories by their own row counts"],

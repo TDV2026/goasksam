@@ -5924,6 +5924,22 @@ if (task === "optiondetail") {
     const { heldLiveSpecs } = await import("../lib/live/search.js");
     return res.status(200).json({ task: "warmHeld", ...(await heldLiveSpecs(env, req.query?.version ? String(req.query.version) : null)) });
   }
+  // task=warmVin (Lane B, Nov 8 2026): the VIN pages' stored market rows (api/_historyData.js warmVinRow), so a first visit is a stored read. The VINs the sitemap lists (verified hubs' first 200 rows) in the cache's order; ?budget= ms (default 200000), ?width= (default 2, most 3),
+  // ?limit= VINs (default 400), ?vins=a|b|c to name them. Zero OldCarsData; the ingest gate applies like every warm (force=1 to run anyway). A VIN whose row is fresh is skipped.
+  if (task === "warmVin") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    { const g = await (await import("../lib/warmDay.js")).warmGateFor(env, { supabaseSelect, readIngestDone: (await import("../lib/_epoch.js")).readIngestDone, force: req.query?.force === "1", isCron }); if (!g.ok) return res.status(200).json({ task: "warmVin", refused: "ingest_not_done", writes: 0, line: g.line, doneAt: g.doneAt, via: g.via }); }
+    const { warmVinPage } = await import("./history.js");
+    let vins = req.query?.vins ? String(req.query.vins).split("|").filter(Boolean) : null;
+    if (!vins) { const rr = await supabaseSelect(env, "vin_rollout_cache?key=eq.current&select=data&limit=1"); const dd = rr && rr[0] && rr[0].data; const linked = new Set((dd && dd.linkedVins) || []); vins = ((dd && dd.vins) || []).map(u => u.vin).filter(v => linked.has(v)); }
+    const budgetMs = Math.min(270000, Number(req.query?.budget) || 200000), width = Math.min(3, Math.max(1, Number(req.query?.width) || 2)), limit = Math.max(1, Number(req.query?.limit) || 400), t0 = Date.now();
+    const out = { task: "warmVin", listed: vins.length, asked: 0, stored: 0, fresh: 0, other: 0, notReached: 0, states: {}, ms: 0 };
+    let qi = 0;
+    const worker = async () => { while (qi < vins.length && out.asked < limit) { if (Date.now() - t0 > budgetMs) return; const v = vins[qi++]; out.asked++; let r; try { r = await warmVinPage(env, v); } catch (e) { r = { state: "error" }; } out.states[r.state] = (out.states[r.state] || 0) + 1; if (r.state === "stored") out.stored++; else if (r.state === "fresh") out.fresh++; else out.other++; } };
+    await Promise.all(Array.from({ length: width }, worker));
+    out.notReached = Math.max(0, vins.length - qi); out.ms = Date.now() - t0;
+    return res.status(200).json(out);
+  }
   if (task === "warmLive" || task === "warmlive") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     { const g = await (await import("../lib/warmDay.js")).warmGateFor(env, { supabaseSelect, readIngestDone: (await import("../lib/_epoch.js")).readIngestDone, force: req.query?.force === "1", isCron }); if (!g.ok) return res.status(200).json({ task: "warmLive", refused: "ingest_not_done", writes: 0, line: g.line, doneAt: g.doneAt, via: g.via }); }

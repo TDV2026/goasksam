@@ -21,8 +21,10 @@ if (process.argv.includes("--mutants")) {
     ["lib/modelRules.js", "poolTerms: [\"4¼-Litre\", \"4¼ Litre\",", "poolTerms: [\"4¼ Litre\",", "the 4¼ pool misses the hyphenated spelling the archive uses 38 times"],
     ["lib/modelRules.js", "{ code: \"Derby 4¼\", years: [1936, 1939]", "{ code: \"Derby 4¼\", years: [1936, 1952]", "the Mark VI 4¼ (1947 to 1951) joins the pre-war 4¼ pool"],
     ["lib/vehicle.js", "replace(/\\b(\\d)(?:\\.25|\\s1\\/4)[\\s-]*lit(?:re|er)s?\\b/gi, \"$1\\u00bc Litre\")", "replace(/\\b(\\d)(?:\\.xx|\\s1\\/4)[\\s-]*lit(?:re|er)s?\\b/gi, \"$1\\u00bc Litre\")", "\"4.25 litre\" is no longer read as the 4¼"],
+    ["lib/modelRules.js", ".replace(/\u00bc/g, \"q\").replace(/\u00bd/g, \"h\").replace(/\u00be/g, \"t\")", "", "modelRules norm drops the fraction glyph again (the 4½ pool takes the 4¼ sales)"],
+    ["lib/onebox.js", "const mkClause = _mrRule.poolMake ?", "const mkClause = false ?", "the pool-term search is make-agnostic again (Lagonda and Invicta 3½ and 4½ Litres join the Bentley pools)"],
+    ["lib/modelRules.js", "specialEditions: [/supercharged/i, /\\bblower\\b/i],", "", "the Blower is counted in the plain 4½ Litre range"],
     ["lib/onebox.js", " || (restOfPhrase ? Object.keys(models).find(m => sameName(m, restOfPhrase)) : undefined);", ";", "the typed words after the make are not matched to a filed model (bare Bugatti Type 57 refused when the variants split the models)"],
-    ["lib/onebox.js", "const key = mrNorm(ph) + \"#\" + fractionSig(ph);", "const key = mrNorm(ph);", "4¼ and 4½ share one cache key in the title read"],
     ["lib/onebox.js", "timer = setTimeout(() => { try { ctrl.abort(); } catch {} resolve(null); }, left);", "timer = null;", "the title read has no budget, a slow scan holds it for every phrase"]
   ];
 
@@ -90,6 +92,9 @@ const CARS = [   // [make, model filed, sales [year, body, price, count]]
   ["Bentley", "4¼ Litre", [[1936, "Saloon", 120000, 3], [1937, "Tourer", 180000, 3], [1938, "Coupe", 150000, 3], [1939, "Saloon", 130000, 3]]],
   ["Bentley", "3½ Litre", [[1934, "Saloon", 90000, 3], [1935, "Tourer", 150000, 3], [1936, "Coupe", 110000, 3]]],
   ["Bentley", "Mark VI", [[1948, "Saloon", 60000, 3], [1950, "Saloon", 55000, 3]]],
+  ["Bentley", "4½ Litre Supercharged", [[1929, "Tourer", 2500000, 2], [1930, "Tourer", 3000000, 2]]],   // the Blower: own model, never in the plain 4½ range
+  ["Bentley", "R-Type", [[1953, "Saloon", 70000, 2]]],
+  ["Lagonda", "3½ Litre", [[1935, "Tourer", 130000, 3]]], ["Lagonda", "4½ Litre", [[1935, "Tourer", 160000, 3]]], ["Invicta", "4½ Litre", [[1930, "Tourer", 300000, 3]]],   // other makes that share the displacement name, in the Bentleys' own years
   ["Bentley", "8 Litre", [[1931, "Saloon", 800000, 3], [1932, "Tourer", 1500000, 3], [1930, "Sports Saloon", 900000, 3]]],
   ["Mercedes-Benz", "540K", [[1936, "Cabriolet", 2100000, 3], [1937, "Roadster", 2900000, 3], [1938, "Coupe", 1700000, 3], [1939, "Sedan", 900000, 3]]]
 ];
@@ -103,10 +108,17 @@ rows = []; for (const [make, model, list] of CARS) { globalThis.CAR = { make, mo
   q4.forEach((r, i) => { const body = r.raw_record.body_style; if (i % 3 === 1) retitle(r, `${r.year} Bentley 4¼-Litre ${body}`, "4¼-Litre"); else if (i % 3 === 2) retitle(r, `${r.year} Bentley 4 1/4 Litre ${body}`, "Unknown"); });
   q3.forEach((r, i) => { const body = r.raw_record.body_style; if (i % 3 === 1) retitle(r, `${r.year} Bentley 3½-Litre ${body}`, "3½-Litre"); else if (i % 3 === 2) retitle(r, `${r.year} Bentley 3 1/2 Litre ${body}`, "Unknown"); });
   mk6.forEach(r => retitle(r, `${r.year} Bentley Mark VI 4¼-Litre ${r.raw_record.body_style}`));
+  const q45 = rows.filter(r => r.make === "Bentley" && r.model === "4½ Litre"), q65 = rows.filter(r => r.make === "Bentley" && r.model === "6½ Litre"), q8 = rows.filter(r => r.make === "Bentley" && r.model === "8 Litre");
+  q45.forEach((r, i) => { const body = r.raw_record.body_style; if (i % 3 === 1) retitle(r, `${r.year} Bentley 4½-Litre ${body}`, "4½-Litre"); else if (i % 3 === 2) retitle(r, `${r.year} Bentley 4 1/2 Litre ${body}`, "Unknown"); });
+  q65.forEach((r, i) => { const body = r.raw_record.body_style; if (i % 3 === 1) retitle(r, `${r.year} Bentley 6½-Litre ${body}`, "6½-Litre"); else if (i % 3 === 2) retitle(r, `${r.year} Bentley 6 1/2 Litre ${body}`, "Unknown"); });
+  q8.forEach((r, i) => { const body = r.raw_record.body_style; if (i % 3 === 1) retitle(r, `${r.year} Bentley 8-Litre ${body}`, "8-Litre"); else if (i % 3 === 2) retitle(r, `${r.year} Bentley Eight Litre ${body}`, "Unknown"); });
+  rows.filter(r => r.model === "4½ Litre Supercharged").forEach(r => retitle(r, `${r.year} Bentley 4½-Litre Supercharged ${r.raw_record.body_style}`));
+  rows.filter(r => r.model === "R-Type").forEach(r => retitle(r, `${r.year} Bentley R-Type 4½-Litre ${r.raw_record.body_style}`));
+  rows.filter(r => r.make === "Lagonda" || r.make === "Invicta").forEach(r => retitle(r, `${r.year} ${r.make} ${r.model.replace(" Litre", "-Litre")} ${r.raw_record.body_style}`));
 }
 globalThis.HOUSE = null;
 const WARM_QUERY_BUDGET_MS = 3000;
-const QUERIES = ["Duesenberg Model J", "Auburn 851", "Bugatti Type 57", "Cord 810", "Mercedes-Benz 540K", "1938 Mercedes-Benz 540K", "1930 Duesenberg Model J", "Bentley 4¼ Litre", "Bentley 3½ Litre", "Bentley 4½ Litre", "Bentley 6½ Litre", "Bentley 8 Litre"];
+const QUERIES = ["Duesenberg Model J", "Auburn 851", "Bugatti Type 57", "Cord 810", "Mercedes-Benz 540K", "1938 Mercedes-Benz 540K", "1930 Duesenberg Model J", "Bentley 4¼ Litre", "Bentley 3½ Litre", "Bentley 4½ Litre", "Bentley 4½ Litre Supercharged", "Bentley 6½ Litre", "Bentley 8 Litre"];
 for (const q of QUERIES) {
   const tq0 = Date.now();
   const rv = await V.resolveVehicle(q, {}), v = rv && rv.vehicle;   // the bare resolver, as every warm calls it
@@ -128,12 +140,13 @@ for (const q of QUERIES) {
   for (const k of Object.keys(VD2)) w2(VD2[k]);
   const wrong = []; for (const [alias, model] of al) { if (alias === "4.5l") continue;   /* "4.5l" (engine-size shorthand) resolved to nothing before this branch too; Sam is told */  const rv = await V.resolveVehicle("Bentley " + alias, {}); if (!(rv && rv.vehicle && rv.vehicle.model === model)) wrong.push(`${alias} -> ${rv && rv.vehicle && rv.vehicle.model} (want ${model})`); }
   ok(`every curated Bentley alias (${al.length}) resolves to its own model, none to a neighbour's`, al.length > 20 && wrong.length === 0, wrong.slice(0, 4).join(" | "));
-  const WANT = { "Bentley 4¼ Litre": { n: 12, own: /4¼|4 1\/4/ }, "Bentley 3½ Litre": { n: 9, own: /3½|3 1\/2/ } };
+  const OTHERS = /Mark VI|R-Type|Lagonda|Invicta|Supercharged/i;
+  const WANT = { "Bentley 4\u00bc Litre": { n: 12, own: /4\u00bc|4 1\/4/, not: /4\u00bd/ }, "Bentley 3\u00bd Litre": { n: 9, own: /3\u00bd|3 1\/2/, not: /Lagonda/ }, "Bentley 4\u00bd Litre": { n: 9, own: /4\u00bd|4 1\/2/, not: /4\u00bc/ }, "Bentley 6\u00bd Litre": { n: 9, own: /6\u00bd|6 1\/2/, not: /Lagonda/ }, "Bentley 8 Litre": { n: 9, own: /8-Litre|8 Litre|Eight Litre/, not: /Lagonda/ } };
   for (const [q, w] of Object.entries(WANT)) {
     const v = (await V.resolveVehicle(q, {})).vehicle, gen = await findGeneration(v, env).catch(() => null), d = (await E.oneEngineAnswer(v, gen, q, { ...env, asked: 0 }, null)).raw, cards = d.cards || [];
     const titles = cards.map(c => String(c.title || "")), pool = (d.rawPool || []).map(r => String(r.listing_title || r.raw_title || r.title || ""));
-    ok(`"${q}": the pool holds the ${w.n} sales of that car in every spelling, no Mark VI and no 4½ (pool ${pool.length})`, pool.length === w.n && pool.every(t => w.own.test(t) && !/Mark VI/i.test(t) && !/4½/.test(t)), JSON.stringify(pool.filter(t => !w.own.test(t) || /Mark VI|4½/.test(t)).slice(0, 3)));
-    ok(`"${q}": every card is that car's own title`, titles.length > 0 && titles.every(t => w.own.test(t) && !/Mark VI/i.test(t)), JSON.stringify(titles.slice(0, 3)));
+    ok(`"${q}": the pool holds the ${w.n} sales of that car in every spelling, no Mark VI, R-Type, Blower or other make (pool ${pool.length})`, pool.length === w.n && pool.every(t => w.own.test(t) && !OTHERS.test(t) && !w.not.test(t)), JSON.stringify(pool.filter(t => !w.own.test(t) || OTHERS.test(t) || w.not.test(t)).slice(0, 3)));
+    ok(`"${q}": every card is that car's own title`, titles.length > 0 && titles.every(t => w.own.test(t) && !OTHERS.test(t)), JSON.stringify(titles.slice(0, 3)));
   }
 }
 // the answer shapes that leave the rung label blank are refusals and unavailable tiers, not answers: the guard names the cause, not the symptom
