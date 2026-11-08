@@ -65,6 +65,9 @@ ok("with nothing excluded, original equals evidence and excluded is empty", J(ba
   ok("market_calc: the quarters add up to the evidence count", d.quarters.reduce((a, q2) => a + q2.count, 0) <= d.evidence.count && d.quarters.reduce((a, q2) => a + q2.count, 0) < base.quarters.reduce((a, q2) => a + q2.count, 0));
   const sh = await read({ excludedIds: ids, exclusionScope: Object.fromEntries(ids.map(i => [i, "market_calc"])) });
   ok("market_calc: the sheet's meter is the recomputed evidence", sh.market.meter && sh.market.meter.count === sh.desk.evidence.count && sh.market.meter.median === sh.desk.evidence.median); }
+// Lane D's case record shape: exclusions [{ saleId, scope, reason, at }]
+{ const d = (await read({ exclusions: ids.map((i, k) => ({ saleId: i, scope: k === 0 ? "market_calc" : "report_comps", reason: "x", at: "2026-11-08" })) })).desk;
+  ok("Lane D's exclusions [{ saleId, scope }] are read: one leaves the calculation, two leave the report", d.evidence.count === base.evidence.count - 1 && ids.slice(1).every(i => !d.comparables.some(c => c.id === i)) && d.excluded.length === 3 && J(d.original) === J(base.original)); }
 // mixed scopes, unknown scope, unknown id
 { const sc = { [ids[0]]: "market_calc", [ids[1]]: "report_comps", [ids[2]]: "note_only" }, d = (await read({ excludedIds: ids, exclusionScope: sc })).desk;
   ok("mixed scopes: one leaves the calculation, one the report, one nothing", d.evidence.count === base.evidence.count - 1 && !d.comparables.some(c => c.id === ids[1]) && d.comparables.some(c => c.id === ids[0]) && d.comparables.some(c => c.id === ids[2]));
