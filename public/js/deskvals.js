@@ -203,9 +203,9 @@
     // NO RANGE (Lane E, Nov 5 2026): when the sheet's read carries the engine's noRangeLine (WAITING ON SAM, so behind window.GAS_NORANGE) it leads the section as given; the comparables below always list every sale the read counted, newest first.
     var nrl = window.GAS_NORANGE === true && typeof m.noRangeLine === "string" && m.noRangeLine ? '<p class="sub" style="margin:0 0 8px">' + esc(m.noRangeLine) + "</p>" : "";
     var inner = nrl + '<div class="figs">' + f("Median", usd(m.median)) + f("Typical range", usd(m.p25) + " to " + usd(m.p75)) + f("Sales", nf(m.count)) + f("Newest sale", esc(day(m.newest))) + (m.startingFigure ? f("Starting figure", usd(m.startingFigure), "start") : "") + "</div>" +
-      '<p class="sub" style="margin-top:-2px">' + esc(m.window.stated) + (m.window.fallback ? " (the wider window)" : "") + ". " + esc(m.startingNote || "") + "</p>"
+      '<p class="sub" style="margin-top:-2px">' + esc(m.window.stated) + (m.window.fallback ? " (the longer window)" : "") + ". " + esc(m.startingNote || "") + "</p>"
     inner += asksHtml(m, dis || "");
-    if (m.wider) inner += '<p class="sub">Wider range: <span class="num">' + usd(m.wider.low) + " to " + usd(m.wider.high) + "</span> (" + nf(m.wider.count) + " sales).</p>";
+    if (m.rangeLine) inner += '<p class="sub">' + esc(m.rangeLine) + "</p>";
     (m.splits || []).forEach(function (sp) { inner += '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">By ' + esc(sp.dimension) + '</div><table class="vt"><tr><th>Band</th><th>Sales</th><th>Median</th><th>Range</th><th>Counted</th></tr>' + sp.options.map(function (o) { return "<tr><td>" + esc(o.label) + '</td><td class="m">' + nf(o.count) + '</td><td class="m">' + usd(o.median) + '</td><td class="m">' + (o.low != null ? usd(o.low) + " to " + usd(o.high) : "") + '</td><td class="m">' + esc(o.windowWords || "") + "</td></tr>"; }).join("") + "</table>"; });
     if (m.splitsNote) inner += '<p class="sub" style="margin:6px 0 0">' + esc(m.splitsNote) + "</p>";
     if ((m.live || []).length) inner += '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">Live now</div><table class="vt"><tr><th>Venue</th><th>Bid</th><th>Ends</th><th>Link</th></tr>' + m.live.map(function (l) { return "<tr><td>" + esc(l.venue) + '</td><td class="m">' + usd(l.bid) + '</td><td class="m">' + esc(String(l.endsAt || "").slice(0, 16).replace("T", " ")) + "</td><td>" + (l.url ? '<a href="' + esc(l.url) + '" target="_blank" rel="noopener">Open</a>' : "") + "</td></tr>"; }).join("") + "</table>";
@@ -218,7 +218,7 @@
     var inner = '<div class="tiers">' + cd.tiers.map(function (t) { return '<button type="button" class="tier' + (cd.selected === t.tier ? " on" : "") + '" data-tier="' + t.tier + '"' + dis + '><span class="n">TIER ' + t.tier + '</span>' + esc(t.label) + '<span class="c">' + ns(t.count) + "</span></button>"; }).join("") + "</div>";
     if (cd.state === "needs_choice") inner += asksHtml(rd.market, dis) + '<p class="sub" style="margin:6px 0 6px">' + esc(rd.market.startingNote || "") + "</p>";
     else if (cd.selected) inner += '<p class="sub" style="margin:0 0 6px"><span class="num">' + ns(cd.sameTierCount) + "</span> in this condition. " + esc(cd.tooFewLine || cd.proofLine || "The comparables above are the same tier.") + "</p>";
-    inner += '<p class="sub" style="margin:0">Untiered: <span class="num">' + ns(cd.untiered) + "</span> stay in the wider pool.</p>";
+    inner += '<p class="sub" style="margin:0">' + esc(cd.untieredLine || "") + "</p>";
     // The ladder, every word from the one source (lib/conditionTier.js TIER_LADDER, sent with the sheet as h.v.ladder). The page prints it.
     var lad = h.v.ladder;
     if (lad) inner += '<ul class="ladder" style="margin:10px 0 0;padding-left:0;list-style:none">' + lad.tiers.map(function (l) { return "<li><b>" + l.tier + " " + esc(l.name) + "</b>: " + esc(l.line) + "</li>"; }).join("") + "<li><b>" + esc(lad.untiered.name) + "</b>: " + esc(lad.untiered.line) + "</li></ul>";
@@ -253,7 +253,7 @@
   // 6 decision
   function s6(h, rd, ev, ed, dis) {
     var d = h.draft.decision, m = rd.market, cd = rd.condition, e = ev || { guards: [], missing: [], given: null };
-    var beside = '<div class="beside"><span>Market range <b class="num">' + (cd.tooFew && m.wider ? usd(m.wider.low) + " to " + usd(m.wider.high) + " (wider pool)" : usd(m.p25) + " to " + usd(m.p75)) + '</b></span><span>Starting figure <b class="num">' + (m.startingFigure ? usd(m.startingFigure) : "none") + "</b></span></div>";
+    var beside = '<div class="beside"><span>Market range <b class="num">' + (cd.tooFew && m.meter ? usd(m.meter.low) + " to " + usd(m.meter.high) + " (" + nf(m.meter.count) + " sales)" : usd(m.p25) + " to " + usd(m.p75)) + '</b></span><span>Starting figure <b class="num">' + (m.startingFigure ? usd(m.startingFigure) : "none") + "</b></span></div>";
     var mode = '<span class="seg"><button type="button" data-dmode="reserve" class="' + (d.mode === "reserve" ? "on" : "") + '"' + dis + '>Reserve</button><button type="button" data-dmode="range" class="' + (d.mode === "range" ? "on" : "") + '"' + dis + ">Range</button></span>";
     var fields = d.mode === "reserve" ? '<div class="fields"><div class="f"><label>Reserve</label><input class="vin mono" data-k="d-reserve" inputmode="numeric" value="' + esc(d.reserve) + '"' + dis + "></div></div>"
       : d.mode === "range" ? '<div class="fields"><div class="f"><label>Low</label><input class="vin mono" data-k="d-low" inputmode="numeric" value="' + esc(d.low) + '"' + dis + '></div><div class="f"><label>High</label><input class="vin mono" data-k="d-high" inputmode="numeric" value="' + esc(d.high) + '"' + dis + "></div></div>" : "";
