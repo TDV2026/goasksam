@@ -470,6 +470,13 @@ if (inserted > 0) {
   } catch (e) { console.error("sales_epoch bump failed (non-fatal, CACHE_OUTER_TTL still bounds staleness):", e && e.message); }
 }
 
+// THE DAY'S INGEST HAS FINISHED (Lane B, Nov 8 2026): the marker the warm tasks read (lib/_epoch.js readIngestDone). Written AFTER the epoch bump above so a warm that sees it stamps the new epoch; not written for a run that stopped at its request cap (it is incomplete);
+// best-effort like the bump: a failed write never fails the ingest (the warm then falls back to the job_ingest event).
+if (!capReached) {
+  try { const { markIngestDone } = await import("../lib/_epoch.js"); const at = await markIngestDone(env); console.log(`ingest_done: marker written ${at}`); }
+  catch (e) { console.error("ingest_done marker failed (non-fatal, the warm falls back to the job_ingest event):", e && e.message); }
+}
+
 // Per-day YIELD of this run (what it added per day), informational only. Pipeline HEALTH is NOT
 // judged here any more: a healthy delta that correctly finds nothing new would always trip a per-run
 // floor. The authoritative, archive-based health check runs below (item 3).

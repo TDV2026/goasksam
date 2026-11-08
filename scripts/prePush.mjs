@@ -885,12 +885,44 @@ try {
 } catch (e) {
   record("warmResolveCheck (scripts/warmResolveCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// warmEpochCheck (Lane B, Nov 7 2026): a warm says it ran ahead of the day's ingest bump (the bare Delahaye 135 and Duesenberg Model J rows read epoch_mismatch because the epoch was bumped by the ingest hours after the warm stamped it), and a writer never stamps an epoch the last poll could not confirm; mutants in scripts/warmEpochCheck.mjs --mutants
+try {
+  const out = execSync("node scripts/warmEpochCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("warmEpochCheck (scripts/warmEpochCheck.mjs)", "PASS", (out.match(/warmEpochCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("warmEpochCheck (scripts/warmEpochCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// warmGateCheck (Lane B, Nov 8 2026): a person's warm declines before the day's ingest has finished (marker app_config ingest_done written by scripts/ingest.js after the bump), cron and force=1 bypass it, every ops task that writes warm rows is gated (found by scanning the source); mutants in scripts/warmGateCheck.mjs --mutants
+try {
+  const out = execSync("node scripts/warmGateCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("warmGateCheck (scripts/warmGateCheck.mjs)", "PASS", (out.match(/warmGateCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("warmGateCheck (scripts/warmGateCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// hubOneGateCheck, vinFirstVisitCheck, sitemapHonestyCheck (Lane B, Nov 8 2026, Lane F's sitemap audit): the hub page and the sitemap's hub file ask ONE gate (hubGate), the VIN files list only VINs a verified hub links, a first visit to a VIN page is a stored read inside a time bound,
+// and the live sitemap is sampled (every file) for URLs that are not 200, indexable and self-canonical. The live sample SKIPs without the bypass secret, and while the live hub file predates the gate (--gate-required), so the push that ships the gate is not blocked by the list it replaces.
+for (const [label, cmd, to] of [["hubOneGateCheck (scripts/hubOneGateCheck.mjs)", "node scripts/hubOneGateCheck.mjs", 120000], ["vinFirstVisitCheck (scripts/vinFirstVisitCheck.mjs)", "node scripts/vinFirstVisitCheck.mjs", 180000], ["sitemapHonestyCheck (scripts/sitemapHonestyCheck.mjs, live sample)", "node scripts/sitemapHonestyCheck.mjs --gate-required --per-file=6", 280000]]) {
+  try {
+    const out = execSync(cmd, { encoding: "utf8", timeout: to });
+    const skip = out.match(/^SKIP .*/m);
+    record(label, skip ? "SKIP" : "PASS", skip ? skip[0].slice(5, 140) : (out.match(/(hubOneGateCheck|vinFirstVisitCheck|sitemapHonestyCheck): .*/) || [""])[0]);
+  } catch (e) {
+    record(label, "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+  }
+}
 // liveExamplesCheck (Lane B, Nov 7 2026): the Find examples (up to three live cars, different makes, soldBefore only on a VIN-confirmed completed sale, stable while live), the Tasks watching card (a different make from the Tasks example, status only within 24 hours, no reminder claim) and tasksDemo.shortRequest; crew gated; mutants in scripts/liveExamplesCheck.mjs --mutants.
 try {
   const out = execSync("node scripts/liveExamplesCheck.mjs", { encoding: "utf8", timeout: 280000 });
   record("liveExamplesCheck (scripts/liveExamplesCheck.mjs)", "PASS", (out.match(/liveExamplesCheck: .*/) || [""])[0]);
 } catch (e) {
   record("liveExamplesCheck (scripts/liveExamplesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// exampleFallbackCheck (Lane B, Nov 8 2026): the three crew fallbacks (Find: three recent completed Porsche 911 sales; Tasks and watching: the last proved car kept after it ends, "Ended" and "Recent example", "Last bid $X"), figures only from the record, never a live label on an ended car, crew gated.
+try {
+  const out = execSync("node scripts/exampleFallbackCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("exampleFallbackCheck (scripts/exampleFallbackCheck.mjs)", "PASS", (out.match(/exampleFallbackCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("exampleFallbackCheck (scripts/exampleFallbackCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {

@@ -5924,8 +5924,25 @@ if (task === "optiondetail") {
     const { heldLiveSpecs } = await import("../lib/live/search.js");
     return res.status(200).json({ task: "warmHeld", ...(await heldLiveSpecs(env, req.query?.version ? String(req.query.version) : null)) });
   }
+  // task=warmVin (Lane B, Nov 8 2026): the VIN pages' stored market rows (api/_historyData.js warmVinRow), so a first visit is a stored read. The VINs the sitemap lists (verified hubs' first 200 rows) in the cache's order; ?budget= ms (default 200000), ?width= (default 2, most 3),
+  // ?limit= VINs (default 400), ?vins=a|b|c to name them. Zero OldCarsData; the ingest gate applies like every warm (force=1 to run anyway). A VIN whose row is fresh is skipped.
+  if (task === "warmVin") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    { const g = await (await import("../lib/warmDay.js")).warmGateFor(env, { supabaseSelect, readIngestDone: (await import("../lib/_epoch.js")).readIngestDone, force: req.query?.force === "1", isCron }); if (!g.ok) return res.status(200).json({ task: "warmVin", refused: "ingest_not_done", writes: 0, line: g.line, doneAt: g.doneAt, via: g.via }); }
+    const { warmVinPage } = await import("./history.js");
+    let vins = req.query?.vins ? String(req.query.vins).split("|").filter(Boolean) : null;
+    if (!vins) { const rr = await supabaseSelect(env, "vin_rollout_cache?key=eq.current&select=data&limit=1"); const dd = rr && rr[0] && rr[0].data; const linked = new Set((dd && dd.linkedVins) || []); vins = ((dd && dd.vins) || []).map(u => u.vin).filter(v => linked.has(v)); }
+    const budgetMs = Math.min(270000, Number(req.query?.budget) || 200000), width = Math.min(3, Math.max(1, Number(req.query?.width) || 2)), limit = Math.max(1, Number(req.query?.limit) || 400), t0 = Date.now();
+    const out = { task: "warmVin", listed: vins.length, asked: 0, stored: 0, fresh: 0, other: 0, notReached: 0, states: {}, ms: 0 };
+    let qi = 0;
+    const worker = async () => { while (qi < vins.length && out.asked < limit) { if (Date.now() - t0 > budgetMs) return; const v = vins[qi++]; out.asked++; let r; try { r = await warmVinPage(env, v); } catch (e) { r = { state: "error" }; } out.states[r.state] = (out.states[r.state] || 0) + 1; if (r.state === "stored") out.stored++; else if (r.state === "fresh") out.fresh++; else out.other++; } };
+    await Promise.all(Array.from({ length: width }, worker));
+    out.notReached = Math.max(0, vins.length - qi); out.ms = Date.now() - t0;
+    return res.status(200).json(out);
+  }
   if (task === "warmLive" || task === "warmlive") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    { const g = await (await import("../lib/warmDay.js")).warmGateFor(env, { supabaseSelect, readIngestDone: (await import("../lib/_epoch.js")).readIngestDone, force: req.query?.force === "1", isCron }); if (!g.ok) return res.status(200).json({ task: "warmLive", refused: "ingest_not_done", writes: 0, line: g.line, doneAt: g.doneAt, via: g.via }); }
     const { warmLiveSpecs } = await import("../lib/live/search.js");
     const r = await warmLiveSpecs(env, { budgetMs: Math.min(230000, Number(req.query?.budget) || 200000), allScope: req.query?.allScope === "1", concurrency: Math.min(8, Number(req.query?.width) || 6), shard: req.query?.shard ? String(req.query.shard) : null, ...(req.query?.trafficDays != null && req.query.trafficDays !== "" ? { trafficDays: Math.max(0, Number(req.query.trafficDays) || 0) } : {}) });
     return res.status(200).json({ task: "warmLive", ...r });
@@ -6082,6 +6099,7 @@ if (task === "optiondetail") {
   }
   if (task === "warmDemoCheck") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    { const g = await (await import("../lib/warmDay.js")).warmGateFor(env, { supabaseSelect, readIngestDone: (await import("../lib/_epoch.js")).readIngestDone, force: req.query?.force === "1", isCron }); if (!g.ok) return res.status(200).json({ task: "warmDemoCheck", refused: "ingest_not_done", writes: 0, line: g.line, doneAt: g.doneAt, via: g.via }); }
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
     const { oneEngineAnswer, ENGINE_VERSION } = await import("../lib/onebox.js");
@@ -6122,6 +6140,7 @@ if (task === "optiondetail") {
   }
   if (task === "warmDemo") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    { const g = await (await import("../lib/warmDay.js")).warmGateFor(env, { supabaseSelect, readIngestDone: (await import("../lib/_epoch.js")).readIngestDone, force: req.query?.force === "1", isCron }); if (!g.ok) return res.status(200).json({ task: "warmDemo", refused: "ingest_not_done", writes: 0, line: g.line, doneAt: g.doneAt, via: g.via }); }
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
     const { oneEngineAnswer } = await import("../lib/onebox.js");
@@ -6164,7 +6183,7 @@ if (task === "optiondetail") {
       result.rows.push(row);
     }
     result.ms = Date.now() - t0;
-    return res.status(200).json(result);
+    result.epochNote = await (await import("../lib/warmDay.js")).warmEpochNoteFor(env, { supabaseSelect, currentEpoch: (await import("../lib/_epoch.js")).currentEpoch }); return res.status(200).json(result);
   }
   // task=warmBuy (Sam, Oct 19 2026, approved list): the broad Buy searches a visitor is likely to type, kept warm after the
   // demo cars (cron 00:10Z and 12:10Z, right after the 00:05Z and 12:05Z warmDemo). Each search runs the Buy page's own path
@@ -6229,6 +6248,7 @@ if (task === "optiondetail") {
     // carry the work. It stops at once when the day's archive guard has tripped (an ocd_budget_guard event today) or when
     // the archive reads start failing (five in a row). Archive only, no figure changes.
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    { const g = await (await import("../lib/warmDay.js")).warmGateFor(env, { supabaseSelect, readIngestDone: (await import("../lib/_epoch.js")).readIngestDone, force: req.query?.force === "1", isCron }); if (!g.ok) return res.status(200).json({ task: "warmBuy", refused: "ingest_not_done", writes: 0, line: g.line, doneAt: g.doneAt, via: g.via }); }
     const { parseQueryResolved, searchLive, listingMarket, listingFacts, isAbroadRow, gensNamed } = await import("../lib/live/search.js");
     const BUY_WARM = ["Porsche 911", "Porsche 911 Carrera", "Porsche 911 Turbo", "Porsche 911 GT3", "2024 Porsche 911", "Porsche Cayman", "Porsche Boxster", "Chevrolet Corvette", "Ford Mustang", "Ford Bronco", "BMW M3", "Mercedes-Benz SL", "Ferrari", "Lamborghini", "Land Rover Defender", "Toyota Land Cruiser", "Toyota Supra", "Nissan Skyline", "Chevrolet Camaro", "Jeep Wrangler"];
     const parts = Math.max(1, Math.min(8, Number(req.query?.parts) || 6))   // e67: six parts (Lane F under Sam's standing authority), part = Math.max(1, Math.min(parts, Number(req.query?.part) || 1));
@@ -6239,7 +6259,7 @@ if (task === "optiondetail") {
     try {
       const dayStart = new Date().toISOString().slice(0, 10) + "T00:00:00Z";
       const trips = await supabaseSelect(env, `app_usage_events?event_type=eq.ocd_budget_guard&created_at=gte.${dayStart}&select=created_at&limit=1`);
-      if (trips && trips.length) { result.stopped = "the daily archive guard tripped today"; return res.status(200).json(result); }
+      if (trips && trips.length) { result.stopped = "the daily archive guard tripped today"; result.epochNote = await (await import("../lib/warmDay.js")).warmEpochNoteFor(env, { supabaseSelect, currentEpoch: (await import("../lib/_epoch.js")).currentEpoch }); return res.status(200).json(result); }
     } catch (e) { /* an unreadable guard log never blocks the warm; the failure streak below still stops it */ }
     const seen = new Set();
     let failStreak = 0;
@@ -6277,10 +6297,11 @@ if (task === "optiondetail") {
     result.ms = Date.now() - t0;
     // e67: one summary line per run, so a cron run reports its own coverage in the request log (no identifiers in it)
     try { console.log(JSON.stringify({ tag: "warm_buy", part: result.part, parts: result.parts, searched: result.searched, cards: result.cards, filled: result.filled, stillReading: result.stillReading, skippedSeen: result.skippedSeen, notReached: result.notReached, stopped: result.stopped, ms: result.ms, rows: result.rows.map(r => ({ q: r.q, cards: r.cards, filled: r.filled, error: r.error || undefined })) })); } catch (e) { /* log only */ }
-    return res.status(200).json(result);
+    result.epochNote = await (await import("../lib/warmDay.js")).warmEpochNoteFor(env, { supabaseSelect, currentEpoch: (await import("../lib/_epoch.js")).currentEpoch }); return res.status(200).json(result);
   }
   if (task === "warmMC") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    { const g = await (await import("../lib/warmDay.js")).warmGateFor(env, { supabaseSelect, readIngestDone: (await import("../lib/_epoch.js")).readIngestDone, force: req.query?.force === "1", isCron }); if (!g.ok) return res.status(200).json({ task: "warmMC", refused: "ingest_not_done", writes: 0, line: g.line, doneAt: g.doneAt, via: g.via }); }
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
     const { oneEngineAnswer } = await import("../lib/onebox.js");
@@ -6309,7 +6330,7 @@ if (task === "optiondetail") {
       } catch (e) { row.error = String(e && e.message || e); result.failed++; }
       result.rows.push(row);
     }
-    return res.status(200).json({ task: "warmMC", ...result });
+    result.epochNote = await (await import("../lib/warmDay.js")).warmEpochNoteFor(env, { supabaseSelect, currentEpoch: (await import("../lib/_epoch.js")).currentEpoch }); return res.status(200).json({ task: "warmMC", ...result });
   }
 
   // task=descfactscov: READ-ONLY. Coverage of the description-derived columns after the backfill.
