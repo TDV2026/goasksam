@@ -83,10 +83,10 @@ ok(/Engine: tier 2\. Analyst: 2 plus/.test(text) && /Cleaner than the middle car
 ok(/Close inspection showed better paint/.test(text) && /Reserve sits above the starting figure on purpose/.test(text) && /Condition better or worse/.test(text), "the PDF has the reasons, the reasoning and the guard line");
 { const odd = SR.middleFinder([10, 20, 30].map(price => ({ price })), true), even = SR.middleFinder([10, 20, 30, 40].map(price => ({ price })), true);
   ok([10, 20, 30].map(p => odd({ price: p })).join() === ",median," && [10, 20, 30, 40].map(p => even({ price: p })).join() === ",middle,middle,", "the engine pool's median is marked (odd) or its two middle sales (even)"); ok(SR.middleFinder([{ price: 1 }], false)({ price: 1 }) === null, "no tier pool, no median mark"); }
-ok(!/comparables[^;]{0,60}slice\(0, ?12\)/.test(page) && /c\.mid/.test(page) && /is the median of the/.test(page) && /bandCount/.test(page), "the page lists the whole pool, marks the median and names the starting figure as that median");
+ok(!/comparables[^;]{0,60}slice\(0, ?12\)/.test(page) && /c\.mid/.test(page) && /esc\(rd\.condition\.proofLine\) \+ " The sale marked Median/.test(page) && /c\.inBand/.test(page), "the page lists the whole pool, marks the median and names the starting figure as that median");
 ok(/cardsOf\.slice\(0, tierOk \? MAX_PROOF_ROWS : 12\)/.test(fs.readFileSync("lib/sheetRead.js", "utf8")), "the read carries the whole tier pool when a tier is read, twelve cards otherwise");
 ok(!/<ol class="ladder"/.test(page) && /<ul class="ladder"/.test(page), "the ladder is not numbered past 4: Untiered is not a fifth rung");
-ok(/m\.startingFigure && rd\.condition\.bandCount != null/.test(page), "the proof sentence prints only when the engine gave the pool count (never 'n/a sales')");
+ok(/m\.startingFigure && rd\.condition\.proofLine/.test(page), "the proof sentence prints only when the engine gave the pool count (never 'n/a sales')");
 ok(SR.MAX_PROOF_ROWS >= 300, "the read carries the whole same tier pool (up to " + SR.MAX_PROOF_ROWS + " sales)");
 
 // ---------- D. my reports

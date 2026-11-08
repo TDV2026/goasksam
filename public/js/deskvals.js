@@ -164,7 +164,7 @@
     if (h.msg) banner += '<div class="banner">' + esc(h.msg) + "</div>";
     if (!rd) return '<div class="sheet" data-sheet="' + esc(id) + '">' + head + banner + '<div class="banner" data-reading="' + (h.retry ? 1 : 0) + '">' + esc(h.retry ? (h.retry.line || "") : s.vin ? "The read is not available for this car yet." : "No car was found in this submission. Type the VIN or the year, make and model at the top.") + "</div></div>";
     if (rd.fixture) banner += '<div class="banner fx">Stand-in read: these figures are fixtures until the engine&rsquo;s sheet read is switched on.</div>';
-    var out = head + banner + s1(h, rd, ed, dis) + s2(rd) + s3(rd) + s4(h, rd, s, ed, dis) + s5(h, ed, dis) + s6(h, rd, ev, ed, dis) + s7(h, id, v, s, ev, a);
+    var out = head + banner + s1(h, rd, ed, dis) + s2(rd) + s3(rd, dis) + s4(h, rd, s, ed, dis) + s5(h, ed, dis) + s6(h, rd, ev, ed, dis) + s7(h, id, v, s, ev, a);
     out += thisCar(v);
     out += '<div class="covfix">' + esc(rd.coverage.footer) + " " + esc(rd.coverage.methodology) + "</div>";
     return '<div class="sheet" data-sheet="' + esc(id) + '">' + out + "</div>";
@@ -190,23 +190,34 @@
     }).join("") + "</table>");
   }
   // 3 the market
-  function s3(rd) {
+  // THE QUESTION A SPLIT POOL ASKS: one chip row per question the engine asked, built from its own options (label, count, window); the picked one is on, one the VIN named says so. A click only names the option; the server asks the engine.
+  function asksHtml(m, dis) {
+    return (m.asks || []).map(function (q) {
+      return '<div class="askrow" style="margin:10px 0 4px"><p class="sub" style="margin:0 0 4px"><b>' + esc(q.prompt) + "</b>" + (q.note ? " " + esc(q.note) : "") + '</p><div class="tiers">' + q.options.map(function (o) {
+        return '<button type="button" class="tier' + (q.selected === o.value ? " on" : "") + '" data-pick-dim="' + esc(q.dimension) + '" data-pick-val="' + esc(o.value) + '"' + dis + ">" + esc(o.label) + '<span class="c">' + nf(o.count) + " sales" + (o.windowWords ? ", " + esc(o.windowWords) : "") + "</span></button>";
+      }).join("") + "</div>" + (q.fromVin ? '<p class="sub" style="margin:4px 0 0">Preselected from the VIN.</p>' : "") + "</div>";
+    }).join("");
+  }
+  function s3(rd, dis) {
     var m = rd.market, f = function (l, v, cls) { return '<div class="fig ' + (cls || "") + '"><div class="l">' + l + '</div><div class="v num">' + v + "</div></div>"; };
     // NO RANGE (Lane E, Nov 5 2026): when the sheet's read carries the engine's noRangeLine (WAITING ON SAM, so behind window.GAS_NORANGE) it leads the section as given; the comparables below always list every sale the read counted, newest first.
     var nrl = window.GAS_NORANGE === true && typeof m.noRangeLine === "string" && m.noRangeLine ? '<p class="sub" style="margin:0 0 8px">' + esc(m.noRangeLine) + "</p>" : "";
     var inner = nrl + '<div class="figs">' + f("Median", usd(m.median)) + f("Typical range", usd(m.p25) + " to " + usd(m.p75)) + f("Sales", nf(m.count)) + f("Newest sale", esc(day(m.newest))) + (m.startingFigure ? f("Starting figure", usd(m.startingFigure), "start") : "") + "</div>" +
-      '<p class="sub" style="margin-top:-2px">' + esc(m.window.stated) + (m.window.fallback ? " (the wider window)" : "") + ". " + esc(m.startingNote || "") + "</p>";
+      '<p class="sub" style="margin-top:-2px">' + esc(m.window.stated) + (m.window.fallback ? " (the wider window)" : "") + ". " + esc(m.startingNote || "") + "</p>"
+    inner += asksHtml(m, dis || "");
     if (m.wider) inner += '<p class="sub">Wider range: <span class="num">' + usd(m.wider.low) + " to " + usd(m.wider.high) + "</span> (" + nf(m.wider.count) + " sales).</p>";
-    (m.splits || []).forEach(function (sp) { inner += '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">By ' + esc(sp.dimension) + '</div><table class="vt"><tr><th>Band</th><th>Sales</th><th>Median</th><th>Range</th></tr>' + sp.options.map(function (o) { return "<tr><td>" + esc(o.label) + '</td><td class="m">' + nf(o.count) + '</td><td class="m">' + usd(o.median) + '</td><td class="m">' + usd(o.p25) + " to " + usd(o.p75) + "</td></tr>"; }).join("") + "</table>"; });
+    (m.splits || []).forEach(function (sp) { inner += '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">By ' + esc(sp.dimension) + '</div><table class="vt"><tr><th>Band</th><th>Sales</th><th>Median</th><th>Range</th><th>Counted</th></tr>' + sp.options.map(function (o) { return "<tr><td>" + esc(o.label) + '</td><td class="m">' + nf(o.count) + '</td><td class="m">' + usd(o.median) + '</td><td class="m">' + (o.low != null ? usd(o.low) + " to " + usd(o.high) : "") + '</td><td class="m">' + esc(o.windowWords || "") + "</td></tr>"; }).join("") + "</table>"; });
+    if (m.splitsNote) inner += '<p class="sub" style="margin:6px 0 0">' + esc(m.splitsNote) + "</p>";
     if ((m.live || []).length) inner += '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">Live now</div><table class="vt"><tr><th>Venue</th><th>Bid</th><th>Ends</th><th>Link</th></tr>' + m.live.map(function (l) { return "<tr><td>" + esc(l.venue) + '</td><td class="m">' + usd(l.bid) + '</td><td class="m">' + esc(String(l.endsAt || "").slice(0, 16).replace("T", " ")) + "</td><td>" + (l.url ? '<a href="' + esc(l.url) + '" target="_blank" rel="noopener">Open</a>' : "") + "</td></tr>"; }).join("") + "</table>";
-    inner += (m.startingFigure && rd.condition.bandCount != null ? '<p class="sub" style="margin:12px 0 0">The starting figure <span class="num">' + usd(m.startingFigure) + '</span> is the median of the <span class="num">' + ns(rd.condition.bandCount) + "</span> sales below, newest first. The sale marked Median, or the two marked Middle, sit at it.</p>" : "") + '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">Comparables, newest first</div><table class="vt"><tr><th>Date</th><th>Venue</th><th>Price</th><th>Miles</th><th>Tier</th><th></th><th>Link</th></tr>' + (m.comparables || []).map(function (c) { return '<tr><td class="m">' + esc(day(c.date)) + "</td><td>" + esc(c.venue) + '</td><td class="m">' + usd(c.price) + '</td><td class="m">' + nf(c.mileage) + '</td><td class="m">' + esc(c.tier == null ? "" : c.tier) + '</td><td class="m">' + (c.mid ? esc(c.mid === "median" ? "Median" : "Middle") : "") + "</td><td>" + (c.url ? '<a href="' + esc(c.url) + '" target="_blank" rel="noopener">Open</a>' : "") + "</td></tr>"; }).join("") + "</table>";
+    inner += (m.startingFigure && rd.condition.proofLine ? '<p class="sub" style="margin:12px 0 0">' + esc(rd.condition.proofLine) + " The sale marked Median, or the two marked Middle, sit at the starting figure.</p>" : "") + '<div class="slabel" style="font:600 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:14px 0 4px">' + (rd.condition.proofLine ? "Every sale of the same tier, newest first" : "Comparables, newest first") + '</div><table class="vt"><tr><th>Date</th><th>Venue</th><th>Price</th><th>Miles</th><th>Tier</th><th>Mileage band</th><th></th><th>Link</th></tr>' + (m.comparables || []).map(function (c) { return '<tr' + (c.inBand === false ? ' style="color:var(--faint)"' : "") + '><td class="m">' + esc(day(c.date)) + "</td><td>" + esc(c.venue) + '</td><td class="m">' + usd(c.price) + '</td><td class="m">' + nf(c.mileage) + '</td><td class="m">' + esc(c.tier == null ? "" : c.tier) + '</td><td class="m">' + (c.inBand == null ? "" : c.inBand ? "In band" : "Outside") + '</td><td class="m">' + (c.mid ? esc(c.mid === "median" ? "Median" : "Middle") : "") + "</td><td>" + (c.url ? '<a href="' + esc(c.url) + '" target="_blank" rel="noopener">Open</a>' : "") + "</td></tr>"; }).join("") + "</table>";
     return sec(3, "The market", "Median and quartiles of the sales, from the engine.", inner);
   }
   // 4 condition, with the submission's photos and documents
   function s4(h, rd, s, ed, dis) {
     var cd = rd.condition, sub = s.submission, st = s.state, sel = st.photosSelected || [];
     var inner = '<div class="tiers">' + cd.tiers.map(function (t) { return '<button type="button" class="tier' + (cd.selected === t.tier ? " on" : "") + '" data-tier="' + t.tier + '"' + dis + '><span class="n">TIER ' + t.tier + '</span>' + esc(t.label) + '<span class="c">' + ns(t.count) + "</span></button>"; }).join("") + "</div>";
-    if (cd.selected) inner += '<p class="sub" style="margin:0 0 6px"><span class="num">' + ns(cd.sameTierCount) + "</span> in this condition. " + esc(cd.tooFewLine || "The comparables above are the same tier.") + "</p>";
+    if (cd.state === "needs_choice") inner += asksHtml(rd.market, dis) + '<p class="sub" style="margin:6px 0 6px">' + esc(rd.market.startingNote || "") + "</p>";
+    else if (cd.selected) inner += '<p class="sub" style="margin:0 0 6px"><span class="num">' + ns(cd.sameTierCount) + "</span> in this condition. " + esc(cd.tooFewLine || cd.proofLine || "The comparables above are the same tier.") + "</p>";
     inner += '<p class="sub" style="margin:0">Untiered: <span class="num">' + ns(cd.untiered) + "</span> stay in the wider pool.</p>";
     // The ladder, every word from the one source (lib/conditionTier.js TIER_LADDER, sent with the sheet as h.v.ladder). The page prints it.
     var lad = h.v.ladder;
@@ -261,7 +272,7 @@
     var fin = s.final, inner = "";
     if (!fin) {
       var miss = ev && ev.missing.length ? '<ul class="missing">' + ev.missing.map(function (m) { return "<li>" + esc(m.text) + "</li>"; }).join("") + "</ul>" : "";
-      inner = '<button type="button" class="vbtn pri" data-finalise="1"' + (a.canFinalise ? "" : " disabled") + ">Finalise</button>" + (h.fin ? '<p class="refuse">' + esc(h.fin) + "</p>" : "") + miss;
+      inner = '<button type="button" class="vbtn pri" data-finalise="1"' + (a.canFinalise ? "" : " disabled") + ">Finalise</button> " + (a.canEdit ? '<button type="button" class="vbtn" data-pdf="draft">Preview the report (draft)</button><p class="sub" style="margin:6px 0 0">A draft PDF marked DRAFT. It has no report number and is not counted as an export.</p>' : "") + (h.fin ? '<p class="refuse">' + esc(h.fin) + "</p>" : "") + miss;
       return sec(7, "Finalise", "Locks the sheet, stamps it, builds the report.", inner);
     }
     inner = '<p class="done">Finalised on ' + esc(day(fin.finalisedAt)) + ". Report <b>" + esc(fin.reportNumber) + "</b>.</p>" +
@@ -288,12 +299,13 @@
     var pk = t.closest("[data-pickup]"); if (pk) { openSheet(pk.getAttribute("data-pickup"), true); return; }
     if (t.closest("[data-confirm]")) { save(id, { confirmed: true }, true); return; }
     var mkb = t.closest("[data-mark]"); if (mkb) { var mv = mkb.getAttribute("data-mark"), cm = (h.v.sheet.state.mark) || {}; save(id, { mark: mv ? { mark: mv, reason: cm.reason || "" } : null }, true); return; }
+    var pk = t.closest("[data-pick-dim]"); if (pk) { var qs = (h.v.read.market.asks || []), dm = pk.getAttribute("data-pick-dim"), ix = qs.findIndex(function (q) { return q.dimension === dm; }); save(id, { picks: qs.slice(0, ix < 0 ? 0 : ix).map(function (q) { return { dimension: q.dimension, value: q.selected }; }).concat([{ dimension: dm, value: pk.getAttribute("data-pick-val") }]) }, true); return; }
     var tr = t.closest("[data-tier]"); if (tr) { save(id, { tier: Number(tr.getAttribute("data-tier")) }, true); return; }
     var hero = t.closest("[data-hero]"); if (hero) { save(id, { heroId: hero.getAttribute("data-hero") }, true); return; }
     var ck = t.closest("[data-chk]"); if (ck) { var k = ck.getAttribute("data-chk"), cur = h.draft.checklist[k] || {}; cur.state = ck.getAttribute("data-state"); h.draft.checklist[k] = cur; save(id, { checklist: h.draft.checklist }, true); return; }
     var md = t.closest("[data-dmode]"); if (md) { h.draft.decision.mode = md.getAttribute("data-dmode"); save(id, draftPatch(h), true); return; }
     if (t.closest("[data-finalise]")) { h.fin = ""; flush(id).then(function () { return api("sheet_finalise", { id: id, baseVersion: (S.sheets[id].v.sheet.version || 0) }); }).then(function (r) { if (r.ok) { h.v = r; h.fin = ""; } else h.fin = r.why || "The sheet was not finalised."; renderAll(); loadLists(); }); return; }
-    if (t.closest("[data-pdf]")) { api("sheet_pdf", { id: id }).then(function (r) { if (!r.ok) { h.msg = r.why || "The PDF could not be made."; renderAll(); return; } var bin = atob(r.pdf_b64), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([u], { type: "application/pdf" })); a.download = r.filename; document.body.appendChild(a); a.click(); a.remove(); }); return; }
+    if (t.closest("[data-pdf]")) { api("sheet_pdf", t.closest("[data-pdf]").getAttribute("data-pdf") === "draft" ? { id: id, draft: true } : { id: id }).then(function (r) { if (!r.ok) { h.msg = r.why || "The PDF could not be made."; renderAll(); return; } var bin = atob(r.pdf_b64), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([u], { type: "application/pdf" })); a.download = r.filename; document.body.appendChild(a); a.click(); a.remove(); }); return; }
     if (t.closest("[data-correct]")) { api("sheet_correct", { id: id }).then(function (r) { if (r.ok) { loadLists(); openSheet(r.id); } else flash(r.why || "Could not start a correction."); }); return; }
     if (t.closest("[data-send]")) { h.sendMsg = ""; api("sheet_send", { id: id, to: h.send.to, message: h.send.message }).then(function (r) { if (r.ok) { h.v = r; h.sendMsg = ""; } else h.sendMsg = r.why || "The send did not go through."; renderAll(); loadLists(); }); return; }
   });

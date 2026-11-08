@@ -18,13 +18,13 @@ const MUT = [
   ["the PDF does not say the starting figure is the median", "lib/desk/reportPdf.js", s => s.replace("is the median of the ${num(cd.bandCount)} sales below", "is a figure")],
   ["the read stops marking the median", "lib/sheetRead.js", s => s.replace('(lo === hi ? "median" : "middle")', "null")],
   ["the read cuts the pool to twelve", "lib/sheetRead.js", s => s.replace("cardsOf.slice(0, tierOk ? MAX_PROOF_ROWS : 12)", "cardsOf.slice(0, 12)")],
-  ["the page cuts the median line", "public/js/deskvals.js", s => s.replace("is the median of the", "is a figure from the")],
+  ["the page cuts the median line", "public/js/deskvals.js", s => s.replace("esc(rd.condition.proofLine) + \" The sale marked Median", "esc(\"\") + \" The sale marked Median")],
   ["the org settings do not read the org's logo and colour", "lib/desk/sheetActions.js", s => s.replace("desk_org_settings?org_id=", "desk_org_settingsX?org_id=")],
   ["any text is a brand colour", "lib/desk/orgSettings.js", s => s.replace("!/^#[0-9a-fA-F]{6}$/.test(v.trim())", "false")],
   ["the queue row loses its finalised date", "lib/desk/sheetStore.js", s => s.replace("finalisedOn: s.final && s.final.finalisedAt", "finalisedOnX: s.final && s.final.finalisedAt")],
   ["My reports is a flat list again", "public/js/deskvals.js", s => s.replace("S.lists.mine) +", "S.lists.mine) .replace(/Drafts/g, \"\") +").replace("reportsHtml(S.lists.mine)", "listHtml(S.lists.mine)")],
   ["the ladder is numbered again, Untiered becomes a fifth", "public/js/deskvals.js", s => s.replace('<ul class="ladder"', '<ol class="ladder"')],
-  ["the proof sentence prints with no pool count", "public/js/deskvals.js", s => s.replace("m.startingFigure && rd.condition.bandCount != null", "m.startingFigure")],
+  ["the proof sentence prints with no pool count", "public/js/deskvals.js", s => s.replace("m.startingFigure && rd.condition.proofLine", "m.startingFigure")],
   ["the preview reads any text", "lib/preview/deskPreview.js", s => s.replace("sheet_new\" && !FIXTURE_VINS", "sheet_new\" && false && !FIXTURE_VINS")]
 ];
 function copyTree(dst) {
