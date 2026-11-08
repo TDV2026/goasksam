@@ -49,7 +49,7 @@ for (const w of [1440, 390]) {
   ok(figsWrong(await figBlocks(p), obj.read).length === 0, `${w}: 4 after the tier click the blocks are the new read's, the starting figure included`);
   ok(obj.read.market.comparables.every(c => c.tier === 2) && obj.read.market.comparables.every(c => t[3].includes(usd(c.price))), `${w}: 4 the comparables are the same tier pool, as sent`);
   await p.click('[data-tier="4"]'); await wait(900); obj = await v(); S = await secs(p); Object.assign(t, Object.fromEntries(S.map(s => [s.n, s.t])));
-  ok(obj.read.condition.tooFew && obj.read.market.startingFigure == null && /sales of this body.* in tier 4, shown on the full set\./.test(t[4]) && !/Starting figure\s*\$/.test(t[3]) && /Range from \d+ sales: \$[\d,]+ to \$[\d,]+\. Median \$[\d,]+\./.test(t[3]), `${w}: 4 too few sales in a tier: no starting figure, the count and the range are stated`);
+  ok(obj.read.condition.tooFew && obj.read.market.startingFigure == null && /sales of this body.* in tier 4, shown on the full set\./.test(t[4]) && !/Starting figure\s*\$/.test(t[3]) && /Range from \d+ sales: \$[\d,]+ to \$[\d,]+, median \$[\d,]+\./.test(t[3]), `${w}: 4 too few sales in a tier: no starting figure, the count and the range are stated`);
   await p.click('[data-tier="2"]'); await wait(800);
   // 5 the checklist
   ok(["Title status", "Service records", "Ownership history", "Modifications", "Accident or repair history", "Provenance"].every(l => t[5].includes(l)) && (t[5].match(/Not supplied/g) || []).length === 6 && !/\$|\d/.test(t[5].replace(/Mark each\. A free line is optional\. No numbers here\./, "")), `${w}: 5 the six checklist items, each Seen / Not seen / Not supplied, and no figure in the section`);

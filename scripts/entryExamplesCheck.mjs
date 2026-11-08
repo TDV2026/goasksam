@@ -10,6 +10,7 @@ if (args.includes("--mutants")) {
   const EE = "lib/live/entryExamples.js", RW = "lib/reasonWords.js";
   const muts = [
     [EE, "genuinePhoto(c.image) && isHttps(c.image) && ", "", "(1) a sale with no real photo is shown"],
+    [EE, "if (!(await choosePhoto(photoCandidates({ photo_url: c.image }), d.head))) bad.push(c);", "", "(1) a sale whose photo is 3.1 MB or gone is shown"],
     [EE, "&& isHttps(c.url) && /\\S/.test(String(c.title", "&& /\\S/.test(String(c.title", "(1) a sale with no receipt link is shown"],
     [EE, "num(c.mi) > 0 && !c.milesHidden && ", "", "(1) a sale with no mileage is shown"],
     [EE, "const three = [lo, mid, hi], ps", "const three = ok.slice(0, 3), ps", "(1) three sales that do not span the mileage"],
@@ -59,7 +60,7 @@ const pool = (len, o = {}) => Array.from({ length: len }, (_, i) => card(20000 +
 function world(poolsByText, placesByText, now = D1) {
   EE.resetRetryGuard();
   const w = { store: new Map(), clock: now, asked: [], fail: false };
-  w.d = { now: () => w.clock,
+  w.d = { now: () => w.clock, head: async u => (w.heads && u in w.heads ? w.heads[u] : { status: 200, bytes: 1000, type: "image/jpeg" }),
     select: async (e, q) => { const m = /^app_config\?key=eq\.([a-z_]+)/.exec(q); if (m) { const v = w.store.get(m[1]); return v ? [{ value: v }] : []; } return []; },
     write: async (e, row) => { w.store.set(row.key, row.value); },
     answer: async (e, text) => { w.asked.push(text); if (w.fail) throw new Error("down"); const p = poolsByText[text]; return p ? { tier: "result", cards: p } : null; },
@@ -75,7 +76,7 @@ const ALL = c => Object.fromEntries(EE.MC_CANDIDATES.map(t => [t, c]));
   ok("(1) the fewest miles sold for more than the most miles (the story)", s[0].price > s[2].price);
   ok("(1) each sale: title, https photo, price and its label, miles and its label, platform, date and its label, receipt url", s.every(x => /\S/.test(x.title) && /^https:\/\/img\.test\//.test(x.photo) && x.price > 0 && /^Sold for \$[\d,]+$/.test(x.priceLabel) && x.miles > 0 && /^[\d,]+ miles$/.test(x.milesLabel) && x.platform === "Bring a Trailer" && /^\d{4}-\d{2}-\d{2}$/.test(x.date) && /^Sold [A-Z][a-z]+ \d{4}$/.test(x.dateLine) && /^https:\/\/bringatrailer\.com\//.test(x.url)), JSON.stringify(s[0]));
   ok("(1) the sold price is the sale's own", s[0].priceLabel === "Sold for $" + s[0].price.toLocaleString("en-US") && s[0].price === 52000);
-  ok("(1) the engine's sentence: the count of the pool, the prices and the miles", /^14 sales of this model since [A-Z][a-z]+ \d{4}\. These three sold for \$[\d,]+ to \$[\d,]+, at [\d,]+ to [\d,]+ miles\.$/.test(got.line) && got.poolN === 14, got.line);
+  ok("(1) the engine's sentence: the count of the pool, the prices and the miles", /^Three of the 14 sales of this model since [A-Z][a-z]+ \d{4} sold for \$[\d,]+ to \$[\d,]+, at [\d,]+ to [\d,]+ miles\.$/.test(got.line) && got.poolN === 14, got.line);
   // bad sales are skipped
   const bad = pool(12); bad[0].image = "https://img.test/placeholder.jpg"; bad[11].url = "http://x.test/a"; bad[5].mi = 0;
   const W2 = world(ALL(bad)), g2 = await EE.marketCheckExampleSales(env, CREW, W2.d);
@@ -100,6 +101,13 @@ const ALL = c => Object.fromEntries(EE.MC_CANDIDATES.map(t => [t, c]));
   ok("(1) the three extremes tell the story but the pool does not (price rises with mileage): null", EE.mileageCorr(wrongTrend[EE.MC_CANDIDATES[0]]) > -0.3 && (await EE.marketCheckExampleSales(env, CREW, world(wrongTrend).d)) === null, String(EE.mileageCorr(wrongTrend[EE.MC_CANDIDATES[0]])));
   const close = {}; EE.MC_CANDIDATES.forEach(t => { close[t] = Array.from({ length: 12 }, (_, i) => card(50000 + i * 1000, 52000 - i * 2600)); });
   ok("(1) mileage barely apart: null", (await EE.marketCheckExampleSales(env, CREW, world(close).d)) === null);
+}
+{ // (1) the photo rule: a sale whose photo is 3.1 MB or gone is set aside and the three are chosen again from the rest
+  const p = pool(14), W = world(ALL(p)); W.heads = { [p[0].image]: { status: 200, bytes: 3.1 * 1024 * 1024, type: "image/jpeg" }, [p[13].image]: { status: 404, bytes: null, type: "" } };
+  const got = await EE.marketCheckExampleSales(env, CREW, W.d);
+  ok("(1) the fewest-miles sale has a 3.1 MB photo and the most-miles sale a 404: neither is shown, the next in line are", got && got.sales.length === 3 && got.sales.every(s => s.photo !== p[0].image && s.photo !== p[13].image) && got.sales[0].miles > 20000 && got.sales[2].miles < 20000 + 13 * 9000, JSON.stringify(got && got.sales.map(s => s.miles)));
+  const pp = pool(14), W2 = world(ALL(pp)); W2.heads = Object.fromEntries(pp.map(c => [c.image, { status: 200, bytes: 3.1 * 1024 * 1024, type: "image/jpeg" }]));
+  ok("(1) every photo too big: no example (null), nothing invented", (await EE.marketCheckExampleSales(env, CREW, W2.d)) === null);
 }
 { // (3) the daily pick
   const W = world(ALL(pool(14))), a = await EE.marketCheckExampleSales(env, CREW, W.d), asked = W.asked.length, b = await EE.marketCheckExampleSales(env, CREW, W.d);
