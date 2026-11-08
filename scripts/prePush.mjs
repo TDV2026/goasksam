@@ -924,6 +924,13 @@ try {
 } catch (e) {
   record("exampleFallbackCheck (scripts/exampleFallbackCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// engineCardShapeCheck (Lane B, Nov 8 2026): the three crew fields in Lane E's refine8 shapes (Find's engine card with its bid badge, platform tag, pills and SAM block lines; the Task row with Sam's read back sentence and the live count; the watching row), live and ended (card.sold).
+try {
+  const out = execSync("node scripts/engineCardShapeCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("engineCardShapeCheck (scripts/engineCardShapeCheck.mjs)", "PASS", (out.match(/engineCardShapeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("engineCardShapeCheck (scripts/engineCardShapeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });
@@ -2182,10 +2189,22 @@ try {
   record("homepage feature preview (CREW ONLY, NOT LIVE): a stored sold or listed pick prints through the crew route, anything short of a complete live pick is hidden, a failed image hides the section, the route is a bare 404 without the cookie (scripts/featuredWireCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /FAIL/.test(l)).slice(0, 4).join(" | ") || String(e.message).slice(0, 200));
 }
 try {
-  const out = execSync("node scripts/previewFallbackCheck.mjs", { encoding: "utf8", timeout: 120000 });
-  record("Previews never empty: Find examples and the two Tasks cards print the engine's live car or fallback (scripts/previewFallbackCheck.mjs)", "PASS", (out.match(/previewFallbackCheck: .*/) || [""])[0]);
+  const out = execSync("node scripts/crewLocalRun.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Crew previews on a local run with Lane B's real readers: three Find cards and two Task cards, real components, lined up (scripts/crewLocalRun.mjs)", "PASS", (out.match(/crewLocalRun: .*/) || [""])[0]);
 } catch (e) {
-  record("Previews never empty: Find examples and the two Tasks cards print the engine's live car or fallback (scripts/previewFallbackCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+  record("Crew previews on a local run with Lane B's real readers: three Find cards and two Task cards, real components, lined up (scripts/crewLocalRun.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/crewWiringCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Crew previews read the engine's fallbacks: live first, fallback when null, three Find cards and two Task cards (scripts/crewWiringCheck.mjs)", "PASS", (out.match(/crewWiringCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Crew previews read the engine's fallbacks: live first, fallback when null, three Find cards and two Task cards (scripts/crewWiringCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/previewRealCardCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Preview cards are the real cards: Find's card and the dashboard's Task card, same components, aligned, with the engine's fallback (scripts/previewRealCardCheck.mjs)", "PASS", (out.match(/previewRealCardCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Preview cards are the real cards: Find's card and the dashboard's Task card, same components, aligned, with the engine's fallback (scripts/previewRealCardCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
   const out = execSync("node scripts/homeFindPreviewCheck.mjs", { encoding: "utf8", timeout: 240000 });

@@ -24,6 +24,7 @@ const REGISTRY = [
   ["api/sellerDecision.js", /const obWithin = p =>/, N, "whole-path clock over many pieces; the engine race below carries the signal"],
   ["api/sellerDecision.js", /await Promise\.race\(\[$/, A, "Market Check deadline: aborts except on the cold-store path, which keeps computing on purpose"],
   ["lib/_routeLimit.js", /Promise\.race\(\[check\(/, N, "a rate-limit check"],
+  ["lib/live/findExamples.js", /const withClock = /, P, "a crew card build: the card read finishes behind the clock and fills the market cache; the example is dropped for this response"],
   ["lib/live/buyExample.js", /Promise\.race\(\[p, new Promise/, P, "example builder: the read finishes and fills the cache"],
   ["lib/live/deskExample.js", /Promise\.race\(\[p, new Promise/, P, "example builder: the read finishes and fills the cache"],
   ["lib/live/marketCheckExample.js", /Promise\.race\(\[p, new Promise/, P, "example builder: the read finishes and fills the cache"],

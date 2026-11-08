@@ -27,3 +27,12 @@ export const lookingFixture = () => ({ rows: [
 
 // the WATCHING field as the engine will send it (NEEDED FROM LANE B): one live watched car, its bid line and time line as sent, a status only when the engine says so. A stand-in for the checks and the screenshots, never served.
 export const watchingFixture = () => ({ car: { title: "1987 Porsche 911 Carrera", platform: "Sample Platform", url: "https://example.test/live/watch-1", photo: pic("Sample photo, watched car", "#5a4636", "#b8a48e"), live: true, endsAt: at(30), priceLabel: "Current bid $48,500", timeLine: "1 day left" }, status: "Auction ending soon", checkedAt: at(-0.5) });
+
+// THE REAL CARD FIXTURES (Lane E, Nov 8 2026, checks and screenshots only): the engine objects the two Tasks cards are fed. An engine Task row and watching row as the dashboard reads them, plus an engine Find card (the same fixture Find's examples use).
+import { exampleCar, fallbackFixture } from "./findExamplesFixture.mjs";
+const taskRow = (over = {}) => Object.assign({ id: "77777777-7777-4777-8777-777777777777", kind: "hunt", state: "running", summary: "Sam is looking for a black manual Porsche 911 Carrera under $70,000.", overview: { live: "1 live car meets the whole Task.", liveCount: 1, cars: "1 car" } }, over);
+const watchRow = (over = {}) => Object.assign({ ref: "w-demo-1", kind: "watch", what: "This exact car: 1991 Porsche 911 Carrera 2", detail: "Watching this car.", ends_at: new Date(NOW + 20 * HOUR).toISOString() }, over);
+export const tasksDemoFixture = () => ({ task: taskRow(), card: exampleCar(0).card });
+export const watchingDemoFixture = () => ({ row: watchRow(), card: exampleCar(1).card });
+export const tasksFallbackFixture = () => ({ fallback: { label: "Recent example", task: taskRow({ kind: "research", state: "done", summary: "Sam looked for a white manual Porsche 911.", overview: { live: "This auction has ended.", liveCount: 0 } }), card: fallbackFixture()[0].card } });
+export const watchingFallbackFixture = () => ({ fallback: { label: "Recent example", row: watchRow({ what: "This exact car: 2004 Porsche 911 Turbo", detail: "This auction has ended.", ends_at: null }), card: fallbackFixture()[2].card } });
