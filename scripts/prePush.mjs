@@ -2538,6 +2538,12 @@ try {
   record("Desk dry run 2: photos addable any time with a cover and a strip, every click lights under 100 ms with a working state, one press opens a sheet, the range meter follows the picked body and tier, the analyst marker, the reserve held against the meter's range, the question for the seller, the engine's tier lines (scripts/deskDryrun2Check.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/deskCaseCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("Desk v3 stage 1: the case record (one source per field, asked once, mileage in one place, photos append only, needs review and exclusions carry reasons) (scripts/deskCaseCheck.mjs)", "PASS", (out.match(/deskCaseCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 1: the case record (scripts/deskCaseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/deskTypedSentenceCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("Desk typed sentences: no Desk file types an engine reason line, reads optionsNote/windowNote, or joins a count to a plural by hand (scripts/deskTypedSentenceCheck.mjs)", "PASS", (out.match(/deskTypedSentenceCheck: .*/) || [""])[0]);
 } catch (e) {
