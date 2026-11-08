@@ -76,6 +76,9 @@
     { "source": "/onebox-preview", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=onebox-preview" },
     { "source": "/preview/home", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-home" },
     { "source": "/preview/find", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-find" },
+    { "source": "/preview/market-check", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-market-check" },
+    { "source": "/preview/market-check/onebox.js", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-onebox-js" },
+    { "source": "/preview/sell", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-sell" },
     { "source": "/preview/tasks", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-tasks" },
     { "source": "/preview/tasks/mine", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-tasks-mine" },
     { "source": "/preview/tasks/api", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-tasks-api" },
@@ -203,7 +206,7 @@
       "includeFiles": "data/whatsNew.json"
     },
     "api/crewPage.js": {
-      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**}"
+      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,public/onebox.html,public/styles.css,public/js/onebox.js}"
     },
     "api/publicConfig.js": {
       "includeFiles": "public/onebox.html"

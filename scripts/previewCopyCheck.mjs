@@ -10,7 +10,7 @@ const { copy } = await import("../lib/copy.js");
 const { rulesOf } = await import("../lib/preview/previewPages.js");
 const { COPY: TCOPY, freeLines: tFree, limitWord: tWord } = await import("../lib/preview/tasksPreview.js"), { FREE_TASK_LIMIT: TMAX } = await import("../lib/tasks/limit.js");
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
-const names = Object.keys(PAGES).filter(k => k.startsWith("preview-"));
+const names = Object.keys(PAGES).filter(k => k.startsWith("preview-") && !PAGES[k].contentType);   // a script served beside a page (preview-onebox-js) is not a page of copy
 ok(names.length >= 2, `the crew previews are found in api/crewPage.js (${names.join(", ")})`);
 
 const decode = t => t.replace(/&#(\d+);/g, (m, n) => String.fromCharCode(Number(n))).replace(/&middot;/g, "·").replace(/&rarr;/g, "→").replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
@@ -20,7 +20,7 @@ const attrsOf = html => [...bodyOf(html).matchAll(/\b(?:placeholder|aria-label|t
 const cssOf = html => [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m => m[1]).filter(c => !/@font-face/.test(c) || /--brand/.test(c)).join("\n");
 // the words that are approved elsewhere and so may carry what the strict rules would otherwise flag (digits, "bid"): the engine's own example searches and the approved rules
 const rules = rulesOf();
-const APPROVED = [...PLACEHOLDERS.preview.examples, ...PLACEHOLDERS.previewFind.examples, ...PLACEHOLDERS.home.examples, ...PLACEHOLDERS.find.examples, rules.lead, ...rules.rules.flatMap(r => [r.h, r.b]), copy("home.START_TITLE"), copy("find.START_SUB"), copy("find.START_TITLE"),
+const APPROVED = [...PLACEHOLDERS.preview.examples, ...PLACEHOLDERS.previewFind.examples, ...PLACEHOLDERS.previewMc.examples, ...PLACEHOLDERS.previewSell.examples, PLACEHOLDERS.previewMc.text, PLACEHOLDERS.previewSell.text,   /* Sam's approved entry chips and placeholders for Market Check and Sell (brief, Nov 8 2026) */ ...PLACEHOLDERS.home.examples, ...PLACEHOLDERS.find.examples, rules.lead, ...rules.rules.flatMap(r => [r.h, r.b]), copy("home.START_TITLE"), copy("find.START_SUB"), copy("find.START_TITLE"),
   // Sam's Tasks copy (the Tasks previews): his own questions and lines, and the two free lines the limit builds
   ...TCOPY.faq(TMAX).flat(), ...TCOPY.faq(10).flat(), tFree(TMAX).line, tFree(TMAX).sub, tFree(10).line, tFree(10).sub, TCOPY.heading, TCOPY.support, TCOPY.notHead, ...TCOPY.not, TCOPY.placeholder, TCOPY.eyebrow];
 const stripApproved = t => APPROVED.reduce((a, w) => a.split(w).join(" "), t);

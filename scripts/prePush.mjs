@@ -2256,6 +2256,18 @@ try {
   record("Crew previews render their sections (offline self-test; the live run is node scripts/livePreviewCheck.mjs --live with GAS_CREW_COOKIE) (scripts/livePreviewCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/mcSellShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Market Check and Sell on the shared shell, entry and results: one Find header, the Find rail per product, one footer, no old navigation, nothing inside the results changed, the approved entry copy (scripts/mcSellShellCheck.mjs)", "PASS", (out.match(/mcSellShellCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Market Check and Sell on the shared shell, entry and results: one Find header, the Find rail per product, one footer, no old navigation, nothing inside the results changed, the approved entry copy (scripts/mcSellShellCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/mcSellResultsCheck.mjs", { encoding: "utf8", timeout: 580000 });
+  record("Market Check and Sell results inside the shell are the live results: every section, figure, chart, table, link and style the same at 1440, 1024 and 390, from recorded engine answers (scripts/mcSellResultsCheck.mjs)", "PASS", (out.match(/mcSellResultsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Market Check and Sell results inside the shell are the live results: every section, figure, chart, table, link and style the same at 1440, 1024 and 390, from recorded engine answers (scripts/mcSellResultsCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/crewWiringCheck.mjs", { encoding: "utf8", timeout: 120000 });
   record("Crew previews read the engine's fallbacks: live first, fallback when null, three Find cards and two Task cards (scripts/crewWiringCheck.mjs)", "PASS", (out.match(/crewWiringCheck: .*/) || [""])[0]);
 } catch (e) {
