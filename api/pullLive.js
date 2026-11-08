@@ -90,7 +90,13 @@ async function handler(req, res) {
       const slot = pullFor(new Date());
       // A quarter hour with no pull (the evening, after the last ending-soonest pull at 14:30 Pacific, until the 22:15 full walk) still marks over any lot whose end time passed more than an hour ago: ZERO OCD, database only.
       // A lot wrongly marked (an auction extended past an hour) is made live again by the next pull that lists it (the upsert sets status live).
-      if (!slot.mode) { const endedPast = await markEndedPast(env, new Date().toISOString(), 60 * 60e3).catch(e => ({ error: String(e && e.message).slice(0, 120) })); return res.status(200).json({ ok: true, slot, nothing: true, ocdRequests: 0, endedPast }); }
+      if (!slot.mode) {
+        const endedPast = await markEndedPast(env, new Date().toISOString(), 60 * 60e3).catch(e => ({ error: String(e && e.message).slice(0, 120) }));
+        // THE HOURLY REVALIDATION (Nov 8 2026): the first quarter of every hour, day and night, the Find examples and the watching card are confirmed live by keyed reads and an ended one is replaced. Zero OCD (database only), the existing every-15-minute cron.
+        let examplesRefresh = "skipped";
+        if (new Date().getUTCMinutes() < 15) examplesRefresh = await refreshExamplesWord(env);
+        return res.status(200).json({ ok: true, slot, nothing: true, ocdRequests: 0, endedPast, examplesRefresh });
+      }
       mode = slot.mode === "full" ? "" : slot.mode;
       if (starter.by === "scheduled") { starter.detail = `${slot.mode === "full" ? "full walk" : "ending soonest"} ${slot.hhmm} ${slot.zone}`; configureOcdUsage({ job: "pull_live", startedBy: starter.by, startedDetail: starter.detail }); }
     }
