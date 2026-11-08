@@ -885,6 +885,13 @@ try {
 } catch (e) {
   record("warmResolveCheck (scripts/warmResolveCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// liveExamplesCheck (Lane B, Nov 7 2026): the Find examples (up to three live cars, different makes, soldBefore only on a VIN-confirmed completed sale, stable while live), the Tasks watching card (a different make from the Tasks example, status only within 24 hours, no reminder claim) and tasksDemo.shortRequest; crew gated; mutants in scripts/liveExamplesCheck.mjs --mutants.
+try {
+  const out = execSync("node scripts/liveExamplesCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("liveExamplesCheck (scripts/liveExamplesCheck.mjs)", "PASS", (out.match(/liveExamplesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("liveExamplesCheck (scripts/liveExamplesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });

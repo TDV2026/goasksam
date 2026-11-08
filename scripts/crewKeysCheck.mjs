@@ -48,7 +48,7 @@ globalThis.fetch = async (u, init = {}) => {
 };
 const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
 const PL = await imp("api/pullLive.js"), FH = await imp("lib/live/featuredHistory.js"), TD = await imp("lib/live/tasksDemo.js");
-const writes = () => calls.filter(c => c.method !== "GET").length;
+const writes = () => calls.filter(c => c.method !== "GET" && !/spec_market_cache/.test(c.url)).length;   // the crew keys and everything else: none. The Task matcher the demo funnel runs may fill the market cache for the cars it matches (spec_market_cache, a cache, written in the background); that is the matcher's own, existing, and is counted apart below
 // 1 nothing held
 {
   STORE = {}; calls.length = 0; const r = await PL.crewKeysReport(env);
@@ -71,7 +71,7 @@ const writes = () => calls.filter(c => c.method !== "GET").length;
 // 3 the funnel: counts only, nothing written, the stored pick hidden so the selection really runs
 {
   calls.length = 0; const r = await PL.crewKeysReport(env, { funnel: true }), f = r.funnel;
-  ok("the funnel run writes and deletes nothing, even with a pick stored", writes() === 0, `${writes()} writes: ${calls.filter(c => c.method !== "GET").map(c => c.method + " " + c.url.slice(-40)).join(" | ")}`);
+  ok("the funnel run writes and deletes nothing in the crew keys or anywhere but the market cache, even with a pick stored", writes() === 0, `${writes()} writes: ${calls.filter(c => c.method !== "GET").map(c => c.method + " " + c.url.slice(-40)).join(" | ")}`);
   ok("the demo funnel counts the live pool and the cars with a VIN (4 live, 3 with a VIN)", f && f.demo && f.demo.funnel && f.demo.funnel.live === 4 && f.demo.funnel.withVin === 3, JSON.stringify(f && f.demo));
   ok("the history funnel counts the same pool", f && f.featured && f.featured.funnel ? f.featured.funnel.live === 4 && f.featured.funnel.withVin === 3 : f && f.featured && ["none_eligible", "selected", "screen_unreadable", "live_unreadable"].includes(f.featured.why), JSON.stringify(f && f.featured));
   ok("the funnel run ran the selection (it did not stop at kept)", f && f.demo.why !== "kept" && f.featured.why !== "kept", `${f && f.demo.why} / ${f && f.featured.why}`);

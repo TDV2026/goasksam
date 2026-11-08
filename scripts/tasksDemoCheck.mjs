@@ -39,6 +39,10 @@ if (args.includes("--mutants")) {
     [L, 'if (process.env.TASKS_DEMO === "0" || !isCrewRequest(reqOrCookie)) return null;', 'if (process.env.TASKS_DEMO === "0") return null;', "(6) no cookie: no field"],
     [L, 'if (process.env.TASKS_DEMO === "0" || !isCrewRequest(reqOrCookie)) return null;', 'if (!isCrewRequest(reqOrCookie)) return null;', "(6) the kill switch"],
     [L, 'export const STORE_KEY = "crew_tasks_demo";', 'export const STORE_KEY = "tasks_demo";', "(6) the stored key is a crew key"],
+    [L, 'const field = { request: req.text, shortRequest, car,', 'const field = { request: req.text, car,', "(4) the Tasks example carries no shortRequest"],
+    ["api/home.js", "\n", "\n// findExamples leaked into a public route\n", "(7) a public route names the Find examples"],
+    ["api/home.js", "\n", "\n// watchingDemo leaked into a public route\n", "(7) a public route names the watching card"],
+    ["api/home.js", "\n", "\n// crew_find_examples leaked into a public route\n", "(7) a public route names the Find examples key"],
     ["api/home.js", "\n", "\n// tasksDemo leaked into a public route\n", "(7) only the module and the cron refresh name"]
   ];
   let survivors = 0;
@@ -184,6 +188,7 @@ const honest = (f, r) => { const fx = facts(r); return String(r.make).toLowerCas
     { const Wn = world([car()], { apps: { ZFFEW59A670150000: [rec({ mileage: null })] } }), rn = await D.refreshTasksDemo(env, Wn.d), pn = rn.stored && rn.stored.field && rn.stored.field.previous; ok("(4) an earlier record that states no mileage has no mileage line (nothing invented)", !pn || (pn.mileageLine === undefined && pn.mileage == null), JSON.stringify(pn && pn.mileageLine)); }
     { const RW2 = await imp("lib/reasonWords.js"), src = fs.readFileSync("lib/live/tasksDemo.js", "utf8"); ok("(4) both mileage lines are in the reason table and the field is made from the table, not written inline", RW2.reasonLine("tasks.demo_miles", { miles: 4783 }) === "4,783 miles" && RW2.reasonLine("tasks.demo_prior_miles", { miles: 3100 }) === "3,100 miles at that sale" && /reasonLine\("tasks\.demo_miles"/.test(src) && /reasonLine\("tasks\.demo_prior_miles"/.test(src)); }
     const RW = await imp("lib/reasonWords.js"); ok("(4) both number lines are in the reason table, and the field is made from the table, not written inline", RW.reasonLine("tasks.demo_current_bid", { price: 199000 }) === "Current bid $199,000" && RW.reasonLine("tasks.demo_prior_price", { price: 325000 }) === "Previously sold for $325,000" && /reasonLine\("tasks\.demo_current_bid"/.test(fs.readFileSync("lib/live/tasksDemo.js", "utf8")) && /reasonLine\("tasks\.demo_prior_price"/.test(fs.readFileSync("lib/live/tasksDemo.js", "utf8"))); }
+  { const rowS = car(), rqS = D.requestFor(rowS, facts(rowS), geo), RWs = await imp("lib/reasonWords.js"); ok("(4) shortRequest: the engine's short form of the request, from the same criteria (reason table tasks.demo_request_short), beside the full request", !!f && f.shortRequest === RWs.reasonLine("tasks.demo_request_short", { colour: rqS.filters.colour, gearbox: rqS.filters.gearbox, make: rqS.filters.make, model: rqS.filters.model, budget: rqS.filters.budget_max }) && /^An? red manual Ferrari F430 under \$\d+k$/.test(f.shortRequest) && f.shortRequest.length < f.request.length, f && f.shortRequest); }
   ok("(4) the price label is printed as given: Current bid $90,000", f && f.car.priceLabel === "Current bid $90,000");
   const t = await imp("lib/tasks/tasks.js");
   ok("(4) why and the criteria come from the engine's own matchReasonList and read the request back", f && f.criteria.length >= 4 && f.car.why === `Matches: ${t.matchReasonList(f.filters || { gearbox: "manual", colour: "red", miles_max: 25000, budget_max: 115000, location: "Richmond, VA", radius_miles: 100 }).join(", ")}.`, f && f.car.why);
@@ -246,8 +251,8 @@ const honest = (f, r) => { const fx = facts(r); return String(r.make).toLowerCas
 {
   // The agreed list (Lane B and Lane E, docs/lane-notes.md, Nov 5 2026): the module and the cron refresh MUST name it; the crew gated Tasks preview (its page lib/preview/tasksPreview.js and the crew route api/crewPage.js, which hands the
   // crew the stored field) MAY. Nothing else may: a public route, a sitemap or a script-served file naming it fails.
-  const REQUIRED = ["lib/live/tasksDemo.js", "api/pullLive.js"], ALLOWED = new Set([...REQUIRED, "lib/preview/tasksPreview.js", "api/crewPage.js"]);
-  const NAMES = /tasksDemo|tasks_demo|TASKS_DEMO/;
+  const REQUIRED = ["lib/live/tasksDemo.js", "api/pullLive.js"], ALLOWED = new Set([...REQUIRED, "lib/preview/tasksPreview.js", "api/crewPage.js", "lib/preview/previewPages.js", "lib/live/findExamples.js", "lib/live/watchingDemo.js"]);   // + the Find examples and the watching card (Nov 7 2026): the same crew gate, the same cron, the same route list
+  const NAMES = /tasksDemo|tasks_demo|TASKS_DEMO|findExamples|find_examples|FIND_EXAMPLES|watchingDemo|watching_demo|WATCHING_DEMO/;
   const hits = [];
   const walk = dir => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { if (["node_modules", ".git", ".claude", "proofs"].includes(e.name)) continue; const p = path.join(dir, e.name); if (e.isDirectory()) walk(p); else if (/\.(js|mjs|json|html|xml|css|txt|md)$/.test(e.name)) { const rel = path.relative(root, p); if (NAMES.test(fs.readFileSync(p, "utf8"))) hits.push(rel); } } };
   for (const top of ["api", "lib", "public", "vercel.json"]) { const p = path.join(root, top); if (!fs.existsSync(p)) continue; if (fs.statSync(p).isDirectory()) walk(p); else if (NAMES.test(fs.readFileSync(p, "utf8"))) hits.push(top); }
