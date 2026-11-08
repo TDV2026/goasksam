@@ -10,6 +10,8 @@ if (args.includes("--mutants")) {
   const EE = "lib/live/entryExamples.js", RW = "lib/reasonWords.js";
   const muts = [
     [EE, "genuinePhoto(c.image) && isHttps(c.image) && ", "", "(1) a sale with no real photo is shown"],
+    [EE, "if (isFailedRead(res && res.raw)) return { failedRead: true };", "", "(3) a read that did not finish is taken for a pool"],
+    [EE, "if (a && a.failedRead) { failedReads++; tried.push(text); continue; }", "", "(3) a failed read is judged as a model with no example"],
     [EE, "if (!(await choosePhoto(photoCandidates({ photo_url: c.image }), d.head))) bad.push(c);", "", "(1) a sale whose photo is 3.1 MB or gone is shown"],
     [EE, "&& isHttps(c.url) && /\\S/.test(String(c.title", "&& /\\S/.test(String(c.title", "(1) a sale with no receipt link is shown"],
     [EE, "num(c.mi) > 0 && !c.milesHidden && ", "", "(1) a sale with no mileage is shown"],
@@ -108,6 +110,16 @@ const ALL = c => Object.fromEntries(EE.MC_CANDIDATES.map(t => [t, c]));
   ok("(1) the fewest-miles sale has a 3.1 MB photo and the most-miles sale a 404: neither is shown, the next in line are", got && got.sales.length === 3 && got.sales.every(s => s.photo !== p[0].image && s.photo !== p[13].image) && got.sales[0].miles > 20000 && got.sales[2].miles < 20000 + 13 * 9000, JSON.stringify(got && got.sales.map(s => s.miles)));
   const pp = pool(14), W2 = world(ALL(pp)); W2.heads = Object.fromEntries(pp.map(c => [c.image, { status: 200, bytes: 3.1 * 1024 * 1024, type: "image/jpeg" }]));
   ok("(1) every photo too big: no example (null), nothing invented", (await EE.marketCheckExampleSales(env, CREW, W2.d)) === null);
+}
+{ // (3) a read that did not finish is "try again", never a pool and never "no example"
+  const src = fs.readFileSync(path.join(ROOT, "lib/live/entryExamples.js"), "utf8");
+  ok("(3) the engine read is routed: a failed (still reading) answer becomes failedRead, which the build skips and retries", /isFailedRead\(res && res\.raw\)\) return \{ failedRead: true \}/.test(src) && /if \(a && a\.failedRead\) \{ failedReads\+\+;/.test(src));
+  const W = world(Object.fromEntries(EE.MC_CANDIDATES.map((t, i) => [t, i === 0 ? { failedRead: true } : pool(14)])));
+  W.d.answer = async (e, t) => { W.asked.push(t); return t === EE.MC_CANDIDATES[0] ? { failedRead: true } : { tier: "result", cards: pool(14) }; };
+  const got = await EE.marketCheckExampleSales(env, CREW, W.d);
+  ok("(3) a model whose read did not finish is passed over; the next model gives the example", got && got.model !== EE.MC_CANDIDATES[0]);
+  const none = world({}); none.d.answer = async () => ({ failedRead: true });
+  ok("(3) every read unfinished: no example and nothing stored (try again later)", (await EE.marketCheckExampleSales(env, CREW, none.d)) === null && !none.store.has(EE.MC_KEY));
 }
 { // (3) the daily pick
   const W = world(ALL(pool(14))), a = await EE.marketCheckExampleSales(env, CREW, W.d), asked = W.asked.length, b = await EE.marketCheckExampleSales(env, CREW, W.d);
