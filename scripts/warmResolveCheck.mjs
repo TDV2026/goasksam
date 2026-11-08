@@ -17,6 +17,10 @@ if (process.argv.includes("--mutants")) {
     ["lib/live/search.js", "  if (d.refusal && d.refusal.kind === \"not_a_car\") return `not_a_car:missing_${(d.refusal.missing || []).join(\"_\") || \"identity\"}`;", "", "the guard names the symptom, not the cause"],
     ["api/sellerDecision.js", "const tok = await archiveTitleModel(rawSearch, { supabaseUrl, supabaseKey });", "const tok = null;", "the page no longer reads the titles through the shared function"],
     ["lib/onebox.js", "(?<![A-Za-z0-9_])\" + esc + \"(?![A-Za-z0-9_])", "\\\\b\" + esc + \"\\\\b", "a token ending in a fraction is judged by \\b again (4½ Litre pools refused as swapped)"],
+    ["lib/vehicle.js", "keepFractions ? FRACTION_WORDS[g] : \" \"", "\" \"", "normalize drops the fraction glyph again (3½ read as the 3 Litre, 4¼ as the 4½)"],
+    ["lib/modelRules.js", "poolTerms: [\"4¼-Litre\", \"4¼ Litre\",", "poolTerms: [\"4¼ Litre\",", "the 4¼ pool misses the hyphenated spelling the archive uses 38 times"],
+    ["lib/modelRules.js", "{ code: \"Derby 4¼\", years: [1936, 1939]", "{ code: \"Derby 4¼\", years: [1936, 1952]", "the Mark VI 4¼ (1947 to 1951) joins the pre-war 4¼ pool"],
+    ["lib/vehicle.js", "replace(/\\b(\\d)(?:\\.25|\\s1\\/4)[\\s-]*lit(?:re|er)s?\\b/gi, \"$1\\u00bc Litre\")", "replace(/\\b(\\d)(?:\\.xx|\\s1\\/4)[\\s-]*lit(?:re|er)s?\\b/gi, \"$1\\u00bc Litre\")", "\"4.25 litre\" is no longer read as the 4¼"],
     ["lib/onebox.js", " || (restOfPhrase ? Object.keys(models).find(m => sameName(m, restOfPhrase)) : undefined);", ";", "the typed words after the make are not matched to a filed model (bare Bugatti Type 57 refused when the variants split the models)"],
     ["lib/onebox.js", "const key = mrNorm(ph) + \"#\" + fractionSig(ph);", "const key = mrNorm(ph);", "4¼ and 4½ share one cache key in the title read"],
     ["lib/onebox.js", "timer = setTimeout(() => { try { ctrl.abort(); } catch {} resolve(null); }, left);", "timer = null;", "the title read has no budget, a slow scan holds it for every phrase"]
@@ -81,18 +85,28 @@ const CARS = [   // [make, model filed, sales [year, body, price, count]]
   ["Auburn", "851", [[1935, "Speedster", 380000, 5], [1935, "Roadster", 120000, 2], [1936, "Convertible", 140000, 4], [1936, "Sedan", 60000, 3]]],
   ["Bugatti", "Type 57", [[1937, "Coupe", 4000000, 3], [1938, "Cabriolet", 3500000, 3], [1939, "Roadster", 3800000, 3]]],
   ["Cord", "810", [[1936, "Phaeton", 150000, 3], [1937, "Sedan", 70000, 3], [1937, "Cabriolet", 140000, 3]]],
-  ["Bentley", "4¼ Litre", [[1936, "Saloon", 120000, 3], [1937, "Tourer", 180000, 3], [1938, "Coupe", 150000, 3]]],
   ["Bentley", "4½ Litre", [[1928, "Tourer", 900000, 3], [1929, "Saloon", 400000, 3], [1930, "Tourer", 1100000, 3]]],
   ["Bentley", "6½ Litre", [[1926, "Tourer", 700000, 3], [1927, "Saloon", 300000, 3], [1928, "Tourer", 900000, 3]]],
+  ["Bentley", "4¼ Litre", [[1936, "Saloon", 120000, 3], [1937, "Tourer", 180000, 3], [1938, "Coupe", 150000, 3], [1939, "Saloon", 130000, 3]]],
+  ["Bentley", "3½ Litre", [[1934, "Saloon", 90000, 3], [1935, "Tourer", 150000, 3], [1936, "Coupe", 110000, 3]]],
+  ["Bentley", "Mark VI", [[1948, "Saloon", 60000, 3], [1950, "Saloon", 55000, 3]]],
   ["Bentley", "8 Litre", [[1931, "Saloon", 800000, 3], [1932, "Tourer", 1500000, 3], [1930, "Sports Saloon", 900000, 3]]],
   ["Mercedes-Benz", "540K", [[1936, "Cabriolet", 2100000, 3], [1937, "Roadster", 2900000, 3], [1938, "Coupe", 1700000, 3], [1939, "Sedan", 900000, 3]]]
 ];
 rows = []; for (const [make, model, list] of CARS) { globalThis.CAR = { make, model }; let i = 0; for (const [yr, body, base, cnt] of list) for (let k = 0; k < cnt; k++) sale(yr, body, base + (k % 4) * 900, 20 + ((i++) % 12) * 9); }
 // the archive files some Type 57 sales under their body name ("Atalante", "Ventoux") with "Bugatti Type 57" in the title: no filed model holds 60 percent of the titles that carry the typed words, so only the typed "Type 57" can pick the model (the bare production refusal)
 { const b = rows.filter(r => r.make === "Bugatti" && r.model === "Type 57"); b.slice(0, 3).forEach(r => { r.model = "Atalante"; r.listing_title = r.listing_title.replace("Type 57", "Type 57 Atalante"); }); b.slice(3, 5).forEach(r => { r.model = "Ventoux"; r.listing_title = r.listing_title.replace("Type 57", "Type 57 Ventoux"); }); }
+// THE DERBY BENTLEYS AS THE ARCHIVE FILES THEM (ops modscan make=Bentley t1=Litre, Nov 8 2026: "4¼-Litre" 38, "4 1/4 Litre" 8, "4 ¼-litre" 1; "3½-Litre" 26, "3 1/2 Litre" 5; the Mark VI 4¼ of 1947 to 1951 carries the same words): the spellings differ and the model column is no guide
+{
+  const retitle = (r, t, model) => { r.listing_title = t; r.raw_record.title = t; if (model !== undefined) r.model = model; };
+  const q4 = rows.filter(r => r.make === "Bentley" && r.model === "4¼ Litre"), q3 = rows.filter(r => r.make === "Bentley" && r.model === "3½ Litre"), mk6 = rows.filter(r => r.make === "Bentley" && r.model === "Mark VI");
+  q4.forEach((r, i) => { const body = r.raw_record.body_style; if (i % 3 === 1) retitle(r, `${r.year} Bentley 4¼-Litre ${body}`, "4¼-Litre"); else if (i % 3 === 2) retitle(r, `${r.year} Bentley 4 1/4 Litre ${body}`, "Unknown"); });
+  q3.forEach((r, i) => { const body = r.raw_record.body_style; if (i % 3 === 1) retitle(r, `${r.year} Bentley 3½-Litre ${body}`, "3½-Litre"); else if (i % 3 === 2) retitle(r, `${r.year} Bentley 3 1/2 Litre ${body}`, "Unknown"); });
+  mk6.forEach(r => retitle(r, `${r.year} Bentley Mark VI 4¼-Litre ${r.raw_record.body_style}`));
+}
 globalThis.HOUSE = null;
 const WARM_QUERY_BUDGET_MS = 3000;
-const QUERIES = ["Duesenberg Model J", "Auburn 851", "Bugatti Type 57", "Cord 810", "Mercedes-Benz 540K", "1938 Mercedes-Benz 540K", "1930 Duesenberg Model J", "Bentley 4¼ Litre", "Bentley 4½ Litre", "Bentley 6½ Litre", "Bentley 8 Litre"];
+const QUERIES = ["Duesenberg Model J", "Auburn 851", "Bugatti Type 57", "Cord 810", "Mercedes-Benz 540K", "1938 Mercedes-Benz 540K", "1930 Duesenberg Model J", "Bentley 4¼ Litre", "Bentley 3½ Litre", "Bentley 4½ Litre", "Bentley 6½ Litre", "Bentley 8 Litre"];
 for (const q of QUERIES) {
   const tq0 = Date.now();
   const rv = await V.resolveVehicle(q, {}), v = rv && rv.vehicle;   // the bare resolver, as every warm calls it
@@ -107,6 +121,21 @@ for (const q of QUERIES) {
   ok(`"${q}": the whole read (resolve, engine, store) is inside ${WARM_QUERY_BUDGET_MS} ms, so a slow read fails here and not in a 290 second warm (took ${Date.now() - tq0} ms)`, Date.now() - tq0 < WARM_QUERY_BUDGET_MS, String(Date.now() - tq0));
   if (d.optionsState === "apart") ok(`"${q}": an answer with its bodies apart carries its own label`, typeof d.rungLabel === "string" && d.rungLabel.trim().length > 0, d.rungLabel);
 }
+// THE DERBY BENTLEYS ARE CARS OF THEIR OWN (Lane B, Nov 8 2026, Sam: seed the 4¼ Litre). Every curated Bentley alias resolves to its own model (the 3½ had been the 3 Litre, the 4¼ the 4½: normalize dropped the glyph), and the 4¼ and 3½ pools hold their sales in every spelling the archive writes
+// and nothing else: not the 4½ Litre, not the Mark VI 4¼ (1947 to 1951, the same words).
+{
+  const VD2 = await import(pathToFileURL(path.join(ROOT, "lib/vehicleData.js")).href), al = []; const w2 = o => { if (!o) return; if (Array.isArray(o)) o.forEach(w2); else if (typeof o === "object") { if (o.make === "Bentley" && o.alias && o.model) al.push([o.alias, o.model]); Object.values(o).forEach(w2); } };
+  for (const k of Object.keys(VD2)) w2(VD2[k]);
+  const wrong = []; for (const [alias, model] of al) { if (alias === "4.5l") continue;   /* "4.5l" (engine-size shorthand) resolved to nothing before this branch too; Sam is told */  const rv = await V.resolveVehicle("Bentley " + alias, {}); if (!(rv && rv.vehicle && rv.vehicle.model === model)) wrong.push(`${alias} -> ${rv && rv.vehicle && rv.vehicle.model} (want ${model})`); }
+  ok(`every curated Bentley alias (${al.length}) resolves to its own model, none to a neighbour's`, al.length > 20 && wrong.length === 0, wrong.slice(0, 4).join(" | "));
+  const WANT = { "Bentley 4¼ Litre": { n: 12, own: /4¼|4 1\/4/ }, "Bentley 3½ Litre": { n: 9, own: /3½|3 1\/2/ } };
+  for (const [q, w] of Object.entries(WANT)) {
+    const v = (await V.resolveVehicle(q, {})).vehicle, gen = await findGeneration(v, env).catch(() => null), d = (await E.oneEngineAnswer(v, gen, q, { ...env, asked: 0 }, null)).raw, cards = d.cards || [];
+    const titles = cards.map(c => String(c.title || "")), pool = (d.rawPool || []).map(r => String(r.listing_title || r.raw_title || r.title || ""));
+    ok(`"${q}": the pool holds the ${w.n} sales of that car in every spelling, no Mark VI and no 4½ (pool ${pool.length})`, pool.length === w.n && pool.every(t => w.own.test(t) && !/Mark VI/i.test(t) && !/4½/.test(t)), JSON.stringify(pool.filter(t => !w.own.test(t) || /Mark VI|4½/.test(t)).slice(0, 3)));
+    ok(`"${q}": every card is that car's own title`, titles.length > 0 && titles.every(t => w.own.test(t) && !/Mark VI/i.test(t)), JSON.stringify(titles.slice(0, 3)));
+  }
+}
 // the answer shapes that leave the rung label blank are refusals and unavailable tiers, not answers: the guard names the cause, not the symptom
 {
   const nc = { tier: "refusal", refusal: { kind: "not_a_car", missing: ["model"] }, fallbackRung: "not_enough_data", rungLabel: null, poolN: 0 };
@@ -117,9 +146,10 @@ for (const q of QUERIES) {
 // and mrNorm drops the glyph, so 4¼, 4½ and 4 normalised to one cache key in the title read. Every curated model with a fraction is listed from the data and must have a pool above; the title read keeps 4¼ and 4½ apart; and a slow scan cannot hold a read past its budget.
 {
   const VD = await import(pathToFileURL(path.join(ROOT, "lib/vehicleData.js")).href), names = new Set();
-  const walk = o => { if (!o) return; if (typeof o === "string") names.add(o); else if (Array.isArray(o)) o.forEach(walk); else if (typeof o === "object") Object.values(o).forEach(walk); };
+  const walk = o => { if (!o) return; if (Array.isArray(o)) o.forEach(walk); else if (typeof o === "object") { if (typeof o.model === "string") names.add(o.model); Object.values(o).forEach(walk); } };
   for (const k of Object.keys(VD)) walk(VD[k]);
-  const frac = [...names].filter(n => n.length < 40 && /[\u00bc\u00bd\u00be]/.test(n) && !/^\d{4}/.test(n)).map(n => n.replace(/ litre/i, " Litre")).filter((v, i, a) => a.indexOf(v) === i && !/ supercharged$/i.test(v));
+  const MR = await import(pathToFileURL(path.join(ROOT, "lib/modelRules.js")).href); for (const k of Object.keys(MR)) walk(MR[k]);
+  const frac = [...names].filter(n => n.length < 40 && /[\u00bc\u00bd\u00be]/.test(n) && !/^\d{4}/.test(n) && !/ supercharged$/i.test(n)).filter((v, i, a) => a.indexOf(v) === i);
   const tested = new Set(CARS.map(c => c[1]));
   ok(`every curated model with a fraction has a pool in this check (${frac.join(", ")})`, frac.length > 0 && frac.every(n => tested.has(n)), JSON.stringify(frac.filter(n => !tested.has(n))));
   let reads = 0; const f1 = globalThis.fetch; globalThis.fetch = async (u, o) => { if (/listing_title=ilike/.test(decodeURIComponent(String(u)))) reads++; return f1(u, o); };

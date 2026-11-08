@@ -52,7 +52,7 @@ const E_OLD = "2026-11-06T15:00:05.718Z";
 {
   const src = fs.readFileSync(path.join(ROOT, "api/usageDashboard.js"), "utf8");
   for (const t of ["warmDemo", "warmBuy", "warmMC"]) {
-    const i = src.indexOf(`if (task === "${t}") {`), k = i < 0 ? -1 : src.indexOf("\n  if (task === ", i + 10), blk = i < 0 ? "" : src.slice(i, k < 0 ? undefined : k), tail = blk;
+    const i = src.indexOf(`if (task === "${t}") {`), k = i < 0 ? -1 : src.indexOf("\n  if (task === ", i + 10), blk = i < 0 ? "" : src.slice(i, k < 0 ? undefined : k), last = blk.lastIndexOf("return res.status(200).json("), tail = last < 0 ? "" : blk.slice(Math.max(0, last - 600), last);   // the FINAL reply (an early stopped-return also carrying the note passed warmBuy before)
     ok(`task ${t}'s reply carries epochNote`, i > 0 && /epochNote = await .*warmEpochNoteFor/.test(tail), i < 0 ? "task not found" : "");
   }
 }

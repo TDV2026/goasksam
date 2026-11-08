@@ -892,6 +892,13 @@ try {
 } catch (e) {
   record("warmEpochCheck (scripts/warmEpochCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// warmGateCheck (Lane B, Nov 8 2026): a person's warm declines before the day's ingest has finished (marker app_config ingest_done written by scripts/ingest.js after the bump), cron and force=1 bypass it, every ops task that writes warm rows is gated (found by scanning the source); mutants in scripts/warmGateCheck.mjs --mutants
+try {
+  const out = execSync("node scripts/warmGateCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("warmGateCheck (scripts/warmGateCheck.mjs)", "PASS", (out.match(/warmGateCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("warmGateCheck (scripts/warmGateCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // liveExamplesCheck (Lane B, Nov 7 2026): the Find examples (up to three live cars, different makes, soldBefore only on a VIN-confirmed completed sale, stable while live), the Tasks watching card (a different make from the Tasks example, status only within 24 hours, no reminder claim) and tasksDemo.shortRequest; crew gated; mutants in scripts/liveExamplesCheck.mjs --mutants.
 try {
   const out = execSync("node scripts/liveExamplesCheck.mjs", { encoding: "utf8", timeout: 280000 });

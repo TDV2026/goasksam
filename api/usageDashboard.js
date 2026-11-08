@@ -5926,6 +5926,7 @@ if (task === "optiondetail") {
   }
   if (task === "warmLive" || task === "warmlive") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    { const g = await (await import("../lib/warmDay.js")).warmGateFor(env, { supabaseSelect, readIngestDone: (await import("../lib/_epoch.js")).readIngestDone, force: req.query?.force === "1", isCron }); if (!g.ok) return res.status(200).json({ task: "warmLive", refused: "ingest_not_done", writes: 0, line: g.line, doneAt: g.doneAt, via: g.via }); }
     const { warmLiveSpecs } = await import("../lib/live/search.js");
     const r = await warmLiveSpecs(env, { budgetMs: Math.min(230000, Number(req.query?.budget) || 200000), allScope: req.query?.allScope === "1", concurrency: Math.min(8, Number(req.query?.width) || 6), shard: req.query?.shard ? String(req.query.shard) : null, ...(req.query?.trafficDays != null && req.query.trafficDays !== "" ? { trafficDays: Math.max(0, Number(req.query.trafficDays) || 0) } : {}) });
     return res.status(200).json({ task: "warmLive", ...r });
@@ -6082,6 +6083,7 @@ if (task === "optiondetail") {
   }
   if (task === "warmDemoCheck") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    { const g = await (await import("../lib/warmDay.js")).warmGateFor(env, { supabaseSelect, readIngestDone: (await import("../lib/_epoch.js")).readIngestDone, force: req.query?.force === "1", isCron }); if (!g.ok) return res.status(200).json({ task: "warmDemoCheck", refused: "ingest_not_done", writes: 0, line: g.line, doneAt: g.doneAt, via: g.via }); }
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
     const { oneEngineAnswer, ENGINE_VERSION } = await import("../lib/onebox.js");
@@ -6122,6 +6124,7 @@ if (task === "optiondetail") {
   }
   if (task === "warmDemo") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    { const g = await (await import("../lib/warmDay.js")).warmGateFor(env, { supabaseSelect, readIngestDone: (await import("../lib/_epoch.js")).readIngestDone, force: req.query?.force === "1", isCron }); if (!g.ok) return res.status(200).json({ task: "warmDemo", refused: "ingest_not_done", writes: 0, line: g.line, doneAt: g.doneAt, via: g.via }); }
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
     const { oneEngineAnswer } = await import("../lib/onebox.js");
@@ -6229,6 +6232,7 @@ if (task === "optiondetail") {
     // carry the work. It stops at once when the day's archive guard has tripped (an ocd_budget_guard event today) or when
     // the archive reads start failing (five in a row). Archive only, no figure changes.
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    { const g = await (await import("../lib/warmDay.js")).warmGateFor(env, { supabaseSelect, readIngestDone: (await import("../lib/_epoch.js")).readIngestDone, force: req.query?.force === "1", isCron }); if (!g.ok) return res.status(200).json({ task: "warmBuy", refused: "ingest_not_done", writes: 0, line: g.line, doneAt: g.doneAt, via: g.via }); }
     const { parseQueryResolved, searchLive, listingMarket, listingFacts, isAbroadRow, gensNamed } = await import("../lib/live/search.js");
     const BUY_WARM = ["Porsche 911", "Porsche 911 Carrera", "Porsche 911 Turbo", "Porsche 911 GT3", "2024 Porsche 911", "Porsche Cayman", "Porsche Boxster", "Chevrolet Corvette", "Ford Mustang", "Ford Bronco", "BMW M3", "Mercedes-Benz SL", "Ferrari", "Lamborghini", "Land Rover Defender", "Toyota Land Cruiser", "Toyota Supra", "Nissan Skyline", "Chevrolet Camaro", "Jeep Wrangler"];
     const parts = Math.max(1, Math.min(8, Number(req.query?.parts) || 6))   // e67: six parts (Lane F under Sam's standing authority), part = Math.max(1, Math.min(parts, Number(req.query?.part) || 1));
@@ -6277,10 +6281,11 @@ if (task === "optiondetail") {
     result.ms = Date.now() - t0;
     // e67: one summary line per run, so a cron run reports its own coverage in the request log (no identifiers in it)
     try { console.log(JSON.stringify({ tag: "warm_buy", part: result.part, parts: result.parts, searched: result.searched, cards: result.cards, filled: result.filled, stillReading: result.stillReading, skippedSeen: result.skippedSeen, notReached: result.notReached, stopped: result.stopped, ms: result.ms, rows: result.rows.map(r => ({ q: r.q, cards: r.cards, filled: r.filled, error: r.error || undefined })) })); } catch (e) { /* log only */ }
-    return res.status(200).json(result);
+    result.epochNote = await (await import("../lib/warmDay.js")).warmEpochNoteFor(env, { supabaseSelect, currentEpoch: (await import("../lib/_epoch.js")).currentEpoch }); return res.status(200).json(result);
   }
   if (task === "warmMC") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    { const g = await (await import("../lib/warmDay.js")).warmGateFor(env, { supabaseSelect, readIngestDone: (await import("../lib/_epoch.js")).readIngestDone, force: req.query?.force === "1", isCron }); if (!g.ok) return res.status(200).json({ task: "warmMC", refused: "ingest_not_done", writes: 0, line: g.line, doneAt: g.doneAt, via: g.via }); }
     const { resolveVehicle } = await import("../lib/vehicle.js");
     const { findGeneration } = await import("../lib/generations.js");
     const { oneEngineAnswer } = await import("../lib/onebox.js");
