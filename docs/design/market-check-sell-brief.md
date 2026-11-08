@@ -1,6 +1,6 @@
 # Market Check and Sell: entry pages and shared shell (Sam's approved brief, Nov 8 2026)
 
-STATUS OF THIS FILE (Lane E, Nov 8 2026): Sam's message said the full brief would be pasted after the instruction block. What arrived after the block was five screenshots only (Market Check result 2020 BMW M3 with its eight sale tiles, Market Check result 2006 Ford GT with its quarterly chart and Live right now, the Sell result (Sam's pick Bring a Trailer and the PowerSeller card), and the current Market Check and Sell entry pages with their old left navigation sidebar), and no brief text. The instruction block below is saved verbatim. Anything the longer brief adds (exact copy, spacing, mobile rules) is NOT in this file yet: paste it and it goes here.
+STATUS OF THIS FILE (Lane E, Nov 8 2026): the full brief arrived on main as docs/design/market-check-sell-brief-full.md (the authoritative text; this file holds the instruction block, the audit and the build record). It is merged below as the SUMMARY OF THE FULL BRIEF. The five screenshots (the 1995 Porsche 911 and 2020 BMW M3 and 2006 Ford GT Market Check results, the 2004 Porsche 911 Carrera Sell result) are the regression references.
 
 ## The instruction block (verbatim)
 
@@ -49,3 +49,15 @@ home to Find, Market Check, Sell (`header()` tabs); Find to Market Check (header
 ### NEEDED FROM LANE B
 - `marketCheckExampleSales` (crew only, null when none): three real completed sales of ONE model: for each { title (year make model), sold price words as the engine writes them, miles, platform, date, photo, url (the sale), plus the model's Market Check address }. Hidden until present.
 - `sellExample` (optional, crew only): { cars: two or three different cars with the way each sold best, as the engine states it } never a platform guarantee; hidden until present.
+
+
+## Summary of the full brief (merged Nov 8 2026; the full text is market-check-sell-brief-full.md)
+
+- One header, the Find header, on every page: active cream pill on entry AND results; nav Find | Market Check | Sell | Tasks | Account. The old left navigation sidebar is removed (no two navigation systems).
+- One rail component (Find's: same width, divider, button, type, spacing, collapse), configured per product: "+ New check" / "Recent Market Checks", "+ New analysis" / "Recent selling analyses". Recent items come from the existing recent history (no new tables or persistence), a click restores that search or result, "+ New" returns to the empty entry and deletes nothing, minimal when empty, no promo copy, no footer links in the rail.
+- The charcoal footer of Home and Find after the last section, never over results or sticky controls.
+- Results are protected: only the header, rail, footer and outer container width and padding change; same internal grids, same section order and conditional rendering, same search box (no second input), same calculations, charts, tables, refinements, CTAs and cross-product links, query state and sign-in carry through.
+- Market Check entry: no updated-date label; trust line; three chips run the existing Market Check query; "The sales behind the numbers" = three real completed sales of one model (photo, year make model, price, miles, platform, date, each opening the original sale), from verified data or omitted; no charts, trends, confidence scores, filters or extra CTAs; 60 to 80px then footer.
+- Sell entry: benefit line instead of a date; three chips run the existing Sell search; "Different cars. Different ways to sell." only from verified Sell data, never implying a platform guarantees a price, omitted otherwise; short page.
+- Responsive: desktop width from the space beside the rail with a readable maximum; tablet stacks internal columns; 390px has no horizontal overflow, readable prices, usable tables and charts, collapsed rail, footer after the content.
+- Acceptance lists (sections 15 to 20) are the regression check's checklist: Market Check 1995 Porsche 911 (range, scope, body and transmission controls, mileage refinement, Latest sales, Sales behind this answer, Live right now, Comparable sales with Show more, distribution chart, Sell CTA, Task CTA), 2020 BMW M3 year substitution, 2006 Ford GT historical chart, insufficient data; Sell 2004 Porsche 911 Carrera (platform, Why Sam picked this, listing CTA, PowerSeller and its statistics and contact form, range, Market Check link, latest sales photos and receipt links), limited evidence and no-PowerSeller states.
