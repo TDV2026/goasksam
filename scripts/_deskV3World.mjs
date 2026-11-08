@@ -14,9 +14,9 @@ export function install(opts = {}) {
   for (const [ci, c] of CARS.entries()) {
     DATA.set(c.model, Array.from({ length: c.n }, (_, i) => {
       const year = c.y0 + (i % (c.y1 - c.y0 + 1)), gb = c.gearbox(i), title = c.title(year), miles = 9000 + Math.round(rnd() * 90000);
-      const price = Math.round((c.base + (gb && /Manual/.test(gb) ? c.manualUp : 0) + (5 - (tierOf("x-" + i) || 3)) * 1500 - miles * 0.05) * (0.9 + rnd() * 0.2));
+      const ims = opts.ims ? opts.ims(i) : undefined, price = Math.round((c.base + (ims ? (opts.imsUp || 0) : 0) + (gb && /Manual/.test(gb) ? c.manualUp : 0) + (5 - (tierOf("x-" + i) || 3)) * 1500 - miles * 0.05) * (0.9 + rnd() * 0.2));
       const raw = { id: "ocd" + ci + "_" + i, title, featured_image_url: "https://img.example/x" + i + ".jpg", mileage: String(miles), body_style: c.body, modifications: null, currency: "USD", transmission: gb, exterior_color: "Red", title_status: "Clean", url: "https://bat.example/" + ci + "_" + i, source_url: "https://src.example/" + ci + "_" + i, city: "Austin", state: "TX", country_code: "US", auction_end_precision: "day" };
-      return { id: `c${String(ci).padStart(2, "0")}-${String(i).padStart(5, "0")}`, source_id: raw.id, sale_price: price, sale_date: new Date(Date.now() - (12 + (i % 100) * 3) * DAY).toISOString().slice(0, 10), platform: i % 3 === 0 ? "Cars & Bids" : "Bring a Trailer", listing_title: title, year, make: c.make, model: c.model, vin_norm: null, stated_mileage: null, project_flag: null, desc_facts: opts.descFacts ? opts.descFacts(i) : null, has_reserve: false, raw_record: raw, vehicle_type: "car" };
+      return { id: `c${String(ci).padStart(2, "0")}-${String(i).padStart(5, "0")}`, source_id: raw.id, sale_price: price, sale_date: new Date(Date.now() - (12 + (i % 100) * 3) * DAY).toISOString().slice(0, 10), platform: i % 3 === 0 ? "Cars & Bids" : "Bring a Trailer", listing_title: title, year, make: c.make, model: c.model, vin_norm: null, stated_mileage: null, project_flag: null, desc_facts: opts.ims && ims !== undefined ? { markers: [], ims } : null, has_reserve: false, raw_record: raw, vehicle_type: "car" };
     }));
   }
   const jt = v => v === null || v === undefined ? null : typeof v === "string" ? v : JSON.stringify(v);

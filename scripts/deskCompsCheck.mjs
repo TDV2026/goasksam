@@ -70,6 +70,8 @@ ok("every comparable is the subject's generation and body (never the model name 
 ok("comparables are sorted close first", ds.comparables.every((c, i, a) => i === 0 || !(a[i - 1].relevance === "similar" && c.relevance === "close")));
 ok("a close comparable is the same year", ds.comparables.filter(c => c.relevance === "close").every(c => c.year === 1999));
 ok("every comparable carries the shape's fields", ds.comparables.every(c => ["id", "title", "year", "generation", "body", "transmission", "miles", "platform", "soldDate", "price", "url", "photo", "relevance", "why", "inPopulation"].every(k => k in c)));
+{ for (const c of [W.CASES[1], W.CASES[2]]) { const r = await read(c), cs = r.desk.comparables;
+    ok(`${c.model}: the generation comes from the curated generation list, so comparables are listed (all of the subject's generation)`, cs.length > 0 && cs.every(x => x.generation && x.generation === cs[0].generation), JSON.stringify(cs.slice(0, 1).map(x => [x.generation, x.year]))); } }
 // (2)
 ok("every why is a reason table line", ds.comparables.every(c => inTable("desk.comparables.why", c.why)), ds.comparables.find(c => !inTable("desk.comparables.why", c.why)) && ds.comparables.find(c => !inTable("desk.comparables.why", c.why)).why);
 { const src = fs.readFileSync(path.join(ROOT, "lib/deskV3.js"), "utf8").split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n").replace(/\/\/.*$/gm, "");

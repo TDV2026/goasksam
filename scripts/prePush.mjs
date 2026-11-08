@@ -2520,6 +2520,18 @@ try {
   record("Desk v3 stage 3: a quarter under DESK_QUARTER_MIN sales has shown false and no median; live listings are typed bid, ask or no_sale and never in the evidence or the comparables; seven mutants (scripts/deskQuarterCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/deskFactorsCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 stage 4: desk.condition (one of the four rungs, from the case, the car's listing or the sales near its miles) and desk.factors (an effect only where both groups have three sales and their prices do not overlap, no fixed dollar figure, service_ims the 996 family only, sentences from the reason table); ten mutants (scripts/deskFactorsCheck.mjs)", "PASS", (out.match(/deskFactorsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 4: desk.condition (one of the four rungs, from the case, the car's listing or the sales near its miles) and desk.factors (an effect only where both groups have three sales and their prices do not overlap, no fixed dollar figure, service_ims the 996 family only, sentences from the reason table); ten mutants (scripts/deskFactorsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/deskRecomputeCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 stage 5: desk.original is the untouched evidence; note_only changes nothing, report_comps changes the comparables only, market_calc changes the market figures and not the comparables; nothing is written; eight mutants (scripts/deskRecomputeCheck.mjs)", "PASS", (out.match(/deskRecomputeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 5: desk.original is the untouched evidence; note_only changes nothing, report_comps changes the comparables only, market_calc changes the market figures and not the comparables; nothing is written; eight mutants (scripts/deskRecomputeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/tierAssignCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk item 1: every sale gets a condition tier from its own listing (every evidence line, Untiered, hard negatives), the nightly job writes batches with a pause and is resumable, the SQL carries RLS (scripts/tierAssignCheck.mjs)", "PASS", (out.match(/all passed/) || [""])[0]);
 } catch (e) {
