@@ -8,7 +8,7 @@ import { memoryStore } from "../lib/desk/sheetStore.js";
 export const ROOT = path.resolve(new URL("..", import.meta.url).pathname);
 export const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 export const PHOTO = "data:image/svg+xml;base64," + Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220"><rect width="320" height="220" fill="#8a9"/></svg>').toString("base64");
-export async function startDesk({ seat = "crew", org = "sam", orgSettings = { name: "Hagerty Marketplace" }, store = memoryStore(), send = null, calls = [], mutateJs = null, ctxExtra = {} } = {}) {
+export async function startDesk({ seat = "crew", org = "sam", orgSettings = { name: "Hagerty Marketplace" }, store = memoryStore(), send = null, calls = [], mutateJs = null, ctxExtra = {}, delayMs = 0 } = {}) {
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
   const ctxOf = s => ({ env: {}, org, seat: s || seat, store, orgSettings, send, fetchImage: async () => null, ...ctxExtra });
   const state = { seat, setSeat(s) { state.seat = s; } };
@@ -20,7 +20,7 @@ export async function startDesk({ seat = "crew", org = "sam", orgSettings = { na
     page.on("request", async r => { const u = new URL(r.url());
       if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html });
       const m = /^\/dsk\.[^/]+\/([\w.-]+\.js)$/.exec(u.pathname); if (u.host === "goasksam.com" && m) return r.respond({ status: 200, contentType: "application/javascript", body: (m[1] === "deskvals.js" && mutateJs) ? mutateJs : fs.readFileSync(path.join(ROOT, "public/js", m[1]), "utf8") });
-      if (u.host === "goasksam.com" && u.pathname === "/api/desk" && r.method() === "POST") { let b = {}; try { b = JSON.parse(r.postData() || "{}"); } catch {} calls.push(b); const out = await handleSheetAction(b.action, b, ctxOf(state.seat)).catch(e => ({ ok: false, why: String(e.message) })); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(out) }); }
+      if (u.host === "goasksam.com" && u.pathname === "/api/desk" && r.method() === "POST") { let b = {}; try { b = JSON.parse(r.postData() || "{}"); } catch {} calls.push(b); if (delayMs && /^sheet_/.test(String(b.action))) await new Promise(r => setTimeout(r, delayMs)); const out = await handleSheetAction(b.action, b, ctxOf(state.seat)).catch(e => ({ ok: false, why: String(e.message) })); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(out) }); }
       return r.respond({ status: 204, body: "" }); });
     await page.goto("https://goasksam.com/desk", { waitUntil: "networkidle2" }).catch(() => {}); await new Promise(r => setTimeout(r, 400));
     page._errs = errs; return page;

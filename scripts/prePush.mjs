@@ -2480,6 +2480,12 @@ try {
   record("Desk demo blockers: a pool that splits asks the body first and reads that body's tier pool, every same tier sale with real miles and the mileage band marked, a draft PDF before finalise, the no-listing line (scripts/deskBlockersCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/deskDryrun2Check.mjs", { encoding: "utf8", timeout: 280000 });
+  record("Desk dry run 2: photos addable any time with a cover and a strip, every click lights under 100 ms with a working state, one press opens a sheet, the range meter follows the picked body and tier, the analyst marker, the reserve held against the meter's range, the question for the seller, the engine's tier lines (scripts/deskDryrun2Check.mjs)", "PASS", (out.match(/deskDryrun2Check: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk dry run 2: photos addable any time with a cover and a strip, every click lights under 100 ms with a working state, one press opens a sheet, the range meter follows the picked body and tier, the analyst marker, the reserve held against the meter's range, the question for the seller, the engine's tier lines (scripts/deskDryrun2Check.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/deskTypedSentenceCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("Desk typed sentences: no Desk file types an engine reason line, reads optionsNote/windowNote, or joins a count to a plural by hand (scripts/deskTypedSentenceCheck.mjs)", "PASS", (out.match(/deskTypedSentenceCheck: .*/) || [""])[0]);
 } catch (e) {

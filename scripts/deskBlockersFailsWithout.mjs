@@ -3,7 +3,7 @@
 import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { execFileSync } from "node:child_process"; import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 const MUT = [
-  ["the range-less read throws on a tier click (the cluster is not guarded)", "lib/sheetRead.js", s => s.replace("isResult && Array.isArray(a.cluster) ? { low: a.cluster[0]", "isResult ? { low: a.cluster[0]")],
+  ["the range-less read throws on a tier click (the cluster is not guarded)", "lib/sheetRead.js", s => s.replace("low: isResult && Array.isArray(a.cluster) ? a.cluster[0] : null", "low: isResult ? a.cluster[0] : null")],
   ["a split pool still shows a median of the mix", "lib/sheetRead.js", s => s.replace("headlineOk = isResult && !a.pooledApart", "headlineOk = isResult")],
   ["a pick is ignored by the engine call", "lib/sheetRead.js", s => s.replace("({ ...r, ...p.refine }), {})", "({ ...r }), {})")],
   ["the engine's tier pool stops at the band (the whole pool is not carried)", "lib/onebox.js", s => s.replace("tierPoolCards: shapeCards(same).map(", "tierPoolCards: shapeCards(inBand).map(")],
@@ -15,6 +15,11 @@ const MUT = [
   ["the no-listing line is the old engine line", "lib/sheetRead.js", s => s.replace(": NO_LISTING_LINE);", ": \"The engine holds no listing signals for this car, so it counted none.\");")],
   ["the draft PDF is built as a final report", "lib/desk/reportPdf.js", s => s.replace("{ fetchImage, onlyPage, draft = false } = {}) {", "{ fetchImage, onlyPage, draft: _d = false } = {}) { const draft = false;")],
   ["a draft is stored as an export", "lib/desk/sheetActions.js", s => s.replace("return { ok: true, draft: true, filename:", "await store.put(org, { ...sheet, exports: [...(sheet.exports || []), { at: now, seat, reportNumber: \"x\" }] }); return { ok: true, draft: true, filename:")],
+  ["the meter ignores the mileage band the median is taken from", "lib/sheetRead.js", s => s.replace("const meterCards = tierOk ? cardsOf.filter(c => c.inBand !== false) : cardsOf;", "const meterCards = cardsOf;")],
+  ["the meter never reads the picked tier's pool (the dry run 2 cause: a tier moved the comparables and not the range)", "lib/sheetRead.js", s => s.replace("const tierOk = tier && tierState === \"ok\";", "const tierOk = false;")],
+  ["the meter does not mark the tier's sales on the body pool", "lib/tierMeter.js", s => s.replace("inTier: t ? Number(c.tier) === t : null", "inTier: null")],
+  ["the live search ignores the picked body", "lib/sheetRead.js", s => s.replace("if (livePick) vehicle = {", "if (false) vehicle = {")],
+  ["the live search runs with the body question open", "lib/sheetRead.js", s => s.replace("d.liveFor && !liveBlocked ?", "d.liveFor ?")],
   ["a draft needs a finalised sheet", "lib/desk/sheetActions.js", s => s.replace("body.draft === true && !sheet.final", "false")],
   ["the pick is not saved", "lib/desk/sheetActions.js", s => s.replace("if (\"picks\" in p) { s.state.picks = sanitizePicks(p.picks); reread = true; }", "if (\"picks\" in p) { reread = true; }")],
   ["a failed re-read is passed off as the answer to the click", "lib/desk/sheetActions.js", s => s.replace("else retrySave = { retry: true, retryAfterMs: null,", "else retrySave = null && { retry: true, retryAfterMs: null,")],
@@ -22,7 +27,7 @@ const MUT = [
   ["the page does not print the question under the tier", "public/js/deskvals.js", s => s.replace("if (cd.state === \"needs_choice\") inner += asksHtml(rd.market, dis) +", "if (cd.state === \"needs_choice\") inner += ")],
   ["the page does not print the question in the market", "public/js/deskvals.js", s => s.replace("inner += asksHtml(m, dis || \"\");", "")],
   ["the PDF does not mark the band", "lib/desk/reportPdf.js", s => s.replace("if (s.inBand != null) T(s.inBand ?", "if (false) T(s.inBand ?")],
-  ["the PDF leaves the empty evidence unexplained", "lib/desk/reportPdf.js", s => s.replace("else if (cd.selected && cd.carEvidenceNote) {", "else if (false) {")],
+  ["the PDF leaves the empty evidence unexplained", "lib/desk/reportPdf.js", s => s.replace("else if (cd.carEvidenceNote && (!cd.selected || !cd.noListing)) {", "else if (false) {")],
   ["the page has no draft button", "public/js/deskvals.js", s => s.replace("data-pdf=\"draft\"", "data-x=\"draft\"")]
 ];
 function copyTree(dst) {

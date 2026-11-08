@@ -53,7 +53,7 @@ const sh = await seed(store, { seat: "ava", org }); await run("sheet_open", { id
 const BIG = Array.from({ length: 31 }, (_, i) => ({ date: `2026-10-${String(30 - i % 28).padStart(2, "0")}`, venue: i % 2 ? "Bring a Trailer" : "Cars & Bids", price: 60000 + i * 1000, mileage: 20000 + i * 500, tier: 2, url: `https://example.test/sale/${i + 1}`, title: "x", half: null, mid: null }));
 const prices = BIG.map(c => c.price).sort((a, b) => a - b), medianPrice = prices[15];
 BIG[15].mid = "median"; const medianRow = BIG.find(c => c.price === medianPrice); medianRow.mid = "median"; BIG.forEach(c => { if (c !== medianRow) c.mid = null; });
-{ const s = await store.get(org, sh.id); s.read.market.comparables = BIG; s.read.market.startingFigure = medianPrice; s.read.condition = { ...s.read.condition, selected: 2, sameTierCount: 31, bandCount: 31, tooFew: false, carEvidence: { tier: 2, lines: [{ code: "service", points: 1, line: "The listing mentioned service records or a service history" }], source: "this car's last sale listing" } }; s.version = (s.version || 0) + 1; await store.put(org, s); }
+{ const s = await store.get(org, sh.id); s.read.market.comparables = BIG; s.read.market.startingFigure = medianPrice; s.read.market.meter = { scope: "tier", tier: 2, count: 31, low: medianPrice - 4000, p25: medianPrice - 2000, median: medianPrice, p75: medianPrice + 2000, high: medianPrice + 4000, lowPct: 30, p25Pct: 40, medianPct: 50, p75Pct: 60, highPct: 70, bandWidthPct: 40, axisMin: medianPrice - 10000, axisMax: medianPrice + 10000, step: 500, dots: [] }; s.read.condition = { ...s.read.condition, engineTier: 2, selected: 2, sameTierCount: 31, bandCount: 31, tooFew: false, carEvidence: { tier: 2, lines: [{ code: "service", points: 1, line: "The listing mentioned service records or a service history" }], source: "this car's last sale listing" } }; s.version = (s.version || 0) + 1; await store.put(org, s); }
 await run("sheet_save", { id: sh.id, patch: { mark: null } });
 { const s = await store.get(org, sh.id); s.read.market.comparables = BIG; s.read.market.startingFigure = medianPrice; s.state.tier = 2; s.state.mark = { mark: "plus", tier: 2, reason: "Cleaner than the middle car." }; s.state.decision = { ...dec("58000"), reasons: ["condition"], line: "Close inspection showed better paint.", guardLines: { start: "Reserve sits above the starting figure on purpose." } }; await store.put(org, s); }
 const f = await run("sheet_finalise", { id: sh.id }); ok(f.ok, "finalised for the proof: " + (f.why || ""));
@@ -76,17 +76,17 @@ ok(fs.existsSync("docs/supabase-desk-brand-color.sql") && /enable row level secu
 // ---------- C. proof of the number
 const rows = BIG.length;
 ok(BIG.every(c => text.includes(c.url.replace(/^https?:\/\//, "").slice(0, 34))), "every one of the " + rows + " sales is in the PDF with its link (no cut at 24)");
-ok(/\| MEDIAN \| example\.test\/sale\/\d+/.test(text) && new RegExp("starting figure \\$" + medianPrice.toLocaleString("en-US") + " is the median of the 31 sales", "i").test(text.replace(/\s+/g, " ")), "the PDF marks the median and says the starting figure is the median of the pool");
+ok(/\| MEDIAN \| example\.test\/sale\/\d+/.test(text) && new RegExp("engine median \\$" + medianPrice.toLocaleString("en-US") + " is taken from the 31 sales", "i").test(text.replace(/\s+/g, " ")), "the PDF marks the median and says the engine median is taken from the pool");
 ok(text.includes(CT.TIER_LADDER[2].line) || text.includes(CT.TIER_LADDER[2].line.slice(0, 20)), "the PDF has the tier's ladder line");
 ok(/The listing mentioned service records/.test(text), "the PDF has the evidence lines the engine counted");
-ok(/Engine: tier 2\. Analyst: 2 plus/.test(text) && /Cleaner than the middle car/.test(text), "the PDF has the analyst's mark and reason");
+ok(/Engine: tier 2\. Analyst: tier 2 plus/.test(text) && /Cleaner than the middle car/.test(text), "the PDF has the analyst's mark and reason");
 ok(/Close inspection showed better paint/.test(text) && /Reserve sits above the starting figure on purpose/.test(text) && /Condition better or worse/.test(text), "the PDF has the reasons, the reasoning and the guard line");
 { const odd = SR.middleFinder([10, 20, 30].map(price => ({ price })), true), even = SR.middleFinder([10, 20, 30, 40].map(price => ({ price })), true);
   ok([10, 20, 30].map(p => odd({ price: p })).join() === ",median," && [10, 20, 30, 40].map(p => even({ price: p })).join() === ",middle,middle,", "the engine pool's median is marked (odd) or its two middle sales (even)"); ok(SR.middleFinder([{ price: 1 }], false)({ price: 1 }) === null, "no tier pool, no median mark"); }
 ok(!/comparables[^;]{0,60}slice\(0, ?12\)/.test(page) && /c\.mid/.test(page) && /esc\(rd\.condition\.proofLine\) \+ " The sale marked Median/.test(page) && /c\.inBand/.test(page), "the page lists the whole pool, marks the median and names the starting figure as that median");
 ok(/cardsOf\.slice\(0, MAX_PROOF_ROWS\)/.test(fs.readFileSync("lib/sheetRead.js", "utf8")), "the read carries the whole pool: the tier pool, or the whole body pool when the tier holds under five (never a handful)");
 ok(!/<ol class="ladder"/.test(page) && /<ul class="ladder"/.test(page), "the ladder is not numbered past 4: Untiered is not a fifth rung");
-ok(/m\.startingFigure && rd\.condition\.proofLine/.test(page), "the proof sentence prints only when the engine gave the pool count (never 'n/a sales')");
+ok(/m\.meter && m\.meter\.scope === "tier" && rd\.condition\.proofLine/.test(page), "the proof sentence prints only when the engine gave the pool count (never 'n/a sales')");
 ok(SR.MAX_PROOF_ROWS >= 300, "the read carries the whole same tier pool (up to " + SR.MAX_PROOF_ROWS + " sales)");
 
 // ---------- D. my reports

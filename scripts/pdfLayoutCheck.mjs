@@ -15,7 +15,7 @@ async function finalised({ org = "pdf-org", note = "Thank you for sending your c
   const store = memoryStore(), cx = s => ({ now: "2026-11-04T12:00:00.000Z", env: {}, org, seat: s || seat, store, orgSettings: ORG, send: async () => ({ ok: true }) });
   const sh = await seed(store, { seat, org }); const s0 = await store.get(org, sh.id); s0.submission.photos = [{ id: "p1", name: "front.jpg", url: JPG }, { id: "p2", name: "rear.png", url: LOGO }, { id: "p3", name: "dash.jpg", url: JPG }]; await store.put(org, s0);
   await handleSheetAction("sheet_open", { id: sh.id }, cx());
-  await handleSheetAction("sheet_save", { id: sh.id, patch: { tier: 2, photosSelected: ["p1", "p2"], heroId: "p1", pinned: "What did Elevens sell for last month?", checklist: { title: { state: "Seen", line: "Clean" }, modifications: { state: "Seen", choice: "Stock" }, service: { state: "Not supplied", line: "" } }, decision: { mode: "range", low: "67000", high: "70500", reasons: [], otherText: "", line: "", guardLines: {}, note } } }, cx());
+  await handleSheetAction("sheet_save", { id: sh.id, patch: { tier: 2, photosSelected: ["p1", "p2"], heroId: "p1", pinned: "What did Elevens sell for last month?", checklist: { title: { state: "Seen", line: "Clean" }, modifications: { state: "Seen", choice: "Stock" }, service: { state: "Not supplied", line: "" } }, decision: { mode: "range", low: "67300", high: "70500", reasons: [], otherText: "", line: "", guardLines: {}, note } } }, cx());
   const f = await handleSheetAction("sheet_finalise", { id: sh.id }, cx()); if (!f.ok) throw new Error("finalise: " + f.why);
   return { store, cx, id: sh.id, sheet: await store.get(org, sh.id), org };
 }
@@ -32,8 +32,8 @@ const heads = pages.map(p => (p.find(x => /^\d\d|^N  /.test(x)) || "").replace(/
 const idx = ORDER.map(firstOf); ok(idx.every((x, i) => x >= 0 && (i === 0 || x > idx[i - 1])), `each part starts a page, in order (pages ${idx.join(", ")})`);
 ok(pages.length === rep.pages && rep.pages >= 11, `${rep.pages} pages`);
 // the decision part: market range, starting figure, reserve or range given, reasons: in that order
-{ const dp = pages[firstOf("Decision")].join("\n"), a = dp.indexOf("MARKET RANGE"), b = dp.indexOf("STARTING FIGURE"), c = dp.search(/RANGE GIVEN|RESERVE GIVEN/); ok(a >= 0 && b > a && c > b, "the decision prints the market range, the starting figure, then the reserve or range given"); }
-ok(/Question asked of the Desk/i.test(all) && /What did Elevens sell for last month\?/.test(all), "a question pinned to the sheet prints on the report");
+{ const dp = pages[firstOf("Decision")].join("\n"), a = dp.indexOf("MARKET RANGE"), b = dp.indexOf("ENGINE MEDIAN"), c = dp.search(/RANGE GIVEN|RESERVE GIVEN/); ok(a >= 0 && b > a && c > b, "the decision prints the market range, the engine median, then the reserve or range given"); }
+ok(/Question for the seller/i.test(all) && /What did Elevens sell for last month\?/.test(all), "a question pinned to the sheet prints on the report");
 // the comparables page prints each row exactly as the frozen read carries it, cell by cell, newest first (a small figure that happens to match a date part cannot hide a changed one)
 { const cp = pages[firstOf("Comparables")], at = cp.indexOf("LINK") + 1, rows = A.sheet.read.market.comparables, usd = n => "$" + Math.round(n).toLocaleString("en-US");
   const want = rows.flatMap(c => [c.date, c.venue, usd(c.price), Number(c.mileage).toLocaleString("en-US"), String(c.tier == null ? "-" : c.tier), ...(c.mid ? [c.mid === "median" ? "MEDIAN" : "MIDDLE"] : []), String(c.url).replace(/^https?:\/\//, "").slice(0, 34)]);
