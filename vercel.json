@@ -203,7 +203,7 @@
       "includeFiles": "data/whatsNew.json"
     },
     "api/crewPage.js": {
-      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json}"
+      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**}"
     },
     "api/publicConfig.js": {
       "includeFiles": "public/onebox.html"
