@@ -864,6 +864,34 @@ try {
 } catch (e) {
   record("prewarYearlessCheck (scripts/prewarYearlessCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// smallLabelsCheck (Lane B, Nov 6 2026): a numeric nameplate carries its make in the label (the Delahaye 135), the Auburn Speedster is one body by its titles, the comparing line names the years the answer used (the 1998 Carrera 4 Cabriolet); mutants in scripts/smallLabelsCheck.mjs --mutants.
+try {
+  const out = execSync("node scripts/smallLabelsCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("smallLabelsCheck (scripts/smallLabelsCheck.mjs)", "PASS", (out.match(/smallLabelsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("smallLabelsCheck (scripts/smallLabelsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// oneOptionPoolCheck (Lane B, Nov 6 2026): the question rule never drops a body the pool shows (the live 1963 Corvette: "Only the Convertible" over 31 coupes and 14 convertibles); a decision expires with its row; a failed option read is unknown, never zero; the four products read the same 45; mutants in scripts/oneOptionPoolCheck.mjs --mutants.
+try {
+  const out = execSync("node scripts/oneOptionPoolCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("oneOptionPoolCheck (scripts/oneOptionPoolCheck.mjs)", "PASS", (out.match(/oneOptionPoolCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("oneOptionPoolCheck (scripts/oneOptionPoolCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// warmResolveCheck (Lane B, Nov 6 2026): the warm resolves a typed name the way the page does (the six pre-war cars the warm refused as rung_label_blank were an identity with no model, not an apart answer with no label); the guard names the cause; no warm uses the bare resolver; mutants in scripts/warmResolveCheck.mjs --mutants.
+try {
+  const out = execSync("node scripts/warmResolveCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("warmResolveCheck (scripts/warmResolveCheck.mjs)", "PASS", (out.match(/warmResolveCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("warmResolveCheck (scripts/warmResolveCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// liveExamplesCheck (Lane B, Nov 7 2026): the Find examples (up to three live cars, different makes, soldBefore only on a VIN-confirmed completed sale, stable while live), the Tasks watching card (a different make from the Tasks example, status only within 24 hours, no reminder claim) and tasksDemo.shortRequest; crew gated; mutants in scripts/liveExamplesCheck.mjs --mutants.
+try {
+  const out = execSync("node scripts/liveExamplesCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("liveExamplesCheck (scripts/liveExamplesCheck.mjs)", "PASS", (out.match(/liveExamplesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("liveExamplesCheck (scripts/liveExamplesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });

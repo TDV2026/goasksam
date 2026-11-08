@@ -25,19 +25,24 @@ async function measure(html, w) { const p = await b.newPage(); await p.setViewpo
   await p.close(); return m; }
 for (const w of [1920, 1440, 1024, 768, 390]) {
   const ms = []; for (const [n, html] of PAGES) ms.push([n, await measure(html, w)]);
-  const ref = ms[0][1], same = (k, f) => ms.every(([, m]) => f(m) === f(ref));
-  ok(same("logo", m => m.logo.x + "," + m.logo.y + "," + m.logo.w + "," + m.logo.h), `@${w}: the logo is in one position on every page (${ms.map(([n, m]) => n + " " + m.logo.x + "," + m.logo.y).join("; ")})`);
-  ok(same("nav", m => m.nav.x + "," + m.nav.y + "," + m.nav.r), `@${w}: the nav is in one position on every page`);
-  ok(same("hdr", m => m.hdr.h + "," + m.hdr.w), `@${w}: the header is one height on every page (${ref.hdr.h}px)`);
-  ok(same("tabs", m => m.tabsX.join(",") + "|" + m.tabsY.join(",")), `@${w}: every nav item is at the same place on every page`);
-  ok(same("fw", m => m.fw), `@${w}: the footer wordmark is at the same place on every page`);
-  const find = ms[0][1]; if (w > 860) ok(find.newX === find.logo.x, `@${w}: Find's "+ New search" starts exactly where the logo starts (${find.newX} v ${find.logo.x})`);
+  // THE WORKSPACE LAYOUT (Sam, Nov 6 2026): on desktop Find's logo, "+ New search" and footer wordmark sit in one 28px left gutter; every other page keeps the 40px wrap, and below 860px all pages are the same. The top right nav, the header height and the nav items never move.
+  const WS = w > 860, others = ms.filter(([n]) => n !== "find"), ref = others[0][1], same = (k, f) => others.every(([, m]) => f(m) === f(ref)), allSame = (k, f) => ms.every(([, m]) => f(m) === f(ms[0][1]));
+  const lg = m => m.logo.x + "," + m.logo.y + "," + m.logo.w + "," + m.logo.h, find0 = ms[0][1];
+  ok(same("logo", lg), `@${w}: the logo is in one position on every page but Find (${others.map(([n, m]) => n + " " + m.logo.x + "," + m.logo.y).join("; ")})`);
+  ok(WS ? (find0.logo.x === 28 && find0.logo.y === ref.logo.y && find0.logo.w === ref.logo.w && find0.logo.h === ref.logo.h) : lg(find0) === lg(ref), `@${w}: Find's logo is ${WS ? "in the 28px workspace gutter, the same height and size" : "where every other page has it (the gutter is desktop only)"} (${find0.logo.x} v ${ref.logo.x})`);
+  ok(allSame("nav", m => m.nav.x + "," + m.nav.y + "," + m.nav.r), `@${w}: the nav is in one position on every page`);
+  ok(allSame("hdr", m => m.hdr.h + "," + m.hdr.w), `@${w}: the header is one height on every page (${ref.hdr.h}px)`);
+  ok(allSame("tabs", m => m.tabsX.join(",") + "|" + m.tabsY.join(",")), `@${w}: every nav item is at the same place on every page`);
+  ok(same("fw", m => m.fw) && (WS ? find0.fw === find0.logo.x : find0.fw === ref.fw), `@${w}: the footer wordmark is at the same place on every page but Find, where it starts on the logo\'s edge (${find0.fw} v ${find0.logo.x})`);
+  const find = find0; if (w > 860) ok(find.newX === find.logo.x, `@${w}: Find's "+ New search" starts exactly where the logo starts (${find.newX} v ${find.logo.x})`);
   ok(ms.every(([, m]) => !m.hscroll), `@${w}: no horizontal scroll`);
   ok(ms.filter(([, m]) => m.cur).every(([n, m]) => /rgb\(248, 244, 236\)/.test(m.cur.bg)) && ms.find(([n]) => n === "market-check")[1].cur.t === "Market Check" && ms.find(([n]) => n === "sell")[1].cur.t === "Sell", `@${w}: the selected page keeps the cream pill`);
   if (w <= 860) ok(ms.every(([, m]) => m.nav.r <= m.vw + 0.5 && m.nav.x >= 0), `@${w}: the mobile nav fits the screen on every page`);
 }
-// mutants: the old Find layout (the shell outside the wrap, the rail inset 20px) and a header with its own padding are caught
-{ const old = lastStyle(PP.findHtml().replace('class="shell wrap"', 'class="shell"'), ".rail{padding-left:20px}"), m = await measure(old, 1440), m2 = await measure(old, 1920); ok(m.newX !== m.logo.x && m2.newX !== m2.logo.x, `mutant: the old Find layout (rail outside the header's wrap) is caught (${m.newX} v ${m.logo.x} at 1440, ${m2.newX} v ${m2.logo.x} at 1920)`);
+// mutants: the 28px gutter taken away (Find falls back to the 40px wrap) and the old Find layout (the shell outside the wrap, the rail inset 20px) and a header with its own padding are caught
+{ const noWs = await measure(PP.findHtml().replace(".gh .wrap,.ft .wrap,.shell.wrap{max-width:none;padding-left:28px}", ""), 1440); ok(noWs.logo.x !== 28, `mutant: without the workspace gutter rule the logo is not at 28 (${noWs.logo.x})`);
+  const btn = await measure(lastStyle(PP.findHtml(), ".rail{padding-left:12px}"), 1440); ok(btn.newX !== btn.logo.x, "mutant: a rail that insets its own button is caught (the button and the logo must start together)");
+  const old = lastStyle(PP.findHtml().replace('class="shell wrap"', 'class="shell"'), ".rail{padding-left:20px}"), m = await measure(old, 1440), m2 = await measure(old, 1920); ok(m.newX !== m.logo.x && m2.newX !== m2.logo.x, `mutant: the old Find layout (rail outside the header's wrap) is caught (${m.newX} v ${m.logo.x} at 1440, ${m2.newX} v ${m2.logo.x} at 1920)`);
   const pad = await measure(lastStyle(PP.findHtml(), ".gh .wrap{padding-left:60px}"), 1440), base = await measure(PP.findHtml(), 1440); ok(pad.logo.x !== base.logo.x, "mutant: a page that pads its own header moves the logo and is told apart");
   const hh = await measure(lastStyle(stand("sell"), ".gh .wrap{height:90px}"), 1440); ok(hh.hdr.h !== base.hdr.h, "mutant: a page with its own header height is told apart"); }
 await b.close();

@@ -44,6 +44,7 @@ const REGISTRY = [
   ["lib/sell/sellFacts.js", /Promise\.race\(\[Promise\.resolve\(\)\.then\(\(\) => fn\(/, A, "capped(): a piece with opts.abort (the sold-through reads) is stopped past its cap; the other pieces keep going on purpose"],
   ["api/pullLive.js", /Promise\.race\(\[refreshFeaturedHistory\(env\)/, P, "crew-only stored pick (Homepage feature): the refresh reads live_listings and the car's own history, then writes ONE stored row; past the 40 s it finishes behind the response and stores its row, and the response carries a word, never the car; zero OldCarsData"],
   ["api/pullLive.js", /Promise\.race\(\[refreshTasksDemo\(env\)/, P, "crew-only stored pick (Tasks centrepiece): same shape, finishes behind the response and stores its row; a word in the response, zero OldCarsData"],
+  ["api/pullLive.js", /Promise\.race\(\[m\[fn\]\(env\)/, P, "crew-only stored picks (the Find examples and the Tasks watching card): same shape, each finishes behind the response and stores its row; a word in the response, zero OldCarsData"],
   ["lib/live/search.js", /Promise\.race\(\[pick\(\)\.catch/, N, "readBackQuery: the resolver read-back of the question through specOf (a keyed spec read), 3 s, remembers nothing late; not an archive pool read"],
   ["lib/tasks/fullCards.js", /Promise\.race\(\[all,/, P, "each card's read keeps running (listingMarket keepAlive)"],
   ["lib/tasks/tasks.js", /parseQueryResolved/, N, "a parse"],

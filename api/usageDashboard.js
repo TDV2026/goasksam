@@ -2153,7 +2153,7 @@ async function handleOps(req, res) {
   }
   // task=crewkeys (Lane B, Nov 6 2026; READ-ONLY, zero OldCarsData, zero writes): what the two crew keys (the Homepage history pick and the Tasks demo pick) hold now: held or not, the car, the request and criteria, the earlier record, when it was
   // selected and last checked. &funnel=1 also runs each refresh's selection on the live pool with the stored pick hidden and nothing written, and returns the counts at each step (live, with a VIN, with an earlier record, screened, eligible,
-  // tried, and why each tried car failed). Lane F reads it. Behind the header credential like every ops task.
+  // tried, and why each tried car failed; the Find examples and the watching card too). Lane F reads it. Behind the header credential like every ops task. Writes nothing to the crew keys or anywhere else; the Task matcher the Tasks example's funnel runs may fill the market CACHE (spec_market_cache) in the background for the cars it matches, as it does for any search.
   if (task === "crewkeys") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { crewKeysReport } = await import("./pullLive.js");

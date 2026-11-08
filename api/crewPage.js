@@ -9,7 +9,7 @@ import { isTesterRequest } from "../lib/_tester.js";
 import { sendDisguisedNotFound } from "../lib/_notFound.js";
 import { resolveSeatCookie } from "../lib/desk/seatCookie.js";
 import { resolveViewAs } from "../lib/desk/viewAs.js";
-import { PREVIEW_PAGES, homeHtmlFor } from "../lib/preview/previewPages.js";
+import { PREVIEW_PAGES, homeHtmlFor, findHtml } from "../lib/preview/previewPages.js";
 import { tasksPublicHtml, crewLimitMax } from "../lib/preview/tasksPreview.js";
 import { tasksMineHtml, previewTasksApi } from "../lib/preview/tasksMine.js";
 import { renderDeskPreview, previewDeskApi } from "../lib/preview/deskPreview.js";
@@ -18,8 +18,13 @@ export const FEATURED = { read: async req => { const { historyEnv } = await impo
 // A page is a file in lib/crewPages/ or a render function (the design previews /preview/home and /preview/find, built from the engine's approved copy at request time). hiddenCrewCheck reads this list, so a page added here is covered by it.
 // The Tasks redesign (crew only, not live): the public page reads Lane B's demo field when lib/live/tasksDemo.js exists (tasksDemo(env, req) -> the field or null) and the crew limit when Lane S's exists; otherwise the centrepiece is hidden and the live limit is printed.
 export const TASKS_DEMO = { read: async req => { try { const { historyEnv } = await import("./_historyData.js"), env = historyEnv(); if (!env) return null; const m = await import("../lib/live/tasksDemo.js"); return typeof m.tasksDemo === "function" ? await m.tasksDemo(env, req) : null; } catch { return null; } }, now: () => Date.now() };
-const tasksPublicFor = async req => { let demo = null; try { demo = await TASKS_DEMO.read(req); } catch { demo = null; } return tasksPublicHtml({ max: await crewLimitMax(), demo, now: TASKS_DEMO.now() }); };
-export const PAGES = { "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-desk": { render: renderDeskPreview }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: FEATURED.read, now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"] } };
+// The two new engine fields (Lane B, NEEDED FROM LANE B in docs/lane-notes.md): lib/live/findExamples.js findExamples(env, req) -> the list or null, and lib/live/watchingDemo.js watchingDemo(env, req) -> the field or null. Each is read only when its module exists, crew only; a missing module, a throw or null leaves its section hidden.
+const readField = async (file, fn, req) => { try { const { historyEnv } = await import("./_historyData.js"), env = historyEnv(); if (!env) return null; const m = await import(file); return typeof m[fn] === "function" ? await m[fn](env, req) : null; } catch { return null; } };
+export const FIND_EXAMPLES = { read: req => readField("../lib/live/findExamples.js", "findExamples", req), now: () => Date.now() };
+export const WATCHING_DEMO = { read: req => readField("../lib/live/watchingDemo.js", "watchingDemo", req), now: () => Date.now() };
+const tasksPublicFor = async req => { let demo = null, watching = null; try { demo = await TASKS_DEMO.read(req); } catch { demo = null; } try { watching = await WATCHING_DEMO.read(req); } catch { watching = null; } return tasksPublicHtml({ max: await crewLimitMax(), demo, watching, now: TASKS_DEMO.now() }); };
+const findFor = async req => { let examples = null; try { examples = await FIND_EXAMPLES.read(req); } catch { examples = null; } return findHtml({ examples, now: FIND_EXAMPLES.now() }); };
+export const PAGES = { "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-desk": { render: renderDeskPreview }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: FEATURED.read, now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"], renderAsync: findFor } };
 export default async function handler(req, res) {
   const name = String((req.query && req.query.page) || "").toLowerCase(), p = PAGES[name];
   if (name === "preview-tasks-api") {   // the Tasks preview's own door: crew only, POST only; the live handler answers (lib/preview/tasksMine.js)

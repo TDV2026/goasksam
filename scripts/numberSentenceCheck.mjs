@@ -48,7 +48,7 @@ const figHits = []; for (const f of previewFiles) { const h = figureHits(fs.read
 ok("no crew preview file formats a figure or writes a figure sentence (the engine's lines are printed as given)", figHits.length === 0, figHits.join(" | "));
 ok("the sweep catches each line written inline (mutants: usd and miles formatters, and one per Tasks line: Current bid, miles, Previously sold for, miles at that sale)", figureHits('const usd = n => "$" + Number(n).toLocaleString("en-US");').length >= 2 && figureHits('const miles = x => Number(x).toLocaleString("en-US") + " miles";').length >= 1 && [["Current bid", "`Current bid ${usd(c.bid)}`"], ["car miles", '`${c.miles} miles`.replace(/x/, "y") + " miles"'], ["Previously sold for", "`Previously sold for ${esc(usd(p.price))}`"], ["at that sale", "`${p.miles} miles at that sale`"]].every(([, src]) => figureHits(src).length >= 1));
 const prevSrc = fs.readFileSync("lib/preview/previewPages.js", "utf8") + fs.readFileSync("lib/preview/tasksPreview.js", "utf8");
-ok("the previews print the engine's lines", ["priceLine", "mileageLine", "nowLine"].every(f => prevSrc.includes(f)));
+ok("the previews print the engine's lines", ["priceLine", "mileageLine", "nowLine", "priceLabel", "timeLine"].every(f => prevSrc.includes(f)));
 const page = fs.readFileSync("public/js/onebox.js", "utf8");
 ok("the page prints the engine fields", ["priorYearLine", "lastSaleLine", "soldBefore.line", "distSubLine", "fb.line", "priorSaleLine"].every(f => page.includes(f)) && fs.readFileSync("lib/sellsForCard.js", "utf8").includes("latestQuarterLine"));
 // ratchet: the label sites are the only number-with-words builds on the page

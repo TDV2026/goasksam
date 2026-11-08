@@ -7,7 +7,7 @@ import { pathToFileURL } from "node:url";
 const ROOT = path.resolve(new URL("..", import.meta.url).pathname); process.chdir(ROOT);
 const puppeteer = createRequire(path.join(ROOT, "package.json"))("puppeteer-core");
 const imp = f => import(pathToFileURL(path.join(ROOT, f)).href);
-const { tasksPublicHtml } = await imp("lib/preview/tasksPreview.js"), { tasksMineHtml } = await imp("lib/preview/tasksMine.js"), { demoFixture, tasksFixture, lookingFixture, NOW } = await imp("scripts/tasksFixture.mjs");
+const { tasksPublicHtml } = await imp("lib/preview/tasksPreview.js"), { tasksMineHtml } = await imp("lib/preview/tasksMine.js"), { demoFixture, watchingFixture, tasksFixture, lookingFixture, NOW } = await imp("scripts/tasksFixture.mjs");
 const OUT = path.resolve(process.argv[2] || "docs/design/preview"); fs.mkdirSync(OUT, { recursive: true });
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
@@ -24,10 +24,12 @@ async function open(html, width, { signedIn = false, mine = false } = {}) {
   await p.goto("https://goasksam.com/preview/tasks" + (mine ? "/mine" : ""), { waitUntil: "networkidle2" }).catch(() => {}); await new Promise(r => setTimeout(r, 500)); return p;
 }
 const shot = async (p, name, w) => { const h = await p.evaluate(() => Math.max(innerHeight, document.documentElement.scrollHeight)); await p.setViewport({ width: w, height: Math.min(h, 7000) }); await new Promise(r => setTimeout(r, 200)); await p.screenshot({ path: path.join(OUT, `${name}-${w}.png`) }); };
-const PUB = tasksPublicHtml({ max: 10 }), PUBDEMO = tasksPublicHtml({ max: 10, demo: demoFixture(), now: NOW, allowData: true }), MINE = tasksMineHtml();
+const PUB = tasksPublicHtml({ max: 10 }), PUBDEMO = tasksPublicHtml({ max: 10, demo: demoFixture(), watching: watchingFixture(), now: NOW, allowData: true }), PUBTASK = tasksPublicHtml({ max: 10, demo: demoFixture(), now: NOW, allowData: true }), PUBWATCH = tasksPublicHtml({ max: 10, watching: watchingFixture(), now: NOW, allowData: true }), MINE = tasksMineHtml();
 for (const w of [1440, 1024, 768, 390]) {
   let p = await open(PUB, w); await shot(p, "tasks-public", w); await p.close();
   p = await open(PUBDEMO, w); await shot(p, "tasks-public-demo", w); await p.close();
+  p = await open(PUBTASK, w); await shot(p, "tasks-public-task-only", w); await p.close();
+  p = await open(PUBWATCH, w); await shot(p, "tasks-public-watching-only", w); await p.close();
   p = await open(MINE, w, { signedIn: true, mine: true }); await shot(p, "tasks-mine", w);
   await p.evaluate(() => document.querySelector('[data-tab="watching"]').click()); await new Promise(r => setTimeout(r, 300)); await shot(p, "tasks-mine-watching", w); await p.close();
 }

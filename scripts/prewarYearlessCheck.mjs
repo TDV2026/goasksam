@@ -14,6 +14,10 @@ if (process.argv.includes("--mutants")) {
   const { spawnSync } = await import("node:child_process"), fsm = await import("node:fs"), osm = await import("node:os");
   const R = path.resolve(process.argv.find((x, i) => i > 1 && !x.startsWith("--")) || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
   const muts = [
+    ["lib/onebox.js", " || (row && row._pwPool === true)) && /^(roadster|cabriolet|convertible)$/", ") && /^(roadster|cabriolet|convertible)$/", "the body key follows the row's own year, so a pool across 1949 lists Cabriolet twice"],
+    ["lib/onebox.js", "for (const r of chosen.rows) if (r && typeof r === \"object\") r._pwPool = pw;", "", "the pool's era is never marked on its rows"],
+    ["lib/onebox.js", "result.rungLabel = loA != null && hiA != null && loA !== hiA ? `${nameplate || spec.make}, ${loA} to ${hiA}` : (nameplate || spec.make);", "result.rungLabel = nameplate || spec.make;", "a query with no year prints no years in its label"],
+    ["lib/onebox.js", "else if (!m && p0 !== p1 && /with equivalent (?!\\d{4})/.test(result.resolvedSpec)) result.resolvedSpec =", "else if (false) result.resolvedSpec =", "a query with no year prints no years in its comparing line"],
     ["lib/onebox.js", "if (ys.length) return ys[Math.floor((ys.length - 1) / 2)] < PREWAR_BEFORE;", "if (ys.length) return ys[ys.length - 1] < PREWAR_BEFORE;", "the pool's NEWEST year decides (the live Delahaye bug)"],
     ["lib/onebox.js", "const preWarCar = (vehicle, generation, d) => isPreWarPool({ year: vehicle && vehicle.year, rows: d && d.rawPool, poolYears: d && d.poolYears, genEnd: generation && generation.yearEnd });", "const preWarCar = (vehicle, generation, d) => isPreWarPool({ year: vehicle && vehicle.year, genEnd: generation && generation.yearEnd });", "the body question ignores the pool's years"],
     ["lib/onebox.js", "poolYears: poolYearsOfRows(result.rawPool || []), wideSpread: true", "wideSpread: true", "the wide-spread body question carries no pool years"],
@@ -74,18 +78,45 @@ const CARS = [
   ["Alfa Romeo", "8C 2900", 1938, [[1937, "Spider", 11000000, 2], [1938, "Coupe", 9000000, 2], [1939, "Berlinetta", 8500000, 1], [1949, "Coupe", 600000, 2]]],
   ["Rolls-Royce", "Phantom III", 1937, [[1936, "Sedan", 110000, 4], [1937, "Convertible", 90000, 3], [1938, "Cabriolet", 260000, 3], [1939, "Coupe", 200000, 2]]],
   ["Bentley", "8 Litre", 1931, [[1931, "Sedan", 100000, 6], [1932, "Coupe", 210000, 6]]],   // two tight ranges far apart
+  // post-war controls (the other three of the Rick five): bodies priced alike, so only the pre-war rule could put them apart; it must NOT fire
+  ["Rolls-Royce", "Silver Wraith", 1953, [[1950, "Sedan", 70000, 4], [1952, "Cabriolet", 72000, 3], [1955, "Sedan", 69000, 3], [1958, "Cabriolet", 71000, 3]], "post"],
+  ["Alfa Romeo", "Giulia GTA", 1966, [[1965, "Coupe", 600000, 4], [1966, "Coupe", 610000, 4], [1967, "Coupe", 620000, 3]], "post"],
+  ["Ford", "Mustang V8", 1965, [[1965, "Coupe", 30000, 5], [1965, "Convertible", 30500, 4], [1965, "Fastback", 30200, 3]], "post"],
   ["Ford", "Model 40", 1934, [[1934, "Roadster", 60000, 4], [1934, "Coupe", 40000, 4], [1935, "Phaeton", 70000, 3], [1937, "Sedan", 30000, 3]]]
 ];
-const RICK = new Set(["135", "851", "Model J", "Twelve", "Type 57"]);
+const RICK = new Set(["135", "Twelve", "Silver Wraith", "Giulia GTA", "Mustang V8"]);   // the real five (Sam, Nov 6 2026): only the Packard and the Delahaye are pre-war; the other three are post-war controls that must not trigger the rule
 const build = sales => { rows = []; let i = 0; for (const [yr, body, base, cnt] of sales) for (let k = 0; k < cnt; k++) { const before = rows.length; sale(yr, body, base + (k % 4) * 900, 20 + ((i++) % 12) * 9); } };   // every sale inside one window, so a bare and a year query read the same sales
 const read = async (make, model, year, sales) => { globalThis.CAR = { make, model }; build(sales); const veh = { year: year || null, make, model }, q = `${year ? year + " " : ""}${make} ${model}`; const gen = year ? await findGeneration({ year, make, model }, env).catch(() => null) : null; return E.withReadFields((await E.oneEngineAnswer({ ...veh, raw: q }, gen, q, { ...env, asked: 0 }, null)).raw, q, veh); };
 const bodiesIn = sales => { const m = new Map(); for (const [, b, , c] of sales) if (b) m.set(b, (m.get(b) || 0) + c); return m; };
 const ANSWERS = [];
-for (const [make, model, year, sales] of CARS) {
+for (const [make, model, year, sales, era] of CARS) {
   globalThis.HOUSE = null;
   const bare = await read(make, model, null, sales), asked = await read(make, model, year, sales), tag = `${make} ${model}`;
   const poolBodies = bodiesIn(sales), twoBodies = poolBodies.size >= 2;
+  if (era === "post") {   // a post-war control: the pre-war rule must not fire, bare or asked
+    const fired = x => !!(x.pooledApart && x.pooledApart.test === "prewar_any_size") || /pw_/.test(JSON.stringify((x.options || []).map(o => o.value)));
+    ok(`${tag} (post-war control${RICK.has(model) ? ", Rick" : ""}): the pre-war rule does not fire, bare or with the year`, !fired(bare) && !fired(asked), JSON.stringify([bare.optionsState, (bare.options || []).map(o => o.value), asked.optionsState]));
+    continue;
+  }
   ANSWERS.push({ tag, rick: RICK.has(model), bare, asked });
+  { // THE YEARS A LINE PRINTS ARE THE YEARS OF THE POOL IT COUNTS (Nov 6 2026): the bare Delahaye 135 counts 1937 to 1949 and says so in its label, scope line and comparing line; the year query counts 1937 to 1938 and says that. The two differ because they count different pools; each agrees with its own.
+    const yrs = t => (String(t || "").match(/\b(1[89]\d\d|20\d\d)\b/g) || []).map(Number);
+    for (const [kind, x] of [["bare", bare], ["asked", asked]]) {
+      const [p0, p1] = x.poolYears || [], spec = String(x.resolvedSpec || ""), eq = spec.includes("equivalent") ? spec.slice(spec.indexOf("equivalent")) : "";
+      const bad = [["label", x.rungLabel], ["scope line", String(x.scopeLine || "").split("·")[0]], ["comparing line", eq]].filter(([, t]) => { const y = yrs(t); return y.length && (!y.every(v => v === p0 || v === p1) || (p0 !== p1 && !(y.includes(p0) && y.includes(p1)))); }).map(([n, t]) => n + ": " + t);
+      const need = p0 !== p1 ? [["label", x.rungLabel], ["comparing line", eq]].filter(([, t]) => !(yrs(t).includes(p0) && yrs(t).includes(p1))).map(([n, t]) => n + " names no years: " + t) : [];
+      ok(`${tag} (${kind}): every year printed is the pool's (${p0}${p1 !== p0 ? " to " + p1 : ""}), and a pool of several years says so in the label and the comparing line`, bad.length === 0 && need.length === 0, bad.concat(need).slice(0, 3).join(" || "));
+      ok(`${tag} (${kind}): the scope line never says "opens"`, !/\bopens?\b/i.test(String(x.scopeLine || "")) && !/\bopens?\b/i.test(String(x.rungLabel || "")), String(x.scopeLine));
+    }
+  }
+  { // ONE OPTION PER BODY, AND ITS CHIP OPENS ITS ROWS (Nov 6 2026): a pool across 1949 lists Cabriolet once, and the option's own refine opens exactly the sales it counts
+    const labs = (bare.options || []).map(o => o.label);
+    ok(`${tag}: each body is listed once (${labs.join(", ")})`, new Set(labs).size === labs.length, labs.join(" | "));
+    const q = `${make} ${model}`; let bad = [];
+    // a THIN pool's option is a count line with its own sales (saleIds): picking it heads the page, it filters nothing (already so before this check); the chip filters where the answer is a result
+    for (const o of (bare.tier === "result" ? (bare.options || []) : [])) { if (!o.refine) continue; build(sales); globalThis.CAR = { make, model }; const op = (await E.oneEngineAnswer({ make, model, year: null, raw: q }, null, q, { ...env, asked: 1 }, o.refine)).raw; const n = Number(op && op.poolN) || (Array.isArray(op && op.rawPool) ? op.rawPool.length : 0) || (Array.isArray(op && op.cards) ? op.cards.length : 0); if (n !== o.n) bad.push(`${o.label} counts ${o.n}, opens ${n}`); }
+    ok(`${tag}: every option's chip opens exactly the sales it counts`, bad.length === 0, bad.join("; "));
+  }
   ok(`${tag}: the bare query shows the bodies apart (${poolBodies.size} bodies in its pool), no pooled headline`, !twoBodies || (bare.optionsState === "apart" && bare.headlineDimension === "body" && !bare.cluster && !(bare.referenceFigure > 0)), JSON.stringify({ tier: bare.tier, state: bare.optionsState, code: bare.noRangeCode, line: bare.noRangeLine, years: bare.poolYears }));
   ok(`${tag}: the bare query never says "Too few sales" beside bodies it could show apart`, !twoBodies || !/Too few sales of this car to show a range/.test(String(bare.noRangeLine || bare.thinLine || "")), String(bare.noRangeLine || bare.thinLine || ""));
   ok(`${tag}: the bare query's bodies and their counts are its own pool's (the options and the body-not-stated sales add up to the pool, one option per body family)`, !twoBodies || ((bare.options || []).reduce((t, o) => t + o.n, 0) + ((bare.bodyNotStated && bare.bodyNotStated.n) || ((bare.bodyOptions || []).find(o => o.value === "unspecified") || {}).n || 0) === (bare.rawPool || []).length && (bare.options || []).length >= 1), JSON.stringify((bare.options || []).map(o => o.label + " " + o.n)) + " pool " + (bare.rawPool || []).length);
