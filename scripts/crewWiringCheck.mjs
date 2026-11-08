@@ -31,16 +31,16 @@ R.live = await drive("api/crewPage.js", { find: liveFind(), email: emailEx() });
 ok(R.live.f.code === 200 && finds(R.live) === 3, "1 the engine answers live: /preview/find shows the three landing cards");
 ok(R.live.t.code === 200 && emails(R.live) === 1 && /Here&#39;s what happens when Sam finds a match|Here's what happens when Sam finds a match/.test(R.live.t.body) && /New since your last email/.test(R.live.t.body) && /1995 BMW M3 Coupe/.test(R.live.t.body), "1 the engine answers its stored update: /preview/tasks shows the one real Task match email");
 R.fb = await drive("api/crewPage.js", { find: { cars: [], fallback: fbFind() } });
-ok(finds(R.fb) === 0 && R.fb.f.code === 200, "2 only completed sales to show: the Find landing row (\"currently at auction\") is absent, not filled with sales");
+ok(finds(R.fb) === 3 && /data-fallback="3"/.test(R.fb.f.body) && R.fb.f.code === 200, "2 no live car qualifies: the Find landing row is filled with the engine's fallback sales (a blank row is worse than a sold car)");
 R.mix = await drive("api/crewPage.js", { find: { cars: liveFind().slice(0, 2), fallback: fbFind() } });
-ok(finds(R.mix) === 2, "2 two live cars show two cards (the fallback sales are not drawn)");
+ok(finds(R.mix) === 3 && /data-fallback="1"/.test(R.mix.f.body), "2 two live cars and one fallback sale make three cards");
 ok(emails(R.fb) === 0 && R.fb.t.code === 200 && /More than a saved search/.test(R.fb.t.body) && /Completely free/.test(R.fb.t.body), "2 no engine field for the email: the section is absent and the rest of the Tasks page stands");
 ok(R.live.fs.code === 404 && R.live.ts.code === 404 && !/data-find-examples|data-task-email/.test(R.live.fs.body + R.live.ts.body), "3 a stranger and a forged cookie get the platform's 404 with no card and no email");
 R.boom = await drive("api/crewPage.js", { find: new Error("boom"), email: new Error("boom") });
 ok(R.boom.f.code === 200 && R.boom.t.code === 200 && finds(R.boom) === 0 && emails(R.boom) === 0, "4 a reader that throws hides its section and never a 500");
 R.none = await drive("api/crewPage.js", {});
 ok(finds(R.none) === 0 && emails(R.none) === 0 && R.none.f.code === 200, "4 the engine sent nothing: nothing is drawn and nothing is invented");
-{ const bad = emailEx(); bad.blocks = [{ cardHtml: "<table></table>" }]; const old = { cars: [{ title: "1995 Porsche 911", platform: "Bring a Trailer", url: "https://a.test/1", photo: "https://a.test/p.jpg", live: true, findUrl: "/find?q=x", priceLabel: "Current bid $1" }] };
+{ const bad = emailEx(); delete bad.block.cardHtml; const old = { cars: [{ title: "1995 Porsche 911", platform: "Bring a Trailer", url: "https://a.test/1", photo: "https://a.test/p.jpg", live: true, findUrl: "/find?q=x", priceLabel: "Current bid $1" }] };
   const r = await drive("api/crewPage.js", { find: old, email: bad });
   ok(finds(r) === 0 && emails(r) === 0 && r.f.code === 200, "4 an answer in the old hand drawn shape (no engine card), or an email example that is not complete, is not drawn and does not break the page"); }
 // the composers
