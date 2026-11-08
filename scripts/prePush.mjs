@@ -885,6 +885,13 @@ try {
 } catch (e) {
   record("warmResolveCheck (scripts/warmResolveCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// warmEpochCheck (Lane B, Nov 7 2026): a warm says it ran ahead of the day's ingest bump (the bare Delahaye 135 and Duesenberg Model J rows read epoch_mismatch because the epoch was bumped by the ingest hours after the warm stamped it), and a writer never stamps an epoch the last poll could not confirm; mutants in scripts/warmEpochCheck.mjs --mutants
+try {
+  const out = execSync("node scripts/warmEpochCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("warmEpochCheck (scripts/warmEpochCheck.mjs)", "PASS", (out.match(/warmEpochCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("warmEpochCheck (scripts/warmEpochCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // liveExamplesCheck (Lane B, Nov 7 2026): the Find examples (up to three live cars, different makes, soldBefore only on a VIN-confirmed completed sale, stable while live), the Tasks watching card (a different make from the Tasks example, status only within 24 hours, no reminder claim) and tasksDemo.shortRequest; crew gated; mutants in scripts/liveExamplesCheck.mjs --mutants.
 try {
   const out = execSync("node scripts/liveExamplesCheck.mjs", { encoding: "utf8", timeout: 280000 });

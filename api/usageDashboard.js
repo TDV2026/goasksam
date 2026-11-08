@@ -6164,7 +6164,7 @@ if (task === "optiondetail") {
       result.rows.push(row);
     }
     result.ms = Date.now() - t0;
-    return res.status(200).json(result);
+    result.epochNote = await (await import("../lib/warmDay.js")).warmEpochNoteFor(env, { supabaseSelect, currentEpoch: (await import("../lib/_epoch.js")).currentEpoch }); return res.status(200).json(result);
   }
   // task=warmBuy (Sam, Oct 19 2026, approved list): the broad Buy searches a visitor is likely to type, kept warm after the
   // demo cars (cron 00:10Z and 12:10Z, right after the 00:05Z and 12:05Z warmDemo). Each search runs the Buy page's own path
@@ -6239,7 +6239,7 @@ if (task === "optiondetail") {
     try {
       const dayStart = new Date().toISOString().slice(0, 10) + "T00:00:00Z";
       const trips = await supabaseSelect(env, `app_usage_events?event_type=eq.ocd_budget_guard&created_at=gte.${dayStart}&select=created_at&limit=1`);
-      if (trips && trips.length) { result.stopped = "the daily archive guard tripped today"; return res.status(200).json(result); }
+      if (trips && trips.length) { result.stopped = "the daily archive guard tripped today"; result.epochNote = await (await import("../lib/warmDay.js")).warmEpochNoteFor(env, { supabaseSelect, currentEpoch: (await import("../lib/_epoch.js")).currentEpoch }); return res.status(200).json(result); }
     } catch (e) { /* an unreadable guard log never blocks the warm; the failure streak below still stops it */ }
     const seen = new Set();
     let failStreak = 0;
@@ -6309,7 +6309,7 @@ if (task === "optiondetail") {
       } catch (e) { row.error = String(e && e.message || e); result.failed++; }
       result.rows.push(row);
     }
-    return res.status(200).json({ task: "warmMC", ...result });
+    result.epochNote = await (await import("../lib/warmDay.js")).warmEpochNoteFor(env, { supabaseSelect, currentEpoch: (await import("../lib/_epoch.js")).currentEpoch }); return res.status(200).json({ task: "warmMC", ...result });
   }
 
   // task=descfactscov: READ-ONLY. Coverage of the description-derived columns after the backfill.

@@ -15,7 +15,11 @@ if (process.argv.includes("--mutants")) {
     ["lib/onebox.js", "if (vehicle && typeof searchText === \"string\" && searchText.trim() && !vehicle.requireYear", "if (false && vehicle && typeof searchText === \"string\" && searchText.trim() && !vehicle.requireYear", "the engine does not read the model from the titles before it refuses (the live fault)"],
     ["lib/onebox.js", "year: typedYear, raw: vehicle.raw || searchText, titleRead: true };", "year: vehicle.year, raw: vehicle.raw || searchText, titleRead: true };", "a model number is read as a year"],
     ["lib/live/search.js", "  if (d.refusal && d.refusal.kind === \"not_a_car\") return `not_a_car:missing_${(d.refusal.missing || []).join(\"_\") || \"identity\"}`;", "", "the guard names the symptom, not the cause"],
-    ["api/sellerDecision.js", "const tok = await archiveTitleModel(rawSearch, { supabaseUrl, supabaseKey });", "const tok = null;", "the page no longer reads the titles through the shared function"]
+    ["api/sellerDecision.js", "const tok = await archiveTitleModel(rawSearch, { supabaseUrl, supabaseKey });", "const tok = null;", "the page no longer reads the titles through the shared function"],
+    ["lib/onebox.js", "(?<![A-Za-z0-9_])\" + esc + \"(?![A-Za-z0-9_])", "\\\\b\" + esc + \"\\\\b", "a token ending in a fraction is judged by \\b again (4½ Litre pools refused as swapped)"],
+    ["lib/onebox.js", " || (restOfPhrase ? Object.keys(models).find(m => sameName(m, restOfPhrase)) : undefined);", ";", "the typed words after the make are not matched to a filed model (bare Bugatti Type 57 refused when the variants split the models)"],
+    ["lib/onebox.js", "const key = mrNorm(ph) + \"#\" + fractionSig(ph);", "const key = mrNorm(ph);", "4¼ and 4½ share one cache key in the title read"],
+    ["lib/onebox.js", "timer = setTimeout(() => { try { ctrl.abort(); } catch {} resolve(null); }, left);", "timer = null;", "the title read has no budget, a slow scan holds it for every phrase"]
   ];
 
   let survivors = 0;
@@ -77,12 +81,20 @@ const CARS = [   // [make, model filed, sales [year, body, price, count]]
   ["Auburn", "851", [[1935, "Speedster", 380000, 5], [1935, "Roadster", 120000, 2], [1936, "Convertible", 140000, 4], [1936, "Sedan", 60000, 3]]],
   ["Bugatti", "Type 57", [[1937, "Coupe", 4000000, 3], [1938, "Cabriolet", 3500000, 3], [1939, "Roadster", 3800000, 3]]],
   ["Cord", "810", [[1936, "Phaeton", 150000, 3], [1937, "Sedan", 70000, 3], [1937, "Cabriolet", 140000, 3]]],
+  ["Bentley", "4¼ Litre", [[1936, "Saloon", 120000, 3], [1937, "Tourer", 180000, 3], [1938, "Coupe", 150000, 3]]],
+  ["Bentley", "4½ Litre", [[1928, "Tourer", 900000, 3], [1929, "Saloon", 400000, 3], [1930, "Tourer", 1100000, 3]]],
+  ["Bentley", "6½ Litre", [[1926, "Tourer", 700000, 3], [1927, "Saloon", 300000, 3], [1928, "Tourer", 900000, 3]]],
+  ["Bentley", "8 Litre", [[1931, "Saloon", 800000, 3], [1932, "Tourer", 1500000, 3], [1930, "Sports Saloon", 900000, 3]]],
   ["Mercedes-Benz", "540K", [[1936, "Cabriolet", 2100000, 3], [1937, "Roadster", 2900000, 3], [1938, "Coupe", 1700000, 3], [1939, "Sedan", 900000, 3]]]
 ];
 rows = []; for (const [make, model, list] of CARS) { globalThis.CAR = { make, model }; let i = 0; for (const [yr, body, base, cnt] of list) for (let k = 0; k < cnt; k++) sale(yr, body, base + (k % 4) * 900, 20 + ((i++) % 12) * 9); }
+// the archive files some Type 57 sales under their body name ("Atalante", "Ventoux") with "Bugatti Type 57" in the title: no filed model holds 60 percent of the titles that carry the typed words, so only the typed "Type 57" can pick the model (the bare production refusal)
+{ const b = rows.filter(r => r.make === "Bugatti" && r.model === "Type 57"); b.slice(0, 3).forEach(r => { r.model = "Atalante"; r.listing_title = r.listing_title.replace("Type 57", "Type 57 Atalante"); }); b.slice(3, 5).forEach(r => { r.model = "Ventoux"; r.listing_title = r.listing_title.replace("Type 57", "Type 57 Ventoux"); }); }
 globalThis.HOUSE = null;
-const QUERIES = ["Duesenberg Model J", "Auburn 851", "Bugatti Type 57", "Cord 810", "Mercedes-Benz 540K", "1938 Mercedes-Benz 540K", "1930 Duesenberg Model J"];
+const WARM_QUERY_BUDGET_MS = 3000;
+const QUERIES = ["Duesenberg Model J", "Auburn 851", "Bugatti Type 57", "Cord 810", "Mercedes-Benz 540K", "1938 Mercedes-Benz 540K", "1930 Duesenberg Model J", "Bentley 4¼ Litre", "Bentley 4½ Litre", "Bentley 6½ Litre", "Bentley 8 Litre"];
 for (const q of QUERIES) {
+  const tq0 = Date.now();
   const rv = await V.resolveVehicle(q, {}), v = rv && rv.vehicle;   // the bare resolver, as every warm calls it
   ok(`"${q}": the bare resolver hands the engine a vehicle (${v && v.make} / ${v && v.model})`, !!v, JSON.stringify({ status: rv && rv.status }));
   if (!v) continue;
@@ -92,6 +104,7 @@ for (const q of QUERIES) {
   ok(`"${q}": the answer has a pool and a rung label (${d.tier}, "${String(d.rungLabel || "").slice(0, 50)}")`, /^(result|thin)$/.test(String(d.tier)) && typeof d.rungLabel === "string" && d.rungLabel.trim().length > 0, JSON.stringify({ tier: d.tier, rung: d.rungLabel, refusal: d.refusal && d.refusal.kind }));
   const sw = await S.storeWarmResult(env, key, d);
   ok(`"${q}": the warm's store guard stores it`, sw.stored === true, JSON.stringify(sw));
+  ok(`"${q}": the whole read (resolve, engine, store) is inside ${WARM_QUERY_BUDGET_MS} ms, so a slow read fails here and not in a 290 second warm (took ${Date.now() - tq0} ms)`, Date.now() - tq0 < WARM_QUERY_BUDGET_MS, String(Date.now() - tq0));
   if (d.optionsState === "apart") ok(`"${q}": an answer with its bodies apart carries its own label`, typeof d.rungLabel === "string" && d.rungLabel.trim().length > 0, d.rungLabel);
 }
 // the answer shapes that leave the rung label blank are refusals and unavailable tiers, not answers: the guard names the cause, not the symptom
@@ -99,6 +112,25 @@ for (const q of QUERIES) {
   const nc = { tier: "refusal", refusal: { kind: "not_a_car", missing: ["model"] }, fallbackRung: "not_enough_data", rungLabel: null, poolN: 0 };
   ok("a warm of an identity with no model is named not_a_car:missing_model, never rung_label_blank", /^not_a_car:missing_model/.test(String(S.storeGuardRejectReason(nc))) && S.answerCacheable(nc) === false, String(S.storeGuardRejectReason(nc)));
   ok("a refusal that is not not_a_car still reports its own first blank field", S.storeGuardRejectReason({ tier: "refusal", refusal: { kind: "invariant_failed" }, fallbackRung: "not_enough_data", rungLabel: "" }) === "rung_label_blank");
+}
+// THE FRACTION CLASS (Lane B, Nov 7 2026). A model whose first word ends in a fraction (4½, 6½, 4¼) failed the receipts check's whole-word test (\b needs a word character beside the edge, a space after ½ is not one), so every pool of those cars with enough sales was refused as a swapped pool;
+// and mrNorm drops the glyph, so 4¼, 4½ and 4 normalised to one cache key in the title read. Every curated model with a fraction is listed from the data and must have a pool above; the title read keeps 4¼ and 4½ apart; and a slow scan cannot hold a read past its budget.
+{
+  const VD = await import(pathToFileURL(path.join(ROOT, "lib/vehicleData.js")).href), names = new Set();
+  const walk = o => { if (!o) return; if (typeof o === "string") names.add(o); else if (Array.isArray(o)) o.forEach(walk); else if (typeof o === "object") Object.values(o).forEach(walk); };
+  for (const k of Object.keys(VD)) walk(VD[k]);
+  const frac = [...names].filter(n => n.length < 40 && /[\u00bc\u00bd\u00be]/.test(n) && !/^\d{4}/.test(n)).map(n => n.replace(/ litre/i, " Litre")).filter((v, i, a) => a.indexOf(v) === i && !/ supercharged$/i.test(v));
+  const tested = new Set(CARS.map(c => c[1]));
+  ok(`every curated model with a fraction has a pool in this check (${frac.join(", ")})`, frac.length > 0 && frac.every(n => tested.has(n)), JSON.stringify(frac.filter(n => !tested.has(n))));
+  let reads = 0; const f1 = globalThis.fetch; globalThis.fetch = async (u, o) => { if (/listing_title=ilike/.test(decodeURIComponent(String(u)))) reads++; return f1(u, o); };
+  const envT = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
+  await E.archiveTitleModel("Zarkon 4¼ Litre", envT); const r1 = reads; await E.archiveTitleModel("Zarkon 4½ Litre", envT);
+  ok("the title read keeps 4¼ and 4½ apart: the second read is its own read, not the first one's cached answer", reads > r1, `reads after the first ${r1}, after the second ${reads}`);
+  // a scan that never matches runs long under load: the read stops at its budget (3 phrases at 2.5 s each would be 7.5 s)
+  const f2 = globalThis.fetch; globalThis.fetch = async (u, o) => { if (/listing_title=ilike/.test(decodeURIComponent(String(u)))) await new Promise(r => setTimeout(r, 2500)); return f2(u, o); };
+  const t1 = Date.now(), slow = await E.archiveTitleModel("Quuxmark Frobnitz Litre", { ...envT, titleReadBudgetMs: 1200 });
+  ok(`a title read whose scans run long stops at its budget (1200 ms) and answers null, not held for the scan in flight (took ${Date.now() - t1} ms)`, slow === null && Date.now() - t1 < 1700, String(Date.now() - t1));
+  globalThis.fetch = f1;
 }
 // the class: the engine reads the titles before it refuses, and the page uses the same function
 {
