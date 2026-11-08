@@ -2402,6 +2402,12 @@ try {
   record("Desk demo blockers: a pool that splits asks the body first and reads that body's tier pool, every same tier sale with real miles and the mileage band marked, a draft PDF before finalise, the no-listing line (scripts/deskBlockersCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/deskTypedSentenceCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("Desk typed sentences: no Desk file types an engine reason line, reads optionsNote/windowNote, or joins a count to a plural by hand (scripts/deskTypedSentenceCheck.mjs)", "PASS", (out.match(/deskTypedSentenceCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk typed sentences: no Desk file types an engine reason line, reads optionsNote/windowNote, or joins a count to a plural by hand (scripts/deskTypedSentenceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/sheetVersionCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk two tabs: a sheet save or finalise names the version it read, a stale one is refused with the reload line, nothing is overwritten (scripts/sheetVersionCheck.mjs)", "PASS", (out.match(/sheetVersionCheck: .*/) || [""])[0]);
 } catch (e) {
