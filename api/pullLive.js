@@ -218,11 +218,11 @@ async function handler(req, res) {
 
 
 // The crew-only Homepage feature's stored pick (lib/live/featuredHistory.js): kept while it passes, replaced when its auction ends. Zero OCD, best effort, bounded; the result is a word, never the car (this response is not crew gated).
-async function refreshFeatured(env) {
+async function refreshFeatured(env, mode) {
   try {
     if (process.env.FEATURED_HISTORY === "0") return "off";
-    const { refreshFeaturedHistory } = await import("../lib/live/featuredHistory.js");
-    const r = await Promise.race([refreshFeaturedHistory(env), new Promise(res => setTimeout(() => res({ why: "timeout" }), 40000))]);
+    const { refreshFeaturedHistory, revalidateFeaturedHistory } = await import("../lib/live/featuredHistory.js");
+    const r = await Promise.race([mode === "revalidate" ? revalidateFeaturedHistory(env) : refreshFeaturedHistory(env), new Promise(res => setTimeout(() => res({ why: "timeout" }), 40000))]);
     return (r && r.why || "done") + (r && r.stats ? ` (eligible ${r.stats.eligible}, with a trim ${r.stats.withTrim})` : "");   // counts only: never the car
   } catch { return "error"; }
 }
@@ -240,7 +240,7 @@ async function refreshTasksDemoWord(env) {
 // The hourly revalidation of the Tasks example and the Homepage pick (Nov 8 2026): keyed reads only (lib/live/tasksDemo.js revalidateTasksDemo, lib/live/featuredHistory.js revalidateFeaturedHistory), no matcher, no search, zero OCD; a word, never a car.
 async function revalidateCrewWord(env) {
   const run = async (off, mod, fn) => { try { if (process.env[off] === "0") return "off"; const m = await import(mod); const r = await Promise.race([m[fn](env), new Promise(res => setTimeout(() => res({ why: "timeout" }), 20000))]); return (r && r.why) || "done"; } catch { return "error"; } };
-  return { tasksExample: await run("TASKS_DEMO", "../lib/live/tasksDemo.js", "revalidateTasksDemo"), homepagePick: await run("FEATURED_HISTORY", "../lib/live/featuredHistory.js", "revalidateFeaturedHistory") };
+  return { tasksExample: await run("TASKS_DEMO", "../lib/live/tasksDemo.js", "revalidateTasksDemo"), homepagePick: await refreshFeatured(env, "revalidate") };
 }
 
 // The crew-only Find examples and Tasks watching card (lib/live/findExamples.js, lib/live/watchingDemo.js): kept while they pass, replaced when an auction ends. Zero OCD, best effort, bounded; a word, never a car.

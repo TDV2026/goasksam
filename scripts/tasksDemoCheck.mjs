@@ -77,7 +77,7 @@ const rec = (o = {}) => ({ kind: "sale", date: "2023-06-01", house: "Bring a Tra
 function world(rows, { apps = {}, matcher = null, reader = null } = {}) {
   const cfg = new Map(), w = { cfg, reads: [], clock: NOW, rows };
   const d = {
-    now: () => w.clock,
+    now: () => w.clock, head: async () => ({ status: 200, bytes: 1000, type: "image/jpeg" }), 
     select: async (e, q) => { w.reads.push(q); if (w.failSelect) return null; if (/^app_config/.test(q)) { const v = cfg.get(D.STORE_KEY); return v ? [{ value: v }] : []; } const m = /live_listings\?id=eq\.([^&]+)/.exec(q); if (m) return rows.filter(r => String(r.id) === decodeURIComponent(m[1])); return rows.filter(r => r.status === "live" && Date.parse(r.end_time) > w.clock); },
     write: async (e, row) => { cfg.set(row.key, row.value); }, clear: async () => { cfg.delete(D.STORE_KEY); },
     appearances: async (e, vin) => (apps[vin] ? { ok: true, vinNorm: vin, appearances: apps[vin] } : { ok: true, vinNorm: vin, appearances: [] }),

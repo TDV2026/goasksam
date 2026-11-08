@@ -966,6 +966,13 @@ try {
 } catch (e) {
   record("hourlyRevalidateCheck (scripts/hourlyRevalidateCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// photoRuleCheck (Lane B, Nov 8 2026): every crew example pick HEADs its first photo at selection (a 200 image under 600 KB), else the listing's next photo, else the car is skipped.
+try {
+  const out = execSync("node scripts/photoRuleCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("photoRuleCheck (scripts/photoRuleCheck.mjs)", "PASS", (out.match(/photoRuleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("photoRuleCheck (scripts/photoRuleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });

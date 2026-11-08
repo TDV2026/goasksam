@@ -23,7 +23,7 @@ const sale = (o = {}) => ({ kind: "sale", date: "2022-05-14", house: "Bring a Tr
 const attempt = (o = {}) => ({ kind: "attempt", date: "2021-03-02", house: "Cars & Bids", url: "https://carsandbids.com/auctions/abc/", mileage: 29000, bidUsd: 52000, status: "not_sold", image: "https://img.example.com/prev-a.jpg", year: 2008, make: "Porsche", model: "911", vinNorm: VIN, ...o });
 const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
 function store(apps, liveRows = [live()]) { const db = { cfg: new Map(), live: liveRows, apps: { [VIN]: apps }, now: NOW, fail: false };
-  const d = { now: () => db.now, select: async (e, q) => { if (db.fail) return null; if (q.startsWith("app_config?")) { const k = /key=eq\.([^&]+)/.exec(q)[1]; return db.cfg.has(k) ? [{ value: db.cfg.get(k) }] : []; }
+  const d = { now: () => db.now, head: async () => ({ status: 200, bytes: 1000, type: "image/jpeg" }), select: async (e, q) => { if (db.fail) return null; if (q.startsWith("app_config?")) { const k = /key=eq\.([^&]+)/.exec(q)[1]; return db.cfg.has(k) ? [{ value: db.cfg.get(k) }] : []; }
       if (q.startsWith("live_listings?id=eq.")) { const id = decodeURIComponent(/id=eq\.([^&]+)/.exec(q)[1]); const r = db.live.find(x => x.id === id); return r ? [r] : []; }
       if (q.startsWith("live_listings?status=eq.live")) return db.live.filter(r => r.status === "live" && Date.parse(r.end_time) > db.now);
       if (q.startsWith("vin_index?") || q.startsWith("sales_archive?")) { const want = decodeURIComponent(/in\.\((.*)\)&/.exec(q)[1]).replace(/"/g, "").split(","); return want.filter(v => db.apps[v]).map(v => ({ vin_norm: v })); } return []; },

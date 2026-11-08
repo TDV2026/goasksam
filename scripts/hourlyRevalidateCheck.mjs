@@ -22,7 +22,7 @@ if (args.includes("--mutants")) {
     [FH, "const keep = { ...st, checkedAt: iso };\n    await d.write(env, { key: STORE_KEY, value: keep });\n    return { stored: keep, why: \"confirmed\" };", "return { stored: st, why: \"confirmed\" };", "(2) a confirmed Homepage pick is not stamped, so it goes stale by the next hour"],
     [FH, "const rows = await d.select(env, `live_listings?id=eq.${encodeURIComponent(st.listingId)}&select=${LIVE_COLS}&limit=1`);\n    if (!Array.isArray(rows)) return await drop(\"live_unreadable\");", "await d.appearances(env, \"x\"); const rows = await d.select(env, `live_listings?id=eq.${encodeURIComponent(st.listingId)}&select=${LIVE_COLS}&limit=1`);\n    if (!Array.isArray(rows)) return await drop(\"live_unreadable\");", "(3) the Homepage revalidation reads the archive history"],
     [PL, "revalidated = await revalidateCrewWord(env); }", "}", "(4) the hourly slot does not revalidate the Tasks example and the Homepage pick"],
-    [PL, "homepagePick: await run(\"FEATURED_HISTORY\", \"../lib/live/featuredHistory.js\", \"revalidateFeaturedHistory\")", "homepagePick: \"skipped\"", "(4) the hourly slot skips the Homepage pick"],
+    [PL, "homepagePick: await refreshFeatured(env, \"revalidate\")", "homepagePick: \"skipped\"", "(4) the hourly slot skips the Homepage pick"],
     [PL, "tasksExample: await run(\"TASKS_DEMO\", \"../lib/live/tasksDemo.js\", \"revalidateTasksDemo\")", "tasksExample: \"skipped\"", "(4) the hourly slot skips the Tasks example"]
   ];
   let survivors = 0;
@@ -102,7 +102,7 @@ const fhStore = (r, at) => ({ v: FH.STORE_V, listingId: r.id, featured: { kind: 
 { // (4) the cron, (5) the class
   const pl = fs.readFileSync(path.join(ROOT, "api/pullLive.js"), "utf8"), i = pl.indexOf("if (!slot.mode)"), seg = pl.slice(i, i + 1400);
   ok("(4) the hourly slot runs both revalidations with the examples refresh", /getUTCMinutes\(\) < 15\) \{ examplesRefresh = await refreshExamplesWord\(env\); revalidated = await revalidateCrewWord\(env\); \}/.test(seg), seg.slice(0, 100));
-  ok("(4) the revalidation names both (the Tasks example and the Homepage pick) and nothing else", /tasksExample: await run\("TASKS_DEMO", "\.\.\/lib\/live\/tasksDemo\.js", "revalidateTasksDemo"\)/.test(pl) && /homepagePick: await run\("FEATURED_HISTORY", "\.\.\/lib\/live\/featuredHistory\.js", "revalidateFeaturedHistory"\)/.test(pl));
+  ok("(4) the revalidation names both (the Tasks example and the Homepage pick) and nothing else", /tasksExample: await run\("TASKS_DEMO", "\.\.\/lib\/live\/tasksDemo\.js", "revalidateTasksDemo"\)/.test(pl) && /homepagePick: await refreshFeatured\(env, "revalidate"\)/.test(pl));
   // every module that serves a stored live crew car must have a revalidation or a refresh that confirms it hourly
   const liveDir = path.join(ROOT, "lib/live"), serving = [];
   for (const f of fs.readdirSync(liveDir).filter(x => /\.js$/.test(x))) { const src = fs.readFileSync(path.join(liveDir, f), "utf8"); if (/export const STORE_KEY = "crew_/.test(src) && /isCrewRequest\(/.test(src)) serving.push(f); }

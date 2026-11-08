@@ -88,7 +88,7 @@ const fakeDb = () => {
     apps: { [VIN]: [sale()], WP0AB29988S783457: [sale({ vinNorm: "WP0AB29988S783457", url: "https://bringatrailer.com/listing/b-0/", image: "https://img.example.com/prev-b.jpg" }), sale({ vinNorm: "WP0AB29988S783457", date: "2018-02-02", url: "https://bringatrailer.com/listing/b-00/", image: "https://img.example.com/prev-b2.jpg" })] },
     now: NOW, fail: false, selects: 0, calls: [] };
   const d = {
-    now: () => db.now,
+    now: () => db.now, head: async () => ({ status: 200, bytes: 1000, type: "image/jpeg" }), 
     select: async (env, q) => { db.selects++; db.calls.push(q); if (db.fail) return null;
       if (q.startsWith("app_config?")) { const k = /key=eq\.([^&]+)/.exec(q)[1]; return db.cfg.has(k) ? [{ value: db.cfg.get(k) }] : []; }
       if (q.startsWith("live_listings?id=eq.")) { const id = decodeURIComponent(/id=eq\.([^&]+)/.exec(q)[1]); const r = db.live.find(x => x.id === id); return r ? [r] : []; }

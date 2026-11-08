@@ -52,7 +52,7 @@ const car = (source, make, model, year, o = {}) => ({ id: ++id, source, url: "ht
 const sale = vin => ({ kind: "sale", date: "2023-02-14", house: "Bring a Trailer", url: "https://bringatrailer.com/listing/" + vin + "/", image: "https://img.test/old-" + vin + ".jpg", mileage: 15000, priceUsd: 181888, vinNorm: vin });
 function world(rows, { apps = {}, now = NOON } = {}) {
   const w = { rows, store: new Map(), apps, clock: now, fail: false, unreadable: false };
-  w.d = { now: () => w.clock,
+  w.d = { now: () => w.clock, head: async () => ({ status: 200, bytes: 1000, type: "image/jpeg" }), 
     select: async (e, q) => { if (w.fail) return null; let m = /^app_config\?key=eq\.([a-z_]+)/.exec(q); if (m) { const v = w.store.get(m[1]); return v ? [{ value: v }] : []; }
       m = /^live_listings\?id=eq\.([^&]+)/.exec(q); if (m) { if (w.unreadable) return null; return w.rows.filter(r => String(r.id) === decodeURIComponent(m[1])).slice(0, 1); }
       if (/^live_listings\?status=eq\.live/.test(q)) return w.rows.filter(r => r.status === "live" && r.photo_url && Date.parse(r.end_time) > w.clock);
