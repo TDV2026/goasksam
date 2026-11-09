@@ -11,10 +11,13 @@ const args = process.argv.slice(2), rootArg = args.find(a => !a.startsWith("--")
 if (args.includes("--mutants")) {
   const DV = "lib/deskV3.js", SR = "lib/sheetRead.js";
   const muts = [
-    [DV, "flag: gap != null && gap > threshold }", "flag: gap != null && gap >= threshold }", "(3) the stale flag flips one day early"],
+    [DV, "flag: gap != null && gap > threshold, sentence: null }", "flag: gap != null && gap >= threshold, sentence: null }", "(3) the stale flag flips one day early"],
     [DV, "const caseDate = iso(desk.caseDate) || iso(new Date().toISOString()), asOf = latest ? iso(latest.date) : null, threshold = staleThreshold(env);", "const caseDate = iso(desk.caseDate) || iso(new Date().toISOString()), asOf = latest ? iso(dated[dated.length - 1].date) : null, threshold = staleThreshold(env);", "(3) asOf is the oldest sale, not the latest"],
     [DV, "export const DESK_STALE_DAYS_DEFAULT = 90;", "export const DESK_STALE_DAYS_DEFAULT = 120;", "(3) the default threshold is not 90"],
     [DV, "if (n < min) return { ...base, insufficient: true, sentence: reasonLine(\"desk3.insufficient\", { what, count: n }), median: null,", "if (n < min) return { ...base, insufficient: true, sentence: reasonLine(\"desk3.insufficient\", { what, count: n }), median: quant(prices, 0.5) || 0,", "(2) an insufficient population returns a median (or a 0)"],
+    [DV, "if (base.stale.flag) base.stale.sentence =", "if (false) base.stale.sentence =", "(3) a stale flag with no sentence"],
+    [DV, "asOf: deskDateWords(asOf), days:", "asOf: String(asOf), days:", "(3) the date printed raw, not in words"],
+    [DV, "threshold: countNoun(threshold, \"day\", { words: false })", "threshold: countNoun(threshold + 1, \"day\", { words: false })", "(3) the limit printed is not the limit used"],
     [DV, "export const DESK_TIER_MIN = 5;", "export const DESK_TIER_MIN = 1;", "(2) a one sale tier gives a reference"],
     [SR, "p25: ev.q1, median: ev.median, p75: ev.q3, high: ev.high };", "p25: ev.q1, median: ev.median + 1, p75: ev.q3, high: ev.high };", "(1) the meter drifts from the evidence"],
     [SR, "out.market.meter = ev.insufficient ? null :", "out.market.meter = false ? null :", "(1) the meter prints a figure for an insufficient population"],
@@ -57,6 +60,7 @@ for (const c of W.CASES) {
     } else {
       ok(`${label}: insufficient evidence has no number and no meter`, ev.median === null && ev.q1 === null && ev.q3 === null && ev.low === null && ev.high === null && sh.market.meter === null && typeof ev.sentence === "string" && ev.sentence.length > 0 && !/\b0\b.*\$/.test(ev.sentence));
     }
+    ok(`${label}: a stale flag carries the table's sentence and a fresh one carries none`, ev.stale.flag ? (typeof ev.stale.sentence === "string" && RW.reasonPatterns().some(p => p.field === "desk.evidence.stale.sentence" && p.re.test(ev.stale.sentence)) && ev.stale.sentence.includes(String(ev.stale.days))) : ev.stale.sentence === null, String(ev.stale.sentence));
     ok(`${label}: the population sentence is the table's`, RW.reasonPatterns().some(p => p.field === "desk.evidence.population.sentence" && p.re.test(ev.population.sentence)), ev.population.sentence);
     ok(`${label}: matching counts the whole car, at least the population`, ev.matching >= ev.count);
   }
@@ -82,6 +86,10 @@ ok("figures were checked on every model", figures >= W.CASES.length * 2, String(
   ok("stale: 91 days after is stale", at(91).stale.flag === true && at(91).stale.days === 91);
   ok("stale: the case date before the latest sale is 0 days and not stale", at(-5).stale.days === 0 && at(-5).stale.flag === false);
   const e30 = DV.evidenceOf(rows, [], { caseDate: addDays("2026-06-01", 31), subject: {} }, { DESK_STALE_DAYS: 30 });
+  { const st = at(91).stale, fr = at(90).stale;
+    ok("stale: 91 days gives the sentence with the date, the days and the limit", st.sentence === "The evidence runs to June 1, 2026, 91 days before the case date, over the limit of 90 days.", st.sentence);
+    ok("stale: at 90 days there is no sentence, so no page has a tag to explain", fr.sentence === null);
+    ok("stale: one day over a limit of one reads '1 day' and '1 day'", DV.evidenceOf(rows, [], { caseDate: addDays("2026-06-01", 2), subject: {} }, { DESK_STALE_DAYS: 1 }).stale.sentence === "The evidence runs to June 1, 2026, 2 days before the case date, over the limit of 1 day."); }
   ok("stale: DESK_STALE_DAYS is the threshold when set", e30.stale.threshold === 30 && e30.stale.flag === true);
   ok("stale: the threshold is not the config when it is nonsense", DV.evidenceOf(rows, [], { caseDate: "2026-06-02", subject: {} }, { DESK_STALE_DAYS: "abc" }).stale.threshold === 90);
 }
