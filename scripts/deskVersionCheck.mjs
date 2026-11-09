@@ -67,4 +67,24 @@ function withTrigger(base) {
   ok("export records are never in the sheet or the version row", !/exports/.test(rowBefore) && !/"kind":"pdf"/.test(verBefore));
   ok("the monthly cap counts the records beside the sheet (cap 3: the third works, the fourth is refused)", (await A.handleSheetAction("sheet_pdf", { id: "x1" }, cx2)).ok && (await A.handleSheetAction("sheet_pdf", { id: "x1" }, cx2)).refused === true);
   ok("a revision after the export is still a new sheet, and the export records stay with the first", (await A.handleSheetAction("case_edit", { id: "x1", op: "field", field: "colour", value: "Black" }, cx2)).revisedFrom === "x1" && (await st.exportsOf("t", "x1")).length === 3 && J(await st.get("t", "x1")) === rowBefore); }
+
+// THE CLASS: NO ACTION WRITES A LOCKED SHEET ROW. Every finalised or sent sheet, a V3 case or a sheet from before V3, is run through every action that could touch it under the modelled trigger. None may throw, none may change the row.
+{ const { seed } = await import(pathToFileURL(path.join(root, "scripts/deskValsRender.mjs")).href), st = withTrigger(memoryStore()), org = "t2", sent = [];
+  const cx3 = (seat = "ava", over = {}) => ({ org, seat, store: st, now: T, env: {}, fetchImage: async () => null, orgSettings: { monthlyExportCap: 50, name: "Acme" }, send: async p => { await st.markSent(org, p.sheetId, T, p.to); sent.push(p); return { ok: true, subject: "Valuation report " + p.reportNumber }; }, ...over });
+  const old = await seed(st, { seat: "ava", org }); await A.handleSheetAction("sheet_open", { id: old.id }, cx3());
+  { const s = await st.get(org, old.id); s.state.tier = 2; s.state.decision = { mode: "reserve", reserve: "58000", low: "", high: "", reasons: ["condition"], otherText: "", line: "Held on the photographs.", guardLines: {}, note: "" }; s.state.mark = null; await st.put(org, s); }
+  const fo = await A.handleSheetAction("sheet_finalise", { id: old.id }, cx3());
+  ok("a sheet from before V3 finalises (the fixture for the class)", fo.ok, fo.why);
+  const v3 = await readyCase(); await st.insert(org, { id: "v3x", owner_seat: "ava", status: "In progress", created_at: T, submission: { typed: true, photos: [], documents: [] }, state: {}, case: v3, version: 1 }); const fv = await A.handleSheetAction("case_finalize", { id: "v3x" }, cx3()); ok("a V3 case finalises (the other fixture)", fv.ok, fv.why);
+  for (const [name, id] of [["a pre V3 sheet", old.id], ["a V3 case sheet", "v3x"]]) {
+    const before = J(await st.get(org, id)); let threw = null;
+    const calls = [["sheet_open", {}], ["sheet_open", { pickUp: true }], ["sheet_save", { patch: { tier: 3 } }], ["sheet_photo_add", { name: "a.jpg", data: Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(40, 1)]).toString("base64") }], ["sheet_pdf", {}], ["sheet_pdf", { draft: true }], ["sheet_send", { to: "seller@example.com" }], ["sheet_pdf", {}], ["case_get", { open: true }], ["case_get", {}], ["case_finalize", {}], ["sheet_finalise", {}]];
+    for (const [a, b] of calls) { try { await A.handleSheetAction(a, { id, ...b }, cx3()); } catch (e) { threw = threw || a + ": " + e.message; } }
+    const after = await st.get(org, id), statusFree = J({ ...after, status: null, sent: null });
+    ok(`${name}: no action throws under the trigger (open, save, photo, pdf, draft, send, case_get, finalize)`, threw === null, threw);
+    ok(`${name}: the sheet row is byte identical after all of them, apart from the Sent state the backend writes beside it`, statusFree === J({ ...JSON.parse(before), status: null, sent: null }), "");
+    const ex = await st.exportsOf(org, id);
+    ok(`${name}: the exports are records beside the row (pdf, pdf, send, pdf: a draft asked of a finalised sheet is an export of it) and the send is the backend's call`, ex.map(e => e.kind).join() === "pdf,pdf,send,pdf" && sent.some(p => p.sheetId === id), J(ex.map(e => e.kind)));
+    ok(`${name}: a read after the send shows Sent and the date from the backend's column`, after.status === "Sent" && after.sent && after.sent.to === "seller@example.com"); }
+  ok("the monthly cap counts both kinds of sheet's records", (await st.exportsThisMonth(org, T.slice(0, 7))) >= 6); }
 console.log(`deskVersionCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

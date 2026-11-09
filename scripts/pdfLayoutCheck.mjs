@@ -80,7 +80,7 @@ ok(/Prepared by Hagerty Marketplace/.test(txt[0]) && !/Sam\b/.test(txt[0]), "the
   await p.click("[data-send]"); await wait(1000);
   ok(sent.length === 2 && sent[1].message === "Edited by the expert." && sent[1].note === "A note for the seller." && Buffer.from(sent[1].pdf_b64, "base64").slice(0, 5).toString() === "%PDF-" && sent[1].org === "Hagerty Marketplace", "the send carries the edited message, the note, the PDF and the org");
   const after = await p.evaluate(() => ({ chips: document.querySelector(".chips").innerText, box: (document.querySelector(".sentbox") || {}).innerText })); ok(/Sent/i.test(after.chips) && /seller@example\.com/.test(after.box) && /Edited by the expert\./.test(after.box), "the sheet moves to Sent with the address and a copy of what went out");
-  const row = (await D.store.get("pdf-send", a.id)); ok(row.status === "Sent" && row.sent.to === "seller@example.com" && row.sent.at && row.sent.copy.message === "Edited by the expert.", "the Sent time, address and copy are kept on the sheet");
+  const row = (await D.store.get("pdf-send", a.id)); const rec = await D.store.exportsOf("pdf-send", a.id); ok(row.status === "Finalised" && !row.sent && rec.some(e => e.kind === "send" && e.detail && e.detail.to === "seller@example.com" && e.at), "the send is a record beside the locked sheet row (the sheet row is not written; the Sent state is the sending backend's column)");
   ok(p._errs.length === 0, "no page error"); await D.close();
 }
 console.log(`pdfLayoutCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
