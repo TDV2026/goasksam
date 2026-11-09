@@ -13,6 +13,13 @@ const args = process.argv.slice(2), rootArg = args.find(a => !a.startsWith("--")
 if (args.includes("--mutants")) {
   const MX = "lib/live/marketCheckExamples.js", EE = "lib/live/entryExamples.js";
   const muts = [
+    [MX, "if (!sales.every(s => s && urls.has(s.url))) return null;", "", "(7) a sale outside the result's pool is accepted"],
+    [EE, "result: resultOf(a), poolN,", "result: resultOf({ ...a, cards: a.cards.filter(c => !three.includes(c)) }), poolN,", "(7) the result is built without the pool the three sales were taken from"],
+    [EE, "out[k] = JSON.parse(JSON.stringify(a[k]));", "out[k] = k === \"poolN\" ? a[k] + 1 : JSON.parse(JSON.stringify(a[k]));", "(7) a number of the result is not the page's number"],
+    [EE, "\"latestSaleLine\", \"latestSaleDate\"", "\"latestSaleDate\"", "(7) a line the page draws is left out"],
+    [MX, "also: [\"MC_EXAMPLE_SALES\"], key: MC_STORE, build: buildMarketCheckExample });\n  return mcResultShape", "also: [], key: \"NOT_A_KEY\", build: buildMarketCheckExample });\n  return mcResultShape", "(7) the result reads another pick than the sales"],
+    [MX, "if (!r || r.tier !== \"result\" ||", "if (!r ||", "(7) a result that is not a result is shown"],
+
     [MX, "photo_url: https(s.photo) ? s.photo : \"\"", "photo_url: s.photo || \"\"", "(1) a photo that is not https passes"],
     [MX, "soldLine: s.priceLabel || \"\"", "soldLine: s.dateLine || \"\"", "(1) the sold line is not the price line"],
     [MX, "data.sales.length !== 3", "data.sales.length < 1", "(1) fewer than three sales make a field"],
@@ -110,5 +117,41 @@ let failed = 0, n = 0; const ok = (name, c, d) => { n++; if (!c) failed++; conso
   const crew = fs.readFileSync(path.join(ROOT, "api/crewPage.js"), "utf8");
   ok("(6) api/crewPage.js reads marketCheckExampleSales from lib/live/marketCheckExamples.js, which exports it", /readIfBuilt\("\.\.\/lib\/live\/marketCheckExamples\.js", "marketCheckExampleSales"/.test(crew) && typeof MX.marketCheckExampleSales === "function");
   ok("(6) zero OldCarsData", X.metered === 0);
+}
+{ // (7) THE RESULT OF THE SAME PICK (Nov 8 2026): the engine's answer for the car whose three sales are shown, in the answer's own fields; the sales are rows of that result's table
+  const W = X.world(X.ALLMC(X.pool(14))), s = await MX.marketCheckExampleSales(env, CREW, W.d), r = await MX.marketCheckExampleResult(env, CREW, W.d);
+  const page = await W.d.answer(env, s.model);   // the answer the results page draws for this car
+  ok("(7) a result for the day's pick: the same date, the same car", r && r.pickDate === s.pickDate && r.model === s.model && r.result.tier === "result");
+  ok("(7) the engine is asked once for the car, whether the sales or the result is read first", W.asked.filter(t => t === s.model).length === 2 /* the pick, and this check's own page read */ && W.asked.filter(t => t !== s.model).length <= X.EE.MC_CANDIDATES.length);
+  const EXPECT = ["cluster", "referenceFigure", "poolN", "windowMonths", "windowWords", "windowLabel", "lowestSaleN", "highestSaleN", "latestSaleLine", "basisLine", "countLine", "rangeSentence", "updatedLine", "chart", "cards"];
+  ok("(7) every field the page draws is there: the figure, the band, the count, the period, the range sentence, the chart and the table", EXPECT.every(k => r.result[k] !== undefined), EXPECT.filter(k => r.result[k] === undefined).join(","));
+  ok("(7) every number equals the results page's number for that car (figure, low, high, count, period, band, chart, sentences)", EXPECT.every(k => JSON.stringify(r.result[k]) === JSON.stringify(page[k])), EXPECT.filter(k => JSON.stringify(r.result[k]) !== JSON.stringify(page[k])).join(","));
+  ok("(7) the engine's working fields are not in the field (no rawPool, no timings)", !("rawPool" in r.result) && !("timings" in r.result));
+  const rowByUrl = new Map(r.result.cards.map(c => [c.url, c]));
+  ok("(7) the three sales are sales inside that result: each is a row of its table, the same price", s.sales.every(x => rowByUrl.has(x.url)) && s.sales.every(x => x.soldLine.includes(Math.round(rowByUrl.get(x.url).price).toLocaleString("en-US"))));
+  ok("(7) the result's count is the table's own count", r.result.poolN === r.result.cards.length && r.result.referenceFigure.salesCount === r.result.cards.length);
+  const nd = X.world(X.ALLMC(X.pool(14)), {}, X.D1 + X.DAY); nd.store = new Map(W.store); const r2 = await MX.marketCheckExampleResult(env, CREW, nd.d);
+  ok("(7) the same pick all day, another day another pick", JSON.stringify(await MX.marketCheckExampleResult(env, CREW, W.d)) === JSON.stringify(r) && r2 && r2.pickDate === "2026-11-10");
+  process.env.CREW_MC_EXAMPLES = "0"; const off = await MX.marketCheckExampleResult(env, CREW, X.world(X.ALLMC(X.pool(14))).d); delete process.env.CREW_MC_EXAMPLES;
+  ok("(7) CREW_MC_EXAMPLES=0 and a visitor without the crew cookie: no result", off === null && (await MX.marketCheckExampleResult(env, NOCREW, X.world(X.ALLMC(X.pool(14))).d)) === null);
+  // hourly revalidation: the photo of one sale goes; the pick is built again and the result still holds its three sales
+  const H = X.world(X.ALLMC(X.pool(14))), h1 = await MX.marketCheckExampleSales(env, CREW, H.d); H.heads[h1.sales[1].photo_url] = { status: 404, bytes: 0, type: "text/html" }; H.clock += 2 * 3600000;
+  const h2 = await MX.marketCheckExampleResult(env, CREW, H.d), h2s = await MX.marketCheckExampleSales(env, CREW, H.d);
+  ok("(7) after the hourly check drops a sale, the result and the sales are the same rebuilt pick and still agree", h2 && h2s && h2s.sales.every(x => h2.result.cards.some(c => c.url === x.url)) && !h2s.sales.some(x => x.url === h1.sales[1].url));
+  // hidden fallback
+  const none = await MX.marketCheckExampleResult(env, CREW, X.world({}).d);
+  ok("(7) no pool for any car: no field, the section is hidden", none === null);
+  // the shaper on stored data that is wrong: a sale outside the result's pool, a refusal, a table missing
+  const good = { pickDate: "2026-11-09", model: "x", sales: s.sales.map(x => ({ ...x })), result: JSON.parse(JSON.stringify(r.result)) };
+  const outside = { ...good, sales: [good.sales[0], good.sales[1], { ...good.sales[2], url: "https://example.test/a-sale-not-in-the-result" }] };
+  ok("(7) a stored pick with a sale that is not in the result's table gives no result", MX.mcResultShape(good) !== null && MX.mcResultShape(outside) === null);
+  ok("(7) a stored pick whose answer is not a result, has no table, or has no result gives no result", MX.mcResultShape({ ...good, result: { ...good.result, tier: "thin" } }) === null && MX.mcResultShape({ ...good, result: { ...good.result, cards: undefined } }) === null && MX.mcResultShape({ ...good, result: undefined }) === null && MX.mcResultShape(null) === null);
+  // the engine's real answer shape: resultOf on a stored answer of the engine copies its fields value for value
+  const real = JSON.parse(fs.readFileSync(path.join(ROOT, "scripts/fixtures/answer-325i.json"), "utf8")), ra = real.raw || real, ro = EE.resultOf(ra);
+  ok("(7) on a real engine answer (the 325i fixture) every field it has is copied unchanged, and the others are absent", Object.keys(ro).every(k => EE.RESULT_FIELDS.includes(k) && JSON.stringify(ro[k]) === JSON.stringify(ra[k])) && ro.poolN === ra.poolN && JSON.stringify(ro.cluster) === JSON.stringify(ra.cluster) && !("rawPool" in ro));
+  // the class: the result path only copies. No arithmetic, no formatting, no sorting of a figure in it
+  const src = fs.readFileSync(path.join(ROOT, "lib/live/marketCheckExamples.js"), "utf8"), shaper = src.slice(src.indexOf("export function mcResultShape"), src.indexOf("// the Sell cars:")), ee = fs.readFileSync(path.join(ROOT, "lib/live/entryExamples.js"), "utf8"), copier = ee.slice(ee.indexOf("export function resultOf"), ee.indexOf("export function saleOf"));
+  ok("(7) the class: the result path computes nothing (no Math, reduce, toLocaleString, toFixed, sort, or arithmetic on a figure)", !/Math\.|reduce\(|toLocaleString|toFixed|\.sort\(|\+\s*1\b|\*\s*\d/.test(shaper.replace(/\/\/.*$/gm, "") + copier.replace(/\/\/.*$/gm, "")));
+  ok("(7) the class: every engine field the result carries is on the list the page reads (no field is made here)", s && EE.RESULT_FIELDS.every(k => typeof k === "string") && Object.keys(r.result).every(k => EE.RESULT_FIELDS.includes(k)));
 }
 console.log("\nmcExamplesCheck: " + (n - failed) + " pass, " + failed + " FAIL"); process.exit(failed ? 1 : 0);
