@@ -88,7 +88,9 @@ ok(!/data-find-examples/.test(find(null)) && !/data-find-examples/.test(find({ c
 // ---------- 5 results pages untouched ----------
 const RESULTS = ["public/js/onebox.js", "public/onebox.html", "api/marketCheck.js", "api/sell.js", "lib/findCardKit.js", "public/js/result-v2.js", "public/js/result.js"].filter(f => fs.existsSync(f));
 const blobOf = (ref, f) => { try { return execFileSync("git", ["rev-parse", ref + ":" + f], { encoding: "utf8" }).trim(); } catch { return null; } }, hashOf = s => crypto.createHash("sha1").update("blob " + Buffer.byteLength(s) + "\0").update(s).digest("hex");
-const changed = (files, read = f => fs.readFileSync(f, "utf8")) => files.filter(f => blobOf("origin/main", f) && hashOf(read(f)) !== blobOf("origin/main", f));
+// a results source is unchanged when it equals origin/main's, or the re-cut history links branch's (the history links add a link and nothing else to the results page, Sam's order of Nov 9)
+const BASES = ["origin/main", "lane-e-history-links"];
+const changed = (files, read = f => fs.readFileSync(f, "utf8")) => files.filter(f => blobOf("origin/main", f) && !BASES.some(r => blobOf(r, f) === hashOf(read(f))));
 { const ch = changed(RESULTS); ok(ch.length === 0, `the results pages' sources are byte identical to origin/main (${RESULTS.length} files)${ch.length ? ": changed " + ch : ""}`);
   ok(changed(RESULTS, f => fs.readFileSync(f, "utf8") + (f === RESULTS[0] ? "\n// edit" : "")).length === 1, "mutant caught: one results source changed by a comment is reported"); }
 // ---------- 6 the class: no duplicate reason ids ----------

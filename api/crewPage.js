@@ -16,6 +16,13 @@ import { findField } from "../lib/preview/fieldCompose.js";
 import { entryHtml, wrapLive, patchOneboxJs, exampleResultOf, exampleFrameHtml } from "../lib/preview/mcSellPreview.js";
 import marketCheckPage from "./marketCheck.js";
 import sellDoor from "./sell.js";
+import businessPage from "./business.js";
+import howPage from "./howSamDecides.js";
+import aboutPage from "./about.js";
+import whatsNewPage from "./whatsNew.js";
+import feedbackPage from "./feedback.js";
+import legalPage from "./legal.js";
+import { SITE, wrapSite } from "../lib/preview/sitePages.js";
 import { renderDeskPreview, previewDeskApi } from "../lib/preview/deskPreview.js";
 import { renderDeskV3, deskV3Shell } from "../lib/preview/deskV3.js";
 // The crew preview of the Homepage reads Lane B's featuredHistory (the same read GET /api/featuredHistory answers with, crew cookie required inside it). FEATURED is the seam the local run swaps for a test store.
@@ -71,7 +78,15 @@ async function exampleFrame(req) {
   return exampleFrameHtml(live.body, f);
 }
 function oneboxJs() { return patchOneboxJs(fs.readFileSync(path.join(process.cwd(), "public", "js", "onebox.js"), "utf8")); }
-export const PAGES = { "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-desk": { render: () => deskV3Shell(), renderAsync: renderDeskV3 }, "preview-desk-valuations": { render: renderDeskPreview }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: FEATURED.read, now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"], renderAsync: findFor }, "preview-market-check": { render: () => entryHtml("mc"), renderAsync: req => mcSellFor("mc", req) }, "preview-sell": { render: () => entryHtml("sell"), renderAsync: req => mcSellFor("sell", req) }, "preview-market-check-example": { frame: true, render: () => { throw new Error("no example result"); }, renderAsync: exampleFrame }, "preview-onebox-js": { render: oneboxJs, contentType: "application/javascript; charset=utf-8" } };
+// THE SITE PAGES ON THE NEW SHELL (Sam's order, Nov 9 2026; lib/preview/sitePages.js): the live handler's own page, its <main> carried over byte for byte inside the approved header and footer, no rail. A page that cannot be built answers the platform 404.
+const SITE_HANDLERS = { business: businessPage, how: howPage, about: aboutPage, whatsnew: whatsNewPage, feedback: feedbackPage, terms: legalPage, privacy: legalPage };
+async function siteFor(key, req) {
+  const s = SITE[key], live = await capture(SITE_HANDLERS[key], "/api/" + s.api + (s.query ? "?" + s.query : ""), req);
+  if (live.code !== 200) throw new Error("the live page answered " + live.code);
+  return wrapSite(live.body);
+}
+const SITE_PAGES = Object.fromEntries(Object.keys(SITE).map(k => ["preview-site-" + k, { frame: true, render: () => "", renderAsync: req => siteFor(k, req) }]));
+export const PAGES = { ...SITE_PAGES, "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-desk": { render: () => deskV3Shell(), renderAsync: renderDeskV3 }, "preview-desk-valuations": { render: renderDeskPreview }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: FEATURED.read, now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"], renderAsync: findFor }, "preview-market-check": { render: () => entryHtml("mc"), renderAsync: req => mcSellFor("mc", req) }, "preview-sell": { render: () => entryHtml("sell"), renderAsync: req => mcSellFor("sell", req) }, "preview-market-check-example": { frame: true, render: () => { throw new Error("no example result"); }, renderAsync: exampleFrame }, "preview-onebox-js": { render: oneboxJs, contentType: "application/javascript; charset=utf-8" } };
 export default async function handler(req, res) {
   const name = String((req.query && req.query.page) || "").toLowerCase(), p = PAGES[name];
   if (name === "preview-tasks-api") {   // the Tasks preview's own door: crew only, POST only; the live handler answers (lib/preview/tasksMine.js)
