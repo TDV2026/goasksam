@@ -22,7 +22,7 @@ const cm = await recall("mileage changed", K.correctField(base, "mileage", 95000
 ok("the new read is stored with a new key and the original is the untouched evidence", cm.desk.key !== base.desk.key && J(cm.desk.original) === J(cm.desk.evidence));
 await recall("transmission changed", K.correctField(base, "transmission", "Tiptronic", { now: T }), true);
 await recall("body changed", K.correctField(base, "body", "Cabriolet", { now: T }), true);
-await recall("generation changed", K.correctField(base, "generation", "993", { now: T }), true);
+{ const g = K.correctField(base, "generation", "993", { now: T }); await recall("generation changed (the engine derives it from the year)", g, false); ok("a generation edit logs an audit line", g.audit.some(a => a.what === "corrected" && a.field === "generation" && a.to === "993") || g.audit.some(a => a.field === "generation")); }
 const tr = await recall("transmission changed to automatic", K.correctField(base, "transmission", "Tiptronic", { now: T }), true);
 ok("a different gearbox reads a different population", tr.desk.evidence.population.sentence !== base.desk.evidence.population.sentence || tr.desk.evidence.count !== base.desk.evidence.count);
 // market_calc exclusion
