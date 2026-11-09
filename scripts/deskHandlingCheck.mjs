@@ -32,19 +32,20 @@ ok("the revision's handling seconds are the time on the revision (4 minutes)", f
 { const a1 = await A.handleSheetAction("case_edit", { id: "x", op: "ask", fields: ["mileage"] }, mk("7")); ok("ask on a sheet that is not there is refused", a1.refused === true);
   await store.insert("t", { id: "a1", owner_seat: "7", status: "In progress", created_at: T, submission: { typed: false, photos: [], documents: [] }, state: {}, case: M.newCase({ now: T, leadRef: "L-1" }), version: 1 });
   const r1 = await A.handleSheetAction("case_edit", { id: "a1", op: "ask", fields: ["mileage", "transmission"] }, mk("7")), r2 = await A.handleSheetAction("case_edit", { id: "a1", op: "ask", fields: ["mileage", "colour"] }, mk("7"));
-  ok("ask returns the fields newly asked, and a field already asked is not returned again", J(r1.asked) === '["mileage","transmission"]' && J(r2.asked) === '["colour"]' && r2.case.asked.filter(k => k === "mileage").length === 1); }
+  ok("ask returns the fields newly asked, and a field already asked is not returned again", J([...r1.asked].sort()) === '["mileage","transmission"]' && J(r2.asked) === '["colour"]' && r2.case.asked.filter(k => k === "mileage").length === 1); }
 // the four lines: each from the cases, a superseded sheet counted once, no handling time from a case never opened
 const day = at(0).slice(0, 10), cs = (id, status, over = {}) => ({ id, created_at: T, submission: { typed: false }, case: { ...M.newCase({ now: T, leadRef: "L-" + id }), status, ...over } });
-const sheets = [cs("a", "finalized", { finalized_at: at(30), handling_seconds: 600, asked: ["mileage"], opens: [{ seat: "7", at: T }] }), cs("b", "finalized", { finalized_at: at(40), handling_seconds: 1800 }), cs("c", "finalized", { finalized_at: "2026-01-01T00:00:00Z", handling_seconds: 60, version: 2 }), cs("d", "in_review"), cs("e", "finalized", { finalized_at: at(50), handling_seconds: null })];
+const sheets = [cs("a", "finalized", { finalized_at: at(30), handling_seconds: 600, asked: ["mileage"], opens: [{ seat: "7", at: T }] }), cs("b", "finalized", { finalized_at: at(40), handling_seconds: 1800 }), cs("c", "finalized", { finalized_at: "2026-01-01T00:00:00Z", handling_seconds: 60, version: 2 }), cs("d", "in_review"), cs("e", "finalized", { finalized_at: at(50), handling_seconds: null }), cs("m", "in_review", { lead_ref: null })];   // m: a manual case with no lead
 const lines = V.handlingLines(sheets, at(60)), by = Object.fromEntries(lines.map(l => [l.label, l.value]));
 ok("reports finalized today counts only today's", by["Reports finalized today"] === "3", J(by));
 ok("median handling time is of the cases that have one (600, 1800, 60 gives 10 min)", by["Median handling time"] === "10 min", by["Median handling time"]);
-ok("share needing more from the seller is of the lead cases (1 of 5 is 20%)", by["Cases needing more from the seller"] === "20%", by["Cases needing more from the seller"]);
+ok("share needing more from the seller is of the lead cases (1 of the 5 lead cases is 20%; the manual case is not a lead)", by["Cases needing more from the seller"] === "20%", by["Cases needing more from the seller"]);
 ok("reports revised after finalizing counts a finalized case at version 2 or more", by["Reports revised after finalizing"] === "1");
 // the dashboard: per org, crew key only, no seat anywhere
-{ const rows = [...sheets.map(s => ({ org_id: "alpha", sheet: s })), { org_id: "beta", sheet: cs("z", "finalized", { finalized_at: at(30), handling_seconds: 120, opens: [{ seat: "analyst-secret-9", at: T }] }) }, { org_id: "beta", sheet: { id: "old", created_at: T, submission: {}, status: "Finalised" } }];
+{ const rows = [...sheets.map(s => ({ org_id: "alpha", sheet: s })), { org_id: "alpha", sheet: { ...cs("a2", "in_review"), corrects: "a" } }, { org_id: "beta", sheet: cs("z", "finalized", { finalized_at: at(30), handling_seconds: 120, opens: [{ seat: "analyst-secret-9", at: T }] }) }, { org_id: "beta", sheet: { id: "old", created_at: T, submission: {}, status: "Finalised" } }];
   const ops = V.deskOpsByOrg(rows, at(60)), alpha = ops.find(o => o.org === "alpha"), beta = ops.find(o => o.org === "beta");
-  ok("one block per org, made from that org's own cases only", ops.length === 2 && alpha.cases === 5 && beta.cases === 1 && alpha.lines[0].value === "3" && beta.lines[0].value === "1" && beta.lines[1].value === "2 min");
+  ok("a sheet that a later version corrects is not counted again, and it no longer counts as finalized today", alpha.cases === 6);
+  ok("one block per org, made from that org's own cases only", ops.length === 2 && alpha.cases === 6 && beta.cases === 1 && alpha.lines[0].value === "2" && beta.lines[0].value === "1" && beta.lines[1].value === "2 min");
   ok("a sheet with no case (a pre V3 sheet) is not a case here", beta.cases === 1);
   ok("no seat, analyst or owner figure is in the output", !/analyst-secret-9|"seat"|owner|opens/.test(J(ops)), J(ops).slice(0, 200));
   process.env.OPS_KEY = "k-test"; process.env.SUPABASE_URL = "https://x.supabase.co"; process.env.SUPABASE_SERVICE_ROLE_KEY = "svc";
