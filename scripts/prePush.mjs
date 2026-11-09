@@ -2616,6 +2616,12 @@ try {
   record("Desk v3 stage 3 (scripts/deskStateCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/deskPdfCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Desk v3 stage 4: the four page report (four pages, no empty page, no placeholder picture, DRAFT only on previews, page numbers, links, only shown quarters, content from the case) (scripts/deskPdfCheck.mjs)", "PASS", (out.match(/deskPdfCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 4 (scripts/deskPdfCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/deskTypedSentenceCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("Desk typed sentences: no Desk file types an engine reason line, reads optionsNote/windowNote, or joins a count to a plural by hand (scripts/deskTypedSentenceCheck.mjs)", "PASS", (out.match(/deskTypedSentenceCheck: .*/) || [""])[0]);
 } catch (e) {
