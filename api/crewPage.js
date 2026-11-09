@@ -39,6 +39,8 @@ const findFor = async req => { const ex = await safe(() => FIND_EXAMPLES.read(re
 // MARKET CHECK AND SELL ON THE NEW SHELL (Sam's approved brief, Nov 8 2026; lib/preview/mcSellPreview.js). Without a search in the address the page is the new ENTRY; with one (?q= or ?car= or ?vin=, and every address the live pages push) it is the LIVE page, exactly as the live handler answers it, inside the shell. Nothing is computed here.
 // The two example fields are Lane B's (marketCheckExampleSales, sellExample); a field's module that is not built yet is simply absent (the section is hidden), one that is built and fails prints the visible could-not-read line like every other read.
 export const MC_EXAMPLES = { read: req => readIfBuilt("../lib/live/marketCheckExamples.js", "marketCheckExampleResult", req) };   // the day's pick car's real result, with its sales as the result's own cards (Lane B)
+export const MC_CARD = { read: req => readIfBuilt("../lib/live/marketCheckExamples.js", "marketCheckExample", req) };   // Lane B's Market Check entry card (final entry pages, Nov 9 2026)
+export const SELL_CARD = { read: req => readIfBuilt("../lib/live/marketCheckExamples.js", "sellExampleCard", req) };   // Lane B's Sell entry card
 export const SELL_EXAMPLE = { read: req => readIfBuilt("../lib/live/marketCheckExamples.js", "sellExample", req) };
 async function readIfBuilt(file, fn, req) { try { if (!fs.existsSync(new URL(file.replace("../", "../"), import.meta.url))) return null; } catch { return null; } return readField(file, fn, req); }
 const hasSearch = req => /[?&](q|car|vin)=[^&]/.test(String(req.url || ""));
@@ -56,8 +58,8 @@ async function mcSellFor(kind, req) {
       if (live.code !== 200) throw new Error("the live page answered " + live.code);
       return wrapLive(kind, live.body);
     }
-    const f = await safe(() => (kind === "mc" ? MC_EXAMPLES : SELL_EXAMPLE).read(req), kind === "mc" ? "marketCheckExampleResult" : "sellExample");
-    return couldNotRead(f) ? entryHtml(kind, { readError: kind === "mc" ? "Could not read the example result." : "Could not read the selling example." }) : entryHtml(kind, kind === "mc" ? { exampleResult: f } : { sellExample: f });
+    const f = await safe(() => (kind === "mc" ? MC_CARD : SELL_CARD).read(req), kind === "mc" ? "marketCheckExample" : "sellExampleCard");
+    return couldNotRead(f) ? entryHtml(kind, { readError: kind === "mc" ? "Could not read the Market Check example." : "Could not read the selling example." }) : entryHtml(kind, kind === "mc" ? { mcCard: f } : { sellCard: f });
   } catch (e) { return previewFailed(kind, e); }
 }
 // Market Check's script with its one path test widened to the preview path (the live file is never edited); crew only like every page here.

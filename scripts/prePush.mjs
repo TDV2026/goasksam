@@ -2325,6 +2325,12 @@ try {
   record("Desk v3 report preview: Preview report opens the PDF in a pane on the same page, keeps the unsaved changes and saves nothing (scripts/deskV3PreviewCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/entryFinalCheck.mjs", { encoding: "utf8", timeout: 420000 });
+  record("Entry pages final: Find, Market Check and Sell share header, rail, search, chips and spacing within 1px at 1440, 1024 and 390; hero words from the table; chips are real searches; the featured content equals Lane B's fields; results sources unchanged; no duplicate reason ids (scripts/entryFinalCheck.mjs, 7 mutants)", "PASS", (out.match(/entryFinalCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Entry pages final: Find, Market Check and Sell share header, rail, search, chips and spacing within 1px at 1440, 1024 and 390; hero words from the table; chips are real searches; the featured content equals Lane B's fields; results sources unchanged; no duplicate reason ids (scripts/entryFinalCheck.mjs, 7 mutants)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/deskV3ClickCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk v3: the Assessment and Reserve figures land on their inputs from the summary and the sticky bar; tabs keep state (scripts/deskV3ClickCheck.mjs)", "PASS", (out.match(/deskV3ClickCheck: .*/) || [""])[0]);
 } catch (e) {

@@ -61,7 +61,7 @@ let failed = 0, n = 0; const ok = (name, c, d) => { n++; if (!c) failed++; conso
   const rows = M.exampleSalesOf(f);
   ok("(1) Lane E's own reader accepts the field and returns three rows", rows && rows.length === 3 && rows.every(r => r.title && r.sold && r.photo && r.url && r.mi && r.plat && r.date), JSON.stringify(rows && rows[0]));
   const html = M.entryHtml("mc", { exampleResult: await MX.marketCheckExampleResult(env, CREW, W.d) });
-  ok("(1) the entry page draws the real result's frame (the results page's own hero, whose tiles are the three sales), and the old three card section is gone (Lane E, Nov 8 2026)", /data-example-result/.test(html) && /<iframe/.test(html) && !/data-example-sales/.test(html) && (html.match(/class="pc"/g) || []).length === 0);
+  ok("(1) the entry page no longer draws the result frame or the three card sales section (Lane E, Nov 9 2026: it draws marketCheckExample as one card, held by scripts/entryFinalCheck.mjs)", !/data-example-result/.test(html) && !/<iframe/.test(html) && !/data-example-sales/.test(html) && (html.match(/class="pc"/g) || []).length === 0);
   ok("(1) the lines are table lines: 'Sold for $52,000', '20,000 miles', 'Sold <Month> <year>'", /^Sold for \$[\d,]+$/.test(f.sales[0].soldLine) && /^[\d,]+ miles$/.test(f.sales[0].mileageLine) && /^Sold [A-Z][a-z]+ \d{4}$/.test(f.sales[0].dateLine) && /^Three of the 14 sales of this model/.test(f.line));
   ok("(1) platformLine is the venue's name", f.sales.every(s => s.platformLine === "Bring a Trailer"));
 }
