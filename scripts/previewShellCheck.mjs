@@ -24,7 +24,7 @@ async function measure(html, w) {
   await p.evaluateOnNewDocument(() => { try { localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "x", expires_at: 9999999999, user: { email: "a@b.c" } })); } catch (e) {} });
   await p.goto("https://goasksam.com/x", { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 250));
   const m = await p.evaluate(() => { const f = document.querySelector("footer.ft"), q = e => e && e.getBoundingClientRect(), sp = document.getElementById("spacer"), h1 = document.querySelector("h1"), em = document.querySelector(".em h2"), fr = document.querySelector(".em-frame"), eml = document.querySelector(".em-line");
-    return { vh: innerHeight, sh: document.documentElement.scrollHeight, fTop: f && Math.round(q(f).top + scrollY), fBot: f && Math.round(q(f).bottom + scrollY), spBot: sp ? Math.round(q(sp).bottom + scrollY) : null, h1x: h1 && Math.round(q(h1).left), emx: em && Math.round(q(em).left), lnx: eml && Math.round(q(eml).left), frx: fr && Math.round(q(fr).left), frw: fr && Math.round(q(fr).width), hs: document.documentElement.scrollWidth > document.documentElement.clientWidth }; });
+    return { vh: innerHeight, sh: document.documentElement.scrollHeight, fTop: f && Math.round(q(f).top + scrollY), fBot: f && Math.round(q(f).bottom + scrollY), spBot: sp ? Math.round(q(sp).bottom + scrollY) : null, h1x: h1 && Math.round(q(h1).left), emx: em && Math.round(q(em).left), lnx: eml && Math.round(q(eml).left), frx: fr && Math.round(q(fr).left), frw: fr && Math.round(q(fr).width), hs: document.documentElement.scrollWidth > document.documentElement.clientWidth, ftH: f && Math.round(q(f).height), railW: (document.querySelector('.rail') || { getBoundingClientRect: () => ({ width: null }) }).getBoundingClientRect().width, railBox: !!document.querySelector('.rail'), newOver: (() => { const n = document.querySelector('.rail .new'), r = document.querySelector('.rail'); return n && r ? n.getBoundingClientRect().right > r.getBoundingClientRect().right + 0.5 : false; })() }; });
   await p.close(); return m;
 }
 // the footer's bottom is the page's bottom (short content: the viewport's bottom; long content or a naturally tall page: after the content)
@@ -35,12 +35,16 @@ for (const w of [1440, 1280, 1024, 390]) {
     ok(!badFooter(s, false), `@${w} ${n}, short: the footer ends at the bottom of the page, which is never shorter than the viewport (footer bottom ${s.fBot}, viewport ${s.vh}, page ${s.sh})`);
     ok(!badFooter(l, true), `@${w} ${n}, long: the footer comes after the content (footer top ${l.fTop}, content ends ${l.spBot}, page ${l.sh})`);
     ok(!s.hs && !l.hs, `@${w} ${n}: no horizontal scroll`);
+    if (w >= 1024) ok(s.ftH <= 90, `@${w} ${n}: the footer is at most 90px tall (${s.ftH})`);
+    if (w >= 1024 && s.railBox) { ok(Math.round(s.railW) === 200, `@${w} ${n}: the shared rail is 200px wide (${s.railW})`); ok(!s.newOver, `@${w} ${n}: the New button fits inside the rail`); }
   }
   const t = await measure(PAGES[2][1], w);
   ok(t.emx === t.h1x && t.lnx === t.h1x && t.frx === t.h1x, `@${w} tasks: the email section's heading, line and card start at the hero's left edge (hero ${t.h1x}; heading ${t.emx}, line ${t.lnx}, card ${t.frx})`);
   if (w >= 1024) ok(t.frw >= 520 && t.frw <= 540, `@${w} tasks: the card keeps its width (${t.frw})`);
 }
 // mutants
+{ const m = await measure(lastStyle(PAGES[1][1], ".shell{--rail:290px!important}"), 1440); ok(Math.round(m.railW) !== 200, "mutant: a 290px rail is caught"); }
+{ const m = await measure(lastStyle(PAGES[4][1], ".ft .wrap{min-height:106px!important}"), 1440); ok(m.ftH > 90, "mutant: a 106px footer is caught"); }
 { const m = await measure(PAGES[4][1].replace("body{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}", ""), 1440); ok(badFooter(m, false), "mutant: the entry page without the column puts the footer mid page, caught"); }
 { const m = await measure(PAGES[4][1].replace("body>.ft{margin-top:auto}", ""), 1280); ok(badFooter(m, false), "mutant: a column whose footer does not take the spare room is caught"); }
 { const m = await measure(lastStyle(tall(PAGES[5][1]), ".ft{position:fixed;bottom:0;left:0;right:0}"), 390); ok(badFooter(m, true), "mutant: a footer pinned over the content is caught on a long page"); }

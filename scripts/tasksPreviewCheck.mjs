@@ -226,5 +226,29 @@ async function voiceBad(html) { const bad = [];
   const drawn = H.replace(ex.block.cardHtml, "<table><tr><td>1995 BMW M3 Coupe</td></tr></table>"); ok(drawn !== H && !(drawn.match(/<section class="em wrap"[\s\S]*?<\/section>/) || [""])[0].includes(ex.block.cardHtml), "7 mutant: an email drawn by the page itself fails the comparison with the engine block's cardHtml");
   ok(/M3|Cosmos/.test("const t = 'Cosmos Black Metallic 1995 BMW M3';"), "7 mutant: a car typed into the page's code is caught by the source scan");
 }
+
+// ---------- THE FOUR PILLS ARE ONE SIZE (Sam, Nov 9 2026): the platform and days left tag, the last bid seen tag, View auction and Market Check share one height, one type size, one radius and one gap, in the preview AND in the email template the preview is drawn from ----------
+{ const EC = await imp("lib/tasks/emailCardLayout.js"), H = T.tasksPublicHtml({ max: 10, emailExample: FX.tasksEmailFixture() });
+  const PM = () => { const ps = [...document.querySelectorAll(".em-body .gc-pill")], r = e => e.getBoundingClientRect(), st = e => getComputedStyle(e);
+    return { n: ps.length, h: ps.map(e => Math.round(r(e).height * 10) / 10), fs: ps.map(e => st(e).fontSize), rad: ps.map(e => st(e).borderTopLeftRadius), lh: ps.map(e => st(e).lineHeight), tops: ps.map(e => Math.round(r(e).top)), lefts: ps.map(e => Math.round(r(e).left)), rights: ps.map(e => Math.round(r(e).right)), hs: document.documentElement.scrollWidth > document.documentElement.clientWidth }; };
+  async function pillBad(html, w) { const p = await open(html, w), m = await p.evaluate(PM); await p.close(); const bad = [];
+    if (m.n !== 4) bad.push(`${m.n} pills at ${w}, expected the four`);
+    if (new Set(m.h).size !== 1 || m.h[0] !== EC.PILL.h) bad.push(`pill heights differ or are not ${EC.PILL.h}px at ${w}: ${m.h}`);
+    if (new Set(m.fs).size !== 1 || new Set(m.rad).size !== 1 || new Set(m.lh).size !== 1) bad.push(`pill type size, radius or line height differ at ${w}: ${m.fs} ${m.rad} ${m.lh}`);
+    if (m.n === 4 && w <= 480) { for (const [x, y] of [[0, 1], [2, 3]]) if (m.tops[y] > m.tops[x]) { const gap = m.tops[y] - (m.tops[x] + m.h[x]); if (gap !== EC.PILL.gap) bad.push(`vertical gap ${gap} between stacked pills ${x} and ${y}, expected ${EC.PILL.gap}`); } }
+    else if (m.n === 4) { const rows = [...new Set(m.tops)].sort((a, b) => a - b); if (rows.length !== 2) bad.push(`the pills are on ${rows.length} rows, not two (tags, then buttons)`); else { const first = m.tops.map((t, i) => [t, i]).filter(x => x[0] === rows[0]).map(x => x[1]), second = m.tops.map((t, i) => [t, i]).filter(x => x[0] === rows[1]).map(x => x[1]);
+        if (first.length !== 2 || second.length !== 2) bad.push(`rows hold ${first.length} and ${second.length} pills, expected two tags then two buttons`);
+        else { const g1 = m.lefts[first[1]] - m.rights[first[0]], g2 = m.lefts[second[1]] - m.rights[second[0]], gv = rows[1] - (rows[0] + m.h[0]); if (g1 !== EC.PILL.gap || g2 !== EC.PILL.gap) bad.push(`horizontal gaps ${g1} and ${g2}, expected ${EC.PILL.gap}`); } } }
+    if (m.hs) bad.push("sideways scroll at " + w); return bad; }
+  for (const w of [1440, 1024, 390]) { const b = await pillBad(H, w); for (const x of b) ok(false, "pills: " + x); ok(!b.length, `the four pills are one height (${EC.PILL.h}px), type size, radius and gap, in two rows, at ${w}`); }
+  // the email itself: every pill carries the same style values
+  { const mail = EC.cardHtmlFromData ? null : null; const sec = (H.match(/<div class="em-body">[\s\S]*?<\/section>/) || [""])[0], styles = [...sec.matchAll(/class="gc-pill[^"]*"[^>]*style="([^"]*)"/g)].map(m => m[1]);
+    const key = st => ["font-size", "line-height", "padding", "border-radius", "font-weight"].map(k => (new RegExp("(?:^|;)" + k + ":([^;]*)").exec(st) || [])[1]).join("|");
+    ok(styles.length === 4 && new Set(styles.map(key)).size === 1, `the email's four pills carry one set of size values (${[...new Set(styles.map(key))].join(" ; ")})`); }
+  // mutants: one pill 4px taller; one in another type size; a preview rule that reshapes a pill
+  { const taller = H.replace(/(class="gc-pill gc-mc"[^>]*style="[^"]*)"/, "$1;padding:9px 13px\""), b = await pillBad(taller, 1440); ok(b.length > 0, "mutant caught: one pill 4px taller"); }
+  { const other = H.replace(/(class="gc-pill"[^>]*style="[^"]*)"/, "$1;font-size:11px\""), b = await pillBad(other, 1440); ok(b.length > 0, "mutant caught: one pill in another type size"); }
+  { const sq = H.replace("</style>", ".em-body .gc-card .gc-btn a{padding-top:12px!important;padding-bottom:12px!important}</style>"), b = await pillBad(sq, 1440); ok(b.length > 0, "mutant caught: a preview rule that reshapes a button (the old override)"); }
+}
 await b.close();
 out.forEach(l => console.log(l)); console.log(`tasksPreviewCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
