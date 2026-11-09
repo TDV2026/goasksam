@@ -11,6 +11,7 @@ const ROOT = path.resolve(new URL("..", import.meta.url).pathname); process.chdi
 process.env.CURTAIN_CREW_CODE = "x"; process.env.LAUNCH_STAGE = "2";
 const imp = f => import(pathToFileURL(path.join(ROOT, f)).href);
 const puppeteer = createRequire(path.join(ROOT, "package.json"))("puppeteer-core");
+process.env.CURTAIN_CREW_CODE = "fixture-crew-code"; for (const k of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ANON_KEY"]) delete process.env[k];
 const PP = await imp("lib/preview/previewPages.js"), T = await imp("lib/preview/tasksPreview.js"), M = await imp("lib/preview/tasksMine.js"), MC = await imp("lib/preview/mcSellPreview.js"), FX = await imp("scripts/tasksFixture.mjs");
 let pass = 0, fail = 0; const out = []; const ok = (c, m) => { if (c) pass++; else { fail++; out.push("FAIL " + m); } };
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -24,7 +25,7 @@ async function measure(html, w) {
   await p.evaluateOnNewDocument(() => { try { localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "x", expires_at: 9999999999, user: { email: "a@b.c" } })); } catch (e) {} });
   await p.goto("https://goasksam.com/x", { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 250));
   const m = await p.evaluate(() => { const f = document.querySelector("footer.ft"), q = e => e && e.getBoundingClientRect(), sp = document.getElementById("spacer"), h1 = document.querySelector("h1"), em = document.querySelector(".em h2"), fr = document.querySelector(".em-frame"), eml = document.querySelector(".em-line");
-    return { vh: innerHeight, sh: document.documentElement.scrollHeight, fTop: f && Math.round(q(f).top + scrollY), fBot: f && Math.round(q(f).bottom + scrollY), spBot: sp ? Math.round(q(sp).bottom + scrollY) : null, h1x: h1 && Math.round(q(h1).left), emx: em && Math.round(q(em).left), lnx: eml && Math.round(q(eml).left), frx: fr && Math.round(q(fr).left), frw: fr && Math.round(q(fr).width), hs: document.documentElement.scrollWidth > document.documentElement.clientWidth }; });
+    return { vh: innerHeight, sh: document.documentElement.scrollHeight, fTop: f && Math.round(q(f).top + scrollY), fBot: f && Math.round(q(f).bottom + scrollY), spBot: sp ? Math.round(q(sp).bottom + scrollY) : null, h1x: h1 && Math.round(q(h1).left), emx: em && Math.round(q(em).left), lnx: eml && Math.round(q(eml).left), frx: fr && Math.round(q(fr).left), frw: fr && Math.round(q(fr).width), hs: document.documentElement.scrollWidth > document.documentElement.clientWidth, ftH: f && Math.round(q(f).height), railW: (document.querySelector('.rail') || { getBoundingClientRect: () => ({ width: null }) }).getBoundingClientRect().width, railBox: !!document.querySelector('.rail'), newOver: (() => { const n = document.querySelector('.rail .new'), r = document.querySelector('.rail'); return n && r ? n.getBoundingClientRect().right > r.getBoundingClientRect().right + 0.5 : false; })() }; });
   await p.close(); return m;
 }
 // the footer's bottom is the page's bottom (short content: the viewport's bottom; long content or a naturally tall page: after the content)
@@ -35,16 +36,32 @@ for (const w of [1440, 1280, 1024, 390]) {
     ok(!badFooter(s, false), `@${w} ${n}, short: the footer ends at the bottom of the page, which is never shorter than the viewport (footer bottom ${s.fBot}, viewport ${s.vh}, page ${s.sh})`);
     ok(!badFooter(l, true), `@${w} ${n}, long: the footer comes after the content (footer top ${l.fTop}, content ends ${l.spBot}, page ${l.sh})`);
     ok(!s.hs && !l.hs, `@${w} ${n}: no horizontal scroll`);
+    if (w >= 1024) ok(s.ftH <= 90, `@${w} ${n}: the footer is at most 90px tall (${s.ftH})`);
+    if (w >= 1024 && s.railBox) { ok(Math.round(s.railW) === 200, `@${w} ${n}: the shared rail is 200px wide (${s.railW})`); ok(!s.newOver, `@${w} ${n}: the New button fits inside the rail`); }
   }
   const t = await measure(PAGES[2][1], w);
   ok(t.emx === t.h1x && t.lnx === t.h1x && t.frx === t.h1x, `@${w} tasks: the email section's heading, line and card start at the hero's left edge (hero ${t.h1x}; heading ${t.emx}, line ${t.lnx}, card ${t.frx})`);
   if (w >= 1024) ok(t.frw >= 520 && t.frw <= 540, `@${w} tasks: the card keeps its width (${t.frw})`);
 }
 // mutants
+{ const m = await measure(lastStyle(PAGES[1][1], ".shell{--rail:290px!important}"), 1440); ok(Math.round(m.railW) !== 200, "mutant: a 290px rail is caught"); }
+{ const m = await measure(lastStyle(PAGES[4][1], ".ft .wrap{min-height:106px!important}"), 1440); ok(m.ftH > 90, "mutant: a 106px footer is caught"); }
 { const m = await measure(PAGES[4][1].replace("body{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}", ""), 1440); ok(badFooter(m, false), "mutant: the entry page without the column puts the footer mid page, caught"); }
 { const m = await measure(PAGES[4][1].replace("body>.ft{margin-top:auto}", ""), 1280); ok(badFooter(m, false), "mutant: a column whose footer does not take the spare room is caught"); }
 { const m = await measure(lastStyle(tall(PAGES[5][1]), ".ft{position:fixed;bottom:0;left:0;right:0}"), 390); ok(badFooter(m, true), "mutant: a footer pinned over the content is caught on a long page"); }
 { const m = await measure(lastStyle(PAGES[2][1], ".em{text-align:center}.em-frame{margin:0 auto}.em-line{margin:0 auto 16px}"), 1440); ok(!(m.emx === m.h1x && m.lnx === m.h1x && m.frx === m.h1x), "mutant: the centred email section is caught"); }
 { const m = await measure(lastStyle(PAGES[2][1], ".em-frame{margin-left:40px}"), 1440); ok(m.frx !== m.h1x, "mutant: a card off the edge is caught"); }
+
+// the natural gap between the Find cards and the footer (what the shell itself adds, with the full height column switched off) is at most 90px: Lane C's live render limit
+{ const CPm = await imp("api/crewPage.js"), { mintCrewCookieValue } = await imp("lib/_crew.js"), EXm = await imp("scripts/findExamplesFixture.mjs");
+  const exs = EXm.examplesFixture().map((i, k) => ({ ...i.card, photo_url: "https://example.test/p" + k + ".jpg" })), full = EXm.examplesFixture().map((i, k) => ({ ...i, card: { ...i.card, photo_url: "https://example.test/p" + k + ".jpg" } }));
+  CPm.FIND_EXAMPLES.read = async () => full; CPm.FIND_EXAMPLES.now = () => EXm.NOW;
+  const res = { h: {}, code: 200, body: "", setHeader(k, v) { this.h[k] = v; return this; }, getHeader() {}, removeHeader() {}, status(c) { this.code = c; return this; }, send(x) { this.body = String(x); return this; }, end(x) { this.body = String(x || ""); return this; }, writeHead(c) { this.code = c; return this; } };
+  const realErr = console.error; console.error = () => {}; await CPm.default({ method: "GET", url: "/", query: { page: "preview-find" }, headers: { cookie: "gas_crew=" + mintCrewCookieValue() }, body: null }, res); console.error = realErr;
+  const gap = async (html, w) => { const p = await b.newPage(); await p.setViewport({ width: w, height: 900 }); await p.setRequestInterception(true); p.on("request", r => { const u = new URL(r.url()); if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html }); return r.resourceType() === "image" ? r.respond({ status: 200, contentType: "image/svg+xml", body: "<svg xmlns='http://www.w3.org/2000/svg' width='900' height='600'/>" }) : r.respond({ status: 204, body: "" }); });
+    await p.goto("https://goasksam.com/x", { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 400)); const g = await p.evaluate(() => { const f = document.querySelector("footer.ft"), cs = [...document.querySelectorAll("#fx-grid .lc")]; return cs.length && f ? Math.round(f.getBoundingClientRect().top + scrollY - (Math.max(...cs.map(c => c.getBoundingClientRect().bottom)) + scrollY)) : null; }); await p.close(); return g; };
+  const natural = lastStyle(res.body, "body{display:block!important;min-height:0!important}");
+  for (const w of [1440, 1280, 1024]) { const g = await gap(natural, w); ok(g != null && g >= 20 && g <= 90, `@${w} Find: the shell leaves 20 to 90px between the cards and the footer (${g})`); }
+  { const g = await gap(lastStyle(natural, ".main{padding-bottom:130px!important}"), 1440); ok(!(g != null && g <= 90), "mutant: 130px of bottom padding under the cards is caught (" + g + ")"); } }
 await b.close();
 out.forEach(l => console.log(l)); console.log(`previewShellCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

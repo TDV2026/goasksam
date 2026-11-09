@@ -171,7 +171,7 @@ else {
       const geo = await p.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, rail: (document.querySelector(".rail") || {}).offsetWidth, old: !!document.querySelector("#gas-rail,#gas-scrim,.gas-mhead,.gas-signbar"), ob: (document.querySelector("#ob") || {}).offsetWidth || 0, foot: (document.querySelector(".ft") || { getBoundingClientRect: () => ({ top: 0 }) }).getBoundingClientRect().top + scrollY, last: Math.max(...[...document.querySelectorAll("main, #gas-main, .main")].map(e => e.getBoundingClientRect().bottom + scrollY)) }));
       ok(geo.sw <= geo.cw, `${name} at ${w}: no horizontal overflow (${geo.sw} > ${geo.cw})`);
       ok(!geo.old, `${name} at ${w}: no old navigation in the browser`);
-      ok(w === 390 || geo.rail === 220, `${name} at ${w}: the rail is 220px wide (${geo.rail})`);
+      ok(w === 390 || geo.rail === 200, `${name} at ${w}: the rail is 200px wide (${geo.rail})`);
       ok(geo.foot >= geo.last - 1, `${name} at ${w}: the footer sits after the content, never over it (${Math.round(geo.foot)} vs ${Math.round(geo.last)})`);
       if (name.includes("results") && w === 1440) ok(geo.ob > 1040, `${name}: the results container is wider than the old 1040 cap (${geo.ob})`);
       ok(p._err.length === 0, `${name} at ${w}: no page error (${p._err.join(" | ")})`);
