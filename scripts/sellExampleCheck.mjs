@@ -12,13 +12,18 @@ if (args.includes("--mutants")) {
   const MX = "lib/live/marketCheckExamples.js", EE = "lib/live/entryExamples.js", RWF = "lib/reasonWords.js";
   const muts = [
     [MX, "data.cars.length >= 2 &&", "data.cars.length >= 1 &&", "(1) one car passes the shaper"],
-    [MX, "if (total < 8 || platforms.length < 2) continue;", "if (platforms.length < 1) continue;", "(2) a car with a thin record is shown"],
+    [MX, "if (total < 8) { why[text] = \"under_eight_sales\"; return; }", "", "(2) a car with a thin record is shown"],
     [MX, "const platforms = platformsOf(pl), total = platforms.reduce((t, p) => t + p.sales, 0);", "const platforms = platformsOf(pl), total = platforms.reduce((t, p) => t + p.sales, 0) + 3;", "(2) the total is not the sum of the venues"],
     [MX, "off: \"CREW_SELL_EXAMPLE\", also: [\"SELL_EXAMPLE_FIELD\"],", "off: \"NOT_A_SWITCH\", also: [],", "(4) the kill switch does nothing"],
     [MX, "also: [\"SELL_EXAMPLE_FIELD\"], key: SELL_STORE", "also: [], key: SELL_STORE", "(4) the older switch does nothing"],
     [MX, "data.cars.length <= 3 &&", "data.cars.length <= 9 &&", "(1) four cars make a field"],
     [MX, "line: reasonLine(\"entry.sell_car\", {", "line: \"Sells best on Bring a Trailer\" + (0 ? reasonLine(\"entry.sell_car\", {", "(2) a sentence typed here, not the table's"],
     [RWF, "venueSplitWords(list) {\n  const parts = (list || []).map(v => `${Number(v.sales).toLocaleString(\"en-US\")} on ${v.name}`);", "venueSplitWords(list) {\n  const parts = (list || []).map(v => `${Number(v.sales) + 1} on ${v.name}`);", "(2) a venue's count is not the venue's"],
+    [MX, "export const SELL_PARALLEL = 3,", "export const SELL_PARALLEL = 1,", "(6) the candidates are asked one by one again"],
+    [MX, "export const SELL_PARALLEL = 3,", "export const SELL_PARALLEL = 7,", "(6) all the candidates are asked at once"],
+    [MX, "await withClock(Promise.all(Array.from({ length: Math.min(SELL_PARALLEL, list.length) }, worker)), all);", "await Promise.all(Array.from({ length: Math.min(SELL_PARALLEL, list.length) }, worker));", "(6) the whole build has no clock"],
+    [MX, "catch { why[text] = \"threw\"; return; }", "catch { return; }", "(6) a read that threw is not counted"],
+    [MX, "if (cars.length < 2) { try { console.error(", "if (false) { try { console.error(", "(6) a build that finds nothing says nothing"],
     [EE, "if (st && st.v === STORE_V && st.data && st.data.pickDate === dateKey) return st.data;", "", "(3) the day's pick is built again on every read"]
   ];
   let survivors = 0;
@@ -28,7 +33,7 @@ if (args.includes("--mutants")) {
     const fp = path.join(dir, file), src = fs.readFileSync(fp, "utf8"), m = src.replace(from, to);
     if (m === src) { console.log("MUTANT NOT APPLIED  " + want); survivors++; fs.rmSync(dir, { recursive: true, force: true }); continue; }
     fs.writeFileSync(fp, m);
-    const r = spawnSync(process.execPath, [path.join(dir, "scripts/sellExampleCheck.mjs"), dir], { encoding: "utf8" }), killed = r.status !== 0;
+    const r = spawnSync(process.execPath, [path.join(dir, "scripts/sellExampleCheck.mjs"), dir], { encoding: "utf8", timeout: 90000 }), killed = r.status !== 0;
     console.log((killed ? "killed  " : "SURVIVED") + "  " + want); if (!killed) survivors++;
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -87,6 +92,22 @@ const PL = X.places(3), every = X.ALLSELL(PL);
 }
 { // (1) the shaper, on stored data that is wrong
   ok("(1) four cars, no cars, a car without a line: no field", MX.sellShape({ cars: [1, 2, 3, 4].map(i => ({ title: "t", line: "l" })) }) === null && MX.sellShape({ cars: [] }) === null && MX.sellShape({ cars: [{ title: "t", line: "l" }] }) === null && MX.sellShape({ cars: [{ title: "t", line: "l" }, { title: "t", line: "" }] }) === null && MX.sellShape(null) === null);
+}
+{ // (6) WHY /preview/sell CAME BACK EMPTY (Nov 9 2026, from the code): the build asked the candidates one at a time with no clock on the whole. It asks three at a time, under one clock, keeps the cars found, and says why when it finds fewer than two
+  const logs = []; const realErr = console.error; console.error = (...a) => { logs.push(a.join(" ")); };
+  const withPlaces = (fn) => { const W = X.world({}, {}); W.d.places = fn; W.d.budgetMs = 10000; W.d.buildMs = 300; return W; };
+  const sleep = ms => new Promise(r => setTimeout(r, ms)), HANG = () => new Promise(() => {});
+  { let calls = 0; const W = withPlaces(async () => { calls++; return calls <= 2 ? HANG() : PL; }); const t0 = Date.now(), f = await MX.sellExample(env, CREW, W.d), took = Date.now() - t0;
+    ok("(6) two candidates that never answer do not hold the build: the cars found are kept, inside the one clock", f && f.cars.length === 3 && took < 3000, took + " ms"); }
+  { let now = 0, peak = 0; const W = withPlaces(async () => { now++; peak = Math.max(peak, now); await sleep(25); now--; return null; }); W.d.buildMs = 5000; await MX.sellExample(env, CREW, W.d);
+    ok("(6) the candidates are asked three at a time, not one by one and not all at once", peak === 3, "peak " + peak); }
+  { const W = withPlaces(async () => { throw new Error("read failed"); }); logs.length = 0; const f = await MX.sellExample(env, CREW, W.d), line = logs.map(l => { try { return JSON.parse(l); } catch { return null; } }).find(x => x && x.tag === "crew_sell_example_miss");
+    ok("(6) every read failing: no field, and the miss is logged with the reason of each candidate (threw), never silent", f === null && line && line.found === 0 && Object.values(line.reasons).length === X.EE.SELL_CANDIDATES.length && Object.values(line.reasons).every(r => r === "threw"), JSON.stringify(line && line.reasons).slice(0, 120)); }
+  { const W = withPlaces(async (e, t) => (t === X.EE.SELL_CANDIDATES[X.EE.SELL_CANDIDATES.length - 1] || t === X.EE.SELL_CANDIDATES[X.EE.SELL_CANDIDATES.length - 2]) ? PL : null); const f = await MX.sellExample(env, CREW, W.d);
+    ok("(6) when only the last two candidates have a record, a real candidate is found: a field of those two", f && f.cars.length === 2); }
+  { const W = withPlaces(async () => null); logs.length = 0; const f = await MX.sellExample(env, CREW, W.d);
+    ok("(6) when no candidate has a record the section stays hidden, and the miss is logged", f === null && logs.some(l => /crew_sell_example_miss/.test(l))); }
+  console.error = realErr;
 }
 { // (5) the class
   const crew = fs.readFileSync(path.join(ROOT, "api/crewPage.js"), "utf8");

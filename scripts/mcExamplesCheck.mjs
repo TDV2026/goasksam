@@ -13,6 +13,7 @@ const args = process.argv.slice(2), rootArg = args.find(a => !a.startsWith("--")
 if (args.includes("--mutants")) {
   const MX = "lib/live/marketCheckExamples.js", EE = "lib/live/entryExamples.js";
   const muts = [
+    [EE, "if (d.now() - t0 > BUILD_TOTAL_MS) return null;   // out of time", "", "(8) the Market Check build has no limit on the whole"],
     [MX, "if (!sales.every(s => s && urls.has(s.url))) return null;", "", "(7) a sale outside the result's pool is accepted"],
     [EE, "result: resultOf(a), poolN,", "result: resultOf({ ...a, cards: a.cards.filter(c => !three.includes(c)) }), poolN,", "(7) the result is built without the pool the three sales were taken from"],
     [EE, "out[k] = JSON.parse(JSON.stringify(a[k]));", "out[k] = k === \"poolN\" ? a[k] + 1 : JSON.parse(JSON.stringify(a[k]));", "(7) a number of the result is not the page's number"],
@@ -122,6 +123,16 @@ let failed = 0, n = 0; const ok = (name, c, d) => { n++; if (!c) failed++; conso
   const crew = fs.readFileSync(path.join(ROOT, "api/crewPage.js"), "utf8");
   ok("(6) api/crewPage.js reads marketCheckExampleSales from lib/live/marketCheckExamples.js, which exports it", /readIfBuilt\("\.\.\/lib\/live\/marketCheckExamples\.js", "marketCheckExampleSales"/.test(crew) && typeof MX.marketCheckExampleSales === "function");
   ok("(6) zero OldCarsData", X.metered === 0);
+}
+{ // (8) THE CLASS OF THE EMPTY /preview/sell (Nov 9 2026): a build that walks its candidates one by one has a limit on the whole, so a slow day ends the build instead of the request
+  const W = X.world({}, {}); let calls = 0; W.d.answer = async () => { calls++; W.clock += 20000; return null; };
+  const f = await MX.marketCheckExampleSales(env, CREW, W.d);
+  ok("(8) Market Check's build stops asking after 45 seconds of candidates and gives no field", f === null && calls >= 2 && calls <= 4 && X.EE.BUILD_TOTAL_MS === 45000, "asked " + calls);
+  const W2 = X.world({}, {}); let c2 = 0; W2.d.places = async () => { c2++; W2.clock += 20000; return null; };
+  ok("(8) the first Sell build stops the same way", (await X.EE.buildSellExample(env, W2.d, "2026-11-09")) === null && c2 >= 2 && c2 <= 4, "asked " + c2);
+  const src = ["lib/live/entryExamples.js", "lib/live/marketCheckExamples.js"].map(f => fs.readFileSync(path.join(ROOT, f), "utf8")).join("\n");
+  const loops = [...src.matchAll(/for \((?:const|let) \w+ of rotate\(/g)].length, guarded = [...src.matchAll(/d\.now\(\) - t0 > BUILD_TOTAL_MS/g)].length;
+  ok(`(8) the class: every candidate loop that awaits one by one carries the limit on the whole (${loops} loops, ${guarded} guarded); the Sell cars build runs under its own clock`, loops === guarded && /SELL_BUILD_MS/.test(src) && !/for \(const text of rotate\(SELL_CANDIDATES, dateKey, "sellcars"\)/.test(src));
 }
 { // (7) THE RESULT OF THE SAME PICK (Nov 8 2026): the engine's answer for the car whose three sales are shown, in the answer's own fields; the sales are rows of that result's table
   const W = X.world(X.ALLMC(X.pool(14))), s = await MX.marketCheckExampleSales(env, CREW, W.d), r = await MX.marketCheckExampleResult(env, CREW, W.d);
