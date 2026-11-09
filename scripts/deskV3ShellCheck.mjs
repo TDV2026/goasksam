@@ -53,7 +53,7 @@ function textAssertions(html, tag, { activeId, demoCase } = {}) {
 
 // ---------- 1 crew only ----------
 {
-  const store = await PV.previewStore(), rows = await store.list(PV.PREVIEW_ORG.id), id = rows[0].id;
+  await call("/api/crewPage?page=preview-desk", crew); const id = V3.DEMO_ID;   // the first read seeds the demonstration case
   const stranger = await call("/api/crewPage?page=preview-desk"), forged = await call("/api/crewPage?page=preview-desk", "gas_crew=v1.9999999999999.forged"), strangerCase = await call(`/api/crewPage?page=preview-desk&case=${id}`);
   ok(stranger.code === 404 && forged.code === 404 && strangerCase.code === 404, "a stranger or a forged cookie gets the 404 on the list and a case (" + [stranger.code, forged.code, strangerCase.code] + ")");
   const unknown = await call("/api/crewPage?page=preview-desk&case=nope", crew); ok(unknown.code === 404, "an unknown case id gets the 404 (" + unknown.code + ")");
@@ -62,21 +62,23 @@ function textAssertions(html, tag, { activeId, demoCase } = {}) {
   ok(/noindex/.test(one.h["x-robots-tag"] || "") && /no-store/.test(one.h["cache-control"] || ""), "noindex header and no-store");
   const vj = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
   for (const [src, page] of [["/preview/desk", "preview-desk"], ["/preview/desk/case/:id", "preview-desk"]]) { const r = (vj.rewrites || []).find(x => x.source === src); ok(r && /gas_crew/.test(JSON.stringify(r.has || [])) && r.destination.includes("page=" + page), "vercel.json routes " + src + " only with the crew cookie"); }
-  const bads = [...textAssertions(list.body, "list"), ...textAssertions(one.body, "case", { activeId: id, demoCase: !!rows[0].demo })];
+  const bads = [...textAssertions(list.body, "list"), ...textAssertions(one.body, "case", { activeId: id, demoCase: id === V3.DEMO_ID })];
   for (const b of bads) ok(false, "page: " + b); ok(!bads.length, "the served list and case pass the shell assertions");
 }
 
 // ---------- the operations block comes from Lane D's lines only ----------
 {
-  const mk = (handling) => V3.pageHtml([{ id: "a", car: "2002 BMW M3", spec: "", seller: "A Seller", ref: "a", age: "6 min", submitted: "2026-11-08", status: "New", group: "new", photo: null, demo: false, handling }], "a");
+  const one = o => ({ id: "a", car: "2002 BMW M3", spec: "", seller: "A Seller", ref: "a", age: "6 min", submitted: "2026-11-08", status: "New", group: "new", photo: null, demo: false, ...o });
+  const mk = handling => V3.pageHtml({ cases: [one({})], activeId: "a", handling });
   ok(!/id="ops"/.test(mk(null)), "no handling lines, no operations block");
   const lines = [{ label: "Open leads", value: "3" }, { label: "Oldest waiting", value: "2 d" }]; const h = mk({ lines });
   ok(/id="ops"/.test(h) && h.includes("Open leads") && h.includes("Oldest waiting"), "Lane D's handling lines print as sent");
-  ok(/class="demo"/.test(V3.pageHtml([{ id: "a", car: "x", spec: "", seller: null, ref: "a", age: "1 d", submitted: "2026-11-08", status: "New", group: "new", photo: null, demo: true, handling: null }], "a")), "a flagged demo case shows the banner");
+  ok(/class="demo"/.test(V3.pageHtml({ cases: [one({ demo: true })], activeId: "a" })) && !/class="demo"/.test(mk(null)), "a flagged demo case shows the banner and a plain one does not");
+  ok(/class="grp-n">7</.test(V3.pageHtml({ cases: [one({})], activeId: "a", queue: { new: 7, review: 0, ready: 0, final: 0 } })), "the group counts print as the server sent them (case.queue)");
 }
 
 // ---------- the module computes nothing ----------
-function computes(src) { const bad = []; const body = src.replace(/\/\/.*$/gm, ""); if (/Math\.(round|floor|ceil|min|max|abs)|reduce\(|parseFloat|\bNumber\([^)]*\)\s*[-+*/]/.test(body.replace(/Number\(sub\.mileage\)\.toLocaleString/, ""))) bad.push("arithmetic on a figure"); if (/\$\{?\s*\d/.test(body) || /"\$[\d,]+/.test(body)) bad.push("a typed dollar figure"); return bad; }
+function computes(src) { const bad = []; const body = src.replace(/\/\/.*$/gm, ""); if (/Math\.(round|floor|ceil|min|max|abs)|reduce\(|parseFloat|toLocaleString|toFixed|Intl\.|\bNumber\([^)]*\)\s*[-+*/]/.test(body)) bad.push("arithmetic on a figure"); if (/\$\{?\s*\d/.test(body) || /"\$[\d,]+/.test(body)) bad.push("a typed dollar figure"); return bad; }
 { const src = fs.readFileSync("lib/preview/deskV3.js", "utf8"); const b = computes(src); ok(!b.length, "deskV3.js carries no page arithmetic" + (b.length ? ": " + b : "")); }
 
 // ---------- 4 in Chrome ----------
@@ -107,7 +109,7 @@ async function inChrome(htmlList, label) {
   } finally { await br.close(); }
   return bad;
 }
-async function goodPage() { const store = await PV.previewStore(), rows = await store.list(PV.PREVIEW_ORG.id); const r = await call(`/api/crewPage?page=preview-desk&case=${rows[0].id}`, crew); return r.body; }
+async function goodPage() { await call("/api/crewPage?page=preview-desk", crew); const r = await call(`/api/crewPage?page=preview-desk&case=${V3.DEMO_ID}`, crew); return r.body; }
 const html = await goodPage();
 { const b = await inChrome(html); for (const x of b) ok(false, "chrome: " + x); ok(!b.length, "in Chrome at 1440, 1280, 1024 and 390: no overflow, rail and header drawn, flat, search works"); }
 
@@ -125,12 +127,37 @@ const MUT = [
   ["the page overflows sideways", h => h.replace("</style>", ".v3 .work{min-width:2400px!important}</style>"), "chrome"],
   ["the rail hidden", h => h.replace("</style>", ".v3 .rail{display:none!important}</style>"), "chrome"]
 ];
-const id0 = (await (await PV.previewStore()).list(PV.PREVIEW_ORG.id))[0].id;
+const id0 = V3.DEMO_ID;
 for (const [name, fn, kind] of MUT) {
   const m = fn(html); let caught = false;
   if (kind === "text") caught = textAssertions(m, "mutant", { activeId: id0, demoCase: false }).length > 0; else caught = (await inChrome(m)).length > 0;
   ok(caught, "mutant caught: " + name);
 }
 { const src = fs.readFileSync("lib/preview/deskV3.js", "utf8"); ok(computes(src.replace("age: sm.timeIn", "age: Math.round(sm.timeIn / 60)")).length > 0, "mutant caught: arithmetic on a figure in the module"); }
+
+
+// ---------- stage 2: the sticky bar collapses in at 1440, 1280 and 1024, is never taller than 92px and never covers what the analyst is working on ----------
+{
+  const H = await imp("scripts/deskV3Harness.mjs"), page0 = await H.demoHtml();
+  async function stickyBad(h, w) {
+    const bad = [], br = await H.launch();
+    try {
+      const p = await H.openPage(br, h, w, 520), st = () => p.evaluate(() => { const s = document.getElementById("stk"), r = s.getBoundingClientRect(); return { hidden: s.hidden, h: Math.round(r.height), top: Math.round(r.top), bottom: Math.round(r.bottom), txt: s.innerText.replace(/\s+/g, " ") }; });
+      let m = await st(); if (!m.hidden) bad.push(`the sticky bar shows with the summary in view at ${w}`);
+      await p.evaluate(() => window.scrollTo(0, 900)); await new Promise(r => setTimeout(r, 250)); m = await st();
+      if (m.hidden) bad.push(`the sticky bar does not appear when the summary scrolls out at ${w}`);
+      else { if (m.h > 92) bad.push(`the sticky bar is ${m.h}px tall at ${w}`); if (m.top > 60 || m.top < 46) bad.push(`the sticky bar is not stuck directly under the top bar at ${w} (top ${m.top})`); for (const k of ["Market", "Assessment", "Reserve", "Review", "Vehicle", "Market evidence", "Decision"]) if (!m.txt.toLowerCase().includes(k.toLowerCase())) bad.push(`the sticky bar lacks ${k} at ${w}`); }
+      await p.evaluate(() => { window.scrollTo(0, 0); document.querySelector('[data-tab="market"]').click(); }); await new Promise(r => setTimeout(r, 200)); m = await st(); if (m.hidden) bad.push(`the sticky bar is not kept on Market evidence at ${w}`);
+      await p.click("#figA"); await new Promise(r => setTimeout(r, 300)); m = await st();
+      const inp = await p.evaluate(() => { const r = document.getElementById("in-alow").getBoundingClientRect(); return { top: Math.round(r.top) }; });
+      if (inp.top < m.bottom) bad.push(`the sticky bar covers the assessment input at ${w} (input top ${inp.top}, bar bottom ${m.bottom})`);
+    } finally { await br.close(); }
+    return bad;
+  }
+  for (const w of [1440, 1280, 1024]) { const b = await stickyBad(page0, w); for (const x of b) ok(false, "sticky: " + x); ok(!b.length, `sticky bar at ${w}: collapses in and out, at most 92px, sticks under the top bar, never covers the input`); }
+  for (const [n, fn] of [["a sticky bar 140px tall", h => h.replace("</style>", ".v3 .stk{min-height:140px!important;max-height:none!important}</style>")], ["a sticky bar pinned over the content", h => h.replace("</style>", ".v3 .stk{position:fixed!important;top:0!important;left:272px;right:0;z-index:50;height:90px}</style>")], ["a sticky bar that never collapses", h => h.replace('hidden=!(cur!=="vehicle"||!inSum)', "hidden=false")]]) {
+    const b = await stickyBad(fn(page0), 1440); ok(b.length > 0, "mutant caught: " + n);
+  }
+}
 
 console.log(out.join("\n")); console.log(`deskV3ShellCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

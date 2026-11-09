@@ -2286,6 +2286,24 @@ try {
   record("Preview shell is one full height column (footer at the bottom of a short page, after a long one, on every preview page at 1440, 1280, 1024 and 390) and the Tasks email section sits on the hero's left edge (scripts/previewShellCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/deskV3MarketCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 Market evidence: the engine's evidence, original beside current, comparables with exclude (reason required) greyed in place, quarters with shown false drawn as nothing, listings labelled, outsiders (scripts/deskV3MarketCheck.mjs)", "PASS", (out.match(/deskV3MarketCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 Market evidence: the engine's evidence, original beside current, comparables with exclude (reason required) greyed in place, quarters with shown false drawn as nothing, listings labelled, outsiders (scripts/deskV3MarketCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/deskV3ClickCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3: the Assessment and Reserve figures land on their inputs from the summary and the sticky bar; tabs keep state (scripts/deskV3ClickCheck.mjs)", "PASS", (out.match(/deskV3ClickCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3: the Assessment and Reserve figures land on their inputs from the summary and the sticky bar; tabs keep state (scripts/deskV3ClickCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/deskV3WireCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3: every figure and sentence on the case traces to desk.*, market.meter or a case field; a typed sentence or page arithmetic fails (scripts/deskV3WireCheck.mjs)", "PASS", (out.match(/deskV3WireCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3: every figure and sentence on the case traces to desk.*, market.meter or a case field; a typed sentence or page arithmetic fails (scripts/deskV3WireCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/mcSellResultsCheck.mjs", { encoding: "utf8", timeout: 580000 });
   const line = (out.match(/mcSellResultsCheck: .*/) || [""])[0];
   record("Market Check and Sell results inside the shell are the live results: every section, figure, chart, table, link and style the same at 1440, 1024 and 390, from recorded engine answers (scripts/mcSellResultsCheck.mjs)", /: SKIP/.test(line) ? "SKIP" : "PASS", line);
@@ -2627,6 +2645,12 @@ try {
   record("Desk v3 stage 2: a finalized version is immutable and a later edit makes version n plus 1 (scripts/deskVersionCheck.mjs)", "PASS", (out.match(/deskVersionCheck: .*/) || [""])[0]);
 } catch (e) {
   record("Desk v3 stage 2 (scripts/deskVersionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskStateCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Desk v3 stage 3: every report sentence is built from the case through reasonWords and changes with its case field (documents received, mileage verified, reserve across q1 and q3, seller agreed, comparable excluded); a draft never claims what the case cannot support (scripts/deskStateCheck.mjs)", "PASS", (out.match(/deskStateCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 3 (scripts/deskStateCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
   const out = execSync("node scripts/deskTypedSentenceCheck.mjs", { encoding: "utf8", timeout: 60000 });

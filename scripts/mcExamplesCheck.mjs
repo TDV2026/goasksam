@@ -7,7 +7,7 @@
 //   (5) the photos of a stored pick are re-checked once an hour; a pick whose photo has gone is built again, else the section is hidden
 //   (6) the class: crewPage.js reads this very file and function; zero OldCarsData
 //   node scripts/mcExamplesCheck.mjs [root]     --mutants proves each rule by breaking it in a copy
-import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { fileURLToPath } from "node:url"; import { spawnSync } from "node:child_process";
+import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { fileURLToPath, pathToFileURL } from "node:url"; import { spawnSync } from "node:child_process";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2), rootArg = args.find(a => !a.startsWith("--")), ROOT = path.resolve(rootArg || path.join(here, ".."));
 if (args.includes("--mutants")) {
@@ -19,6 +19,11 @@ if (args.includes("--mutants")) {
     [EE, "\"latestSaleLine\", \"latestSaleDate\"", "\"latestSaleDate\"", "(7) a line the page draws is left out"],
     [MX, "also: [\"MC_EXAMPLE_SALES\"], key: MC_STORE, build: buildMarketCheckExample });\n  return mcResultShape", "also: [], key: \"NOT_A_KEY\", build: buildMarketCheckExample });\n  return mcResultShape", "(7) the result reads another pick than the sales"],
     [MX, "if (!r || r.tier !== \"result\" ||", "if (!r ||", "(7) a result that is not a result is shown"],
+    [EE, "\"resolvedCar\", \"resolvedSpec\", \"rungLabel\",", "\"resolvedSpec\",", "(7) the car's title and period line are left out of the result"],
+    [EE, "[\"tier\", \"titleLine\", \"resolvedCar\",", "[\"tier\", \"resolvedCar\",", "(7) the title line is left out of the result"],
+    ["lib/onebox.js", "if (out && typeof out === \"object\" && out.resolvedCar) out.titleLine = titleLineOf(out.resolvedCar);", "", "(7) the engine serves no titleLine"],
+    ["lib/onebox.js", "[rc.year, rc.make, rc.nameModel || rc.model, rc.trim, body].filter(Boolean).join(\" \") || null;", "[rc.year, rc.make, rc.nameModel || rc.model, body].filter(Boolean).join(\" \") || null;", "(7) the engine's title drops the trim the page prints"],
+    [EE, "\"poolYears\", \"fallbackRung\",", "\"fallbackRung\",", "(7) the period's years are left out of the result"],
 
     [MX, "photo_url: https(s.photo) ? s.photo : \"\"", "photo_url: s.photo || \"\"", "(1) a photo that is not https passes"],
     [MX, "soldLine: s.priceLabel || \"\"", "soldLine: s.dateLine || \"\"", "(1) the sold line is not the price line"],
@@ -149,6 +154,24 @@ let failed = 0, n = 0; const ok = (name, c, d) => { n++; if (!c) failed++; conso
   // the engine's real answer shape: resultOf on a stored answer of the engine copies its fields value for value
   const real = JSON.parse(fs.readFileSync(path.join(ROOT, "scripts/fixtures/answer-325i.json"), "utf8")), ra = real.raw || real, ro = EE.resultOf(ra);
   ok("(7) on a real engine answer (the 325i fixture) every field it has is copied unchanged, and the others are absent", Object.keys(ro).every(k => EE.RESULT_FIELDS.includes(k) && JSON.stringify(ro[k]) === JSON.stringify(ra[k])) && ro.poolN === ra.poolN && JSON.stringify(ro.cluster) === JSON.stringify(ra.cluster) && !("rawPool" in ro));
+  // THE CAR'S TITLE AND ITS PERIOD LINE (Nov 8 2026): resolvedCar (year, make, nameModel, trim, bodyStyle, canonicalLabel) and the hero's grey line (rungLabel, poolYears, fallbackRung, siblingName, metaLine, scopeLine) are the answer's own values
+  ok("(7) the car's title: resolvedCar is the page's resolvedCar for that car, year, make and model in it, unchanged", r.result.resolvedCar && JSON.stringify(r.result.resolvedCar) === JSON.stringify(page.resolvedCar) && r.result.resolvedCar.year && r.result.resolvedCar.make && (r.result.resolvedCar.nameModel || r.result.resolvedCar.model));
+  ok("(7) the period line: rungLabel, poolYears and the rest of the grey line are the page's, unchanged", ["rungLabel", "poolYears", "scopeLabel", "resolvedSpec"].every(k => JSON.stringify(r.result[k]) === JSON.stringify(page[k])) && Array.isArray(r.result.poolYears) && /\d{4}/.test(r.result.rungLabel));
+  ok("(7) on the real 325i answer the title and the period line are copied unchanged (resolvedCar, rungLabel, poolYears, resolvedSpec, scopeLabel)", ["resolvedCar", "rungLabel", "poolYears", "resolvedSpec", "scopeLabel"].every(k => JSON.stringify(ro[k]) === JSON.stringify(ra[k]) && ro[k] !== undefined));
+  // THE TITLE LINE (Nov 8 2026): the engine's titleLine is the text of the results page's own carLabel (public/js/onebox.js), run here from the page's source
+  { const js = fs.readFileSync(path.join(ROOT, "public/js/onebox.js"), "utf8"), i0 = js.indexOf("function carLabel(rc) {"), i1 = js.indexOf("\n  }\n", i0) + 4, c0 = js.indexOf("function cap(s)"), c1 = js.indexOf("\n", c0);
+    const carLabel = new Function(js.slice(c0, c1) + "\n" + js.slice(i0, i1) + "\nreturn carLabel;")(), OB = await import(pathToFileURL(path.join(ROOT, "lib/onebox.js")).href);
+    ok("(7) titleLine in the result equals the page's carLabel for that car", typeof r.result.titleLine === "string" && r.result.titleLine === carLabel(r.result.resolvedCar) && r.result.titleLine === page.titleLine, r.result.titleLine);
+    const CARS = [{ year: 2006, make: "BMW", model: "325i", nameModel: "325i", trim: null, bodyStyle: "sedan" }, { year: 1990, make: "BMW", model: "E30 M3", nameModel: "M3", trim: null, bodyStyle: null, canonicalLabel: "1990 BMW M3" }, { year: 1957, make: "Mercedes-Benz", model: "300SL", trim: "Roadster", bodyStyle: "roadster" }, { year: 1999, make: "Porsche", model: "911", nameModel: "911", trim: "Carrera", bodyStyle: "coupe" }, { year: 1965, make: "Ferrari", model: "275 GTB", trim: null, bodyStyle: "" }, { make: "Ford", model: "Mustang" }, null];
+    ok("(7) the class: titleLineOf is carLabel for every kind of car (a canonical label, a trim that carries the body, no body, no year, no car)", CARS.every(c => OB.titleLineOf(c) === (c ? carLabel(c) : null) || (c && carLabel(c) === "this car" && OB.titleLineOf(c) === null)), CARS.map(c => OB.titleLineOf(c)).join(" | "));
+    const FX = path.join(ROOT, "scripts/fixtures"), files = fs.readdirSync(FX).filter(f => f.endsWith(".json")); let seen = 0, wrong = [];
+    for (const f of files) { let j; try { j = JSON.parse(fs.readFileSync(path.join(FX, f), "utf8")); } catch { continue; } const a = j.raw || j; if (!a || typeof a !== "object" || !a.resolvedCar) continue; seen++;
+      const out = OB.withReadFields(JSON.parse(JSON.stringify(a)), "x", a.vehicle || null); if (out.titleLine !== carLabel(out.resolvedCar)) wrong.push(f); }
+    ok(`(7) the class: every stored engine answer that names a car serves a titleLine equal to the page's carLabel (${seen} answers read; wrong: ${wrong.join(", ") || "none"})`, seen >= 3 && wrong.length === 0); }
+  // THE CLASS: every answer field the results page's title and grey line read is carried by the result, or named here as a count the example does not print
+  { const js = fs.readFileSync(path.join(ROOT, "public/js/onebox.js"), "utf8"), a0 = js.indexOf("The scope segment of the hero's one grey line"), blk = js.slice(a0, a0 + 9000), read = [...new Set((blk.match(/\bd\.([A-Za-z_]+)/g) || []).map(x => x.slice(2)))], NOT_PRINTED = ["basisPool", "ownSales", "soldCount"];
+    const missing = read.filter(k => !EE.RESULT_FIELDS.includes(k) && !NOT_PRINTED.includes(k));
+    ok(`(7) the class: every answer field the results page's grey line reads is in the result (${read.length} read; missing: ${missing.join(", ") || "none"})`, a0 > 0 && read.length >= 6 && missing.length === 0); }
   // the class: the result path only copies. No arithmetic, no formatting, no sorting of a figure in it
   const src = fs.readFileSync(path.join(ROOT, "lib/live/marketCheckExamples.js"), "utf8"), shaper = src.slice(src.indexOf("export function mcResultShape"), src.indexOf("// the Sell cars:")), ee = fs.readFileSync(path.join(ROOT, "lib/live/entryExamples.js"), "utf8"), copier = ee.slice(ee.indexOf("export function resultOf"), ee.indexOf("export function saleOf"));
   ok("(7) the class: the result path computes nothing (no Math, reduce, toLocaleString, toFixed, sort, or arithmetic on a figure)", !/Math\.|reduce\(|toLocaleString|toFixed|\.sort\(|\+\s*1\b|\*\s*\d/.test(shaper.replace(/\/\/.*$/gm, "") + copier.replace(/\/\/.*$/gm, "")));
