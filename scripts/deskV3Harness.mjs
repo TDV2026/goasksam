@@ -7,7 +7,7 @@ process.env.CURTAIN_CREW_CODE = "fixture-crew-code"; process.env.LAUNCH_STAGE = 
 export const imp = f => import(pathToFileURL(path.join(ROOT, f)).href);
 export const puppeteer = createRequire(path.join(ROOT, "package.json"))("puppeteer-core");
 export const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-export const V3 = await imp("lib/preview/deskV3.js"), FX = await imp("lib/preview/deskV3Fixture.js"), RW = await imp("lib/reasonWords.js"), CN = await imp("lib/countNoun.js");
+export const V3 = await imp("lib/preview/deskV3.js"), FX = await imp("lib/preview/deskV3Fixture.js"), CV = await imp("lib/desk/caseView.js"), RW = await imp("lib/reasonWords.js"), CN = await imp("lib/countNoun.js");
 export const demoHtml = async () => V3.renderDeskV3({ query: { case: V3.DEMO_ID } });
 export const launch = () => puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 export async function openPage(b, html, w = 1440, h = 900) {

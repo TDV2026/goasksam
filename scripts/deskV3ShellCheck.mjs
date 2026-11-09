@@ -53,7 +53,7 @@ function textAssertions(html, tag, { activeId, demoCase } = {}) {
 
 // ---------- 1 crew only ----------
 {
-  const store = await PV.previewStore(), rows = await store.list(PV.PREVIEW_ORG.id), id = rows[0].id;
+  await call("/api/crewPage?page=preview-desk", crew); const id = V3.DEMO_ID;   // the first read seeds the demonstration case
   const stranger = await call("/api/crewPage?page=preview-desk"), forged = await call("/api/crewPage?page=preview-desk", "gas_crew=v1.9999999999999.forged"), strangerCase = await call(`/api/crewPage?page=preview-desk&case=${id}`);
   ok(stranger.code === 404 && forged.code === 404 && strangerCase.code === 404, "a stranger or a forged cookie gets the 404 on the list and a case (" + [stranger.code, forged.code, strangerCase.code] + ")");
   const unknown = await call("/api/crewPage?page=preview-desk&case=nope", crew); ok(unknown.code === 404, "an unknown case id gets the 404 (" + unknown.code + ")");
@@ -62,17 +62,19 @@ function textAssertions(html, tag, { activeId, demoCase } = {}) {
   ok(/noindex/.test(one.h["x-robots-tag"] || "") && /no-store/.test(one.h["cache-control"] || ""), "noindex header and no-store");
   const vj = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
   for (const [src, page] of [["/preview/desk", "preview-desk"], ["/preview/desk/case/:id", "preview-desk"]]) { const r = (vj.rewrites || []).find(x => x.source === src); ok(r && /gas_crew/.test(JSON.stringify(r.has || [])) && r.destination.includes("page=" + page), "vercel.json routes " + src + " only with the crew cookie"); }
-  const bads = [...textAssertions(list.body, "list"), ...textAssertions(one.body, "case", { activeId: id, demoCase: rows[0].id === V3.DEMO_ID })];
+  const bads = [...textAssertions(list.body, "list"), ...textAssertions(one.body, "case", { activeId: id, demoCase: id === V3.DEMO_ID })];
   for (const b of bads) ok(false, "page: " + b); ok(!bads.length, "the served list and case pass the shell assertions");
 }
 
 // ---------- the operations block comes from Lane D's lines only ----------
 {
-  const mk = (handling) => V3.pageHtml([{ id: "a", car: "2002 BMW M3", spec: "", seller: "A Seller", ref: "a", age: "6 min", submitted: "2026-11-08", status: "New", group: "new", photo: null, demo: false, handling }], "a");
+  const one = o => ({ id: "a", car: "2002 BMW M3", spec: "", seller: "A Seller", ref: "a", age: "6 min", submitted: "2026-11-08", status: "New", group: "new", photo: null, demo: false, ...o });
+  const mk = handling => V3.pageHtml({ cases: [one({})], activeId: "a", handling });
   ok(!/id="ops"/.test(mk(null)), "no handling lines, no operations block");
   const lines = [{ label: "Open leads", value: "3" }, { label: "Oldest waiting", value: "2 d" }]; const h = mk({ lines });
   ok(/id="ops"/.test(h) && h.includes("Open leads") && h.includes("Oldest waiting"), "Lane D's handling lines print as sent");
-  ok(/class="demo"/.test(V3.pageHtml([{ id: "a", car: "x", spec: "", seller: null, ref: "a", age: "1 d", submitted: "2026-11-08", status: "New", group: "new", photo: null, demo: true, handling: null }], "a")), "a flagged demo case shows the banner");
+  ok(/class="demo"/.test(V3.pageHtml({ cases: [one({ demo: true })], activeId: "a" })) && !/class="demo"/.test(mk(null)), "a flagged demo case shows the banner and a plain one does not");
+  ok(/class="grp-n">7</.test(V3.pageHtml({ cases: [one({})], activeId: "a", queue: { new: 7, review: 0, ready: 0, final: 0 } })), "the group counts print as the server sent them (case.queue)");
 }
 
 // ---------- the module computes nothing ----------
@@ -107,7 +109,7 @@ async function inChrome(htmlList, label) {
   } finally { await br.close(); }
   return bad;
 }
-async function goodPage() { const store = await PV.previewStore(), rows = await store.list(PV.PREVIEW_ORG.id); const r = await call(`/api/crewPage?page=preview-desk&case=${rows[0].id}`, crew); return r.body; }
+async function goodPage() { await call("/api/crewPage?page=preview-desk", crew); const r = await call(`/api/crewPage?page=preview-desk&case=${V3.DEMO_ID}`, crew); return r.body; }
 const html = await goodPage();
 { const b = await inChrome(html); for (const x of b) ok(false, "chrome: " + x); ok(!b.length, "in Chrome at 1440, 1280, 1024 and 390: no overflow, rail and header drawn, flat, search works"); }
 
@@ -125,7 +127,7 @@ const MUT = [
   ["the page overflows sideways", h => h.replace("</style>", ".v3 .work{min-width:2400px!important}</style>"), "chrome"],
   ["the rail hidden", h => h.replace("</style>", ".v3 .rail{display:none!important}</style>"), "chrome"]
 ];
-const id0 = (await (await PV.previewStore()).list(PV.PREVIEW_ORG.id))[0].id;
+const id0 = V3.DEMO_ID;
 for (const [name, fn, kind] of MUT) {
   const m = fn(html); let caught = false;
   if (kind === "text") caught = textAssertions(m, "mutant", { activeId: id0, demoCase: false }).length > 0; else caught = (await inChrome(m)).length > 0;
