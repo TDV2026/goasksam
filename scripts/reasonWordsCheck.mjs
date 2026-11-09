@@ -134,5 +134,16 @@ for (const [name, nHouse, nOnline] of [["six sales, five from the rooms (the 193
   const f12 = E.freshenStoredText({ ...thin6, rawPool: Array.from({ length: 12 }, (_, i) => ({ id: "q" + i, year: 1972 })) });
   ok("4e. a stored answer of twelve sales under the fence prints no reason line at all (it is computed again where a reader can)", carries(f12).length === 0 && !f12.thinReason && !f12.thinLine, JSON.stringify([f12.thinReason, f12.thinLine]));
   ok("4f. a stored Find card (core row) under the fence is not served: the core reader takes it as no row", !!RW.carriesFence && RW.carriesFence({ kind: "thin", thinReason: FENCE_REASON }) && RW.carriesFence({ kind: "thin", thinLine: thin6.thinLine }) && !RW.carriesFence({ kind: "thin", thinReason: "few_sales", thinLine: "Too few sales to show a range." }) && /carriesFence\(r\.market\)\) continue/.test(fs.readFileSync(path.join(root, "lib/live/search.js"), "utf8"))); }
+// 5. MONEY WORDS, THE ONE DOLLAR FORMATTER (Lane B, Nov 8 2026, on Lane E's export). Cause of the order: previews and Desk files each kept a copy of "$" + Math.round(n).toLocaleString, so a figure could read two ways on two pages.
+//    The export is the table's own formatter (the same function), rounds to whole dollars, groups thousands, and the Desk files (lib/desk, lib/deskV3.js, lib/sheetRead.js) define none of their own.
+{ const fmt = RW.moneyWords;
+  ok("5a. moneyWords prints whole dollars with thousands grouped", typeof fmt === "function" && fmt(1234567.4) === "$1,234,567" && fmt(500) === "$500" && fmt("52000") === "$52,000" && fmt(0) === "$0" && fmt(999.5) === "$1,000");
+  ok("5b. a table line prints a figure exactly as moneyWords does", RW.reasonLine("desk3.move", { from: 41250.4, to: 52999.6, q1: "Q1", q2: "Q2", m: "3 sales", n: "4 sales" }).includes(fmt(41250.4) + " in Q1") && RW.reasonLine("desk3.move", { from: 41250.4, to: 52999.6, q1: "Q1", q2: "Q2", m: "3 sales", n: "4 sales" }).includes(fmt(52999.6) + " in Q2"));
+  const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(d + "/" + e.name) : /\.js$/.test(e.name) ? [d + "/" + e.name] : []);
+  const DESKFILES = [...walk(path.join(root, "lib/desk")).map(f => path.relative(root, f)), "lib/deskV3.js", "lib/sheetRead.js"].filter(f => fs.existsSync(path.join(root, f)));
+  const own = DESKFILES.filter(f => /"\$"\s*\+/.test(fs.readFileSync(path.join(root, f), "utf8").replace(/\/\/.*$/gm, "").replace(/`[^`]*`/g, "")));
+  ok(`5c. no Desk file builds its own dollar string (${DESKFILES.length} read; found in: ${own.join(", ") || "none"})`, own.length === 0);
+  const noImport = DESKFILES.filter(f => /\busd\b\s*(=|\()/.test(fs.readFileSync(path.join(root, f), "utf8")) && !/moneyWords/.test(fs.readFileSync(path.join(root, f), "utf8")));
+  ok("5d. a Desk file that names a usd formatter takes it from moneyWords", noImport.length === 0, noImport.join(", ")); }
 console.log(`reasonWordsCheck: ${total - failed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
