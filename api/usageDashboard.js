@@ -202,6 +202,18 @@ async function renderCarsView(req, res) {
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   return res.status(200).send(pageChrome("Top cars", { html: `<div>crew: ${mode}</div><table><tr><th>Model</th><th>7d</th><th>30d</th><th>Cache hit</th><th>Dominant outcome</th></tr>${rows || "<tr><td colspan=5>none</td></tr>"}</table>` }));
 }
+// ?view=desk : the Sam Desk operations block, crew only (the same header key as every view). Per organisation: reports finalized today, median handling time, share of cases that needed more from the seller, reports revised after
+// finalizing. Made from each org's own cases (lib/desk/caseView.js deskOpsByOrg); no per analyst figure, seat or owner is in the output.
+async function renderDeskView(req, res) {
+  const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
+  const { deskOpsByOrg } = await import("../lib/desk/caseView.js");
+  const rows = await supabaseSelect(env, "desk_sheets?select=org_id,sheet&order=created_at.desc&limit=5000");
+  const orgs = deskOpsByOrg(Array.isArray(rows) ? rows : [], new Date().toISOString());
+  if (req.query?.format === "json") return res.status(200).json({ orgs });
+  const body = orgs.map(o => `<h2>${adminEsc(o.org)} &middot; ${o.cases} cases</h2><table>${o.lines.map(l => `<tr><td>${adminEsc(l.label)}</td><td>${adminEsc(l.value)}</td></tr>`).join("")}</table>`).join("");
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  return res.status(200).send(pageChrome("Desk operations", { html: body || "<div>No cases yet.</div>" }));
+}
 // ?view=geo : searches by entered state/country, 7d and 30d. No raw IPs.
 async function renderGeoView(req, res) {
   const env = supabaseEnv(); if (!env) return res.status(500).json({ error: "storage not configured" });
@@ -7506,6 +7518,7 @@ async function handlerCore(req, res) {
     if (req.query?.view === "searches") return await renderSearchesView(req, res);
     if (req.query?.view === "cars") return await renderCarsView(req, res);
     if (req.query?.view === "geo") return await renderGeoView(req, res);
+    if (req.query?.view === "desk") return await renderDeskView(req, res);
   } catch (err) { return res.status(500).json({ error: err.message }); }
 
   const supabaseUrl = process.env.SUPABASE_URL;
