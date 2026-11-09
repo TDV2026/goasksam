@@ -206,6 +206,7 @@
       "includeFiles": "data/whatsNew.json"
     },
     "api/crewPage.js": {
+      "maxDuration": 60,
       "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,public/onebox.html,public/styles.css,public/js/onebox.js}"
     },
     "api/publicConfig.js": {
