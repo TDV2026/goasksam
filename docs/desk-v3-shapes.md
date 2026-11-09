@@ -278,3 +278,6 @@ sheet_pdf and sheet_send build it for any sheet that has a case (sheet_pdf with 
 
 ## Report settings (desk_orgs.settings, read by orgSettings)
 paper: "letter" (default) or "a4"; contactAddress, contactPhone, contactEmail: the contact block of page 4. The report names no analyst anywhere; "Prepared by" is the org.
+
+## case_pdf (the Preview pane's door)
+case_pdf { id, draft } returns { ok, draft, filename, reportNumber, version, pdf_b64, parts, pages }. draft: true is the four page report for the case as it stands, DRAFT watermarked, reportNumber null, nothing stored (no export record, no sheet write), for any sheet that has a case you may view. draft: false (or absent) is the finalized version's PDF: this sheet if it is finalized, else the latest finalized sheet it corrects (a revision in progress has none of its own yet), with its report number and no watermark; it needs the finalizing seat, counts against the monthly cap and records one export beside the sheet; before any version is finalized it is refused. Crew only like every case_* action: api/desk.js lets a seat run sheet_ actions only. EXCLUSION_SCOPES already holds note_only (market_calc, report_comps, note_only), done in e1b0b464.
