@@ -19,10 +19,22 @@ if (args.includes("--mutants")) {
     [MX, "data.cars.length <= 3 &&", "data.cars.length <= 9 &&", "(1) four cars make a field"],
     [MX, "line: reasonLine(\"entry.sell_car\", {", "line: \"Sells best on Bring a Trailer\" + (0 ? reasonLine(\"entry.sell_car\", {", "(2) a sentence typed here, not the table's"],
     [RWF, "venueSplitWords(list) {\n  const parts = (list || []).map(v => `${Number(v.sales).toLocaleString(\"en-US\")} on ${v.name}`);", "venueSplitWords(list) {\n  const parts = (list || []).map(v => `${Number(v.sales) + 1} on ${v.name}`);", "(2) a venue's count is not the venue's"],
+    [MX, "out.reserve = { headline: reasonLine(\"sell.card_reserve_head\"), sentence: counts ? reasonLine(\"sell.card_reserve_counts\"", "out.reserve = { headline: reasonLine(\"sell.card_reserve_head\"), sentence: counts ? reasonLine(\"sell.card_reserve_explore\"", "(7) the reserve sentence never counts the sales"],
+    [MX, "sentence: reasonLine(\"sell.card_day\", { n: bd.top.count, total: bd.dated, day: bd.top.day })", "sentence: reasonLine(\"sell.card_day\", { n: bd.top.count + 1, total: bd.dated, day: bd.top.day })", "(7) the day's count is not the engine's"],
+    [MX, "if (bd && bd.dated >= 8 && !bd.tied", "if (bd && bd.dated >= 1 && !bd.tied", "(7) a thin pool still names a day"],
+    [MX, "if (!pk || pk.mode !== \"online\" || !String(pk.platformDisplay || \"\").trim() || pk.thin) return null;", "if (!pk) return null;", "(7) a card without a real pick"],
+    [MX, "if (!(n > 0) || !(total >= 8) || n > total) return null;", "if (!(n > 0)) return null;", "(7) a pick on fewer than eight sales"],
+    [MX, "const counts = rs && rs.a && rs.b && num(rs.a.n) > 0 && num(rs.b.n) > 0 && same;", "const counts = rs && rs.a && rs.b && num(rs.a.n) > 0 && num(rs.b.n) > 0;", "(7) a split over a wider scope is counted as the car's"],
+    [RWF, "`${p.a} of the ${p.total} completed sales had no reserve and ${p.b} had a reserve.`", "`${p.a} of the ${p.total} completed sales had no reserve and ${p.b} had a reserve, and they brought more.`", "(7) the reserve sentence claims a better result"],
+    [RWF, "text: () => \"With reserve?\" }", "text: () => \"Use a reserve.\" }", "(7) the reserve headline recommends"],
+    [MX, "catch (e) { why[text] = \"threw: \" + String((e && e.message) || e).slice(0, 160); return; }\n    if (!block)", "catch (e) { why[text] = \"no_block_or_clock\"; return; }\n    if (!block)", "(7) a thrown block read is reported as no record"],
+    [MX, "if (genuinePhoto(u) && https(u) && await choosePhoto(photoCandidates({ photo_url: u }), d.head)) { photo = u; break; }", "if (genuinePhoto(u) && https(u)) { photo = u; break; }", "(7) the photo rule is not applied to the sell card"],
     [MX, "export const SELL_PARALLEL = 3,", "export const SELL_PARALLEL = 1,", "(6) the candidates are asked one by one again"],
     [MX, "export const SELL_PARALLEL = 3,", "export const SELL_PARALLEL = 7,", "(6) all the candidates are asked at once"],
     [MX, "await withClock(Promise.all(Array.from({ length: Math.min(SELL_PARALLEL, list.length) }, worker)), all);", "await Promise.all(Array.from({ length: Math.min(SELL_PARALLEL, list.length) }, worker));", "(6) the whole build has no clock"],
-    [MX, "catch { why[text] = \"threw\"; return; }", "catch { return; }", "(6) a read that threw is not counted"],
+    [MX, "catch (e) { why[text] = \"threw: \" + String((e && e.message) || e).slice(0, 160); return; }", "catch { return; }", "(6) a read that threw is not counted"],
+    [MX, "catch (e) { why[text] = \"threw: \" + String((e && e.message) || e).slice(0, 160); return; }", "catch (e) { why[text] = \"no_record_or_clock\"; return; }", "(6) a read that threw is reported as no record"],
+    [MX, "String((e && e.message) || e).slice(0, 160)", "\"\"", "(6) the message of a thrown read is dropped"],
     [MX, "if (cars.length < 2) { try { console.error(", "if (false) { try { console.error(", "(6) a build that finds nothing says nothing"],
     [EE, "if (st && st.v === STORE_V && st.data && st.data.pickDate === dateKey) return st.data;", "", "(3) the day's pick is built again on every read"]
   ];
@@ -102,9 +114,11 @@ const PL = X.places(3), every = X.ALLSELL(PL);
   { let now = 0, peak = 0; const W = withPlaces(async () => { now++; peak = Math.max(peak, now); await sleep(25); now--; return null; }); W.d.buildMs = 5000; await MX.sellExample(env, CREW, W.d);
     ok("(6) the candidates are asked three at a time, not one by one and not all at once", peak === 3, "peak " + peak); }
   { const W = withPlaces(async () => { throw new Error("read failed"); }); logs.length = 0; const f = await MX.sellExample(env, CREW, W.d), line = logs.map(l => { try { return JSON.parse(l); } catch { return null; } }).find(x => x && x.tag === "crew_sell_example_miss");
-    ok("(6) every read failing: no field, and the miss is logged with the reason of each candidate (threw), never silent", f === null && line && line.found === 0 && Object.values(line.reasons).length === X.EE.SELL_CANDIDATES.length && Object.values(line.reasons).every(r => r === "threw"), JSON.stringify(line && line.reasons).slice(0, 120)); }
+    ok("(6) every read failing: no field, and the miss is logged with the reason of each candidate (threw), never silent", f === null && line && line.found === 0 && Object.values(line.reasons).length === X.EE.SELL_CANDIDATES.length && Object.values(line.reasons).every(r => r === "threw: read failed"), JSON.stringify(line && line.reasons).slice(0, 120)); }
   { const W = withPlaces(async (e, t) => (t === X.EE.SELL_CANDIDATES[X.EE.SELL_CANDIDATES.length - 1] || t === X.EE.SELL_CANDIDATES[X.EE.SELL_CANDIDATES.length - 2]) ? PL : null); const f = await MX.sellExample(env, CREW, W.d);
     ok("(6) when only the last two candidates have a record, a real candidate is found: a field of those two", f && f.cars.length === 2); }
+  { const W = withPlaces(async () => { throw new Error("Cannot find module '/var/task/lib/sell/sellFacts.js'"); }); logs.length = 0; const f = await MX.sellExample(env, CREW, W.d), line = logs.map(l => { try { return JSON.parse(l); } catch { return null; } }).find(x => x && x.tag === "crew_sell_example_miss"), rs = Object.values((line && line.reasons) || {});
+    ok("(6) a missing file in the bundle (Cannot find module) is reported as a thrown read with its message for every candidate, never as no record", f === null && rs.length === X.EE.SELL_CANDIDATES.length && rs.every(r => /^threw: Cannot find module .*sellFacts\.js/.test(r)) && !rs.some(r => /no_record/.test(r)), rs[0]); }
   { const W = withPlaces(async () => null); logs.length = 0; const f = await MX.sellExample(env, CREW, W.d);
     ok("(6) when no candidate has a record the section stays hidden, and the miss is logged", f === null && logs.some(l => /crew_sell_example_miss/.test(l))); }
   console.error = realErr;
@@ -113,5 +127,41 @@ const PL = X.places(3), every = X.ALLSELL(PL);
   const crew = fs.readFileSync(path.join(ROOT, "api/crewPage.js"), "utf8");
   ok("(5) api/crewPage.js reads sellExample from lib/live/marketCheckExamples.js, which exports it", /readIfBuilt\("\.\.\/lib\/live\/marketCheckExamples\.js", "sellExample"/.test(crew) && typeof MX.sellExample === "function");
   ok("(5) zero OldCarsData", X.metered === 0);
+}
+{ // (7) THE SELL ENTRY CARD (the final entry-page brief, Nov 9 2026): sellExampleCard -> { pickDate, model, titleLine, photo, platformPick:{name, sentence}, auctionDay?:{day, sentence}, reserve:{headline, sentence}, resultUrl }
+  const cands = X.EE.SELL_CANDIDATES, all = o => Object.fromEntries(cands.map(t => [t, X.block(o)]));
+  const run = async (blocks, now) => { const W = X.world({}, {}, now || D1, blocks); return { W, f: await MX.sellExampleCard(env, CREW, W.d) }; };
+  const { W, f } = await run(all());
+  ok("(7) a card with a title, a photo, the platform pick, the auction day, the reserve question and a link into Sell", f && f.pickDate === "2026-11-09" && f.titleLine === "2008 Porsche 911" && /^https:/.test(f.photo) && f.platformPick && f.auctionDay && f.reserve && /^\/sell\?car=/.test(f.resultUrl), JSON.stringify(f && Object.keys(f)));
+  ok("(7) the platform pick is the Sell engine's own pick, with its evidence: 11 of 14 relevant completed sales", f.platformPick.name === "Bring a Trailer" && f.platformPick.mark === "BaT" && f.platformPick.sentence === "11 of 14 relevant completed sales were on Bring a Trailer.", f.platformPick.sentence);
+  const other = await run(all({ pickOnline: { ...X.block().pickOnline, platformDisplay: "Cars & Bids", evidenceSales: 9, byPlatform: { carsandbids: { evidenceSales: 9 }, bringatrailer: { evidenceSales: 5 } } } }));
+  ok("(7) a different engine pick gives a different card: the platform is never chosen here", other.f.platformPick.name === "Cars & Bids" && other.f.platformPick.sentence === "9 of 14 relevant completed sales were on Cars & Bids.", other.f && other.f.platformPick.sentence);
+  ok("(7) the auction day is an observation: the day most sales ended and how many of them", f.auctionDay.day === "Wednesday" && f.auctionDay.sentence === "5 of 14 sales ended on Wednesday.", f.auctionDay.sentence);
+  const claimRe = /best|better|higher|stronger|more money|recommend|should|worth|guarantee|promise|bring|brought/i;
+  ok("(7) no sentence claims a better price, a best day or a recommendation", [f.auctionDay.sentence, f.reserve.sentence, f.reserve.headline].every(x => !claimRe.test(x)), JSON.stringify([f.auctionDay.sentence, f.reserve.sentence]));
+  ok("(7) the reserve headline is a question and the sentence counts the sales of each kind, never which side did better", f.reserve.headline === "With reserve?" && f.reserve.sentence === "6 of the 14 completed sales had no reserve and 8 had a reserve.", f.reserve.sentence);
+  const flip = await run(all({ places: { ...X.block().places, reserve_split: { ...X.block().places.reserve_split, winner: "no_reserve", a: { side: "no_reserve", n: 12, median: 90000 }, b: { side: "reserve", n: 2, median: 10000 } } } }));
+  ok("(7) reserve wording does not follow the numbers' winner: more no-reserve sales or higher no-reserve prices change the counts, not a word of advice", flip.f.reserve.sentence === "12 of the 14 completed sales had no reserve and 2 had a reserve." && !claimRe.test(flip.f.reserve.sentence) && flip.f.reserve.headline === "With reserve?", flip.f.reserve.sentence);
+  const wide = await run(all({ places: { ...X.block().places, reserve_split: { ...X.block().places.reserve_split, scope_label: "2005 to 2011 911" } } })), none = await run(all({ places: { ...X.block().places, reserve_split: null } }));
+  ok("(7) a reserve split that counts a wider scope than the car, or none, is only an invitation to explore it", wide.f.reserve.sentence === "Explore how reserve and no-reserve listings performed." && none.f.reserve.sentence === wide.f.reserve.sentence && none.f.reserve.headline === "With reserve?");
+  const thinDay = await run(all({ places: { ...X.block().places, by_day: { ...X.block().places.by_day, dated: 6, days: [{ day: "Wednesday", count: 3 }, { day: "Friday", count: 3 }], top: { day: "Wednesday", count: 3 }, tied: null } } })), tied = await run(all({ places: { ...X.block().places, by_day: { ...X.block().places.by_day, top: null, tied: ["Wednesday", "Friday"] } } }));
+  ok("(7) a thin pool gives no auction day, and two tied days give none: the card keeps the pick and the reserve", thinDay.f && !("auctionDay" in thinDay.f) && thinDay.f.platformPick && thinDay.f.reserve && tied.f && !("auctionDay" in tied.f), JSON.stringify(thinDay.f && Object.keys(thinDay.f)));
+  const noPick = await run(all({ pickOnline: { ...X.block().pickOnline, platformDisplay: null, platform: null } })), thinPick = await run(all({ pickOnline: { ...X.block().pickOnline, thin: true } })), fewTotal = await run(all({ pickOnline: { ...X.block().pickOnline, evidenceSales: 4, byPlatform: { bringatrailer: { evidenceSales: 4 }, carsandbids: { evidenceSales: 2 } } } })), refused = await run(all({ first: { refusal: { kind: "x" }, question: null, noRange: null } }));
+  ok("(7) no pick, a pick on very few sales, fewer than eight sales and a refused answer: no card, never an invented one", [noPick, thinPick, fewTotal, refused].every(r => r.f === null));
+  ok("(7) the engine block is asked three at a time, once for the day", W.asked.length >= 1 && W.asked.length <= 3 + 6);
+  const w2 = await run(all()); const asked = w2.W.asked.length; w2.W.clock = D1 + 5 * 3600000; const again = await MX.sellExampleCard(env, CREW, w2.W.d);
+  ok("(7) the same card later the same day, the engine not asked again", JSON.stringify(again) === JSON.stringify(w2.f) && w2.W.asked.length === asked);
+  const nd = X.world({}, {}, D1 + DAY, all()); nd.store = new Map(w2.W.store);
+  ok("(7) a stored card of yesterday is not served today", (await MX.sellExampleCard(env, CREW, nd.d)).pickDate === "2026-11-10");
+  const W3 = X.world({}, {}, D1, all()); W3.heads["https://img.test/s1.jpg"] = { status: 404, bytes: 0, type: "text/html" };
+  ok("(7) a photo that fails the photo rule is passed over for the next sale's photo", (await MX.sellExampleCard(env, CREW, W3.d)).photo === "https://img.test/s2.jpg");
+  const logs = [], realErr = console.error; console.error = x => logs.push(String(x));
+  const boom = Object.fromEntries(cands.map(t => [t, new Error("Cannot find module '/var/task/lib/sell/sellBlock.js'")])); const thrown = await MX.sellExampleCard(env, CREW, X.world({}, {}, D1, boom).d); console.error = realErr;
+  const line = logs.map(l => { try { return JSON.parse(l); } catch { return null; } }).find(x => x && x.tag === "crew_sell_example_miss" && x.kind === "card"), rs = Object.values((line && line.reasons) || {});
+  ok("(7) every read throwing: no card, and the miss is logged with each candidate's message, never as no record", thrown === null && rs.length === cands.length && rs.every(r => /^threw: Cannot find module/.test(r)), rs[0]);
+  ok("(7) a visitor without the crew cookie: no card, nothing asked", (await MX.sellExampleCard(env, NOCREW, X.world({}, {}, D1, all()).d)) === null);
+  process.env.CREW_SELL_EXAMPLE = "0"; const off = await MX.sellExampleCard(env, CREW, X.world({}, {}, D1, all()).d); delete process.env.CREW_SELL_EXAMPLE;
+  ok("(7) CREW_SELL_EXAMPLE=0: no card", off === null);
+  ok("(7) the card shape is checked on every serve", MX.sellCardShape(f) === f && MX.sellCardShape({ ...f, platformPick: { name: "x" } }) === null && MX.sellCardShape({ ...f, resultUrl: "/x" }) === null);
 }
 console.log("\nsellExampleCheck: " + (n - failed) + " pass, " + failed + " FAIL"); process.exit(failed ? 1 : 0);
