@@ -44,4 +44,27 @@ ok("version 2 is not written until it is finalized", (await A.handleSheetAction(
 // a case that is not ready is refused with its blockers
 { await store.insert("t", { id: "s2", owner_seat: "crew", status: "New", created_at: T, submission: { typed: true, photos: [], documents: [] }, state: {}, case: M.newCase({ now: T }), version: 1 });
   const r = await A.handleSheetAction("case_finalize", { id: "s2" }, ctx); ok("a case that is not ready is refused with its blockers and no version is written", r.refused && r.blockers.length > 0 && (await A.handleSheetAction("case_version", { id: "s2" }, ctx)).refused === true); }
+
+// EXPORT RECORDS GO BESIDE A FINALISED CASE SHEET, NEVER INTO IT. The database trigger desk_sheet_immutable is modelled: a sheet whose stored status is Finalised or Sent refuses any write that changes it.
+function withTrigger(base) {
+  const guard = async (org, sh, how) => { const cur = await base.get(org, sh.id); if (cur && (cur.status === "Finalised" || cur.status === "Sent") && J(cur) !== J(sh)) throw new Error("desk: sheet " + sh.id + " is finalised and cannot be changed (a correction is a new sheet)"); return how(); };
+  return { ...base, put: (org, sh) => guard(org, sh, () => base.put(org, sh)), putIf: (org, sh, v) => guard(org, sh, () => base.putIf(org, sh, v)) };
+}
+{ const st = withTrigger(memoryStore()), cx2 = { org: "t", seat: "crew", store: st, now: T, env: w.env, deps: w.deps, fetchImage: async () => null, send: async p => ({ ok: true, subject: "Valuation report " + p.reportNumber }), orgSettings: { monthlyExportCap: 3, name: "Acme" } };
+  const c3 = await readyCase(); await st.insert("t", { id: "x1", owner_seat: "crew", status: "In progress", created_at: T, submission: { typed: true, photos: [], documents: [] }, state: {}, case: c3, version: 1 });
+  let threw = false; try { const f0 = await A.handleSheetAction("case_finalize", { id: "x1" }, cx2); ok("the modelled trigger lets the finalize through (the row is not final yet)", f0.ok, J(f0).slice(0, 120)); await st.put("t", { ...(await st.get("t", "x1")), exports: [{ at: T }] }); } catch { threw = true; }
+  ok("the model refuses what the real trigger refuses: a change to a finalised sheet", threw);
+  const rowBefore = J(await st.get("t", "x1")), verBefore = J((await A.handleSheetAction("case_version", { id: "x1" }, cx2)).row);
+  const p1 = await A.handleSheetAction("sheet_pdf", { id: "x1" }, cx2);
+  ok("sheet_pdf on a finalised case sheet works under the trigger", p1.ok && p1.pages === 4 && /^DV-/.test(p1.reportNumber), J(p1).slice(0, 160));
+  ok("the finalised sheet row is byte identical after the export", J(await st.get("t", "x1")) === rowBefore);
+  const e1 = await st.exportsOf("t", "x1");
+  ok("the export is recorded beside the sheet: kind, report number, version, seat and time", e1.length === 1 && e1[0].kind === "pdf" && e1[0].reportNumber === p1.reportNumber && e1[0].version === 1 && e1[0].seat === "crew" && e1[0].at === T, J(e1));
+  const sd = await A.handleSheetAction("sheet_send", { id: "x1", to: "seller@example.com" }, cx2);
+  ok("sheet_send on a finalised case sheet works under the trigger and returns what was sent", sd.ok && sd.sent && sd.sent.to === "seller@example.com", J(sd).slice(0, 160));
+  ok("the sheet row and the version row are still byte identical after the send", J(await st.get("t", "x1")) === rowBefore && J((await A.handleSheetAction("case_version", { id: "x1" }, cx2)).row) === verBefore);
+  ok("the send is a second export record, kind send", (await st.exportsOf("t", "x1")).map(e => e.kind).join() === "pdf,send");
+  ok("export records are never in the sheet or the version row", !/exports/.test(rowBefore) && !/"kind":"pdf"/.test(verBefore));
+  ok("the monthly cap counts the records beside the sheet (cap 3: the third works, the fourth is refused)", (await A.handleSheetAction("sheet_pdf", { id: "x1" }, cx2)).ok && (await A.handleSheetAction("sheet_pdf", { id: "x1" }, cx2)).refused === true);
+  ok("a revision after the export is still a new sheet, and the export records stay with the first", (await A.handleSheetAction("case_edit", { id: "x1", op: "field", field: "colour", value: "Black" }, cx2)).revisedFrom === "x1" && (await st.exportsOf("t", "x1")).length === 3 && J(await st.get("t", "x1")) === rowBefore); }
 console.log(`deskVersionCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

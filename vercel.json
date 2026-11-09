@@ -241,13 +241,15 @@
       "maxDuration": 300
     },
     "api/deskSend.js": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": "lib/pdf/fonts/**"
     },
     "api/deskIntake.js": {
       "maxDuration": 60
     },
     "api/desk.js": {
-      "maxDuration": 300
+      "maxDuration": 300,
+      "includeFiles": "lib/pdf/fonts/**"
     }
   },
   "crons": [

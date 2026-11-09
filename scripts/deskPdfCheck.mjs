@@ -32,6 +32,19 @@ ok("a sale with no photo is a text card with its price, miles, venue, date and w
 // links
 ok("each comparable with a source address has a clickable link to it", count(fin, /\/Subtype \/Link/g) >= 5 && pool.every(x => Buffer.from(fin.bytes).toString("latin1").includes("https://example.com/sale/" + pool.indexOf(x))));
 ok("only https addresses become links", mini.pdfPages && !Buffer.from((await build((() => { const c = cl(demo); c.desk.comparables[0].url = "javascript:alert(1)"; return c; })())).bytes).toString("latin1").includes("javascript:"));
+
+// FONTS: embedded TrueType, no standard Helvetica or Times (or Courier) anywhere in a V3 report
+{ const raw = Buffer.from(fin.bytes).toString("latin1"), zlib = await import("node:zlib");
+  const fonts = [...raw.matchAll(/\/Type \/Font \/Subtype \/(\w+) \/BaseFont \/([\w+-]+)/g)].map(m => ({ kind: m[1], name: m[2] }));
+  ok("every font in the report is an embedded TrueType (Type0 over CIDFontType2), none is a standard Type1", fonts.length >= 6 && fonts.every(f => f.kind === "Type0" || f.kind === "CIDFontType2") && !/\/Subtype \/Type1\b/.test(raw), JSON.stringify(fonts.map(f => f.kind)));
+  ok("no standard Helvetica, Times or Courier is named anywhere in the report", !/Helvetica|Times-|Times\b|Courier/.test(raw));
+  ok("each font is a subset (a six letter tag) of Newsreader or Instrument Sans, with its file embedded", [...new Set(fonts.map(f => f.name))].every(n => /^[A-Z]{6}\+(Newsreader|InstrumentSans)/.test(n)) && count(fin, /\/FontFile2 \d+ 0 R/g) === 3 && count(fin, /\/Length1 \d+/g) === 3, String(count(fin, /\/FontFile2/g)));
+  const sfnts = [...raw.matchAll(/\/Filter \/FlateDecode \/Length1 (\d+) \/Length (\d+) >>\nstream\n/g)].map(m => { const st = m.index + m[0].length, d = zlib.inflateSync(Buffer.from(raw.slice(st, st + Number(m[2])), "latin1")); const tabs = Array.from({ length: d.readUInt16BE(4) }, (_, i) => ({ t: d.toString("latin1", 12 + i * 16, 16 + i * 16), len: d.readUInt32BE(12 + i * 16 + 12) })); return { len: d.length, l1: Number(m[1]), glyf: (tabs.find(x => x.t === "glyf") || {}).len, v: d.readUInt32BE(0), tags: Array.from({ length: d.readUInt16BE(4) }, (_, i) => d.toString("latin1", 12 + i * 16, 16 + i * 16)).join(",") }; });
+  ok("each embedded file is a real TrueType file with the tables a PDF reader needs, and is a subset (small)", sfnts.length === 3 && sfnts.every(f => f.v === 0x00010000 && f.len === f.l1 && /glyf/.test(f.tags) && /loca/.test(f.tags) && /hmtx/.test(f.tags) && /head/.test(f.tags) && f.len < 70000 && f.glyf > 1500), JSON.stringify(sfnts));
+  ok("a font nothing is set in is not embedded: the bold sans is in the draft (watermark) and not in the finalized version", count(drf, /\/FontFile2 \d+ 0 R/g) === 4 && count(fin, /\/FontFile2 \d+ 0 R/g) === 3);
+  ok("the whole report is small because only the glyphs it prints are embedded", fin.bytes.length < 250000, String(fin.bytes.length));
+  ok("every printed character is in its font: no question mark stands in for a character in the text", !pg.join(" ").includes("?"));
+  ok("curly quotes, the ampersand and the dollar sign print as themselves", pagesOf(await build((() => { const c = cl(demo); c.assessment.explanation = "The seller\u2019s car \u201Cas described\u201D & priced $1,000."; return c; })()))[0].includes("seller\u2019s car \u201Cas described\u201D & priced $1,000.")); }
 // the content is the case's: every figure and sentence on the pages is reportState's
 const rs = R.reportState(demo), text = pg.join(" ");
 ok("page 1 prints the range, the reserve and the explanation from the case", text.includes("$" + demo.assessment.low.toLocaleString("en-US") + " to $" + demo.assessment.high.toLocaleString("en-US")) && text.includes("$" + demo.reserve.figure.toLocaleString("en-US")) && pg[0].includes(demo.assessment.explanation.slice(0, 25)) && pg[0].includes("RECOMMENDED RESERVE") && pg[0].replace(/\s+/g, " ").includes("$" + demo.reserve.figure.toLocaleString("en-US")));

@@ -25,6 +25,11 @@ const MUT = [
   ["a case sheet is exported with the old ten part builder", SA, s => s.replace("const rep = sheet.case ? await (await import(\"./reportPdfV3.js\"))", "const rep = false ? await (await import(\"./reportPdfV3.js\"))")],
   ["a case sheet's draft needs the old read", SA, s => s.replace("if (sheet.case) {   // DESK V3: the four page report", "if (false) {   // DESK V3: the four page report")],
   ["the note prints even with nothing to say", PV, s => s.replace("if (rs.noteLines.length) {", "if (true) {")],
+  ["the report is written with the standard fonts (no embed)", PV, s => s.replace("new Doc({ embed: reportFonts(), title:", "new Doc({ title:")],
+  ["the writer adds the standard fonts beside the embedded ones", "lib/pdf/mini.js", s => s.replace("    } else for (const [k, n] of Object.entries(FONTS))", "    } for (const [k, n] of Object.entries(FONTS))")],
+  ["the font file is not embedded", "lib/pdf/mini.js", s => s.replace(" /FontFile2 ${file} 0 R >>`);", " >>`);")],
+  ["the subset holds no glyphs", "lib/pdf/ttf.js", s => s.replace("if (want.has(g)) {", "if (false && want.has(g)) {")],
+  ["the text is cleaned to plain quotes before it is set", "lib/pdf/mini.js", s => s.replace("(measure ? String(text == null ? \"\" : text) : clean(text))", "clean(text)")],
   ["the logo is not placed", PV, s => s.replace("if (logo) { const b = await loadImage(logo, fetchImage);", "if (false) { const b = await loadImage(logo, fetchImage);")]
 ];
 function copyTree(dst) { for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) }); for (const f of ["package.json", "vercel.json"]) if (fs.existsSync(path.join(ROOT, f))) fs.copyFileSync(path.join(ROOT, f), path.join(dst, f)); fs.symlinkSync(path.join(ROOT, "node_modules"), path.join(dst, "node_modules")); }
