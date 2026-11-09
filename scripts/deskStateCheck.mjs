@@ -33,6 +33,22 @@ ok("a seller_agreed that is not exactly true prints nothing", ["yes", 1, "true"]
 { let ex = base; for (const c of base.desk.comparables.filter(x => x.inPopulation).slice(0, 3)) ex = M.excludeSale(ex, { saleId: c.id, scope: "market_calc", reason: "Salvage title", now: T });
   const after = (await K.refreshEvidence(ex, read, { caseDate: today, now: T })).case;
   ok("excluding comparables from the calculation changes the typical-range sentence", rs(after).typicalLine !== rs(base).typicalLine && rs(after).typicalLine.includes(String(after.desk.evidence.count)) && !rs(base).typicalLine.includes("from " + after.desk.evidence.count + " "), rs(after).typicalLine); }
+
+// LANE E'S LINES: the assessment against the market reference, the reserve position line, the mileage in words
+{ const med = ev.median, asg = f => K.setAssessment(base, { figure: f, explanation: "x".repeat(70) }, T), cs = f => R.reportState(asg(f));
+  ok("the difference line says above, below or at the market reference, with the dollar difference", /\$500 above the market reference of/.test(cs(med + 500).differenceLine) && /\$1,200 below the market reference of/.test(cs(med - 1200).differenceLine) && /at the market reference of/.test(cs(med).differenceLine));
+  ok("the three difference lines differ and name the engine's median", new Set([cs(med + 500).differenceLine, cs(med - 500).differenceLine, cs(med).differenceLine]).size === 3 && cs(med).differenceLine.includes("$" + med.toLocaleString("en-US")));
+  ok("the difference line moves with the figure and with the engine's median", cs(med + 500).differenceLine !== cs(med + 900).differenceLine && R.reportState(await (async () => { let ex = asg(med + 500); for (const c of base.desk.comparables.filter(x => x.inPopulation).slice(0, 3)) ex = M.excludeSale(ex, { saleId: c.id, scope: "market_calc", reason: "Salvage title", now: T }); return (await K.refreshEvidence(ex, read, { caseDate: today, now: T })).case; })()).differenceLine !== cs(med + 500).differenceLine);
+  ok("no figure or no evidence means no difference line", R.reportState(K.setAssessment(base, { figure: null }, T)).differenceLine === null && R.reportState({ ...asg(med), desk: { ...base.desk, evidence: { ...base.desk.evidence, insufficient: true, median: null } } }).differenceLine === null);
+  const V = await import(pathToFileURL(path.join(root, "lib/desk/caseView.js")).href), view = c => V.caseView({ id: "x", created_at: T, submission: { typed: true, photos: [], documents: [] }, case: c }, [], T);
+  ok("the workspace prints the report's own lines: caseView and reportState agree for every figure", [med - 900, med, med + 900].every(f => view(asg(f)).assessment.differenceLine === cs(f).differenceLine) && [ev.q1 - 1, ev.median, ev.q3 + 1].every(f => view(K.setReserve(base, { figure: f }, T)).reserve.positionLine === R.reportState(K.setReserve(base, { figure: f }, T)).reservePositionLine));
+  const mi = n => R.reportState(K.correctField(base, "mileage", n, { now: T })).mileageWords;
+  ok("the mileage in words goes through countNoun: plural, singular, thousands", mi(61400) === "61,400 miles" && mi(1) === "1 mile" && mi(950) === "950 miles" && mi(125000) === "125,000 miles");
+  ok("the mileage sentence uses the same words", R.reportState(base).mileageLine.includes("61,400 miles") && view(base).vehicle.mileageLine === "61,400 miles");
+  // the class: the files that build these lines format nothing and type nothing
+  const build = ["lib/desk/caseView.js", "lib/desk/caseWorkflow.js", "lib/desk/reportState.js", "lib/desk/caseModel.js"].map(f => [f, fs.readFileSync(path.join(root, f), "utf8").split("\n").map(l => l.replace(/(^|\s)\/\/.*$/, "")).join("\n")]);
+  const bad = build.filter(([f, t]) => /toLocaleString\(|\+\s*["'`] ?miles|miles["'`]\s*\+|\$\{[^}]*\}\s*miles/.test(t)).map(([f]) => f);
+  ok("no file that builds the case's lines formats a number or joins miles itself", bad.length === 0, bad.join(", ")); }
 // 6. condition per rung
 const lines = [1, 2, 3, 4].map(t => rs(K.setCondition(base, { tier: t, name: "x" }, T)).conditionLine);
 ok("each rung of the condition ladder has its own sentence", new Set(lines).size === 4 && lines.every(Boolean) && /Concours/.test(lines[0]) && /Fair/.test(lines[3]), J(lines));
