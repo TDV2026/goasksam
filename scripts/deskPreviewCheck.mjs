@@ -45,8 +45,8 @@ const bad1 = await crewAssertions(crewPage); ok(bad1.length === 0, `1 crew only:
 
 // THE SAMPLE QUEUE DOES NOT DEPEND ON THE TIME OF DAY (Nov 6 2026): the sample sheets are aged from the clock, and today's queue lists only today's sheets, so a preview opened just after UTC midnight lost the sheet that was a few hours old. CLASS: any sample sheet whose date follows the clock.
 { const real = Date.now; const rows = async at => { Date.now = () => at; resetPreviewStore(); try { const q = await previewDeskApi({ action: "sheet_queue", view: "queue" }); return q.rows.map(r => r.id).sort().join(); } finally { Date.now = real; resetPreviewStore(); } };
-  /* the day the check runs, not a pinned Nov 6: the samples are dated from the clock */ const TODAY = new Date(real()); const want = "pv_fin,pv_m3,pv_none,pv_thin"; const got = []; for (const [h, m] of [[0, 5], [1, 40], [12, 0], [23, 55]]) got.push(await rows(Date.UTC(TODAY.getUTCFullYear(), TODAY.getUTCMonth(), TODAY.getUTCDate(), h, m)));
-  ok(got.every(g => g === want), "1 the sample queue holds all four sample sheets at 00:05, 01:40, 12:00 and 23:55 UTC (" + got.map(g => g.split(",").length).join(", ") + " sheets)"); }
+  /* the day the check runs, not a pinned Nov 6: the samples are dated from the clock */ const TODAY = new Date(real()); const want = "pv_fin,pv_hm,pv_m3,pv_none,pv_thin"; const got = []; for (const [h, m] of [[0, 5], [1, 40], [12, 0], [23, 55]]) got.push(await rows(Date.UTC(TODAY.getUTCFullYear(), TODAY.getUTCMonth(), TODAY.getUTCDate(), h, m)));
+  ok(got.every(g => g === want), "1 the sample queue holds all five sample sheets (the demonstration case is stored at the first read) at 00:05, 01:40, 12:00 and 23:55 UTC (" + got.map(g => g.split(",").length).join(", ") + " sheets)"); }
 // ---------- the browser: every screen at both ends ----------
 async function open(b, width, mode, { html, js }) {
   const page = await b.newPage(); await page.setViewport({ width, height: 900 }); const errs = []; page.on("pageerror", e => errs.push(e.message));

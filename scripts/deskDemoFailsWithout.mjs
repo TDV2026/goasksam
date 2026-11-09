@@ -3,6 +3,9 @@
 import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { execFileSync } from "node:child_process"; import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 const MUT = [
+  ["a listed preview case has no stored case (the seeding is skipped)", "lib/preview/deskPreview.js", s => s.replace("if (row.case) continue;", "continue;")],
+  ["the demonstration case is stored only when a page renders (not at the first read)", "lib/preview/deskPreview.js", s => s.replace("await store.insert(PREVIEW_ORG.id, { id: DEMO_ID,", "if (false) await store.insert(PREVIEW_ORG.id, { id: DEMO_ID,")],
+  ["a draft report refuses a sheet that has no stored case", "lib/desk/sheetActions.js", s => s.replace('if (!s0.case && body.draft !== true) return refuse', 'if (!s0.case) return refuse')],
   ["a new sheet is named from the read's raw label, not the shared naming", "lib/desk/sheetActions.js", s => s.replace("(carLabel(read.car.decode) || read.car.label)", "read.car.label")],
   ["a typed sheet is not asked of the engine", "lib/desk/sheetActions.js", s => s.replace("(s.typedText ? { text: s.typedText, ...extra } : null)", "null")],
   ["the miles typed at the top are dropped", "lib/desk/sheetActions.js", s => s.replace("submission: { typed: true, mileage: miles,", "submission: { typed: true, mileage: null,")],
