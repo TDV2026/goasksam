@@ -82,7 +82,7 @@ function assertions(M, label, { entry, results }) {
   }
   // 4. the fields: printed as written, only when complete, failure visible, null silent
   const withRes = M.entryHtml("mc", { exampleResult: EXF }), sec = /<section class="proof exres" data-example-result[\s\S]*?<\/section>/.exec(withRes);
-  chk(!!EXF && !!sec && sec[0].includes("The sales behind the numbers") && /<iframe[^>]*src="\/preview\/market-check\/example"/.test(sec[0]), "mc entry: with the engine's result there is one section, its heading and the frame that holds the results page's own hero");
+  chk(!!EXF && !!sec && sec[0].replace(/&#39;/g, "'").includes("Today's Market Check") && sec[0].includes("A real result for one car, updated every day. Every tile opens the sale.") && sec[0].indexOf("Market Check") < sec[0].indexOf("<iframe") && /<iframe[^>]*src="\/preview\/market-check\/example"/.test(sec[0]), "mc entry: with the engine's result there is one section: its heading, the line under it and the frame that holds the results page's own hero");
   chk(!!sec && !/class="(hero2col|sfc-card|hero-carname|hero-left|hero-right|pc|pgrid)"|<svg|<canvas|<img|\$\d|\d{2},\d{3}/.test(sec[0]), "mc entry: the page draws no card, bar, chart, tile, photo or figure of its own in that section (it holds only the frame)");
   chk(!/data-example-sales/.test(withRes), "mc entry: the three card sales section is gone, the sales are the result's own tiles");
   const cut = (f, g) => g(JSON.parse(JSON.stringify(f))), noCards = cut(EXF, f => { f.result.cards = []; return f; });
