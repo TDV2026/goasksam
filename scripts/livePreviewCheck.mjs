@@ -27,6 +27,32 @@ export function findings(find, tasks) {
   if (tasks.hs) bad.push("tasks: sideways scroll");
   return bad;
 }
+
+// ---- Desk v3 and the Market Check example (Nov 9 2026). Every crew page with engine fed sections is probed: drawn, filled, no failure line, and the Decision tab's Preview pane must ANSWER (a PDF or a plain refusal), never stay blank.
+const DESK_LIST_PROBE = () => ({ rows: document.querySelectorAll('a[href*="/preview/desk/case/"]').length, hs: document.documentElement.scrollWidth > innerWidth + 1, rail: !!document.querySelector(".rail, .v3 .rail"), text: document.body.innerText.length });
+const DESK_CASE_PROBE = () => { const q = s => document.querySelector(s), tabs = [...document.querySelectorAll("button[data-tab]")].map(b => b.textContent.trim());
+  return { tabs, sticky: !!q(".sticky, [data-sticky]"), money: (document.body.innerText.match(/\$\d[\d,]*/g) || []).length, hs: document.documentElement.scrollWidth > innerWidth + 1, challenge: /Security Checkpoint/.test(document.title + document.body.innerText), failure: !!q("[data-could-not-read]") || /could not read/i.test(document.body.innerText), title: (q("h1") || {}).textContent || "" }; };
+export function deskFindings(list, cs, dec, ex) {
+  const bad = []; if (cs && cs.challenge) return ["desk case: Vercel's security checkpoint answered, not the page (429); send the protection bypass header"];
+  if (list) { if (list.rows < 1) bad.push("desk: the case list has no case link"); if (list.hs) bad.push("desk: sideways scroll on the list"); }
+  if (cs) { for (const t of ["Vehicle", "Market evidence", "Decision"]) if (!cs.tabs.some(x => x.toLowerCase() === t.toLowerCase())) bad.push(`desk case: no ${t} tab`); if (cs.money < 3) bad.push(`desk case: only ${cs.money} dollar figures printed`); if (cs.failure) bad.push("desk case: the page says the read failed"); if (cs.hs) bad.push("desk case: sideways scroll"); }
+  if (dec) { if (!dec.inputs) bad.push("desk decision: no assessment figure input"); if (!dec.buttons) bad.push("desk decision: Save draft, Preview report and Finalize are not all there"); if (dec.clicked && !dec.answered) bad.push("desk decision: Preview report was clicked and the pane stayed blank (no PDF, no refusal)"); }
+  if (ex) { if (ex.status !== 200) bad.push(`example: status ${ex.status}`); else { if (ex.money < 3) bad.push(`example: only ${ex.money} dollar figures in the result`); if (ex.failure) bad.push("example: a could-not-read line"); if (ex.hs) bad.push("example: sideways scroll"); } }
+  return bad;
+}
+const DEC_PROBE = () => { const q = s => document.querySelector(s); return { inputs: !!q("#in-afigure"), buttons: !!(q("#b-save") && q("#b-prev") && q("#b-fin")) }; };
+async function deskLive(w) {
+  const pl = await b.newPage(); await pl.setViewport({ width: w, height: 900 }); await pl.setExtraHTTPHeaders({ cookie: process.env.GAS_CREW_COOKIE }); await pl.goto(BASE + "/preview/desk", { waitUntil: "load" }); await new Promise(r => setTimeout(r, 700));
+  const list = await pl.evaluate(DESK_LIST_PROBE), href = await pl.evaluate(() => { const a = document.querySelector('a[href*="/preview/desk/case/"]'); return a ? a.getAttribute("href") : null; }); await pl.close();
+  const pc = await b.newPage(); await pc.setViewport({ width: w, height: 900 }); await pc.setExtraHTTPHeaders({ cookie: process.env.GAS_CREW_COOKIE }); await pc.goto(BASE + (href || "/preview/desk/case/pv_hm"), { waitUntil: "load" }); await new Promise(r => setTimeout(r, 900));
+  const cs = await pc.evaluate(DESK_CASE_PROBE); await pc.evaluate(() => { const b = [...document.querySelectorAll("button[data-tab]")].find(x => /decision/i.test(x.textContent)); if (b) b.click(); }); await new Promise(r => setTimeout(r, 400));
+  const dec = { ...(await pc.evaluate(DEC_PROBE)), clicked: false, answered: false };
+  if (dec.buttons) { await pc.evaluate(() => document.querySelector("#b-prev").click()); dec.clicked = true; await new Promise(r => setTimeout(r, 4000)); dec.answered = await pc.evaluate(() => { const pane = document.querySelector("#pdfpane"), f = document.querySelector("#pdff"), m = (document.querySelector("#dmsg") || { textContent: "" }).textContent.trim(); return (!!pane && !pane.hidden && !!f && !!f.getAttribute("src")) || (m.length > 0 && !/^Opening the report/.test(m)); }); dec.paneText = await pc.evaluate(() => { const p = document.querySelector("#pdfpane"), f = document.querySelector("#pdff"); return p && !p.hidden && f && f.getAttribute("src") ? "a PDF is open in the pane" : "the page says: " + ((document.querySelector("#dmsg") || { textContent: "" }).textContent.trim().slice(0, 120) || "nothing"); }); }
+  await pc.close();
+  const pe = await b.newPage(); await pe.setViewport({ width: w, height: 900 }); await pe.setExtraHTTPHeaders({ cookie: process.env.GAS_CREW_COOKIE }); const resp = await pe.goto(BASE + "/preview/market-check/example", { waitUntil: "load" }); await new Promise(r => setTimeout(r, 1500));
+  const ex = { status: resp.status(), ...(await pe.evaluate(() => ({ money: (document.body.innerText.match(/\$\d[\d,]*/g) || []).length, failure: !!document.querySelector("[data-could-not-read]") || /could not read/i.test(document.body.innerText), hs: document.documentElement.scrollWidth > innerWidth + 1 }))) }; await pe.close();
+  return { list, cs, dec, ex, href };
+}
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 const IMG = '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600"><rect width="100%" height="100%" fill="#8aa3b8"/></svg>';
 async function probe(openFn, w) { const p = await b.newPage(); await p.setViewport({ width: w, height: 900 }); await openFn(p); await new Promise(r => setTimeout(r, 700)); const find = { ...(await p.evaluate(FIND_PROBE)) }; return { p, find }; }
@@ -39,6 +65,8 @@ async function render(findUrlOrHtml, tasksUrlOrHtml, w, mode) {
 if (LIVE) {
   if (!process.env.GAS_CREW_COOKIE) { console.log("FAIL set GAS_CREW_COOKIE to the signed crew cookie (gas_crew=v1....) to run the live check"); process.exit(1); }
   for (const w of [1440, 390]) { const bad = await render(BASE + "/preview/find", BASE + "/preview/tasks", w, "url"); ok(bad.length === 0, `live ${BASE} @${w}: both previews render their sections with the crew cookie: ${bad.join("; ") || "ok"}`); }
+  for (const w of [1440, 390]) { const d = await deskLive(w), bad = deskFindings(d.list, d.cs, d.dec, d.ex); ok(bad.length === 0, `live ${BASE} @${w}: Desk list, case ${d.href}, Decision tab and Preview pane, and the Market Check example: ${bad.join("; ") || "ok"} (tabs ${[...new Set(d.cs.tabs)].join("/")}, ${d.cs.money} figures, preview pane: "${d.dec.paneText || ""}", example ${d.ex.money} figures)`); }
+  { const rs = await Promise.all(["/preview/desk", "/preview/desk/case/pv_hm", "/preview/desk-valuations", "/preview/market-check/example"].map(u => fetch(BASE + u, { redirect: "manual" }))); ok(rs.every(r => r.status === 404), `live: the Desk pages and the example frame answer 404 without the crew cookie (${rs.map(r => r.status).join(", ")})`); }
   const r1 = await fetch(BASE + "/preview/find", { redirect: "manual" }), r2 = await fetch(BASE + "/preview/tasks", { redirect: "manual" }); ok(r1.status === 404 && r2.status === 404, `live: both previews answer 404 without the crew cookie (${r1.status}, ${r2.status})`);
 } else {
   process.env.CURTAIN_CREW_CODE = "fixture-crew-code"; process.env.LAUNCH_STAGE = "2"; for (const k of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ANON_KEY"]) delete process.env[k];
@@ -55,6 +83,12 @@ if (LIVE) {
   const rf = await render(failed.f, failed.t, 1440, "html"); ok(rf.some(x => /the page says the read failed/.test(x)) && rf.length >= 4, `a failed read is RED and says so: ${rf.slice(0, 2).join("; ")}`);
   const short = await render(good.f.replace(/"findUrl":"[^"]*"/g, '"findUrl":"/nowhere"'), good.t, 1440, "html"); ok(short.some(x => /not a link to a Find result/.test(x)), `a card that does not link to Find is RED: ${short[0] || "NOT CAUGHT"}`);
   const hid = await render(good.f, good.t.replace(".em-frame{max-width:540px;", ".em-frame{display:none;max-width:540px;"), 1440, "html"); ok(hid.some(x => /the email is not visible/.test(x)), `an email that is in the page but not visible is RED: ${hid[0] || "NOT CAUGHT"}`);
+}
+if (!LIVE) {
+  { const good = { list: { rows: 3, hs: false }, cs: { tabs: ["Vehicle", "Market evidence", "Decision"], money: 12, hs: false, failure: false }, dec: { inputs: true, buttons: true, clicked: true, answered: true }, ex: { status: 200, money: 6, failure: false, hs: false } };
+    ok(deskFindings(good.list, good.cs, good.dec, good.ex).length === 0, "Desk: a good render passes");
+    const mut = [["no case in the list", { ...good, list: { rows: 0, hs: false } }, /no case link/], ["a missing tab", { ...good, cs: { ...good.cs, tabs: ["Vehicle", "Decision"] } }, /no Market evidence tab/], ["a case with no figures", { ...good, cs: { ...good.cs, money: 0 } }, /dollar figures/], ["a read failure line", { ...good, cs: { ...good.cs, failure: true } }, /read failed/], ["the security checkpoint instead of the page", { ...good, cs: { ...good.cs, challenge: true } }, /security checkpoint/], ["a blank Preview pane", { ...good, dec: { ...good.dec, answered: false } }, /stayed blank/], ["an example with no figures", { ...good, ex: { ...good.ex, money: 0 } }, /dollar figures in the result/], ["an example that 404s", { ...good, ex: { ...good.ex, status: 404 } }, /status 404/]];
+    for (const [n, d, re] of mut) ok(deskFindings(d.list, d.cs, d.dec, d.ex).some(x => re.test(x)), `Desk mutant is RED: ${n}`); }
 }
 await b.close();
 console.log(out.join("\n")); console.log(`livePreviewCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
