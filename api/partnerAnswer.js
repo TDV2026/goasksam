@@ -250,6 +250,7 @@ function cleanRefine(r) {
   if (word(r.variant)) o.variant = r.variant;
   if (r.tx === "manual" || r.tx === "auto") o.tx = r.tx;
   if (r.docHistory === "has" || r.docHistory === "nohas") o.docHistory = r.docHistory;
+  if (r.mods === "modified" || r.mods === "original") o.mods = r.mods;
   for (const k of ["miMin", "miMax", "miTarget"]) if (Number.isFinite(Number(r[k])) && r[k] !== null && r[k] !== "") o[k] = Number(r[k]);
   return Object.keys(o).length ? o : null;
 }
