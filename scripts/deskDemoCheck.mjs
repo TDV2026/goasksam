@@ -17,7 +17,7 @@ const JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(4
 const org = "demo-org", store = SS.memoryStore();
 const COLOR = "#8b1e2d", LOGO = "data:image/png;base64," + fs.readFileSync("public/icon-192.png").toString("base64");
 const ORG = { name: "Hagerty Marketplace", logo: LOGO, color: COLOR, monthlyExportCap: 99, standardMessage: "Thanks." };
-const cx = (seat = "ava", over = {}) => ({ now: "2026-11-06T12:00:00.000Z", env: {}, org, seat, store, orgSettings: ORG, send: async p => ({ ok: true, subject: "s", payload: p }), ...over });
+const cx = (seat = "ava", over = {}) => ({ now: "2026-11-06T12:00:00.000Z", env: {}, org, seat, store, orgSettings: ORG, send: async p => { await store.markSent(org, p.sheetId, "2026-11-06T12:00:00.000Z", p.to); return { ok: true, subject: "s", payload: p }; }   /* the stand in backend does what send.js does: the Sent state is written beside the locked sheet row, never into it */, ...over });
 const run = (a, b, seat, over) => A.handleSheetAction(a, b, cx(seat, over));
 const dec = reserve => ({ mode: "reserve", reserve, reasons: [], otherText: "", line: "", guardLines: {}, note: "" });
 

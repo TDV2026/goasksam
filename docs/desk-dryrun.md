@@ -1,3 +1,73 @@
+# Desk V3 dry run: a lead becomes a case, the analyst decides, the report is made from the case
+
+For Sam to run on the preview once Lane E's pages are live (/preview/desk and /preview/desk/case/:id, crew only, nothing public). Everything below is crew only until you say go. The page computes nothing: every figure and every sentence you see comes from the case record and the engine's answer; where a step says "must equal", compare the two. The demonstration case is the 1999 Porsche 911 Carrera, lead HM-24117.
+
+## V3 0. Before you start (once)
+
+1. Run docs/supabase-desk-case-versions.sql in the Supabase SQL editor. It makes two tables, desk_case_versions (one row per finalized version, never edited) and desk_case_exports (one row per PDF export or send). Until it is run the preview works in memory but nothing is saved.
+2. The org row (desk_orgs.settings) carries the report's settings: paper ("letter" by default, "a4" for A4), contactAddress, contactPhone, contactEmail (page 4 prints those that are set), and the logo and colour from docs/supabase-desk-brand-color.sql. The report names the org and never an analyst.
+3. Sign in as crew and open /preview/desk. Open View as, pick the Hagerty expert seat.
+
+## V3 1. The case
+
+1. Open HM-24117. The header names the car, the lead reference and the stage (new, review, ready or final). The rail group counts come from the server.
+2. To start from nothing instead, make a case by hand with no lead data. Every field reads Missing and nothing is asked twice: a field the Desk asked the seller for is never asked again.
+
+## V3 2. The Vehicle tab
+
+1. Each fact shows where it came from: seller, VIN decoded, records, analyst verified, missing or conflicting. Mileage appears in one place and reads "61,400 miles" as the case words it.
+2. Correct the mileage. Check: an audit line is written, its verification resets, "Mileage is not confirmed" opens as a material item, and the market evidence is read again by the engine (Market evidence shows the new reading). Verify it again and the item closes.
+3. Change the transmission or the body: the engine reads again. Change the generation: an audit line only, no new reading (the engine works it out from the year). Change a note, a photo or the reserve: no new reading.
+4. Photos: Add photos works at any time, the first photo is the cover, Make cover moves it, and the Report box picks the photos that print. There is no remove.
+5. Documents: mark the IMS invoice received. Check: the IMS sentence changes from "reported by the seller, and the invoices are outstanding" to "documented by the service invoices received", the "Send the service invoices" step goes, and the "No service documents received" item closes.
+
+## V3 3. Needs review
+
+1. The items are made from the case, never typed: Mileage is not confirmed, Accident history is unclear, The VIN and the other details do not agree (a conflict between sources), and No service documents received.
+2. Only the first three block finalizing. Waive one: it asks for a reason, and the reason prints on the report as a limitation. A waived item stays waived while its cause stands.
+
+## V3 4. Market evidence
+
+1. The engine's reading is shown twice: the original (nothing excluded) and the current set. The stale sentence appears when the newest sale is old. With fewer than three sales the engine gives no figure and says why; nothing is invented.
+2. Exclude a comparable. A reason is required, and there are three scopes. Market calc leaves the sale out of every market figure (median, quartiles, quarters, factors) and the original stays as it was. Report comps leaves it out of the four comparables on the report only. Note only changes nothing: the reason and scope go in the audit trail and on that comparable, which stays listed.
+3. Check: the figures move only for Market calc, the comparables list moves only for Report comps, and an excluded sale is greyed in place, never removed.
+
+## V3 5. The decision
+
+1. Set the assessment (a figure and a range) and the reserve. They are independent: changing one never changes the other.
+2. The assessment line reads "The assessment is $500 above the market reference of $37,024", and the reserve line reads "The reserve sits inside the typical range of $34,583 to $37,860" (or below, or above). Move the reserve across the lower and upper quartile and watch the word change; exactly at either quartile reads inside.
+3. Tick Seller has agreed this reserve: the sentence "The seller has agreed to this reserve" appears on the report. Untick it and it goes.
+4. Write the explanation and the reserve rationale. They print in your words.
+
+## V3 6. Readiness and finalizing
+
+1. The ready check lists what is missing: the vehicle identified, no open material item, the assessment inside the engine's low to high or an explanation of at least 60 characters, the reserve at or below the upper quartile or an explanation of at least 60 characters, an explanation and a rationale, at least one photo, and at least one comparable selected. Each blocker alone stops finalizing. A missing colour, trim, extra photo or document never does.
+2. Press Preview report: a four page PDF with a DRAFT watermark and no report number. Check page by page:
+   - Page 1: the cover photo you chose (a typographic cover if there is none, never a placeholder), the car, the likely selling price range and the recommended reserve, your explanation.
+   - Page 2: every completed sale as a dot with the median, your assessed range and the reserve marked; strengths and considerations; the condition box.
+   - Page 3: up to four comparables with photo, price, miles, venue, date, a sentence on why, and a link that opens the listing; a sale with no photo is a text card.
+   - Page 4: the quarterly medians that are shown, the live listings as bid, ask or not sold, the next steps, the note, the contact block and the version.
+   - Every page: "Prepared by" the org, the page number out of 4, and the margins safe for printing. No analyst name anywhere.
+3. Finalize. Check: version 1 is locked, the status reads Finalised, a report number is given, and the PDF has no watermark. The same figures and sentences are in the version row.
+4. Export the PDF and send it with the existing Send panel. Check: the sheet row is not changed (exports and the send are recorded beside it), and the sheet reads Sent with its date.
+
+## V3 7. A change after finalizing
+
+1. Change anything on the finalized case. Check: a new sheet opens as version 2, which corrects the first. Version 1, its report and its PDF are untouched. Finalize version 2 and it gets its own report number.
+2. The rail counts the pair as one case.
+
+## V3 8. Handling time
+
+1. Open the operations block (the rail) or /api/usageDashboard?view=desk with the crew key. It shows, per organisation: reports finalized today, median handling time, the share of cases that needed more from the seller, and reports revised after finalizing. There is no per analyst figure anywhere.
+2. Handling time runs from your first opening of the case to finalizing; a revision counts from its own opening.
+
+## V3 9. What must never happen
+
+1. A sentence on the report that the case does not support (the IMS line "documented" while invoices are outstanding, "seller has agreed" while unticked, "verified" mileage that is not).
+2. A figure on the page or the PDF that is not the engine's or yours.
+3. A change to version 1 after it is finalized.
+4. An analyst name on the report.
+
 # Hagerty Desk dry run: the expert flow, click by click
 
 For Sam to test from. The page text below is what the code prints (public/js/deskvals.js, lib/desk). Where a figure appears, it must equal what the engine read; the page computes nothing. Use your own mailbox and your own address for Send. Touch no real customer sheet.
