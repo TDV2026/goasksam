@@ -985,6 +985,13 @@ try {
 } catch (e) {
   record("Sell example in Lane E's shape: the reader accepts it, every number traces to the Sell answer, sentences from the reason table, fewer than two cars hides the section, the kill switch; nine mutants (scripts/sellExampleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// mcExampleCheck (Lane B, Nov 9 2026): the Market Check entry card (range, count, period and recent sale from one engine answer, the sale inside the pool, no narrowing, the most focused range preferred); eleven mutants.
+try {
+  const out = execSync("node scripts/mcExampleCheck.mjs", { encoding: "utf8", timeout: 250000 });
+  record("Market Check entry card: one engine answer, recent sale inside the pool, no narrowing; eleven mutants (scripts/mcExampleCheck.mjs)", /, 0 FAIL/.test(out), (out.match(/mcExampleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Market Check entry card: one engine answer, recent sale inside the pool, no narrowing; eleven mutants (scripts/mcExampleCheck.mjs)", false, String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
+}
 // findIntelCheck (Lane B, Nov 9 2026): the Find cards' intelligence line (sold_before only with a recorded sale, listed_before never with a price, market_range equals the engine's band, no invented line, cars only); eleven mutants.
 try {
   const out = execSync("node scripts/findIntelCheck.mjs", { encoding: "utf8", timeout: 250000 });
