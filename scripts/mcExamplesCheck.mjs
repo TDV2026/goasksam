@@ -54,8 +54,8 @@ let failed = 0, n = 0; const ok = (name, c, d) => { n++; if (!c) failed++; conso
   ok("(1) each sale carries exactly the keys of Lane E's reader", f.sales.every(s => JSON.stringify(Object.keys(s).sort()) === JSON.stringify(["dateLine", "mileageLine", "photo_url", "platformLine", "soldLine", "title", "url"])), JSON.stringify(Object.keys(f.sales[0])));
   const rows = M.exampleSalesOf(f);
   ok("(1) Lane E's own reader accepts the field and returns three rows", rows && rows.length === 3 && rows.every(r => r.title && r.sold && r.photo && r.url && r.mi && r.plat && r.date), JSON.stringify(rows && rows[0]));
-  const html = M.entryHtml("mc", { exampleSales: f });
-  ok("(1) the entry page draws the section with three cards, each a link to the sale with its photo", /data-example-sales/.test(html) && (html.match(/class="pc"/g) || []).length === 3 && f.sales.every(s => html.includes(s.url) && html.includes(s.photo_url)));
+  const html = M.entryHtml("mc", { exampleResult: await MX.marketCheckExampleResult(env, CREW, W.d) });
+  ok("(1) the entry page draws the real result's frame (the results page's own hero, whose tiles are the three sales), and the old three card section is gone (Lane E, Nov 8 2026)", /data-example-result/.test(html) && /<iframe/.test(html) && !/data-example-sales/.test(html) && (html.match(/class="pc"/g) || []).length === 0);
   ok("(1) the lines are table lines: 'Sold for $52,000', '20,000 miles', 'Sold <Month> <year>'", /^Sold for \$[\d,]+$/.test(f.sales[0].soldLine) && /^[\d,]+ miles$/.test(f.sales[0].mileageLine) && /^Sold [A-Z][a-z]+ \d{4}$/.test(f.sales[0].dateLine) && /^Three of the 14 sales of this model/.test(f.line));
   ok("(1) platformLine is the venue's name", f.sales.every(s => s.platformLine === "Bring a Trailer"));
 }
@@ -115,7 +115,7 @@ let failed = 0, n = 0; const ok = (name, c, d) => { n++; if (!c) failed++; conso
 }
 { // (6) the class
   const crew = fs.readFileSync(path.join(ROOT, "api/crewPage.js"), "utf8");
-  ok("(6) api/crewPage.js reads marketCheckExampleSales from lib/live/marketCheckExamples.js, which exports it", /readIfBuilt\("\.\.\/lib\/live\/marketCheckExamples\.js", "marketCheckExampleSales"/.test(crew) && typeof MX.marketCheckExampleSales === "function");
+  ok("(6) api/crewPage.js reads marketCheckExampleResult (the entry page's real result; its sales are the result's own cards) from lib/live/marketCheckExamples.js, which exports it and still exports marketCheckExampleSales", /readIfBuilt\("\.\.\/lib\/live\/marketCheckExamples\.js", "marketCheckExampleResult"/.test(crew) && typeof MX.marketCheckExampleResult === "function" && typeof MX.marketCheckExampleSales === "function");
   ok("(6) zero OldCarsData", X.metered === 0);
 }
 { // (7) THE RESULT OF THE SAME PICK (Nov 8 2026): the engine's answer for the car whose three sales are shown, in the answer's own fields; the sales are rows of that result's table

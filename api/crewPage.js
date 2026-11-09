@@ -13,7 +13,7 @@ import { PREVIEW_PAGES, homeHtmlFor, findHtml } from "../lib/preview/previewPage
 import { tasksPublicHtml, crewLimitMax } from "../lib/preview/tasksPreview.js";
 import { tasksMineHtml, previewTasksApi } from "../lib/preview/tasksMine.js";
 import { findField } from "../lib/preview/fieldCompose.js";
-import { entryHtml, wrapLive, patchOneboxJs } from "../lib/preview/mcSellPreview.js";
+import { entryHtml, wrapLive, patchOneboxJs, exampleResultOf, exampleFrameHtml } from "../lib/preview/mcSellPreview.js";
 import marketCheckPage from "./marketCheck.js";
 import sellDoor from "./sell.js";
 import { renderDeskPreview, previewDeskApi } from "../lib/preview/deskPreview.js";
@@ -38,7 +38,7 @@ const tasksPublicFor = async req => { const ex = await safe(() => TASKS_EMAIL_EX
 const findFor = async req => { const ex = await safe(() => FIND_EXAMPLES.read(req), "findExamplesField"); return couldNotRead(ex) ? findHtml({ examples: null, readError: "Could not read the Find examples.", now: FIND_EXAMPLES.now() }) : findHtml({ examples: findField(ex, null), now: FIND_EXAMPLES.now() }); };
 // MARKET CHECK AND SELL ON THE NEW SHELL (Sam's approved brief, Nov 8 2026; lib/preview/mcSellPreview.js). Without a search in the address the page is the new ENTRY; with one (?q= or ?car= or ?vin=, and every address the live pages push) it is the LIVE page, exactly as the live handler answers it, inside the shell. Nothing is computed here.
 // The two example fields are Lane B's (marketCheckExampleSales, sellExample); a field's module that is not built yet is simply absent (the section is hidden), one that is built and fails prints the visible could-not-read line like every other read.
-export const MC_EXAMPLES = { read: req => readIfBuilt("../lib/live/marketCheckExamples.js", "marketCheckExampleSales", req) };
+export const MC_EXAMPLES = { read: req => readIfBuilt("../lib/live/marketCheckExamples.js", "marketCheckExampleResult", req) };   // the day's pick car's real result, with its sales as the result's own cards (Lane B)
 export const SELL_EXAMPLE = { read: req => readIfBuilt("../lib/live/marketCheckExamples.js", "sellExample", req) };
 async function readIfBuilt(file, fn, req) { try { if (!fs.existsSync(new URL(file.replace("../", "../"), import.meta.url))) return null; } catch { return null; } return readField(file, fn, req); }
 const hasSearch = req => /[?&](q|car|vin)=[^&]/.test(String(req.url || ""));
@@ -56,13 +56,20 @@ async function mcSellFor(kind, req) {
       if (live.code !== 200) throw new Error("the live page answered " + live.code);
       return wrapLive(kind, live.body);
     }
-    const f = await safe(() => (kind === "mc" ? MC_EXAMPLES : SELL_EXAMPLE).read(req), kind === "mc" ? "marketCheckExampleSales" : "sellExample");
-    return couldNotRead(f) ? entryHtml(kind, { readError: kind === "mc" ? "Could not read the example sales." : "Could not read the selling example." }) : entryHtml(kind, kind === "mc" ? { exampleSales: f } : { sellExample: f });
+    const f = await safe(() => (kind === "mc" ? MC_EXAMPLES : SELL_EXAMPLE).read(req), kind === "mc" ? "marketCheckExampleResult" : "sellExample");
+    return couldNotRead(f) ? entryHtml(kind, { readError: kind === "mc" ? "Could not read the example result." : "Could not read the selling example." }) : entryHtml(kind, kind === "mc" ? { exampleResult: f } : { sellExample: f });
   } catch (e) { return previewFailed(kind, e); }
 }
 // Market Check's script with its one path test widened to the preview path (the live file is never edited); crew only like every page here.
+// the entry page's real result: the live Market Check page's own document, handed the engine's result for the day's pick car, drawn by the results script (lib/preview/mcSellPreview.js exampleFrameHtml). No result, no frame: the door answers the 404.
+async function exampleFrame(req) {
+  const f = await safe(() => MC_EXAMPLES.read(req), "marketCheckExampleResult");
+  if (couldNotRead(f) || !exampleResultOf(f)) throw new Error("no example result");
+  const live = await capture(marketCheckPage, "/market-check", req); if (live.code !== 200) throw new Error("the live page answered " + live.code);
+  return exampleFrameHtml(live.body, f);
+}
 function oneboxJs() { return patchOneboxJs(fs.readFileSync(path.join(process.cwd(), "public", "js", "onebox.js"), "utf8")); }
-export const PAGES = { "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-desk": { render: () => deskV3Shell(), renderAsync: renderDeskV3 }, "preview-desk-valuations": { render: renderDeskPreview }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: FEATURED.read, now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"], renderAsync: findFor }, "preview-market-check": { render: () => entryHtml("mc"), renderAsync: req => mcSellFor("mc", req) }, "preview-sell": { render: () => entryHtml("sell"), renderAsync: req => mcSellFor("sell", req) }, "preview-onebox-js": { render: oneboxJs, contentType: "application/javascript; charset=utf-8" } };
+export const PAGES = { "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-desk": { render: () => deskV3Shell(), renderAsync: renderDeskV3 }, "preview-desk-valuations": { render: renderDeskPreview }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: FEATURED.read, now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"], renderAsync: findFor }, "preview-market-check": { render: () => entryHtml("mc"), renderAsync: req => mcSellFor("mc", req) }, "preview-sell": { render: () => entryHtml("sell"), renderAsync: req => mcSellFor("sell", req) }, "preview-market-check-example": { frame: true, render: () => { throw new Error("no example result"); }, renderAsync: exampleFrame }, "preview-onebox-js": { render: oneboxJs, contentType: "application/javascript; charset=utf-8" } };
 export default async function handler(req, res) {
   const name = String((req.query && req.query.page) || "").toLowerCase(), p = PAGES[name];
   if (name === "preview-tasks-api") {   // the Tasks preview's own door: crew only, POST only; the live handler answers (lib/preview/tasksMine.js)

@@ -34,6 +34,10 @@ const COPY = {
   mc: { eyebrow: "MARKET CHECK · COMPLETED SALES", headline: "What have cars like yours sold for?", line: "Explore actual completed sales, with the individual transactions behind every result.", ph: "e.g. 2001 BMW M3 manual", under: "Completed sales only. Every result links to its source.", chips: ["2001 BMW M3 manual", "2018 Porsche 911 GT3", "2006 Ford GT"], rail: ["New check", "Recent Market Checks"], tab: "Market Check", section: "The sales behind the numbers" },
   sell: { eyebrow: "SELL · SELLING INTELLIGENCE", headline: "Where should you sell your car?", line: "See where similar cars have sold, how different auction platforms perform and what the evidence suggests for your car.", ph: "e.g. 2006 BMW M5", under: "Platform performance · Selling strategy · PowerSeller options", chips: ["2006 BMW M5", "2004 Porsche 911 Carrera", "1994 Toyota Land Cruiser"], rail: ["New analysis", "Recent selling analyses"], tab: "Sell", section: "Different cars. Different ways to sell." }
 };
+const ONEBOX_SRC = fs.readFileSync("public/js/onebox.js", "utf8"), MCX = await imp("lib/live/marketCheckExamples.js");
+// the engine's result for the day's pick car: a REAL recorded Market Check answer (scripts/fixtures/mcSell), shaped by Lane B's own function, so it is exactly what the field carries
+const ANS = (() => { const fx = JSON.parse(fs.readFileSync("scripts/fixtures/mcSell/mc-2006-ford-gt.json", "utf8")); for (const v of Object.values(fx)) { try { const j = JSON.parse(v.body); if (j.tier === "result" && Array.isArray(j.cards)) return j; } catch {} } return null; })();
+const EXF = MCX.mcResultShape({ pickDate: "2026-11-08", model: "2006 Ford GT", result: ANS, sales: ANS.cards.slice(0, 3) });
 const SALES = { sales: [1, 2, 3].map(i => ({ title: `${2000 + i} BMW M3 (sale ${i})`, soldLine: `Sold for $${40 + i},000`, mileageLine: `${i}0,000 miles`, platformLine: "Bring a Trailer", dateLine: `Sold Oct ${i}, 2026`, photo_url: `https://example.test/p${i}.jpg`, url: `https://example.test/sale${i}` })) };
 const SELLEX = { cars: [{ title: "2006 BMW M5", line: "Sold most often on Bring a Trailer in this record." }, { title: "1994 Toyota Land Cruiser", line: "Sold most often on Cars & Bids in this record." }] };
 
@@ -73,15 +77,25 @@ function assertions(M, label, { entry, results }) {
     const vis = e.replace(/<h1 class="sr">[\s\S]*?<\/h1>/, ""), at = x => vis.indexOf(x);
     chk(at(c.eyebrow) >= 0 && at(c.eyebrow) < at(c.headline) && at(c.headline) < at(c.line) && at(c.line) < at('<form class="sb"') && at('<form class="sb"') < at(c.under) && at(c.under) < at('class="pills"'), `${kind} entry: the order eyebrow, headline, line, search, ${kind === "mc" ? "trust" : "benefit"} line, chips`);
     chk(!/\b(Updated|as of|Last updated)\b/i.test(et) && !/20\d\d/.test(et.replace(/2001|2018|2006|2004|1994|2026/g, "")), `${kind} entry: no updated date on the empty page`);
-    chk(!/class="proof"|data-example-sales|data-sell-example/.test(e), `${kind} entry: no evidence section while the engine's field is absent`);
+    chk(!/class="proof"|data-example-sales|data-example-result|data-sell-example/.test(e), `${kind} entry: no evidence section while the engine's field is absent`);
     chk(!/<canvas|<svg[^>]*class="(chart|trend)|confidence/i.test(e), `${kind} entry: no chart, trend or confidence score`);
   }
   // 4. the fields: printed as written, only when complete, failure visible, null silent
-  const withSales = M.entryHtml("mc", { exampleSales: SALES }), sec = /<section class="proof" data-example-sales[\s\S]*?<\/section>/.exec(withSales);
-  chk(!!sec && sec[0].includes("The sales behind the numbers") && count(sec[0], /<a class="pc"/g) === 3 && SALES.sales.every(s => [s.title, s.soldLine, s.mileageLine, s.platformLine, s.dateLine].every(t => sec[0].includes(t)) && sec[0].includes(`href="${s.url}"`) && sec[0].includes(s.photo_url)), "mc entry: three cards, each with the photo, title, price line, miles, platform and date as the engine wrote them, each linking to its sale");
-  chk(!!sec && /target="_blank" rel="noopener"/.test(sec[0]), "mc entry: a sale opens in a new tab with noopener");
-  const half = [{ sales: SALES.sales.slice(0, 2) }, { sales: SALES.sales.map((s, i) => i ? s : { ...s, photo_url: "" }) }, { sales: SALES.sales.map((s, i) => i ? s : { ...s, url: "javascript:alert(1)" }) }, { sales: SALES.sales.map((s, i) => i ? s : { ...s, soldLine: "" }) }, { sales: [] }, {}, null];
-  chk(half.every(f => !/data-example-sales/.test(M.entryHtml("mc", { exampleSales: f }))), "mc entry: a field that is not complete (two sales, no photo, a bad link, no price line, none, empty, null) draws no section");
+  const withRes = M.entryHtml("mc", { exampleResult: EXF }), sec = /<section class="proof exres" data-example-result[\s\S]*?<\/section>/.exec(withRes);
+  chk(!!EXF && !!sec && sec[0].includes("The sales behind the numbers") && /<iframe[^>]*src="\/preview\/market-check\/example"/.test(sec[0]), "mc entry: with the engine's result there is one section, its heading and the frame that holds the results page's own hero");
+  chk(!!sec && !/class="(hero2col|sfc-card|hero-carname|hero-left|hero-right|pc|pgrid)"|<svg|<canvas|<img|\$\d|\d{2},\d{3}/.test(sec[0]), "mc entry: the page draws no card, bar, chart, tile, photo or figure of its own in that section (it holds only the frame)");
+  chk(!/data-example-sales/.test(withRes), "mc entry: the three card sales section is gone, the sales are the result's own tiles");
+  const cut = (f, g) => g(JSON.parse(JSON.stringify(f))), noCards = cut(EXF, f => { f.result.cards = []; return f; });
+  const half = [noCards, cut(EXF, f => { delete f.result.cluster; return f; }), cut(EXF, f => { f.result.tier = "thin"; return f; }), cut(EXF, f => { delete f.result.referenceFigure; return f; }), cut(EXF, f => { f.result.cards[0].url = ""; return f; }), cut(EXF, f => { f.result.cards[1].url = "javascript:alert(1)"; return f; }), cut(EXF, f => { f.model = ""; return f; }), { pickDate: "x", model: "x" }, {}, null];
+  chk(half.every(f => !/data-example-result/.test(M.entryHtml("mc", { exampleResult: f }))), "mc entry: a result that is not whole (no sales, no band, not a result, no figure, a sale with no or a bad link, no car, empty, null) draws no section: never a card without its sales, never sales without a card");
+  chk(!/data-example-result/.test(M.entryHtml("mc", {})), "mc entry: no field, no section");
+  { const fr = M.exampleFrameHtml(LIVE.mc, EXF), got = /window\.__GAS_MC_EXAMPLE=(\{[\s\S]*?\});<\/script>/.exec(fr); let o = null; try { o = JSON.parse(got[1]); } catch {}
+    chk(!!o && JSON.stringify(o.result) === JSON.stringify(EXF.result) && o.model === EXF.model, "mc frame: hands the results script the engine's result field for field, unchanged (the frame holds the live page's own document)");
+    chk(fr.includes(`src="${SH.PREVIEW_OBX_SRC}"`) && !/src="\/obx\./.test(fr), "mc frame: the results script is the preview copy, never the live file edited");
+    let threw = false; try { M.exampleFrameHtml(LIVE.mc, noCards); } catch { threw = true; } chk(threw, "mc frame: with no whole result there is no frame");
+    const pj = M.patchOneboxJs(ONEBOX_SRC), rh = /function resultHtml\(d, m\) \{\s*var thinTile = (thinTileTreatment\(d, m, d\.cards, d\.setAsideRows\));[\s\S]*?heroRangeHtml\(d, m, thinTile\)/.exec(ONEBOX_SRC);
+    chk(!!rh && /function gasMcExample\(\)[\s\S]*?heroRangeHtml\(d, null, thinTileTreatment\(d, null, d\.cards, d\.setAsideRows\)\)/.test(pj) && /if \(window\.__GAS_MC_EXAMPLE\) gasMcExample\(\); else boot\(\);/.test(pj), "mc frame: the hook calls the same two functions the results page's resultHtml calls (thinTileTreatment, heroRangeHtml) and draws nothing itself; boot is untouched when no result is handed in");
+    chk(!/innerHTML\s*=\s*['"`]/.test(/function gasMcExample\(\)[\s\S]*?\n  \}\n/.exec(pj)[0].replace(/root\.innerHTML = heroRangeHtml[^;]*;/, "")), "mc frame: the hook writes no markup of its own"); }
   const wsell = M.entryHtml("sell", { sellExample: SELLEX });
   chk(/data-sell-example/.test(wsell) && wsell.includes("Different cars. Different ways to sell.") && SELLEX.cars.every(c => text(wsell).includes(c.title) && text(wsell).includes(c.line)) && !/guarantee|best price|will sell for/i.test(text(wsell)), "sell entry: the engine's example prints as written under its heading, with no guarantee wording");
   chk(!/data-sell-example/.test(M.entryHtml("sell", { sellExample: { cars: [SELLEX.cars[0]] } })) && !/data-sell-example/.test(M.entryHtml("sell", { sellExample: null })), "sell entry: one car or none draws no section");
@@ -119,7 +133,15 @@ await mutant("the wrong cream pill", "${header(k.active)}<div class=\"mshell\">"
 await mutant("a :root token in the shell sheet", ".gh,.ft,.rail{${SHELL_TOKENS}}", ":root{${SHELL_TOKENS}}");
 await mutant("a stray rule on a results element", "#gas-main{margin-left:0!important", ".inbox{border-radius:0}#gas-main{margin-left:0!important");
 await mutant("a changed eyebrow", /MARKET CHECK .{1,6} COMPLETED SALES/, "MARKET CHECK SALES");
-await mutant("an entry section from two sales", "s.length !== 3", "s.length < 2");
+await mutant("a result drawn without its sales (cards not required)", "if (!Array.isArray(r.cards) || !r.cards.length || !r.cards.every(c => c && httpU(c.url))) return null;", "");
+await mutant("a result accepted that is not a result (tier not checked)", 'r.tier !== "result" || ', "");
+await mutant("a sale with a bad link accepted", "r.cards.every(c => c && httpU(c.url))", "r.cards.every(c => c)");
+await mutant("a card drawn by the page beside the frame", "<iframe class=\"exf\"", "<div class=\"sfc-card\"><b>$55,000 to $65,000</b></div><iframe class=\"exf\"");
+await mutant("a bar drawn by the page in the section", "<h2 class=\"fx-h\">${esc(EXAMPLE_HEAD)}</h2>", "<h2 class=\"fx-h\">${esc(EXAMPLE_HEAD)}</h2><svg width=\"300\" height=\"20\"><rect width=\"300\" height=\"20\"/></svg>");
+await mutant("the old three card sales section drawn again", "const extra = kind === \"mc\" ? exampleResultHtml(exampleResult)", "const extra = kind === \"mc\" ? exampleResultHtml(exampleResult) + '<section class=\"proof\" data-example-sales></section>'");
+await mutant("the hook writes its own hero markup", "root.innerHTML = heroRangeHtml(d, null, thinTileTreatment(d, null, d.cards, d.setAsideRows));", "root.innerHTML = '<div class=\"hero2col\">' + heroRangeHtml(d, null, thinTileTreatment(d, null, d.cards, d.setAsideRows)) + '</div>';");
+await mutant("the hook calls a different hero than the results page", "heroRangeHtml(d, null, thinTileTreatment(d, null, d.cards, d.setAsideRows));", "heroRangeHtml(d, null, null);");
+await mutant("the frame hands over a changed result", "const data = JSON.stringify({ model: f.model, result: f.result })", "const data = JSON.stringify({ model: f.model, result: { ...f.result, cluster: [f.result.cluster[0] + 1, f.result.cluster[1]] } })");
 await mutant("a Sell address left on /sell", 'SELL_PATCHES = [[`: "/sell";', 'SELL_PATCHES = [[`: "/sell-never";');
 await mutant("a missing footer", "out.replace(close, (m, ws) => `</main></div></div>${footer()}${ws}`)", "out.replace(close, (m, ws) => `</main></div></div>${ws}`)");
 await mutant("the live main changed", "out = out.replace(AUTH_SIGNBAR_HTML, () => \"\");", "out = out.replace(AUTH_SIGNBAR_HTML, () => \"\").replace('<div id=\"ob\">', '<div id=\"ob\"><p>x</p>');");
@@ -149,6 +171,7 @@ else {
     await p.setRequestInterception(true);
     p.on("request", async r => { const u = new URL(r.url());
       if (u.host !== "goasksam.com") return r.respond({ status: 204, body: "" });
+      if (u.pathname === "/preview/market-check/example") { const o = await call(CP.default, "/api/crewPage?page=preview-market-check-example", crew); return r.respond({ status: o.code, contentType: o.h["content-type"] || "text/html", body: o.body }); }
       if (/^\/preview\/(market-check|sell|find)$/.test(u.pathname) || u.pathname === "/preview/market-check/onebox.js") { const page = { "/preview/market-check": "preview-market-check", "/preview/sell": "preview-sell", "/preview/find": "preview-find", "/preview/market-check/onebox.js": "preview-onebox-js" }[u.pathname], q = new URLSearchParams(u.search); q.set("page", page);
         const o = await call(CP.default, "/api/crewPage?" + q.toString(), crew); return r.respond({ status: o.code, contentType: o.h["content-type"] || "text/html", body: o.body }); }
       const loc = /^\/obx\.[^/]+\/onebox\.js$/.test(u.pathname) ? "public/js/onebox.js" : (/^\/js(?:\.[^/]+)?\/([\w.-]+\.js)$/.exec(u.pathname) ? "public/js/" + /^\/js(?:\.[^/]+)?\/([\w.-]+\.js)$/.exec(u.pathname)[1] : null);
@@ -192,6 +215,45 @@ else {
     const p = await open(url, 1440), navs = []; p.on("request", r => { if (r.isNavigationRequest()) navs.push(new URL(r.url())); }); await p.evaluate(t => { document.getElementById("pq").value = t; }, typed);
     await Promise.all([p.waitForNavigation({ waitUntil: "domcontentloaded" }).catch(() => {}), p.evaluate(() => document.getElementById("pq-form").requestSubmit())]);
     const to = navs[0] || new URL("https://x/none"); ok(to.pathname + to.search === want, `${url} entry: the search goes to its own results address with the words percent encoded, never a + (${to.pathname + to.search})`); await p.close(); }
+
+  // ---------- the entry page's real result, in Chrome: the results page's own hero, in the entry column, at 1440, 1024 and 390 ----------
+  { const H = await imp("scripts/mcSellHarness.mjs"), hb = await H.launch(), want = JSON.parse(JSON.stringify(EXF));
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    // the results page for the same car, from the same recorded answer
+    const rp = await H.open(hb, "/preview/market-check?q=2006%20Ford%20GT", { width: 1440, fixtures: H.loadFixtures("mc-2006-ford-gt"), settle: 3500 });
+    await rp.waitForFunction(() => !document.querySelector(".stage-pending"), { timeout: 20000 }).catch(() => {});
+    const RES = await rp.evaluate(() => { const q = s => document.querySelector(s); return { card: q(".hero2col .sfc-card") ? q(".hero2col .sfc-card").innerText.replace(/\s+/g, " ").trim() : null, chart: !!q(".hero2col .hero-right svg, .hero2col .hero-right canvas"), title: q(".hero-carname") ? q(".hero-carname").textContent : null }; }); await rp.close(); await hb.close();
+    ok(!!RES.card && RES.card.length > 20, "the results page for the pick car drew its 'What these sell for' card (" + (RES.card || "").slice(0, 60) + ")");
+    CP.MC_EXAMPLES.read = async () => want;
+    for (const w of [1440, 1024, 390]) {
+      const p = await open("/preview/market-check", w);
+      await p.waitForFunction(() => { const f = document.getElementById("exf"); try { return !!(f && f.contentDocument && f.contentDocument.querySelector(".hero2col .sfc-card")); } catch (e) { return false; } }, { timeout: 15000 }).catch(() => {}); await sleep(900);
+      const m = await p.evaluate(() => { const f = document.getElementById("exf"), d = f && f.contentDocument, de = document.documentElement, q = s => d && d.querySelector(s), col = f ? f.parentElement.getBoundingClientRect() : null;
+        return { has: !!q(".hero2col"), title: q(".hero-carname") && q(".hero-carname").textContent, card: q(".sfc-card") && q(".sfc-card").innerText.replace(/\s+/g, " ").trim(), chart: !!q(".hero-right svg, .hero-right canvas"), tiles: d ? [...d.querySelectorAll("a[href]")].map(a => a.href) : [], fh: f ? Math.round(f.getBoundingClientRect().height) : 0, fw: f ? Math.round(f.getBoundingClientRect().width) : 0, colw: col ? Math.round(col.width) : 0, sw: de.scrollWidth, cw: de.clientWidth, fsw: d ? d.documentElement.scrollWidth : 0, fcw: d ? d.documentElement.clientWidth : 0, vis: f ? (getComputedStyle(f).display !== "none") : false, signin: !!(d && [...d.querySelectorAll('.gas-signbar,.gas-signbar-m,[id^=signin-area]')].some(e => getComputedStyle(e).display !== 'none')), narrow: !!(d && [...d.querySelectorAll('.narrow-strip')].some(e => getComputedStyle(e).display !== 'none')) }; });
+      ok(m.has && m.title === want.model, `entry result at ${w}: the results page's hero (.hero2col) is drawn in the frame with the car's title (${m.title})`);
+      ok(m.card === RES.card, `entry result at ${w}: the 'What these sell for' card is the results page's own card, same range, count and sentences (${(m.card || "").slice(0, 70)})`);
+      ok(m.chart === RES.chart, `entry result at ${w}: the right column is the same kind as the results page's (chart ${RES.chart})`);
+      ok(m.sw <= m.cw && m.fsw <= m.fcw + 1, `entry result at ${w}: no overflow (page ${m.sw} v ${m.cw}, frame ${m.fsw} v ${m.fcw})`);
+      const ft = await p.evaluate(() => { const f = document.querySelector('footer.ft'), e = document.getElementById('exf'); return f && e ? { top: Math.round(f.getBoundingClientRect().top + scrollY), fb: Math.round(e.getBoundingClientRect().bottom + scrollY), sh: document.documentElement.scrollHeight, bot: Math.round(f.getBoundingClientRect().bottom + scrollY) } : null; });
+      ok(!!ft && ft.top >= ft.fb - 1 && ft.bot === ft.sh, `entry result at ${w}: the footer comes after the frame and ends the page (footer ${ft && ft.top}, frame ends ${ft && ft.fb}, page ${ft && ft.sh})`);
+      ok(!m.signin && !m.narrow, `entry result at ${w}: no sign in pill and no mileage form inside the example`);
+      ok(m.fh >= 200 && m.fh <= 2600 && m.fw <= m.colw + 1, `entry result at ${w}: the frame fits the entry column (${m.fw} in ${m.colw}, ${m.fh} tall)`);
+      await p.close(); }
+    // an answer with no chart: the same component draws the sales as tiles, each opening its sale
+    const noChart = JSON.parse(JSON.stringify(want)); delete noChart.result.chart; delete noChart.result.chartCaption; CP.MC_EXAMPLES.read = async () => noChart;
+    { const p = await open("/preview/market-check", 1440); await p.waitForFunction(() => { const f = document.getElementById("exf"); try { return !!(f && f.contentDocument && f.contentDocument.querySelector(".hero2col")); } catch (e) { return false; } }, { timeout: 15000 }).catch(() => {}); await sleep(900);
+      const t = await p.evaluate(() => { const d = document.getElementById("exf").contentDocument; return { chart: !!d.querySelector(".hero-right svg, .hero-right canvas"), hrefs: [...d.querySelectorAll(".thin-tiles a[href]")].map(a => a.getAttribute("href")) }; });
+      ok(!t.chart && noChart.result.cards.slice(0, 3).every(c => t.hrefs.some(h => h.includes(c.url.split("?")[0]) || h === c.url)), `entry result with no chart: the sales are the tiles, each opening its sale (${t.hrefs.length} tile links)`); await p.close(); }
+    // mutant: a field whose band is not the results page's band for that car draws a different card, so the same-figures assertion above would fail
+    const moved = JSON.parse(JSON.stringify(want)); moved.result.cluster = [moved.result.cluster[0] + 1000, moved.result.cluster[1]]; if (moved.result.referenceFigure.rangeLow != null) moved.result.referenceFigure.rangeLow += 1000; CP.MC_EXAMPLES.read = async () => moved;
+    { const p = await open("/preview/market-check", 1440); await p.waitForFunction(() => { const f = document.getElementById("exf"); try { return !!(f && f.contentDocument && f.contentDocument.querySelector(".hero2col .sfc-card")); } catch (e) { return false; } }, { timeout: 15000 }).catch(() => {}); await sleep(600);
+      const c = await p.evaluate(() => { const q = document.getElementById("exf").contentDocument.querySelector(".sfc-card"); return q ? q.innerText.replace(/\s+/g, " ").trim() : null; }); ok(c !== RES.card, "mutant caught: a result whose figures differ from the results page's for that car draws a different card, so the same-figures check fails"); await p.close(); }
+    CP.MC_EXAMPLES.read = async () => null;
+    { const p = await open("/preview/market-check", 1440); const has = await p.evaluate(() => !!document.querySelector("[data-example-result], #exf")); ok(!has, "entry: with the field absent the section and the frame are not on the page"); await p.close(); }
+    const fr404 = await call(CP.default, "/api/crewPage?page=preview-market-check-example", crew); ok(fr404.code === 404, "the frame answers the 404 when the field is absent (" + fr404.code + ")");
+    const frStranger = await call(CP.default, "/api/crewPage?page=preview-market-check-example"); ok(frStranger.code === 404, "a stranger gets the 404 from the frame");
+    const vj = JSON.parse(fs.readFileSync("vercel.json", "utf8")), r = (vj.rewrites || []).find(x => x.source === "/preview/market-check/example"); ok(!!r && /gas_crew/.test(JSON.stringify(r.has || [])) && r.destination.includes("page=preview-market-check-example"), "vercel.json routes the frame only with the crew cookie");
+  }
   await b.close();
 }
 console.log(out.join("\n")); console.log(`mcSellShellCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

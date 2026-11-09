@@ -77,6 +77,7 @@
     { "source": "/preview/home", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-home" },
     { "source": "/preview/find", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-find" },
     { "source": "/preview/market-check", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-market-check" },
+    { "source": "/preview/market-check/example", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-market-check-example" },
     { "source": "/preview/market-check/onebox.js", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-onebox-js" },
     { "source": "/preview/sell", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-sell" },
     { "source": "/preview/tasks", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-tasks" },
