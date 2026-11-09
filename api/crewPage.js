@@ -22,6 +22,7 @@ import aboutPage from "./about.js";
 import whatsNewPage from "./whatsNew.js";
 import feedbackPage from "./feedback.js";
 import legalPage from "./legal.js";
+import historyPage from "./history.js";
 import { SITE, wrapSite } from "../lib/preview/sitePages.js";
 import { renderDeskPreview, previewDeskApi } from "../lib/preview/deskPreview.js";
 import { renderDeskV3, deskV3Shell } from "../lib/preview/deskV3.js";
@@ -85,8 +86,17 @@ async function siteFor(key, req) {
   if (live.code !== 200) throw new Error("the live page answered " + live.code);
   return wrapSite(live.body);
 }
+// the history pages: the index, a hub (/preview/history/<slug>) and a VIN page (/preview/history/<slug>/<vin>), each the live handler's own page for the same address. A page the live handler does not serve (an unknown hub, a redirect, "Sam is busy") answers the platform 404.
+const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,120}$/, VIN_RE = /^[A-Za-z0-9]{5,20}$/;
+async function historyFor(req) {
+  const q = req.query || {}, slug = String(q.slug || ""), vin = String(q.vin || "");
+  if ((slug && !SLUG_RE.test(slug)) || (vin && !VIN_RE.test(vin))) throw new Error("not a history address");
+  const live = await capture(historyPage, "/api/history?" + (slug ? "slug=" + encodeURIComponent(slug) + (vin ? "&vin=" + encodeURIComponent(vin) : "") : "index=1"), req);
+  if (live.code !== 200) throw new Error("the live history page answered " + live.code);
+  return wrapSite(live.body);
+}
 const SITE_PAGES = Object.fromEntries(Object.keys(SITE).map(k => ["preview-site-" + k, { frame: true, render: () => "", renderAsync: req => siteFor(k, req) }]));
-export const PAGES = { ...SITE_PAGES, "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-desk": { render: () => deskV3Shell(), renderAsync: renderDeskV3 }, "preview-desk-valuations": { render: renderDeskPreview }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: FEATURED.read, now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"], renderAsync: findFor }, "preview-market-check": { render: () => entryHtml("mc"), renderAsync: req => mcSellFor("mc", req) }, "preview-sell": { render: () => entryHtml("sell"), renderAsync: req => mcSellFor("sell", req) }, "preview-market-check-example": { frame: true, render: () => { throw new Error("no example result"); }, renderAsync: exampleFrame }, "preview-onebox-js": { render: oneboxJs, contentType: "application/javascript; charset=utf-8" } };
+export const PAGES = { ...SITE_PAGES, "preview-history": { frame: true, render: () => "", renderAsync: historyFor }, "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-desk": { render: () => deskV3Shell(), renderAsync: renderDeskV3 }, "preview-desk-valuations": { render: renderDeskPreview }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: FEATURED.read, now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"], renderAsync: findFor }, "preview-market-check": { render: () => entryHtml("mc"), renderAsync: req => mcSellFor("mc", req) }, "preview-sell": { render: () => entryHtml("sell"), renderAsync: req => mcSellFor("sell", req) }, "preview-market-check-example": { frame: true, render: () => { throw new Error("no example result"); }, renderAsync: exampleFrame }, "preview-onebox-js": { render: oneboxJs, contentType: "application/javascript; charset=utf-8" } };
 export default async function handler(req, res) {
   const name = String((req.query && req.query.page) || "").toLowerCase(), p = PAGES[name];
   if (name === "preview-tasks-api") {   // the Tasks preview's own door: crew only, POST only; the live handler answers (lib/preview/tasksMine.js)

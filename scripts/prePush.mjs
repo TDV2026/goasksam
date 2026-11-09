@@ -2350,6 +2350,12 @@ try {
   record("Site pages keep the live page's content exactly: the same main, text lines, links, form fields, lists and structured data (scripts/sitePagesContentCheck.mjs, 6 mutants)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/sitePagesHistoryCheck.mjs", { encoding: "utf8", timeout: 420000 });
+  record("History pages on the new shell: the index, hubs and VIN pages keep the live page's content (main, links, sale rows, photo URLs, JSON-LD) in the approved header and footer, no rail, at 1440, 1024 and 390 (scripts/sitePagesHistoryCheck.mjs, 5 mutants)", "PASS", (out.match(/sitePagesHistoryCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("History pages on the new shell: the index, hubs and VIN pages keep the live page's content (main, links, sale rows, photo URLs, JSON-LD) in the approved header and footer, no rail, at 1440, 1024 and 390 (scripts/sitePagesHistoryCheck.mjs, 5 mutants)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/deskV3ClickCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk v3: the Assessment and Reserve figures land on their inputs from the summary and the sticky bar; tabs keep state (scripts/deskV3ClickCheck.mjs)", "PASS", (out.match(/deskV3ClickCheck: .*/) || [""])[0]);
 } catch (e) {

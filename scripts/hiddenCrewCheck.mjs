@@ -35,7 +35,7 @@ async function call(file, url, { cookie, accept, method = "GET", body } = {}) {
 // ---- 1. THE LIST: every address that routes to a crew function, read from vercel.json (a new one is found, not remembered)
 const { PAGES: CREW_PAGES } = await imp("api/crewPage.js");   // every page api/crewPage.js can serve: the list is read, never remembered, so a page added there is covered below (Nov 4 2026: /preview/home and /preview/find joined it)
 // a frame that exists only when the engine sent its field (the entry page's real result): with no field it answers the 404, so it is not asked for a page below; mcSellShellCheck proves both states
-const DATA_FRAMES = ["preview-market-check-example"];
+const DATA_FRAMES = ["preview-market-check-example", "preview-history"];   // preview-history is the live history pages (the index, a hub, a VIN page) and answers 200 only with the archive behind it; sitePagesHistoryCheck proves both states and the stranger 404
 const PAGE_KEYS = Object.keys(CREW_PAGES);
 const vj = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
 const CREW_FUNCS = ["api/crewPage", "api/desk", "api/admin", "api/partnerDemo", "api/partnerAnswer"];
