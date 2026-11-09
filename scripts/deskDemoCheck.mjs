@@ -103,5 +103,27 @@ RS.useSheetEngine(null);
   const bad = await P.previewDeskApi({ action: "sheet_new", text: "2008 Porsche 911 Carrera S" }); ok(bad.ok === false && /sample VINs/.test(bad.why), "the preview reads its sample VINs only: " + bad.why);
   const good = await P.previewDeskApi({ action: "sheet_new", text: "WP0AB29918S745123", mileage: "30000" }); ok(good.ok === true, "the preview opens a sample VIN as a new valuation");
   ok(!/goasksam/i.test(fs.readFileSync("lib/desk/reportPdf.js", "utf8").replace(/\/\/.*$/gm, "")), "the report writer's code names GoAskSam nowhere"); }
+// ---------- F. every case the preview lists is a real stored sheet with a case (the Preview report said "This sheet has no case" on the pv_* fixtures)
+{ const P = await imp("lib/preview/deskPreview.js"), first = await P.previewDeskApi({ action: "case_get", id: "pv_hm" });   // the very first read of the crew door, no page rendered before it
+  ok(first.ok && first.case && first.case.lead_ref === "HM-24117", "the demonstration case HM-24117 answers case_get at the first read: " + (first.why || ""));
+  const st = await P.previewStore(), rows = await st.list(P.PREVIEW_ORG.id); ok(rows.length >= 5 && rows.some(r => r.id === "pv_hm"), "the preview lists the demonstration case and the other pv_ sheets: " + rows.map(r => r.id).join(","));
+  for (const r of rows.filter(r => /^pv_/.test(r.id))) {
+    const g = await P.previewDeskApi({ action: "case_get", id: r.id }), e = await P.previewDeskApi({ action: "case_edit", id: r.id, op: "field", field: "colour", value: "Guards Red" }), d = await P.previewDeskApi({ action: "case_pdf", id: r.id, draft: true });
+    const again = await st.get(P.PREVIEW_ORG.id, r.id);
+    ok(again.case && again.demo === true, "a listed case is a stored sheet with a case, marked demo: " + r.id);
+    ok(g.ok && (e.ok !== false || r.status === "Finalised" && /locked/.test(e.why)) && d.ok && d.draft === true && d.pdf_b64 && Buffer.from(d.pdf_b64, "base64").slice(0, 4).toString() === "%PDF", "case_get, case_edit and case_pdf all work on " + r.id + ": " + [g.why, e.why, d.why].filter(Boolean).join(" | "));
+  }
+  // a sheet made before V3 has no stored case; its draft is still built, and nothing is written for it
+  const old = await run("sheet_new", { text: "WBSBR93422EX21856", mileage: "96,702" }), oldPdf = await run("case_pdf", { id: old.id, draft: true }), oldAfter = await store.get(org, old.id);
+  ok(oldPdf.ok && oldPdf.draft && !oldAfter.case, "a sheet with no stored case still gets its draft report, and the draft stores nothing: " + (oldPdf.why || "")); }
+// the demonstration 996 changes with the condition: Good has a range from its own sales, Excellent and Fair say how few they hold, in the preview's stand-in for the engine (the same deskBlock the engine uses)
+{ const P = await imp("lib/preview/deskPreview.js"), tier = async t => (await P.previewDeskApi({ action: "case_edit", id: "pv_hm", op: "condition", selected: { tier: t, name: "x" } })).case.desk.evidence;
+  const good = await tier(3), exc = await tier(2), fair = await tier(4);
+  ok(good.insufficient === false && good.count === 5 && good.q1 > 0 && good.q3 >= good.q1, "the demonstration 996 reads a range for Good from its own sales");
+  ok([exc, fair].every(e => e.insufficient === true && /too few sales/.test(e.sentence) && e.median == null) && exc.count !== fair.count, "Excellent and Fair say they hold too few sales (the engine's sentence), with no flat range");
+  const mk = await P.previewDeskApi({ action: "case_new", text: "WP0AA2990XS620481", mileage: "61200", transmission: "Manual" });
+  ok(mk.ok && mk.recalled && mk.case.desk.evidence.count === 9, "a new case on the demonstration car through the preview door is read once and carries the market reference");
+  const other = await P.previewDeskApi({ action: "case_new", text: "1970 Chevrolet Corvette", mileage: "96702" });
+  ok(other.ok && !other.case.desk && other.retry && /not available/.test(other.retry.line), "a car the preview has no sample sales for is made without a market reference and says the read is not available, never the 996's sales"); }
 ok(/dsk\.20261106a/.test(html) && /dsk\.20261106a/.test(fs.readFileSync("vercel.json", "utf8")), "the page files moved to a new versioned path, so no browser keeps the old ones");
 console.log(`deskDemoCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

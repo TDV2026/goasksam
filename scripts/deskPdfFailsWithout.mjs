@@ -3,6 +3,12 @@ import fs from "node:fs"; import path from "node:path"; import os from "node:os"
 const ROOT = path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 const PV = "lib/desk/reportPdfV3.js", RS = "lib/desk/reportState.js", SA = "lib/desk/sheetActions.js";
 const MUT = [
+  ["page 1 prints the market median as a figure again", "lib/desk/reportState.js", s => s.replace('to: fromTo.to })] : [];', 'to: fromTo.to }), reasonLine("report.median_is", { median: ev.median })] : [];')],
+  ["the reserve's typical range figures are back on page 1", "lib/desk/reportState.js", s => s.replace('[reasonLine("report.reserve_disclaimer"), out.rationale]', '[reasonLine("report.reserve_disclaimer"), out.reservePositionLine, out.rationale]')],
+  ["the strip's median label prints the market figure", "lib/desk/reportState.js", s => s.replace('reasonLine("report.strip_median_words", { sales: countNoun(ev.count, "sale", { words: false }) })', 'reasonLine("report.strip_median", { figure: ev.median })')],
+  ["page 2 says the difference against the market reference in figures", "lib/desk/reportState.js", s => s.replace('reasonLine("report.strip_caption_words"), out.sitsLine,', 'reasonLine("report.strip_caption_words"), out.differenceLine,')],
+  ["page 1 is headed Likely selling price again", "lib/reasonWords.js", s => s.replace('text: () => "Valuation" }', 'text: () => "Likely selling price" }')],
+  ["page 1 puts the reserve beside the valuation, as a second competing answer", PV, s => s.replace("ya += 10; eyebrow(rs.headings.reserve, M, ya);", "ya = y; eyebrow(rs.headings.reserve, M + 300, ya);")],
   ["a draft has no watermark", PV, s => s.replace("if (draft) doc.watermark(\"DRAFT\");", "")],
   ["a finalized version carries the watermark", PV, s => s.replace("if (draft) doc.watermark(\"DRAFT\");", "doc.watermark(\"DRAFT\");")],
   ["the page numbers say of 3", PV, s => s.replace("`Page ${n} of 4`", "`Page ${n} of 3`")],
@@ -27,8 +33,8 @@ const MUT = [
   ["the contact block prints the mail sending address", PV, s => s.replace("org.contactPhone, org.contactEmail].filter(Boolean)", "org.contactPhone, org.contactEmail, org.sendingAddress].filter(Boolean)")],
   ["a draft footer says Version, not Draft preview", PV, s => s.replace('draft ? "Draft preview" : `Version ${c.version}`', '`Version ${c.version}`')],
   ["the footer rule does not move with the paper (fixed at 790)", PV, s => s.replace("FOOT = H - 52;", "FOOT = 790;")],
-  ["a case_pdf draft records an export", SA, s => s.replace("      const rep = await buildReportV3(await minted(ctx, org, s0), set, { fetchImage: ctx.fetchImage, draft: true });\n      return { ok: true, draft: true, filename: rep.filename, reportNumber: null, version", "      const rep = await buildReportV3(await minted(ctx, org, s0), set, { fetchImage: ctx.fetchImage, draft: true }); await store.addExport(org, s0.id, { at: now, seat, kind: \"pdf\", version: s0.case.version });\n      return { ok: true, draft: true, filename: rep.filename, reportNumber: null, version")],
-  ["a case_pdf draft carries a report number", SA, s => s.replace("draft: true, filename: rep.filename, reportNumber: null, version: s0.case.version", "draft: true, filename: rep.filename, reportNumber: s0.final ? s0.final.reportNumber : \"DV-2026-0001\", version: s0.case.version")],
+  ["a case_pdf draft records an export", SA, s => s.replace("      const rep = await buildReportV3(await minted(ctx, org, asCase), set, { fetchImage: ctx.fetchImage, draft: true });\n      return { ok: true, draft: true, filename: rep.filename, reportNumber: null, version", "      const rep = await buildReportV3(await minted(ctx, org, s0), set, { fetchImage: ctx.fetchImage, draft: true }); await store.addExport(org, s0.id, { at: now, seat, kind: \"pdf\", version: asCase.case.version });\n      return { ok: true, draft: true, filename: rep.filename, reportNumber: null, version")],
+  ["a case_pdf draft carries a report number", SA, s => s.replace("draft: true, filename: rep.filename, reportNumber: null, version: asCase.case.version", "draft: true, filename: rep.filename, reportNumber: s0.final ? s0.final.reportNumber : \"DV-2026-0001\", version: asCase.case.version")],
   ["case_pdf draft false returns a draft", SA, s => s.replace("const rep = await buildReportV3(await minted(ctx, org, fin), set, { fetchImage: ctx.fetchImage });", "const rep = await buildReportV3(await minted(ctx, org, fin), set, { fetchImage: ctx.fetchImage, draft: true });")],
   ["the finalized case_pdf export is not recorded", SA, s => s.replace('try { await store.addExport(org, fin.id, { at: now, seat, reportNumber: fin.final.reportNumber, kind: "pdf", version: fin.case.version, detail: null }); } catch', "try { } catch")],
   ["a revision's draft false does not find the finalized version it corrects", SA, s => s.replace("while (fin && !fin.final && fin.corrects && guard++ < 50) fin = await get(fin.corrects);", "")],
@@ -49,7 +55,7 @@ const MUT = [
   ["the contact block leaves out the address", PV, s => s.replace("[org.contactAddress, org.contactPhone, org.contactEmail]", "[org.contactPhone, org.contactEmail]")],
   ["the logo is not placed", PV, s => s.replace("if (logoBytes && doc.image(logoBytes, M, 28, 96, 20)) {}", "if (false && doc.image(logoBytes, M, 28, 96, 20)) {}")],
   ["the page 3 heading says Four whatever the count", RS, s => s.replace('countNoun(cmps.length, "recent sale", { cap: true })', '"Four recent sales"')],
-  ["the two column titles of page 2 are swapped", RS, s => s.replace('{ supports: reasonLine("report.h_supports"), consider: reasonLine("report.h_consider") }', '{ supports: reasonLine("report.h_consider"), consider: reasonLine("report.h_supports") }')],
+  ["the two column titles of page 2 are swapped", RS, s => s.replace('supports: reasonLine("report.h_supports"), consider: reasonLine("report.h_consider") }', 'supports: reasonLine("report.h_consider"), consider: reasonLine("report.h_supports") }')],
   ["page 4 is one column", PV, s => s.replace("yr = y; const x2 = M + colW + 24;", "yr = y; const x2 = M;")],
   ["the contact block is in the left column", PV, s => s.replace("let c1 = cy4 + 8; T(orgName, x2,", "let c1 = cy4 + 8; T(orgName, M,")],
   ["a card's date is the full day", RS, s => s.replace("x.monthYear = monthYear(x.date);", "x.monthYear = x.date;")],

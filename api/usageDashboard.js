@@ -1582,6 +1582,20 @@ async function handleOps(req, res) {
     }
     return res.status(200).json({ task: "storedcount", ocdSpend: 0, writes: 0, ...counts, ms: Date.now() - t0 });
   }
+  // task=storedwide (Lane B, Nov 9 2026; READ-ONLY, zero OldCarsData, zero writes): the stored Market Check rows by the cause their wide line names (market.raw.wideCause), counted with exact counts (no row bodies), and the keys of the rows whose
+  // wide line names modified cars (mods) or a year span (year): those are the rows that gain the Modified and Original or the year pills only when they are computed again (the warm list). Two small key reads (up to 500 keys each, light columns); counts are HEAD reads.
+  if (task === "storedwide") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const t0 = Date.now(), H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const cq = async f => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/spec_market_cache?spec_key=like.MCWARM%3A*${f}&select=spec_key&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const out = { task: "storedwide", ocdSpend: 0, writes: 0, rows: await cq(""), results: await cq("&market-%3Eraw-%3E%3Etier=eq.result"), byCause: {}, keys: {} };
+    for (const c of ["mods", "year", "mileage", "period", "none"]) out.byCause[c] = await cq("&market-%3Eraw-%3E%3EwideCause=eq." + c);
+    for (const c of ["mods", "year"]) {
+      const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&market-%3Eraw-%3E%3EwideCause=eq.${c}&select=spec_key&order=spec_key.asc&limit=500`);
+      out.keys[c] = Array.isArray(rows) ? rows.map(r => String(r.spec_key).replace(/^MCWARM:/, "")) : { readFailed: true };
+    }
+    return res.status(200).json({ ...out, ms: Date.now() - t0 });
+  }
   // task=storedquestions (Lane B, Oct 30 2026; READ-ONLY, zero OldCarsData, zero writes): the stored Market Check rows the reader now treats as no row because a question rule may have overtaken them (lib/onebox.js storedMayNowAsk): result or thin rows with NO YEAR
   // and without the current questionRulesTag. Counted by whether the make and model have two or more generations in the table (the generation question), with the examples. Paged by after (spec key).
   if (task === "storedquestions") {

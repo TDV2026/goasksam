@@ -18,7 +18,7 @@ if (args.includes("--mutants")) {
     [FE, "if (!liveNow(row, now) || Date.parse(row.end_time) - now < minLeftMs) return false;", "if (!liveNow(row, now)) return false;", "(1) a car with minutes left is chosen"],
     [FE, "return cands.filter(c => !makes.has(norm(c.row.make))).sort(", "return cands.sort(", "(2) two cars of one make"],
     [FE, "(!haveSold && c.sold ? 1000 : 0) + ", "0 + ", "(3) a sold-before car is not preferred when one is available"],
-    [FE, "return !!(e.ok && e.featured.kind === \"sold\");", "return !!e.ok;", "(3) a listed-only earlier record counts as sold before"],
+    [FE, "return !!(f && f.kind === \"sold\");", "return !!f;", "(3) a listed-only earlier record counts as sold before"],
     [FE, "us[u] = await d.urlStatus(u);", "us[u] = 200;", "(3) a gone evidence link still counts as sold before"],
     [FE, "if (eligibleRow(row, facts, now) && pickable(row) && !kept.some(", "if (false && !kept.some(", "(4) a stored car is not kept while it passes"],
     [FE, "if (!eligibleRow(row, facts, now) || seen.has(norm(row.make))) continue;", "if (seen.has(norm(row.make))) continue;", "(1) a car not live right now is served"],
@@ -64,7 +64,7 @@ const car = (make, model, year, o = {}) => ({ id: ++id, source: "bringatrailer",
 function world(rows, { apps = {}, urlStatus = {}, now = NOW0 } = {}) {
   const w = { rows, store: new Map(), apps, urlStatus, clock: now, writes: 0 };
   w.d = {
-    now: () => w.clock, head: async () => ({ status: 200, bytes: 1000, type: "image/jpeg" }), 
+    now: () => w.clock, answer: async (e, t) => (w.answers && w.answers[t]) || null, head: async () => ({ status: 200, bytes: 1000, type: "image/jpeg" }), 
     select: async (e, q) => {
       if (w.fail) return null;
       let m = /^app_config\?key=eq\.([a-z_]+)/.exec(q); if (m) { const v = w.store.get(m[1]); return v ? [{ value: v }] : []; }
@@ -80,7 +80,7 @@ function world(rows, { apps = {}, urlStatus = {}, now = NOW0 } = {}) {
   return w;
 }
 const sale = (vin, o = {}) => ({ kind: "sale", date: "2023-02-14", house: "Bring a Trailer", url: "https://bringatrailer.com/listing/" + vin + "/", image: "https://img.test/old-" + vin + ".jpg", mileage: 15000, priceUsd: 181888, vinNorm: vin, ...o });
-const SHAPE = ["title", "platform", "url", "photo", "live", "endsAt", "findUrl", "priceLabel", "timeLine", "soldBefore"];
+const SHAPE = ["title", "platform", "url", "photo", "live", "endsAt", "findUrl", "priceLabel", "timeLine", "soldBefore", "venue", "timing", "intelligence"];
 const GOOD = () => [car("Porsche", "911", 1995, { colour: "White", h: 40 }), car("Porsche", "911", 2003, { colour: "Black", h: 41 }), car("Ferrari", "F430", 2007, { colour: "Red", h: 42 }), car("BMW", "M3", 2006, { colour: "Blue", h: 43 }), car("Audi", "RS4", 2008, { colour: "Silver", h: 44 }), car("Ford", "Mustang", 1967, { colour: "Green", h: 45 })];
 // ---- (1) eligibility, (2) different makes, shape
 {
