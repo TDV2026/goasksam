@@ -116,5 +116,14 @@ RS.useSheetEngine(null);
   // a sheet made before V3 has no stored case; its draft is still built, and nothing is written for it
   const old = await run("sheet_new", { text: "WBSBR93422EX21856", mileage: "96,702" }), oldPdf = await run("case_pdf", { id: old.id, draft: true }), oldAfter = await store.get(org, old.id);
   ok(oldPdf.ok && oldPdf.draft && !oldAfter.case, "a sheet with no stored case still gets its draft report, and the draft stores nothing: " + (oldPdf.why || "")); }
+// the demonstration 996 changes with the condition: Good has a range from its own sales, Excellent and Fair say how few they hold, in the preview's stand-in for the engine (the same deskBlock the engine uses)
+{ const P = await imp("lib/preview/deskPreview.js"), tier = async t => (await P.previewDeskApi({ action: "case_edit", id: "pv_hm", op: "condition", selected: { tier: t, name: "x" } })).case.desk.evidence;
+  const good = await tier(3), exc = await tier(2), fair = await tier(4);
+  ok(good.insufficient === false && good.count === 5 && good.q1 > 0 && good.q3 >= good.q1, "the demonstration 996 reads a range for Good from its own sales");
+  ok([exc, fair].every(e => e.insufficient === true && /too few sales/.test(e.sentence) && e.median == null) && exc.count !== fair.count, "Excellent and Fair say they hold too few sales (the engine's sentence), with no flat range");
+  const mk = await P.previewDeskApi({ action: "case_new", text: "WP0AA2990XS620481", mileage: "61200", transmission: "Manual" });
+  ok(mk.ok && mk.recalled && mk.case.desk.evidence.count === 9, "a new case on the demonstration car through the preview door is read once and carries the market reference");
+  const other = await P.previewDeskApi({ action: "case_new", text: "1970 Chevrolet Corvette", mileage: "96702" });
+  ok(other.ok && !other.case.desk && other.retry && /not available/.test(other.retry.line), "a car the preview has no sample sales for is made without a market reference and says the read is not available, never the 996's sales"); }
 ok(/dsk\.20261106a/.test(html) && /dsk\.20261106a/.test(fs.readFileSync("vercel.json", "utf8")), "the page files moved to a new versioned path, so no browser keeps the old ones");
 console.log(`deskDemoCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

@@ -3,6 +3,8 @@
 import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { execFileSync } from "node:child_process"; import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 const MUT = [
+  ["the preview answers the 996's sales for any car", "lib/preview/deskV3Fixture.js", s => s.replace("  if (!isDemoCar(input)) return null;", "")],
+  ["the preview's engine stand-in ignores the tier", "lib/preview/deskV3Fixture.js", s => s.replace("tierOut = tier && t !== tier;", "tierOut = false;")],
   ["a listed preview case has no stored case (the seeding is skipped)", "lib/preview/deskPreview.js", s => s.replace("if (row.case) continue;", "continue;")],
   ["the demonstration case is stored only when a page renders (not at the first read)", "lib/preview/deskPreview.js", s => s.replace("await store.insert(PREVIEW_ORG.id, { id: DEMO_ID,", "if (false) await store.insert(PREVIEW_ORG.id, { id: DEMO_ID,")],
   ["a draft report refuses a sheet that has no stored case", "lib/desk/sheetActions.js", s => s.replace('if (!s0.case && body.draft !== true) return refuse', 'if (!s0.case) return refuse')],

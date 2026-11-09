@@ -2,6 +2,19 @@
 import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { execFileSync } from "node:child_process"; import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 const MUT = [
+  ["the assessment is not seeded from the engine's median", "lib/desk/caseWorkflow.js", s => s.replace("  return seedAssessment(c, iso(now));\n}", "  return c;\n}")],
+  ["a seeded assessment is not marked source engine", "lib/desk/caseWorkflow.js", s => s.replace("source: ok ? \"engine\" : null };", "source: null };")],
+  ["the seeded assessment writes no audit line", "lib/desk/caseWorkflow.js", s => s.replace("  c.audit.push({ at: iso(now), by: \"engine\", what: ok ?", "  void ({ at: iso(now), by: \"engine\", what: ok ?")],
+  ["the analyst's change leaves the source engine", "lib/desk/caseWorkflow.js", s => s.replace("a.explanation, source: \"analyst\" };", "a.explanation, source: a.source };")],
+  ["a later read overwrites the analyst's figure", "lib/desk/caseWorkflow.js", s => s.replace("if (a.source === \"analyst\" || (a.source !== \"engine\" && a.figure != null)) return c0;", "")],
+  ["an engine figure survives a read with too few sales", "lib/desk/caseWorkflow.js", s => s.replace("const next = ok ? { figure: ev.median, low: ev.q1, high: ev.q3 } : { figure: null, low: null, high: null };", "if (!ok) return c0; const next = { figure: ev.median, low: ev.q1, high: ev.q3 };")],
+  ["the case view carries no marketLine", "lib/desk/caseView.js", s => s.replace(" marketLine: rs.marketLine,", "")],
+  ["the market line drops the stale sentence", "lib/desk/reportState.js", s => s.replace("ev.stale && ev.stale.flag ? ev.stale.sentence : null", "null")],
+  ["the market line shows the wrong date format", "lib/desk/reportState.js", s => s.replace("date: shortDate(ev.asOf) }", "date: longDate(ev.asOf) }")],
+  ["case_new answers no recalled flag", "lib/desk/sheetActions.js", s => s.replace("return { ok: true, id: sheet.id, recalled, ", "return { ok: true, id: sheet.id, ")],
+  ["a photo item carries no width and height", "lib/desk/caseView.js", s => s.replace(", width: have.get(p.id).width || null, height: have.get(p.id).height || null", "")],
+  ["case_new answers no sheet summary", "lib/desk/sheetActions.js", s => s.replace(", sheet: summaryOf(sheet, ctx.nowMs) };\n  }\n  if (action === \"case_edit\")", " };\n  }\n  if (action === \"case_edit\")")],
+  ["the seller block carries no email key", "lib/desk/caseModel.js", s => s.replace("email: str(seller.email, 160) || null, ...(seller.asking", "...(seller.asking")],
   ["the review stage is named in_review", "lib/desk/caseModel.js", s => s.replace('in_review: "review"', 'in_review: "in_review"')],
   ["the final stage is named finalized", "lib/desk/caseModel.js", s => s.replace('finalized: "final" }', 'finalized: "finalized" }')],
   ["a finalized case is counted as ready", "lib/desk/caseView.js", s => s.replace('STAGE_OF[c.status] || "new"', '(c.status === "finalized" ? "ready" : STAGE_OF[c.status]) || "new"')],
