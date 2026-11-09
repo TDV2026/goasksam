@@ -89,10 +89,10 @@ function assertions(M, label, { entry, results }) {
   // 5. scope: the results shell sheet selects only the shell's own elements
   const css = M.RESULTS_SHELL_CSS.replace(/\/\*[\s\S]*?\*\//g, ""), sels = [];
   for (const m of css.matchAll(/(?:^|\})\s*([^{}@]+)\{/g)) sels.push(...m[1].split(",").map(s => s.trim()).filter(Boolean));
-  const OWN = /^(\.gh|\.ft|\.rail|\.mshell|\.wm|\.beta|\.tabs|\.new|\.rh|\.it|#gas-main)(?![\w-])/;
+  const OWN = /^(body\.mcs-col(?:>(?:\*|\.ft))?$|\.gh|\.ft|\.rail|\.mshell|\.wm|\.beta|\.tabs|\.new|\.rh|\.it|#gas-main)(?![\w-])/;
   const stray = sels.filter(s => !OWN.test(s));
   chk(stray.length === 0, `the results shell sheet selects the shell's own elements only; it also selects: ${stray.slice(0, 5).join(" | ")}`);
-  chk(!/:root|\bbody\b|\bhtml\b/.test(css.replace(/@media[^{]*\{/g, "")), "the results shell sheet has no :root, body or html rule (its tokens sit on .gh, .ft and .rail, so a results page keeps its own --ink and --sec)");
+  chk(!/:root|\bbody\b|\bhtml\b/.test(css.replace(/@media[^{]*\{/g, "").replace(/body\.mcs-col(>[*.\w-]+)?\{[^}]*\}/g, "")), "the results shell sheet has no :root, body or html rule but the one full height column on body.mcs-col (its tokens sit on .gh, .ft and .rail, so a results page keeps its own --ink and --sec)");
   const gm = /#gas-main\s*\{[^}]*\}/.exec(css), gw = /#gas-main \.wrap\{[^}]*\}|#gas-main #ob\{[^}]*\}/g, widths = css.match(gw) || [];
   chk(!!gm && widths.length === 2 && widths.every(w => /(padding-left:40px;padding-right:40px|max-width:1180px)/.test(w)), "the only rules on the results container are its outer width and padding (#gas-main, .wrap padding, #ob max-width)");
   return bad;

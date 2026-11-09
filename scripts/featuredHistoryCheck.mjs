@@ -88,7 +88,7 @@ const fakeDb = () => {
     apps: { [VIN]: [sale()], WP0AB29988S783457: [sale({ vinNorm: "WP0AB29988S783457", url: "https://bringatrailer.com/listing/b-0/", image: "https://img.example.com/prev-b.jpg" }), sale({ vinNorm: "WP0AB29988S783457", date: "2018-02-02", url: "https://bringatrailer.com/listing/b-00/", image: "https://img.example.com/prev-b2.jpg" })] },
     now: NOW, fail: false, selects: 0, calls: [] };
   const d = {
-    now: () => db.now,
+    now: () => db.now, head: async () => ({ status: 200, bytes: 1000, type: "image/jpeg" }), 
     select: async (env, q) => { db.selects++; db.calls.push(q); if (db.fail) return null;
       if (q.startsWith("app_config?")) { const k = /key=eq\.([^&]+)/.exec(q)[1]; return db.cfg.has(k) ? [{ value: db.cfg.get(k) }] : []; }
       if (q.startsWith("live_listings?id=eq.")) { const id = decodeURIComponent(/id=eq\.([^&]+)/.exec(q)[1]); const r = db.live.find(x => x.id === id); return r ? [r] : []; }
@@ -164,7 +164,7 @@ const CREW = "gas_crew=" + mintCrewCookieValue();
   ok("(7) with the cookie it answers 200 with the field key, private and not cached", b.code === 200 && b.body && "featuredHistory" in b.body && /no-store/.test(b.headers["Cache-Control"] || ""), JSON.stringify([b.code, Object.keys(b.body || {}), b.headers])); }
 
 // (8) NO PUBLIC SURFACE CAN RETURN IT: every file that names the field, the store key or the module is on the short list
-{ const ALLOWED = new Set(["lib/live/featuredHistory.js", "api/featuredHistory.js", "api/pullLive.js", "api/crewPage.js", "lib/preview/previewPages.js", "lib/live/tasksDemo.js", "lib/live/findExamples.js", "lib/live/watchingDemo.js"]);   // + the crew gated Homepage preview (Lane E) and tasksDemo, which reuses the eligibility rules (crew only too)
+{ const ALLOWED = new Set(["lib/live/featuredHistory.js", "api/featuredHistory.js", "api/pullLive.js", "api/crewPage.js", "lib/preview/previewPages.js", "lib/live/tasksDemo.js", "lib/live/findExamples.js", "lib/live/watchingDemo.js", "lib/live/entryExamples.js"]);   // + the crew gated Homepage preview (Lane E) and tasksDemo, which reuses the eligibility rules (crew only too)
   const NAMES = /featuredHistory|featured_history|FEATURED_HISTORY/;
   const hits = [];
   const walk = (dir) => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { if (e.name === "node_modules" || e.name === ".git" || e.name === ".claude" || e.name === "proofs") continue; const p = path.join(dir, e.name); if (e.isDirectory()) walk(p); else if (/\.(js|mjs|json|html|xml|css|txt|md)$/.test(e.name)) { const rel = path.relative(root, p); if (rel.startsWith("scripts/") || rel.startsWith("docs/")) continue; if (NAMES.test(fs.readFileSync(p, "utf8"))) hits.push(rel); } } };

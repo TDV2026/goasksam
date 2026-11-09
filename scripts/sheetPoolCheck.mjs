@@ -1,6 +1,6 @@
 // THE DESK SHEET READS AS THE WHOLE MARKET (Lane B, Nov 8 2026). Four things, over a fake archive with real photos and a tier on every sale:
 //   (1) COMPARABLES: every sale in the picked body and tier pool, each with its own first photo (https), the venue's display name, price, mileage and tier; a tier holding under five shows the WHOLE body pool with each sale's tier tagged. Never three rows.
-//   (2) WORDING: the count and the range, not an apology ("N sales of this body since [month]. M in tier T, shown on the full set." / "Range from N sales: $low to $high. Median $X."); no "wider pool", "wider range", "too few" anywhere in the Desk sheet's sentences; the consumer pages' lines are separate table entries and unchanged.
+//   (2) WORDING: the count and the range, not an apology ("N sales of this body since [month], M in tier T, shown on the full set." / "Range from N sales: $low to $high, median $X."); no "wider pool", "wider range", "too few" anywhere in the Desk sheet's sentences; the consumer pages' lines are separate table entries and unchanged.
 //   (3) LIVE ROWS: with a body picked, only live cars resolved to that body, counted the same.
 //   (4) THE RANGE METER: low, p25, median, p75, high of the pool shown, and each sale's price and tier on comparables.
 //   node scripts/sheetPoolCheck.mjs [root]      --mutants proves each rule by breaking it in a copy
@@ -81,7 +81,7 @@ const URL_OK = u => /^https:\/\/img\.example\/sale-\d+\.jpg$/.test(String(u));
   ok("(1) the WHOLE body pool is shown, every sale the engine read, never three", c.length === poolN && c.length > 12, c.length + " of " + poolN);
   ok("(1) each sale carries its tier (1 to 4, or none), a photo, the venue's name and a price", c.every(x => (x.tier === null || [1, 2, 3, 4].includes(x.tier)) && URL_OK(x.photo) && x.venue === "Bring a Trailer" && x.price > 0) && c.some(x => x.tier === 1) && c.some(x => x.tier === 3), JSON.stringify([...new Set(c.map(x => x.tier))]));
   ok("(1) the sales tagged tier 1 are the tier's own count", c.filter(x => x.tier === 1).length === sh.condition.sameTierCount);
-  ok("(2) the pool line states the count and the tier: N sales of this body since [month]. M in tier 1, shown on the full set.", new RegExp("^" + poolN + " sales of this body since [A-Z][a-z]+ \\d{4}\\. " + sh.condition.sameTierCount + " in tier 1, shown on the full set\\.$").test(sh.condition.tooFewLine) && sh.market.poolLine === sh.condition.tooFewLine && sh.market.startingNote === sh.condition.tooFewLine, sh.condition.tooFewLine);
+  ok("(2) the pool line states the count and the tier: N sales of this body since [month], M in tier 1, shown on the full set.", new RegExp("^" + poolN + " sales of this body since [A-Z][a-z]+ \\d{4}, " + sh.condition.sameTierCount + " in tier 1, shown on the full set\\.$").test(sh.condition.tooFewLine) && sh.market.poolLine === sh.condition.tooFewLine && sh.market.startingNote === sh.condition.tooFewLine, sh.condition.tooFewLine);
 }
 { // no tier chosen: the whole pool too
   const sh = await read({}), c = sh.market.comparables;
@@ -89,7 +89,7 @@ const URL_OK = u => /^https:\/\/img\.example\/sale-\d+\.jpg$/.test(String(u));
 }
 { // (2) the range line and (4) the meter
   const sh = await read({ tier: 3 }), m = sh.market, f = x => x.toLocaleString("en-US");
-  ok("(2) Range from N sales: $low to $high. Median $X. with the engine's own figures", m.rangeLine === "Range from " + poolN + " sales: $" + f(m.low) + " to $" + f(m.high) + ". Median $" + f(m.median) + ".", m.rangeLine);
+  ok("(2) Range from N sales: $low to $high, median $X. with the engine's own figures", m.rangeLine === "Range from " + poolN + " sales: $" + f(m.low) + " to $" + f(m.high) + ", median $" + f(m.median) + ".", m.rangeLine);
   const mt = m.meter;
   ok("(4) the meter carries low, p25, median, p75 and high, in order, and the count of the sales it draws", mt && ["low", "p25", "median", "p75", "high"].every(k => Number.isFinite(mt[k])) && mt.low <= mt.p25 && mt.p25 <= mt.median && mt.median <= mt.p75 && mt.p75 <= mt.high && mt.count === m.comparables.length, JSON.stringify(mt));
   ok("(4) a tier read draws the tier's sales (scope tier); every dot has a price and a tier", mt.scope === "tier" && mt.tier === 3 && m.comparables.every(x => x.price > 0 && x.tier === 3));

@@ -48,7 +48,7 @@ globalThis.fetch = async (u, init = {}) => {
 };
 const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
 const PL = await imp("api/pullLive.js"), FH = await imp("lib/live/featuredHistory.js"), TD = await imp("lib/live/tasksDemo.js");
-const writes = () => calls.filter(c => c.method !== "GET" && !/spec_market_cache/.test(c.url)).length;   // the crew keys and everything else: none. The Task matcher the demo funnel runs may fill the market cache for the cars it matches (spec_market_cache, a cache, written in the background); that is the matcher's own, existing, and is counted apart below
+const writes = () => calls.filter(c => c.method !== "GET" && c.method !== "HEAD" && !/spec_market_cache/.test(c.url)).length;   // the crew keys and everything else: none. The Task matcher the demo funnel runs may fill the market cache for the cars it matches (spec_market_cache, a cache, written in the background); that is the matcher's own, existing, and is counted apart below
 // 1 nothing held
 {
   STORE = {}; calls.length = 0; const r = await PL.crewKeysReport(env);

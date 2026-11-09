@@ -10,7 +10,8 @@ ok("lib/reasonWords.js exists with the table", !!(RW && RW.REASON_TABLE && RW.re
 if (!RW) process.exit(1);
 const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href);
 // 1. style of every table line, with sample parameters
-const probe = new Proxy({}, { get: (_, k) => k === "n" || k === "m" ? "5" : "x" });
+const NUMERIC = new Set(["price", "low", "high", "median", "pLo", "pHi", "pLow", "pHigh"]);   // the figures a line formats as money: the probe carries numbers, so a line is judged on its words and never on a NaN
+const probe = new Proxy({}, { get: (_, k) => k === "n" || k === "m" ? "5" : NUMERIC.has(k) ? 5000 : "x" });
 const sentences = t => t.split(/(?<=[.!?])\s+/).filter(Boolean).length;
 // One sentence is the rule. A line that Sam ruled to be two sentences in one field is named here with its count (Oct 29 2026: the range footer, and the trim fallback that says what it read instead);
 // the allowance is exact, so a listed line that changes length fails, and a new two-sentence line fails until Sam's ruling is named here.

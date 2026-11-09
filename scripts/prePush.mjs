@@ -959,6 +959,39 @@ try {
 } catch (e) {
   record("findPickCheck (scripts/findPickCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// hourlyRevalidateCheck (Lane B, Nov 8 2026): the Tasks example and the Homepage pick are confirmed live hourly by keyed reads only (no matcher, no OldCarsData); an ended one is cleared and the fallback serves.
+try {
+  const out = execSync("node scripts/hourlyRevalidateCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("hourlyRevalidateCheck (scripts/hourlyRevalidateCheck.mjs)", "PASS", (out.match(/hourlyRevalidateCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("hourlyRevalidateCheck (scripts/hourlyRevalidateCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// photoRuleCheck (Lane B, Nov 8 2026): every crew example pick HEADs its first photo at selection (a 200 image under 600 KB), else the listing's next photo, else the car is skipped.
+try {
+  const out = execSync("node scripts/photoRuleCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("photoRuleCheck (scripts/photoRuleCheck.mjs)", "PASS", (out.match(/photoRuleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("photoRuleCheck (scripts/photoRuleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/mcExamplesCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("Market Check example sales in Lane E's shape: the reader accepts it, no card without a real sale and a photo under 600 KB, the daily pick stable and different across days, the kill switch hides the section, the photos re-checked hourly; eleven mutants (scripts/mcExamplesCheck.mjs)", "PASS", (out.match(/mcExamplesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Market Check example sales in Lane E's shape: the reader accepts it, no card without a real sale and a photo under 600 KB, the daily pick stable and different across days, the kill switch hides the section, the photos re-checked hourly; eleven mutants (scripts/mcExamplesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/sellExampleCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("Sell example in Lane E's shape: the reader accepts it, every number traces to the Sell answer, sentences from the reason table, fewer than two cars hides the section, the kill switch; nine mutants (scripts/sellExampleCheck.mjs)", "PASS", (out.match(/sellExampleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Sell example in Lane E's shape: the reader accepts it, every number traces to the Sell answer, sentences from the reason table, fewer than two cars hides the section, the kill switch; nine mutants (scripts/sellExampleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+// entryExamplesCheck (Lane B, Nov 8 2026): marketCheckExampleSales (three real sales of one model that show mileage moving the price) and sellExample (one model's record by venue from the Sell engine): daily pick, crew gate, never invented.
+try {
+  const out = execSync("node scripts/entryExamplesCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("entryExamplesCheck (scripts/entryExamplesCheck.mjs)", "PASS", (out.match(/entryExamplesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("entryExamplesCheck (scripts/entryExamplesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // findSortsCheck (Lane E, Nov 3 2026): the sort menu's "Furthest below the range" and "Closest to me" are the engine's orders, re-applied on every Show more at 1440 and 390; the ZIP is asked once and kept for the session.
 try {
   const out = execSync("node scripts/findSortsCheck.mjs", { encoding: "utf8", timeout: 280000 });
@@ -2241,6 +2274,18 @@ try {
   record("Market Check and Sell on the shared shell, entry and results: one Find header, the Find rail per product, one footer, no old navigation, nothing inside the results changed, the approved entry copy (scripts/mcSellShellCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/deskV3ShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 shell: the case rail, the operations block from Lane D's lines, the compact case header, flat and two colours, nothing computed on the page (scripts/deskV3ShellCheck.mjs)", "PASS", (out.match(/deskV3ShellCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 shell: the case rail, the operations block from Lane D's lines, the compact case header, flat and two colours, nothing computed on the page (scripts/deskV3ShellCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/previewShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Preview shell is one full height column (footer at the bottom of a short page, after a long one, on every preview page at 1440, 1280, 1024 and 390) and the Tasks email section sits on the hero's left edge (scripts/previewShellCheck.mjs)", "PASS", (out.match(/previewShellCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Preview shell is one full height column (footer at the bottom of a short page, after a long one, on every preview page at 1440, 1280, 1024 and 390) and the Tasks email section sits on the hero's left edge (scripts/previewShellCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/mcSellResultsCheck.mjs", { encoding: "utf8", timeout: 580000 });
   const line = (out.match(/mcSellResultsCheck: .*/) || [""])[0];
   record("Market Check and Sell results inside the shell are the live results: every section, figure, chart, table, link and style the same at 1440, 1024 and 390, from recorded engine answers (scripts/mcSellResultsCheck.mjs)", /: SKIP/.test(line) ? "SKIP" : "PASS", line);
@@ -2482,6 +2527,36 @@ try {
   record("Desk item 2: the one sheet read call carries Market Check's figures for twenty cars (count, range, window, splits, tier pool, starting figure), reads a VIN's car, returns null for a car it cannot read (scripts/sheetReadCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/deskEvidenceCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 stage 1: desk.evidence (as of date, count, median, quartiles, range, latest sale, stale flag) equals the meter for every Desk model; an insufficient population carries a sentence and no number; the stale flag flips at the threshold; eight mutants (scripts/deskEvidenceCheck.mjs)", "PASS", (out.match(/deskEvidenceCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 1: desk.evidence (as of date, count, median, quartiles, range, latest sale, stale flag) equals the meter for every Desk model; an insufficient population carries a sentence and no number; the stale flag flips at the threshold; eight mutants (scripts/deskEvidenceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/deskCompsCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 stage 2: desk.comparables are decided by verified year, generation, body, gearbox and miles (never the model name), why sentences come from the reason table, a photo is the one that passed the photo rule or null, outside groups are never inside the population; eleven mutants (scripts/deskCompsCheck.mjs)", "PASS", (out.match(/deskCompsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 2: desk.comparables are decided by verified year, generation, body, gearbox and miles (never the model name), why sentences come from the reason table, a photo is the one that passed the photo rule or null, outside groups are never inside the population; eleven mutants (scripts/deskCompsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/deskQuarterCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 stage 3: a quarter under DESK_QUARTER_MIN sales has shown false and no median; live listings are typed bid, ask or no_sale and never in the evidence or the comparables; seven mutants (scripts/deskQuarterCheck.mjs)", "PASS", (out.match(/deskQuarterCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 3: a quarter under DESK_QUARTER_MIN sales has shown false and no median; live listings are typed bid, ask or no_sale and never in the evidence or the comparables; seven mutants (scripts/deskQuarterCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/deskFactorsCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 stage 4: desk.condition (one of the four rungs, from the case, the car's listing or the sales near its miles) and desk.factors (an effect only where both groups have three sales and their prices do not overlap, no fixed dollar figure, service_ims the 996 family only, sentences from the reason table); ten mutants (scripts/deskFactorsCheck.mjs)", "PASS", (out.match(/deskFactorsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 4: desk.condition (one of the four rungs, from the case, the car's listing or the sales near its miles) and desk.factors (an effect only where both groups have three sales and their prices do not overlap, no fixed dollar figure, service_ims the 996 family only, sentences from the reason table); ten mutants (scripts/deskFactorsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/deskRecomputeCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 stage 5: desk.original is the untouched evidence; note_only changes nothing, report_comps changes the comparables only, market_calc changes the market figures and not the comparables; nothing is written; eight mutants (scripts/deskRecomputeCheck.mjs)", "PASS", (out.match(/deskRecomputeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 5: desk.original is the untouched evidence; note_only changes nothing, report_comps changes the comparables only, market_calc changes the market figures and not the comparables; nothing is written; eight mutants (scripts/deskRecomputeCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/tierAssignCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk item 1: every sale gets a condition tier from its own listing (every evidence line, Untiered, hard negatives), the nightly job writes batches with a pause and is resumable, the SQL carries RLS (scripts/tierAssignCheck.mjs)", "PASS", (out.match(/all passed/) || [""])[0]);
 } catch (e) {
@@ -2516,6 +2591,42 @@ try {
   record("Desk dry run 2: photos addable any time with a cover and a strip, every click lights under 100 ms with a working state, one press opens a sheet, the range meter follows the picked body and tier, the analyst marker, the reserve held against the meter's range, the question for the seller, the engine's tier lines (scripts/deskDryrun2Check.mjs)", "PASS", (out.match(/deskDryrun2Check: .*/) || [""])[0]);
 } catch (e) {
   record("Desk dry run 2: photos addable any time with a cover and a strip, every click lights under 100 ms with a working state, one press opens a sheet, the range meter follows the picked body and tier, the analyst marker, the reserve held against the meter's range, the question for the seller, the engine's tier lines (scripts/deskDryrun2Check.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskCaseCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("Desk v3 stage 1: the case record (one source per field, asked once, mileage in one place, photos append only, needs review and exclusions carry reasons) (scripts/deskCaseCheck.mjs)", "PASS", (out.match(/deskCaseCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 1: the case record (scripts/deskCaseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskShapesCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("Desk v3 shapes: case.stage, case.queue and case.handling.lines come from the server, the page counts nothing (scripts/deskShapesCheck.mjs)", "PASS", (out.match(/deskShapesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 shapes (scripts/deskShapesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskWorkflowCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Desk v3 stage 2: correcting a field logs and resets verification, mileage, transmission, body, generation and market_calc exclusions re-call the engine and store desk.original and desk.evidence, needs review is generated from source states (scripts/deskWorkflowCheck.mjs)", "PASS", (out.match(/deskWorkflowCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 2 (scripts/deskWorkflowCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskReadinessCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Desk v3 stage 2: each readiness blocker alone blocks, optional missing things never do (scripts/deskReadinessCheck.mjs)", "PASS", (out.match(/deskReadinessCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 2 (scripts/deskReadinessCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskIndependenceCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Desk v3 stage 2: assessment and reserve are independent numbers (scripts/deskIndependenceCheck.mjs)", "PASS", (out.match(/deskIndependenceCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 2 (scripts/deskIndependenceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskVersionCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Desk v3 stage 2: a finalized version is immutable and a later edit makes version n plus 1 (scripts/deskVersionCheck.mjs)", "PASS", (out.match(/deskVersionCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 2 (scripts/deskVersionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
   const out = execSync("node scripts/deskTypedSentenceCheck.mjs", { encoding: "utf8", timeout: 60000 });
