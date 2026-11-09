@@ -9,7 +9,7 @@
 import { open, launch, loadFixtures, CHROME } from "./mcSellHarness.mjs";
 import fs from "node:fs";
 let pass = 0, fail = 0; const out = []; const ok = (c, m) => { if (c) pass++; else { fail++; out.push("FAIL " + m); } };
-if (!fs.existsSync(CHROME)) { console.log("SKIP: no Chrome at " + CHROME); process.exit(0); }
+if (!fs.existsSync(CHROME)) { console.log("mcSellResultsCheck: SKIP no Chrome at " + CHROME); process.exit(0); }
 const CASES = [
   { name: "mc-1995-porsche-911", live: "/market-check?q=1995%20Porsche%20911", prev: "/preview/market-check?q=1995%20Porsche%20911" },
   { name: "mc-2020-bmw-m3", live: "/market-check?q=2020%20BMW%20M3", prev: "/preview/market-check?q=2020%20BMW%20M3" },

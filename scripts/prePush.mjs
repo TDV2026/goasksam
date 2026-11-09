@@ -2242,7 +2242,8 @@ try {
 }
 try {
   const out = execSync("node scripts/mcSellResultsCheck.mjs", { encoding: "utf8", timeout: 580000 });
-  record("Market Check and Sell results inside the shell are the live results: every section, figure, chart, table, link and style the same at 1440, 1024 and 390, from recorded engine answers (scripts/mcSellResultsCheck.mjs)", "PASS", (out.match(/mcSellResultsCheck: .*/) || [""])[0]);
+  const line = (out.match(/mcSellResultsCheck: .*/) || [""])[0];
+  record("Market Check and Sell results inside the shell are the live results: every section, figure, chart, table, link and style the same at 1440, 1024 and 390, from recorded engine answers (scripts/mcSellResultsCheck.mjs)", /: SKIP/.test(line) ? "SKIP" : "PASS", line);
 } catch (e) {
   record("Market Check and Sell results inside the shell are the live results: every section, figure, chart, table, link and style the same at 1440, 1024 and 390, from recorded engine answers (scripts/mcSellResultsCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
