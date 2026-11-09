@@ -2598,6 +2598,30 @@ try {
   record("Desk v3 shapes (scripts/deskShapesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/deskWorkflowCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Desk v3 stage 2: correcting a field logs and resets verification, mileage, transmission, body, generation and market_calc exclusions re-call the engine and store desk.original and desk.evidence, needs review is generated from source states (scripts/deskWorkflowCheck.mjs)", "PASS", (out.match(/deskWorkflowCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 2 (scripts/deskWorkflowCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskReadinessCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Desk v3 stage 2: each readiness blocker alone blocks, optional missing things never do (scripts/deskReadinessCheck.mjs)", "PASS", (out.match(/deskReadinessCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 2 (scripts/deskReadinessCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskIndependenceCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Desk v3 stage 2: assessment and reserve are independent numbers (scripts/deskIndependenceCheck.mjs)", "PASS", (out.match(/deskIndependenceCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 2 (scripts/deskIndependenceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskVersionCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Desk v3 stage 2: a finalized version is immutable and a later edit makes version n plus 1 (scripts/deskVersionCheck.mjs)", "PASS", (out.match(/deskVersionCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 2 (scripts/deskVersionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/deskTypedSentenceCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("Desk typed sentences: no Desk file types an engine reason line, reads optionsNote/windowNote, or joins a count to a plural by hand (scripts/deskTypedSentenceCheck.mjs)", "PASS", (out.match(/deskTypedSentenceCheck: .*/) || [""])[0]);
 } catch (e) {

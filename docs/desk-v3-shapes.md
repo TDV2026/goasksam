@@ -10,7 +10,14 @@ Served by the actions case_new and case_get (lib/desk/sheetActions.js) through l
 ## The case record (stored in desk_sheets.sheet.case)
 Keys: org, lead_ref, seller {name,email}, submitted_at, opened_at, finalized_at, handling_seconds, status, fields, asked [], photos {items[{id,name,addedAt}], coverId, reportIds[]}, documents [{id,name,kind,status: outstanding|received}], needs_review [{id,label,material,state: open|done|waived,reason}], condition {suggested,selected}, assessment {figure,low,high,explanation}, reserve {figure,rationale,seller_agreed}, factors [], exclusions [{saleId,scope: market_calc|report,reason,at}], audit [{at,by,what,field,from,to,source}], version.
 fields has one entry for each of vin, year, make, model, trim, body, transmission, generation, mileage, colour, accident_history, service_history. Each is {value, source, verified, candidates[{value,source}]}. source is one of seller, vin_decoded, records, analyst_verified, missing, conflicting. Mileage is fields.mileage and nowhere else.
-Not yet on the case (Stage 2 adds them; Lane B's shapes are still wanted): desk.original, desk.evidence, selected comparables, readiness.
+Added by Stage 2 (see the Stage 2 section): case.desk (Lane B's sheet.desk block stored as read: key, readAt, evidence, original, comparables, outside, quarters, live, condition, factors, excluded), case.selectedComparables [saleId], and readiness on the case_edit answer.
+
+## Stage 2 actions (crew only, a seat is refused as before)
+- case_edit { id, op, baseVersion? } returns { ok, id, version, recalled, case, readiness: { ready, blockers: [{key, why}] } }. ops: field {field,value} (a correction: audit line, verification reset), verify {field}, assessment {patch:{figure,low,high,explanation}}, reserve {patch:{figure,rationale,seller_agreed}}, comparables {ids}, condition {selected:{tier,name}}, exclude {saleId,scope: market_calc|report,reason}, need {id,state: open|done|waived,reason}. A second tab is refused whole (stale), as with sheet saves.
+- case_finalize { id } returns { ok, version, row, case } or a refusal with blockers. The row is written once to desk_case_versions (docs/supabase-desk-case-versions.sql, to be run by Sam) and never edited.
+- case_version { id, version? } returns the finalized version row (latest when none named) and the list of versions. This is the hand off; the Desk sends nothing.
+- The engine is re-called only when the case's recall key moves: mileage, transmission, body, generation, the condition tier, or a market_calc exclusion. Blocker keys: vehicle, need:<id>, assessment, assessment_range, explanation, reserve, reserve_range, rationale, photo, comparable.
+- Needs review ids generated from source states: mileage_unconfirmed (material), accident_unclear (material), vin_mismatch (material), service_documents (not material).
 
 ## The demonstration case (1999 Porsche 911 Carrera, lead HM-24117), as case_get serves it
 ```json
