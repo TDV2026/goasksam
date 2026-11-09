@@ -76,7 +76,7 @@ function textAssertions(html, tag, { activeId, demoCase } = {}) {
 }
 
 // ---------- the module computes nothing ----------
-function computes(src) { const bad = []; const body = src.replace(/\/\/.*$/gm, ""); if (/Math\.(round|floor|ceil|min|max|abs)|reduce\(|parseFloat|\bNumber\([^)]*\)\s*[-+*/]/.test(body.replace(/Number\(sub\.mileage\)\.toLocaleString/, ""))) bad.push("arithmetic on a figure"); if (/\$\{?\s*\d/.test(body) || /"\$[\d,]+/.test(body)) bad.push("a typed dollar figure"); return bad; }
+function computes(src) { const bad = []; const body = src.replace(/\/\/.*$/gm, ""); if (/Math\.(round|floor|ceil|min|max|abs)|reduce\(|parseFloat|toLocaleString|toFixed|Intl\.|\bNumber\([^)]*\)\s*[-+*/]/.test(body)) bad.push("arithmetic on a figure"); if (/\$\{?\s*\d/.test(body) || /"\$[\d,]+/.test(body)) bad.push("a typed dollar figure"); return bad; }
 { const src = fs.readFileSync("lib/preview/deskV3.js", "utf8"); const b = computes(src); ok(!b.length, "deskV3.js carries no page arithmetic" + (b.length ? ": " + b : "")); }
 
 // ---------- 4 in Chrome ----------
