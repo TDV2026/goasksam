@@ -985,6 +985,13 @@ try {
 } catch (e) {
   record("Sell example in Lane E's shape: the reader accepts it, every number traces to the Sell answer, sentences from the reason table, fewer than two cars hides the section, the kill switch; nine mutants (scripts/sellExampleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// functionBundleCheck (Lane B, Nov 9 2026): every file a module loaded by a variable path needs (api/crewPage.js readers, api/pullLive.js run) is reached by a literal import or copied by includeFiles; the Sell example was empty because three files were in no bundle.
+try {
+  const out = execSync("node scripts/functionBundleCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Function bundles: every file a variable-path module needs ships with its function; four mutants (scripts/functionBundleCheck.mjs)", /, 0 FAIL/.test(out), (out.match(/functionBundleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Function bundles: every file a variable-path module needs ships with its function; four mutants (scripts/functionBundleCheck.mjs)", false, String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
+}
 // entryExamplesCheck (Lane B, Nov 8 2026): marketCheckExampleSales (three real sales of one model that show mileage moving the price) and sellExample (one model's record by venue from the Sell engine): daily pick, crew gate, never invented.
 try {
   const out = execSync("node scripts/entryExamplesCheck.mjs", { encoding: "utf8", timeout: 280000 });

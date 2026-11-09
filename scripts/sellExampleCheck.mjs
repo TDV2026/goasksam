@@ -22,7 +22,9 @@ if (args.includes("--mutants")) {
     [MX, "export const SELL_PARALLEL = 3,", "export const SELL_PARALLEL = 1,", "(6) the candidates are asked one by one again"],
     [MX, "export const SELL_PARALLEL = 3,", "export const SELL_PARALLEL = 7,", "(6) all the candidates are asked at once"],
     [MX, "await withClock(Promise.all(Array.from({ length: Math.min(SELL_PARALLEL, list.length) }, worker)), all);", "await Promise.all(Array.from({ length: Math.min(SELL_PARALLEL, list.length) }, worker));", "(6) the whole build has no clock"],
-    [MX, "catch { why[text] = \"threw\"; return; }", "catch { return; }", "(6) a read that threw is not counted"],
+    [MX, "catch (e) { why[text] = \"threw: \" + String((e && e.message) || e).slice(0, 160); return; }", "catch { return; }", "(6) a read that threw is not counted"],
+    [MX, "catch (e) { why[text] = \"threw: \" + String((e && e.message) || e).slice(0, 160); return; }", "catch (e) { why[text] = \"no_record_or_clock\"; return; }", "(6) a read that threw is reported as no record"],
+    [MX, "String((e && e.message) || e).slice(0, 160)", "\"\"", "(6) the message of a thrown read is dropped"],
     [MX, "if (cars.length < 2) { try { console.error(", "if (false) { try { console.error(", "(6) a build that finds nothing says nothing"],
     [EE, "if (st && st.v === STORE_V && st.data && st.data.pickDate === dateKey) return st.data;", "", "(3) the day's pick is built again on every read"]
   ];
@@ -102,9 +104,11 @@ const PL = X.places(3), every = X.ALLSELL(PL);
   { let now = 0, peak = 0; const W = withPlaces(async () => { now++; peak = Math.max(peak, now); await sleep(25); now--; return null; }); W.d.buildMs = 5000; await MX.sellExample(env, CREW, W.d);
     ok("(6) the candidates are asked three at a time, not one by one and not all at once", peak === 3, "peak " + peak); }
   { const W = withPlaces(async () => { throw new Error("read failed"); }); logs.length = 0; const f = await MX.sellExample(env, CREW, W.d), line = logs.map(l => { try { return JSON.parse(l); } catch { return null; } }).find(x => x && x.tag === "crew_sell_example_miss");
-    ok("(6) every read failing: no field, and the miss is logged with the reason of each candidate (threw), never silent", f === null && line && line.found === 0 && Object.values(line.reasons).length === X.EE.SELL_CANDIDATES.length && Object.values(line.reasons).every(r => r === "threw"), JSON.stringify(line && line.reasons).slice(0, 120)); }
+    ok("(6) every read failing: no field, and the miss is logged with the reason of each candidate (threw), never silent", f === null && line && line.found === 0 && Object.values(line.reasons).length === X.EE.SELL_CANDIDATES.length && Object.values(line.reasons).every(r => r === "threw: read failed"), JSON.stringify(line && line.reasons).slice(0, 120)); }
   { const W = withPlaces(async (e, t) => (t === X.EE.SELL_CANDIDATES[X.EE.SELL_CANDIDATES.length - 1] || t === X.EE.SELL_CANDIDATES[X.EE.SELL_CANDIDATES.length - 2]) ? PL : null); const f = await MX.sellExample(env, CREW, W.d);
     ok("(6) when only the last two candidates have a record, a real candidate is found: a field of those two", f && f.cars.length === 2); }
+  { const W = withPlaces(async () => { throw new Error("Cannot find module '/var/task/lib/sell/sellFacts.js'"); }); logs.length = 0; const f = await MX.sellExample(env, CREW, W.d), line = logs.map(l => { try { return JSON.parse(l); } catch { return null; } }).find(x => x && x.tag === "crew_sell_example_miss"), rs = Object.values((line && line.reasons) || {});
+    ok("(6) a missing file in the bundle (Cannot find module) is reported as a thrown read with its message for every candidate, never as no record", f === null && rs.length === X.EE.SELL_CANDIDATES.length && rs.every(r => /^threw: Cannot find module .*sellFacts\.js/.test(r)) && !rs.some(r => /no_record/.test(r)), rs[0]); }
   { const W = withPlaces(async () => null); logs.length = 0; const f = await MX.sellExample(env, CREW, W.d);
     ok("(6) when no candidate has a record the section stays hidden, and the miss is logged", f === null && logs.some(l => /crew_sell_example_miss/.test(l))); }
   console.error = realErr;
