@@ -120,6 +120,9 @@ ok(entry.mc !== entry.sell && /MARKET CHECK/.test(entry.mc) && /SELL ·/.test(en
 
 // ---------- mutants ----------
 const SRC = fs.readFileSync("lib/preview/mcSellPreview.js", "utf8"), TMP = "lib/preview/_mcSellPreviewMut.mjs";
+{ const typed = src => /Today(?:'|&#39;|\\')s Market Check|A real result for one car|Every tile opens the sale/.test(src.replace(/\/\/.*$/gm, ""));
+  ok(!typed(SRC), "the example heading and line are read from the reason table (mc.example_head, mc.example_line, mc.example_tiles); mcSellPreview.js types none of them");
+  ok(typed(SRC.replace('reasonLine("mc.example_head")', '"Today\'s Market Check"')), "mutant caught: a heading typed in the page"); }
 async function mutant(name, from, to, { rebuild = true } = {}) {
   const mut = from instanceof RegExp ? SRC.replace(from, to) : SRC.split(from).join(to); if (mut === SRC) { ok(false, `mutant ${name}: the fault applies`); return; }
   fs.writeFileSync(TMP, mut);
