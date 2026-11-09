@@ -184,7 +184,7 @@ else {
   }
   const STYLE = sel => { const el = document.querySelector(sel); if (!el) return null; const s = getComputedStyle(el), skip = sel === ".rail" ? ["height", "minHeight"] : sel === ".rail .new" ? ["width"] : []; return ["backgroundColor", "color", "fontFamily", "fontSize", "fontWeight", "lineHeight", "height", "minHeight", "borderRadius", "paddingTop", "paddingLeft", "marginLeft", "width", "borderRightWidth", "borderTopWidth", "justifyContent", "display"].filter(k => skip.indexOf(k) < 0).map(k => k + ":" + s[k]).join(";"); };
   const PARTS = [".gh", ".gh .wm b", ".gh .beta", ".tabs a", ".tabs a[aria-current]", ".tabs a.acct", ".rail", ".rail .new", ".ft", ".ft .wm b", ".ft nav a", ".ft .cp"];
-  for (const w of [1440, 390]) {
+  for (const w of [1440, 1024, 390]) {   // 1024 too: a copy of the shell footer that drifts shows at every desktop width
     const f = await open("/preview/find", w), fs0 = await f.evaluate((P, S) => P.map(s => [s, new Function("sel", "return (" + S + ")(sel)")(s)]), PARTS, STYLE.toString());
     for (const [name, url, tab] of [["mc entry", "/preview/market-check", "Market Check"], ["sell entry", "/preview/sell", "Sell"], ["mc results", "/preview/market-check?q=2001+BMW+M3", "Market Check"], ["sell results", "/preview/sell?car=2006+BMW+M5", "Sell"]]) {
       const p = await open(url, w), st = await p.evaluate((P, S) => P.map(s => [s, new Function("sel", "return (" + S + ")(sel)")(s)]), PARTS, STYLE.toString());
