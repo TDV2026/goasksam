@@ -2268,6 +2268,18 @@ try {
   record("Desk v3 shell: the case rail, the operations block from Lane D's lines, the compact case header, flat and two colours, nothing computed on the page (scripts/deskV3ShellCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/deskV3ClickCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3: the Assessment and Reserve figures land on their inputs from the summary and the sticky bar; tabs keep state (scripts/deskV3ClickCheck.mjs)", "PASS", (out.match(/deskV3ClickCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3: the Assessment and Reserve figures land on their inputs from the summary and the sticky bar; tabs keep state (scripts/deskV3ClickCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/deskV3WireCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3: every figure and sentence on the case traces to desk.*, market.meter or a case field; a typed sentence or page arithmetic fails (scripts/deskV3WireCheck.mjs)", "PASS", (out.match(/deskV3WireCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3: every figure and sentence on the case traces to desk.*, market.meter or a case field; a typed sentence or page arithmetic fails (scripts/deskV3WireCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/mcSellResultsCheck.mjs", { encoding: "utf8", timeout: 580000 });
   record("Market Check and Sell results inside the shell are the live results: every section, figure, chart, table, link and style the same at 1440, 1024 and 390, from recorded engine answers (scripts/mcSellResultsCheck.mjs)", "PASS", (out.match(/mcSellResultsCheck: .*/) || [""])[0]);
 } catch (e) {

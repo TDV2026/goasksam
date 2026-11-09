@@ -62,7 +62,7 @@ function textAssertions(html, tag, { activeId, demoCase } = {}) {
   ok(/noindex/.test(one.h["x-robots-tag"] || "") && /no-store/.test(one.h["cache-control"] || ""), "noindex header and no-store");
   const vj = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
   for (const [src, page] of [["/preview/desk", "preview-desk"], ["/preview/desk/case/:id", "preview-desk"]]) { const r = (vj.rewrites || []).find(x => x.source === src); ok(r && /gas_crew/.test(JSON.stringify(r.has || [])) && r.destination.includes("page=" + page), "vercel.json routes " + src + " only with the crew cookie"); }
-  const bads = [...textAssertions(list.body, "list"), ...textAssertions(one.body, "case", { activeId: id, demoCase: !!rows[0].demo })];
+  const bads = [...textAssertions(list.body, "list"), ...textAssertions(one.body, "case", { activeId: id, demoCase: rows[0].id === V3.DEMO_ID })];
   for (const b of bads) ok(false, "page: " + b); ok(!bads.length, "the served list and case pass the shell assertions");
 }
 
@@ -132,5 +132,30 @@ for (const [name, fn, kind] of MUT) {
   ok(caught, "mutant caught: " + name);
 }
 { const src = fs.readFileSync("lib/preview/deskV3.js", "utf8"); ok(computes(src.replace("age: sm.timeIn", "age: Math.round(sm.timeIn / 60)")).length > 0, "mutant caught: arithmetic on a figure in the module"); }
+
+
+// ---------- stage 2: the sticky bar collapses in at 1440, 1280 and 1024, is never taller than 92px and never covers what the analyst is working on ----------
+{
+  const H = await imp("scripts/deskV3Harness.mjs"), page0 = await H.demoHtml();
+  async function stickyBad(h, w) {
+    const bad = [], br = await H.launch();
+    try {
+      const p = await H.openPage(br, h, w, 520), st = () => p.evaluate(() => { const s = document.getElementById("stk"), r = s.getBoundingClientRect(); return { hidden: s.hidden, h: Math.round(r.height), top: Math.round(r.top), bottom: Math.round(r.bottom), txt: s.innerText.replace(/\s+/g, " ") }; });
+      let m = await st(); if (!m.hidden) bad.push(`the sticky bar shows with the summary in view at ${w}`);
+      await p.evaluate(() => window.scrollTo(0, 900)); await new Promise(r => setTimeout(r, 250)); m = await st();
+      if (m.hidden) bad.push(`the sticky bar does not appear when the summary scrolls out at ${w}`);
+      else { if (m.h > 92) bad.push(`the sticky bar is ${m.h}px tall at ${w}`); if (m.top > 60 || m.top < 46) bad.push(`the sticky bar is not stuck directly under the top bar at ${w} (top ${m.top})`); for (const k of ["Market", "Assessment", "Reserve", "Review", "Vehicle", "Market evidence", "Decision"]) if (!m.txt.toLowerCase().includes(k.toLowerCase())) bad.push(`the sticky bar lacks ${k} at ${w}`); }
+      await p.evaluate(() => { window.scrollTo(0, 0); document.querySelector('[data-tab="market"]').click(); }); await new Promise(r => setTimeout(r, 200)); m = await st(); if (m.hidden) bad.push(`the sticky bar is not kept on Market evidence at ${w}`);
+      await p.click("#figA"); await new Promise(r => setTimeout(r, 300)); m = await st();
+      const inp = await p.evaluate(() => { const r = document.getElementById("in-alow").getBoundingClientRect(); return { top: Math.round(r.top) }; });
+      if (inp.top < m.bottom) bad.push(`the sticky bar covers the assessment input at ${w} (input top ${inp.top}, bar bottom ${m.bottom})`);
+    } finally { await br.close(); }
+    return bad;
+  }
+  for (const w of [1440, 1280, 1024]) { const b = await stickyBad(page0, w); for (const x of b) ok(false, "sticky: " + x); ok(!b.length, `sticky bar at ${w}: collapses in and out, at most 92px, sticks under the top bar, never covers the input`); }
+  for (const [n, fn] of [["a sticky bar 140px tall", h => h.replace("</style>", ".v3 .stk{min-height:140px!important;max-height:none!important}</style>")], ["a sticky bar pinned over the content", h => h.replace("</style>", ".v3 .stk{position:fixed!important;top:0!important;left:272px;right:0;z-index:50;height:90px}</style>")], ["a sticky bar that never collapses", h => h.replace('hidden=!(cur!=="vehicle"||!inSum)', "hidden=false")]]) {
+    const b = await stickyBad(fn(page0), 1440); ok(b.length > 0, "mutant caught: " + n);
+  }
+}
 
 console.log(out.join("\n")); console.log(`deskV3ShellCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
