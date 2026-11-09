@@ -54,7 +54,7 @@ async function scenario(name, W, expect) {
 { const W = world(live3(), [sale(), sale(), sale(), sale()]); await FE.refreshFindExamples(env, W.d); W.rows = W.rows.slice(0, 1); await scenario("mixed", W, { live: 1 }); }
 { const W = world(live3(), [sale(), sale(), sale(), sale()]); await FE.refreshFindExamples(env, W.d); W.rows = []; W.clock = NOW + 400 * 3600e3; await scenario("fallback", W, { live: 0 }); }
 // MARKET CHECK AND SELL ENTRY PAGES with Lane B's real example readers (lib/live/marketCheckExamples.js) over the stand-in world of scripts/_mcExamplesWorld.mjs, through the real api/crewPage.js (Lane B, Nov 8 2026): the section is drawn from the real field at 1440 and 390, a stranger gets the 404, and the kill switch leaves no section.
-{ const { load: loadMc } = await import(pathToFileURL(path.join(root, "scripts/_mcExamplesWorld.mjs")).href), X = await loadMc(root), cookie = X.CREW;
+{ const { load: loadMc } = await import(pathToFileURL(path.join(root, "scripts/_mcExamplesWorld.mjs")).href), X = await loadMc(root), cookie = X.CREW.headers.cookie;
   const mc = X.world(X.ALLMC(X.pool(14))), sl = X.world({}, X.ALLSELL(X.places(3)));
   crewPage.MC_EXAMPLES.read = () => X.MX.marketCheckExampleSales(X.env, X.CREW, mc.d); crewPage.SELL_EXAMPLE.read = () => X.MX.sellExample(X.env, X.CREW, sl.d);
   const m = await call("/api/crewPage?page=preview-market-check", cookie), se = await call("/api/crewPage?page=preview-sell", cookie), st = await call("/api/crewPage?page=preview-market-check", null);
