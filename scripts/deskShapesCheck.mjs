@@ -57,4 +57,35 @@ ok("case_get serves stage, queue and handling.lines with the case", g.case.stage
 // the class: the page counts nothing
 const page = fs.existsSync(path.join(root, "public/js/deskvals.js")) ? fs.readFileSync(path.join(root, "public/js/deskvals.js"), "utf8") : "";
 ok("the Desk page does not count cases itself", !/\.queue\.(new|review|ready|final)\s*[+\-]|handling\.lines\.(reduce|filter)|filter\(function\s*\(\w+\)\s*\{\s*return \w+\.stage/.test(page));
+// ---------- the shapes Lane E's walkthrough reads from case_new, photo_add and a condition change (Lane D, Nov 9 2026)
+{ const FX = await imp("lib/preview/deskV3Fixture.js"), store = memoryStore(), calls = [], ctx = { now: T, env: {}, org: "s", seat: "ava", store, orgSettings: { name: "Hagerty" }, readSheet: async (e, i) => { calls.push(i); return FX.demoRead(i); } };
+  const run = (a, b) => A.handleSheetAction(a, b, ctx), JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(40, 1)]).toString("base64");
+  const nw = await run("case_new", { text: "WP0AA2990XS620481", mileage: "61,200", transmission: "Manual", body: "Coupe", colour: "Silver", seller_name: "Hal Moreau", asking_price: "58,000", seller_notes: "Garaged" });
+  ok("case_new answers { ok, id, recalled, case, sheet } and the engine was asked once", nw.ok && nw.id && nw.recalled === true && nw.case && nw.sheet && calls.length === 1);
+  ok("the form's fields are on the case: seller { name, email, asking_price, notes } and each fact with source seller", nw.case.seller.name === "Hal Moreau" && nw.case.seller.asking_price === 58000 && nw.case.seller.notes === "Garaged" && "email" in nw.case.seller && nw.case.fields.mileage.source === "seller" && nw.case.fields.colour.source === "seller");
+  ok("the market reference is on the case: desk.evidence { count, median, q1, q3, insufficient, sentence }, original, comparables, outside, quarters, live, condition, factors, excluded, key", ["evidence", "original", "comparables", "outside", "quarters", "live", "condition", "factors", "excluded", "key"].every(k => k in nw.case.desk) && ["count", "median", "q1", "q3", "insufficient", "sentence"].every(k => k in nw.case.desk.evidence));
+  ok("the case view keeps stage, queue and handling.lines in every answer", nw.case.stage === "new" && nw.case.queue && nw.case.handling.lines.length === 4);
+  const ph = await run("case_edit", { id: nw.id, op: "photo_add", name: "front.jpg", data: JPG });
+  ok("photo_add answers the case view with photos.items [{ id, name, addedAt, url, width, height }], coverId and reportIds, the first photo the cover", ph.ok && ph.case.photos.items.length === 1 && ["id", "name", "addedAt", "url", "width", "height"].every(k => k in ph.case.photos.items[0]) && ph.case.photos.coverId === ph.case.photos.items[0].id && ph.case.photos.reportIds.length === 1 && /^data:image\/jpeg/.test(ph.case.photos.items[0].url));
+  const c = await run("case_edit", { id: nw.id, op: "condition", selected: { tier: 2, name: "Excellent" } });
+  ok("a condition change answers { ok, id, version, recalled, case, readiness, reservePosition } with the engine asked for the tier", c.ok && c.recalled === true && c.version > 0 && "readiness" in c && "reservePosition" in c && calls[calls.length - 1].tier === 2);
+  ok("a tier with too few sales answers desk.evidence { insufficient: true, sentence } with no median, q1 or q3", c.case.desk.evidence.insufficient === true && c.case.desk.evidence.sentence && c.case.desk.evidence.median == null && c.case.desk.evidence.q1 == null && c.case.desk.evidence.q3 == null);
+  const g = await run("case_edit", { id: nw.id, op: "condition", selected: { tier: 3, name: "Good" } });
+  ok("a tier with five or more sales answers a range from them (insufficient false, q1 and q3 set), different from the untiered one", g.case.desk.evidence.insufficient === false && g.case.desk.evidence.q1 > 0 && g.case.desk.evidence.q3 >= g.case.desk.evidence.q1 && g.case.desk.evidence.count !== nw.case.desk.evidence.count);
+  // the assessment starts at the engine's median and the market line says where it came from
+  const ev0 = nw.case.desk.evidence, asm = nw.case.assessment;
+  ok("a new case's assessment starts at the engine's median, range q1 to q3, source engine, with one audit line", asm.figure === ev0.median && asm.low === ev0.q1 && asm.high === ev0.q3 && asm.source === "engine" && nw.case.audit.filter(a => a.field === "assessment" && a.by === "engine").length === 1);
+  ok("caseView.marketLine reads Market: low to high, N sales, evidence as of D Mon YYYY: " + nw.case.marketLine, /^Market: \$[\d,]+ to \$[\d,]+, \d+ sales, evidence as of \d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}$/.test(nw.case.marketLine) && nw.case.marketLine.includes("$" + ev0.q1.toLocaleString("en-US")) && nw.case.marketLine.includes(ev0.count + " sales"));
+  { const RSm = await imp("lib/desk/reportState.js"), c2 = structuredClone(nw.case); c2.desk.evidence.stale = { days: 400, threshold: 180, flag: true, sentence: "The newest sale is 400 days old." };
+    ok("a stale flag adds the engine's stale sentence to the market line", RSm.reportState(c2).marketLine.endsWith("The newest sale is 400 days old.") && !nw.case.marketLine.includes("days old")); }
+  const sw = await run("case_edit", { id: nw.id, op: "condition", selected: { tier: 3, name: "Good" } });
+  ok("while the figure is still the engine's, a new read moves it with the evidence (source engine)", sw.case.assessment.source === "engine" && sw.case.assessment.figure === sw.case.desk.evidence.median && sw.case.assessment.figure !== asm.figure);
+  const ex2 = await run("case_edit", { id: nw.id, op: "condition", selected: { tier: 2, name: "Excellent" } });
+  ok("a read with too few sales clears an engine figure rather than leaving the old pool's", ex2.case.assessment.figure === null && ex2.case.assessment.source === null);
+  await run("case_edit", { id: nw.id, op: "condition", selected: { tier: 3, name: "Good" } });
+  const an = await run("case_edit", { id: nw.id, op: "assessment", patch: { figure: 61000 } });
+  ok("the analyst's first change makes the source analyst, logged", an.case.assessment.source === "analyst" && an.case.assessment.figure === 61000 && an.case.audit.some(a => a.what === "assessment taken over from the engine"));
+  const after = await run("case_edit", { id: nw.id, op: "condition", selected: { tier: 2, name: "Excellent" } });
+  ok("after that no read touches the analyst's figure", after.case.assessment.figure === 61000 && after.case.assessment.source === "analyst");
+}
 console.log(`deskShapesCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
