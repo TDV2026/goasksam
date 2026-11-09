@@ -2610,6 +2610,12 @@ try {
   record("Desk v3 stage 2 (scripts/deskVersionCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/deskStateCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Desk v3 stage 3: every report sentence is built from the case through reasonWords and changes with its case field (documents received, mileage verified, reserve across q1 and q3, seller agreed, comparable excluded); a draft never claims what the case cannot support (scripts/deskStateCheck.mjs)", "PASS", (out.match(/deskStateCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 stage 3 (scripts/deskStateCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/deskTypedSentenceCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("Desk typed sentences: no Desk file types an engine reason line, reads optionsNote/windowNote, or joins a count to a plural by hand (scripts/deskTypedSentenceCheck.mjs)", "PASS", (out.match(/deskTypedSentenceCheck: .*/) || [""])[0]);
 } catch (e) {
