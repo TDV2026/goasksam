@@ -5,13 +5,13 @@ const { ok, done } = tally(), b = await launch(), html = await demoHtml();
 const focusId = p => p.evaluate(() => document.activeElement && document.activeElement.id), sel = p => p.evaluate(() => [...document.querySelectorAll("#tabs3 [role=tab]")].find(t => t.getAttribute("aria-selected") === "true").dataset.tab);
 async function run(h, w, tag) {
   const bad = [], p = await openPage(b, h, w);
-  for (const [btn, want] of [["#figA", "in-alow"], ["#figR", "in-reserve"]]) {
+  for (const [btn, want] of [["#figA", "in-afigure"], ["#figR", "in-reserve"]]) {
     await p.evaluate(() => document.querySelector('[data-tab="vehicle"]').click()); await p.click(btn); await new Promise(r => setTimeout(r, 120));
     if ((await sel(p)) !== "decision" || (await focusId(p)) !== want) bad.push(`${btn} at ${w} lands on ${await sel(p)} / ${await focusId(p)}, not Decision / ${want}`);
   }
   // the sticky bar's own Assessment and Reserve, shown after the summary has scrolled out
   await p.evaluate(() => document.querySelector('[data-tab="market"]').click()); await new Promise(r => setTimeout(r, 120));
-  for (const [go, want] of [["assess", "in-alow"], ["reserve", "in-reserve"]]) { const shown = await p.evaluate(() => !document.getElementById("stk").hidden); if (!shown) { bad.push("the sticky bar is not shown on Market evidence"); break; }
+  for (const [go, want] of [["assess", "in-afigure"], ["reserve", "in-reserve"]]) { const shown = await p.evaluate(() => !document.getElementById("stk").hidden); if (!shown) { bad.push("the sticky bar is not shown on Market evidence"); break; }
     await p.evaluate(() => document.querySelector('[data-tab="market"]').click()); if (!(await p.$(`#stk [data-go="${go}"]`))) { bad.push(`the sticky bar has no ${go} target`); continue; } await p.click(`#stk [data-go="${go}"]`); await new Promise(r => setTimeout(r, 120)); if ((await sel(p)) !== "decision" || (await focusId(p)) !== want) bad.push(`sticky ${go} at ${w} lands on ${await focusId(p)}, not ${want}`); }
   // state survives tab switches
   await p.evaluate(() => document.querySelector('[data-tab="decision"]').click()); await p.$eval("#in-reserve", el => { el.value = ""; }); await p.type("#in-reserve", "54321");

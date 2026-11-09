@@ -12,7 +12,8 @@ export const demoHtml = async () => V3.renderDeskV3({ query: { case: V3.DEMO_ID 
 export const launch = () => puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 export async function openPage(b, html, w = 1440, h = 900) {
   const p = await b.newPage(); await p.setViewport({ width: w, height: h }); await p.setRequestInterception(true);
-  p.on("request", r => { const u = new URL(r.url()); if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html }); return r.respond({ status: 204, body: "" }); });
+  p.on("request", r => { const u = new URL(r.url()); if (u.host === "goasksam.com" && r.method() === "POST" && u.pathname === "/preview/desk/api") return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
+    if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html }); return r.respond({ status: 204, body: "" }); });
   p._err = []; p.on("pageerror", e => p._err.push(String(e).slice(0, 160)));
   await p.goto("https://goasksam.com/preview/desk/case/" + V3.DEMO_ID, { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 200)); return p;
 }
