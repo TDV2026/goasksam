@@ -2,19 +2,19 @@
 // market.meter (built from desk.evidence) or the case's own fields (Lane D: the analyst's figures and lines). A typed sentence, a figure the page made (arithmetic) or a figure no field carries fails.
 //   node scripts/deskV3WireCheck.mjs      (offline; the mutants must be caught)
 import fs from "node:fs";
-import { demoHtml, V3, FX, RW, CN, tally } from "./deskV3Harness.mjs";
-const { ok, done } = tally(), html = await demoHtml(), desk = await FX.demoDesk();
-const main = h => (h.match(/<main class="work"[\s\S]*<\/main>/) || [""])[0];
+import { demoHtml, V3, FX, RW, CN, CV, tally } from "./deskV3Harness.mjs";
+const { ok, done } = tally(), html = await demoHtml(), kase = await FX.demoCaseRecord(), desk = kase.desk;
+const main = h => (h.match(/<main class="work"[\s\S]*<\/main>/) || [""])[0] + (h.match(/<nav class="rail"[\s\S]*?<\/nav>/) || [""])[0];
 const text = h => main(h).replace(/<[^>]*>/g, "\n").replace(/&amp;/g, "&").replace(/&quot;/g, '"').split("\n").map(x => x.trim()).filter(Boolean);
-// the fields: every string and number a sent field carries, formatted only by the engine's own word module
+// the fields: every string and number a sent field carries (the case record, Lane B's desk block on it, the case view's handling lines), formatted only by the engine's own word module
 const strings = new Set(), figs = new Set();
-const walk = (o, k) => { if (o == null) return; if (typeof o === "string") strings.add(o); else if (typeof o === "number") { figs.add(RW.moneyWords(o)); strings.add(String(o)); } else if (Array.isArray(o)) o.forEach(x => walk(x)); else if (typeof o === "object") for (const [kk, v] of Object.entries(o)) walk(v, kk); };
-walk(desk); walk(FX.DEMO_CASE);
-{ const PV = await (await import("../lib/preview/deskPreview.js")); const sh = (await (await PV.previewStore()).list(PV.PREVIEW_ORG.id)).find(x => x.id === V3.DEMO_ID); walk(sh.submission.consignor.name); walk(sh.car_label); }   // the case record's own fields
-const ev = desk.evidence, an = FX.DEMO_CASE.analyst, M = RW.moneyWords;
-const allowedSentence = new Set([...strings, `Typical ${M(ev.q1)} to ${M(ev.q3)}`, `${M(an.low)} to ${M(an.high)}`, `${CN.countNoun(ev.count, "sale", { words: false })} · evidence as of ${ev.asOf}`, CN.countNoun(FX.DEMO_CASE.needsReview, "item", { words: false })]);
-// labels the shell prints that are names, not claims
-const LABELS = new Set(["Market reference", "Analyst assessment", "Proposed reserve", "Needs review", "Vehicle", "Market evidence", "Decision", "Assessment", "Reserve", "Market", "Review", "Low", "High", "Stale", "lowest", "q1", "median", "q3", "highest", "reserve", "asking", "Demonstration case", "Seller", "Lead ref", "Submitted", "Status"]);
+const walk = o => { if (o == null) return; if (typeof o === "string") strings.add(o); else if (typeof o === "number") { figs.add(RW.moneyWords(o)); strings.add(String(o)); } else if (Array.isArray(o)) o.forEach(walk); else if (typeof o === "object") Object.values(o).forEach(walk); };
+walk(kase);
+{ const PV = await import("../lib/preview/deskPreview.js"); const store = await PV.previewStore(); await V3.renderDeskV3({ query: {} }); const rows = await store.list(PV.PREVIEW_ORG.id); const cv = CV.caseView(rows[0], rows, new Date().toISOString()); walk(cv.handling); walk(cv.queue); for (const r of rows) { walk(r.car_label); walk(r.submission && r.submission.consignor && r.submission.consignor.name); walk(r.id); } }   // the rail's cases and the operations lines as the server sent them
+const ev = desk.evidence, as = kase.assessment, M = RW.moneyWords;
+const allowedSentence = new Set([...strings, `Typical ${M(ev.q1)} to ${M(ev.q3)}`, `${M(as.low)} to ${M(as.high)}`, `${CN.countNoun(ev.count, "sale", { words: false })} · evidence as of ${ev.asOf}`]);
+// labels the page prints that are names of things, not claims: the shell's own words, the field names, the source names, the action names
+const LABELS = new Set(["Market reference", "Analyst assessment", "Proposed reserve", "Needs review", "Vehicle", "Market evidence", "Decision", "Assessment", "Reserve", "Market", "Review", "Low", "High", "Stale", "lowest", "q1", "median", "q3", "highest", "reserve", "asking", "Demonstration case", "Seller", "Lead ref", "Submitted", "Status", "Not set", "Nothing open", "Vehicle facts", "Photos", "Documents", "Edit", "Report", "Cover", "Make cover", "Add photos", "Close", "Not provided", "Mark verified", "Invoices received", "Request and proceed", "No documents.", "Nothing to review.", "Operations", "Search cases", "New leads", "In review", "Ready for report", "Finalized", "No case matches.", "Select a case from the list.", ...Object.values(V3.FIELD_LABEL), ...Object.values(V3.SRC_LABEL), "open", "done", "waived", "outstanding", "received"]);
 function trace(h) {
   const bad = [], t = text(h);
   for (const line of t) {
@@ -36,13 +36,16 @@ function trace(h) {
 const real = trace(html); for (const b of real) ok(false, b); ok(!real.length, "every figure, sentence and input value on the demonstration case traces to desk.*, market.meter or the case's fields");
 { const sc = html.match(/class="mk mk-\w+[^"]*" style="[^"]*" data-v="(\d+)"/g) || []; ok(sc.length >= 5, "the position bar labels its marks"); const dv = [...html.matchAll(/data-v="(\d+)"/g)].map(m => Number(m[1])); ok(dv.every(v => figs.has(M(v))), "every mark on the bar is a sent figure"); }
 { const src = fs.readFileSync("lib/preview/deskV3.js", "utf8"); ok(!/Math\.|\*\s*0\.\d|\/\s*100/.test(src.replace(/\/\/.*$/gm, "")), "deskV3.js makes no figure (the bar's positions are drawn in deskV3Bar.js, which prints only sent figures)"); }
+const res = kase.reserve.figure, nd = kase.needs_review[0].label;
 const MUT = [
-  ["a figure the page made (median plus 500)", h => h.replace(M(ev.median), M(ev.median + 500))],
-  ["a typed sentence on the summary", h => h.replace(FX.DEMO_CASE.lines.difference, "Assessment is strong against the market.")],
+  ["a figure the page made (median plus 500)", h => h.split(M(ev.median)).join(M(ev.median + 500))],
+  ["a typed sentence in Needs review", h => h.replace(nd, "Mileage is probably fine.")],
   ["a typed stale sentence", h => h.replace("</section><div class=\"tabs3\"", "<p class=\"fg-s\">This evidence is more than ninety days old.</p></section><div class=\"tabs3\"")],
   ["a typed sale count", h => h.replace(CN.countNoun(ev.count, "sale", { words: false }), "12 sales")],
-  ["a typed reserve input", h => h.replace(`id="in-reserve" type="text" inputmode="numeric" value="${an.reserve}"`, 'id="in-reserve" type="text" inputmode="numeric" value="99999"')],
-  ["a difference computed on the page", h => h.replace(FX.DEMO_CASE.lines.position, `The reserve sits ${M(ev.median - an.reserve)} below the median.`)],
+  ["a typed reserve input", h => h.replace(`id="in-reserve" type="text" inputmode="numeric" value="${res}"`, 'id="in-reserve" type="text" inputmode="numeric" value="99999"')],
+  ["a difference computed on the page", h => h.replace("</section><div class=\"tabs3\"", `<p class=\"fg-s\">The reserve sits ${M(ev.median - res)} below the median.</p></section><div class=\"tabs3\"`)],
+  ["a typed fact in the vehicle table", h => h.replace("Seller reports the IMS bearing was replaced", "Fully documented, no accidents")],
+  ["a typed source label", h => h.replace(">VIN decoded<", ">Verified by the analyst<")],
 ];
 for (const [n, fn] of MUT) ok(trace(fn(html)).length > 0, "mutant caught: " + n);
 done("deskV3WireCheck");
