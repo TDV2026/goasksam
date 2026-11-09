@@ -19,6 +19,8 @@ if (args.includes("--mutants")) {
     [EE, "\"latestSaleLine\", \"latestSaleDate\"", "\"latestSaleDate\"", "(7) a line the page draws is left out"],
     [MX, "also: [\"MC_EXAMPLE_SALES\"], key: MC_STORE, build: buildMarketCheckExample });\n  return mcResultShape", "also: [], key: \"NOT_A_KEY\", build: buildMarketCheckExample });\n  return mcResultShape", "(7) the result reads another pick than the sales"],
     [MX, "if (!r || r.tier !== \"result\" ||", "if (!r ||", "(7) a result that is not a result is shown"],
+    [EE, "\"resolvedCar\", \"resolvedSpec\", \"rungLabel\",", "\"resolvedSpec\",", "(7) the car's title and period line are left out of the result"],
+    [EE, "\"poolYears\", \"fallbackRung\",", "\"fallbackRung\",", "(7) the period's years are left out of the result"],
 
     [MX, "photo_url: https(s.photo) ? s.photo : \"\"", "photo_url: s.photo || \"\"", "(1) a photo that is not https passes"],
     [MX, "soldLine: s.priceLabel || \"\"", "soldLine: s.dateLine || \"\"", "(1) the sold line is not the price line"],
@@ -149,6 +151,14 @@ let failed = 0, n = 0; const ok = (name, c, d) => { n++; if (!c) failed++; conso
   // the engine's real answer shape: resultOf on a stored answer of the engine copies its fields value for value
   const real = JSON.parse(fs.readFileSync(path.join(ROOT, "scripts/fixtures/answer-325i.json"), "utf8")), ra = real.raw || real, ro = EE.resultOf(ra);
   ok("(7) on a real engine answer (the 325i fixture) every field it has is copied unchanged, and the others are absent", Object.keys(ro).every(k => EE.RESULT_FIELDS.includes(k) && JSON.stringify(ro[k]) === JSON.stringify(ra[k])) && ro.poolN === ra.poolN && JSON.stringify(ro.cluster) === JSON.stringify(ra.cluster) && !("rawPool" in ro));
+  // THE CAR'S TITLE AND ITS PERIOD LINE (Nov 8 2026): resolvedCar (year, make, nameModel, trim, bodyStyle, canonicalLabel) and the hero's grey line (rungLabel, poolYears, fallbackRung, siblingName, metaLine, scopeLine) are the answer's own values
+  ok("(7) the car's title: resolvedCar is the page's resolvedCar for that car, year, make and model in it, unchanged", r.result.resolvedCar && JSON.stringify(r.result.resolvedCar) === JSON.stringify(page.resolvedCar) && r.result.resolvedCar.year && r.result.resolvedCar.make && (r.result.resolvedCar.nameModel || r.result.resolvedCar.model));
+  ok("(7) the period line: rungLabel, poolYears and the rest of the grey line are the page's, unchanged", ["rungLabel", "poolYears", "scopeLabel", "resolvedSpec"].every(k => JSON.stringify(r.result[k]) === JSON.stringify(page[k])) && Array.isArray(r.result.poolYears) && /\d{4}/.test(r.result.rungLabel));
+  ok("(7) on the real 325i answer the title and the period line are copied unchanged (resolvedCar, rungLabel, poolYears, resolvedSpec, scopeLabel)", ["resolvedCar", "rungLabel", "poolYears", "resolvedSpec", "scopeLabel"].every(k => JSON.stringify(ro[k]) === JSON.stringify(ra[k]) && ro[k] !== undefined));
+  // THE CLASS: every answer field the results page's title and grey line read is carried by the result, or named here as a count the example does not print
+  { const js = fs.readFileSync(path.join(ROOT, "public/js/onebox.js"), "utf8"), a0 = js.indexOf("The scope segment of the hero's one grey line"), blk = js.slice(a0, a0 + 9000), read = [...new Set((blk.match(/\bd\.([A-Za-z_]+)/g) || []).map(x => x.slice(2)))], NOT_PRINTED = ["basisPool", "ownSales", "soldCount"];
+    const missing = read.filter(k => !EE.RESULT_FIELDS.includes(k) && !NOT_PRINTED.includes(k));
+    ok(`(7) the class: every answer field the results page's grey line reads is in the result (${read.length} read; missing: ${missing.join(", ") || "none"})`, a0 > 0 && read.length >= 6 && missing.length === 0); }
   // the class: the result path only copies. No arithmetic, no formatting, no sorting of a figure in it
   const src = fs.readFileSync(path.join(ROOT, "lib/live/marketCheckExamples.js"), "utf8"), shaper = src.slice(src.indexOf("export function mcResultShape"), src.indexOf("// the Sell cars:")), ee = fs.readFileSync(path.join(ROOT, "lib/live/entryExamples.js"), "utf8"), copier = ee.slice(ee.indexOf("export function resultOf"), ee.indexOf("export function saleOf"));
   ok("(7) the class: the result path computes nothing (no Math, reduce, toLocaleString, toFixed, sort, or arithmetic on a figure)", !/Math\.|reduce\(|toLocaleString|toFixed|\.sort\(|\+\s*1\b|\*\s*\d/.test(shaper.replace(/\/\/.*$/gm, "") + copier.replace(/\/\/.*$/gm, "")));
