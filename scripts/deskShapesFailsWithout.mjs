@@ -11,6 +11,16 @@ const MUT = [
   ["a revision is counted before the report was finalized", "lib/desk/caseView.js", s => s.replace("c.finalized_at && c.version > 1", "c.version > 1")],
   ["a label is renamed", "lib/desk/caseView.js", s => s.replace("Reports finalized today", "Done today")],
   ["finalized today counts any day", "lib/desk/caseView.js", s => s.replace("String(c.finalized_at).slice(0, 10) === today", "true")],
+  ["case_edit has no cover op", "lib/desk/sheetActions.js", s => s.replace('else if (op === "cover")', 'else if (op === "cover_x")')],
+  ["a cover change is not logged", "lib/desk/caseWorkflow.js", s => s.replace('c.audit.push({ at: iso(now), by: "analyst", what: "cover set", field: "photos", to: id }); return c; }', 'return c; }')],
+  ["the report selection can drop the cover", "lib/desk/caseModel.js", s => s.replace("if (c.photos.coverId && !c.photos.reportIds.includes(c.photos.coverId)) c.photos.reportIds.unshift(c.photos.coverId); return c; }", "return c; }")],
+  ["a photo added through the case is not on the sheet's submission", "lib/desk/sheetActions.js", s => s.replace("s0 = { ...s0, submission: { ...s0.submission, photos: [...(s0.submission.photos || []), ph] },", "s0 = { ...s0, submission: { ...s0.submission },")],
+  ["photo_add takes a file that is not a photo", "lib/desk/sheetActions.js", s => s.replace('if (!(isJpg || isPng || isWebp)) return { refuse: "That file is not a photo (JPG, PNG or WebP)." };', "").replace('else if (!isJpg) return { refuse: "This session takes JPG photos only." };', "")],
+  ["photo_add re-calls the engine", "lib/desk/caseWorkflow.js", s => s.replace("c.fields.mileage.value, c.fields.transmission.value", "c.fields.mileage.value, c.photos.items.length, c.fields.transmission.value")],
+  ["caseView sends no difference line", "lib/desk/caseView.js", s => s.replace("assessment: { ...c.assessment, differenceLine: rs.differenceLine }", "assessment: { ...c.assessment }")],
+  ["caseView sends no position line", "lib/desk/caseView.js", s => s.replace("positionLine: rs.reservePositionLine, ", "")],
+  ["caseView sends no mileage line", "lib/desk/caseView.js", s => s.replace("vehicle: { mileageLine: rs.mileageWords }", "vehicle: {}")],
+  ["a blank case gets blank text instead of null", "lib/desk/reportState.js", s => s.replace("out.mileageWords = m.value == null ? null :", 'out.mileageWords = m.value == null ? "" :')],
   ["the demonstration case is a different lead", "lib/desk/caseDemo.js", s => s.replace('leadRef: "HM-24117"', 'leadRef: "HM-1"')]
 ];
 function copyTree(dst) { for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) }); for (const f of ["package.json", "vercel.json"]) if (fs.existsSync(path.join(ROOT, f))) fs.copyFileSync(path.join(ROOT, f), path.join(dst, f)); fs.symlinkSync(path.join(ROOT, "node_modules"), path.join(dst, "node_modules")); }
