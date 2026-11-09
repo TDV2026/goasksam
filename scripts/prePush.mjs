@@ -2305,9 +2305,15 @@ try {
 }
 try {
   const out = execSync("node scripts/deskV3ClickCheck.mjs", { encoding: "utf8", timeout: 240000 });
-  record("Desk v3: the Assessment and Reserve figures land on their inputs from the summary and the sticky bar; tabs keep state (scripts/deskV3ClickCheck.mjs)", "PASS", (out.match(/deskV3ClickCheck: .*/) || [""])[0]);
+  record("Desk v3: the Valuation figure lands on its input from the summary and the sticky bar; tabs keep state (scripts/deskV3ClickCheck.mjs)", "PASS", (out.match(/deskV3ClickCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("Desk v3: the Assessment and Reserve figures land on their inputs from the summary and the sticky bar; tabs keep state (scripts/deskV3ClickCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+  record("Desk v3: the Valuation figure lands on its input from the summary and the sticky bar; tabs keep state (scripts/deskV3ClickCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/deskV3DemoFlowCheck.mjs", { encoding: "utf8", timeout: 420000 });
+  record("Desk v3 demo walkthrough: a case from nothing, two photos, condition Good then Excellent then Fair with the market line moving, valuation, reserve, preview in the pane, Finalize, version 1 (4 mutants) (scripts/deskV3DemoFlowCheck.mjs)", "PASS", (out.match(/deskV3DemoFlowCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 demo walkthrough: a case from nothing, two photos, condition Good then Excellent then Fair with the market line moving, valuation, reserve, preview in the pane, Finalize, version 1 (4 mutants) (scripts/deskV3DemoFlowCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
   const out = execSync("node scripts/deskV3WireCheck.mjs", { encoding: "utf8", timeout: 240000 });

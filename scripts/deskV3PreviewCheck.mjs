@@ -12,7 +12,7 @@ async function run0(h, reply, br0) {
   const m = await p.evaluate(() => ({ url: location.href, exp: document.getElementById("in-aexp").value, fig: document.getElementById("in-afigure").value, open: !document.getElementById("pdfpane").hidden, src: (document.getElementById("pdff").getAttribute("src") || ""), msg: document.getElementById("dmsg").textContent, tab: document.getElementById("tab-decision").getAttribute("aria-selected") }));
   const pdfPost = posts.find(x => x.action === "case_pdf");
   if (!pdfPost || pdfPost.draft !== true || !pdfPost.id) bad.push("Preview did not ask case_pdf with draft true and the case id: " + JSON.stringify(posts));
-  if (posts.some(x => x.action === "case_edit" || x.action === "case_finalize")) bad.push("Preview saved or finalized something: " + JSON.stringify(posts.map(x => x.op || x.action)));
+  if (posts.some(x => x.action === "case_finalize" || (x.action === "case_edit" && !(x.op === "assessment" && Object.keys(x.patch || {}).join() === "figure")))) bad.push("Preview saved or finalized something: " + JSON.stringify(posts.map(x => x.op || x.action)));
   if (m.url !== url0 || navs.length) bad.push("Preview left or reloaded the case page (" + m.url + ")");
   if (m.exp !== "Unsaved words" || m.fig !== "59000") bad.push("the unsaved changes were lost (" + m.exp + ", " + m.fig + ")");
   if (reply.ok) { if (!m.open || !/^blob:/.test(m.src)) bad.push("the PDF pane did not open on the PDF (" + m.src + ")"); } else if (m.open || !m.msg) bad.push("a refusal should print its words and open no pane (" + m.msg + ")");
