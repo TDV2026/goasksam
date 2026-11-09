@@ -3,14 +3,14 @@
 //   node scripts/deskV3WireCheck.mjs      (offline; the mutants must be caught)
 import fs from "node:fs";
 import { demoHtml, V3, FX, RW, CN, CV, tally } from "./deskV3Harness.mjs";
-const { ok, done } = tally(), html = await demoHtml(), kase = await FX.demoCaseRecord(), desk = kase.desk;
+const esc2 = x => String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;"), { ok, done } = tally(), html = await demoHtml(), kase = await FX.demoCaseRecord(), desk = kase.desk;
 const main = h => (h.match(/<main class="work"[\s\S]*<\/main>/) || [""])[0] + (h.match(/<nav class="rail"[\s\S]*?<\/nav>/) || [""])[0];
 const text = h => main(h).replace(/<[^>]*>/g, "\n").replace(/&amp;/g, "&").replace(/&quot;/g, '"').split("\n").map(x => x.trim()).filter(Boolean);
 // the fields: every string and number a sent field carries (the case record, Lane B's desk block on it, the case view's handling lines), formatted only by the engine's own word module
-const strings = new Set(), figs = new Set();
+const strings = new Set(), figs = new Set(); let DEMO_CV = null;
 const walk = o => { if (o == null) return; if (typeof o === "string") strings.add(o); else if (typeof o === "number") { figs.add(RW.moneyWords(o)); strings.add(String(o)); if (Number.isInteger(o) && o >= 0 && o < 100000) strings.add(CN.countNoun(o, "sale", { words: false })); } else if (Array.isArray(o)) o.forEach(walk); else if (typeof o === "object") Object.values(o).forEach(walk); };
-walk(kase); walk((await import("../lib/desk/reportState.js")).reportState(kase));   // Lane D's report lines (reservePositionLine, mileageLine)
-{ const PV = await import("../lib/preview/deskPreview.js"); const store = await PV.previewStore(); await V3.renderDeskV3({ query: {} }); const rows = await store.list(PV.PREVIEW_ORG.id); const cv = CV.caseView(rows[0], rows, new Date().toISOString()); walk(cv.handling); walk(cv.queue); for (const r of rows) { walk(r.car_label); walk(r.submission && r.submission.consignor && r.submission.consignor.name); walk(r.id); } }   // the rail's cases and the operations lines as the server sent them
+walk(kase);
+{ const PV = await import("../lib/preview/deskPreview.js"); const store = await PV.previewStore(); await V3.renderDeskV3({ query: {} }); const rows = await store.list(PV.PREVIEW_ORG.id); const cv = CV.caseView(rows[0], rows, new Date().toISOString()); DEMO_CV = CV.caseView(rows.find(r => r.id === V3.DEMO_ID), rows, new Date().toISOString()); walk(DEMO_CV); walk(cv.handling); walk(cv.queue); for (const r of rows) { walk(r.car_label); walk(r.submission && r.submission.consignor && r.submission.consignor.name); walk(r.id); } }   // the rail's cases and the operations lines as the server sent them
 const ev = desk.evidence, as = kase.assessment, M = RW.moneyWords;
 const allowedSentence = new Set([...strings, `Typical ${M(ev.q1)} to ${M(ev.q3)}`, `${M(as.low)} to ${M(as.high)}`, `${CN.countNoun(ev.count, "sale", { words: false })} · evidence as of ${ev.asOf}`]);
 // labels the page prints that are names of things, not claims: the shell's own words, the field names, the source names, the action names
@@ -40,6 +40,11 @@ function trace(h) {
 const real = trace(html); for (const b of real) ok(false, b); ok(!real.length, "every figure, sentence and input value on the demonstration case traces to desk.*, market.meter or the case's fields");
 { const sc = html.match(/class="mk mk-\w+[^"]*" style="[^"]*" data-v="(\d+)"/g) || []; ok(sc.length >= 5, "the position bar labels its marks"); const dv = [...html.matchAll(/data-v="(\d+)"/g)].map(m => Number(m[1])); ok(dv.every(v => figs.has(M(v))), "every mark on the bar is a sent figure"); }
 { const src = fs.readFileSync("lib/preview/deskV3.js", "utf8"); ok(!/Math\.|\*\s*0\.\d|\/\s*100/.test(src.replace(/\/\/.*$/gm, "")), "deskV3.js makes no figure (the bar's positions are drawn in deskV3Bar.js, which prints only sent figures)"); }
+{ const diff = DEMO_CV.assessment.differenceLine, pos = DEMO_CV.reserve.positionLine, mi = DEMO_CV.vehicle.mileageLine, n = (h, x) => h.split(x).length - 1;
+  ok(!!diff && !!pos && !!mi, "Lane D's three fields are on the case view (assessment.differenceLine, reserve.positionLine, vehicle.mileageLine)");
+  ok(n(html, esc2(diff)) >= 2, "the difference line is printed in the summary and on the Decision tab, as sent");
+  ok(n(html, esc2(pos)) >= 2, "the position line is printed in the summary and on the Decision tab, as sent");
+  ok(/<p class="chd-spec">[^<]*/.exec(html)[0].includes(mi) && n(html, ">" + mi + "<") >= 1, "the mileage line is printed in the header and in the facts, as sent"); }
 const res = kase.reserve.figure, nd = kase.needs_review[0].label;
 const MUT = [
   ["a figure the page made (median plus 500)", h => h.split(M(ev.median)).join(M(ev.median + 500))],
@@ -53,6 +58,10 @@ const MUT = [
   ["a comparable price the page changed", h => h.replace(M(desk.comparables[0].price), M(desk.comparables[0].price + 500))],
   ["a typed why sentence", h => h.replace(desk.comparables[0].why, "A very close match.")],
   ["a typed listing label", h => h.replace(">Not sold<", ">Ended, reserve not met<")],
+  ["a typed difference line", h => h.split(DEMO_CV.assessment.differenceLine).join("The assessment is a little high.")],
+  ["a typed position line", h => h.split(DEMO_CV.reserve.positionLine).join("The reserve is conservative.")],
+  ["a mileage the page formatted in the header", h => h.replace(/(<p class="chd-spec">)[^<]*/, "$161200 mi")],
+  ["a mileage the page formatted in the facts", h => h.replace(">" + DEMO_CV.vehicle.mileageLine + "<", ">61200 miles<")],
   ["a typed source label", h => h.replace(">VIN decoded<", ">Verified by the analyst<")],
 ];
 for (const [n, fn] of MUT) ok(trace(fn(html)).length > 0, "mutant caught: " + n);
