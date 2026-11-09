@@ -30,6 +30,30 @@ await store.insert("t", { id: "lead1", owner_seat: "crew", status: "New", create
 await A.handleSheetAction("case_new", {}, ctx);
 const g = await A.handleSheetAction("case_get", { id: "lead1" }, ctx);
 ok("case_get serves stage, queue and handling.lines with the case", g.case.stage === "new" && g.case.queue.new === 2 && g.case.handling.lines.length === 4 && g.case.lead_ref === "HM-24117");
+
+// LANE E'S THREE FIELDS: photo ops through case_edit, the lines on caseView, vehicle.mileageLine
+{ const { setup } = await import("./_deskCaseWorld.mjs"), world = await setup(root), K = world.K, base = await world.readyCase(), st2 = memoryStore(), cx = { org: "t", seat: "crew", store: st2, now: T, env: {} }, J = x => JSON.stringify(x);
+  await st2.insert("t", { id: "p1", owner_seat: "crew", status: "In progress", created_at: T, submission: { typed: true, photos: [], documents: [] }, state: {}, case: base, version: 1 });
+  const jpg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(64, 1)]).toString("base64");
+  const add = await A.handleSheetAction("case_edit", { id: "p1", op: "photo_add", name: "side.jpg", data: jpg }, cx);
+  ok("case_edit photo_add adds a photo to the case, append only", add.ok && add.case.photos.items.length === base.photos.items.length + 1 && add.case.photos.items.some(p => p.name === "side.jpg") && add.case.photos.reportIds.length === base.photos.reportIds.length + 1, J(add).slice(0, 160));
+  ok("the photo is also on the sheet's submission, so the old strip and the report see it", (await st2.get("t", "p1")).submission.photos.length === 1);
+  ok("photo_add refuses a file that is not a photo", (await A.handleSheetAction("case_edit", { id: "p1", op: "photo_add", name: "x.jpg", data: Buffer.from("hello").toString("base64") }, cx)).refused === true);
+  const newId = add.case.photos.items[add.case.photos.items.length - 1].id;
+  const cov = await A.handleSheetAction("case_edit", { id: "p1", op: "cover", photoId: newId }, cx);
+  ok("case_edit cover makes that photo the cover and logs it", cov.ok && cov.case.photos.coverId === newId && cov.case.audit.some(a => a.what === "cover set"));
+  ok("a cover that is not a photo of the case is refused", (await A.handleSheetAction("case_edit", { id: "p1", op: "cover", photoId: "nope" }, cx)).refused === true);
+  const oldId = base.photos.items[0].id, sel = await A.handleSheetAction("case_edit", { id: "p1", op: "report_photos", ids: [oldId] }, cx);
+  ok("case_edit report_photos selects the report photos and keeps the cover in", sel.ok && sel.case.photos.reportIds.includes(newId) && sel.case.photos.reportIds.includes(oldId) && sel.case.photos.items.length === add.case.photos.items.length);
+  ok("none of the three re-calls the engine", !K.needsRecall(K.addCasePhoto(base, { id: "zz", name: "z" }, T)) && !K.needsRecall(K.setCover(base, base.photos.items[0].id, T)) && !K.needsRecall(K.selectPhotos(base, [], T)));
+  // the lines on caseView
+  const v = (await A.handleSheetAction("case_get", { id: "p1" }, cx)).case, rsv = (await import(pathToFileURL(path.resolve(root, "lib/desk/reportState.js")).href)).reportState(v);
+  ok("assessment.differenceLine is on the case and is the report's own line", typeof v.assessment.differenceLine === "string" && v.assessment.differenceLine === rsv.differenceLine && /market reference of \$/.test(v.assessment.differenceLine), v.assessment.differenceLine);
+  ok("reserve.positionLine is on the case and is the report's own line", typeof v.reserve.positionLine === "string" && v.reserve.positionLine === rsv.reservePositionLine && v.reserve.position === rsv.reservePosition);
+  ok("vehicle.mileageLine is the mileage in words", v.vehicle.mileageLine === "61,400 miles", v.vehicle.mileageLine);
+  const blank = (await A.handleSheetAction("case_new", {}, cx)).case;
+  ok("a case with no figures or mileage has none of the three lines (null, never blank text)", blank.assessment.differenceLine === null && blank.reserve.positionLine === null && blank.vehicle.mileageLine === null);
+}
 // the class: the page counts nothing
 const page = fs.existsSync(path.join(root, "public/js/deskvals.js")) ? fs.readFileSync(path.join(root, "public/js/deskvals.js"), "utf8") : "";
 ok("the Desk page does not count cases itself", !/\.queue\.(new|review|ready|final)\s*[+\-]|handling\.lines\.(reduce|filter)|filter\(function\s*\(\w+\)\s*\{\s*return \w+\.stage/.test(page));

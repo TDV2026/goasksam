@@ -24,6 +24,11 @@ const MUT = [
   ["the wording is not kept in the finalized version", SA, s => s.replace("wording: reportState(c0) }", "wording: null }")],
   ["the engine's no prior record line is typed in sheetRead again", "lib/sheetRead.js", s => s.replace('reasonLine("desk.no_prior_vin")', '"No prior auction record for this VIN."')],
   ["a Desk file types a report claim", WF, s => s.replace("const EXPLAIN_MIN = 60;", 'const EXPLAIN_MIN = 60; const TYPED = "The seller has agreed to this reserve.";')],
+  ["the difference line reads the wrong side of the median", RS, s => s.replace('reasonLine(a.figure > ev.median ? "report.assess_above" : "report.assess_below"', 'reasonLine(a.figure > ev.median ? "report.assess_below" : "report.assess_above"')],
+  ["the difference line measures against q1, not the median", RS, s => s.replace("Math.abs(a.figure - ev.median)", "Math.abs(a.figure - ev.q1)")],
+  ["the difference line says at the reference only never", RS, s => s.replace("a.figure === ev.median ? reasonLine", "false ? reasonLine")],
+  ["the mileage is formatted by hand, not through countNoun", RS, s => s.replace('countNoun(m.value, "mile", { words: false })', 'm.value.toLocaleString("en-US") + " miles"')],
+  ["the workspace prints a position line of its own", "lib/desk/caseView.js", s => s.replace("positionLine: rs.reservePositionLine", 'positionLine: rs.reservePosition ? "The reserve is " + rs.reservePosition + " the range." : null')],
   ["the reserve sentence names the wrong quartiles", RS, s => s.replace('reasonLine("report.reserve_" + pos, { q1: ev.q1, q3: ev.q3 })', 'reasonLine("report.reserve_" + pos, { q1: ev.low, q3: ev.high })')]
 ];
 function copyTree(dst) { for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) }); for (const f of ["package.json", "vercel.json"]) if (fs.existsSync(path.join(ROOT, f))) fs.copyFileSync(path.join(ROOT, f), path.join(dst, f)); fs.symlinkSync(path.join(ROOT, "node_modules"), path.join(dst, "node_modules")); }
