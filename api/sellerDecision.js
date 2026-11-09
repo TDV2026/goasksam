@@ -3525,6 +3525,8 @@ async function handler(req, res) {
         // competition/standard pair. The old line kept only competition/standard, so a variant-market chip reached
         // the engine as no refine and the base page came back for every zero-count option.
         variant: VARIANT_REFINE_VALUES.has(String(rawRefine.variant || "")) ? String(rawRefine.variant) : null,
+        // Modified and Original (Nov 9 2026): the two sides of the pool the wide line names
+        mods: rawRefine.mods === "modified" ? "modified" : rawRefine.mods === "original" ? "original" : null,
         // Item 7/8 dictionary-driver refine + item 9 observable-fact refine (both re-scope the pool).
         driver: typeof rawRefine.driver === "string" ? rawRefine.driver.slice(0, 40) : null,
         driverVal: rawRefine.driverVal === "no" ? "no" : rawRefine.driverVal === "yes" ? "yes" : null,
