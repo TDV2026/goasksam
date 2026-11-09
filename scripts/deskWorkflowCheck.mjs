@@ -1,5 +1,5 @@
 // Desk v3 stage 2: correcting a field, the engine re-call, and needs review. The re-call is Lane B's real desk block read through sheetRead. node scripts/deskWorkflowCheck.mjs [rootDir]
-import path from "node:path"; import { setup } from "./_deskCaseWorld.mjs";
+import path from "node:path"; import { pathToFileURL } from "node:url"; import { setup } from "./_deskCaseWorld.mjs";
 const root = path.resolve(process.argv[2] || "."), { M, K, read, calls, readyCase, T, today } = await setup(root);
 let pass = 0, fail = 0; const ok = (n, c, d) => { if (c) pass++; else { fail++; console.log("FAIL " + n + (d ? "  " + d : "")); } }; const J = x => JSON.stringify(x);
 const base = await readyCase();
@@ -31,7 +31,23 @@ let ex = base; for (const id of pick) ex = M.excludeSale(ex, { saleId: id, scope
 const exr = await recall("a market_calc exclusion", ex, true);
 ok("the evidence count drops by the excluded sales and the original stays", exr.desk.evidence.count === base.desk.evidence.count - 3 && J(exr.desk.original) === J(base.desk.original) && exr.desk.original.count === base.desk.evidence.count);
 ok("the exclusions ride on the case with scope, reason and time", exr.exclusions.length === 3 && exr.exclusions.every(e => e.scope === "market_calc" && e.reason && e.at));
-await recall("a report scope exclusion", M.excludeSale(base, { saleId: pick[0], scope: "report", reason: "Not a fit", now: T }), false);
+// the three scopes are the engine's own, spelled the engine's way (a made up name reads as note_only there and would silently do nothing)
+{ const DV = await import(pathToFileURL(path.join(root, "lib/deskV3.js")).href);
+  ok("the case's exclusion scopes are exactly the engine's (market_calc, report_comps, note_only)", [...M.EXCLUSION_SCOPES].sort().join() === [...DV.SCOPES].sort().join()); }
+const rc = await recall("a report_comps exclusion (the engine drops the sale from the comparables)", M.excludeSale(base, { saleId: pick[0], scope: "report_comps", reason: "Not a fit", now: T }), true);
+ok("report_comps: the sale leaves the comparables and the evidence is unchanged", !rc.desk.comparables.some(c => c.id === pick[0]) && rc.desk.comparables.length === base.desk.comparables.length - 1 && J(rc.desk.evidence) === J(base.desk.evidence));
+// NOTE ONLY: the reason and scope go in the audit trail and on the comparable, and nothing else changes
+const noteCase = M.excludeSale(base, { saleId: pick[0], scope: "note_only", reason: "Seller disputes this sale's condition", now: T });
+await recall("a note_only exclusion", noteCase, false);
+{ const forced = (await read(K.recallInput(noteCase, today))).desk;
+  ok("note_only: sent to the engine anyway, the comparables, evidence and original come back identical", J(forced.comparables) === J(base.desk.comparables) && J(forced.evidence) === J(base.desk.evidence) && J(forced.original) === J(base.desk.original) && forced.comparables.some(c => c.id === pick[0]));
+  ok("note_only: the reason and scope are in the audit trail", noteCase.audit.some(a => a.what === "excluded (note_only)" && a.to === pick[0] && a.reason === "Seller disputes this sale's condition"));
+  ok("note_only: the exclusion is on the case with its scope, reason and time", noteCase.exclusions.length === 1 && noteCase.exclusions[0].scope === "note_only" && noteCase.exclusions[0].reason && noteCase.exclusions[0].at);
+  const V = await import(pathToFileURL(path.join(root, "lib/desk/caseView.js")).href), vw = V.caseView({ id: "n", created_at: T, submission: { typed: true, photos: [], documents: [] }, case: noteCase }, [], T).desk.comparables;
+  ok("note_only: the note rides on that comparable and on no other, which is still listed", vw.find(c => c.id === pick[0]).exclusion.scope === "note_only" && vw.filter(c => c.exclusion).length === 1 && vw.length === base.desk.comparables.length);
+  ok("note_only: the report's selected comparable is not dropped, readiness is unchanged", K.readinessOf(K.selectComparables(noteCase, [pick[0]], T)).blockers.every(b => b.key !== "comparable")); }
+{ const sel = K.selectComparables(base, [pick[0]], T), gone = (await K.refreshEvidence(M.excludeSale(sel, { saleId: pick[0], scope: "report_comps", reason: "Not a fit", now: T }), read, { caseDate: today, now: T })).case;
+  ok("report_comps: a selected comparable the engine no longer lists does not count as selected", K.readinessOf(gone).blockers.some(b => b.key === "comparable")); }
 // a retry or failed read never replaces a good one
 { const r = await K.refreshEvidence(K.correctField(base, "mileage", 99000, { now: T }), async () => ({ retry: true, line: "still reading" }), { caseDate: today, now: T }); ok("a retry answer is not stored over the good read", !r.recalled && J(r.case.desk) === J(base.desk) && r.retry); }
 // needs review: generated from source states, closed when the cause goes
