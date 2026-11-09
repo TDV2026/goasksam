@@ -275,3 +275,6 @@ sheet_pdf and sheet_send build it for any sheet that has a case (sheet_pdf with 
 - case.handling_seconds and the version row's handling_seconds are taken on finalize, from the finalizing analyst's own first open. A revision (version n plus 1) starts its own opens, so its handling time is the time on the revision.
 - case.handling.lines (the four operations lines) are made by lib/desk/caseView.js handlingLines; the crew dashboard is GET /api/usageDashboard?view=desk (the same x-ops-key header as every view; format=json for the data): per org, { org, cases, queue, lines }, from that org's own cases, no seat, analyst or owner figure.
 - Export records of a case sheet are rows in desk_case_exports (docs/supabase-desk-case-versions.sql), never in the finalised sheet row.
+
+## Report settings (desk_orgs.settings, read by orgSettings)
+paper: "letter" (default) or "a4"; contactAddress, contactPhone, contactEmail: the contact block of page 4. The report names no analyst anywhere; "Prepared by" is the org.

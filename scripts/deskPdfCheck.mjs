@@ -10,8 +10,8 @@ const base = await readyCase();
 const pool = base.desk.comparables.filter(x => x.inPopulation).slice(0, 4).map((x, i) => ({ ...x, photo: i < 2 ? "https://real.example/" + i + ".jpg" : null, url: "https://example.com/sale/" + i }));
 let demo = cl(base); demo.desk.comparables = [...pool, ...base.desk.comparables.filter(x => !pool.some(p => p.id === x.id))]; demo = K.setReserve(K.selectComparables(demo, pool.map(x => x.id), T), { figure: base.desk.evidence.q1 + 300 }, T);   // a reserve that is not the low of the range, so the two boxes cannot be confused
 demo.desk.live = [{ title: "1999 Porsche 911 Carrera", platform: "Bring a Trailer", type: "bid", figure: 36000, ends: "2026-11-12T18:00:00Z", url: "https://example.com/live1" }, { title: "1999 Porsche 911 C2", platform: "Hemmings", type: "ask", figure: 41000, ends: null, url: null }, { title: "1999 Porsche 911", platform: "Cars & Bids", type: "no_sale", figure: null, ends: null, url: null }];
-const sheetOf = (c, o = {}) => ({ id: "x", created_at: T, submission: { typed: false, photos: o.noCover ? [] : [{ id: c.photos.items[0].id, url: "https://real.example/cover.jpg" }] }, state: {}, case: c, final: { reportNumber: "DV-2026-0007", org: { name: "Acme Auctions", color: o.color || null }, finalisedAt: T } });
-const build = async (c, o = {}) => P.buildReportV3(sheetOf(c, o), { name: "Acme Auctions", color: o.color, logo: o.logo, contactEmail: "desk@acme.example" }, { fetchImage, draft: !!o.draft });
+const sheetOf = (c, o = {}) => ({ id: "x", owner_seat: "Jane Park", forwarded_by: "Jane Park", created_at: T, submission: { typed: false, photos: o.noCover ? [] : [{ id: c.photos.items[0].id, url: "https://real.example/cover.jpg" }] }, state: {}, case: c, final: { reportNumber: "DV-2026-0007", org: { name: "Acme Auctions", color: o.color || null }, finalisedAt: T } });
+const build = async (c, o = {}) => P.buildReportV3(sheetOf(c, o), { name: "Acme Auctions", color: o.color, logo: o.logo, paper: o.paper, contactEmail: "desk@acme.example", ...(o.contact === false ? { contactEmail: null } : { contactPhone: "+1 555 0100", contactAddress: "12 Main Street, Springfield" }), sendingAddress: "noreply@acme.example" }, { fetchImage, draft: !!o.draft });
 const pagesOf = r => mini.pdfPages(r.bytes).map(p => p.join(" ")), count = (r, re) => (Buffer.from(r.bytes).toString("latin1").match(re) || []).length;
 const fin = await build(demo), drf = await build(demo, { draft: true });
 // pages
@@ -45,6 +45,26 @@ ok("only https addresses become links", mini.pdfPages && !Buffer.from((await bui
   ok("the whole report is small because only the glyphs it prints are embedded", fin.bytes.length < 250000, String(fin.bytes.length));
   ok("every printed character is in its font: no question mark stands in for a character in the text", !pg.join(" ").includes("?"));
   ok("curly quotes, the ampersand and the dollar sign print as themselves", pagesOf(await build((() => { const c = cl(demo); c.assessment.explanation = "The seller\u2019s car \u201Cas described\u201D & priced $1,000."; return c; })()))[0].includes("seller\u2019s car \u201Cas described\u201D & priced $1,000.")); }
+
+// PAPER: an org setting, Letter by default, A4 when the org row says so; the same four pages on both
+{ const box = r => (Buffer.from(r.bytes).toString("latin1").match(/\/MediaBox \[0 0 (\d+) (\d+)\]/) || []).slice(1).map(Number).join("x");
+  const a4 = await build(demo, { paper: "a4" }), lt = await build(demo, { paper: "letter" }), none = await build(demo), odd = await build(demo, { paper: "tabloid" });
+  ok("the default paper is Letter (612 by 792)", box(fin) === "612x792" && box(none) === "612x792" && box(lt) === "612x792" && box(odd) === "612x792", box(fin));
+  ok("an org row that says a4 gets A4 (595 by 842)", box(a4) === "595x842");
+  for (const [name, r, w, h] of [["Letter", lt, 612, 792], ["A4", a4, 595, 842]]) {
+    const t = pagesOf(r), raw = Buffer.from(r.bytes).toString("latin1"), ops = [...raw.matchAll(/BT \/\w+ [\d.]+ Tf [\d. ]+ rg ([\d.-]+) ([\d.-]+) Td/g)].map(m => [Number(m[1]), Number(m[2])]);
+    ok(`${name}: four pages, each with its heading and "Page n of 4"`, r.pages === 4 && t.length === 4 && t.every((x, i) => x.includes(`Page ${i + 1} of 4`) && x.length > 250));
+    ok(`${name}: every text origin is inside the print safe margins of that paper`, ops.length > 40 && ops.every(([x, y]) => x >= 36 && x <= w - 36 && y >= 36 && y <= h - 24), JSON.stringify(ops.filter(([x, y]) => !(x >= 36 && x <= w - 36 && y >= 36 && y <= h - 24)).slice(0, 3)));
+    ok(`${name}: nothing but the footer sits below the footer rule (page content never runs into it)`, ops.filter(([x, y]) => y < 52).length === 8, String(ops.filter(([x, y]) => y < 52).length));
+    ok(`${name}: the comparables and the strip fit the page (nothing starts below the footer rule)`, Math.min(...ops.filter(([x, y]) => y >= 52).map(o => o[1])) >= 52); }
+}
+// NO ANALYST NAME ANYWHERE; "Prepared by" names the org; the contact block is the org row's own details
+{ const all = pg.join(" ") + " " + pagesOf(drf).join(" "), raw = Buffer.from(fin.bytes).toString("latin1") + Buffer.from(drf.bytes).toString("latin1");
+  ok("no analyst name or seat appears in the report, the draft or the file's own metadata", !/Jane|Park|seat=/.test(all) && !/Jane|Park|seat=/.test(raw), (all.match(/Jane|Park/) || [""])[0]);
+  ok('the footer says "Prepared by" and the org, on every page', pg.every(t => /Prepared by Acme Auctions/.test(t)));
+  ok('a draft says "Draft preview" and a finalized version says its version', pagesOf(drf).every(t => /Draft preview/.test(t) && !/Version \d/.test(t)) && pg.every(t => /Version \d/.test(t) && !/Draft preview/.test(t)));
+  ok("the contact block prints the org's address, phone and email from the org row", ["12 Main Street, Springfield", "+1 555 0100", "desk@acme.example"].every(x => pg[3].includes(x)));
+  ok("a detail the org row does not hold is not printed, and the sending address is not a contact", !pagesOf(await build(demo, { contact: false }))[3].includes("12 Main Street") && !pg.join(" ").includes("noreply@acme.example")); }
 // the content is the case's: every figure and sentence on the pages is reportState's
 const rs = R.reportState(demo), text = pg.join(" ");
 ok("page 1 prints the range, the reserve and the explanation from the case", text.includes("$" + demo.assessment.low.toLocaleString("en-US") + " to $" + demo.assessment.high.toLocaleString("en-US")) && text.includes("$" + demo.reserve.figure.toLocaleString("en-US")) && pg[0].includes(demo.assessment.explanation.slice(0, 25)) && pg[0].includes("RECOMMENDED RESERVE") && pg[0].replace(/\s+/g, " ").includes("$" + demo.reserve.figure.toLocaleString("en-US")));
