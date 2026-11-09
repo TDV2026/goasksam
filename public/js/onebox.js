@@ -1516,6 +1516,7 @@
     var carCell = href
       ? ('<a href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs + ">" + esc(cleanReceiptTitle(c.title)) + "</a>")
       : esc(cleanReceiptTitle(c.title));
+    if (c.hasHistoryPage && c.vinNorm) carCell += " " + histPlainHtml(c.vinNorm, "inrow");
     return "<tr><td>" + esc(fullDateOrMonth(c)) + "</td><td>" + carCell + "</td><td>" + esc(longMiles(c) || "") + "</td><td>" + esc(venue) +
       '</td><td class="astc-price num">' + esc(usd(c.price)) + "</td></tr>";
   }
@@ -1688,6 +1689,7 @@
       (o.meta ? '<div class="cmeta">' + esc(o.meta) + "</div>" : "") +
       (o.extra || "") +
       (o.href ? ('<a class="viewsale"' + linkAttrs + ">View sale &#8594;</a>") : "") +
+      (o.vinNorm ? histPlainHtml(o.vinNorm) : "") +
       (o.why ? '<p class="cwhy">' + lint(esc(o.why), "card.why") + "</p>" : "");
     var cls = "card " + (o.cls || "") + (o.flat ? " flat" : "");
     var photo = photoHtml(o.image, o.title, o.flat ? "" : o.pill);
@@ -1768,6 +1770,13 @@
   }
   // Canonical VIN history URL (/history/{year}-{make}-{model-slug}/{VIN}), built the same way as
   // api/_historyData.js carSlug; the server 301s any slug that does not match its own identity.
+  // PLAIN HISTORY LINK (Lane E, Nov 7 2026): every listed sale that carries a VIN gets a real anchor to its auction history page, beside
+  // any chip or modal. The engine decides whether the page exists (hasHistoryPage on result cards; a receipt names its VIN only).
+  // /vin/{VIN} is the one address that always resolves to the page's own canonical slug, so the link never names a car the page does not.
+  function histPlainHtml(vin, cls) {
+    var v = String(vin || "").toUpperCase();
+    return /^[A-Z0-9]{5,17}$/.test(v) && /\d/.test(v) ? '<a class="histplain' + (cls ? " " + cls : "") + '" href="/vin/' + encodeURIComponent(v) + '">Auction history</a>' : "";
+  }
   function historyHref(rc, vin) {
     var sl = function (x) { return String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); };
     var sq = function (x) { return sl(x).replace(/-/g, ""); };
@@ -1797,7 +1806,7 @@
     else if (htGearboxSplit && rc.gearboxWord) segs.push(rc.gearboxWord);
     var marks = (rc.markers && rc.markers.length) ? "<div>" + rc.markers.map(function (mk) { return '<span class="mk">' + esc(mk.label) + "</span>"; }).join("") + "</div>" : "";
     return saleCardHtml({ cls: "t", flat: !!flat, href: utmUrl(rc.url), slug: rc.slug, id: rc.id, image: rc.image, priceHtml: priceHtml, allIn: allIn,
-      title: cleanReceiptTitle(shortCarName(rc.title)), meta: segs.filter(Boolean).join(" · "), extra: marks });
+      title: cleanReceiptTitle(shortCarName(rc.title)), meta: segs.filter(Boolean).join(" · "), extra: marks, vinNorm: rc.vinNorm });
   }
   // Engine d.cards shape (refusal / shown-separately): price, mileageText, platform, month, title.
   // tagLabel is an optional small pill ("Above range") - never invented, only ever a label the
@@ -1820,7 +1829,8 @@
     // toggle's outside-range cards, distribution's bucket receipts) all want the flat row treatment.
     return saleCardHtml({ cls: "t", flat: true, pill: tagLabel || "", href: utmUrl(c.url), slug: c.platformSlug, id: c.id, image: c.image,
       priceHtml: esc(usd(c.price)), title: cleanReceiptTitle(c.title),
-      meta: [c.mileageText && c.mileageText !== "TMU" ? c.mileageText : "", venue, c.month || monShort(c.date)].filter(Boolean).join(" · "), after: sb });
+      meta: [c.mileageText && c.mileageText !== "TMU" ? c.mileageText : "", venue, c.month || monShort(c.date)].filter(Boolean).join(" · "), after: sb,
+      vinNorm: (c.hasHistoryPage && c.vinNorm && c.soldBefore && c.soldBefore.date) ? c.vinNorm : "" });
   }
   // Shared "cap at N, reveal 10 more per click" list pattern (Oct 2026): every long card list (thin
   // receipts, comparable sales, shown-separately) server-renders EVERY card so search engines see
