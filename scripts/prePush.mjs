@@ -2617,6 +2617,12 @@ try {
   record("Desk v3 stage 1: the case record (scripts/deskCaseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/deskRungsCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("Desk v3 condition rungs: the engine's count and range per rung for a demonstration car, read only (scripts/deskRungsCheck.mjs)", "PASS", (out.match(/deskRungsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 condition rungs (scripts/deskRungsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/deskShapesCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("Desk v3 shapes: case.stage, case.queue and case.handling.lines come from the server, the page counts nothing (scripts/deskShapesCheck.mjs)", "PASS", (out.match(/deskShapesCheck: .*/) || [""])[0]);
 } catch (e) {
