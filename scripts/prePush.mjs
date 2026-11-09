@@ -973,6 +973,18 @@ try {
 } catch (e) {
   record("photoRuleCheck (scripts/photoRuleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+try {
+  const out = execSync("node scripts/mcExamplesCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("Market Check example sales in Lane E's shape: the reader accepts it, no card without a real sale and a photo under 600 KB, the daily pick stable and different across days, the kill switch hides the section, the photos re-checked hourly; eleven mutants (scripts/mcExamplesCheck.mjs)", "PASS", (out.match(/mcExamplesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Market Check example sales in Lane E's shape: the reader accepts it, no card without a real sale and a photo under 600 KB, the daily pick stable and different across days, the kill switch hides the section, the photos re-checked hourly; eleven mutants (scripts/mcExamplesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/sellExampleCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("Sell example in Lane E's shape: the reader accepts it, every number traces to the Sell answer, sentences from the reason table, fewer than two cars hides the section, the kill switch; nine mutants (scripts/sellExampleCheck.mjs)", "PASS", (out.match(/sellExampleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Sell example in Lane E's shape: the reader accepts it, every number traces to the Sell answer, sentences from the reason table, fewer than two cars hides the section, the kill switch; nine mutants (scripts/sellExampleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // entryExamplesCheck (Lane B, Nov 8 2026): marketCheckExampleSales (three real sales of one model that show mileage moving the price) and sellExample (one model's record by venue from the Sell engine): daily pick, crew gate, never invented.
 try {
   const out = execSync("node scripts/entryExamplesCheck.mjs", { encoding: "utf8", timeout: 280000 });
@@ -2268,8 +2280,33 @@ try {
   record("Desk v3 shell: the case rail, the operations block from Lane D's lines, the compact case header, flat and two colours, nothing computed on the page (scripts/deskV3ShellCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/previewShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Preview shell is one full height column (footer at the bottom of a short page, after a long one, on every preview page at 1440, 1280, 1024 and 390) and the Tasks email section sits on the hero's left edge (scripts/previewShellCheck.mjs)", "PASS", (out.match(/previewShellCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Preview shell is one full height column (footer at the bottom of a short page, after a long one, on every preview page at 1440, 1280, 1024 and 390) and the Tasks email section sits on the hero's left edge (scripts/previewShellCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/deskV3MarketCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3 Market evidence: the engine's evidence, original beside current, comparables with exclude (reason required) greyed in place, quarters with shown false drawn as nothing, listings labelled, outsiders (scripts/deskV3MarketCheck.mjs)", "PASS", (out.match(/deskV3MarketCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 Market evidence: the engine's evidence, original beside current, comparables with exclude (reason required) greyed in place, quarters with shown false drawn as nothing, listings labelled, outsiders (scripts/deskV3MarketCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/deskV3ClickCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3: the Assessment and Reserve figures land on their inputs from the summary and the sticky bar; tabs keep state (scripts/deskV3ClickCheck.mjs)", "PASS", (out.match(/deskV3ClickCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3: the Assessment and Reserve figures land on their inputs from the summary and the sticky bar; tabs keep state (scripts/deskV3ClickCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/deskV3WireCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v3: every figure and sentence on the case traces to desk.*, market.meter or a case field; a typed sentence or page arithmetic fails (scripts/deskV3WireCheck.mjs)", "PASS", (out.match(/deskV3WireCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3: every figure and sentence on the case traces to desk.*, market.meter or a case field; a typed sentence or page arithmetic fails (scripts/deskV3WireCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/mcSellResultsCheck.mjs", { encoding: "utf8", timeout: 580000 });
-  record("Market Check and Sell results inside the shell are the live results: every section, figure, chart, table, link and style the same at 1440, 1024 and 390, from recorded engine answers (scripts/mcSellResultsCheck.mjs)", "PASS", (out.match(/mcSellResultsCheck: .*/) || [""])[0]);
+  const line = (out.match(/mcSellResultsCheck: .*/) || [""])[0];
+  record("Market Check and Sell results inside the shell are the live results: every section, figure, chart, table, link and style the same at 1440, 1024 and 390, from recorded engine answers (scripts/mcSellResultsCheck.mjs)", /: SKIP/.test(line) ? "SKIP" : "PASS", line);
 } catch (e) {
   record("Market Check and Sell results inside the shell are the live results: every section, figure, chart, table, link and style the same at 1440, 1024 and 390, from recorded engine answers (scripts/mcSellResultsCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }

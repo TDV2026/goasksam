@@ -24,8 +24,7 @@ const REGISTRY = [
   ["api/sellerDecision.js", /const obWithin = p =>/, N, "whole-path clock over many pieces; the engine race below carries the signal"],
   ["api/sellerDecision.js", /await Promise\.race\(\[$/, A, "Market Check deadline: aborts except on the cold-store path, which keeps computing on purpose"],
   ["lib/_routeLimit.js", /Promise\.race\(\[check\(/, N, "a rate-limit check"],
-  ["lib/live/entryExamples.js", /const withClock = /, P, "an entry example build: the engine read finishes behind the clock and fills the cache; the pick is built again by the next read"],
-  ["lib/live/findExamples.js", /const withClock = /, P, "a crew card build: the card read finishes behind the clock and fills the market cache; the example is dropped for this response"],
+  ["lib/live/withClock.js", /const withClock = /, P, "the one clock of a crew example build (entryExamples, findExamples, marketCheckExamples): the engine read finishes behind the clock and fills the cache; the example is dropped for this response and built again by the next read"],
   ["lib/live/buyExample.js", /Promise\.race\(\[p, new Promise/, P, "example builder: the read finishes and fills the cache"],
   ["lib/live/deskExample.js", /Promise\.race\(\[p, new Promise/, P, "example builder: the read finishes and fills the cache"],
   ["lib/live/marketCheckExample.js", /Promise\.race\(\[p, new Promise/, P, "example builder: the read finishes and fills the cache"],
@@ -71,6 +70,8 @@ for (const f of [...files].sort()) {
   });
 }
 ok("every Promise.race in api/ and lib/ is classified (aborts, on-purpose or not-archive); a new one fails until classified", unclassified.length === 0, unclassified.join(" "));
+{ const copies = []; for (const f of [...files].sort()) if (f !== "lib/live/withClock.js" && /^\s*(?:export )?(?:const|let|var|function) withClock\b/m.test(fs.readFileSync(path.join(ROOT, f), "utf8"))) copies.push(f);
+  ok("withClock is defined once (lib/live/withClock.js); a file with its own copy fails, and every importer imports it", copies.length === 0 && fs.existsSync(path.join(ROOT, "lib/live/withClock.js")) && ["lib/live/entryExamples.js", "lib/live/findExamples.js", "lib/live/marketCheckExamples.js"].every(f => /import \{ withClock \} from "\.\/withClock\.js"/.test(fs.readFileSync(path.join(ROOT, f), "utf8"))), copies.join(" ")); }
 ok("every racer classified 'aborts' passes a signal and aborts it in its timeout", abortsBad.length === 0, abortsBad.join(" "));
 const rd = f => { try { return fs.readFileSync(path.join(ROOT, f), "utf8"); } catch { return ""; } };
 ok("the VIN page (no stored-row key) aborts its read and the hub does not", /const ac = wkey \? null : new AbortController\(\)/.test(rd("api/_historyData.js")));
