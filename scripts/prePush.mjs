@@ -2659,6 +2659,12 @@ try {
   record("Desk v3 stage 4 (scripts/deskPdfCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/deskFormatCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("Desk and PDF files format no figure of their own: dollars from moneyWords, counts and mileages from countNoun (scripts/deskFormatCheck.mjs)", "PASS", (out.match(/deskFormatCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk and PDF files format no figure of their own (scripts/deskFormatCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/deskTypedSentenceCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("Desk typed sentences: no Desk file types an engine reason line, reads optionsNote/windowNote, or joins a count to a plural by hand (scripts/deskTypedSentenceCheck.mjs)", "PASS", (out.match(/deskTypedSentenceCheck: .*/) || [""])[0]);
 } catch (e) {
