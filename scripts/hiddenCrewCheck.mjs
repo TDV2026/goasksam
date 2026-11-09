@@ -34,6 +34,8 @@ async function call(file, url, { cookie, accept, method = "GET", body } = {}) {
 
 // ---- 1. THE LIST: every address that routes to a crew function, read from vercel.json (a new one is found, not remembered)
 const { PAGES: CREW_PAGES } = await imp("api/crewPage.js");   // every page api/crewPage.js can serve: the list is read, never remembered, so a page added there is covered below (Nov 4 2026: /preview/home and /preview/find joined it)
+// a frame that exists only when the engine sent its field (the entry page's real result): with no field it answers the 404, so it is not asked for a page below; mcSellShellCheck proves both states
+const DATA_FRAMES = ["preview-market-check-example"];
 const PAGE_KEYS = Object.keys(CREW_PAGES);
 const vj = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
 const CREW_FUNCS = ["api/crewPage", "api/desk", "api/admin", "api/partnerDemo", "api/partnerAnswer"];
@@ -51,7 +53,7 @@ for (const s of sources.filter(x => x !== "/preview")) {
 
 // ---- 2. THE FUNCTIONS, reached anyway (a direct /api address, a forged cookie, the partner door): the ordinary 404 and nothing else
 const FUNCS = [
-  ...PAGE_KEYS.map(k => ["api/crewPage.js", "/api/crewPage?page=" + k]), ["api/desk.js", "/api/desk"], ["api/admin.js", "/api/admin?page=1"],
+  ...PAGE_KEYS.filter(k => !DATA_FRAMES.includes(k)).map(k => ["api/crewPage.js", "/api/crewPage?page=" + k]), ["api/desk.js", "/api/desk"], ["api/admin.js", "/api/admin?page=1"],
   ["api/partnerDemo.js", "/preview"], ["api/partnerDemo.js", "/preview?view=b"], ["api/partnerDemo.js", "/preview?img=logo"], ["api/partnerDemo.js", "/preview?k=wrong"], ["api/partnerAnswer.js", "/api/partnerAnswer"]
 ];
 for (const [file, url] of FUNCS) {
@@ -71,7 +73,7 @@ for (const [file, url, body] of [["api/admin.js", "/api/admin", { part: "me" }],
 }
 
 // ---- 3. WITH THE COOKIE the page works as today
-for (const [file, url] of [...PAGE_KEYS.map(k => ["api/crewPage.js", "/api/crewPage?page=" + k]), ["api/partnerDemo.js", "/preview"], ["api/admin.js", "/api/admin?page=1"]]) {
+for (const [file, url] of [...PAGE_KEYS.filter(k => !DATA_FRAMES.includes(k)).map(k => ["api/crewPage.js", "/api/crewPage?page=" + k]), ["api/partnerDemo.js", "/preview"], ["api/admin.js", "/api/admin?page=1"]]) {
   const r = await call(file, url, { cookie: crewCookie, accept: "text/html" }).catch(e => ({ code: 0, body: e.message, h: {} }));
   ok(r.code === 200 && r.body.length > 2000 && r.body !== NATIVE(true).body, `${url} with the crew cookie: 200 and the page (${r.code}, ${r.body.length} bytes)`);
 }

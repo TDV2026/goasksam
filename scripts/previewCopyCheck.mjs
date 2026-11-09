@@ -10,7 +10,7 @@ const { copy } = await import("../lib/copy.js");
 const { rulesOf } = await import("../lib/preview/previewPages.js");
 const { COPY: TCOPY, freeLines: tFree, limitWord: tWord } = await import("../lib/preview/tasksPreview.js"), { FREE_TASK_LIMIT: TMAX } = await import("../lib/tasks/limit.js");
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
-const names = Object.keys(PAGES).filter(k => k.startsWith("preview-") && !PAGES[k].contentType);   // a script served beside a page (preview-onebox-js) is not a page of copy
+const names = Object.keys(PAGES).filter(k => k.startsWith("preview-") && !PAGES[k].contentType && !PAGES[k].frame);   // a frame that holds the live page's own document (preview-market-check-example) is not ours to audit either; a script served beside a page (preview-onebox-js) is not a page of copy
 ok(names.length >= 2, `the crew previews are found in api/crewPage.js (${names.join(", ")})`);
 
 const decode = t => t.replace(/&#(\d+);/g, (m, n) => String.fromCharCode(Number(n))).replace(/&middot;/g, "·").replace(/&rarr;/g, "→").replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
