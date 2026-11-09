@@ -31,8 +31,8 @@ const count = (h, re) => (h.match(re) || []).length;
 const OLD_NAV = [/id="gas-rail"/, /id="gas-scrim"/, /<header class="gas-mhead"/, /class="gas-signbar"/, /class="gas-signbar-m"/, /class="gas-navitem"/];
 
 const COPY = {
-  mc: { eyebrow: "MARKET CHECK · COMPLETED SALES", headline: "What have cars like yours sold for?", line: "Explore actual completed sales, with the individual transactions behind every result.", ph: "e.g. 2001 BMW M3 manual", under: "Completed sales only. Every result links to its source.", chips: ["2001 BMW M3 manual", "2018 Porsche 911 GT3", "2006 Ford GT"], rail: ["New check", "Recent Market Checks"], tab: "Market Check", section: "The sales behind the numbers" },
-  sell: { eyebrow: "SELL · SELLING INTELLIGENCE", headline: "Where should you sell your car?", line: "See where similar cars have sold, how different auction platforms perform and what the evidence suggests for your car.", ph: "e.g. 2006 BMW M5", under: "Platform performance · Selling strategy · PowerSeller options", chips: ["2006 BMW M5", "2004 Porsche 911 Carrera", "1994 Toyota Land Cruiser"], rail: ["New analysis", "Recent selling analyses"], tab: "Sell", section: "Different cars. Different ways to sell." }
+  mc: { eyebrow: "Market Check", headline: "What have cars like yours sold for?", line: "Real completed sales, so you can see what the market is actually paying.", ph: "Tell Sam the car you want to check...", chips: ["2001 BMW M3", "997 Carrera S", "E63 AMG"], rail: ["New check", "Recent Market Checks"], tab: "Market Check", section: "The sales behind the numbers" },
+  sell: { eyebrow: "Sell", headline: "Where should you sell your car?", line: "Get a tailored recommendation based on real sales, platform performance and market conditions.", ph: "Tell Sam the car you want to sell...", chips: ["Sell my 997 Carrera S", "Best time to sell a Defender", "Should I use a reserve?"], rail: ["New analysis", "Recent selling analyses"], tab: "Sell", section: "Different cars. Different ways to sell." }
 };
 const ONEBOX_SRC = fs.readFileSync("public/js/onebox.js", "utf8"), MCX = await imp("lib/live/marketCheckExamples.js");
 // the engine's result for the day's pick car: a REAL recorded Market Check answer (scripts/fixtures/mcSell), shaped by Lane B's own function, so it is exactly what the field carries
@@ -69,13 +69,13 @@ function assertions(M, label, { entry, results }) {
     else chk(!/"\/sell\?" \+ u\.toString\(\)/.test(wrapped) && wrapped.includes('"/preview/sell?" + u.toString()') && wrapped.includes(': "/preview/sell";'), "sell results: every address the page pushes stays in the preview");
     // 3. entry copy, exactly
     const e = entry[kind], et = text(e);
-    chk(et.includes(c.eyebrow) && et.includes(c.headline) && et.includes(c.line) && et.includes(c.under), `${kind} entry: the approved eyebrow, headline, supporting line and ${kind === "mc" ? "trust" : "benefit"} line, exactly`);
+    chk(et.includes(c.eyebrow) && et.includes(c.headline) && et.includes(c.line), `${kind} entry: the approved eyebrow, headline and supporting line, exactly (Sam's brief of Nov 9, typed here on purpose: the page reads them from the reason table)`);
     chk(e.includes(`placeholder="${c.ph}"`) && !/value="[^"]/.test(/<form class="sb"[\s\S]*?<\/form>/.exec(e)[0]), `${kind} entry: the placeholder is "${c.ph}" and the box is not prefilled`);
     chk(e.includes(`action="${k.path}"`) && e.includes(`name="${k.param}"`), `${kind} entry: the search submits to the product's own address with ${k.param}`);
     const pills = [...e.matchAll(/<a class="pill" href="([^"]+)">([^<]+)<\/a>/g)];
     chk(pills.map(p => p[2]).join("|") === c.chips.join("|") && pills.every((p, i) => p[1] === `${k.path}?${k.param}=${encodeURIComponent(c.chips[i])}`), `${kind} entry: the three chips, in order, each running its own search`);
     const vis = e.replace(/<h1 class="sr">[\s\S]*?<\/h1>/, ""), at = x => vis.indexOf(x);
-    chk(at(c.eyebrow) >= 0 && at(c.eyebrow) < at(c.headline) && at(c.headline) < at(c.line) && at(c.line) < at('<form class="sb"') && at('<form class="sb"') < at(c.under) && at(c.under) < at('class="pills"'), `${kind} entry: the order eyebrow, headline, line, search, ${kind === "mc" ? "trust" : "benefit"} line, chips`);
+    chk(at(c.eyebrow) >= 0 && at(c.eyebrow) < at(c.headline) && at(c.headline) < at(c.line) && at(c.line) < at('<form class="sb"') && at('<form class="sb"') < at('class="pills"'), `${kind} entry: the order eyebrow, headline, line, search, chips`);
     chk(!/\b(Updated|as of|Last updated)\b/i.test(et) && !/20\d\d/.test(et.replace(/2001|2018|2006|2004|1994|2026/g, "")), `${kind} entry: no updated date on the empty page`);
     chk(!/class="proof"|data-example-sales|data-example-result|data-sell-example/.test(e), `${kind} entry: no evidence section while the engine's field is absent`);
     chk(!/<canvas|<svg[^>]*class="(chart|trend)|confidence/i.test(e), `${kind} entry: no chart, trend or confidence score`);
@@ -116,7 +116,7 @@ function assertions(M, label, { entry, results }) {
 const entry = { mc: await preview("preview-market-check"), sell: await preview("preview-sell") };
 const results = { mc: await preview("preview-market-check", "&q=2001+BMW+M3"), sell: await preview("preview-sell", "&car=2006+BMW+M5") };
 const bad0 = assertions(SH, "real", { entry, results }); for (const b of bad0) ok(false, b); ok(bad0.length === 0, "the shell, scope and entry assertions all hold on the real module");
-ok(entry.mc !== entry.sell && /MARKET CHECK/.test(entry.mc) && /SELL ·/.test(entry.sell), "the two entry pages are two pages");
+ok(entry.mc !== entry.sell && /What have cars like yours sold for/.test(entry.mc) && /Where should you sell your car/.test(entry.sell), "the two entry pages are two pages");
 
 // ---------- mutants ----------
 const SRC = fs.readFileSync("lib/preview/mcSellPreview.js", "utf8"), TMP = "lib/preview/_mcSellPreviewMut.mjs";
@@ -135,7 +135,7 @@ await mutant("old navigation left in", "out = out.replace(open, () => `${header(
 await mutant("the wrong cream pill", "${header(k.active)}<div class=\"mshell\">", "${header(\"find\")}<div class=\"mshell\">");
 await mutant("a :root token in the shell sheet", ".gh,.ft,.rail{${SHELL_TOKENS}}", ":root{${SHELL_TOKENS}}");
 await mutant("a stray rule on a results element", "#gas-main{margin-left:0!important", ".inbox{border-radius:0}#gas-main{margin-left:0!important");
-await mutant("a changed eyebrow", /MARKET CHECK .{1,6} COMPLETED SALES/, "MARKET CHECK SALES");
+await mutant("chips from another page's set", "pills(k.ph, t => hrefOf(k, t))", 'pills("previewFind", t => hrefOf(k, t))');
 await mutant("a result drawn without its sales (cards not required)", "if (!Array.isArray(r.cards) || !r.cards.length || !r.cards.every(c => c && httpU(c.url))) return null;", "");
 await mutant("a result accepted that is not a result (tier not checked)", 'r.tier !== "result" || ', "");
 await mutant("a sale with a bad link accepted", "r.cards.every(c => c && httpU(c.url))", "r.cards.every(c => c)");

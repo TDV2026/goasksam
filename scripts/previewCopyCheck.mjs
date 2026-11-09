@@ -3,6 +3,8 @@
 // Sam, a spaced wordmark, a competitor or venue name, AI as a selling word, a live bid, or The Daily Vroom outside the footer. The check also proves itself: each rule is run
 // against a copy of the page with that one violation injected, and must flag it (that is the "fails without the fix" evidence; the mockup's own wording trips most of them).
 process.env.CURTAIN_CREW_CODE = "fixture-crew-code"; process.env.LAUNCH_STAGE = "2";
+import { reasonLine } from "../lib/reasonWords.js";
+import { ENTRY_BRIEF_COPY } from "../lib/entryCopy.js";
 import fs from "node:fs";
 const { PAGES } = await import("../api/crewPage.js");
 const { PLACEHOLDERS } = await import("../lib/startPlaceholders.js");
@@ -20,10 +22,11 @@ const attrsOf = html => [...bodyOf(html).matchAll(/\b(?:placeholder|aria-label|t
 const cssOf = html => [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(m => m[1]).filter(c => !/@font-face/.test(c) || /--brand/.test(c)).join("\n");
 // the words that are approved elsewhere and so may carry what the strict rules would otherwise flag (digits, "bid"): the engine's own example searches and the approved rules
 const rules = rulesOf();
-const APPROVED = [...PLACEHOLDERS.preview.examples, ...PLACEHOLDERS.previewFind.examples, ...PLACEHOLDERS.previewMc.examples, ...PLACEHOLDERS.previewSell.examples, PLACEHOLDERS.previewMc.text, PLACEHOLDERS.previewSell.text,   /* Sam's approved entry chips and placeholders for Market Check and Sell (brief, Nov 8 2026) */ ...PLACEHOLDERS.home.examples, ...PLACEHOLDERS.find.examples, rules.lead, ...rules.rules.flatMap(r => [r.h, r.b]), copy("home.START_TITLE"), copy("find.START_SUB"), copy("find.START_TITLE"),
+const ENTRY_LINES = [...["find_title", "find_line", "mc_eyebrow", "mc_title", "mc_line", "sell_eyebrow", "sell_title", "sell_line"].map(id => reasonLine("entry." + id)), ENTRY_BRIEF_COPY.find.placeholder, ENTRY_BRIEF_COPY.mc.placeholder, ENTRY_BRIEF_COPY.sell.placeholder, ENTRY_BRIEF_COPY.chipsLabel];   // the final entry pages' hero words (Sam, Nov 9 2026), all reason table lines
+const APPROVED = [...PLACEHOLDERS.preview.examples, ...PLACEHOLDERS.previewFind.examples, ...PLACEHOLDERS.previewMc.examples, ...PLACEHOLDERS.previewSell.examples, ...ENTRY_LINES,   /* Sam's approved entry chips and placeholders for Market Check and Sell (brief, Nov 8 2026) */ ...PLACEHOLDERS.home.examples, ...PLACEHOLDERS.find.examples, rules.lead, ...rules.rules.flatMap(r => [r.h, r.b]), copy("home.START_TITLE"), copy("find.START_SUB"), copy("find.START_TITLE"),
   // Sam's Tasks copy (the Tasks previews): his own questions and lines, and the two free lines the limit builds
   ...TCOPY.faq(TMAX).flat(), ...TCOPY.faq(10).flat(), tFree(TMAX).line, tFree(TMAX).sub, tFree(10).line, tFree(10).sub, TCOPY.heading, TCOPY.support, TCOPY.notHead, ...TCOPY.not, TCOPY.placeholder, TCOPY.eyebrow];
-const stripApproved = t => APPROVED.reduce((a, w) => a.split(w).join(" "), t);
+const stripApproved = t => [...APPROVED].sort((a, b) => String(b).length - String(a).length).reduce((a, w) => a.split(w).join(" "), t);
 
 function hue(hex) { const n = hex.replace("#", ""), f = n.length === 3 ? n.split("").map(c => c + c).join("") : n; const r = parseInt(f.slice(0, 2), 16) / 255, g = parseInt(f.slice(2, 4), 16) / 255, b = parseInt(f.slice(4, 6), 16) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (!d) return { h: 0, s: 0 }; const h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return { h: h * 60, s: d }; }
 const AUDIT = {
@@ -67,9 +70,9 @@ const PILLS = html => part(html, /<div class="pills">[\s\S]*?<\/div>/);
 const FOOT = html => part(html, /<footer class="ft">[\s\S]*?<\/footer>/);
 const SHARED = {
   header: html => /Beta<\/span>/.test(HEADER(html)) && !/FIND\s*(?:&middot;|·)\s*CHECK|Find, check, sell/i.test(textOf(html)) && [">Find<", ">Market Check<", ">Sell<", ">Tasks<", ">Account<"].every(w => HEADER(html).includes(w)) ? null : "the header lacks Beta or one of Find, Market Check, Sell, Tasks, Account, or carries the Find Check Sell tag",
-  placeholder: html => SEARCH(html).includes('placeholder="Tell Sam what you&#39;re looking for..."') ? null : "the search placeholder is not exactly: Tell Sam what you're looking for...",
+  placeholder: html => { const want = /class="shell wrap entry"/.test(html) ? ENTRY_BRIEF_COPY.find.placeholder : "Tell Sam what you're looking for..."; return SEARCH(html).includes('placeholder="' + want.replace(/'/g, "&#39;") + '"') ? null : "the search placeholder is not exactly: " + want; },
   arrowSubmit: html => /<button class="go" type="submit" aria-label="Go ask Sam"><svg/.test(SEARCH(html)) && !/>\s*Go ask Sam\s*</.test(SEARCH(html).replace(/aria-label="[^"]*"/g, "")) && /id="pq-mic"/.test(SEARCH(html)) ? null : "the submit is not a compact arrow only button with the microphone beside it",
-  pills: html => { const l = [...PILLS(html).matchAll(/<a class="pill" href="\/find\?q=([^"]*)">([^<]*)<\/a>/g)].map(m => [decodeURIComponent(m[1]), decode(m[2])]); return l.length === 3 && l.every(([q, t], i) => q === t && t === (/class="shell wrap"/.test(html) ? PLACEHOLDERS.previewFind : PLACEHOLDERS.preview).examples[i]) && /Go ask Sam:/.test(PILLS(html)) ? null : "the pills are not the three approved examples, each linking to its own Find search"; },
+  pills: html => { const l = [...PILLS(html).matchAll(/<a class="pill" href="\/find\?q=([^"]*)">([^<]*)<\/a>/g)].map(m => [decode(decodeURIComponent(m[1])), decode(m[2])]); return l.length === 3 && l.every(([q, t], i) => q === t && t === (/class="shell wrap/.test(html) ? PLACEHOLDERS.previewFind : PLACEHOLDERS.preview).examples[i]) && /Go ask Sam:/.test(PILLS(html)) ? null : "the pills are not the three approved examples, each linking to its own Find search"; },
   footer: html => /The Daily Vroom/.test(FOOT(html)) && ["/about", "/business", "/whats-new", "/feedback", "/terms", "/privacy"].every(h => FOOT(html).includes('href="' + h + '"')) && !/Find, check, sell|Find\. Check\. Sell/i.test(FOOT(html)) ? null : "the footer lost a link or carries the Find Check Sell tagline",
   fonts: html => { const fam = [...cssOf(html).matchAll(/font-family:([^;}]*)/g)].map(m => m[1]); const bad = [...cssOf(html).matchAll(/font:[^;}]*?\b(?:var\(--(?:sans|serif)\)|[A-Za-z"' ,-]+)\s*(?:;|})/g)]; return /Newsreader/.test(cssOf(html)) && /Instrument Sans/.test(cssOf(html)) && !/Inter\b|Arial|Helvetica|Roboto|Playfair|Georgia\s*,\s*serif;/.test(cssOf(html).replace(/--serif:[^;]*;|--sans:[^;]*;/g, "")) ? null : "a font other than the two site families is named in the CSS"; },
   noAbsoluteCentering: html => /translate\(-50%|left:50%/.test(cssOf(html)) ? "the layout is centred by absolute positioning or a transform" : null
@@ -78,7 +81,7 @@ const SHARED = {
   const home = PAGES["preview-home"].render(), find = PAGES["preview-find"].render(), t = textOf(home);
   for (const [k, f] of Object.entries(SHARED)) for (const [n, h] of [["home", home], ["find", find]]) { const why = f(h); ok(!why, `${n}: shared ${k}${why ? " (" + why + ")" : ""}`); }
   ok(HEADER(home) === HEADER(find), "the header is byte for byte the same on both pages (apart from the active Find mark)");
-  ok(SEARCH(home) === SEARCH(find) && SEARCH(home).length > 100, "the search box is byte for byte the same on both pages");
+  ok(SEARCH(home).replace(/placeholder="[^"]*"/, "") === SEARCH(find).replace(/placeholder="[^"]*"/, "") && SEARCH(home).length > 100, "the search box is byte for byte the same on both pages (each carries its own placeholder)");
   ok(PILLS(home).length > 100 && PILLS(find).length > 100 && PILLS(home).replace(/>[^<]*<\/a>/g, "></a>").replace(/href="[^"]*"/g, "") === PILLS(find).replace(/>[^<]*<\/a>/g, "></a>").replace(/href="[^"]*"/g, ""), "the pills are the same three links in the same markup on both pages (each page carries its own approved set: Find's is Sam's longer one, Nov 8 2026)");
   ok(FOOT(home) === FOOT(find) && FOOT(home).length > 100, "the footer is byte for byte the same on both pages");
   ok(/aria-current="page">Find</.test(find) && !/aria-current="page"/.test(home), "Find is the active tab on Find only");
@@ -91,8 +94,8 @@ const SHARED = {
   ok((home.match(/<div class="rule">/g) || []).length === 4 && /<section class="how wrap"/.test(home) && /HOW SAM DECIDES|How Sam decides/i.test(t), "home: How Sam decides is an intro column plus four numbered columns");
   ok(/<aside class="rail"/.test(find) && /Tasks/.test(textOf(find)) && /id="rail-head" hidden/.test(find) && !/class="it"/.test(find), "find: the rail has Tasks and an empty, hidden Recent searches that a signed in visitor's own history fills");
   ok(!/Searches to try/.test(find) && /id="rail-head" hidden>Recent searches</.test(find), "find: no suggestions are shown as history, and the Recent searches heading is hidden until there is history");
-  ok(t.includes("Find") && textOf(find).includes("Search live and recent auctions across multiple platforms.") && textOf(find).includes(copy("find.START_TITLE")), "find: title, supporting line and the central headline");
-  ok(/<div class="deco"[^>]*aria-hidden="true"><\/div>/.test(find) && !/position:absolute[^}]*\.stage|\.stage[^}]*position:absolute/.test(find), "find: the Porsche sits in its own block after the search, never over it");
+  ok(t.includes("Find") && textOf(find).includes(reasonLine("entry.find_line")) && textOf(find).includes(reasonLine("entry.find_title")), "find: title, supporting line and the central headline");
+  ok(!/class="deco"/.test(find) && /class="shell wrap entry"/.test(find) && !/position:absolute[^}]*\.stage|\.stage[^}]*position:absolute/.test(find), "find: no decoration photo, the page is the shared entry layout (one hero, the search, the chips, then the featured section)");
   ok(/noindex/.test(home) && /noindex/.test(find), "both previews are noindex");
   const src = fs.readFileSync("lib/preview/previewPages.js", "utf8");
   ok(!/\bfetch\(|supabase|oneEngineAnswer\(|Math\.random|Date\.now|new Date/.test(src.replace(/\/\/.*$/gm, "")), "the preview pages compute nothing: no fetch, no database, no date, no random in the page code");
@@ -126,9 +129,9 @@ const SHARED = {
   const sh = [
     ["header", home, '<span class="beta">Beta</span>', ""],
     ["header", home, "<span class=\"beta\">Beta</span>", '<span class="beta">Beta</span><span class="tag">FIND &middot; CHECK &middot; SELL</span>'],
-    ["placeholder", find, "Tell Sam what you&#39;re looking for...", "A manual 911 under $40,000"],
+    ["placeholder", find, ENTRY_BRIEF_COPY.find.placeholder, "A manual 911 under $40,000"],
     ["arrowSubmit", home, '<button class="go" type="submit" aria-label="Go ask Sam"><svg', '<button class="go" type="submit" aria-label="Go ask Sam">Go ask Sam<svg'],
-    ["pills", find, "Manual 911 under $40k</a>", "Classic Range Rover</a>"],
+    ["pills", find, "Aston DB9</a>", "Classic Range Rover</a>"],
     ["footer", home, "<nav aria-label=\"Footer\">", "<nav aria-label=\"Footer\"><span>Find, check, sell.</span>"],
     ["fonts", home, "--sans:", "--x:Inter,Arial;--sans:"],
     ["noAbsoluteCentering", find, ".stage{", ".stage{left:50%;transform:translate(-50%,0);"]
