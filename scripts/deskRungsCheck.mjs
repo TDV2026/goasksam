@@ -1,0 +1,16 @@
+// The rung read for a demonstration car (lib/desk/rungs.js, the ops task deskrungs). Lane B's fake archive through the real sheetRead; node scripts/deskRungsCheck.mjs [rootDir]
+import path from "node:path"; import fs from "node:fs"; import { pathToFileURL } from "node:url"; import { setup } from "./_deskCaseWorld.mjs";
+const root = path.resolve(process.argv[2] || "."), { w } = await setup(root), imp = f => import(pathToFileURL(path.join(root, f)).href), S = await imp("lib/sheetRead.js"), R = await imp("lib/desk/rungs.js");
+let pass = 0, fail = 0; const ok = (n, c, d) => { if (c) pass++; else { fail++; console.log("FAIL " + n + (d ? "  " + d : "")); } };
+const head = async () => ({ status: 200, bytes: 50000, type: "image/jpeg" }), calls = [];
+const read = async input => { calls.push(input); return S.sheetRead(w.env, { ...input, desk: { ...input.desk, head } }, w.deps); };
+const r = await R.rungsOf(read, { year: 1999, make: "Porsche", model: "911", mileage: 61400, transmission: "Manual", body: "Coupe" });
+ok("the read asks the engine for the car untiered and at each rung asked for, one read each", calls.length === 4 && calls.map(c => c.tier || 0).join() === "0,2,3,4");
+ok("each rung answers its count; a rung with five or more sales answers a range, one under five its too-few-sales sentence and no range", r.rungs.every(x => x.read && (x.count >= 5 ? x.range && x.range.median > 0 && !x.sentence : x.range === null && /too few sales/.test(x.sentence))), JSON.stringify(r.rungs.map(x => [x.tier, x.count, x.insufficient])));
+ok("the tiered counts are the engine's own (Good 5, Excellent 3, Fair 0 on this archive)", r.rungs.find(x => x.tier === 3).count === 5 && r.rungs.find(x => x.tier === 2).count === 3 && r.rungs.find(x => x.tier === 4).count === 0);
+ok("the answer says how many rungs have a range and whether the range moves across them", r.rungsWithRange === 1 && r.moves === false);
+ok("an unreadable rung is reported as not read, never as zero sales", (await R.rungsOf(async () => null, { year: 1999, make: "Porsche", model: "911" }, [3])).rungs.every(x => x.read === false && x.count === undefined));
+ok("at most four rungs are asked and an unknown tier is dropped", (calls.length = 0, await R.rungsOf(read, { year: 1999, make: "Porsche", model: "911", transmission: "Manual" }, [9, 2, 3, 4, 1]), calls.length <= 5 && !calls.some(c => c.tier === 9)));
+const api = fs.readFileSync(path.join(root, "api/usageDashboard.js"), "utf8"), task = api.slice(api.indexOf('if (task === "deskrungs")'), api.indexOf('if (task === "deskexample")'));
+ok("the ops task is read only: it runs the engine's sheet read through rungsOf and writes nothing", /rungsOf\(/.test(task) && /sheetRead\(env/.test(task) && !/supabaseInsert|supabasePatch|supabaseUpsert|\.insert\(|method: "(POST|PATCH|PUT|DELETE)"/.test(task));
+console.log(`deskRungsCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
