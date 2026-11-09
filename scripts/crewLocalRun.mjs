@@ -53,5 +53,22 @@ async function scenario(name, W, expect) {
 { const W = world(live3(), [sale(), sale(), sale(), sale()]); await FE.refreshFindExamples(env, W.d); await scenario("live", W, { live: 3 }); }
 { const W = world(live3(), [sale(), sale(), sale(), sale()]); await FE.refreshFindExamples(env, W.d); W.rows = W.rows.slice(0, 1); await scenario("mixed", W, { live: 1 }); }
 { const W = world(live3(), [sale(), sale(), sale(), sale()]); await FE.refreshFindExamples(env, W.d); W.rows = []; W.clock = NOW + 400 * 3600e3; await scenario("fallback", W, { live: 0 }); }
+// MARKET CHECK AND SELL ENTRY PAGES with Lane B's real example readers (lib/live/marketCheckExamples.js) over the stand-in world of scripts/_mcExamplesWorld.mjs, through the real api/crewPage.js (Lane B, Nov 8 2026): the section is drawn from the real field at 1440 and 390, a stranger gets the 404, and the kill switch leaves no section.
+{ const { load: loadMc } = await import(pathToFileURL(path.join(root, "scripts/_mcExamplesWorld.mjs")).href), X = await loadMc(root), cookie = X.CREW.headers.cookie;
+  const mc = X.world(X.ALLMC(X.pool(14))), sl = X.world({}, X.ALLSELL(X.places(3)));
+  crewPage.MC_EXAMPLES.read = () => X.MX.marketCheckExampleSales(X.env, X.CREW, mc.d); crewPage.SELL_EXAMPLE.read = () => X.MX.sellExample(X.env, X.CREW, sl.d);
+  const m = await call("/api/crewPage?page=preview-market-check", cookie), se = await call("/api/crewPage?page=preview-sell", cookie), st = await call("/api/crewPage?page=preview-market-check", null);
+  ok(m.code === 200 && se.code === 200 && st.code === 404, "Market Check and Sell entry: crew gets both pages, a stranger gets the 404");
+  for (const w of [1440, 390]) {
+    const pm = await load(m.body, w), cm = await pm.evaluate(() => [...document.querySelectorAll("[data-example-sales] .pc")].map(a => { const r = a.getBoundingClientRect(); return { w: Math.round(r.width), y: Math.round(r.top), img: !!a.querySelector(".pc-ph img"), t: a.querySelector(".pc-t").textContent, p: a.querySelector(".pc-p").textContent, href: a.getAttribute("href"), over: document.documentElement.scrollWidth > innerWidth }; })); if (shots && w === 1440) await pm.screenshot({ path: path.join(root, "docs/design/preview/mc-entry.png") }); await pm.close();
+    ok(cm.length === 3 && cm.every(c => c.img && c.t.length > 3 && /^Sold for \$[\d,]+$/.test(c.p) && /^https:\/\//.test(c.href) && !c.over) && same(cm, "w"), `Market Check entry @${w}: THREE example sales from Lane B's real field (photo, title, price, link), no overflow (${cm.map(c => c.p).join(" | ")})`);
+    const ps = await load(se.body, w), cs = await ps.evaluate(() => [...document.querySelectorAll("[data-sell-example] .pc")].map(a => ({ t: a.querySelector(".pc-t").textContent, l: a.querySelector(".pc-m").textContent, over: document.documentElement.scrollWidth > innerWidth }))); if (shots && w === 1440) await ps.screenshot({ path: path.join(root, "docs/design/preview/sell-entry.png") }); await ps.close();
+    ok(cs.length === 3 && cs.every(c => c.t && /^\d+ sales in the last 24 months: /.test(c.l) && !c.over), `Sell entry @${w}: THREE cars from Lane B's real field, each with the engine's sentence, no overflow`);
+  }
+  process.env.CREW_MC_EXAMPLES = "0"; process.env.CREW_SELL_EXAMPLE = "0"; X.MX.resetRecheck();
+  const mc2 = X.world(X.ALLMC(X.pool(14))), sl2 = X.world({}, X.ALLSELL(X.places(3)));
+  crewPage.MC_EXAMPLES.read = () => X.MX.marketCheckExampleSales(X.env, X.CREW, mc2.d); crewPage.SELL_EXAMPLE.read = () => X.MX.sellExample(X.env, X.CREW, sl2.d);
+  const m0 = await call("/api/crewPage?page=preview-market-check", cookie), s0 = await call("/api/crewPage?page=preview-sell", cookie); delete process.env.CREW_MC_EXAMPLES; delete process.env.CREW_SELL_EXAMPLE;
+  ok(m0.code === 200 && s0.code === 200 && !/data-example-sales/.test(m0.body) && !/data-sell-example/.test(s0.body) && !/data-could-not-read/.test(m0.body + s0.body), "Market Check and Sell entry with the kill switches on: the pages stand, no example section, no error line"); }
 await b.close();
 out.forEach(l => console.log(l)); console.log(`crewLocalRun: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
