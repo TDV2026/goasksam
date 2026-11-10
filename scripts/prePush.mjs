@@ -2327,6 +2327,12 @@ try {
   record("Desk v4 flow in Chrome on the real readers: tick and untick (the list stays), exclude and restore, every condition, the window, type and drag the reserve above the range and tick the seller's request, add a document, resolve attention, Select all photos, edit a step, Preview, Finalize; mutants for each bug Sam hit (scripts/deskV4FlowCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/deskV4SendCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 Send to seller: no button before finalize, disabled after an edit, the confirm panel prints the preview, a refusal as given, the sent line as the case carries it, a double click sends once, never a real send; mutants (scripts/deskV4SendCheck.mjs)", "PASS", (out.match(/deskV4SendCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 Send to seller: no button before finalize, disabled after an edit, the confirm panel prints the preview, a refusal as given, the sent line as the case carries it, a double click sends once, never a real send; mutants (scripts/deskV4SendCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/previewShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Preview shell is one full height column (footer at the bottom of a short page, after a long one, on every preview page at 1440, 1280, 1024 and 390) and the Tasks email section sits on the hero's left edge (scripts/previewShellCheck.mjs)", "PASS", (out.match(/previewShellCheck: .*/) || [""])[0]);
 } catch (e) {
