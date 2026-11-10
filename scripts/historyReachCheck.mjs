@@ -19,8 +19,8 @@ if (args.includes("--mutants")) {
   // Each mutant takes ONE link out of the source; the check must then fail. The file is always put back.
   const { execFileSync } = await import("node:child_process");
   const MUT = [
-    ["the footer link", "lib/appShell.js", 'a("history", "/history", copyText("rail.FOOT_HISTORY")) + ', ""],
-    ["the preview footer link", "lib/preview/previewPages.js", '<a href="/history">${copyText("rail.FOOT_HISTORY")}</a>', ""],
+    ["the About body link", "api/about.js", '<a class="inline" href="/history">', '<a class="inline" href="/hist0ry">'],
+    ["the How Sam decides body link", "api/howSamDecides.js", '<a href="/history">', '<a href="/hist0ry">'],
     ["the index's make sections", "api/history.js", '<h2><a href="/history/${esc(m.slug)}">${esc(m.name)} auction results</a></h2><ul class="hx">${m.hubs.map(h => `<li><a href="/history/${esc(h.slug)}">${esc(h.name)}</a></li>`).join("")}</ul>', ""],
     ["the make page's hub list", "api/history.js", '<ul class="hx">${m.hubs.map(h => `<li><a href="/history/${esc(h.slug)}">${esc(h.name)}</a></li>`).join("")}</ul></section>\n<nav class="vlinks" aria-label="More"><a href="/history">All makes</a>', '</section>\n<nav class="vlinks" aria-label="More"><a href="/history">All makes</a>'],
     ["the sibling hubs", "lib/historyLinks.js", "siblings: sibs.slice(0, cap)", "siblings: []"],
@@ -57,7 +57,7 @@ async function crawl(get, maxDepth) {
   for (let d = 0; d < maxDepth; d++) {
     const next = [];
     for (const p of frontier) {
-      if (!(p === "/" || p === "/history" || /^\/history\/[a-z0-9-]+$/.test(p))) continue;   // expand the home page, the index, make and hub pages
+      if (!(p === "/" || p === "/about" || p === "/how-sam-decides" || p === "/history" || /^\/history\/[a-z0-9-]+$/.test(p))) continue;   // expand the home page, About, How Sam decides, the index, make and hub pages
       let r = await get(p), hops = 0;
       while (r && r.status >= 300 && r.status < 400 && r.location && hops++ < 4) { const lp = localPath(r.location, "http://x"); r = lp ? await get(lp) : null; }
       if (!r || r.status !== 200) continue;
@@ -111,16 +111,27 @@ async function stubbedWorld() {
   };
 }
 
-// ---------------------------------------------------------------- 1. the footers carry the link
+// ---------------------------------------------------------------- 1. the link lives in the body of About and How Sam decides (Sam, option b), not the footers
 {
   const { shellFoot } = await import("../lib/appShell.js");
-  const foot = shellFoot("", {});
-  ok(/<a class="[^"]*" href="\/history"[^>]*>Auction history<\/a>/.test(foot), "the rail's quiet links (every live page's footer: Home, Find, Market Check, Tasks, Sell, About) carry an Auction history link to /history");
+  ok(!/href="\/history"/.test(shellFoot("", {})), "the rail's footer carries no Auction history link (removed everywhere, Sam option b)");
   const prev = await import("../lib/preview/previewPages.js");
-  const pages = { home: prev.homeHtml() };
-  for (const k of ["findHtml", "marketCheckHtml", "tasksHtml"]) if (typeof prev[k] === "function") { try { pages[k] = prev[k](); } catch { /* a preview that needs input is skipped */ } }
-  for (const [k, h] of Object.entries(pages)) ok(/<footer class="ft">[\s\S]*href="\/history"[^>]*>Auction history</.test(h), `the crew preview footer (${k}) links Auction history`);
-  ok(Object.keys(pages).length >= 1, "at least the home preview rendered");
+  ok(!/href="\/history"/.test(prev.homeHtml()), "the crew preview footer carries no Auction history link");
+  if (!LIVE) {
+    const sentence = /<p[^>]*>Every car Sam has seen sell has its own page\. <a[^>]*href="\/history"[^>]*>Browse the auction history<\/a>\.<\/p>/;
+    for (const [name, mod] of [["About", "../api/about.js"], ["How Sam decides", "../api/howSamDecides.js"]]) {
+      const r = await renderPage(mod);
+      ok(r.code === 200 && sentence.test(r.body), `${name}: the plain sentence with a crawlable <a href="/history"> is in the body`);
+      ok(/<main>[\s\S]*href="\/history"[\s\S]*<\/main>/.test(r.body), `${name}: the link sits inside <main>, not the footer`);
+    }
+  }
+}
+
+async function renderPage(mod) {
+  const h = (await import(mod)).default;
+  const res = { code: 200, h: {}, body: "", setHeader(k, v) { this.h[k.toLowerCase()] = v; }, status(c) { this.code = c; return this; }, send(b) { this.body = String(b); return this; } };
+  await h({ method: "GET", headers: { host: "goasksam.com" }, query: {}, url: "/", socket: {} }, res);
+  return res;
 }
 
 // ---------------------------------------------------------------- 2. the crawl
@@ -129,17 +140,20 @@ async function stubbedWorld() {
   if (!LIVE) {
     const { shellFoot } = await import("../lib/appShell.js");
     const get0 = world.get;
-    world.get = async p => p === "/" ? { status: 200, html: `<html><body><nav>${shellFoot("", {})}</nav></body></html>`, headers: {} } : get0(p);
+    world.get = async p => p === "/" ? { status: 200, html: `<html><body><nav>${shellFoot("", {})}</nav></body></html>`, headers: {} }
+      : p === "/about" ? { status: 200, html: (await renderPage("../api/about.js")).body, headers: {} }
+      : p === "/how-sam-decides" ? { status: 200, html: (await renderPage("../api/howSamDecides.js")).body, headers: {} } : get0(p);
   }
-  const { depth } = await crawl(world.get, 3);
+  const { depth } = await crawl(world.get, 4);
   const hubs = world.hubs;
   ok(hubs.length > 0, "the world has hubs to reach");
-  const unreached = hubs.filter(h => !(depth.has(h) && depth.get(h) <= 3));
-  ok(unreached.length === 0, `every model hub is reachable from the home page within 3 link hops (${hubs.length - unreached.length} of ${hubs.length}; first unreached: ${unreached.slice(0, 5).join(", ")})`);
-  ok(depth.has("/history") && depth.get("/history") === 1, "the history index is ONE hop from the home page (the footer link)");
+  const unreached = hubs.filter(h => !(depth.has(h) && depth.get(h) <= 4));
+  ok(unreached.length === 0, `every model hub is reachable from the home page within 4 link hops (${hubs.length - unreached.length} of ${hubs.length}; first unreached: ${unreached.slice(0, 5).join(", ")})`);
+  ok(depth.has("/history") && depth.get("/history") === 2, "the history index is TWO hops from the home page (footer to About or How Sam decides, then the body link)");
+  for (const pg of ["/about", "/how-sam-decides"]) ok(hrefsOf((await world.get(pg)).html).some(x => localPath(x, "http://x") === "/history"), `${pg} links /history (the check fails if neither page links it)`);
   // Make pages exist, are reachable in 2 hops, and every hub has a make parent that links it.
   const makes = [...depth.keys()].filter(p => /^\/history\/[a-z0-9-]+$/.test(p) && !isHub(p));
-  ok(makes.length > 0 && makes.every(p => depth.get(p) <= 2), `the make hubs are reachable within 2 hops (${makes.length} found)`);
+  ok(makes.length > 0 && makes.every(p => depth.get(p) <= 3), `the make hubs are reachable within 3 hops (${makes.length} found)`);
 }
 
 // ---------------------------------------------------------------- 3. VIN pages within four hops
@@ -159,7 +173,7 @@ async function stubbedWorld() {
   }
   const linked = sample.filter(v => { const h = hubHtml.get(hubOf(v)); return h && hrefsOf(h).some(x => localPath(x, "http://x") === v || (localPath(x, "http://x") || "").toLowerCase() === v.toLowerCase() || (localPath(x, "http://x") || "").endsWith("/" + v.split("/")[3])); });
   ok(got > 0, "the sampled VINs' hub pages answered 200");
-  ok(linked.length === sample.length, `a sample of ${sample.length} VIN pages is each linked from its hub page (reachable in 4 hops): ${linked.length} of ${sample.length}`);
+  ok(linked.length === sample.length, `a sample of ${sample.length} VIN pages is each linked from its hub page (reachable in 5 hops): ${linked.length} of ${sample.length}`);
   }
   // A VIN page links back up and sideways: its hub, the make hub, three nearby pages (offline: the pure functions on the same rollout).
   if (!LIVE) {

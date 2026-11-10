@@ -33,7 +33,7 @@ ok(/<a class="gas-logo" href="\/">GoAskSam<\/a>/.test(html), "the wordmark is Ho
 ok(/id="gas-recent" hidden><div class="gas-rail-head">Recent searches<\/div><div id="gas-recent-list"><\/div>/.test(html), "Recent searches is empty and hidden until this browser has a search (never samples)");
 const foot = noSvg.slice(noSvg.indexOf('class="gas-rail-foot"'), noSvg.indexOf("</aside>"));
 const labels = [...foot.matchAll(/<a class="gas-navitem[^"]*"[^>]*>([^<]+)/g)].map(m => m[1]);
-ok(JSON.stringify(labels.filter(l => l !== "For business")) === JSON.stringify(["The Daily Vroom", "How Sam decides", "Auction history", "About", "What's new", "Feedback"]), "the quiet links in order (What's new between About and Feedback, Sam, Oct 31 2026), no Privacy items (they moved off the rail): " + labels.join(", "));
+ok(JSON.stringify(labels.filter(l => l !== "For business")) === JSON.stringify(["The Daily Vroom", "How Sam decides", "About", "What's new", "Feedback"]), "the quiet links in order (What's new between About and Feedback, Sam, Oct 31 2026), no Privacy items (they moved off the rail): " + labels.join(", "));
 // THE CLASS (Lane E, Oct 31 2026, What's new): a check that spells out the quiet-link list goes red the day a link is added. No check may carry a list that
 // runs "How Sam decides" ... "About" ... "Feedback" without What's new between About and Feedback, and the live rail, the phone menu (same function) and
 // the About page must all draw the one list from shellFoot.
