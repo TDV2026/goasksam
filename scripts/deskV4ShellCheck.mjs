@@ -60,9 +60,12 @@ for (const w of [1440, 1280, 1024, 390]) {
   const css = fs.readFileSync("lib/preview/deskV4Css.js", "utf8"); ok(/prefers-color-scheme: dark/.test(css) && /:root\[data-theme="dark"\]/.test(css), "the stylesheet defines light and dark tokens");
   const l = await openPage(b, html, 1440, 900); await l.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "light" }]); const bl = await l.evaluate(() => getComputedStyle(document.body).backgroundColor); await l.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }]); const bd = await l.evaluate(() => getComputedStyle(document.body).backgroundColor); await l.close();
   ok(bl !== bd && bl === "rgb(244, 245, 243)" && bd === "rgb(16, 19, 20)", `the page background follows the scheme (${bl} then ${bd})`); }
-{ // the clock only from the server's field
-  ok(!/id="clock"/.test(html) && /id="saved"/.test(html), "no handling clock is drawn when the server sent none"); const withClock = V4.pageHtml({ cases: [], activeId: null, kase: null }); ok(!/id="clock"/.test(withClock), "no clock on the empty page");
-  const hk = await (async () => { const m = await V3.deskModel({ query: { case: V3.DEMO_ID } }); m.kase = { ...m.kase, handling: { ...(m.kase.handling || {}), clock: "04:12" } }; return V4.pageHtml(m); })(); ok(/Handling <b id="clock">04:12<\/b>/.test(hk), "a clock the server sent is printed as sent"); }
+{ // the clock is the server's line, printed as sent, with no timer of the page's own
+  const m0 = await V3.deskModel({ query: { case: V3.DEMO_ID } }), line = m0.kase.handling && m0.kase.handling.clock;
+  ok(!!line && html.includes('<b id="clock">' + line.replace(/&/g, "&amp;") + "</b>"), "the top bar prints the server's own handling clock line (" + line + ")");
+  const none = V4.pageHtml({ cases: [], activeId: null, kase: null }); ok(!/id="clock"/.test(none) && /id="saved"/.test(none), "no clock on the empty page");
+  const hk = await (async () => { const m = await V3.deskModel({ query: { case: V3.DEMO_ID } }); m.kase = { ...m.kase, handling: { ...(m.kase.handling || {}), clock: "Handled in 18 min." } }; return V4.pageHtml(m); })(); ok(/<b id="clock">Handled in 18 min\.<\/b>/.test(hk), "a clock the server sent is printed as sent");
+  ok(!/setInterval|setTimeout\([^)]*clock/.test(fs.readFileSync("lib/preview/deskV4.js", "utf8") + fs.readFileSync("lib/preview/deskV4Client.js", "utf8").replace(/setTimeout\(function \(\) \{ say/, "")), "the page runs no timer of its own for the clock"); }
 // ---------- 6 nothing computed ----------
 { const src = fs.readFileSync("lib/preview/deskV4.js", "utf8").replace(/\/\/.*$/gm, ""); ok(!/Math\.(round|floor|ceil|min|max)|parseFloat|toFixed|toLocaleString|\.reduce\(/.test(src), "the module carries no arithmetic on a figure"); }
 // ---------- mutants ----------
