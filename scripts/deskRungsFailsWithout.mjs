@@ -3,8 +3,12 @@ import fs from "node:fs"; import path from "node:path"; import os from "node:os"
 const ROOT = path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 const RG = "lib/desk/rungs.js", API = "api/usageDashboard.js";
 const MUT = [
+  [RG, "an unread rung does not say why", s => s.replace("read: false, why, ", "read: false, ")],
+  [API, "deskcars returns a photo that did not pass the photo rule", s => s.replace("const photo = await choosePhoto(photoCandidates({ photo_url: r.image }));", "const photo = r.image;")],
+  [API, "deskcars is unbounded", s => s.replace("&order=sale_date.desc&limit=40`", "&order=sale_date.desc`")],
+  [API, "deskcars writes a record", s => s.replace("const out = []; for (const r of rows || []) { if (out.length >= limit) break;", "await supabaseInsert(env, \"app_usage_events\", [{}]); const out = []; for (const r of rows || []) { if (out.length >= limit) break;")],
   [RG, "a rung under five sales is reported with a range", s => s.replace("range: e.insufficient ? null : {", "range: {")],
-  [RG, "an unread rung is reported as zero sales", s => s.replace("if (!r || r.retry || !e) return { tier, name: tier ? TIER_NAMES[tier] : \"Any condition\", read: false,", "if (!r || r.retry || !e) return { tier, name: tier ? TIER_NAMES[tier] : \"Any condition\", read: false, count: 0,")],
+  [RG, "an unread rung is reported as zero sales", s => s.replace("read: false, why, ", "read: false, count: 0, why, ")],
   [RG, "an unknown tier is asked of the engine", s => s.replace(".filter(t => RUNG_TIERS.includes(Number(t)))", "")],
   [RG, "the untiered read is not asked", s => s.replace("const out = [await shape(null)];", "const out = [];")],
   [RG, "the sentence of a thin rung is dropped", s => s.replace("sentence: e.insufficient ? e.sentence : null", "sentence: null")],
