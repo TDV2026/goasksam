@@ -4,7 +4,7 @@ const ROOT = path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url))
 const RS = "lib/desk/reportState.js", RW = "lib/reasonWords.js", WF = "lib/desk/caseWorkflow.js", SA = "lib/desk/sheetActions.js";
 const MUT = [
   ["IMS always reads documented (hard coded)", RS, s => s.replace('!speaks ? null : received ? reasonLine("report.ims_documented") : reasonLine("report.ims_reported")', '!speaks ? null : reasonLine("report.ims_documented")')],
-  ["IMS reads documented when only some invoice exists, received or not", RS, s => s.replace('const received = c.documents.some(d => d.kind === "service" && d.status === "received");', 'const received = c.documents.some(d => d.kind === "service");')],
+  ["IMS reads documented when only some invoice exists, received or not", RS, s => s.replace('const received = c.documents.some(isServiceInvoice);', 'const received = c.documents.some(d => kindOfDoc(d) === "invoice");')],
   ["IMS is reported for every car, even when the case never speaks of it", RS, s => s.replace("const speaks = IMS_WORDS.test", "const speaks = true || IMS_WORDS.test")],
   ["the seller agreement always prints", RS, s => s.replace('r.seller_agreed === true ? reasonLine("report.seller_agreed") : null', 'reasonLine("report.seller_agreed")')],
   ["the seller agreement prints for any truthy value", RS, s => s.replace('r.seller_agreed === true ? reasonLine', 'r.seller_agreed ? reasonLine')],
@@ -13,8 +13,8 @@ const MUT = [
   ["the reserve position edge: q1 counts as below", WF, s => s.replace("f < ev.q1 ? \"below\"", "f <= ev.q1 ? \"below\"")],
   ["the reserve position edge: q3 counts as above", WF, s => s.replace("f > ev.q3 ? \"above\"", "f >= ev.q3 ? \"above\"")],
   ["the report compares the reserve to the median, not the quartiles", WF, s => s.replace("f > ev.q3 ? \"above\" : \"inside\"", "f > ev.median ? \"above\" : \"inside\"")],
-  ["the invoices step stays when the documents are received", RS, s => s.replace('c.documents.some(d => d.kind === "service") && !received', 'c.documents.some(d => d.kind === "service")')],
-  ["the confirm-the-mileage step stays when verified", RS, s => s.replace("m.value != null && !m.verified", "m.value != null")],
+  ["the invoices step stays when the documents are received", "lib/desk/nextSteps.js", s => s.replace("if (c.documents.some(isServiceInvoice)) return false;", "")],
+  ["the report prints the seeded steps, not the case's own list", RS, s => s.replace("const steps = printedSteps(c);", 'const steps = [reasonLine("report.next.call")];')],
   ["a done item is listed as a limitation", RS, s => s.replace('n.state === "open" || n.state === "waived")', 'true)')],
   ["a waived item loses its reason", RS, s => s.replace('reasonLine("report.limit_waived", { label: n.label, reason: n.reason })', 'reasonLine("report.limit_waived", { label: n.label, reason: "" })')],
   ["the no prior record note prints for a case with no VIN", RS, s => s.replace('out.noteLines = f("vin").value && c.record', 'out.noteLines = c.record')],

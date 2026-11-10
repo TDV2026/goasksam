@@ -2693,6 +2693,12 @@ try {
   record("Desk v3 preview door images (scripts/deskPreviewImageCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/deskNextStepsCheck.mjs", { encoding: "utf8", timeout: 200000 });
+  record("Desk v4 stage 3: next steps are the case's own list, seeded through reasonWords, edited, removed, added and reordered by step key, printed as written (scripts/deskNextStepsCheck.mjs)", "PASS", (out.match(/deskNextStepsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 3 next steps (scripts/deskNextStepsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/deskActionsResolveCheck.mjs", { encoding: "utf8", timeout: 200000 });
   record("Desk v4 stage 2: every needs attention action on every case resolves by item key and returns the caseView; doc_add, Select all, touched comparable rows (scripts/deskActionsResolveCheck.mjs)", "PASS", (out.match(/deskActionsResolveCheck: .*/) || [""])[0]);
 } catch (e) {

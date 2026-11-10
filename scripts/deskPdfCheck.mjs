@@ -127,7 +127,7 @@ ok("only https addresses become links", mini.pdfPages && !Buffer.from((await bui
   ok("the Please note paragraph says what the assessment used, and that it is not a guarantee", /This assessment uses completed auction sales available to us up to \d{1,2} [A-Z][a-z]+ 20\d\d/.test(ops[3].map(o => o.text).join(" ")) && /not a guarantee of any price/.test(ops[3].map(o => o.text).join(" ")));
   ok("the reserve carries the disclaimer and the rationale; the valuation its basis in words with no market figure", pg[0].includes("A recommendation, not a guaranteed price.") && pg[0].includes(demo.reserve.rationale.slice(0, 20)) && /From \d+ comparable sales, sold between/.test(pg[0]) && !/market median|typical range/i.test(pg[0]));
   ok("page 1 carries the invoice sentence the case supports (on file with the invoices received, wanted without them)", /service invoices are on file/.test(pg[0]) && /Service invoices would strengthen/.test(pagesOf(await build((() => { const c4 = cl(demo); c4.documents[0].status = "outstanding"; return c4; })()))[0]));
-  ok("nothing the case does not carry is printed: no inspection advice, no auction length, no analyst", !/pre sale inspection|seven day|Prepared by J|Jane|Park/i.test(pg.join(" "))); }
+  ok("nothing the case does not carry is printed: no auction length, no analyst", !/seven day|Prepared by J|Jane|Park/i.test(pg.join(" "))); }
 // the content is the case's: every figure and sentence on the pages is reportState's
 const rs = R.reportState(demo), text = pg.join(" ");
 ok("page 1 prints the range, the reserve and the explanation from the case", text.includes("$" + demo.assessment.low.toLocaleString("en-US") + " to $" + demo.assessment.high.toLocaleString("en-US")) && text.includes("$" + demo.reserve.figure.toLocaleString("en-US")) && pg[0].includes(demo.assessment.explanation.slice(0, 25)) && pg[0].includes("RECOMMENDED RESERVE") && pg[0].replace(/\s+/g, " ").includes("$" + demo.reserve.figure.toLocaleString("en-US")));
@@ -147,7 +147,7 @@ ok("page 4 prints quarters (shown ones only), live listings with their kind, nex
 // the wording follows the case
 const docsOut = cl(demo); docsOut.documents[0].status = "outstanding", docsOut.documents = docsOut.documents; const outTxt = pagesOf(await build(docsOut)).join(" ");
 ok("IMS reads documented with the invoices received, and reported with them outstanding, in the PDF itself", /documented by the service invoices/.test(text) && /reported by the seller, and the invoices are outstanding/.test(outTxt) && !/documented by the service invoices/.test(outTxt));
-ok("the next steps drop the invoices step once received, and the PDF says so", !/Send the service invoices/.test(text) && /Send the service invoices/.test(outTxt));
+ok("the next steps drop the invoices step once received, and the PDF says so", !/Send us the service invoice/.test(text) && /Send us the service invoice/.test(outTxt));
 { const nr = cl(demo); nr.fields.vin = { value: "WP0AA2995XS626785", source: "seller", verified: false, candidates: [] }; nr.record = { appearances: 0, none: "x" }; const t = pagesOf(await build(nr))[3];
   ok("no prior auction record: the one sentence is in the note on page 4, and there is no page for it", /Please note/.test(t) && /No prior auction record for this VIN\./.test(t) && pagesOf(await build(nr)).length === 4); }
 ok("without that case there is no such sentence anywhere", !/No prior auction record/.test(pg.join(" ")));
