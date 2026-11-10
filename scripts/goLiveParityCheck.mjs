@@ -108,6 +108,8 @@ for (const [name, url, f, kind] of ROUTES) {
 }
 // Find results: a page of the new design only when it answers X-Design: new (today it does not, so the search keeps working on today's page)
 { const h = await mod("buy"); process.env.NEW_DESIGN = "all"; const R = await get(h, "/find?q=porsche+911"); delete process.env.NEW_DESIGN; if (R.h["x-design"] !== "new") lost.push({ route: "find results", kind: "page", item: "/find?q= in the new shell with its rail" }); }
+// Tasks dashboard: the redesign shows each Task's criteria words, which the PREVIEW'S OWN API door adds to the list (lib/preview/tasksMine.js previewTasksApi). On a public address the app posts to the plain /api/tasks, which does not send them.
+{ const h = await mod("tasksPage"); process.env.NEW_DESIGN = "all"; const R = await get(h, "/tasks/mine?app=1"); delete process.env.NEW_DESIGN; if (R.h["x-design"] === "new" && /fetch\("\/api\/tasks", \{/.test(R.body)) lost.push({ route: "tasks-mine", kind: "feature", item: "the criteria words on each Task (added by the preview door only)" }); }
 // HELD list against what is lost
 const key = x => `${x.route}|${x.kind}|${x.item}`, heldKeys = new Set(held.map(key)), lostKeys = new Set(lost.map(key));
 if (PRINT) { fs.writeFileSync(path.join(ROOT, "docs/go-live-held.json"), JSON.stringify(lost.map(x => ({ ...x, note: "" })), null, 1) + "\n"); origLog("wrote docs/go-live-held.json with " + lost.length + " items"); process.exit(0); }
