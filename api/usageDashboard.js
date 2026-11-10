@@ -2205,7 +2205,7 @@ async function handleOps(req, res) {
   if (task === "crewkeys") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { crewKeysReport } = await import("./pullLive.js");
-    return res.status(200).json(await crewKeysReport(env, { funnel: String(req.query?.funnel || "") === "1", pool: String(req.query?.pool || "") === "1", rebuild: String(req.query?.rebuild || "") === "1" }));
+    return res.status(200).json(await crewKeysReport(env, { funnel: String(req.query?.funnel || "") === "1", pool: String(req.query?.pool || "") === "1", rebuild: String(req.query?.rebuild || "") === "1", entry: String(req.query?.rebuild || "") === "entry" }));
   }
   // task=bodyaudit (Lane B, Nov 6 2026; READ-ONLY, zero OldCarsData, zero writes): how many rows carry a stored body the model never came in (lib/modelBodies.js), every body value swept, the models with the most, and the models with an
   // open body stored and nothing known about them (the next MODEL_BODY_FACTS candidates). Live listings always; &archive=1 also reads the newest &pages= (default 20, max 200) pages of 1,000 archive sales.

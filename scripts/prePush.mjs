@@ -931,6 +931,13 @@ try {
 } catch (e) {
   record("exampleFallbackCheck (scripts/exampleFallbackCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// publicExamplesCheck (Lane B, Nov 10 2026): the entry page examples are STORED daily picks. Flag off (PUBLIC_EXAMPLES unset, the default): the public gets null for all nine, with no read; flag on: the public gets the stored pick byte equal to the crew read; a public request with no stored pick (or a stale one) makes zero engine, zero builder and zero vendor calls, writes nothing and answers null; each kill switch holds; the cron builds what the public reads. 14 mutants, among them one that builds on a public request.
+try {
+  const out = execSync("node scripts/publicExamplesCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("publicExamplesCheck (scripts/publicExamplesCheck.mjs)", "PASS", (out.match(/publicExamplesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("publicExamplesCheck (scripts/publicExamplesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // engineCardShapeCheck (Lane B, Nov 8 2026): the three crew fields in Lane E's refine8 shapes (Find's engine card with its bid badge, platform tag, pills and SAM block lines; the Task row with Sam's read back sentence and the live count; the watching row), live and ended (card.sold).
 try {
   const out = execSync("node scripts/engineCardShapeCheck.mjs", { encoding: "utf8", timeout: 280000 });
@@ -1009,9 +1016,9 @@ try {
 // functionBundleCheck (Lane B, Nov 9 2026): every file a module loaded by a variable path needs (api/crewPage.js readers, api/pullLive.js run) is reached by a literal import or copied by includeFiles; the Sell example was empty because three files were in no bundle.
 try {
   const out = execSync("node scripts/functionBundleCheck.mjs", { encoding: "utf8", timeout: 120000 });
-  record("Function bundles: every file a variable-path module needs ships with its function; four mutants (scripts/functionBundleCheck.mjs)", /, 0 FAIL/.test(out), (out.match(/functionBundleCheck: .*/) || [""])[0]);
+  record("Function bundles: every file a variable-path module needs ships with its function, and so does the closure of every public function that imports an example reader; six mutants (scripts/functionBundleCheck.mjs)", /, 0 FAIL/.test(out), (out.match(/functionBundleCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("Function bundles: every file a variable-path module needs ships with its function; four mutants (scripts/functionBundleCheck.mjs)", false, String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
+  record("Function bundles: every file a variable-path module needs ships with its function, and so does the closure of every public function that imports an example reader; six mutants (scripts/functionBundleCheck.mjs)", false, String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 // entryExamplesCheck (Lane B, Nov 8 2026): marketCheckExampleSales (three real sales of one model that show mileage moving the price) and sellExample (one model's record by venue from the Sell engine): daily pick, crew gate, never invented.
 try {
