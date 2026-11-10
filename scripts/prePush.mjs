@@ -2302,10 +2302,10 @@ try {
   record("Market Check and Sell on the shared shell, entry and results: one Find header, the Find rail per product, one footer, no old navigation, nothing inside the results changed, the approved entry copy (scripts/mcSellShellCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
-  const out = execSync("node scripts/deskV3ShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
-  record("Desk v3 shell: the case rail, the operations block from Lane D's lines, the compact case header, flat and two colours, nothing computed on the page (scripts/deskV3ShellCheck.mjs)", "PASS", (out.match(/deskV3ShellCheck: .*/) || [""])[0]);
+  const out = execSync("node scripts/deskV4ShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v4 shell: zones (queue 232, centre, Reserve panel 372 sticky), no Vehicle, Market evidence or Decision tabs, one shadow, top bar, no overflow at 1440, 1280, 1024 and 390, light and dark, crew only (scripts/deskV4ShellCheck.mjs)", "PASS", (out.match(/deskV4ShellCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("Desk v3 shell: the case rail, the operations block from Lane D's lines, the compact case header, flat and two colours, nothing computed on the page (scripts/deskV3ShellCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+  record("Desk v4 shell: zones (queue 232, centre, Reserve panel 372 sticky), no Vehicle, Market evidence or Decision tabs, one shadow, top bar, no overflow at 1440, 1280, 1024 and 390, light and dark, crew only (scripts/deskV4ShellCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
   const out = execSync("node scripts/previewShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
