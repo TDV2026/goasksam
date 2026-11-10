@@ -7,6 +7,7 @@ import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../
 import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appShell.js";
 import { fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
+import { withNewDesign } from "../lib/_newDesign.js";
 
 const TITLE = copy("about.TITLE");
 const DESC = copy("about.DESC");
@@ -62,7 +63,7 @@ ${list}
   return { html, crew };
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const { html, crew } = page(req);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", "index, follow");
@@ -72,3 +73,4 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }
+export default withNewDesign("about", handler);

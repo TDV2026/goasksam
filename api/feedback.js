@@ -14,6 +14,7 @@ import { checkCeiling } from "../lib/_ceilings.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { sendTaskEmail } from "../lib/_email.js";
 import { track } from "../lib/track/log.js";
+import { withNewDesign } from "../lib/_newDesign.js";
 
 export const FEEDBACK_TO = "feedback@goasksam.com";
 export const FEEDBACK_SUBJECT = "GoAskSam feedback";
@@ -124,7 +125,7 @@ async function send(req, res) {
   return out(200, { ok: true }, "sent");
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method === "POST") { res.setHeader("Cache-Control", "no-store"); return send(req, res); }
   if (req.method !== "GET" && req.method !== "HEAD") { res.setHeader("Allow", "GET, HEAD, POST"); return res.status(405).end(); }
   const { html, crew } = page(req);
@@ -134,3 +135,4 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }
+export default withNewDesign("feedback", handler);

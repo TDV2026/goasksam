@@ -10,6 +10,8 @@ import { hasServerCredential } from "../lib/_credential.js";
 import { legalBodyHtml } from "../lib/legal/render.js";
 import { PRIVACY_TEXT } from "../lib/legal/privacyText.js";
 import { TERMS_TEXT } from "../lib/legal/termsText.js";
+import { withNewDesign } from "../lib/_newDesign.js";
+const qsOf = req => { try { return new URL(String(req.url || "/"), "https://x").searchParams; } catch { return new URLSearchParams(); } };
 
 export const EFFECTIVE = "Effective October 29, 2026";
 export const PAGES = {
@@ -58,7 +60,7 @@ ${CONSENT_BANNER_HTML}
   return { html, crew };
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== "GET" && req.method !== "HEAD") { res.setHeader("Allow", "GET, HEAD"); return res.status(405).end(); }
   const key = String((req.query && req.query.page) || "") === "terms" ? "terms" : "privacy";
   const { html, crew } = page(req, key);
@@ -68,3 +70,4 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=300");
   res.status(200).send(html);
 }
+export default withNewDesign(req => (qsOf(req).get("page") === "terms" ? "terms" : "privacy"), handler);

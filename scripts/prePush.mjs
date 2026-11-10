@@ -2335,6 +2335,48 @@ try {
   record("Desk v4 flow in Chrome on the real readers: tick and untick (the list stays), exclude and restore, every condition, the window, type and drag the reserve above the range and tick the seller's request, add a document, resolve attention, Select all photos, edit a step, Preview, Finalize; mutants for each bug Sam hit (scripts/deskV4FlowCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/goLiveSwitchCheck.mjs --base ee488ab5", { encoding: "utf8", timeout: 240000 });
+  record("Go live switch: NEW_DESIGN off serves bytes identical to the baseline on every public route, on keeps status and headers and replays redirects, per route, crew look, no POST switched (scripts/goLiveSwitchCheck.mjs)", "PASS", (out.match(/goLiveSwitchCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Go live switch: NEW_DESIGN off serves bytes identical to the baseline on every public route, on keeps status and headers and replays redirects, per route, crew look, no POST switched (scripts/goLiveSwitchCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveSwitchCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
+  const out = execSync("node scripts/goLiveGuardsCheck.mjs --base origin/main", { encoding: "utf8", timeout: 240000 });
+  record("Go live guards: every crew preview route renders the same with the switch off and on, no render before the crew gate, every wrapper an api file had (calm, tracking, hold) is kept and calm stays outer (scripts/goLiveGuardsCheck.mjs)", "PASS", (out.match(/goLiveGuardsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Go live guards: every crew preview route renders the same with the switch off and on, no render before the crew gate, every wrapper an api file had (calm, tracking, hold) is kept and calm stays outer (scripts/goLiveGuardsCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveGuardsCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
+  const out = execSync("node scripts/goLiveParityCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Go live parity: per route, the new public page wears the current page's title, description, robots, canonical, Open Graph and JSON-LD byte for byte, one h1, no preview address or title, no unlisted lost link or script (scripts/goLiveParityCheck.mjs; the held list is docs/go-live-held.json, --ready is the go live gate)", "PASS", (out.match(/goLiveParityCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Go live parity: per route, the new public page wears the current page's title, description, robots, canonical, Open Graph and JSON-LD byte for byte, one h1, no preview address or title, no unlisted lost link or script (scripts/goLiveParityCheck.mjs; the held list is docs/go-live-held.json, --ready is the go live gate)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveParityCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
+  const out = execSync("node scripts/goLiveExamplesCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Go live examples: Home, Find, Market Check, Sell and Tasks on a public address hide a section whose example is null, fails, says could-not-read or never answers (time boxed), keep the search box, print the live Tasks limit (scripts/goLiveExamplesCheck.mjs)", "PASS", (out.match(/goLiveExamplesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Go live examples: Home, Find, Market Check, Sell and Tasks on a public address hide a section whose example is null, fails, says could-not-read or never answers (time boxed), keep the search box, print the live Tasks limit (scripts/goLiveExamplesCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveExamplesCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
+  const out = execSync("node scripts/goLivePerfCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Go live performance: the new landing pages are no heavier to download and no slower to a first usable search than today's at 1440 and 390 (scripts/goLivePerfCheck.mjs)", "PASS", (out.match(/goLivePerfCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Go live performance: the new landing pages are no heavier to download and no slower to a first usable search than today's at 1440 and 390 (scripts/goLivePerfCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLivePerfCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
+  const out = execSync("node scripts/findResultsCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Find results in the new shell: today's results page inside the new header, rail (New search, recent searches) and footer, results byte identical in text, figures, links, buttons and style at 1440 and 390, the search address serves the results not the landing (scripts/findResultsCheck.mjs)", "PASS", (out.match(/findResultsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find results in the new shell: today's results page inside the new header, rail (New search, recent searches) and footer, results byte identical in text, figures, links, buttons and style at 1440 and 390, the search address serves the results not the landing (scripts/findResultsCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|findResultsCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
+  const out = execSync("node scripts/goLiveTasksFlowCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Go live Tasks signed in on the public address: create, edit and stop send their calls to /api/tasks, the Account button opens the same sign in card (scripts/goLiveTasksFlowCheck.mjs)", "PASS", (out.match(/goLiveTasksFlowCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Go live Tasks signed in on the public address: create, edit and stop send their calls to /api/tasks, the Account button opens the same sign in card (scripts/goLiveTasksFlowCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveTasksFlowCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
   const out = execSync("node scripts/previewShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Preview shell is one full height column (footer at the bottom of a short page, after a long one, on every preview page at 1440, 1280, 1024 and 390) and the Tasks email section sits on the hero's left edge (scripts/previewShellCheck.mjs)", "PASS", (out.match(/previewShellCheck: .*/) || [""])[0]);
 } catch (e) {

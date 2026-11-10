@@ -7,6 +7,7 @@ import sellPage from "./sellPage.js";
 import { isCrewRequest } from "./_chrome.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { withCalm } from "../lib/_hold.js";
+import { withNewDesign } from "../lib/_newDesign.js";
 
 function handler(req, res) {
   const result = /[?&]car=/.test(String(req.url || ""));
@@ -16,4 +17,4 @@ function handler(req, res) {
   return sellPage(req, res);
 }
 // A database failure under either Sell answers the calm page (503, Retry-After, one plain sentence), never the platform's generic 500 (Lane S review, Oct 27 2026).
-export default withCalm(handler, "sell");
+export default withCalm(withNewDesign("sell", handler), "sell");

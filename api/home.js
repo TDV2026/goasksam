@@ -15,6 +15,7 @@ import { PLACEHOLDERS } from "../lib/startPlaceholders.js";
 import { liveSalesLine, liveSalesWords } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { heldFor } from "../lib/_hold.js";
+import { withNewDesign } from "../lib/_newDesign.js";
 
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const TITLE = copy("home.TITLE");
@@ -40,7 +41,7 @@ const CSS = `
 @media (max-width:700px){.hm{min-height:calc(100dvh - 60px);padding:48px 16px 64px;align-items:flex-start}}
 .hm-legal{position:absolute;left:0;right:0;bottom:16px;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;font:400 12.5px/1.4 var(--sans,sans-serif);color:var(--sec,#5E6B63)}.hm-legal a{color:inherit;text-decoration:none}.hm-legal a:hover{text-decoration:underline}`;
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
   const crew = isCrewRequest(req);
   if (!isReleased("buy", req)) { res.setHeader("Cache-Control", "no-store"); res.setHeader("Location", "/sell"); return res.status(302).end(); }
@@ -77,3 +78,4 @@ ${CONSENT_BANNER_HTML}
   res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }
+export default withNewDesign("home", handler);

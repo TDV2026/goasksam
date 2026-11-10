@@ -34,6 +34,7 @@ import { heldFor } from "../lib/_hold.js";
 import { countNoun } from "../lib/countNoun.js";
 import { routeLimit, sendTooMany } from "../lib/_routeLimit.js";
 import { historyGraph, makeOf, indexMakes, hubNav, nearbyVins } from "../lib/historyLinks.js";
+import { withNewDesign } from "../lib/_newDesign.js";
 
 const SITE = "https://goasksam.com";
 // Card design system (Oct 2026, the /buy cards): #FAF8F4 paper, near-black ink, one red (#D7262C),
@@ -1260,4 +1261,5 @@ async function photoCheck(req, res, env, kind) {
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
 export function tidySlug(slug) { return String(slug || "").replace(/-+/g, "-").replace(/^-|-$/g, ""); }
-export default withTracking("/api/history", handler, "site");
+const historyRoute = req => { try { const q = new URL(String(req.url || "/"), "https://x").searchParams; return (q.get("sitemap") || q.get("photocheck") || q.get("refresh") || q.get("go")) ? null : (q.get("index") || q.get("slug")) ? "history" : null; } catch { return null; } };
+export default withNewDesign(historyRoute, withTracking("/api/history", handler, "site"));
