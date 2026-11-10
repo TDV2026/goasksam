@@ -22,7 +22,7 @@ ok("with no cases the lines say none yet and never divide by zero", V.handlingLi
 ok("no per analyst figure rides on the lines", !/seat|analyst|owner/i.test(JSON.stringify(h)));
 const demo = D.demoCase();
 ok("the demonstration case is the 1999 Porsche 911 Carrera, lead HM-24117", demo.lead_ref === "HM-24117" && demo.fields.year.value === 1999 && demo.fields.model.value === "911" && demo.fields.trim.value === "Carrera");
-ok("the demonstration case has a conflict-free VIN, a decoded generation, two photos, one outstanding document, two needs", demo.fields.vin.value && demo.fields.generation.source === "vin_decoded" && demo.photos.items.length === 2 && demo.documents[0].status === "outstanding" && demo.needs_review.length === 2);
+ok("the demonstration case has a conflict-free VIN, a decoded generation, six photos, one outstanding document, two needs", demo.fields.vin.value && demo.fields.generation.source === "vin_decoded" && demo.photos.items.length === 6 && demo.documents[0].status === "outstanding" && demo.needs_review.length === 2);
 ok("the demonstration case carries no figure", demo.assessment.figure === null && demo.reserve.figure === null);
 // through the action the page calls
 const store = memoryStore(), ctx = { org: "t", seat: "crew", store, now: T, env: {} };
