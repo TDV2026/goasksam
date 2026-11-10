@@ -11,11 +11,19 @@ const args = process.argv.slice(2), rootArg = args.find(a => !a.startsWith("--")
 if (args.includes("--mutants")) {
   const DV = "lib/deskV3.js";
   const muts = [
+    [DV, "&& Math.abs(Number(r.year) - Number(sub.year)) <= YEAR_CAP) : [];", ") : [];", "(5) a car matches on the model name across any years"],
+    [DV, "export const YEAR_CAP = 5,", "export const YEAR_CAP = 40,", "(5) the year distance is not capped"],
+    [DV, "FALLBACK_MIN = 5,", "FALLBACK_MIN = 0,", "(5) too few sales still list comparables"],
+    [DV, "const rel = dYear === 0 && boxSame && bodySame && near ? \"close\" : \"similar\"", "const rel = dYear === 0 ? \"close\" : \"similar\"", "(5) close without gearbox, body and miles matching"],
+    [DV, "|| a.dist - b.dist || String(b.r.date || \"\").localeCompare(String(a.r.date || \"\"))).slice(0, FALLBACK_MAX);", "|| String(b.r.date || \"\").localeCompare(String(a.r.date || \"\"))).slice(0, FALLBACK_MAX);", "(5) the closest year is not first"],
+    [DV, "  if (!sub.generation) {\n    const { cands }", "  if (false) {\n    const { cands }", "(5) an unmapped car lists no comparables"],
+    [DV, "const comparablesNote = sub.generation ? null : fallbackPool(rows, sub, windowMonthsOf(desk), desk.caseDate).note;", "const comparablesNote = null;", "(5) too few sales says nothing"],
     [DV, "if (!sub.generation || !r.generation || r.generation !== sub.generation) return null;", "if (!sub.generation || !r.generation) return null;", "(1) the same model in another generation is a comparable"],
     [DV, "if (!sub.body || !r.body || !sameBody(r.body, sub.body)) return null;", "", "(1) the same model in another body is a comparable"],
     [DV, "return Number(r.year) === Number(sub.year) && boxSame && near ? \"close\" : \"similar\";", "return \"close\";", "(1) every sale is close"],
     [DV, "if (!sub.generation || !r.generation || r.generation !== sub.generation) return null;", "if (!sub.generation || !r.generation || r.generation !== sub.generation) return (String(r.model) === String(sub.model) ? \"similar\" : null);", "(1) the model name alone makes a sale similar"],
     [DV, "return reasonLine(\"desk3.why_nomiles\", { year });", "return `${year}, no mileage on the listing.`;", "(2) a why sentence typed in the module"],
+    [DV, "photo: photos[i] || null, relevance: o.rel, why: whyOf(o.r, sub)", "photo: photos[i] || o.r.photo || \"/img/placeholder.png\", relevance: o.rel, why: whyOf(o.r, sub)", "(3) a placeholder where the photo failed, mapped family"],
     [DV, "photo: photos[i] || null,", "photo: photos[i] || o.r.photo || \"/img/placeholder.png\",", "(3) a placeholder (or an unchecked photo) where the photo failed"],
     [DV, "const photos = await Promise.all(out.map(async (o, i) => (i < PHOTO_COMPS && o.r.photo ? await choosePhoto(photoCandidates({ photo_url: o.r.photo }), head || undefined) : null)));", "const photos = out.map(o => o.r.photo);", "(3) the photo rule is not applied"],
     [DV, "if (rel === \"other_box\") { rel = \"similar\"; inPop = false; }", "if (rel === \"other_box\") { rel = \"similar\"; inPop = true; }", "(4) an outside sale is marked in the population"],
@@ -95,4 +103,28 @@ ok("the outside difference is the medians' difference to the nearest $500", (() 
   ok("no reference in the population gives no outside entry", DV.outsideOf(rows, { insufficient: true }, sub).length === 0); }
 { const r = await S.sheetRead(w.env, { year: c0.year, make: c0.make, model: c0.model, mileage: 61400, desk: { caseDate: today, label: c0.label, head } }, w.deps);
   ok("with no gearbox asked there is no outside group and every comparable is in the population", r.desk.outside.length === 0 && r.desk.comparables.every(c => c.inPopulation)); }
+// (5) a car from a family with no generation list
+{ const CASE = "2026-11-10", sub = { year: 1985, make: "Acme", model: "Roadster", generation: null, body: "coupe", gearbox: "manual", miles: 60000, tier: null };
+  const mk = (i, o = {}) => ({ id: "u" + i, title: "Acme Roadster " + i, year: 1980 + (i % 11), generation: null, body: i % 5 === 0 ? "open" : "coupe", gearbox: i % 3 === 0 ? "automatic" : i % 7 === 0 ? null : "manual", gearboxWord: i % 3 === 0 ? "Automatic" : "Manual", miles: 20000 + i * 3000, price: 20000 + i * 900 + (i % 3 === 0 ? 0 : 6000), date: "2026-0" + (3 + (i % 6)) + "-10", platform: "Bring a Trailer", url: "https://x.test/u" + i, photo: null, tier: null, inPopulation: true, ...o });
+  const twenty = Array.from({ length: 24 }, (_, i) => mk(i));
+  const blk = (rows, extra = {}) => DV.deskBlock(rows, { caseDate: CASE, subject: { transmission: "Manual", body: "Coupe" }, subjectFacts: sub, head, ...extra });
+  const d = await blk(twenty), cs = d.comparables;
+  ok("(5) an unmapped family with 24 sales in the window: at least two comparables, each with a why line from the table", cs.length >= 2 && cs.length <= 12 && cs.every(c => inTable("desk.comparables.why", c.why)), String(cs.length));
+  ok("(5) the year distance is capped at five years: no comparable further off, and a gap is said in the line", cs.every(c => Math.abs(c.year - 1985) <= 5) && cs.filter(c => c.year !== 1985).every(c => /within the 5 year limit/.test(c.why)), JSON.stringify(cs.map(c => c.year)));
+  ok("(5) the closest come first: year distance, then close before similar rules (close ones are first)", cs.every((c, i, a) => i === 0 || !(a[i - 1].relevance === "similar" && c.relevance === "close")) && (() => { const sim = cs.filter(c => c.relevance === "similar").map(c => Math.abs(c.year - 1985)); return sim.every((v, i) => i === 0 || v >= sim[i - 1]); })());
+  ok("(5) close only when year, gearbox and body match and the miles are in the band", cs.filter(c => c.relevance === "close").every(c => c.year === 1985 && /Manual/.test(c.transmission) && c.body === "coupe" && Math.abs(c.miles - 60000) <= 15000) && cs.filter(c => c.relevance === "similar").every(c => !(c.year === 1985 && /Manual/.test(c.transmission) && c.body === "coupe" && Math.abs(c.miles - 60000) <= 15000)));
+  ok("(5) the why line says what matched and the main difference", cs.every(c => /^Matched on model/.test(c.why)) && cs.some(c => /older|newer|different gearbox|different body|miles/.test(c.why)), cs[0].why);
+  ok("(5) a note says there is no generation list and what was used, a table line, no dash", inTable("desk.comparablesNote", d.comparablesNote) && /no generation list/.test(d.comparablesNote) && !/[\u2013\u2014]/.test(d.comparablesNote), d.comparablesNote);
+  ok("(5) every comparable is a sale of the chosen window: a sale a year old is not listed in the 6 month window", (await blk(twenty.map((r, i) => (i < 12 ? { ...r, date: "2025-03-10" } : r)), { windowMonths: 6 })).comparables.every(c => c.soldDate >= "2026-05-10"));
+  const ph = await blk(twenty.map((r, i) => ({ ...r, photo: "https://img.example/x" + i + ".jpg" })));
+  ok("(5) a photo is the listing's own that passed the rule or null, never a substitute, in the unmapped list too", ph.comparables.length > 0 && ph.comparables.every(c => c.photo === null || (/^https:/.test(c.photo) && c.photo === "https://img.example/x" + c.id.slice(1) + ".jpg" && !/x\d*[13579]\.jpg$/.test(c.photo) && !/x\d*0\.jpg$/.test(c.photo))) && ph.comparables.some(c => c.photo === null) && ph.comparables.some(c => c.photo));
+  const few = await blk(twenty.slice(0, 3));
+  ok("(5) too few sales: no comparables and the sentence that says so", few.comparables.length === 0 && /too few sales of this model/.test(few.comparablesNote) && inTable("desk.comparablesNote", few.comparablesNote), few.comparablesNote);
+  const far = await blk(Array.from({ length: 30 }, (_, i) => mk(i, { year: 2012 + (i % 4) })));
+  ok("(5) thirty sales of the same model but twenty-seven years away (a redesign): none, never matched on the model name alone", far.comparables.length === 0 && /too few/.test(far.comparablesNote), String(far.comparables.length));
+  ok("(5) a mapped family has no note", (await DV.deskBlock(twenty, { caseDate: CASE, subject: {}, subjectFacts: { ...sub, generation: "g1" } })).comparablesNote === null);
+  const sepRows = Array.from({ length: 24 }, (_, i) => mk(i, { year: 1985, body: "coupe", gearbox: i < 12 ? "manual" : "automatic", gearboxWord: i < 12 ? "Manual" : "Automatic", price: i < 12 ? 60000 + i * 100 : 30000 + i * 100, miles: 50000 + i * 200 }));
+  const ff = await blk(sepRows), tf = ff.factors.find(f => f.key === "transmission"), few3 = await blk(sepRows.filter((r, i) => i < 12 || i < 14)), tf2 = few3.factors.find(f => f.key === "transmission");
+  ok("(5) factors read what the sales can isolate: the gearbox effect with both groups large, none when one group has two sales", tf.effectSentence && /\$[\d,]+/.test(tf.effectSentence) && tf2.effectSentence === null && /few|number|isolate/.test(tf2.basis), String(tf.effectSentence) + " | " + tf2.basis);
+}
 console.log("\ndeskCompsCheck: " + (n - failed) + " pass, " + failed + " FAIL"); process.exit(failed ? 1 : 0);

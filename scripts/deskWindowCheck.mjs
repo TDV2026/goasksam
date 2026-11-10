@@ -16,11 +16,11 @@ if (args.includes("--mutants")) {
     [DV, "iso(r.date) >= c); };", "iso(r.date) > c); };", "(1) the cutoff day is out"],
     [DV, "(rows || []).filter(r => iso(r.date) && iso(r.date) >= c)", "(rows || []).filter(r => !iso(r.date) || iso(r.date) >= c)", "(5) an undated sale is in every window"],
     [DV, "export const windowMonthsOf = desk => { const m = Number(desk && desk.windowMonths); return WINDOWS.includes(m) ? m : WINDOW_DEFAULT; };", "export const windowMonthsOf = desk => { const m = Number(desk && desk.windowMonths); return WINDOWS.includes(m) ? m : 24; };", "(2) the default window is not twelve"],
-    [DV, "return { ...e, windowMonths: months, byWindow:", "return { ...evidenceOf(pop, matching, d, env), windowMonths: months, byWindow:", "(2) the evidence is the whole population, not the chosen window"],
+    [DV, "return { ...e, windowMonths: months,", "return { ...evidenceOf(pop, matching, d, env), windowMonths: months,", "(2) the evidence is the whole population, not the chosen window"],
     [SR, "p25: ev.q1, median: ev.median, p75: ev.q3, high: ev.high };", "p25: ev.q1, median: ev.byWindow[\"24\"].median, p75: ev.q3, high: ev.high };", "(2) the meter reads another window"],
     [DV, "const min = desk.tier ? DESK_TIER_MIN : DESK_EVIDENCE_MIN;", "const min = 1;", "(3) one sale gives a reference"],
-    [DV, "median: null, q1: null, q3: null, low: null, high: null, population:", "median: quant(prices, 0.5), q1: null, q3: null, low: null, high: null, population:", "(3) an insufficient window returns a median"],
-    [DV, "reasonLine(\"desk4.period\", { from: deskDateWords(iso(dated[dated.length - 1].date)), to: deskDateWords(asOf) })", "reasonLine(\"desk4.period\", { to: deskDateWords(iso(dated[dated.length - 1].date)), from: deskDateWords(asOf) })", "(4) the period runs backwards"],
+    [DV, "median: null, q1: null, q3: null, low: null, high: null, typicalLine", "median: quant(prices, 0.5), q1: null, q3: null, low: null, high: null, typicalLine", "(3) an insufficient window returns a median"],
+    [DV, "reasonLine(\"desk4.period\", { from: deskDateShort(iso(dated[dated.length - 1].date)), to: deskDateShort(asOf) })", "reasonLine(\"desk4.period\", { to: deskDateShort(iso(dated[dated.length - 1].date)), from: deskDateShort(asOf) })", "(4) the period runs backwards"],
     [DV, "const dated = rows.filter(r => iso(r.date)).sort((a, b) => iso(b.date).localeCompare(iso(a.date))), latest = dated[0] || null;", "const dated = rows.filter(r => iso(r.date)).sort((a, b) => iso(a.date).localeCompare(iso(b.date))), latest = dated[0] || null;", "(4) the latest sale is the oldest"],
     [DV, "url: latest.url || null } : null,", "url: null } : null,", "(4) the latest sale has no link"],
     [DV, "const rowsCalc = rows.filter(r => !calc.has(String(r.id)))", "const rowsCalc = rows", "(5) an excluded sale stays in the windows"]
@@ -66,13 +66,16 @@ const blk = async (r, d = {}) => (await DV.deskBlock(r, { caseDate: CASE, subjec
     ok(`(2) windowMonths ${JSON.stringify(ask)} reads ${want} months: desk.evidence is that window`, e.windowMonths === want && e.count === e.byWindow[String(want)].count && e.median === e.byWindow[String(want)].median && e.q1 === e.byWindow[String(want)].q1 && e.q3 === e.byWindow[String(want)].q3 && e.low === e.byWindow[String(want)].low && e.high === e.byWindow[String(want)].high, `${e.count}`); }
 }
 { const e = await blk(rows, { windowMonths: 6 });
-  ok("(4) periodLine names the first and last sale dates in words", e.byWindow["6"].periodLine === "Sales from May 10, 2026 to November 1, 2026." && line("desk.evidence.byWindow.periodLine", e.byWindow["6"].periodLine), e.byWindow["6"].periodLine);
+  ok("(4) periodLine names the first and last sale dates in words", e.byWindow["6"].periodLine === "May 10, 2026 to Nov 1, 2026" && line("desk.evidence.byWindow.periodLine", e.byWindow["6"].periodLine), e.byWindow["6"].periodLine);
   const ls = e.byWindow["6"].latestSale;
-  ok("(4) latestSale is the newest sale of the window: price, date in words, platform, link", ls && ls.price === 50000 && ls.dateLine === "November 1, 2026" && ls.platform === "Bring a Trailer" && ls.url === "https://x.test/a", JSON.stringify(ls));
+  ok("(4) latestSale is the newest sale of the window: price, date in words, platform, link", ls && ls.price === 50000 && ls.dateLine === "Nov 1, 2026" && ls.line === "Latest sale $50,000, Nov 1, Bring a Trailer." && ls.platform === "Bring a Trailer" && ls.url === "https://x.test/a", JSON.stringify(ls));
   ok("(4) the population line and every sentence are reason table lines", ["6", "12", "24"].every(k => line("desk.evidence.byWindow.populationLine", e.byWindow[k].populationLine)), e.byWindow["6"].populationLine);
   ok("(4) no dash in any window sentence", ["6", "12", "24"].every(k => !/[–—]|\s-\s/.test([e.byWindow[k].periodLine, e.byWindow[k].populationLine, e.byWindow[k].sentence || ""].join(" "))));
+  const b6 = e.byWindow["6"], b12 = e.byWindow["12"], usd = v => "$" + v.toLocaleString("en-US");
+  ok("(4) the mockup's market card lines: typical range, lowest to highest, the count, all from the window", b6.typicalLine === usd(b6.q1) + " to " + usd(b6.q3) && b6.extremesLine === "$50,000 to $52,000" && b6.countLine === "3 sales" && b12.countLine === "6 sales" && e.countLine === "3 sales", JSON.stringify([b6.typicalLine, b6.extremesLine, b6.countLine]));
+  ok("(4) the evidence note: period, population, before buyer premium, date updated, one sentence", /^Sales from May 10, 2026 to Nov 1, 2026, .+, priced before buyer premium and updated Nov 10, 2026\.$/.test(e.noteLine) && line("desk.evidence.noteLine", e.noteLine), e.noteLine);
   const one = await blk([row("z", 40000, "2026-11-05"), row("y", 41000, "2026-11-05"), row("x", 42000, "2026-11-05")], {});
-  ok("(4) all sales on one day: a day line, not a range", one.byWindow["12"].periodLine === "Sold on November 5, 2026." && line("desk.evidence.byWindow.periodLine", one.byWindow["12"].periodLine), one.byWindow["12"].periodLine);
+  ok("(4) all sales on one day: a day line, not a range", one.byWindow["12"].periodLine === "Nov 5, 2026" && line("desk.evidence.byWindow.periodLine", one.byWindow["12"].periodLine), one.byWindow["12"].periodLine);
 }
 { const thin = await blk([row("a", 50000, "2026-11-01"), row("b", 51000, "2026-10-01"), row("c", 52000, "2025-12-01"), row("d", 53000, "2025-01-01"), row("e", 54000, "2025-02-01")], {});
   const w6 = thin.byWindow["6"], w12 = thin.byWindow["12"], w24 = thin.byWindow["24"];
