@@ -59,7 +59,7 @@ ok("no selected condition, no condition sentence (the engine's suggestion is not
   const w = rs(K.setNeed(c, "mileage_unconfirmed", "waived", "Odometer photo accepted")).limitations; ok("a waived item is a limitation with its reason", w.some(l => /^Waived: Mileage is not confirmed, reason given: Odometer photo accepted\.$/.test(l)));
   ok("a done item is not a limitation", base.needs_review.some(n => n.state === "done") && !base.needs_review.some(n => n.state === "open") && rs(base).limitations.length === 0); }
 // 8. no prior auction record
-const withVin = cl(base); withVin.fields.vin = { value: "WP0AA2990XS620481", source: "seller", verified: false, candidates: [] };
+const withVin = cl(base); withVin.fields.vin = { value: "WP0AA2995XS626785", source: "seller", verified: false, candidates: [] };
 ok("a VIN with no earlier auction record puts the one sentence in the note", J(rs({ ...withVin, record: { appearances: 0, none: "x" } }).noteLines) === J(["No prior auction record for this VIN."]));
 ok("a VIN with an earlier record has no such line, and neither has a case with no VIN", rs({ ...withVin, record: { appearances: 2, none: null } }).noteLines.length === 0 && rs({ ...base, record: { appearances: 0 } }).noteLines.length === 0);
 // the engine's own record line is the table's, not a typed one
