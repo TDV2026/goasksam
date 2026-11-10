@@ -20,7 +20,17 @@ if (args.includes("--mutants")) {
     [FE, "const lo = num(a.cluster[0]), hi = num(a.cluster[1]);", "const lo = num(a.cluster[0]), hi = num(a.cluster[1]) + 500;", "(3) the band is not the engine's"],
     [FE, "return h || { ...NONE_INTEL };", "return h || { kind: \"market_range\", line: reasonLine(\"find.intel_range\", { lo: 20000, hi: 30000 }), url: \"/market-check\" };", "(4) a none slot is filled"],
     [FE, "export function intelShape(x) {\n  if (!x || typeof x !== \"object\" || !INTEL_KINDS.includes(x.kind)) return { ...NONE_INTEL };", "export function intelShape(x) {\n  if (x) return x;\n  if (!x || typeof x !== \"object\" || !INTEL_KINDS.includes(x.kind)) return { ...NONE_INTEL };", "(4) a stored line is served without being checked again"],
-    [FE, "export const isCarRow = row => !!row && ", "export const isCarRow = row => true || ", "(5) a motorcycle or a part can be an example"],
+    [FE, "export const isCarRow = row => vehicleKindOf(row) === \"car\";", "export const isCarRow = row => true;", "(5) a motorcycle or a part can be an example"],
+    ["lib/_classify.js", "|rebel\\s?\\d{3})(?:[a-z]{1,2}\\d?)?\\b/i]", "|rebel\\s?\\d{3})\\b/i]", "(8) a Honda bike code with a letter suffix passes the fence"],
+    ["lib/_classify.js", "|rv\\s?\\d{2,3})(?:[a-z]{1,2}\\d?)?\\b/i]", "|rv\\s?\\d{2,3})\\b/i]", "(8) a Suzuki bike code with a letter suffix passes the fence"],
+    ["lib/_classify.js", "|ce\\s?0?4)(?:[a-z]{1,2}\\d?)?\\b/i]", "|ce\\s?0?4)\\b/i]", "(8) a BMW bike code with a letter suffix passes the fence"],
+    [FE, " || isMotorcycleTitle(`${make} ${model}`, make)", "", "(8) the model the record files is not read"],
+    [FE, " || BIKE_DESC_RE.test(String(row.description || \"\").slice(0, 400))", "", "(8) the description is not read"],
+    [FE, "if (row.vehicle_type && row.vehicle_type !== \"car\") return String(row.vehicle_type);", "", "(8) the record's own type is not read"],
+    [FE, "if (!have) { const r = await intelWithWhy", "if (false) { const r = await intelWithWhy", "(9) a stored pick without the field is not given it"],
+    [FE, "st.pickDate !== dateKey || force;", "st.pickDate !== dateKey;", "(9) force does not build again"],
+    [FE, "if (funnel.noIntel.length) console.error(", "if (false) console.error(", "(9) a card with none does not say why"],
+    [FE, "intel: intelShape(c.intel), why:", "why:", "(9) the daily build does not write intelligence"],
     [FE, "(INTEL_RANK[(c.intel && c.intel.kind) || \"none\"] || 0)", "0", "(6) a card with intelligence is not preferred"],
     [FE, "venue: houseName(row.source), timing: reasonLine(\"find.timing\", { ms: left })", "venue: \"\", timing: \"\"", "(6) venue and timing are not from the record"],
     [RW, "`Market range \\u00b7 ${moneyK(p.lo)} to ${moneyK(p.hi)}`", "`Market range \\u00b7 ${money(p.lo)} to ${money(p.hi)}`", "(3) the band is not in the k form"]
@@ -112,6 +122,44 @@ const byTitle = items => Object.fromEntries(items.map(i => [i.title, i]));
   const W = world([moto, part, farm, ...cars], { apps: { [vM]: [sale(vM)], [vP]: [sale(vP)] }, answers: {} });
   await FE.refreshFindExamples(env, W.d); const items = await FE.findExamples(env, CREW, W.d);
   ok("(5) a motorcycle, a part and a tractor with a recorded sale are never chosen", items && items.length === 3 && items.every(i => !/Ducati|parts|tractor|John Deere/i.test(i.title)) && FE.isCarRow(cars[0]) && !FE.isCarRow(moto) && !FE.isCarRow(farm), JSON.stringify(items && items.map(i => i.title)));
+}
+{ // (8) THE CLASS: a motorcycle or minibike is never an example, however its record spells it (Nov 10 2026: a Honda CT70H Trail was a live card; the title fence's bike codes ended at a word boundary right after the digits, so "CT70H" and every code with the maker's own letter suffix passed)
+  const { isMotorcycleTitle: moto } = await imp("lib/_classify.js");
+  const codes = [["Honda", "CT70"], ["Honda", "CL350"], ["Honda", "CX500"], ["Honda", "GL1000"], ["Honda", "Z50"], ["Honda", "CB750"], ["Suzuki", "GT750"], ["Suzuki", "RM250"], ["Suzuki", "GS1000"], ["BMW", "K75"], ["BMW", "R65"], ["BMW", "R1250"]], suffixes = ["", "H", "K1", "J", "A", "C", "S"];
+  const slipped = []; for (const [mk, c] of codes) for (const sfx of suffixes) { const t = `1972 ${mk} ${c}${sfx} Trail`; if (!moto(t, mk)) slipped.push(t); }
+  ok("(8) every bike code of Honda, Suzuki and BMW is a motorcycle with or without the maker's letter suffix", slipped.length === 0, slipped.slice(0, 6).join(" | "));
+  const stay = [["1967 Honda S800", "Honda"], ["1969 Honda N600", "Honda"], ["1992 Honda NSX", "Honda"], ["2001 Honda S2000", "Honda"], ["1974 Triumph TR6", "Triumph"], ["1962 Triumph TR4", "Triumph"], ["1972 BMW 2002tii", "BMW"], ["2001 BMW Z3 M Coupe", "BMW"], ["1988 BMW M3 E30", "BMW"], ["1989 Suzuki Cappuccino", "Suzuki"], ["1987 Suzuki Samurai", "Suzuki"]];
+  ok("(8) cars with a bike-like name stay cars", stay.every(([t, mk]) => !moto(t, mk)), JSON.stringify(stay.filter(([t, mk]) => moto(t, mk))));
+  const mini = car("Honda", "CT70H Trail", 1970, { title: "1970 Honda CT70H Trail" }), byModel = car("Honda", "CT70H", 1971, { title: "1971 Honda Trail" }), byDesc = car("Honda", "Sport", 1969, { title: "1969 Honda Sport", more: { description: "This original minibike has 3,100 miles and a new chain." } }), byType = car("Yamaha", "DT250", 1975, { title: "1975 Yamaha DT250 Enduro", more: { vehicle_type: "motorcycle" } }), real = car("Honda", "S800", 1967, { title: "1967 Honda S800 Coupe" });
+  ok("(8) the record's whole text is read: title, the model the record files, the opening of the description, the record's own type", [mini, byModel, byDesc, byType].every(r => FE.vehicleKindOf(r) !== "car" && !FE.isCarRow(r)) && FE.vehicleKindOf(real) === "car", JSON.stringify([mini, byModel, byDesc, byType, real].map(r => FE.vehicleKindOf(r))));
+  const vB = "VINBIKE00000000010", pool = [mini, byModel, byDesc, byType, car("Porsche", "911", 1995, { source: "bringatrailer" }), car("BMW", "M3", 2006, { source: "carsandbids" }), car("Ferrari", "F430", 2007, { source: "rmsothebys" })];
+  for (const r of pool.slice(0, 4)) r.vin_norm = vB + r.id;
+  const W = world(pool, { apps: Object.fromEntries(pool.slice(0, 4).map(r => [r.vin_norm, [sale(r.vin_norm)]])), answers: {} });
+  await FE.refreshFindExamples(env, W.d); const items = await FE.findExamples(env, CREW, W.d);
+  ok("(8) four bike records with a recorded sale each are never chosen: the pool gives its three cars", items && items.length === 3 && items.every(i => /Porsche|BMW|Ferrari/.test(i.title)), JSON.stringify(items && items.map(i => i.title)));
+  const r2 = world([...pool.slice(0, 4)]), res2 = await FE.refreshFindExamples(env, r2.d);
+  ok("(8) a pool of bikes alone gives no card", res2.stored === null && (res2.funnel ? res2.funnel.eligible === 0 : true), JSON.stringify(res2.why));
+}
+{ // (9) the daily build writes intelligence, and a stored pick from before it did gets it at the next build; a card with none says why
+  const vS = "VINSOLD0000000011", rows = [car("Porsche", "911", 1995, { vin: vS, source: "bringatrailer" }), car("BMW", "M3", 2006, { vin: null, source: "carsandbids" }), car("Ferrari", "F430", 2007, { vin: null, source: "rmsothebys" })];
+  const W = world(rows, { apps: { [vS]: [sale(vS)] }, answers: { "2006 BMW M3": answerOf(25000, 35000), "2007 Ferrari F430": { tier: "thin", cluster: [1, 2] } } });
+  const logs = [], realErr = console.error; console.error = x => logs.push(String(x));
+  await FE.refreshFindExamples(env, W.d); console.error = realErr;
+  const built = W.store.get(FE.STORE_KEY), kinds = built.entries.map(e => e.intel && e.intel.kind).sort();
+  ok("(9) the daily build writes an intelligence field on every stored entry", built.entries.every(e => e.intel && typeof e.intel === "object"), JSON.stringify(kinds));
+  const line = logs.map(l => { try { return JSON.parse(l); } catch { return null; } }).find(x => x && x.tag === "crew_find_intel_none");
+  ok("(9) a card with no intelligence row is named in the log with the reason", line && line.cards.length === 1 && /Ferrari/.test(line.cards[0].title) && /^no_vin_then_engine_tier_thin$/.test(line.cards[0].why), JSON.stringify(line && line.cards));
+  // a pick stored before the field existed: strip it, build again the same day
+  for (const e of built.entries) delete e.intel; W.store.set(FE.STORE_KEY, built);
+  const again = await FE.refreshFindExamples(env, W.d), healed = W.store.get(FE.STORE_KEY).entries.map(e => e.intel && e.intel.kind).sort();
+  ok("(9) a stored pick without the field gets it at the next build, the cars unchanged", healed.every(Boolean) && healed.join() === kinds.join() && W.store.get(FE.STORE_KEY).entries.map(e => e.listingId).join() === built.entries.map(e => e.listingId).join() && again.why === "kept", healed.join());
+  const served = await FE.findExamples(env, CREW, W.d);
+  ok("(9) the served cards carry sold_before, market_range and one plain card", served.filter(i => i.intelligence.kind === "sold_before").length === 1 && served.filter(i => i.intelligence.kind === "market_range").length === 1 && served.filter(i => i.intelligence.kind === "none").length === 1, JSON.stringify(served.map(i => i.intelligence.kind)));
+  const kept = await FE.refreshFindExamples(env, W.d), forced = await FE.refreshFindExamples(env, W.d, { force: true }), forced2 = await FE.refreshFindExamples(env, { ...W.d, force: true });
+  ok("(9) force builds today's pick again from the pool; an ordinary build keeps it", kept.funnel && kept.funnel.live === 0 || kept.why === "kept", kept.why + " / " + JSON.stringify(forced2.funnel && forced2.funnel.live));
+  ok("(9) force reads the pool and writes intelligence again", forced2.why === "picked" && forced2.funnel.live >= 3 && forced2.stored.entries.every(e => e.intel), forced2.why);
+  process.env.FIND_EXAMPLES = "0"; const off = await FE.refreshFindExamples(env, { ...W.d, force: true }); delete process.env.FIND_EXAMPLES;
+  ok("(9) force does not pass the kill switch", off.why === "off");
 }
 ok("(7) zero requests left the fake database", ocdCalls === 0, String(ocdCalls));
 console.log(`\nfindIntelCheck: ${n - failed} pass, ${failed} FAIL`); process.exit(failed ? 1 : 0);
