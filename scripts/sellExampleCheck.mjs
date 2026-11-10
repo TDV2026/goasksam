@@ -63,7 +63,7 @@ const PL = X.places(3), every = X.ALLSELL(PL);
   const rows = M.sellExampleOf(f);
   ok("(1) Lane E's own reader accepts the field", rows && rows.length === 3 && rows.every(r => r.title && r.line), JSON.stringify(rows && rows[0]));
   const html = M.entryHtml("sell", { sellExample: f });
-  ok("(1) the entry page draws the section with a card per car, each a link into Sell", /data-sell-example/.test(html) && (html.match(/class="pc"/g) || []).length === 3 && f.cars.every(c => html.includes(c.title)) && /href="\/sell\?car=/.test(html));
+  ok("(1) the entry page no longer draws the old two or three car section (Lane E, Nov 9 2026: it draws sellExampleCard as one wide card, held by scripts/entryFinalCheck.mjs)", !/data-sell-example/.test(M.entryHtml("sell", { sellExample: f })));
   const two = await MX.sellExample(env, CREW, X.world({}, Object.fromEntries(X.EE.SELL_CANDIDATES.map((t, i) => [t, i < 2 ? PL : null]))).d);
   ok("(1) two cars with a record: a field of two", two && two.cars.length === 2 && M.sellExampleOf(two).length === 2);
 }
