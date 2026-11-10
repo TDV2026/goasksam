@@ -20,7 +20,7 @@ if (args.includes("--mutants")) {
     [RWF, "month: \"long\", year: \"numeric\", timeZone: \"UTC\" }); };\nexport const deskDateWords", "month: \"short\", year: \"numeric\", timeZone: \"UTC\" }); };\nexport const deskDateWords", "(6) the month is not in words"],
     [DV, "&& Math.abs(Number(r.year) - Number(sub.year)) <= YEAR_CAP) : [];", ") : [];", "(5) a car matches on the model name across any years"],
     [DV, "export const YEAR_CAP = 5,", "export const YEAR_CAP = 40,", "(5) the year distance is not capped"],
-    [DV, "FALLBACK_MIN = 5,", "FALLBACK_MIN = 0,", "(5) too few sales still list comparables"],
+    [DV, "FALLBACK_MIN = 4,", "FALLBACK_MIN = 0,", "(5) too few sales still list comparables"],
     [DV, "const rel = dYear === 0 && boxSame && bodySame && near ? \"close\" : \"similar\"", "const rel = dYear === 0 ? \"close\" : \"similar\"", "(5) close without gearbox, body and miles matching"],
     [DV, "|| a.dist - b.dist || String(b.r.date || \"\").localeCompare(String(a.r.date || \"\"))).slice(0, FALLBACK_MAX);", "|| String(b.r.date || \"\").localeCompare(String(a.r.date || \"\"))).slice(0, FALLBACK_MAX);", "(5) the closest year is not first"],
     [DV, "  if (!sub.generation) {\n    const { cands }", "  if (false) {\n    const { cands }", "(5) an unmapped car lists no comparables"],
@@ -77,7 +77,7 @@ const inTable = (field, line) => pats.some(p => p.field === field && new RegExp(
   ok("every why variant is a table line (miles known, tier apart, miles missing, gearbox not stated)", [DV.whyOf(row(), sub), DV.whyOf(row({ tier: 2 }), { ...sub, tier: 3 }), DV.whyOf(row({ miles: null }), sub), DV.whyOf(row({ gearbox: null }), sub)].every(x => inTable("desk.comparables.why", x)));
   ok("a missing mileage is said in words, not guessed", /miles not stated/.test(DV.whyOf(row({ miles: null }), sub)));
   const list = await DV.comparablesOf([row({ id: "a" }), row({ id: "b", generation: "997", year: 2005 }), row({ id: "c", body: "open" }), row({ id: "d", year: 2000, miles: 62000 })], sub, head);
-  ok("a mixed list keeps the 996 coupes only, close first", list.length === 2 && list[0].id === "a" && list[0].relevance === "close" && list[1].id === "d");
+  ok("a mixed list leads with the 996 coupes, close first; the sale of another body is added only as a marked fill (4 sales in the window list 3 or more), the one past the 5 year cap never", list.length === 3 && list[0].id === "a" && list[0].relevance === "close" && list[1].id === "d" && !list[1].filled && list[2].filled === true && !list.some(x => x.generation === "997"));
 }
 const c0 = W.CASES[0], sh = await read(c0), ds = sh.desk;
 ok("the 996 sheet read carries desk.comparables and desk.outside", Array.isArray(ds.comparables) && ds.comparables.length > 0 && Array.isArray(ds.outside));

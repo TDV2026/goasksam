@@ -999,6 +999,25 @@ try {
 } catch (e) {
   record("Sell example in Lane E's shape: the reader accepts it, every number traces to the Sell answer, sentences from the reason table, fewer than two cars hides the section, the kill switch; nine mutants (scripts/sellExampleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// Desk misses of Lane F's older-car re-sweep (Lane B, Nov 10 2026)
+try {
+  const out = execSync("node scripts/deskTrimAskCheck.mjs --mutants", { encoding: "utf8", timeout: 240000 });
+  record("Desk trim question: every car of the 24 reads a Desk block with its trims split, the split is said, an unread pool never says no tiers are assigned; three mutants (scripts/deskTrimAskCheck.mjs)", "PASS", (out.match(/deskTrimAskCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk trim question: every car of the 24 reads a Desk block with its trims split, the split is said, an unread pool never says no tiers are assigned; three mutants (scripts/deskTrimAskCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL|SURVIVED/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/deskTypedBodyCheck.mjs --mutants", { encoding: "utf8", timeout: 240000 });
+  record("Desk typed body: a typed Hardtop, Fastback, Roadster, Sedan or SUV is the body in the title, spec line and label, the 24 cars and the demo 996; three mutants (scripts/deskTypedBodyCheck.mjs)", "PASS", (out.match(/deskTypedBodyCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk typed body: a typed Hardtop, Fastback, Roadster, Sedan or SUV is the body in the title, spec line and label, the 24 cars and the demo 996; three mutants (scripts/deskTypedBodyCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL|SURVIVED/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/deskCompsMinCheck.mjs --mutants", { encoding: "utf8", timeout: 240000 });
+  record("Desk comparables: a car with a range and 4 or more sales in its window lists 3 or more, the fill stays in the window and the 5 year cap; three mutants (scripts/deskCompsMinCheck.mjs)", "PASS", (out.match(/deskCompsMinCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk comparables: a car with a range and 4 or more sales in its window lists 3 or more, the fill stays in the window and the 5 year cap; three mutants (scripts/deskCompsMinCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL|SURVIVED/.test(l)).slice(0, 3).join(" | "));
+}
 // mcExampleCheck (Lane B, Nov 9 2026): the Market Check entry card (range, count, period and recent sale from one engine answer, the sale inside the pool, no narrowing, the most focused range preferred); eleven mutants.
 try {
   const out = execSync("node scripts/mcExampleCheck.mjs", { encoding: "utf8", timeout: 250000 });
