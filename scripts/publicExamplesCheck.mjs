@@ -19,10 +19,15 @@ if (args.includes("--mutants")) {
     [FE, "if (isPublicRead(reqOrCookie)) { if (!fresh(st)) return null; }\n  else if (!fresh(st))", "if (!fresh(st))", "(3) the Find sales are built on a public request"],
     [TD, "if (isPublicRead(reqOrCookie)) {\n    const rows = await d.select", "if (false) {\n    const rows = await d.select", "(3) the Tasks email example is built on a public request"],
     [TD, "v.pickDate === pacificDay(d.now()) && v.data && typeof v.data === \"object\" ? v.data : null;", "v.data && typeof v.data === \"object\" ? v.data : null;", "(4) a stale Tasks email example is served"],
-    [MC, "if (isPublicRead(req)) return data;", "", "(3) a public request checks photos and rebuilds"],
+    [MC, "if (!force && isPublicRead(req)) return data;", "", "(3) a public request checks photos and rebuilds"],
     [FH, "!mayRead(reqOrCookie)) return null;", "!isCrewRequest(reqOrCookie)) return null;", "(2) the flag does not open the featured history"],
     [FE, "if (process.env.FIND_EXAMPLES === \"0\" || !mayRead(reqOrCookie)) return null;   // crew, or PUBLIC_EXAMPLES=1: the stored pick and keyed reads only, never a build", "if (!mayRead(reqOrCookie)) return null;", "(5) the Find kill switch is ignored"],
-    [API, "import { findExamples } from \"../lib/live/findExamples.js\";", "import { findExamples } from \"../lib/live/findExamples.js\";\nimport { refreshEntryExamples } from \"../lib/live/publicExamples.js\";", "(6) the public endpoint imports the build side"]
+    ["api/pullLive.js", "      out.entryExamples = await refreshEntryWord(env, true);\n", "", "(9) the pick is built in the quiet slot only (the one slot mode does not ensure it)"],
+    ["api/pullLive.js", "    const entryExamples = await refreshEntryWord(env, true);\n", "    const entryExamples = \"skipped\";\n", "(9) the pick is built in the quiet slot only (the full walk does not ensure it)"],
+    [MC, "d.recheck === false ? data : await stillGood(env, d, key, data, build, null, true)", "await stillGood(env, d, key, data, build, null, true)", "(9) a pull slot with today's pick stored still checks photos and can rebuild"],
+    [TD, "const built = await buildTasksEmailDemo(env, d);", "const built = await buildTasksEmailExample(env, d);", "(8) the public Tasks email example is a real user's task update"],
+    [TD, "export const EMAIL_EXAMPLE_KEY = \"crew_tasks_email_demo\"", "export const EMAIL_EXAMPLE_KEY = \"crew_tasks_demo\"", "(8) the public store key is another crew store's key"],
+    [API, "import { findExamples, findExamplesFallback } from \"../lib/live/findExamples.js\";", "import { findExamples, findExamplesFallback } from \"../lib/live/findExamples.js\";\nimport { refreshEntryExamples } from \"../lib/live/publicExamples.js\";", "(6) the public endpoint imports the build side"]
   ];
   let survivors = 0;
   for (const [file, from, to, want] of muts) {
@@ -62,7 +67,7 @@ const mk = () => {
     appearances: async (e, vin) => ({ ok: true, vinNorm: vin, appearances: w.apps[vin] || [] }), urlStatus: async () => 200, facts: async r => S.listingFacts(r),
     answer: async () => { w.engine++; w.builds++; return null; }, sellBlock: async () => { w.engine++; w.builds++; return null; }, places: async () => { w.engine++; w.builds++; return null; },
     enrich: async (e, o) => { w.engine++; return { title: FE.titleOf(o.r), end_time: o.r.end_time, url: o.r.url }; }, blocks: async () => { w.engine++; w.builds++; return []; },
-    select: async (e, q) => { w.selects++; let m = /^app_config\?key=eq\.([a-z_]+)/.exec(q); if (m) { const v = w.store.get(m[1]); return v ? [{ value: v }] : []; }
+    select: async (e, q) => { w.selects++; (w.queries = w.queries || []).push(q); let m = /^app_config\?key=eq\.([a-z_]+)/.exec(q); if (m) { const v = w.store.get(m[1]); return v ? [{ value: v }] : []; }
       m = /^live_listings\?id=eq\.([^&]+)/.exec(q); if (m) return w.rows.filter(r => String(r.id) === decodeURIComponent(m[1])).slice(0, 1);
       if (/^live_listings\?status=eq\.live/.test(q)) return w.rows.filter(r => r.status === "live" && r.photo_url && Date.parse(r.end_time) > w.clock);
       if (/^task_updates/.test(q)) { w.builds++; return w.updates || []; }
@@ -74,7 +79,7 @@ const mk = () => {
   return w;
 };
 const vS = "VINSOLD0000000001";
-const W = mk(); W.rows = [car("Porsche", "911", 2008, { vin: vS }), car("BMW", "M3", 2006), car("Ferrari", "F430", 2007)]; W.apps = { [vS]: [sale(vS)] };
+const W = mk(); W.rows = [car("Porsche", "911", 2008, { vin: vS }), car("BMW", "M3", 2006), car("Ferrari", "F430", 2007), car("BMW", "3.0 CSL", 1995)]; W.apps = { [vS]: [sale(vS)] };
 W.updates = [{ id: 7, task_id: 3, created_at: "2026-11-05T10:00:00Z", data: { cards: [{ id: W.rows[1].id, title: "1995 BMW M3 Coupe", house: "Bring a Trailer", miles: 147000, location: "West New York NJ" }] } }]; W.taskRow = { filters: { make: "BMW", year_min: 1995 }, summary: "Sam is looking for BMWs from 1995." };
 W.d.blocks = async () => [{ cardHtml: "<p>card</p>", cardText: "card", bid: 1000 }];
 // the stored picks, made the way the cron makes them (find, featured) and hand-written for the daily ones (the shapes the readers' own guards accept)
@@ -110,7 +115,8 @@ for (const v of [undefined, "0", "", "true", "yes", "on"]) {
 process.env.PUBLIC_EXAMPLES = "1";
 { const rows = [];
   for (const k of NAMES) { W.reset(); const pub = await READ[k](PUBLIC), selects = W.selects, writes = W.writes, builds = W.builds, engine = W.engine, ven = vendor, crew = await READ[k](CREW);
-    ok(`(2) ${k}: flag on, the public gets the stored pick, byte equal to the crew read`, pub !== null && JSON.stringify(pub) === JSON.stringify(crew), pub === null ? "null" : "");
+    const want = k === "tasksEmail" ? (W.store.get(TD.EMAIL_EXAMPLE_KEY) || {}).data : crew;   // the crew may keep a real update; the public Tasks email example is the stored demo
+    ok(`(2) ${k}: flag on, the public gets the stored pick, byte equal to ${k === "tasksEmail" ? "the stored demo" : "the crew read"}`, pub !== null && JSON.stringify(pub) === JSON.stringify(want), pub === null ? "null" : "");
     ok(`(2) ${k}: the public read writes nothing, builds nothing, calls no engine and no vendor`, writes === 0 && builds === 0 && engine === 0 && ven === 0, `writes ${writes} builds ${builds} engine ${engine} vendor ${ven}`);
     rows.push(`${k} ${selects}`); }
   console.log("INFO  store/database reads per public read of each example (flag on, pick stored): " + rows.join(", ")); }
@@ -163,13 +169,34 @@ ok("(2) a forged crew cookie with the flag on is a public read, the same pick", 
   B.reset(); const pubCars = await READ.sellCars(PUBLIC, B.d), pubMail = await READ.tasksEmail(PUBLIC, B.d);
   ok("(6) the public read then serves what the cron stored, with no builder call", pubCars && pubCars.cars.length >= 2 && pubMail && pubMail.block && B.builds === 0 && B.engine === 0 && B.writes === 0, JSON.stringify([pubCars && pubCars.cars.length, !!pubMail, B.builds]));
   const again = await PX.refreshEntryExamples(env, B.d, ["sellCars", "tasksEmail"]); ok("(6) the cron keeps today's pick and does not build twice", again.sellCars === "kept" && again.tasksEmail === "kept", JSON.stringify(again));
-  ok("(6) the crew read of the Tasks email example equals the public one", JSON.stringify(await READ.tasksEmail(CREW, B.d)) === JSON.stringify(pubMail)); }
+  ok("(6) the crew read of the Tasks email example is still the real stored update, and differs from the public demo", (await READ.tasksEmail(CREW, B.d)).source !== "demo" && JSON.stringify(await READ.tasksEmail(CREW, B.d)) !== JSON.stringify(pubMail)); }
+// ---- (8) THE TASKS EMAIL EXAMPLE IS A CREW-AUTHORED DEMO, NEVER A REAL USER'S TASK
+{ const stored = W.store.get(TD.EMAIL_EXAMPLE_KEY), pub = await READ.tasksEmail(PUBLIC), text = JSON.stringify(stored);
+  ok("(8) the public pick is the demo: source demo, no update id, the fixed spec (a BMW from 1995) and its read-back sentence", pub && pub.source === "demo" && pub.update.id === null && JSON.stringify(pub.task.filters) === JSON.stringify(TD.DEMO_FILTERS) && pub.task.summary === "Sam is looking for BMWs from 1995.", JSON.stringify(pub && [pub.source, pub.update, pub.task]));
+  ok("(8) the public store key is its own: it is not the key of any other crew store the examples read", TD.EMAIL_EXAMPLE_KEY === "crew_tasks_email_demo" && ![TD.STORE_KEY, TD.LAST_KEY, FE.STORE_KEY, FE.FALLBACK_KEY, FH.STORE_KEY, MCX.MC_STORE, MCX.MC_CARD_KEY, MCX.SELL_CARD_KEY, MCX.SELL_STORE].includes(TD.EMAIL_EXAMPLE_KEY));
+  ok("(8) no real user, email, task id or update id can be in the stored pick: no such key, and not the real update's task id or id", !/"(user|user_id|email|task_id|taskId|owner)"/i.test(text) && !/"id":7\b/.test(text) && !/"task_id":3\b/.test(text) && !/West New York|147000/.test(text), text.slice(0, 120));
+  const E = mk(); E.rows = W.rows; E.apps = W.apps; E.updates = W.updates; E.taskRow = W.taskRow; E.d.blocks = W.d.blocks; E.queries = []; await PX.refreshEntryExamples(env, E.d, ["tasksEmail"]);
+  ok("(8) the build that makes the public pick never reads task_updates or tasks (it reads a live listing and the fixed spec)", !E.queries.some(q => /^task_updates|^tasks\?/.test(q)) && E.store.has(TD.EMAIL_EXAMPLE_KEY), E.queries.join(" | ").slice(0, 160));
+  const F = mk(); F.rows = W.rows.filter(r => r.year !== 1995); F.apps = W.apps; F.updates = W.updates; F.taskRow = W.taskRow; F.d.blocks = W.d.blocks; await PX.refreshEntryExamples(env, F.d, ["tasksEmail"]);
+  ok("(8) with no live 1995 BMW the demo is not built (null, the section hides): a real update never stands in", !F.store.has(TD.EMAIL_EXAMPLE_KEY) && (await READ.tasksEmail(PUBLIC, F.d)) === null); }
+// ---- (9) THE ROLLOVER: every pull slot makes sure today's pick exists; a slot with today's pick stored does not rebuild
+{ const R = mk(); R.rows = W.rows; R.apps = W.apps; R.updates = W.updates; R.taskRow = W.taskRow; R.d.blocks = W.d.blocks;
+  R.d.places = async () => ({ cohort_name: "1995 Mazda Miata", window_label: "in the last 36 months", places: [{ name: "Bring a Trailer", sales: 9, most_sold_between: [20000, 30000] }, { name: "Cars & Bids", sales: 5, most_sold_between: [20000, 30000] }] });
+  R.reset(); const first = await PX.refreshEntryExamples(env, { ...R.d, recheck: false }, ["sellCars", "tasksEmail"]);
+  ok("(9) a pull slot with no pick stored builds it (recheck false is what the pull slots pass)", first.sellCars === "built" && first.tasksEmail === "built" && (await READ.sellCars(PUBLIC, R.d)) !== null, JSON.stringify(first));
+  const st = mk(); for (const [k, v] of W.store) st.store.set(k, v); st.rows = W.rows; st.headOk = false; MCX.resetRecheck(); st.reset();
+  const kept = await PX.refreshEntryExamples(env, { ...st.d, recheck: false }, ["mcExamples", "mcCard", "sellCard", "sellCars", "tasksEmail", "findSales"]);
+  ok("(9) a pull slot with today's pick stored rebuilds nothing: every example kept, zero engine and builder calls, zero writes, zero photo requests, zero vendor calls", Object.values(kept).every(v => v === "kept") && st.engine === 0 && st.builds === 0 && st.writes === 0 && st.head === 0 && vendor === 0, JSON.stringify(kept) + ` engine ${st.engine} builds ${st.builds} writes ${st.writes} head ${st.head}`);
+  const pc = mk(); for (const [k, v] of W.store) pc.store.set(k, v); pc.headOk = false; MCX.resetRecheck(); pc.reset(); await PX.refreshEntryExamples(env, pc.d, ["mcCard"]);
+  ok("(9) the full refresh (quiet slot) still checks the stored photos with the flag on: it is the cron, never a public request", pc.head > 0, "head " + pc.head);
+  const pull = fs.readFileSync(path.join(root, "api/pullLive.js"), "utf8"), calls = pull.match(/refreshEntryWord\(env, true\)/g) || [];
+  ok("(9) both pull branches (the one slot mode and the full walk) run the ensure step, as well as the quiet hourly slot's full refresh", calls.length === 2 && /entryExamples = await refreshEntryWord\(env\)/.test(pull), "ensure calls " + calls.length); }
 // ---- (7) the class, in the source
 { const src = f => fs.readFileSync(path.join(root, f), "utf8"), api = src("api/publicExamples.js");
   ok("(7) the public endpoint imports no builder: not lib/live/publicExamples.js, no refresh or build name", !/publicExamples\.js|\brefresh\w*\(|\bbuild\w*\(/.test(api.replace(/^\/\/.*$/gm, "")), "");
   ok("(7) the endpoint is GET only and answers 404 for a name it does not serve", /req\.method !== "GET"/.test(api) && /res\.statusCode = 404/.test(api));
   ok("(7) a crew response is never cached and a public one is held at most a minute at the edge", /private, no-store/.test(api) && /s-maxage=60/.test(api) && !/s-maxage=(?!60\b)\d+/.test(api));
-  const pull = src("api/pullLive.js"); ok("(7) the cron builds them: the hourly quiet slot calls refreshEntryWord, which runs refreshEntryExamples", /entryExamples = await refreshEntryWord\(env\)/.test(pull) && /refreshEntryExamples\(env\)/.test(pull));
+  const pull = src("api/pullLive.js"); ok("(7) the cron builds them: the hourly quiet slot calls refreshEntryWord, which runs refreshEntryExamples", /entryExamples = await refreshEntryWord\(env\)/.test(pull) && /refreshEntryExamples\(env, ensure/.test(pull));
   ok("(7) every public reader gate is the one mayRead (the flag lives in lib/live/publicAccess.js only)", ["lib/live/findExamples.js", "lib/live/featuredHistory.js", "lib/live/entryExamples.js"].every(f => /mayRead\(/.test(src(f))) && (src("lib/live/publicAccess.js").match(/PUBLIC_EXAMPLES/g) || []).length >= 1 && !["lib/live/findExamples.js", "lib/live/featuredHistory.js", "lib/live/entryExamples.js", "lib/live/tasksDemo.js", "lib/live/marketCheckExamples.js"].some(f => /process\.env\.PUBLIC_EXAMPLES/.test(src(f).replace(/\/\/.*$/gm, ""))));
   const ex = src("lib/live/entryExamples.js"), i = ex.indexOf("export async function daily("), j = ex.indexOf("export async function buildDaily(");
   ok("(7) in daily() the public branch returns before any build (the build is a separate function, buildDaily)", i > 0 && j > i && /isPublicRead\(req\)/.test(ex.slice(i, j)) && !/build\(/.test(ex.slice(i, j))); }

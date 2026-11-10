@@ -164,6 +164,7 @@ async function handler(req, res) {
       out.featuredRefresh = await refreshFeatured(env);
       out.tasksDemoRefresh = await refreshTasksDemoWord(env);
       out.examplesRefresh = await refreshExamplesWord(env);
+      out.entryExamples = await refreshEntryWord(env, true);
       return res.status(200).json({ ok: true, ...out });
     }
     // 1. Walk every page of the live feed, bounded by --max-requests.
@@ -210,7 +211,8 @@ async function handler(req, res) {
     const featuredRefresh = await refreshFeatured(env);
     const tasksDemoRefresh = await refreshTasksDemoWord(env);
     const examplesRefresh = await refreshExamplesWord(env);
-    return res.status(200).json({ ok: true, featuredRefresh, tasksDemoRefresh, examplesRefresh, ocdRequests: used(), maxRequests: maxReq, truncated, stoppedForReserve, feedTotal: total, fetched: rows.length, newListings: fresh, perSource, upserted: up, ended, finals, stepMs, ...stats });
+    const entryExamples = await refreshEntryWord(env, true);
+    return res.status(200).json({ ok: true, featuredRefresh, tasksDemoRefresh, examplesRefresh, entryExamples, ocdRequests: used(), maxRequests: maxReq, truncated, stoppedForReserve, feedTotal: total, fetched: rows.length, newListings: fresh, perSource, upserted: up, ended, finals, stepMs, ...stats });
   } catch (e) {
     await flushOcdUsage().catch(() => {});
     return res.status(500).json({ ok: false, ocdRequests: used(), error: String((e && e.message) || e).slice(0, 300) });
@@ -251,8 +253,9 @@ async function refreshExamplesWord(env) {
 }
 
 // The entry page examples' daily picks (lib/live/publicExamples.js): the ONLY place they are built for the public read (PUBLIC_EXAMPLES). Kept while they are today's, else built, one at a time; zero OCD; a word each, never a car.
-async function refreshEntryWord(env) {
-  try { const { refreshEntryExamples } = await import("../lib/live/publicExamples.js"); return await refreshEntryExamples(env); } catch { return "error"; }
+async function refreshEntryWord(env, ensure = false) {
+  // ensure: a pull slot. It only makes sure today's pick exists (a stored-today read first; the engine is called only when a pick is missing; no photo re-check). The quiet hourly slot runs the full refresh.
+  try { const { refreshEntryExamples } = await import("../lib/live/publicExamples.js"); return await refreshEntryExamples(env, ensure ? { recheck: false } : {}); } catch { return "error"; }
 }
 
 // OPS, KEYED AND READ ONLY (Lane B, Nov 6 2026): what the two crew keys hold now, and (funnel=1) the counts the refresh finds on the live pool, without writing. api/usageDashboard.js task=crewkeys calls this behind the ops key; no cron
