@@ -23,6 +23,10 @@ const at = async f => (await K.refreshEvidence(K.setReserve(base, { figure: f },
 ok("a reserve below q1 reads below, inside reads inside, above q3 reads above", below.reservePosition === "below" && inside.reservePosition === "inside" && above.reservePosition === "above" && /below the typical range/.test(below.reservePositionLine) && /inside the typical range/.test(inside.reservePositionLine) && /above the typical range/.test(above.reservePositionLine));
 ok("the three sentences differ", new Set([below.reservePositionLine, inside.reservePositionLine, above.reservePositionLine]).size === 3);
 ok("exactly at q1 and at q3 reads inside", rs(await at(ev.q1)).reservePosition === "inside" && rs(await at(ev.q3)).reservePosition === "inside");
+ok("a reserve the engine has not checked has no position (a stale check of another figure is never read)", K.reservePosition(K.setReserve(bc, { figure: bc.reserve.figure + 9 }, T)) === null);
+{ const CV = await import(pathToFileURL(path.join(root, "lib/desk/caseView.js")).href), view = c => CV.caseView({ id: "s", case: c, submission: { typed: true } }, [], T);
+  ok("the case view's position and reached lines are the engine's, for each position", [bc, ic, ac].every(c => view(c).reserve.positionLine === c.desk.reserveCheck.positionLine && view(c).reserve.reachedLine === c.desk.reserveCheck.reachedLine && view(c).reserve.position === c.desk.reserveCheck.position));
+  ok("and so are the report state's", [bc, ic, ac].every(c => rs(c).reservePositionLine === c.desk.reserveCheck.positionLine && rs(c).reachedLine === c.desk.reserveCheck.reachedLine)); }
 ok("the workspace and the report use one comparison", K.reservePosition(bc) === below.reservePosition && K.reservePosition(ac) === above.reservePosition);
 ok("the reserve sentence names the engine's quartiles", inside.reservePositionLine.includes("$" + ev.q1.toLocaleString("en-US")) && inside.reservePositionLine.includes("$" + ev.q3.toLocaleString("en-US")));
 // 4. seller agreement

@@ -37,6 +37,14 @@ ok("the exclusions ride on the case with scope, reason and time", exr.exclusions
 // the three scopes are the engine's own, spelled the engine's way (a made up name reads as note_only there and would silently do nothing)
 { const DV = await import(pathToFileURL(path.join(root, "lib/deskV3.js")).href);
   ok("the case's exclusion scopes are exactly the engine's (market_calc, report_comps, note_only)", [...M.EXCLUSION_SCOPES].sort().join() === [...DV.SCOPES].sort().join()); }
+// RESTORE: undoes an exclusion by sale id, in every scope, and logs it; the engine is re-asked because the calculation changes back
+{ let r = exr; for (const id of pick) r = M.restoreSale(r, { saleId: id, now: T });
+  const back = await recall("restoring the three excluded sales", r, true);
+  ok("restoring all three puts the evidence back to the original count and leaves no exclusion", back.exclusions.length === 0 && back.desk.evidence.count === base.desk.evidence.count);
+  ok("each restore is logged in the table's words", r.audit.filter(a => a.what === "sale restored").length === 3 && r.audit.filter(a => a.what === "sale restored").every(a => a.line === "The analyst put an excluded sale back."));
+  ok("a sale that is not excluded is not restorable (null, nothing logged)", M.restoreSale(exr, { saleId: "no-such-sale", now: T }) === null);
+  const two = M.restoreSale(M.excludeSale(exr, { saleId: pick[0], scope: "report_comps", reason: "Not a fit", now: T }), { saleId: pick[0], now: T });
+  ok("restoring a sale takes it out of every scope it was excluded under", two.exclusions.every(e => e.saleId !== pick[0]) && two.exclusions.length === 2); }
 const rc = await recall("a report_comps exclusion (the engine drops the sale from the comparables)", M.excludeSale(base, { saleId: pick[0], scope: "report_comps", reason: "Not a fit", now: T }), true);
 ok("report_comps: the sale leaves the comparables and the evidence is unchanged", !rc.desk.comparables.some(c => c.id === pick[0]) && rc.desk.comparables.length === base.desk.comparables.length - 1 && J(rc.desk.evidence) === J(base.desk.evidence));
 // NOTE ONLY: the reason and scope go in the audit trail and on the comparable, and nothing else changes
@@ -76,6 +84,19 @@ ok("an item waived with a reason stays waived while its cause stands", (() => { 
   ok("the market reference is stored under the key of the case as it stands, so the next edit costs no read", fresh(nw.case));
   { const o = await run("case_new", { text: "1999 Porsche 911 Carrera", mileage: "61,200", transmission: "Manual", body: "Cabriolet" }); ok("a body the seller gave stays the seller's even when the decode names another (never overwritten)", o.ok && o.case.fields.body.value === "Cabriolet" && o.case.fields.body.source === "seller"); }
   const c1 = n0(); const rs = await run("case_edit", { id: nw.id, op: "reserve", patch: { why: "A note." } }); ok("an edit that moves no engine input costs no read after case_new", rs.ok && n0() === c1 && rs.recalled === false);
+  { const cid = nw.case.desk.comparables.find(x => x.inPopulation).id, n0c = nw.case.desk.evidence.count;
+    const ex1 = await run("case_edit", { id: nw.id, op: "exclude", saleId: cid, scope: "market_calc", reason: "Salvage title" });
+    const rs1 = await run("case_edit", { id: nw.id, op: "restore", saleId: cid });
+    ok("restore by sale id re-asks the engine, the count is back, the exclusion is gone and the touched row comes back without it", ex1.ok && ex1.case.desk.evidence.count === n0c - 1 && rs1.ok && rs1.recalled === true && rs1.case.desk.evidence.count === n0c && rs1.case.exclusions.length === 0 && Array.isArray(rs1.rows) && rs1.rows.length === 1 && String(rs1.rows[0].id) === String(cid) && !rs1.rows[0].exclusion && !rs1.rows[0].gone);
+    ok("restore is audited and the audit line is the table's", rs1.case.audit.some(a => a.what === "sale restored" && a.line === "The analyst put an excluded sale back."));
+    const rs2 = await run("case_edit", { id: nw.id, op: "restore", saleId: cid });
+    ok("restoring a sale that is not excluded is refused and nothing is written", rs2.refused === true && /not excluded/.test(rs2.why));
+    const ex2 = await run("case_edit", { id: nw.id, op: "exclude", saleId: cid, scope: "note_only", reason: "Seen" }), n3 = n0();
+    const rs3 = await run("case_edit", { id: nw.id, op: "restore", saleId: cid });
+    ok("restoring a note only exclusion costs no read", ex2.ok && rs3.ok && n0() === n3 && rs3.case.exclusions.length === 0);
+    // THE CLASS: every scope, every way to exclude, is restorable by the same op
+    let bad = []; for (const sc of ["market_calc", "report_comps", "note_only"]) { const e = await run("case_edit", { id: nw.id, op: "exclude", saleId: cid, scope: sc, reason: "Class sweep" }), r = await run("case_edit", { id: nw.id, op: "restore", saleId: cid }); if (!(e.ok && r.ok && r.case.exclusions.length === 0)) bad.push(sc); }
+    ok("a sale excluded under any of the three scopes is put back by one restore", bad.length === 0, bad.join()); }
   // a form with nothing to read makes an empty case with no engine call
   { const c = n0(), e = await run("case_new", {}); ok("an empty form makes an empty case and asks the engine nothing", e.ok && n0() === c && !e.case.desk && e.case.fields.vin.value == null); }
   // photos
