@@ -31,6 +31,8 @@ if (args.includes("--mutants")) {
     [FE, "st.pickDate !== dateKey || force;", "st.pickDate !== dateKey;", "(9) force does not build again"],
     [FE, "if (funnel.noIntel.length) console.error(", "if (false) console.error(", "(9) a card with none does not say why"],
     [FE, "intel: intelShape(c.intel), why:", "why:", "(9) the daily build does not write intelligence"],
+    [FE, "      await settle();\n      const spare", "      const spare0 = 0;\n      const spare", "(10) the chosen cards are not read before the candidates"],
+    [FE, "      await settle();\n      const spare = Math.max(0, MAX_ENGINE_READS - engineReads);", "      await readBand(order.filter(c => needs(c)).slice(0, MAX_ENGINE_READS)); await settle();\n      const spare = Math.max(0, MAX_ENGINE_READS - engineReads);", "(10) the candidates are read first, the cap spent on them, then the chosen"],
     [FE, "(INTEL_RANK[(c.intel && c.intel.kind) || \"none\"] || 0)", "0", "(6) a card with intelligence is not preferred"],
     [FE, "venue: houseName(row.source), timing: reasonLine(\"find.timing\", { ms: left })", "venue: \"\", timing: \"\"", "(6) venue and timing are not from the record"],
     [RW, "`Market range \\u00b7 ${moneyK(p.lo)} to ${moneyK(p.hi)}`", "`Market range \\u00b7 ${money(p.lo)} to ${money(p.hi)}`", "(3) the band is not in the k form"]
@@ -160,6 +162,28 @@ const byTitle = items => Object.fromEntries(items.map(i => [i.title, i]));
   ok("(9) force reads the pool and writes intelligence again", forced2.why === "picked" && forced2.funnel.live >= 3 && forced2.stored.entries.every(e => e.intel), forced2.why);
   process.env.FIND_EXAMPLES = "0"; const off = await FE.refreshFindExamples(env, { ...W.d, force: true }); delete process.env.FIND_EXAMPLES;
   ok("(9) force does not pass the kill switch", off.why === "off");
+}
+{ // (10) THE ORDER OF THE READS: the chosen cards are read first, the cap of 12 is spent on the other candidates after, and no chosen card misses its row because the cap ran out on candidates
+  const mk = (i, src) => car(["Porsche", "BMW", "Ferrari", "Audi", "Mazda", "Nissan", "Toyota", "Honda", "Ford", "Dodge", "Chevrolet", "Jaguar", "Lotus", "Datsun", "Volvo", "Saab", "Fiat", "Alfa Romeo"][i], "M" + i, 1960 + (i * 3) % 50, { source: src, vin: null, h: 400 });
+  const rows = [...Array.from({ length: 14 }, (_, i) => mk(i, "bringatrailer")), mk(14, "carsandbids"), mk(15, "rmsothebys"), mk(16, "pcarmarket"), mk(17, "hemmings")];
+  const answers = Object.fromEntries(rows.map((r, i) => [FE.titleOf(r), answerOf(20000 + i * 1000, 30000 + i * 1000)]));
+  let bad = [], firstOk = true, capOk = true;
+  for (let day = 0; day < 8; day++) {
+    const W = world(rows, { answers }); W.clock = NOW0 + day * 86400e3; await FE.refreshFindExamples(env, W.d);
+    const entries = W.store.get(FE.STORE_KEY).entries, chosenTitles = entries.map(e => FE.titleOf(rows.find(r => r.id === e.listingId)));
+    if (!entries.every(e => e.intel && e.intel.kind === "market_range")) bad.push(day);
+    if (!W.asked.slice(0, 3).every(t => chosenTitles.includes(t)) && W.asked.slice(0, 3).some(t => !chosenTitles.includes(t)) && !chosenTitles.every(t => W.asked.slice(0, 12).includes(t))) firstOk = false;
+    if (W.asked.length > 12 + 3) capOk = false;
+  }
+  ok("(10) over eight days every chosen card carries its market range, with 18 candidates and the cap of 12", bad.length === 0, "days without: " + bad.join(","));
+  ok("(10) the first engine reads are the chosen cards", firstOk);
+  ok("(10) the cap of 12 stands: the reads never pass it by more than the chosen cards", capOk);
+  // a world where the cap is the only thing between a chosen card and its row: 3 platforms only the last three candidates (hash order) can fill the slots
+  const only3 = [mk(0, "bringatrailer"), ...Array.from({ length: 13 }, (_, i) => mk(i + 1, "bringatrailer")), mk(14, "carsandbids"), mk(15, "rmsothebys")];
+  const W2 = world(only3, { answers: Object.fromEntries(only3.map((r, i) => [FE.titleOf(r), answerOf(20000 + i * 1000, 30000 + i * 1000)])) });
+  await FE.refreshFindExamples(env, W2.d); const e2 = W2.store.get(FE.STORE_KEY).entries;
+  ok("(10) of 16 candidates and a cap of 12 the three chosen each carry their row", e2.length === 3 && e2.every(e => e.intel.kind === "market_range"), JSON.stringify(e2.map(e => e.intel.kind)));
+  ok("(10) the three chosen cards are the first three asked", W2.asked.slice(0, 3).every(t => e2.some(e => FE.titleOf(only3.find(r => r.id === e.listingId)) === t)), JSON.stringify(W2.asked.slice(0, 4)));
 }
 ok("(7) zero requests left the fake database", ocdCalls === 0, String(ocdCalls));
 console.log(`\nfindIntelCheck: ${n - failed} pass, ${failed} FAIL`); process.exit(failed ? 1 : 0);
