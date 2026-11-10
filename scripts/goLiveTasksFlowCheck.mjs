@@ -15,6 +15,7 @@ if (process.argv.includes("--mutants")) {
   const MUT = [
     ["the sign in script missing", "lib/_publicHead.js", "if (!/\\/auth\\.js/.test(h)) end.push(", "if (false) end.push("],
     ["the Account handler missing", "lib/_publicHead.js", 'if (/id="acct"/.test(h)) end.push(', "if (false) end.push("],
+    ["the criteria not printed", "lib/preview/tasksApp.js", "crit = Array.isArray(t.criteria) ? t.criteria : [];", "crit = [];"],
     ["the page posting to the preview door", "lib/_publicHead.js", '["/preview/tasks/api", "/api/tasks"]', '["/preview/tasks/api", "/preview/tasks/api"]']
   ];
   let bad = 0;
@@ -69,6 +70,8 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   if (process.env.DEBUG_TF) console.log('DEBUG', p._err, JSON.stringify(await p.evaluate(() => ({ app: (document.getElementById('tkapp') || {}).innerText, tq: !!document.getElementById('tkq'), tcs: document.querySelectorAll('article.tc').length, ids: [...document.querySelectorAll('[id]')].map(e => e.id).slice(0, 40) }))).slice(0, 1200));
   const ready = await p.evaluate(() => ({ cards: document.querySelectorAll("article.tc").length, box: !!document.getElementById("tkq") }));
   ok(ready.cards >= 3 && ready.box, `signed in, the dashboard lists the Tasks and has the new Task box (${ready.cards} Tasks)`);
+  { const FXL = FX.tasksFixture(10), crit = await p.evaluate(() => [...document.querySelectorAll("article.tc")].map(c => [...c.querySelectorAll(".tcrit li")].map(x => x.textContent)));
+    ok(crit.length >= 3 && FXL.tasks.filter(t => t.state !== "done").every((t, i) => JSON.stringify(crit[i]) === JSON.stringify(t.criteria)), "the public dashboard prints each Task's criteria as /api/tasks sent them (" + JSON.stringify(crit[0]) + ")"); }
   await p.evaluate(() => { const i = document.getElementById("tkq"); i.value = "A black manual 997 Carrera under $70k"; document.querySelector('[data-send="tkq"]').click(); }); await wait(900);
   ok(p._calls.some(c => c.action === "say" && !c.task_id && /997/.test(c.text || "")), "CREATE: the request is sent to Sam as a say");
   await p.evaluate(() => { const s = document.querySelector("[data-start]"); if (s) s.click(); }); await wait(900);

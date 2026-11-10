@@ -132,8 +132,6 @@ for (const [name, url, f, kind] of ROUTES) {
   if (name === "tasks") ok(/<button\b[^>]*id="tkcta/.test(B.body) || /Start a Task|Tell Sam/.test(strip(B.body)), `${t}: the create control`);
   if (name === "feedback") { const s = strip(B.body); ok(/<form\b/.test(s) && /<textarea\b/.test(s) && /<button\b/.test(s), `${t}: the feedback form`); }
 }
-// Tasks dashboard: the redesign shows each Task's criteria words, which the PREVIEW'S OWN API door adds to the list (lib/preview/tasksMine.js previewTasksApi). On a public address the app posts to the plain /api/tasks, which does not send them.
-{ const h = await mod("tasksPage"); process.env.NEW_DESIGN = "all"; const R = await get(h, "/tasks/mine?app=1"); delete process.env.NEW_DESIGN; if (R.h["x-design"] === "new" && /fetch\("\/api\/tasks", \{/.test(R.body)) lost.push({ route: "tasks-mine", kind: "feature", item: "the criteria words on each Task (added by the preview door only)" }); }
 // HELD list against what is lost
 const key = x => `${x.route}|${x.kind}|${x.item}`, heldKeys = new Set(held.map(key)), lostKeys = new Set(lost.map(key));
 if (PRINT) { fs.writeFileSync(path.join(ROOT, "docs/go-live-held.json"), JSON.stringify(lost.map(x => ({ ...x, note: "" })), null, 1) + "\n"); origLog("wrote docs/go-live-held.json with " + lost.length + " items"); process.exit(0); }

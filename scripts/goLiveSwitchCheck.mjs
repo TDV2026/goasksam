@@ -94,7 +94,7 @@ process.env.LAUNCH_STAGE = "2";
   const h = await mod(ROOT, "buy");
   for (const url of ["/find?q=porsche+911", "/find?q=1995+bmw+m3&sort=near"]) { delete process.env.NEW_DESIGN; const A = await call(h, url); process.env.NEW_DESIGN = "all"; const B = await call(h, url);
     ok(B.h["x-design"] === "new" && B.code === A.code && B.h["x-robots-tag"] === A.h["x-robots-tag"] && B.h["cache-control"] === A.h["cache-control"], `ON: ${url} is the new shell with today's status and headers`);
-    ok(/id="mc-rail-recent"/.test(B.body) && /New search/.test(B.body) && /Recent searches/.test(B.body), `ON: ${url} carries the rail (New search, recent searches), not the landing`); }
+    ok(/id="gas-recent-list"/.test(B.body) && /id="searches"/.test(B.body) && /New search/.test(B.body) && /Recent searches/.test(B.body), `ON: ${url} carries the rail (New search, recent searches), not the landing`); }
   for (const url of ["/find?part=landing", "/find?utm_source=x", "/find?sort=near"]) { delete process.env.NEW_DESIGN; const A = await call(h, url); process.env.NEW_DESIGN = "all"; const B = await call(h, url); ok(!("x-design" in B.h) && same(A, B), `ON: ${url} is today's page, byte for byte`); }
 }
 // 3. per route

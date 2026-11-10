@@ -14,6 +14,9 @@ if (!fs.existsSync(CHROME)) { console.log("findResultsCheck: SKIP no Chrome"); p
 if (process.argv.includes("--mutants")) {
   const f = "lib/preview/mcSellPreview.js", P = path.join(ROOT, f), orig = fs.readFileSync(P, "utf8");
   const MUT = [
+    ["the saved searches dropped from the signed in rail", '<div id="searches"></div>', '<div id="searches-x"></div>'],
+    ["Before it ends dropped from the signed in rail", "box.innerHTML = html + alertsRailHtml();", "box.innerHTML = html;"],
+    ["the shared Recent searches dropped", '<div id="gas-recent-list"></div>', '<div id="gas-recent-list-x"></div>'],
     ["a card hidden by one CSS rule", "export const RESULTS_SHELL_CSS = `", "export const RESULTS_SHELL_CSS = `#convo article.car{display:none}"],
     ["a results element restyled", "export const RESULTS_SHELL_CSS = `", "export const RESULTS_SHELL_CSS = `#convo article.car a{color:#c00!important;font-size:21px!important}"],
     ["a container pushed past the screen", "export const RESULTS_SHELL_CSS = `", "export const RESULTS_SHELL_CSS = `#convo{width:3000px!important}"],
@@ -50,13 +53,16 @@ ok(TODAY.code === 200 && SHELL.code === 200 && SHELL.h["x-design"] === "new" && 
 ok(SHELL.h["x-robots-tag"] === TODAY.h["x-robots-tag"] && SHELL.h["cache-control"] === TODAY.h["cache-control"], "the shelled results keep today's robots and cache headers");
 const STATIC = { ".js": "application/javascript", ".css": "text/css", ".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml", ".json": "application/json", ".ico": "image/x-icon", ".woff2": "font/woff2" };
 const IMG = '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600"><rect width="100%" height="100%" fill="#b9c3cc"/></svg>';
+const NOW_ = Date.now();
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
-async function open(page, width, history) {
+async function open(page, width, o = {}) {
+  const { signedIn = false, recent = null, saved = [], alerts = [] } = o;
   const p = await b.newPage(); await p.setViewport({ width, height: 900 }); p._err = [];
   p.on("pageerror", e => p._err.push(String(e.message).slice(0, 200)));
-  await p.evaluateOnNewDocument((h) => { try { localStorage.clear(); sessionStorage.clear(); if (h) sessionStorage.setItem("gas_buy_visit", JSON.stringify(h)); } catch (e) {} window.GAS_WAIT_SCALE = 0.05; }, history || null);
+  await p.evaluateOnNewDocument((si, rec) => { try { localStorage.clear(); sessionStorage.clear(); if (si) localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "a.b.c", refresh_token: "r", expires_at: Math.floor(Date.now() / 1000) + 86400, email: "x@example.com", user: { email: "x@example.com" } })); if (rec) sessionStorage.setItem(si ? "gas_recent_u:x@example.com" : "gas_recent_s", JSON.stringify(rec)); } catch (e) {} window.GAS_WAIT_SCALE = 0.05; }, signedIn, recent);
   await p.setRequestInterception(true);
   p.on("request", async r => { try { const u = new URL(r.url()), m = r.method();
+    if (/supabase\.co\/auth\/v1\/user/.test(r.url())) return r.respond({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ id: "u", email: "x@example.com", aud: "authenticated" }) });
     if (u.host !== "goasksam.com") return r.resourceType() === "image" ? r.respond({ status: 200, contentType: "image/svg+xml", body: IMG }) : r.respond({ status: 200, body: "" });
     if (r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html; charset=utf-8", body: page.body });
     if (m === "OPTIONS") return r.respond({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*" }, body: "" });
@@ -64,7 +70,7 @@ async function open(page, width, history) {
       if (/buySearch$/.test(u.pathname) && m === "POST") { let a = {}; try { a = JSON.parse(r.postData() || "{}"); } catch {}
         const json = o => r.respond({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(o) });
         if (a.action === "parse") return json({ label: "2005 Mercedes-Benz SL65 AMG", chips: [] }); if (a.action === "chat" || a.action === "rerun") return r.respond({ status: 200, contentType: "text/event-stream; charset=utf-8", headers: { "access-control-allow-origin": "*" }, body: SSE });
-        if (a.action === "alerts_ready") return json({ ready: true, rule: "" }); return json({ items: [] }); }
+        if (a.action === "alerts_ready") return json({ ready: true, rule: "" }); if (a.action === "list") return json({ items: saved }); if (a.action === "alerts") return json({ items: alerts }); return json({ items: [] }); }
       return r.respond({ status: /track/.test(u.pathname) ? 204 : 200, contentType: "application/json", body: /track/.test(u.pathname) ? "" : "{}" }); }
     const loc = u.pathname.replace(/^\/js\.[^/]+\//, "/js/").replace(/^\/obx\.[^/]+\//, "/js/"), f = path.join(ROOT, "public", loc);
     if (fs.existsSync(f) && fs.statSync(f).isFile()) return r.respond({ status: 200, contentType: STATIC[path.extname(f)] || "application/octet-stream", body: fs.readFileSync(f) });
@@ -109,8 +115,7 @@ for (const width of [1440, 390]) {
   ok(G.c > 0 && G.c <= G.cw - (width > 860 ? 200 : 0) && (width > 860 || G.c === Math.round(await a.evaluate(() => document.querySelector('#convo').getBoundingClientRect().width))), `${t}: the results container fits beside the rail and on a phone is as wide as today's (${G.c}px)`);
   ok(G.sw <= G.cw + 1, `${t}: no horizontal overflow in the shelled page (${G.sw} against ${G.cw})`);
   const Sh = await s.evaluate(() => { const q = x => document.querySelector(x), vis = e => !!e && !!(e.offsetWidth || e.getClientRects().length);
-    return { header: !!q("header.gh"), nav: [...document.querySelectorAll("header.gh nav a")].map(a => a.textContent.trim()), oldNav: !!q(".gas-mhead, #gas-scrim, #gas-rail"), rail: !!q("aside.rail[data-kind=find]"), newLink: (q("aside.rail .new") || {}).textContent || "", newHref: (q("aside.rail .new") || {}).getAttribute ? q("aside.rail .new").getAttribute("href") : "", head: (q("#mc-rail-head") || {}).textContent || "", items: [...document.querySelectorAll("#mc-rail-recent a.it")].map(a => a.textContent.trim() + "|" + a.getAttribute("href")),
-      footer: !!q("footer.ft"), footLinks: [...document.querySelectorAll("footer.ft nav a")].map(a => a.textContent.trim()), landingShown: vis(q("#landing")) || vis(q(".landing")), search: vis(q("#q")), title: document.title }; });
+    return { header: !!q("header.gh"), nav: [...document.querySelectorAll("header.gh nav a")].map(a => a.textContent.trim()), oldNav: !!q(".gas-mhead, #gas-scrim, #gas-rail"), rail: !!q("aside.rail[data-kind=find]"), newLink: (q("aside.rail .new") || {}).textContent || "", newHref: q("aside.rail .new") ? q("aside.rail .new").getAttribute("href") : "", mvis: !!q(".mvbar .mvis[data-mvisits]"), footer: !!q("footer.ft"), footLinks: [...document.querySelectorAll("footer.ft nav a")].map(a => a.textContent.trim()), landingShown: vis(q("#landing")) || vis(q(".landing")), search: vis(q("#q")), title: document.title }; });
   if (width === 1440) ok(Sh.header && Sh.nav.includes("Find") && Sh.nav.includes("Account") && !Sh.oldNav, `${t}: the new header (${Sh.nav.join(", ")}) and none of the old navigation`);
   ok(Sh.rail && /New search/.test(Sh.newLink) && Sh.newHref === "/find" , `${t}: the rail has New search, to /find (${Sh.newLink})`);
   ok(Sh.footer && Sh.footLinks.includes("How Sam decides"), `${t}: the new footer, with How Sam decides (${Sh.footLinks.join(", ")})`);
@@ -118,12 +123,31 @@ for (const width of [1440, 390]) {
   ok(s._err.length === 0 && a._err.length === 0, `${t}: no page error (${s._err.concat(a._err).join(" | ")})`);
   await a.close(); await s.close();
 }
-{ // the rail's recent searches come from the search history the page already keeps (sessionStorage gas_buy_visit)
-  const hist = [{ url: "/find?q=2005%20mercedes-benz%20sl65%20amg", label: "2005 Mercedes-Benz SL65 AMG" }, { url: "/find?q=manual%20911", label: "Manual 911" }, { url: "https://evil.example/x", label: "Not ours" }];
-  const s = await open(SHELL, 1440, hist), Sh = await s.evaluate(() => ({ head: !document.getElementById("mc-rail-head").hidden, items: [...document.querySelectorAll("#mc-rail-recent a.it")].map(a => a.textContent.trim() + "|" + a.getAttribute("href")) }));
-  ok(Sh.head && Sh.items.length === 2 && Sh.items[0].startsWith("2005 Mercedes-Benz SL65 AMG|/find?q=") && Sh.items[1].startsWith("Manual 911|/find?q=") && !Sh.items.some(x => /evil/.test(x)), `the rail lists the recent searches as /find?q= addresses, same site only (${Sh.items.join(" ; ")})`);
-  await s.close();
-}
+{ // SIGNED OUT: the shared Recent searches (gas_recent, as today), nothing of the account
+  const rec = [{ p: "find", label: "Manual 911", url: "/find?q=manual%20911" }, { p: "market-check", label: "2001 BMW M3", url: "/market-check?q=2001%20BMW%20M3" }];
+  const s = await open(SHELL, 1440, { recent: rec }), R = await s.evaluate(() => ({ rec: !document.getElementById("gas-recent").hidden, items: [...document.querySelectorAll("#gas-recent-list .gas-recent-item")].map(a => a.getAttribute("title") + "|" + a.getAttribute("href") + "|" + a.querySelector(".gas-recent-p").textContent), rm: document.querySelectorAll("#gas-recent-list .gas-recent-x").length, saved: !document.getElementById("find-saved").hidden, alerts: !!document.querySelector(".rail .rh2") }));
+  ok(R.rec && R.items.slice(-2).join(" ; ") === "Manual 911|/find?q=manual%20911|Find ; 2001 BMW M3|/market-check?q=2001%20BMW%20M3|Market Check" && R.rm === R.items.length, `signed out: Recent searches are the shared shell's own list, with each product's label and a remove button (${R.items.join(" ; ")})`);
+  ok(!R.saved && !R.alerts, "signed out: no saved searches and no Before it ends in the rail"); await s.close(); }
+{ // SIGNED IN: Recent searches, then the account's saved searches, then Before it ends, from the same places as today
+  const rec = [{ p: "find", label: "Manual 911", url: "/find?q=manual%20911" }];
+  const saved = [{ id: "s1", title: "Red Ferrari under 10k miles", state: { url: "/find?q=red%20ferrari" }, messages: [] }, { id: "s2", title: "Aston DB9", state: { url: "/find?q=aston%20db9" }, messages: [] }];
+  const alerts = [{ id: "a1", listing_id: "L1", title: "1996 Porsche 993 Carrera", url: "https://example.test/lot/1", end_time: new Date(NOW_ + 30 * 3600e3).toISOString(), ended: false }];
+  for (const width of [1440, 390]) {
+    const s = await open(SHELL, width, { signedIn: true, recent: rec, saved, alerts }), R = await s.evaluate(() => { const vis = e => !!e && !!(e.offsetWidth || e.getClientRects().length);
+      return { rec: [...document.querySelectorAll("#gas-recent-list .gas-recent-item")].map(a => a.getAttribute("title")), savedShown: vis(document.getElementById("find-saved")), saved: [...document.querySelectorAll("#searches .srow a.srch:not(.arm)")].map(a => a.textContent.trim() + "|" + a.getAttribute("href")), alerts: [...document.querySelectorAll("#searches .srow a.srch.arm")].map(a => a.getAttribute("title")), alertHead: [...document.querySelectorAll("#searches .rh2")].map(x => x.textContent), order: (() => { const r = document.querySelector("aside.rail"); const ids = [...r.querySelectorAll("#gas-recent, #searches .rh2, #searches .srow")].map(e => e.id || e.className); return ids.join(">"); })(), mvis: vis(document.querySelector(".mvbar .mvis")) }; });
+    const t = `signed in @${width}`;
+    if (width === 1440) {
+      ok(R.rec.includes("Manual 911"), `${t}: Recent searches are listed (${R.rec.join()})`);
+      ok(R.savedShown && R.saved.some(x => x.startsWith("Red Ferrari under 10k miles|/find?q=red")) && R.saved.some(x => x.startsWith("Aston DB9|")), `${t}: the account's saved searches are listed under the recent searches (${R.saved.join(" ; ")})`);
+      ok(R.alertHead.join() === "Before it ends" && R.alerts.length === 1 && /1996 Porsche 993 Carrera/.test(R.alerts[0]), `${t}: Before it ends lists the armed car under the saved searches (${R.alerts.join()})`);
+      ok(R.order.indexOf("gas-recent") === 0 && R.order.indexOf("rh rh2") > R.order.indexOf("srow"), `${t}: the order is Recent searches, saved searches, Before it ends (${R.order})`);
+    } else ok(R.mvis, `${t}: Find's own Your searches button is on the phone`);
+    await s.close();
+  }
+  const sp = await open(SHELL, 390, { signedIn: true, recent: rec, saved, alerts });
+  await sp.evaluate(() => document.querySelector(".mvbar .mvis").click()); await new Promise(r => setTimeout(r, 400));
+  const L = await sp.evaluate(() => ({ open: !document.getElementById("mvlist").hidden, rows: [...document.querySelectorAll("#mvlist .vlist a.srch")].map(a => a.textContent.trim()) }));
+  ok(L.open && L.rows.some(x => /Red Ferrari/.test(x)), `signed in @390: the Your searches button opens the page's own list with the account's saved searches (${L.rows.join(" ; ")})`); await sp.close(); }
 await b.close();
 for (const l of out) console.log(l);
 console.log(`findResultsCheck: ${pass} passed, ${fail} failed`);

@@ -1,8 +1,1 @@
-[
- {
-  "route": "tasks-mine",
-  "kind": "feature",
-  "item": "the criteria words on each Task (added by the preview door only)",
-  "note": "The redesigned Tasks dashboard prints each Task's criteria words. Today those come from the preview's own API door (previewTasksApi adds t.criteria from matchReasons). On the public address the app posts to /api/tasks, which does not send them, so the line is empty. Needs Lane S or Lane B to add criteria to the /api/tasks list answer, or Sam accepts the dashboard without the line."
- }
-]
+[]
