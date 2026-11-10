@@ -2693,6 +2693,12 @@ try {
   record("Desk v3 preview door images (scripts/deskPreviewImageCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/deskActionsResolveCheck.mjs", { encoding: "utf8", timeout: 200000 });
+  record("Desk v4 stage 2: every needs attention action on every case resolves by item key and returns the caseView; doc_add, Select all, touched comparable rows (scripts/deskActionsResolveCheck.mjs)", "PASS", (out.match(/deskActionsResolveCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 2 ops that always resolve (scripts/deskActionsResolveCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/deskDemoCarCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("Desk v3 demonstration car is a real archive sale: VIN, listing and first photo from one record, recorded rung counts in the lane notes (scripts/deskDemoCarCheck.mjs)", "PASS", (out.match(/deskDemoCarCheck: .*/) || [""])[0]);
 } catch (e) {
