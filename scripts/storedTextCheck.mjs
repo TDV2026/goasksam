@@ -16,7 +16,7 @@ const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "e
 const states = (line, n) => new RegExp(`(^|[^\\d,.])(${n}|${n < 10 ? WORDS[n] : "x\u0000"})\\s+sales?\\b`, "i").test(String(line || ""));
 const pool = n => Array.from({ length: n }, (_, i) => ({ id: "r" + i, _usd: 20000 + i * 900, year: 1995, auction_end_date: "2026-0" + (1 + (i % 8)) + "-10", rtitle: "1995 Porsche 911 Carrera", raw_title: "1995 Porsche 911 Carrera" }));
 const opts = [{ dimension: "gearbox", label: "Manual", value: "manual", n: 13 }, { dimension: "gearbox", label: "Tiptronic", value: "auto", n: 10 }];
-const base = { engineVersion: "e99-20261028-trimfix", resolvedCar: { year: 1995, make: "Porsche", model: "911", bodyStyle: null }, rungLabel: "1995 911", poolYears: [1995, 1995], freshness: { through: "2026-10-21", archiveThrough: "2026-10-21" }, windowWords: "since June 2025" };
+const base = { engineVersion: "e100-20261110-oldergens", resolvedCar: { year: 1995, make: "Porsche", model: "911", bodyStyle: null }, rungLabel: "1995 911", poolYears: [1995, 1995], freshness: { through: "2026-10-21", archiveThrough: "2026-10-21" }, windowWords: "since June 2025" };
 // the rows as they were stored before the change: lines with the count twice, the old sentence, no scopeLine
 const MC_THIN = { ...base, tier: "thin", poolN: 6, rawPool: pool(6), cluster: null, thin_sales: { count: 6, thin: true, sales: [], answer_line: "Six sales, too few for a range.", count_line: "Six sales since June 2025." } };
 const MC_SPLIT = { ...base, tier: "result", poolN: 23, rawPool: pool(23), cluster: null, optionsState: "split", headlineDimension: "gearbox", options: opts, thinReason: "pooled_apart", thinLine: OLD_PICK,

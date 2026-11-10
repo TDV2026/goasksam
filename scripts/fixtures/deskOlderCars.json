@@ -1,0 +1,672 @@
+{
+ "source": "Lane F deskrungs full=1 sweep, Nov 10 2026, engine on 754faae8 (desk v4), Manual, 60,000 miles; recorded answers reduced to the facts the gates read",
+ "cars": [
+  {
+   "n": 1,
+   "year": 1965,
+   "make": "Ford",
+   "model": "Mustang",
+   "typedBody": "Coupe",
+   "read": true,
+   "c12": 9,
+   "m12": 17,
+   "c24": 9,
+   "m24": 17,
+   "range12": [
+    13000,
+    21000,
+    45800
+   ],
+   "rungCounts": [
+    0,
+    0,
+    1,
+    0
+   ],
+   "comps": 17,
+   "compYears": [
+    1965
+   ],
+   "label": "1965 Ford Mustang Coupe",
+   "titleLine": "1965 Ford Mustang Coupe",
+   "specLine": "Manual \u00b7 first \u00b7 60,000 miles",
+   "decodeBody": "Coupe",
+   "marketCount": 17,
+   "rmodel": "Mustang",
+   "rtrim": null
+  },
+  {
+   "n": 2,
+   "year": 1966,
+   "make": "Ford",
+   "model": "Mustang",
+   "typedBody": "Fastback",
+   "read": true,
+   "c12": 5,
+   "m12": 5,
+   "c24": 10,
+   "m24": 14,
+   "range12": [
+    51500,
+    54000,
+    66500
+   ],
+   "rungCounts": [
+    0,
+    0,
+    2,
+    0
+   ],
+   "comps": 13,
+   "compYears": [
+    1966
+   ],
+   "label": "1966 Ford Mustang Coupe",
+   "titleLine": "1966 Ford Mustang Fastback",
+   "specLine": "Manual \u00b7 first \u00b7 60,000 miles",
+   "decodeBody": "Fastback",
+   "marketCount": 14,
+   "rmodel": "Mustang",
+   "rtrim": null
+  },
+  {
+   "n": 3,
+   "year": 1963,
+   "make": "Chevrolet",
+   "model": "Corvette",
+   "typedBody": "Coupe",
+   "read": false,
+   "refused": [
+    "Pick a condition tier for a starting figure.",
+    "No condition tiers are assigned to these sales yet."
+   ],
+   "countWithoutBody": 41,
+   "rmodel": "Corvette",
+   "rtrim": null
+  },
+  {
+   "n": 4,
+   "year": 1967,
+   "make": "Chevrolet",
+   "model": "Corvette",
+   "typedBody": "Convertible",
+   "read": false,
+   "refused": [
+    "Pick a condition tier for a starting figure.",
+    "No condition tiers are assigned to these sales yet."
+   ],
+   "countWithoutBody": 41,
+   "rmodel": "Corvette",
+   "rtrim": null
+  },
+  {
+   "n": 5,
+   "year": 1969,
+   "make": "Chevrolet",
+   "model": "Camaro",
+   "typedBody": "Coupe",
+   "read": true,
+   "c12": 5,
+   "m12": 7,
+   "c24": 6,
+   "m24": 9,
+   "range12": [
+    36000,
+    46583,
+    56500
+   ],
+   "rungCounts": [
+    0,
+    0,
+    1,
+    0
+   ],
+   "comps": 9,
+   "compYears": [
+    1969
+   ],
+   "label": "1969 Chevrolet Camaro Coupe",
+   "titleLine": "1969 Chevrolet Camaro Coupe",
+   "specLine": "Manual \u00b7 first \u00b7 60,000 miles",
+   "decodeBody": "Coupe",
+   "marketCount": 9,
+   "rmodel": "Camaro",
+   "rtrim": null
+  },
+  {
+   "n": 6,
+   "year": 1957,
+   "make": "Chevrolet",
+   "model": "Bel Air",
+   "typedBody": "Hardtop",
+   "read": true,
+   "c12": 4,
+   "m12": 11,
+   "c24": 4,
+   "m24": 11,
+   "range12": [
+    33063,
+    36875,
+    40688
+   ],
+   "rungCounts": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "comps": 0,
+   "compYears": [],
+   "label": "1957 Chevrolet Bel Air",
+   "titleLine": "1957 Chevrolet Bel Air Coupe",
+   "specLine": "Manual \u00b7 tri-five \u00b7 60,000 miles",
+   "decodeBody": "Hardtop",
+   "marketCount": 11,
+   "rmodel": "Bel Air",
+   "rtrim": null
+  },
+  {
+   "n": 7,
+   "year": 1957,
+   "make": "Ford",
+   "model": "Thunderbird",
+   "typedBody": "Convertible",
+   "read": true,
+   "c12": 1,
+   "m12": 2,
+   "c24": 1,
+   "m24": 6,
+   "range12": null,
+   "rungCounts": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "comps": 11,
+   "compYears": [
+    1957
+   ],
+   "label": "1957 Ford Thunderbird Convertible",
+   "titleLine": "1957 Ford Thunderbird Convertible",
+   "specLine": "Manual \u00b7 Open \u00b7 1955-1957 \u00b7 60,000 miles",
+   "decodeBody": "Convertible",
+   "marketCount": 11,
+   "rmodel": "Thunderbird",
+   "rtrim": null
+  },
+  {
+   "n": 8,
+   "year": 1967,
+   "make": "Pontiac",
+   "model": "GTO",
+   "typedBody": "Coupe",
+   "read": true,
+   "c12": 8,
+   "m12": 15,
+   "c24": 8,
+   "m24": 15,
+   "range12": [
+    42313,
+    54784,
+    64251
+   ],
+   "rungCounts": [
+    0,
+    0,
+    2,
+    0
+   ],
+   "comps": 15,
+   "compYears": [
+    1967
+   ],
+   "label": "1967 Pontiac GTO Coupe",
+   "titleLine": "1967 Pontiac GTO Coupe",
+   "specLine": "Manual \u00b7 first \u00b7 60,000 miles",
+   "decodeBody": "Coupe",
+   "marketCount": 15,
+   "rmodel": "GTO",
+   "rtrim": null
+  },
+  {
+   "n": 9,
+   "year": 1970,
+   "make": "Chevrolet",
+   "model": "Chevelle SS",
+   "typedBody": "Coupe",
+   "read": true,
+   "c12": 2,
+   "m12": 3,
+   "c24": 10,
+   "m24": 11,
+   "range12": null,
+   "rungCounts": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "comps": 11,
+   "compYears": [
+    1970
+   ],
+   "label": "1970 Chevrolet Chevelle SS Coupe",
+   "titleLine": "1970 Chevrolet Chevelle SS Coupe",
+   "specLine": "Manual \u00b7 second \u00b7 60,000 miles",
+   "decodeBody": "Coupe",
+   "marketCount": 11,
+   "rmodel": "Chevelle",
+   "rtrim": "SS"
+  },
+  {
+   "n": 10,
+   "year": 1966,
+   "make": "Ford",
+   "model": "Bronco",
+   "typedBody": "SUV",
+   "read": false,
+   "refused": [
+    "Pick a condition tier for a starting figure.",
+    "No condition tiers are assigned to these sales yet."
+   ],
+   "countWithoutBody": 6,
+   "rmodel": "Bronco",
+   "rtrim": null
+  },
+  {
+   "n": 11,
+   "year": 1972,
+   "make": "Chevrolet",
+   "model": "C10",
+   "typedBody": "Pickup",
+   "read": true,
+   "c12": 1,
+   "m12": 4,
+   "c24": 2,
+   "m24": 10,
+   "range12": null,
+   "rungCounts": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "comps": 1,
+   "compYears": [
+    1972
+   ],
+   "label": "1972 Chevrolet C10",
+   "titleLine": "1972 Chevrolet C10 Pickup",
+   "specLine": "Manual \u00b7 Action-Line \u00b7 60,000 miles",
+   "decodeBody": "Pickup",
+   "marketCount": 10,
+   "rmodel": "C10",
+   "rtrim": null
+  },
+  {
+   "n": 12,
+   "year": 1965,
+   "make": "Jaguar",
+   "model": "E-Type",
+   "typedBody": "Roadster",
+   "read": false,
+   "refused": [
+    "Pick a condition tier for a starting figure.",
+    "2 sales of this body since March 2023, 0 in tier 1, shown on the full set."
+   ],
+   "countWithoutBody": 2,
+   "rmodel": "E-Type",
+   "rtrim": null
+  },
+  {
+   "n": 13,
+   "year": 1967,
+   "make": "Mercedes-Benz",
+   "model": "250SL",
+   "typedBody": "Roadster",
+   "read": false,
+   "refused": [
+    "Pick a condition tier for a starting figure.",
+    "2 sales of this body since October 2024, 0 in tier 1, shown on the full set."
+   ],
+   "countWithoutBody": 2,
+   "rmodel": "SL-Class",
+   "rtrim": "250SL"
+  },
+  {
+   "n": 14,
+   "year": 1971,
+   "make": "Mercedes-Benz",
+   "model": "280SL",
+   "typedBody": "Roadster",
+   "read": true,
+   "c12": 0,
+   "m12": 1,
+   "c24": 0,
+   "m24": 1,
+   "range12": null,
+   "rungCounts": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "comps": 1,
+   "compYears": [
+    1971
+   ],
+   "label": "1971 Mercedes-Benz SL-Class 280SL Roadster",
+   "titleLine": "1971 Mercedes-Benz SL-Class 280SL Roadster",
+   "specLine": "Manual \u00b7 Open \u00b7 w113 \u00b7 60,000 miles",
+   "decodeBody": "Roadster",
+   "marketCount": 3,
+   "rmodel": "SL-Class",
+   "rtrim": "280SL"
+  },
+  {
+   "n": 15,
+   "year": 1964,
+   "make": "Porsche",
+   "model": "356C",
+   "typedBody": "Coupe",
+   "read": true,
+   "c12": 13,
+   "m12": 13,
+   "c24": 13,
+   "m24": 13,
+   "range12": [
+    65000,
+    74356,
+    95000
+   ],
+   "rungCounts": [
+    0,
+    1,
+    3,
+    0
+   ],
+   "comps": 13,
+   "compYears": [
+    1964
+   ],
+   "label": "1964 Porsche 356 Coupe",
+   "titleLine": "1964 Porsche 356 Coupe",
+   "specLine": "Manual \u00b7 C \u00b7 60,000 miles",
+   "decodeBody": "Coupe",
+   "marketCount": 13,
+   "rmodel": "356",
+   "rtrim": null
+  },
+  {
+   "n": 16,
+   "year": 1973,
+   "make": "Porsche",
+   "model": "911T",
+   "typedBody": "Coupe",
+   "read": true,
+   "c12": 1,
+   "m12": 1,
+   "c24": 4,
+   "m24": 4,
+   "range12": null,
+   "rungCounts": [
+    null,
+    0,
+    0,
+    0
+   ],
+   "comps": 4,
+   "compYears": [
+    1969,
+    1970,
+    1971,
+    1972
+   ],
+   "label": "1973 Porsche 911 Targa Coupe",
+   "titleLine": "1973 Porsche 911 T",
+   "specLine": "Manual \u00b7 Coupe \u00b7 901 \u00b7 60,000 miles",
+   "decodeBody": "Coupe",
+   "marketCount": 19,
+   "rmodel": "911",
+   "rtrim": "T"
+  },
+  {
+   "n": 17,
+   "year": 1967,
+   "make": "Austin-Healey",
+   "model": "3000",
+   "typedBody": "Roadster",
+   "read": true,
+   "c12": 2,
+   "m12": 2,
+   "c24": 4,
+   "m24": 4,
+   "range12": null,
+   "rungCounts": [
+    0,
+    0,
+    1,
+    0
+   ],
+   "comps": 0,
+   "compYears": [],
+   "label": "1967 Austin-Healey 3000 Roadster",
+   "titleLine": "1967 Austin-Healey 3000 Roadster",
+   "specLine": "Manual \u00b7 Open \u00b7 60,000 miles",
+   "decodeBody": "Roadster",
+   "marketCount": 10,
+   "rmodel": "3000",
+   "rtrim": null
+  },
+  {
+   "n": 18,
+   "year": 1972,
+   "make": "MG",
+   "model": "MGB",
+   "typedBody": "Roadster",
+   "read": true,
+   "c12": 6,
+   "m12": 6,
+   "c24": 10,
+   "m24": 10,
+   "range12": [
+    6350,
+    6500,
+    9313
+   ],
+   "rungCounts": [
+    0,
+    0,
+    1,
+    0
+   ],
+   "comps": 10,
+   "compYears": [
+    1972
+   ],
+   "label": "1972 MG MGB Roadster",
+   "titleLine": "1972 MG MGB Roadster",
+   "specLine": "Manual \u00b7 Open \u00b7 chrome-bumper \u00b7 60,000 miles",
+   "decodeBody": "Roadster",
+   "marketCount": 10,
+   "rmodel": "MGB",
+   "rtrim": null
+  },
+  {
+   "n": 19,
+   "year": 1974,
+   "make": "Triumph",
+   "model": "TR6",
+   "typedBody": "Roadster",
+   "read": true,
+   "c12": 15,
+   "m12": 15,
+   "c24": 15,
+   "m24": 15,
+   "range12": [
+    13125,
+    14750,
+    19375
+   ],
+   "rungCounts": [
+    0,
+    0,
+    10,
+    0
+   ],
+   "comps": 0,
+   "compYears": [],
+   "label": "1974 Triumph TR6 Roadster",
+   "titleLine": "1974 Triumph TR6 Roadster",
+   "specLine": "Manual \u00b7 Open \u00b7 60,000 miles",
+   "decodeBody": "Roadster",
+   "marketCount": 15,
+   "rmodel": "TR6",
+   "rtrim": null
+  },
+  {
+   "n": 20,
+   "year": 1967,
+   "make": "Volkswagen",
+   "model": "Beetle",
+   "typedBody": "Sedan",
+   "read": false,
+   "refused": [
+    "Pick a condition tier for a starting figure.",
+    "1 sale of this body since February 2024, 0 in tier 1, shown on the full set."
+   ],
+   "countWithoutBody": 5,
+   "rmodel": "Beetle",
+   "rtrim": null
+  },
+  {
+   "n": 21,
+   "year": 1971,
+   "make": "Datsun",
+   "model": "240Z",
+   "typedBody": "Coupe",
+   "read": true,
+   "c12": 11,
+   "m12": 13,
+   "c24": 11,
+   "m24": 13,
+   "range12": [
+    17550,
+    23500,
+    31625
+   ],
+   "rungCounts": [
+    0,
+    0,
+    4,
+    1
+   ],
+   "comps": 0,
+   "compYears": [],
+   "label": "1971 Datsun 240Z Coupe",
+   "titleLine": "1971 Datsun 240Z Coupe",
+   "specLine": "Manual \u00b7 60,000 miles",
+   "decodeBody": "Coupe",
+   "marketCount": 13,
+   "rmodel": "240Z",
+   "rtrim": null
+  },
+  {
+   "n": 22,
+   "year": 1969,
+   "make": "Alfa Romeo",
+   "model": "Spider",
+   "typedBody": "Convertible",
+   "read": true,
+   "c12": 8,
+   "m12": 8,
+   "c24": 8,
+   "m24": 8,
+   "range12": [
+    30375,
+    36500,
+    50250
+   ],
+   "rungCounts": [
+    0,
+    0,
+    1,
+    0
+   ],
+   "comps": 0,
+   "compYears": [],
+   "label": "1969 Alfa Romeo Spider Convertible",
+   "titleLine": "1969 Alfa Romeo Spider Convertible",
+   "specLine": "Manual \u00b7 Open \u00b7 60,000 miles",
+   "decodeBody": "Convertible",
+   "marketCount": 8,
+   "rmodel": "Spider",
+   "rtrim": null
+  },
+  {
+   "n": 23,
+   "year": 1972,
+   "make": "BMW",
+   "model": "2002",
+   "typedBody": "Sedan",
+   "read": true,
+   "c12": 15,
+   "m12": 16,
+   "c24": 15,
+   "m24": 16,
+   "range12": [
+    20950,
+    25000,
+    29376
+   ],
+   "rungCounts": [
+    0,
+    1,
+    7,
+    0
+   ],
+   "comps": 0,
+   "compYears": [],
+   "label": "1972 BMW 2002 Sedan",
+   "titleLine": "1972 BMW 2002 Sedan",
+   "specLine": "Manual \u00b7 60,000 miles",
+   "decodeBody": "Sedan",
+   "marketCount": 16,
+   "rmodel": "2002",
+   "rtrim": null
+  },
+  {
+   "n": 24,
+   "year": 1978,
+   "make": "Toyota",
+   "model": "Land Cruiser FJ40",
+   "typedBody": "SUV",
+   "read": true,
+   "c12": 17,
+   "m12": 17,
+   "c24": 17,
+   "m24": 17,
+   "range12": [
+    27000,
+    30500,
+    37000
+   ],
+   "rungCounts": [
+    0,
+    0,
+    5,
+    0
+   ],
+   "comps": 0,
+   "compYears": [],
+   "label": "1978 Toyota Land Cruiser FJ40",
+   "titleLine": "1978 Toyota Land Cruiser FJ40 Suv",
+   "specLine": "Manual \u00b7 40-series \u00b7 60,000 miles",
+   "decodeBody": "SUV",
+   "marketCount": 17,
+   "rmodel": "Land Cruiser",
+   "rtrim": "FJ40"
+  }
+ ]
+}

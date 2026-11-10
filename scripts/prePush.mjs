@@ -2657,6 +2657,12 @@ try {
   record("Desk v3 stage 2: desk.comparables are decided by verified year, generation, body, gearbox and miles (never the model name), why sentences come from the reason table, a photo is the one that passed the photo rule or null, outside groups are never inside the population; eleven mutants (scripts/deskCompsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/deskOlderCarsCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk older cars (the 24 recorded answers of Lane F as the fixture): no refusal (a typed body falls back to sibling words then all bodies, each named; a tier with no data reads all conditions), the years widen by the engine's own walk until the Desk population meets the minimum, a thin 12 months defaults to 24 with a sentence, three or more comparables with why lines, one name for the car; sixteen mutants (scripts/deskOlderCarsCheck.mjs)", "PASS", (out.match(/deskOlderCarsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk older cars (the 24 recorded answers of Lane F as the fixture): no refusal (a typed body falls back to sibling words then all bodies, each named; a tier with no data reads all conditions), the years widen by the engine's own walk until the Desk population meets the minimum, a thin 12 months defaults to 24 with a sentence, three or more comparables with why lines, one name for the car; sixteen mutants (scripts/deskOlderCarsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/deskQuarterCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk v3 stage 3: a quarter under DESK_QUARTER_MIN sales has shown false and no median; live listings are typed bid, ask or no_sale and never in the evidence or the comparables; seven mutants (scripts/deskQuarterCheck.mjs)", "PASS", (out.match(/deskQuarterCheck: .*/) || [""])[0]);
 } catch (e) {
