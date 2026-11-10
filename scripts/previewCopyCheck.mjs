@@ -92,8 +92,8 @@ const SHARED = {
   ok(["Find", "Market Check", "Sell"].every(w => new RegExp('<h2 class="t-h3">' + w + '</h2>').test(home)) && (home.match(/<a class="way"/g) || []).length === 3 && !/<a class="btn/.test(home), "home: three clickable columns (Find, Market Check, Sell), no feature buttons");
   ok(!/class="ex"|data-featured-history|Photo of one real car|Real example, placeholder/.test(home), "home: no placeholder block and no featured history in the served page (the section is hidden until the engine field is read)");
   ok((home.match(/<div class="rule">/g) || []).length === 4 && /<section class="how wrap"/.test(home) && /HOW SAM DECIDES|How Sam decides/i.test(t), "home: How Sam decides is an intro column plus four numbered columns");
-  ok(/<aside class="rail"/.test(find) && /Tasks/.test(textOf(find)) && /id="rail-head" hidden/.test(find) && !/class="it"/.test(find), "find: the rail has Tasks and an empty, hidden Recent searches that a signed in visitor's own history fills");
-  ok(!/Searches to try/.test(find) && /id="rail-head" hidden>Recent searches</.test(find), "find: no suggestions are shown as history, and the Recent searches heading is hidden until there is history");
+  ok(!/<aside/.test(find) && !/id="rail-head"|id="rail-recent"|class="rail"/.test(find), "find: the landing page carries no rail (Nov 10 2026), so no Recent searches heading or list stands on it");
+  ok(!/Searches to try/.test(find), "find: no suggestions are shown as history");
   ok(t.includes("Find") && textOf(find).includes(reasonLine("entry.find_line")) && textOf(find).includes(reasonLine("entry.find_title")), "find: title, supporting line and the central headline");
   ok(!/class="deco"/.test(find) && /class="shell wrap entry"/.test(find) && !/position:absolute[^}]*\.stage|\.stage[^}]*position:absolute/.test(find), "find: no decoration photo, the page is the shared entry layout (one hero, the search, the chips, then the featured section)");
   ok(/noindex/.test(home) && /noindex/.test(find), "both previews are noindex");

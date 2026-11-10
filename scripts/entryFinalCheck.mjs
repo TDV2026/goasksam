@@ -1,5 +1,6 @@
 // THE FINAL ENTRY PAGES (Lane E, Nov 9 2026; Sam's brief docs/design/entry-pages-final-brief.md and the references find.png, market-check.png, sell.png). Offline, Chrome, Lane B's three readers' fields as fixtures (scripts/entryFinalFixture.mjs).
-//   1 SHARED: Find, Market Check and Sell carry the same header, rail, content width, chip style, search box and spacing above the featured section, within 1px, at 1440, 1024 and 390.
+//   7 NO RAIL (Nov 10 2026): the three landing pages carry no rail element and their content is centred in the full page width within 1px at 1440, 1024 and 390; the three results pages keep the rail (New search, New check, New analysis).
+//   1 SHARED: Find, Market Check and Sell carry the same header, content width, chip style, search box and spacing above the featured section, within 1px, at 1440, 1024 and 390.
 //   2 COPY: each hero's eyebrow, headline, line, placeholder and chips are the reason table's or the brief copy file's, and the page's source types none of them.
 //   3 CHIPS: every chip is a real link to its page's search for exactly its words (clicked in Chrome).
 //   4 FEATURED: what the featured section prints equals Lane B's fields, word for word, and nothing else (no typed line, no figure the page made, no invented intelligence row); a section is absent when its field is, and a part is absent when its key is.
@@ -10,6 +11,7 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { launch, imp, tally } from "./deskV3Harness.mjs";
+import { AUTH_SIGNBAR_HTML } from "../lib/authBar.js";
 const PP = await imp("lib/preview/previewPages.js"), MS = await imp("lib/preview/mcSellPreview.js"), RW = await imp("lib/reasonWords.js"), BC = await imp("lib/entryCopy.js"), F = await imp("scripts/entryFinalFixture.mjs"), PH = await imp("lib/startPlaceholders.js");
 const { ok, done } = tally(), NOW = Date.parse("2026-11-09T12:00:00Z");
 const find = (f = F.findField()) => PP.findHtml({ examples: f, now: NOW, allowData: true }), mc = (f = F.mcField()) => MS.entryHtml("mc", { mcCard: f }), sell = (f = F.sellField()) => MS.entryHtml("sell", { sellCard: f });
@@ -29,14 +31,14 @@ const same = (A, B, keys) => keys.filter(k => { const a = A[k], c = B[k]; if (a 
 for (const w of [1440, 1024, 390]) {
   const M = []; for (const [n, h] of PAGES()) { const p = await open(h, w); M.push([n, await p.evaluate(MEASURE)]); await p.close(); }
   const [, A] = M[0]; let bad = [];
-  for (const [n, X] of M.slice(1)) { const d = same(A, X, ["header", "headerWrap", "logo", "tabs", "chip", "sb", "h2", "ft", "gapSearchToChips", "gapChipsToProof", "gapLeadToSearch", "gapH2ToLead"].concat(w >= 1024 ? ["rail", "newBtn"] : [])); if (d.length) bad.push(`${n} differs from find in ${d.join(", ")}`); }
-  for (const [n, X] of M) { if (X.hs) bad.push(n + " scrolls sideways"); if (!X.hasRail) bad.push(n + " has no rail"); if (X.proof && w >= 1280 && !(X.proof.w <= 1041 && X.proof.w >= 900)) bad.push(`${n}: the featured section is ${X.proof.w}px wide`); }
+  for (const [n, X] of M.slice(1)) { const d = same(A, X, ["header", "headerWrap", "logo", "tabs", "chip", "sb", "h2", "ft", "gapSearchToChips", "gapChipsToProof", "gapLeadToSearch", "gapH2ToLead"]); if (d.length) bad.push(`${n} differs from find in ${d.join(", ")}`); }
+  for (const [n, X] of M) { if (X.hs) bad.push(n + " scrolls sideways"); if (X.hasRail) bad.push(n + " still has a rail"); if (X.proof && w >= 1280 && !(X.proof.w <= 1041 && X.proof.w >= 900)) bad.push(`${n}: the featured section is ${X.proof.w}px wide`); }
   if (M[1][1].proof && M[2][1].proof && !(near(M[1][1].proof.w, M[2][1].proof.w) && near(M[1][1].proof.x, M[2][1].proof.x))) bad.push("the Market Check and Sell cards differ in width or position");
   if (M[0][1].proof && M[1][1].proof && !(near(M[0][1].proof.w, M[1][1].proof.w) && near(M[0][1].proof.x, M[1][1].proof.x))) bad.push("the Find row and the Market Check card differ in width or position");
-  ok(!bad.length, `@${w}: Find, Market Check and Sell share the header, rail (New search, New check, New analysis), search box, chips and spacing above the featured section, within 1px, with the same content width${bad.length ? ": " + bad.join("; ") : ""}`);
+  ok(!bad.length, `@${w}: Find, Market Check and Sell share the header, search box, chips and spacing above the featured section, within 1px, with the same content width${bad.length ? ": " + bad.join("; ") : ""}`);
 }
 // the rail's three buttons and the one search component
-{ const t = x => x.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "); ok(/New search/.test(t(find())) && /New check/.test(t(mc())) && /New analysis/.test(t(sell())), "the rail buttons read New search, New check and New analysis");
+{ const t = x => x.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<style[\s\S]*?<\/style>/g, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " "); ok(!/New search|New check|New analysis|Recent searches/.test(t(find()) + t(mc()) + t(sell())), "no rail button or rail heading on a landing page (New search, New check, New analysis live on the results pages)");
   const sb = h => (/<form class="sb"[\s\S]*?<\/form>/.exec(h) || [""])[0].replace(/placeholder="[^"]*"|action="[^"]*"|name="[^"]*"| data-own/g, "");
   ok(sb(find()) === sb(mc()) && sb(mc()) === sb(sell()) && /id="pq-mic"/.test(sb(find())) && /class="go" type="submit"/.test(sb(find())), "one search component on all three: icon, microphone, dark arrow submit (Enter submits)"); }
 // ---------- 2 copy ----------
@@ -98,7 +100,26 @@ const changed = (files, read = f => fs.readFileSync(f, "utf8")) => files.filter(
   ok(dup(ids(src)).length === 0, "no two reason table entries share an id" + (dup(ids(src)).length ? ": " + dup(ids(src)) : ""));
   ok(dup(ids(src.replace('"entry.hero_mc_line":', '"entry.mc_line":'))).length > 0, "mutant caught: my hero line given Lane B's id is a duplicate (the Nov 9 fault)"); }
 // ---------- a rail on an entry page, and the footer, are checked above; a mutant with an extra rail ----------
-{ const p = await open(mc().replace("</main>", "</main><aside class=\"rail\">x</aside>"), 1440), n = await p.evaluate(() => document.querySelectorAll(".rail").length); await p.close(); ok(n === 2, "mutant caught: a second rail on an entry page is countable (the shared check asserts one)"); }
+// ---------- 7 no rail on the landing pages, centred; the rail stays on the results pages ----------
+const CENTRE = () => { const cx = document.documentElement.clientWidth / 2, off = s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return Math.round(((r.left + r.right) / 2 - cx) * 10) / 10; };
+  return { rails: document.querySelectorAll(".rail, aside").length, railText: /New (search|check|analysis)|Recent (searches|Market|selling)/.test(document.body.innerText), off: { stage: off(".stage"), sb: off("#pq-form"), pills: off(".pills"), proof: off(".proof"), h1: off(".stage h2") }, hs: document.documentElement.scrollWidth > innerWidth + 1 }; };
+const centred = r => Object.entries(r.off).filter(([, v]) => v != null && Math.abs(v) > 1).map(([k, v]) => k + " " + v + "px off centre");
+for (const w of [1440, 1024, 390]) { const bad = [];
+  for (const [n, h] of PAGES()) { const p = await open(h, w), r = await p.evaluate(CENTRE); await p.close(); if (r.rails) bad.push(n + " has a rail element"); if (r.railText) bad.push(n + " names a rail action"); if (r.hs) bad.push(n + " scrolls sideways"); bad.push(...centred(r).map(x => n + ": " + x)); }
+  ok(!bad.length, `@${w}: no rail element on Find, Market Check or Sell, and the hero, search, chips and featured section are centred in the page within 1px${bad.length ? ": " + bad.join("; ") : ""}`); }
+{ // mutants: a rail put back on a landing page; a landing element moved
+  const withRail = mc().replace('<div class="shell wrap entry">', '<div class="shell wrap entry">' + MS.railHtml(MS.KINDS.mc)), moved = sell().replace("</style>", ".stage{margin-left:120px!important}</style>");
+  const p1 = await open(withRail, 1440), r1 = await p1.evaluate(CENTRE); await p1.close(); ok(r1.rails > 0 && r1.railText, "mutant caught: a rail put back on a landing page is seen");
+  for (const w of [1440, 390]) { const p2 = await open(moved, w), r2 = await p2.evaluate(CENTRE); await p2.close(); ok(centred(r2).length > 0 || r2.hs, `mutant caught @${w}: a landing element moved sideways is seen`); } }
+// the results pages: the shell wraps the live page with the rail (the three actions) exactly as the component prints it
+{ const live = k => `<!doctype html><html><head></head><body><div id="gas-scrim"></div><header class="gas-mhead"></header><main id="ob"><p>result</p></main></div>${AUTH_SIGNBAR_HTML}${k === "sell" ? MS.SELL_PATCHES.map(x => x[0]).join("") : '<script src="/obx.abc/onebox.js"></script>'}</body></html>`;
+  const read = () => { const a = document.querySelector("aside.rail"); if (!a) return null; const r = a.getBoundingClientRect(), n = a.querySelector(".new"); return { x: Math.round(r.left), w: Math.round(r.width), label: n && n.textContent.trim(), href: n && n.getAttribute("href") }; };
+  for (const [k, label, href] of [["mc", "New check", "/market-check"], ["sell", "New analysis", "/sell"]]) {
+    const html = MS.wrapLive(k, live(k)), p = await open(html, 1440), r = await p.evaluate(read); await p.close();
+    ok(r && r.label === label && r.href.startsWith("/") && r.w === 200 && r.x === 36 && html.includes(MS.railHtml(MS.KINDS[k])), `${k} results: the rail is present and unchanged (${label}, ${r && r.w}px wide at x ${r && r.x})`);
+    const cut = html.replace(MS.railHtml(MS.KINDS[k]), ""), p2 = await open(cut, 1440), r2 = await p2.evaluate(read); await p2.close(); ok(r2 === null, `mutant caught: the rail removed from a ${k} results page is seen`); }
+  const shellSrc = fs.readFileSync("lib/appShell.js", "utf8"), rb = blobOf("origin/main", "lib/appShell.js"); ok(!rb || hashOf(shellSrc) === rb, "Find results: the live shell that carries its rail (lib/appShell.js) is byte identical to origin/main");
+  ok(!rb || hashOf(shellSrc + "\n// edit") !== rb, "mutant caught: a change to the Find results shell is seen"); }
 await b.close();
 function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
 done("entryFinalCheck");

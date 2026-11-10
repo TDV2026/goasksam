@@ -41,7 +41,7 @@ for (const [n, h] of [["home", HOME], ["find", FIND]]) {
 ok(!/Searches to try/.test(FIND) && !/class="it"/.test(FIND), "Find rail: no suggested searches stand in the rail (the same three are under the search bar)");
 ok(/<h1 class="sr">Find<\/h1>/.test(FIND) && !/class="t-title"/.test(FIND), "Find: the Find heading and its lead are for a screen reader only (a semantic h1 stays)");
 ok(!/Let Sam keep watch/.test(FIND) && !/<div class="rh">Tasks<\/div>/.test(FIND) && !/class="tk"/.test(FIND), "Find rail: the Tasks promo is gone at Sam's word (the Tasks nav item stays in the header)");
-ok(/<a class="new" href="\/find">[\s\S]*?New search<\/a>/.test(FIND) && FIND.indexOf("New search") < FIND.indexOf("Recent searches"), "Find rail: New search, then Recent searches (shown only when there are some)");
+ok(!/<aside/.test(FIND) && !/class="new"/.test(FIND), "Find landing page: no rail, no New search (Nov 10 2026; the results pages keep theirs)");
 { const dash = /[–—]|\w-\w(?!\w*\s*\()|\s-\s/; const t = textOf(HOME) + " " + textOf(FIND); const m = t.replace(/under \$40k|10k|911|Daily Vroom|What's new/g, "").match(/[–—]|\s-\s/); ok(!m, "no dash in the copy of either page" + (m ? " (" + m[0] + ")" : "")); }
 
 // ---------- the browser ----------
@@ -83,15 +83,10 @@ const bad2 = await layoutBad([["home", HOME], ["home with history", HIST], ["fin
 // SAM'S HOME COLUMNS: three equal cards, the whole card is the link
 { const p = await load(HOME, 1440), r = await p.evaluate(() => { const cs = [...document.querySelectorAll("a.way")].map(a => { const q = a.getBoundingClientRect(), hit = document.elementFromPoint(q.left + q.width - 20, q.top + q.height - 14); return { w: Math.round(q.width), h: Math.round(q.height), whole: !!(hit && hit.closest("a.way") === a), href: a.getAttribute("href"), bg: getComputedStyle(a).backgroundColor, border: getComputedStyle(a).borderTopWidth }; }); return cs; });
   ok(r.length === 3 && new Set(r.map(x => x.w)).size === 1 && new Set(r.map(x => x.h)).size === 1 && r.every(x => x.whole && x.border === "1px"), `Home: three equal cards (${r.map(x => x.w + "x" + x.h).join(", ")}), every corner of each card is its link`); await p.close(); }
-// the Find rail and heading, in the page
-{ const p = await load(FIND, 1440), m = await p.evaluate(() => { const r = e => e.getBoundingClientRect(), rail = document.querySelector(".rail"), nw = document.querySelector(".new"), h = document.querySelector("h1.sr"), q = document.querySelector(".stage h2"), main = document.querySelector(".main"); const mr = r(main), qr = r(q);
-    return { rail: Math.round(r(rail).width), newH: Math.round(r(nw).height), h1: h ? { w: r(h).width, h: r(h).height } : null, centred: Math.round(Math.abs((qr.left + qr.right) / 2 - (mr.left + mr.right) / 2)), headHidden: document.getElementById("rail-head").hidden, listLen: document.getElementById("rail-recent").children.length }; });
-  ok(m.rail >= 198 && m.rail <= 202 && m.newH >= 36 && m.newH <= 40, `Find: the rail is ${m.rail}px and New search ${m.newH}px tall`); ok(m.h1 && m.h1.w <= 2 && m.h1.h <= 2, "Find: the Find heading is visually removed and still in the page"); ok(m.centred <= 2, `Find: the question is centred in the content area (off by ${m.centred}px)`);
-  ok(m.headHidden && m.listLen === 0, "Find rail: a visitor with no signed in history sees no Recent searches and no list"); await p.close(); }
-{ const sess = `try{localStorage.setItem("gas_auth_session",JSON.stringify({access_token:"t"}));sessionStorage.setItem("gas_recent_s",JSON.stringify([{label:"A recent search with a very long label that has to be cut off with an ellipsis at the end",url:"/find?q=a"},{label:"Second search",url:"/find?q=b"}]));}catch(e){}`;
-  const p = await load(FIND, 1440, sess), m = await p.evaluate(() => ({ head: document.getElementById("rail-head").textContent, hidden: document.getElementById("rail-head").hidden, rows: [...document.querySelectorAll("#rail-recent .it")].map(a => ({ h: Math.round(a.getBoundingClientRect().height), ell: getComputedStyle(a.querySelector("span")).textOverflow })) }));
-  ok(!m.hidden && m.head === "Recent searches" && m.rows.length === 2 && new Set(m.rows.map(x => x.h)).size === 1 && m.rows.every(x => x.ell === "ellipsis"), "Find rail: a signed in visitor's own history is listed as Recent searches, equal rows, long labels cut with an ellipsis"); await p.close();
-  const p2 = await load(FIND, 1440, sess.replace('localStorage.setItem("gas_auth_session",JSON.stringify({access_token:"t"}));', 'localStorage.removeItem("gas_auth_session");')), m2 = await p2.evaluate(() => document.getElementById("rail-recent").children.length); ok(m2 === 0, "Find rail: history saved in the browser is not shown to a visitor who is not signed in"); await p2.close(); }
+// the Find heading, in the page (Nov 10 2026: the landing page has no rail; the results pages keep theirs, pinned in entryFinalCheck)
+{ const p = await load(FIND, 1440), m = await p.evaluate(() => { const r = e => e.getBoundingClientRect(), h = document.querySelector("h1.sr"), q = document.querySelector(".stage h2"), main = document.querySelector(".main"); const mr = r(main), qr = r(q);
+    return { rails: document.querySelectorAll(".rail, aside, #rail-head, #rail-recent").length, h1: h ? { w: r(h).width, h: r(h).height } : null, centred: Math.round(Math.abs((qr.left + qr.right) / 2 - innerWidth / 2)) }; });
+  ok(m.rails === 0, "Find: no rail on the landing page"); ok(m.h1 && m.h1.w <= 2 && m.h1.h <= 2, "Find: the Find heading is visually removed and still in the page"); ok(m.centred <= 1, `Find: the question is centred in the full page width (off by ${m.centred}px)`); await p.close(); }
 
 // ---------- 3 the featured history ----------
 const NOWOPT = { now: NOW, allowData: true };
