@@ -11,6 +11,10 @@ const args = process.argv.slice(2), rootArg = args.find(a => !a.startsWith("--")
 if (args.includes("--mutants")) {
   const FE = "lib/live/findExamples.js", TD = "lib/live/tasksDemo.js", WD = "lib/live/watchingDemo.js", RW = "lib/reasonWords.js";
   const muts = [
+    [FE, "!isCrewRequest(reqOrCookie)) return null;\n  const now = d.now(), rows = await liveExampleRows", "!mayRead(reqOrCookie)) return null;\n  const now = d.now(), rows = await liveExampleRows", "(5) a crew reader (the engine card field) opens to the flag"],
+    [FE, "export async function findExamplesField(", "export async function findExamplesGhost(env, req) { return null; }\nexport async function findExamplesField(", "(5) a new reader is not classified public or crew"],
+    ["api/publicExamples.js", "import { tasksEmailExample } from \"../lib/live/tasksDemo.js\";", "import { tasksEmailExample, tasksDemoField } from \"../lib/live/tasksDemo.js\";", "(5) the public endpoint serves a crew reader"],
+    [FE, "if (process.env.FIND_EXAMPLES === \"0\" || !mayRead(reqOrCookie)) return null;   // crew, or PUBLIC_EXAMPLES=1: the stored pick and keyed reads only, never a build", "if (process.env.FIND_EXAMPLES === \"0\" || !isCrewRequest(reqOrCookie)) return null;", "(5) a public reader does not open with mayRead"],
     [FE, "price = num(r.sale_price_usd)", "price = num(r.sale_price_usd) * 1.1", "(1) the Find fallback prints a price the archive does not hold"],
     [FE, "if (out.length >= MAX_ITEMS) break; if (out.some(o => o.url === it.url)) continue; out.push(it); }", "if (out.length >= MAX_ITEMS) break; if (out.some(o => o.url === it.url)) continue; out.push(it); }\n  while (out.length && out.length < MAX_ITEMS) out.push({ ...out[0] });", "(1) the Find fallback is padded with copies to make three"],
     [FE, "!genuinePhoto(r.img) || !isHttps(r.img) || !isHttps(url)", "!isHttps(url)", "(1) a placeholder or missing photo is a fallback sale"],
@@ -22,8 +26,8 @@ if (args.includes("--mutants")) {
     [FE, "live: false, soldAt:", "live: true, soldAt:", "(1) a sale is labelled live"],
     [FE, "if (plats.has(norm(it.platform)) || titles.has(norm(it.title))) continue;", "", "(1) the same platform or car three times when others exist"],
     [FE, "if (!items.length) return { stored: null, why: \"none_found\" };", "if (!items.length) { await d.write(env, { key: FALLBACK_KEY, value: { v: FALLBACK_V, items: [], builtAt: new Date(now).toISOString() } }); return { stored: null, why: \"none_found\" }; }", "(1) an empty read wipes the last stored sales"],
-    [FE, "if (process.env.FIND_EXAMPLES === \"0\" || !isCrewRequest(reqOrCookie)) return null;\n  const now = d.now();", "if (process.env.FIND_EXAMPLES === \"0\") return null;\n  const now = d.now();", "(4) no cookie: the Find fallback"],
-    [FE, "if (process.env.FIND_EXAMPLES === \"0\" || !isCrewRequest(reqOrCookie)) return null;\n  const now = d.now();", "if (!isCrewRequest(reqOrCookie)) return null;\n  const now = d.now();", "(4) the kill switch: the Find fallback"],
+    [FE, "if (process.env.FIND_EXAMPLES === \"0\" || !mayRead(reqOrCookie)) return null;\n  const now = d.now();", "if (process.env.FIND_EXAMPLES === \"0\") return null;\n  const now = d.now();", "(4) no cookie: the Find fallback"],
+    [FE, "if (process.env.FIND_EXAMPLES === \"0\" || !mayRead(reqOrCookie)) return null;\n  const now = d.now();", "if (!mayRead(reqOrCookie)) return null;\n  const now = d.now();", "(4) the kill switch: the Find fallback"],
     [TD, "live: false, priceLabel: reasonLine(\"demo.last_bid\"", "live: true, priceLabel: reasonLine(\"demo.last_bid\"", "(2) an ended car carries a live flag"],
     [TD, "priceLabel: reasonLine(\"demo.last_bid\", { price: Number(st.priceUsd) })", "priceLabel: reasonLine(\"tasks.demo_current_bid\", { price: Number(st.priceUsd) })", "(2) an ended car is labelled Current bid"],
     [TD, "status: reasonLine(\"demo.ended\"), label: reasonLine(\"demo.recent_example\"), endedAt", "label: reasonLine(\"demo.recent_example\"), endedAt", "(2) an ended car carries no Ended status"],
@@ -210,7 +214,7 @@ const ended = (w, h = 1) => { w.clock = NOW + 30 * 3600e3 + h * 3600e3; };   // 
   // A GATE is any function of lib/live whose body calls isCrewRequest; a READER is any exported async function (env, req|reqOrCookie|cookie ...) that is a gate or calls one (in its own file or imported), except the *Field and *Fallback wrappers. scanReaders is a function so the check can run it on a tree of its own.
   const scanReaders = dir => {
     const files = fs.readdirSync(dir).filter(x => /\.js$/.test(x)), fnsOf = src => { const out = [], re = /^(export )?(async )?function (\w+)\(([^)]*)\)/gm; let m; const ms = []; while ((m = re.exec(src))) ms.push({ i: m.index, exp: !!m[1], asy: !!m[2], name: m[3], params: m[4] }); ms.forEach((x, k) => out.push({ ...x, body: src.slice(x.i, k + 1 < ms.length ? ms[k + 1].i : src.length) })); return out; };
-    const all = files.map(f => ({ f, fns: fnsOf(fs.readFileSync(path.join(dir, f), "utf8")) })), gates = new Set(all.flatMap(x => x.fns.filter(fn => /\bisCrewRequest\(/.test(fn.body)).map(fn => fn.name)));
+    const all = files.map(f => ({ f, fns: fnsOf(fs.readFileSync(path.join(dir, f), "utf8")) })), gates = new Set(all.flatMap(x => x.fns.filter(fn => /\b(isCrewRequest|mayRead)\(/.test(fn.body)).map(fn => fn.name)));
     const out = []; for (const { f, fns } of all) for (const fn of fns) { if (!(fn.exp && fn.asy) || !/^env\s*,\s*(reqOrCookie|req|cookie)\b/.test(fn.params.trim()) || /(Fallback|Field)$/.test(fn.name)) continue;
       const calls = [...gates].some(g => g !== fn.name && new RegExp("\\b" + g + "\\(").test(fn.body)); if (gates.has(fn.name) || calls) out.push(f + ":" + fn.name); }
     return out;
@@ -224,6 +228,23 @@ const ended = (w, h = 1) => { w.clock = NOW + 30 * 3600e3 + h * 3600e3; };   // 
     const found = scanReaders(tmp); fs.rmSync(tmp, { recursive: true, force: true });
     ok("(4) a reader that resolves to null through a helper in another file is found by the scan (and so is unclassified until someone names it)", found.includes("ghost.js:ghostExample") && found.includes("gate.js:gated") && !found.includes("ghost.js:ghostExampleField"), found.join(", ")); }
   const KNOWN = { "findExamples.js:findExamples": "findExamplesFallback", "tasksDemo.js:tasksDemo": "tasksDemoFallback", "tasksDemo.js:tasksEmailExample": "tasksEmailExample", "entryExamples.js:marketCheckExampleSales": "marketCheckExampleSales", "entryExamples.js:sellExample": "sellExample", "watchingDemo.js:watchingDemo": "watchingDemoFallback", "featuredHistory.js:readFeaturedHistory": null, "entryExamples.js:daily": null, "marketCheckExamples.js:marketCheckExampleSales": null, "marketCheckExamples.js:marketCheckExampleResult": null, "marketCheckExamples.js:marketCheckExample": null, "marketCheckExamples.js:sellExampleCard": null, "marketCheckExamples.js:sellExample": null };
+  // PUBLIC OR CREW (Lane B, Nov 10 2026, PUBLIC_EXAMPLES): every reader of lib/live, wrappers included (*Field, *Fallback), is classified. A PUBLIC reader opens with mayRead (the crew cookie or the flag) and, for a public request, only reads the stored pick; it is served by api/publicExamples.js.
+  // A CREW reader stays crew only: it builds or composes at the request (engine cards, a matcher, a watching card), so it never calls mayRead or isPublicRead. A reader in neither list fails here until someone classifies it.
+  const ACCESS = {
+    public: ["findExamples.js:findExamples", "findExamples.js:findExamplesFallback", "featuredHistory.js:readFeaturedHistory", "tasksDemo.js:tasksEmailExample", "marketCheckExamples.js:marketCheckExample", "marketCheckExamples.js:marketCheckExampleResult", "marketCheckExamples.js:marketCheckExampleSales", "marketCheckExamples.js:sellExampleCard", "marketCheckExamples.js:sellExample", "entryExamples.js:daily", "entryExamples.js:marketCheckExampleSales", "entryExamples.js:sellExample"],
+    crew: ["findExamples.js:findExamplesField", "tasksDemo.js:tasksDemo", "tasksDemo.js:tasksDemoFallback", "tasksDemo.js:tasksDemoField", "watchingDemo.js:watchingDemo", "watchingDemo.js:watchingDemoFallback", "watchingDemo.js:watchingDemoField"]
+  };
+  { const bodyOf = (f, name) => { const src = read("lib/live/" + f), i = src.indexOf("export async function " + name + "("); if (i < 0) return null; const nx = src.indexOf("\nexport ", i + 10); return src.slice(i, nx < 0 ? src.length : nx); };
+    const everyReader = []; for (const f of fs.readdirSync(liveDir).filter(x => /\.js$/.test(x))) for (const m of read("lib/live/" + f).matchAll(/^export async function (\w+)\(env, (?:reqOrCookie|req|cookie)\b/gm)) everyReader.push(f + ":" + m[1]);
+    const classified = [...ACCESS.public, ...ACCESS.crew], loose = everyReader.filter(r => !classified.includes(r)), gone = classified.filter(r => !everyReader.includes(r));
+    ok("(5) every reader of lib/live that takes a request, wrappers included, is classified public or crew (" + everyReader.length + " found)", loose.length === 0 && gone.length === 0, "unclassified " + loose.join(", ") + " not found " + gone.join(", "));
+    const openGate = ACCESS.public.filter(r => { const b = bodyOf(...r.split(":")); return b && !/\b(mayRead|daily)\(/.test(b); });
+    ok("(5) a PUBLIC reader opens with mayRead, or goes through daily() or another public reader that does", openGate.length === 0, openGate.join(", "));
+    const leak = ACCESS.crew.filter(r => /\b(mayRead|isPublicRead)\(/.test(bodyOf(...r.split(":")) || ""));
+    ok("(5) a CREW reader never opens to the flag: it does not call mayRead or isPublicRead", leak.length === 0, leak.join(", "));
+    const api = read("api/publicExamples.js"), served = ["findExamples", "findExamplesFallback", "readFeaturedHistory", "tasksEmailExample", "marketCheckExample", "marketCheckExampleResult", "marketCheckExampleSales", "sellExampleCard", "sellExample"];
+    ok("(5) api/publicExamples.js serves exactly the public readers of the entry pages, and no crew reader", served.every(n => new RegExp("\\b" + n + "\\b").test(api)) && !ACCESS.crew.some(r => new RegExp("\\b" + r.split(":")[1] + "\\b").test(api.replace(/^\/\/.*$/gm, "").replace(/"[^"]*"/g, ""))), "");
+  }
   const unclassified = readers.filter(r => !(r in KNOWN)), missing = Object.entries(KNOWN).filter(([r, fb]) => fb && !read("lib/live/" + r.split(":")[0]).includes("export async function " + fb + "("));
   ok("(4) every crew live reader is classified (a fallback, or named as without one)", unclassified.length === 0 && missing.length === 0, "unclassified " + unclassified.join(", ") + " missing " + missing.map(m => m[1]).join(", ") + " found " + readers.join(", "));
 }

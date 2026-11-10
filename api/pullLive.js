@@ -95,8 +95,9 @@ async function handler(req, res) {
         // THE HOURLY REVALIDATION (Nov 8 2026): the first quarter of every hour, day and night, the Find examples and the watching card are confirmed live by keyed reads and an ended one is replaced. Zero OCD (database only), the existing every-15-minute cron.
         let examplesRefresh = "skipped";
         let revalidated = "skipped";
-        if (new Date().getUTCMinutes() < 15) { examplesRefresh = await refreshExamplesWord(env); revalidated = await revalidateCrewWord(env); }
-        return res.status(200).json({ ok: true, slot, nothing: true, ocdRequests: 0, endedPast, examplesRefresh, revalidated });
+        let entryExamples = "skipped";
+        if (new Date().getUTCMinutes() < 15) { examplesRefresh = await refreshExamplesWord(env); revalidated = await revalidateCrewWord(env); entryExamples = await refreshEntryWord(env); }
+        return res.status(200).json({ ok: true, slot, nothing: true, ocdRequests: 0, endedPast, examplesRefresh, revalidated, entryExamples });
       }
       mode = slot.mode === "full" ? "" : slot.mode;
       if (starter.by === "scheduled") { starter.detail = `${slot.mode === "full" ? "full walk" : "ending soonest"} ${slot.hhmm} ${slot.zone}`; configureOcdUsage({ job: "pull_live", startedBy: starter.by, startedDetail: starter.detail }); }
@@ -247,6 +248,11 @@ async function revalidateCrewWord(env) {
 async function refreshExamplesWord(env) {
   const run = async (off, mod, fn) => { try { if (process.env[off] === "0") return "off"; const m = await import(mod); const r = await Promise.race([m[fn](env), new Promise(res => setTimeout(() => res({ why: "timeout" }), 40000))]); return (r && r.why || "done") + (r && r.funnel && r.funnel.chosen != null ? ` (${r.funnel.kept} kept, ${r.funnel.chosen} new)` : ""); } catch { return "error"; } };
   return { findExamples: await run("FIND_EXAMPLES", "../lib/live/findExamples.js", "refreshFindExamples"), watchingDemo: await run("WATCHING_DEMO", "../lib/live/watchingDemo.js", "refreshWatchingDemo") };
+}
+
+// The entry page examples' daily picks (lib/live/publicExamples.js): the ONLY place they are built for the public read (PUBLIC_EXAMPLES). Kept while they are today's, else built, one at a time; zero OCD; a word each, never a car.
+async function refreshEntryWord(env) {
+  try { const { refreshEntryExamples } = await import("../lib/live/publicExamples.js"); return await refreshEntryExamples(env); } catch { return "error"; }
 }
 
 // OPS, KEYED AND READ ONLY (Lane B, Nov 6 2026): what the two crew keys hold now, and (funnel=1) the counts the refresh finds on the live pool, without writing. api/usageDashboard.js task=crewkeys calls this behind the ops key; no cron
