@@ -148,7 +148,7 @@ ok("page 4 prints quarters (shown ones only), live listings with their kind, nex
 const docsOut = cl(demo); docsOut.documents[0].status = "outstanding", docsOut.documents = docsOut.documents; const outTxt = pagesOf(await build(docsOut)).join(" ");
 ok("IMS reads documented with the invoices received, and reported with them outstanding, in the PDF itself", /documented by the service invoices/.test(text) && /reported by the seller, and the invoices are outstanding/.test(outTxt) && !/documented by the service invoices/.test(outTxt));
 ok("the next steps drop the invoices step once received, and the PDF says so", !/Send the service invoices/.test(text) && /Send the service invoices/.test(outTxt));
-{ const nr = cl(demo); nr.fields.vin = { value: "WP0AA2990XS620481", source: "seller", verified: false, candidates: [] }; nr.record = { appearances: 0, none: "x" }; const t = pagesOf(await build(nr))[3];
+{ const nr = cl(demo); nr.fields.vin = { value: "WP0AA2995XS626785", source: "seller", verified: false, candidates: [] }; nr.record = { appearances: 0, none: "x" }; const t = pagesOf(await build(nr))[3];
   ok("no prior auction record: the one sentence is in the note on page 4, and there is no page for it", /Please note/.test(t) && /No prior auction record for this VIN\./.test(t) && pagesOf(await build(nr)).length === 4); }
 ok("without that case there is no such sentence anywhere", !/No prior auction record/.test(pg.join(" ")));
 // brand and logo

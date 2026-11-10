@@ -1,0 +1,20 @@
+// The demonstration car is a real archive sale: its VIN, listing address and photo come from one record read with the ops task deskcars, every desk file takes the VIN from lib/desk/demoCar.js, and the recorded rung counts match the figures posted in docs/lane-notes.md.
+import fs from "node:fs"; import path from "node:path"; import { fileURLToPath, pathToFileURL } from "node:url";
+const ROOT = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
+const U = f => import(pathToFileURL(path.join(ROOT, f)).href);
+let pass = 0, fail = 0; const ok = (n, c) => { if (c) pass++; else { fail++; console.log("FAIL " + n); } };
+const { DEMO_CAR, DEMO_VIN, DEMO_RUNGS } = await U("lib/desk/demoCar.js"), { demoCase } = await U("lib/desk/caseDemo.js"), F = await U("lib/preview/deskV3Fixture.js");
+ok("the VIN is 17 characters, a 1999 Porsche (WP0, year code X)", /^WP0[A-Z0-9]{6}X[A-Z0-9]{7}$/.test(DEMO_VIN) && DEMO_VIN === DEMO_CAR.vin);
+ok("the listing is a Bring a Trailer address and the photo an https image from the same site", /^https:\/\/bringatrailer\.com\/listing\//.test(DEMO_CAR.listingUrl) && /^https:\/\/bringatrailer\.com\/wp-content\/uploads\/.+\.(jpe?g|png|webp)/i.test(DEMO_CAR.photoUrl));
+ok("the archive id is a uuid", /^[0-9a-f-]{36}$/.test(DEMO_CAR.archiveId));
+const c = demoCase();
+ok("the case carries the archive VIN", c.fields.vin.value === DEMO_VIN);
+ok("the case photos are the preview photos; the first is the listing's own picture with its address and every drawn stand-in says so", c.photos.items.length === F.DEMO_PHOTOS.length && c.photos.items.every(p => F.DEMO_PHOTOS.some(q => q.id === p.id)) && F.DEMO_PHOTOS[0].url === DEMO_CAR.photoUrl && F.DEMO_PHOTOS[0].from === DEMO_CAR.listingUrl && F.DEMO_PHOTOS.filter(p => /^data:/.test(p.url)).every(p => p.standIn));
+const src = f => fs.readFileSync(path.join(ROOT, f), "utf8");
+ok("no desk file types the old sample VIN", ["lib/desk/caseDemo.js", "lib/preview/deskV3Fixture.js", "lib/preview/deskPreview.js", "lib/preview/deskV3.js"].every(f => !src(f).includes("WP0AA2990XS620481")));
+const notes = src("docs/lane-notes.md");
+ok("the recorded any-condition count and median are in the lane notes", notes.includes(String(DEMO_RUNGS.any.count)) && notes.includes(DEMO_RUNGS.any.median.toLocaleString("en-US")));
+ok("the VIN and archive id are the ones the deskcars read posted in the lane notes", notes.split("\n").some(l => l.includes("DEMO CAR FROM THE ARCHIVE") && l.includes(DEMO_VIN) && l.includes(DEMO_CAR.archiveId)));
+ok("the recorded Good rung is in the lane notes", notes.includes(DEMO_RUNGS.good.median.toLocaleString("en-US")) && notes.includes(DEMO_RUNGS.good.q1.toLocaleString("en-US")));
+ok("the quartiles are in order and the Good median sits inside the any-condition spread", DEMO_RUNGS.any.q1 < DEMO_RUNGS.any.median && DEMO_RUNGS.any.median < DEMO_RUNGS.any.q3 && DEMO_RUNGS.good.median > DEMO_RUNGS.any.q1 && DEMO_RUNGS.good.median < DEMO_RUNGS.any.q3);
+console.log(`deskDemoCarCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

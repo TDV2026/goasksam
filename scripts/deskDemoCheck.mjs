@@ -121,7 +121,7 @@ RS.useSheetEngine(null);
   const good = await tier(3), exc = await tier(2), fair = await tier(4);
   ok(good.insufficient === false && good.count === 5 && good.q1 > 0 && good.q3 >= good.q1, "the demonstration 996 reads a range for Good from its own sales");
   ok([exc, fair].every(e => e.insufficient === true && /too few sales/.test(e.sentence) && e.median == null) && exc.count !== fair.count, "Excellent and Fair say they hold too few sales (the engine's sentence), with no flat range");
-  const mk = await P.previewDeskApi({ action: "case_new", text: "WP0AA2990XS620481", mileage: "61200", transmission: "Manual" });
+  const mk = await P.previewDeskApi({ action: "case_new", text: "WP0AA2995XS626785", mileage: "61200", transmission: "Manual" });
   ok(mk.ok && mk.recalled && mk.case.desk.evidence.count === 9, "a new case on the demonstration car through the preview door is read once and carries the market reference");
   const other = await P.previewDeskApi({ action: "case_new", text: "1970 Chevrolet Corvette", mileage: "96702" });
   ok(other.ok && !other.case.desk && other.retry && /not available/.test(other.retry.line), "a car the preview has no sample sales for is made without a market reference and says the read is not available, never the 996's sales"); }
