@@ -7,6 +7,7 @@ import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE } from "../lib/appS
 import { fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { whatsNewGroups, dateHeading } from "../lib/whatsNew.js";
+import { withNewDesign } from "../lib/_newDesign.js";
 
 const TITLE = copy("whatsNew.TITLE");
 const INTRO = copy("whatsNew.INTRO");
@@ -50,7 +51,7 @@ ${groups}
 </body></html>`;
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const crew = isCrewRequest(req);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", "index, follow");
@@ -59,3 +60,4 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(whatsNewPageHtml(req));
 }
+export default withNewDesign("whatsnew", handler);

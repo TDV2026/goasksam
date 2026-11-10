@@ -20,6 +20,8 @@ import { hasServerCredential } from "../lib/_credential.js";
 import { findCardKitJs, FIND_CARD_CSS } from "../lib/findCardKit.js";
 import { FREE_TASK_LIMIT, freeTasksWords } from "../lib/tasks/limit.js";
 import { heldFor } from "../lib/_hold.js";
+import { withNewDesign } from "../lib/_newDesign.js";
+const qsOf = req => { try { return new URL(String(req.url || "/"), "https://x").searchParams; } catch { return new URLSearchParams(); } };
 
 export const TASKS_PITCH = { lead: "A free collector car finder.", sub: "Tell Sam what you want and Sam keeps searching, then emails you when one fits." };
 const HOW = copy("tasks.HOW");
@@ -147,7 +149,7 @@ const APP_CSS = `
 .past details>summary::-webkit-details-marker{display:none}
 @media (max-width:640px){.apph h1{font-size:28px}.tcard{padding:14px 14px 16px}.thead .tline{font-size:19px;min-width:0;flex-basis:100%}}`;
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
   if (req.query && req.query.app) return appPage(req, res);
   // LAUNCH STAGE (Oct 2026, Job 2): a public request to the bare /tasks LANDING page, while Tasks is
@@ -586,3 +588,4 @@ const APP_JS = String.raw`(function(){
   document.addEventListener("keydown", function(e){ if (e.key === "Enter" && e.target && /^tkq/.test(e.target.id || "") && e.target.value.trim()) { e.preventDefault(); send(e.target.value.trim(), e.target.getAttribute("data-task") || null); } });
   load();
 })();`;
+export default withNewDesign(req => (qsOf(req).get("app") ? "tasks-mine" : "tasks"), handler);

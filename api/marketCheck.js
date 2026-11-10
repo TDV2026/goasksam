@@ -33,6 +33,7 @@ import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
 import { heldFor } from "../lib/_hold.js";
+import { withNewDesign } from "../lib/_newDesign.js";
 
 // "Your results" (the rail's page-specific section on Market Check/Sell, same mechanism as Buy's
 // "Your searches"): the nav item + its dropdown are hidden by default and filled by js/onebox.js's
@@ -135,4 +136,4 @@ async function handler(req, res) {
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
-export default withTracking("/api/marketCheck", handler, "market_check");
+export default withNewDesign("market-check", withTracking("/api/marketCheck", handler, "market_check"));
