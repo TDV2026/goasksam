@@ -66,7 +66,7 @@ export const URL_MUTANTS = [
   ["minting skips the sheet-folder test", { storageT: f => rep(f, GATE, "if (!prefix || !seatMayRead(callerOrg, f.path)) return { ...f, url: null };") }],
   ["minting skips both tests", { storageT: f => rep(f, GATE, "") }],
   ["the lifetime is a day", { storageT: f => rep(f, "SIGNED_URL_TTL = 3600", "SIGNED_URL_TTL = 86400") }],
-  ["minting writes into the stored sheet", { storageT: f => rep(f, "return { ...sheet, submission: { ...sub, photos: await Promise.all((sub.photos || []).map(one)), documents: await Promise.all((sub.documents || []).map(one)) } };", "sub.photos = await Promise.all((sub.photos || []).map(one)); sub.documents = await Promise.all((sub.documents || []).map(one)); return sheet;") }],
+  ["minting writes into the stored sheet", { storageT: f => rep(f, "return { ...sheet, submission: { ...sub, ...(se ? { sourceEmail: se } : {}), photos: await Promise.all((sub.photos || []).map(one)), documents: await Promise.all((sub.documents || []).map(one)) } };", "if (se) sub.sourceEmail = se; sub.photos = await Promise.all((sub.photos || []).map(one)); sub.documents = await Promise.all((sub.documents || []).map(one)); return sheet;") }],
   ["the page saves the minted sheet", { actionsT: a => rep(a, "const sheet = await minted(ctx, org, stored);", "const sheet = await minted(ctx, org, stored); await store.put(org, sheet);") }],
   ["the page shows the unminted sheet", { actionsT: a => rep(a, "const sheet = await minted(ctx, org, stored);", "const sheet = stored;") }]
 ];
