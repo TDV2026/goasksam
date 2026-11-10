@@ -2338,6 +2338,24 @@ try {
   record("Entry pages final: Find, Market Check and Sell share header, rail, search, chips and spacing within 1px at 1440, 1024 and 390; hero words from the table; chips are real searches; the featured content equals Lane B's fields; results sources unchanged; no duplicate reason ids (scripts/entryFinalCheck.mjs, 7 mutants)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/sitePagesShellCheck.mjs", { encoding: "utf8", timeout: 420000 });
+  record("Site pages on the new shell: the approved header and footer match the homepage's within 1px, no rail, the homepage's content width and type, at 1440, 1024 and 390 (scripts/sitePagesShellCheck.mjs, 6 mutants)", "PASS", (out.match(/sitePagesShellCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Site pages on the new shell: the approved header and footer match the homepage's within 1px, no rail, the homepage's content width and type, at 1440, 1024 and 390 (scripts/sitePagesShellCheck.mjs, 6 mutants)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/sitePagesContentCheck.mjs", { encoding: "utf8", timeout: 420000 });
+  record("Site pages keep the live page's content exactly: the same main, text lines, links, form fields, lists and structured data (scripts/sitePagesContentCheck.mjs, 6 mutants)", "PASS", (out.match(/sitePagesContentCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Site pages keep the live page's content exactly: the same main, text lines, links, form fields, lists and structured data (scripts/sitePagesContentCheck.mjs, 6 mutants)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/sitePagesHistoryCheck.mjs", { encoding: "utf8", timeout: 420000 });
+  record("History pages on the new shell: the index, hubs and VIN pages keep the live page's content (main, links, sale rows, photo URLs, JSON-LD) in the approved header and footer, no rail, at 1440, 1024 and 390 (scripts/sitePagesHistoryCheck.mjs, 5 mutants)", "PASS", (out.match(/sitePagesHistoryCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("History pages on the new shell: the index, hubs and VIN pages keep the live page's content (main, links, sale rows, photo URLs, JSON-LD) in the approved header and footer, no rail, at 1440, 1024 and 390 (scripts/sitePagesHistoryCheck.mjs, 5 mutants)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/deskV3ClickCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk v3: the Valuation figure lands on its input from the summary and the sticky bar; tabs keep state (scripts/deskV3ClickCheck.mjs)", "PASS", (out.match(/deskV3ClickCheck: .*/) || [""])[0]);
 } catch (e) {
