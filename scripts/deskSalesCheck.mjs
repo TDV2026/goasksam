@@ -71,6 +71,7 @@ const inWin = r => r.date && r.date >= "2025-11-10" && r.outReason !== "transmis
   ok("(1) a sale with no miles has no miles line, never 0 miles", nm.sales[0].milesLine === null);
   ok("(2) a sale of no tier carries tier null", b.sales.filter(s => s.id[0] === "u").every(s => s.tier === null) && b.sales.filter(s => s.id[0] === "u").length === 2);
   // rungs
+  ok("(3) each rung has its count line as the mockup buttons show", b.rungs.map(x => x.countLine).join() === "2 sales,6 sales,5 sales,0 sales", b.rungs.map(x => x.countLine).join());
   const r = b.rungs, by = t => r.find(x => x.tier === t);
   const oracle = t => rows.filter(x => inWin(x) && x.tier === t).map(x => x.price).sort((p, q) => p - q);
   ok("(2) four rungs, each with the count of the window's sales of that rung (derived from the rows)", r.length === 4 && [1, 2, 3, 4].every(t => by(t) && by(t).count === oracle(t).length), JSON.stringify(r.map(x => x.count)));
