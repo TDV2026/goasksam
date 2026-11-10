@@ -17,6 +17,7 @@ import { findField } from "../lib/preview/fieldCompose.js";
 import { entryHtml, wrapLive, patchOneboxJs, exampleResultOf, exampleFrameHtml } from "../lib/preview/mcSellPreview.js";
 import marketCheckPage from "./marketCheck.js";
 import sellDoor from "./sell.js";
+import findPage from "./buy.js";
 import businessPage from "./business.js";
 import howPage from "./howSamDecides.js";
 import aboutPage from "./about.js";
@@ -58,7 +59,15 @@ const safe = async (f, what = "field") => { if (PUBLIC_CTX.getStore()) return bo
 // the Tasks limit a PUBLIC page prints is the live one (3); only a crew viewer sees the crew limit
 const tasksMaxFor = async req => PUBLIC_CTX.getStore() ? taskLimitFor(isCrewRequest(req) === true) : crewLimitMax();
 const tasksPublicFor = async req => { const ex = await safe(() => TASKS_EMAIL_EXAMPLE.read(req), "tasksEmailExample"); return couldNotRead(ex) ? tasksPublicHtml({ max: await tasksMaxFor(req), readError: "Could not read the Tasks email." }) : tasksPublicHtml({ max: await tasksMaxFor(req), emailExample: ex }); };
-const findFor = async req => { const ex = await safe(() => FIND_EXAMPLES.read(req), "findExamplesField"); return couldNotRead(ex) ? findHtml({ examples: null, readError: "Could not read the Find examples.", now: FIND_EXAMPLES.now() }) : findHtml({ examples: findField(ex, null), now: FIND_EXAMPLES.now() }); };
+// FIND RESULTS ON THE NEW SHELL (go live): with a search in the address the page is today's Find page (its own results, its own script) inside the new header, the rail (New search, recent searches) and the footer, exactly as Market Check and Sell are; without one it is the new landing.
+const findFor = async req => {
+  if (hasSearch(req)) {
+    try { const search = String(req.url).slice(String(req.url).indexOf("?")), live = await capture(findPage, "/find" + search, req); if (live.code !== 200) throw new Error("the live page answered " + live.code); return wrapLive("find", live.body); }
+    catch (e) { return previewFailed("find", e); }
+  }
+  return findLandingFor(req);
+};
+const findLandingFor = async req => { const ex = await safe(() => FIND_EXAMPLES.read(req), "findExamplesField"); return couldNotRead(ex) ? findHtml({ examples: null, readError: "Could not read the Find examples.", now: FIND_EXAMPLES.now() }) : findHtml({ examples: findField(ex, null), now: FIND_EXAMPLES.now() }); };
 // MARKET CHECK AND SELL ON THE NEW SHELL (Sam's approved brief, Nov 8 2026; lib/preview/mcSellPreview.js). Without a search in the address the page is the new ENTRY; with one (?q= or ?car= or ?vin=, and every address the live pages push) it is the LIVE page, exactly as the live handler answers it, inside the shell. Nothing is computed here.
 // The two example fields are Lane B's (marketCheckExampleSales, sellExample); a field's module that is not built yet is simply absent (the section is hidden), one that is built and fails prints the visible could-not-read line like every other read.
 export const MC_EXAMPLES = { read: req => readIfBuilt("../lib/live/marketCheckExamples.js", "marketCheckExampleResult", req) };   // the day's pick car's real result, with its sales as the result's own cards (Lane B)
@@ -75,7 +84,7 @@ function capture(handler, url, req) {
     Promise.resolve(handler({ ...req, method: "GET", url, query: Object.fromEntries(u.searchParams), headers: req.headers || {} }, res)).catch(reject);
   });
 }
-const previewFailed = (kind, e) => { try { console.error(JSON.stringify({ tag: "crew_preview_failed", kind, message: String(e && e.message || e).slice(0, 300) })); } catch {} return `<!DOCTYPE html><meta charset="utf-8"><title>Preview</title><body style="font:16px system-ui;padding:40px"><p>Could not build the ${kind === "mc" ? "Market Check" : "Sell"} preview.</p></body>`; };
+const previewFailed = (kind, e) => { try { console.error(JSON.stringify({ tag: "crew_preview_failed", kind, message: String(e && e.message || e).slice(0, 300) })); } catch {} return `<!DOCTYPE html><meta charset="utf-8"><title>Preview</title><body style="font:16px system-ui;padding:40px"><p>Could not build the ${kind === "mc" ? "Market Check" : kind === "find" ? "Find" : "Sell"} preview.</p></body>`; };
 async function mcSellFor(kind, req) {
   try {
     if (hasSearch(req)) {

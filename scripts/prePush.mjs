@@ -2332,6 +2332,18 @@ try {
   record("Go live performance: the new landing pages are no heavier to download and no slower to a first usable search than today's at 1440 and 390 (scripts/goLivePerfCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLivePerfCheck:/.test(l)).slice(0, 5).join(" | "));
 }
 try {
+  const out = execSync("node scripts/findResultsCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Find results in the new shell: today's results page inside the new header, rail (New search, recent searches) and footer, results byte identical in text, figures, links, buttons and style at 1440 and 390, the search address serves the results not the landing (scripts/findResultsCheck.mjs)", "PASS", (out.match(/findResultsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find results in the new shell: today's results page inside the new header, rail (New search, recent searches) and footer, results byte identical in text, figures, links, buttons and style at 1440 and 390, the search address serves the results not the landing (scripts/findResultsCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|findResultsCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
+  const out = execSync("node scripts/goLiveTasksFlowCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Go live Tasks signed in on the public address: create, edit and stop send their calls to /api/tasks, the Account button opens the same sign in card (scripts/goLiveTasksFlowCheck.mjs)", "PASS", (out.match(/goLiveTasksFlowCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Go live Tasks signed in on the public address: create, edit and stop send their calls to /api/tasks, the Account button opens the same sign in card (scripts/goLiveTasksFlowCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveTasksFlowCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
   const out = execSync("node scripts/previewShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Preview shell is one full height column (footer at the bottom of a short page, after a long one, on every preview page at 1440, 1280, 1024 and 390) and the Tasks email section sits on the hero's left edge (scripts/previewShellCheck.mjs)", "PASS", (out.match(/previewShellCheck: .*/) || [""])[0]);
 } catch (e) {

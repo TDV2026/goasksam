@@ -184,5 +184,5 @@ ${CONSENT_BANNER_HTML}
   res.status(200).send(html);
 }
 export { BUY_CSS, CARD_RULES_CSS, RUNG_CSS, BUY_CARD_CSS, PRIOR_JS, CLIENT as BUY_CLIENT_SOURCE };   // the card kit (lib/findCardKit.js) reads Find's own card code and styles from here
-// the new Find is the landing only: a search (?q= and every other parameter) is today's results page until the results are on the new shell
-export default withNewDesign(req => { const q = qsOf(req); q.delete("design"); return [...q.keys()].length ? null : "find"; }, handler);
+// the new Find: the landing without a search; with ?q= today's results page inside the new shell (find-results); any other parameter (part=landing and the rest) is today's page untouched
+export default withNewDesign(req => { const q = qsOf(req); q.delete("design"); if (q.get("part")) return null; return q.get("q") ? "find-results" : [...q.keys()].length ? null : "find"; }, handler);

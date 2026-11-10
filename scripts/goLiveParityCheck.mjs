@@ -22,6 +22,11 @@ if (args.includes("--mutants")) {
     ["lost structured data", "lib/_publicHead.js", '["ld", /<script\\b[^>]*\\btype=["\']application\\/ld\\+json["\'][^>]*>[\\s\\S]*?<\\/script>/gi]', '["ld", /(?!x)x/g]'],
     ["a preview address reaching the public", "lib/_publicHead.js", '  for (const [from, to] of ADDR) h = h.split(from).join(to);', ''],
     ["a dropped control (the voice button on Home)", "lib/preview/previewPages.js", 'aria-label="Speak your search"', 'aria-label="Talk"'],
+    ["the sign in script missing", "lib/_publicHead.js", 'if (!/\\/auth\\.js/.test(h)) end.push(', 'if (false) end.push('],
+    ["the analytics script missing", "lib/_publicHead.js", 'end.push(track[0], ...inline);', 'end.push(...inline);'],
+    ["the consent banner missing", "lib/_publicHead.js", 'if (L.includes(CONSENT_BANNER_HTML) && !h.includes(CONSENT_BANNER_HTML)) end.push(CONSENT_BANNER_HTML);', ''],
+    ["the Account button not opening the card", "lib/_publicHead.js", 'if (/id="acct"/.test(h)) end.push(', 'if (false) end.push('],
+    ["How Sam decides out of the footer", "lib/preview/previewPages.js", '<a href="/how-sam-decides">${copyText("rail.FOOT_HOW")}</a>', ''],
     ["a lost link (About in the footer)", "lib/preview/previewPages.js", '<a href="/about">', '<a href="/about-us">']
   ];
   let bad = 0;
@@ -51,7 +56,7 @@ const mod = async f => (await import(pathToFileURL(path.join(ROOT, "api", f + ".
 // [name, address, handler file, kind]: kind "landing" (the new design's own page, its h1 is its own), "site" (the current page's <main> carried over, same h1), "results" (the current page inside the new shell)
 const ROUTES = [
   ["home", "/", "home", "landing"], ["find", "/find", "buy", "landing"], ["market-check", "/market-check", "marketCheck", "landing"], ["sell", "/sell", "sell", "landing"], ["tasks", "/tasks", "tasksPage", "landing"],
-  ["market-check results", "/market-check?q=1995+bmw+m3", "marketCheck", "results"],
+  ["market-check results", "/market-check?q=1995+bmw+m3", "marketCheck", "results"], ["find results", "/find?q=porsche+911", "buy", "results"],
   ["tasks-mine", "/tasks/mine?app=1", "tasksPage", "results"],
   ["business", "/business", "business", "site"], ["how", "/how-sam-decides", "howSamDecides", "site"], ["about", "/about", "about", "site"], ["whats-new", "/whats-new", "whatsNew", "site"],
   ["feedback", "/feedback", "feedback", "site"], ["terms", "/terms?page=terms", "legal", "site"], ["privacy", "/privacy?page=privacy", "legal", "site"]
@@ -64,7 +69,11 @@ async function get(handler, url) {
 }
 const strip = h => String(h).replace(/<script\b[\s\S]*?<\/script>/gi, "").replace(/<style\b[\s\S]*?<\/style>/gi, "");
 const linksOf = h => { const o = new Set(); for (const m of strip(h).matchAll(/<a\b[^>]*\bhref="([^"#]+)/gi)) { let x = m[1].replace(/&amp;/g, "&"); if (/^https?:\/\/(www\.)?goasksam\.com/.test(x)) x = x.replace(/^https?:\/\/[^/]+/, ""); if (x.startsWith("/") && !/[+']/.test(x)) o.add(x.split("?")[0]); } return o; };
-const scriptsOf = h => new Set([...String(h).matchAll(/<script\b[^>]*\bsrc="([^"]+)"/gi)].map(m => m[1]));
+// a script is named by its file, not by the cache-busting folder in front of it (/js.20261026e/auth.js is /js/auth.js)
+const normScript = x => x.replace(/^\/?(?:js|obx|dsk)\.[0-9]+[a-z]?\//, "/js/").replace(/^js\//, "/js/");
+const scriptsOf = h => new Set([...String(h).matchAll(/<script\b[^>]*\bsrc="([^"]+)"/gi)].map(m => normScript(m[1])));
+// FOR LANE C'S LIVE RENDER, not held for Sam (Sam's answer, Nov 10): the Sell landing's wizard scripts (the new Sell entry opens today's Sell results, which load them) and Market Check's results script (the new entry hands the search to today's results page, which loads it). The live render must show a search from each entry reaching a working results page.
+const LIVE_RENDER = { sell: /^\/js\/(wizard|pipeline|steps|result|chat-core|result-copy|result-v2|entry|homepage)\.js$/, "market-check": /^\/js\/onebox\.js$/ };
 const h1Of = h => { const m = [...strip(h).matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi)].map(x => x[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim()); return m; };
 const held = (() => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, "docs/go-live-held.json"), "utf8")); } catch { return []; } })();
 const lost = [];   // { route, kind, item }
@@ -95,7 +104,24 @@ for (const [name, url, f, kind] of ROUTES) {
   // links and scripts
   const la = linksOf(A.body), lb = linksOf(B.body), sa = scriptsOf(A.body), sb = scriptsOf(B.body);
   for (const x of la) if (!lb.has(x)) lost.push({ route: name, kind: "link", item: x });
-  for (const x of sa) if (!sb.has(x)) lost.push({ route: name, kind: "script", item: x });
+  for (const x of sa) if (!sb.has(x) && !(LIVE_RENDER[name] && LIVE_RENDER[name].test(x))) lost.push({ route: name, kind: "script", item: x });
+  // THE FOOTER: How Sam decides, in the footer of the new page, as a link like the others (go live held item 1)
+  { const ft = /<footer\b[\s\S]*?<\/footer>/i.exec(B.body); const fl = ft ? [...ft[0].matchAll(/<a\b[^>]*\bhref="([^"]+)"[^>]*>([^<]*)<\/a>/g)].map(m => [m[1], m[2].trim()]) : [];
+    ok(fl.some(x => x[0] === "/how-sam-decides" && x[1] === "How Sam decides"), `${t}: the footer links How Sam decides (${fl.map(x => x[1]).join(", ")})`);
+    if (name === "home") ok(fl.length >= 6, `${t}: the footer link sits among the others (${fl.length} links)`); }
+  // SIGN IN (go live held item 2): wherever the current page loads the sign in script, the new page loads it, has the bar's container, and the Account button opens the same card
+  if (sa.size && [...sa].some(x => /\/js\/auth\.js$/.test(x))) {
+    ok([...sb].some(x => /\/js\/auth\.js$/.test(x)), `${t}: the sign in script is loaded`);
+    ok(/id="signin-area"/.test(B.body) && /GAS_AUTH_MODE="topbar"/.test(B.body), `${t}: the sign in bar's container is in the page and the script runs in top bar mode`);
+    ok(!/id="acct"/.test(B.body) || /openSignInCard\(undefined/.test(B.body), `${t}: the Account button opens the sign in card`);
+  }
+  // ANALYTICS AND THE CONSENT BANNER (go live held item 3): exactly the pieces the current page loads, lifted from it
+  if (/\/api\/track\?js=1/.test(A.body)) {
+    ok(/<script\b[^>]*\bsrc="\/api\/track\?js=1"/.test(B.body), `${t}: the analytics script is loaded`);
+    const inlineA = [...A.body.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).filter(x => /gasConsent|gas-consent-banner|gasOutboundInstall\(/.test(x)), inlineB = new Set([...B.body.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]));
+    ok(inlineA.every(x => inlineB.has(x)), `${t}: the consent banner script and the outbound tagging are loaded as today (${inlineA.length} scripts)`);
+    ok(!/id="gas-consent-banner"/.test(A.body) || /id="gas-consent-banner"/.test(B.body), `${t}: the consent banner markup is in the page`);
+  }
   // controls
   if (["home", "find", "market-check", "sell"].includes(name)) {
     const s = strip(B.body);
@@ -106,8 +132,6 @@ for (const [name, url, f, kind] of ROUTES) {
   if (name === "tasks") ok(/<button\b[^>]*id="tkcta/.test(B.body) || /Start a Task|Tell Sam/.test(strip(B.body)), `${t}: the create control`);
   if (name === "feedback") { const s = strip(B.body); ok(/<form\b/.test(s) && /<textarea\b/.test(s) && /<button\b/.test(s), `${t}: the feedback form`); }
 }
-// Find results: a page of the new design only when it answers X-Design: new (today it does not, so the search keeps working on today's page)
-{ const h = await mod("buy"); process.env.NEW_DESIGN = "all"; const R = await get(h, "/find?q=porsche+911"); delete process.env.NEW_DESIGN; if (R.h["x-design"] !== "new") lost.push({ route: "find results", kind: "page", item: "/find?q= in the new shell with its rail" }); }
 // Tasks dashboard: the redesign shows each Task's criteria words, which the PREVIEW'S OWN API door adds to the list (lib/preview/tasksMine.js previewTasksApi). On a public address the app posts to the plain /api/tasks, which does not send them.
 { const h = await mod("tasksPage"); process.env.NEW_DESIGN = "all"; const R = await get(h, "/tasks/mine?app=1"); delete process.env.NEW_DESIGN; if (R.h["x-design"] === "new" && /fetch\("\/api\/tasks", \{/.test(R.body)) lost.push({ route: "tasks-mine", kind: "feature", item: "the criteria words on each Task (added by the preview door only)" }); }
 // HELD list against what is lost
