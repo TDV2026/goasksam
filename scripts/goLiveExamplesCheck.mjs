@@ -60,9 +60,9 @@ for (const [name, url, f, seams] of PAGES) {
 // the Tasks limit on a public page
 {
   const h = await mod("tasksPage"), r = await get(h, "/tasks"), text = r.body.replace(/<script\b[\s\S]*?<\/script>/gi, "").replace(/<style\b[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ");
-  const { FREE_TASK_LIMIT, CREW_TASK_LIMIT } = await import(pathToFileURL(path.join(ROOT, "lib/tasks/limit.js")).href), { freeTasksWords } = await import(pathToFileURL(path.join(ROOT, "lib/tasks/limit.js")).href);
+  const { FREE_TASK_LIMIT, taskLimitFor } = await import(pathToFileURL(path.join(ROOT, "lib/tasks/limit.js")).href), CREW_LIMIT = taskLimitFor(true), { freeTasksWords } = await import(pathToFileURL(path.join(ROOT, "lib/tasks/limit.js")).href);
   ok(r.h["x-design"] === "new", "Tasks: the new page is served");
-  ok(new RegExp(freeTasksWords(CREW_TASK_LIMIT).replace(/\s+/g, "\\s+"), "i").test(text) === false, `Tasks: the public page never prints the crew limit (${freeTasksWords(CREW_TASK_LIMIT)})`);
+  ok(new RegExp(freeTasksWords(CREW_LIMIT).replace(/\s+/g, "\\s+"), "i").test(text) === false, `Tasks: the public page never prints the crew limit (${freeTasksWords(CREW_LIMIT)})`);
   ok(!/\bten\b|\b10\b active/i.test(text), "Tasks: no ten, no 10 active in the public page");
 }
 console.log(`goLiveExamplesCheck: ${pass} passed, ${fail} failed`);

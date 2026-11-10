@@ -38,5 +38,5 @@ for (const [name, url, f] of PAGES) {
 }
 await b.close();
 for (const l of out) origLog(l);
-origLog(`goLivePerfCheck: ${pass} passed, ${fail} failed`);
+console.log(`goLivePerfCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

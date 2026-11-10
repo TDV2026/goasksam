@@ -21,7 +21,7 @@ ok(keep.code === 0, "a response already sent is left alone");
 ok(logged.some(l => /ECONNREFUSED/.test(l)), "the detail goes to the server log");
 // the real routes: each default export is wrapped, and a real request with the database down never ends in a bare 500
 const fs = await import("node:fs");
-ok(/export default withCalm\(handler, "sell"\)/.test(fs.readFileSync("api/sell.js", "utf8")), "api/sell.js default export is wrapped by withCalm");
+ok(/export default withCalm\((?:withNewDesign\("sell", )?handler\)?, "sell"\)/.test(fs.readFileSync("api/sell.js", "utf8")), "api/sell.js default export is wrapped by withCalm");
 ok(/withTracking\("\/api\/specPage", withCalm\(handler, "specPage"\), "site"\)/.test(fs.readFileSync("api/specPage.js", "utf8")), "api/specPage.js default export is wrapped by withCalm");
 const { default: sell } = await import("../api/sell.js"), { default: spec } = await import("../api/specPage.js");
 for (const [name, h, url] of [["sell", sell, "/sell"], ["specPage", spec, "/911/997-carrera"]]) {

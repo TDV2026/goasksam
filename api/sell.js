@@ -17,4 +17,4 @@ function handler(req, res) {
   return sellPage(req, res);
 }
 // A database failure under either Sell answers the calm page (503, Retry-After, one plain sentence), never the platform's generic 500 (Lane S review, Oct 27 2026).
-export default withNewDesign("sell", withCalm(handler, "sell"));
+export default withCalm(withNewDesign("sell", handler), "sell");

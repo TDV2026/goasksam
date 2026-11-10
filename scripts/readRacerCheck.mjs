@@ -17,6 +17,7 @@ const REGISTRY = [
   ["api/buySearch.js", /const late = p =>/, N, "seen-before and timeline: small VIN-keyed reads, filled for the retry"],
   ["api/buySearch.js", /Promise\.race\(\[Promise\.resolve\(\)\.then\(\(\) => enrichOne/, P, "show-more batch: each card's read keeps running (listingMarket keepAlive) and the page asks card by card"],
   ["api/buySearch.js", /Promise\.race\(\[parseQueryResolved/, N, "a parse"],
+  ["api/crewPage.js", /Promise\.race\(\[Promise\.resolve\(\)\.then\(fn\), timeout\]\)/, P, "public example reads (go live): the page leaves the section out at 2 s and the engine field keeps computing and stores its own answer, so the next visit finds it; nothing the page needs waits on it"],
   ["api/history.js", /vin_rollout_cache/, N, "one stored row"],
   ["api/history.js", /rolloutCached\(env, \{ storedOnly: true \}\)/, N, "one stored row for the index and make pages, 2.5s wait, no archive read"],
   ["api/partnerAnswer.js", /decodeVinFacts/, N, "a VIN decode"],
