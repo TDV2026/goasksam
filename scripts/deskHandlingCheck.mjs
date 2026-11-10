@@ -55,4 +55,24 @@ ok("reports revised after finalizing counts a finalized case at version 2 or mor
   ok("the desk view is behind the crew header key", no.code === 401 && yes.code === 200, J([no.code, yes.code]));
   ok("the view serves the four lines for each org", yes.body && yes.body.orgs.length === 2 && yes.body.orgs.every(o => o.lines.length === 4 && o.lines.map(l => l.label).join("|") === "Reports finalized today|Median handling time|Cases needing more from the seller|Reports revised after finalizing"), J(yes.body).slice(0, 200));
   ok("the served view and the page carry no seat", !/analyst-secret-9|"seat"/.test(J(yes.body)) && typeof html.body === "string" && /Reports finalized today/.test(html.body) && !/analyst-secret-9/.test(html.body)); }
+// THE CLOCK (Lane E's top bar): caseView.handling.clock is one line made on the server from the case's own opens, rebuilt on EVERY case view (get, new, every edit's answer, finalize). The page prints it as sent and runs no timer of its own.
+{ const ck = c => c && c.handling && c.handling.clock, store2 = memoryStore(), mk2 = (seat, m) => ({ org: "t", seat, store: store2, now: at(m), env: {}, fetchImage: async () => null });
+  const b2 = await readyCase(); b2.opened_at = null; b2.opens = []; b2.handling_seconds = null;
+  await store2.insert("t", { id: "k1", owner_seat: "7", status: "In progress", created_at: T, submission: { typed: true, photos: [], documents: [] }, state: {}, case: b2, version: 1 });
+  const g0 = await A.handleSheetAction("case_get", { id: "k1" }, mk2("7", 1));
+  ok("a case not yet opened reads the plain line (the table's), and is not a time", ck(g0.case) === "Handling time starts when you open the case.", J(ck(g0.case)));
+  const g1 = await A.handleSheetAction("case_get", { id: "k1", open: true }, mk2("7", 2));
+  ok("opened, the clock is 0 seconds into the case", /^Handling time so far: 0 s\.$/.test(ck(g1.case)), J(ck(g1.case)));
+  const e1 = await A.handleSheetAction("case_edit", { id: "k1", op: "field", field: "colour", value: "Black" }, mk2("7", 5));
+  ok("every edit's answer carries a refreshed clock (3 minutes after the open)", e1.ok && /^Handling time so far: 3 min\.$/.test(ck(e1.case)), J(ck(e1.case)));
+  const e2 = await A.handleSheetAction("case_edit", { id: "k1", op: "field", field: "colour", value: "Silver" }, mk2("7", 14));
+  ok("and the next one moves it again (12 minutes), so a page that only prints the line is never stale", e2.ok && /^Handling time so far: 12 min\.$/.test(ck(e2.case)) && ck(e2.case) !== ck(e1.case), J(ck(e2.case)));
+  const o8 = await A.handleSheetAction("case_get", { id: "k1" }, mk2("8", 14));
+  ok("it is the viewing analyst's own time: a seat that never opened falls back to the case's first open", /^Handling time so far: 12 min\.$/.test(ck(o8.case)), J(ck(o8.case)));
+  const f1 = await A.handleSheetAction("case_finalize", { id: "k1" }, mk2("7", 20));
+  ok("finalized, the clock reads the recorded handling time (18 minutes) and no longer runs", f1.ok && ck(f1.case) === "Handled in 18 min." && ck((await A.handleSheetAction("case_get", { id: "k1" }, mk2("7", 90))).case) === "Handled in 18 min.", J(ck(f1.case)));
+  const cn = await A.handleSheetAction("case_new", { text: "1999 Porsche 911 Carrera", mileage: "61,200" }, { ...mk2("7", 30), readSheet: async (e, input) => (await setup(root)).read(input) });
+  ok("case_new answers the clock too", cn.ok && /Handling time starts/.test(ck(cn.case)), J(ck(cn.case)));
+  const src = (await import("node:fs")).readFileSync(path.join(root, "lib/desk/caseView.js"), "utf8");
+  ok("the clock's words are the table's: no typed 'Handling time' sentence in caseView", !/Handling time so far|Handled in|starts when you open/.test(src)); }
 console.log(`deskHandlingCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

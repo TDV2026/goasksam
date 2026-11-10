@@ -12,7 +12,9 @@ if (args.includes("--mutants")) {
     ["vercel.json", "lib/live/**,lib/sell", "lib/live/*.json,lib/sell", "(1) lib/live/** no longer copied: the readers are gone"],
     ["vercel.json", ",lib/sell/sellFacts.js,", ",lib/sell/NOTHING.js,", "(2) the Sell example's own file is not copied"],
     ["vercel.json", ",lib/houseCalendar.js,", ",lib/NOTHING.js,", "(3) a file the Sell example needs two imports down is not copied"],
-    ["vercel.json", ",lib/specPages.js,", ",lib/NOTHING.js,", "(3) a second file two imports down is not copied"]
+    ["vercel.json", ",lib/specPages.js,", ",lib/NOTHING.js,", "(3) a second file two imports down is not copied"],
+    ["lib/live/publicAccess.js", "import { isCrewRequest } from \"../_crew.js\";", "import { isCrewRequest } from \"../_crew.js\";\nimport { nothing } from \"./notThere.js\";", "(4) a public function imports a reader whose own import is a file that does not exist"],
+    ["lib/live/marketCheckExamples.js", "import { withClock } from \"./withClock.js\";", "import { withClock } from \"./withClock.js\";\nconst lazy = f => import(f);", "(4) a reader loads a module by a variable path inside the public function's closure"]
   ];
   let survivors = 0;
   for (const [file, from, to, want] of muts) {
@@ -50,5 +52,17 @@ for (const e of entries) {
   if (!roots.length) continue;
   const need = closure(roots), missing = [...need.keys()].filter(f => /\.m?js$/.test(f) && read(f) != null && !stat.has(f) && !copied.includes(f));
   ok(e + ": every file a variable-path module needs is reached by a literal import or copied by includeFiles", missing.length === 0, missing.slice(0, 8).map(f => f + " (needed by " + need.get(f) + ")").join(", "));
+}
+// ---- PUBLIC FUNCTIONS THAT IMPORT AN EXAMPLE READER (Lane B, Nov 10 2026, PUBLIC_EXAMPLES). A reader served to the public (api/publicExamples.js) is traced by its LITERAL imports, so its bundle holds exactly what those reach: a missing target is "Cannot find module" at run time and a reader that
+// catches it answers null, so the section would hide for ever with nothing red; a module loaded by a VARIABLE path inside the closure is not traced at all. RULE: every api entry whose literal imports reach a lib/live example reader has a closure with no unreadable target and no variable-path import
+// (unless the entry's includeFiles copies the folder it names).
+const READER_RE = /^lib\/live\/(findExamples|featuredHistory|entryExamples|marketCheckExamples|tasksDemo|publicAccess|watchingDemo)\.js$/;
+const readerEntries = fs.readdirSync("api").filter(f => /\.js$/.test(f)).map(f => "api/" + f).filter(f => { const src = read(f) || ""; return [...src.matchAll(RE)].some(m => READER_RE.test(norm(f, m[1]))); });
+ok("the check finds the api entries whose literal imports reach an example reader (the public endpoint and the featured history route at least)", readerEntries.includes("api/publicExamples.js") && readerEntries.includes("api/featuredHistory.js"), readerEntries.join(" "));
+for (const e of readerEntries) {
+  const conf = fns[e] || {}, inc = typeof conf.includeFiles === "string" ? globRe(conf.includeFiles) : [], copied = ALL.filter(f => inc.some(r => r.test(f))), cl = closure([e]);
+  const unreadable = [...cl.keys()].filter(f => /\.m?js$/.test(f) && read(f) == null).map(f => f + " (imported by " + cl.get(f) + ")");
+  const variable = [...cl.keys()].filter(f => /\.m?js$/.test(f) && read(f) != null && /\bimport\(\s*[A-Za-z_`$]/.test(read(f).replace(/^\s*\/\/.*$/gm, "")) && !copied.includes(f) && !/^(api\/(crewPage|pullLive)\.js)$/.test(f)).map(f => f + " (imported by " + cl.get(f) + ")");
+  ok(e + ": the closure of its literal imports has no missing file and no variable-path import (so its bundle ships what its readers need)", unreadable.length === 0 && variable.length === 0, [...unreadable, ...variable].slice(0, 6).join(", "));
 }
 console.log("\nfunctionBundleCheck: " + (n - failed) + " pass, " + failed + " FAIL"); process.exit(failed ? 1 : 0);

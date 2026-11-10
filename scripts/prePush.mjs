@@ -931,6 +931,13 @@ try {
 } catch (e) {
   record("exampleFallbackCheck (scripts/exampleFallbackCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// publicExamplesCheck (Lane B, Nov 10 2026): the entry page examples are STORED daily picks. Flag off (PUBLIC_EXAMPLES unset, the default): the public gets null for all nine, with no read; flag on: the public gets the stored pick byte equal to the crew read; a public request with no stored pick (or a stale one) makes zero engine, zero builder and zero vendor calls, writes nothing and answers null; each kill switch holds; the cron builds what the public reads. 14 mutants, among them one that builds on a public request.
+try {
+  const out = execSync("node scripts/publicExamplesCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("publicExamplesCheck (scripts/publicExamplesCheck.mjs)", "PASS", (out.match(/publicExamplesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("publicExamplesCheck (scripts/publicExamplesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // engineCardShapeCheck (Lane B, Nov 8 2026): the three crew fields in Lane E's refine8 shapes (Find's engine card with its bid badge, platform tag, pills and SAM block lines; the Task row with Sam's read back sentence and the live count; the watching row), live and ended (card.sold).
 try {
   const out = execSync("node scripts/engineCardShapeCheck.mjs", { encoding: "utf8", timeout: 280000 });
@@ -1009,9 +1016,9 @@ try {
 // functionBundleCheck (Lane B, Nov 9 2026): every file a module loaded by a variable path needs (api/crewPage.js readers, api/pullLive.js run) is reached by a literal import or copied by includeFiles; the Sell example was empty because three files were in no bundle.
 try {
   const out = execSync("node scripts/functionBundleCheck.mjs", { encoding: "utf8", timeout: 120000 });
-  record("Function bundles: every file a variable-path module needs ships with its function; four mutants (scripts/functionBundleCheck.mjs)", /, 0 FAIL/.test(out), (out.match(/functionBundleCheck: .*/) || [""])[0]);
+  record("Function bundles: every file a variable-path module needs ships with its function, and so does the closure of every public function that imports an example reader; six mutants (scripts/functionBundleCheck.mjs)", /, 0 FAIL/.test(out), (out.match(/functionBundleCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("Function bundles: every file a variable-path module needs ships with its function; four mutants (scripts/functionBundleCheck.mjs)", false, String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
+  record("Function bundles: every file a variable-path module needs ships with its function, and so does the closure of every public function that imports an example reader; six mutants (scripts/functionBundleCheck.mjs)", false, String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 // entryExamplesCheck (Lane B, Nov 8 2026): marketCheckExampleSales (three real sales of one model that show mileage moving the price) and sellExample (one model's record by venue from the Sell engine): daily pick, crew gate, never invented.
 try {
@@ -2693,6 +2700,18 @@ try {
   record("Desk v3 stage 2: desk.comparables are decided by verified year, generation, body, gearbox and miles (never the model name), why sentences come from the reason table, a photo is the one that passed the photo rule or null, outside groups are never inside the population; eleven mutants (scripts/deskCompsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/deskOlderCarsCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk older cars (the 24 recorded answers of Lane F as the fixture): no refusal (a typed body falls back to sibling words then all bodies, each named; a tier with no data reads all conditions), the years widen by the engine's own walk until the Desk population meets the minimum, a thin 12 months defaults to 24 with a sentence, three or more comparables with why lines, one name for the car; sixteen mutants (scripts/deskOlderCarsCheck.mjs)", "PASS", (out.match(/deskOlderCarsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk older cars (the 24 recorded answers of Lane F as the fixture): no refusal (a typed body falls back to sibling words then all bodies, each named; a tier with no data reads all conditions), the years widen by the engine's own walk until the Desk population meets the minimum, a thin 12 months defaults to 24 with a sentence, three or more comparables with why lines, one name for the car; sixteen mutants (scripts/deskOlderCarsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/tasksCriteriaCheck.mjs --mutants", { encoding: "utf8", timeout: 240000 });
+  record("Tasks criteria: the signed in owner's list answer carries each Task's criteria in the engine's words (criteriaOf, the match email's source), equal to the crew preview door's, empty for a Task with no filters or a research Task, never another user's; six mutants (scripts/tasksCriteriaCheck.mjs)", "PASS", (out.match(/tasksCriteriaCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Tasks criteria: the signed in owner's list answer carries each Task's criteria in the engine's words (criteriaOf, the match email's source), equal to the crew preview door's, empty for a Task with no filters or a research Task, never another user's; six mutants (scripts/tasksCriteriaCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^(FAIL|SURVIVED)/.test(l)).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/deskQuarterCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk v3 stage 3: a quarter under DESK_QUARTER_MIN sales has shown false and no median; live listings are typed bid, ask or no_sale and never in the evidence or the comparables; seven mutants (scripts/deskQuarterCheck.mjs)", "PASS", (out.match(/deskQuarterCheck: .*/) || [""])[0]);
 } catch (e) {
@@ -2757,6 +2776,24 @@ try {
   record("Desk v3 preview door: the report fetches its cover, comparables and logo from the listing photo hosts only, https, under the photo rule (scripts/deskPreviewImageCheck.mjs)", "PASS", (out.match(/deskPreviewImageCheck: .*/) || [""])[0]);
 } catch (e) {
   record("Desk v3 preview door images (scripts/deskPreviewImageCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskReserveFlowCheck.mjs", { encoding: "utf8", timeout: 200000 });
+  record("Desk v4 stage 1: the recommended reserve is the case's one figure, the engine starts and checks it, the period is an engine input, no file compares a reserve to a range (scripts/deskReserveFlowCheck.mjs)", "PASS", (out.match(/deskReserveFlowCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 1 reserve (scripts/deskReserveFlowCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskNextStepsCheck.mjs", { encoding: "utf8", timeout: 200000 });
+  record("Desk v4 stage 3: next steps are the case's own list, seeded through reasonWords, edited, removed, added and reordered by step key, printed as written (scripts/deskNextStepsCheck.mjs)", "PASS", (out.match(/deskNextStepsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 3 next steps (scripts/deskNextStepsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskActionsResolveCheck.mjs", { encoding: "utf8", timeout: 200000 });
+  record("Desk v4 stage 2: every needs attention action on every case resolves by item key and returns the caseView; doc_add, Select all, touched comparable rows (scripts/deskActionsResolveCheck.mjs)", "PASS", (out.match(/deskActionsResolveCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 2 ops that always resolve (scripts/deskActionsResolveCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
   const out = execSync("node scripts/deskDemoCarCheck.mjs", { encoding: "utf8", timeout: 60000 });

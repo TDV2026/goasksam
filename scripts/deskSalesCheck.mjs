@@ -65,7 +65,7 @@ const inWin = r => r.date && r.date >= "2025-11-10" && r.outReason !== "transmis
   ok("(1) newest first", b.sales.every((s, i) => i === 0 || Date.parse(rows.find(r => r.id === b.sales[i - 1].id).date) >= Date.parse(rows.find(r => r.id === s.id).date)));
   const f = b.sales.find(s => s.id === "b2");
   ok("(1) the fields the plot and Show all draw: price, date in words, tier, title, miles, platform, link, photo", f && f.price === 62000 && f.dateLine === "May 15, 2026" && f.tier === 2 && f.titleLine === "1999 Porsche 911 Carrera" && f.milesLine === "40,000 miles" || (f && f.milesLine === "40,000 miles".replace("40,000", (40000 + 62000 % 1000).toLocaleString("en-US"))) && f.platform === "Cars & Bids" && f.url === "https://x.test/b2" && f.photo === "https://img.test/b21.jpg", JSON.stringify(f));
-  ok("(1) the shape is exactly id, price, dateLine, tier, titleLine, milesLine, platform, url, photo", b.sales.every(s => JSON.stringify(Object.keys(s)) === JSON.stringify(["id", "price", "dateLine", "tier", "titleLine", "milesLine", "platform", "url", "photo"])));
+  ok("(1) the shape is exactly id, price, priceLine, dateLine, tier, titleLine, milesLine, platform, url, photo", b.sales.every(s => JSON.stringify(Object.keys(s)) === JSON.stringify(["id", "price", "priceLine", "dateLine", "tier", "titleLine", "milesLine", "platform", "url", "photo"])));
   ok("(5) the miles line is a table line, with no dash", b.sales.every(s => (s.milesLine === null || line("desk.sales.milesLine", s.milesLine)) && noDash(s.milesLine)));
   const nm = await DV.deskBlock([row("m", 50000, "2026-10-01", 2, { miles: null })], { caseDate: CASE, subject: sub, subjectFacts: {}, head });
   ok("(1) a sale with no miles has no miles line, never 0 miles", nm.sales[0].milesLine === null);

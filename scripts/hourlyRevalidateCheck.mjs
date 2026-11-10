@@ -101,7 +101,7 @@ const fhStore = (r, at) => ({ v: FH.STORE_V, listingId: r.id, featured: { kind: 
 }
 { // (4) the cron, (5) the class
   const pl = fs.readFileSync(path.join(ROOT, "api/pullLive.js"), "utf8"), i = pl.indexOf("if (!slot.mode)"), seg = pl.slice(i, i + 1400);
-  ok("(4) the hourly slot runs both revalidations with the examples refresh", /getUTCMinutes\(\) < 15\) \{ examplesRefresh = await refreshExamplesWord\(env\); revalidated = await revalidateCrewWord\(env\); \}/.test(seg), seg.slice(0, 100));
+  ok("(4) the hourly slot runs both revalidations with the examples refresh", /getUTCMinutes\(\) < 15\) \{ examplesRefresh = await refreshExamplesWord\(env\); revalidated = await revalidateCrewWord\(env\);( entryExamples = await refreshEntryWord\(env\);)? \}/.test(seg), seg.slice(0, 100));
   ok("(4) the revalidation names both (the Tasks example and the Homepage pick) and nothing else", /tasksExample: await run\("TASKS_DEMO", "\.\.\/lib\/live\/tasksDemo\.js", "revalidateTasksDemo"\)/.test(pl) && /homepagePick: await refreshFeatured\(env, "revalidate"\)/.test(pl));
   // every module that serves a stored live crew car must have a revalidation or a refresh that confirms it hourly
   const liveDir = path.join(ROOT, "lib/live"), serving = [];
