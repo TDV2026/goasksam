@@ -23,3 +23,17 @@ export async function finalizeDemo(id = V3.DEMO_ID) {
   await e("need", { item: "accident_unclear", state: "waived", reason: "Seller states none and holds no records" }); await e("need", { item: "service_documents", state: "waived", reason: "Invoice will follow after the listing" });
   return PV.previewDeskApi({ action: "case_finalize", id });
 }
+
+// INTAKE FIXTURES (Stage 2): real stored sheets, read through the real case view. pv_fwd is a forwarded lead with a seller supplied VIN and mileage and an original email; pv_nocar is a forwarded lead whose car was not identified;
+// the typed case is made by hand through case_new (no lead reference, so it is NOT a forwarded lead).
+export async function seedIntake() {
+  await V3.deskModel({ query: {} }).catch(() => {});
+  const store = await PV.previewStore(), { ensureCase } = await imp("lib/desk/caseModel.js"), { DEMO_VIN } = await imp("lib/desk/demoCar.js"), at = new Date(Date.now() - 3600e3).toISOString();
+  const mk = (id, vin, label, status, extra = {}) => { const sheet = { id, owner_seat: PV.PREVIEW_SEAT, forwarded_by: PV.PREVIEW_SEAT, vin, car_label: label, status, created_at: at, opened_at: null, version: 0, submission: { consignor: { name: "Pat Lee", email: "pat@example.com" }, mileage: vin ? 61200 : null, photos: [], documents: [] }, state: { heroId: null, photosSelected: [] }, read: null, events: [] };
+    const c = ensureCase(sheet, at); c.sourceEmail = { name: "Original email from Pat Lee.eml", url: "https://example.test/mail/" + id + ".eml", line: "Kept whole, as it arrived." }; sheet.case = c; return { ...sheet, ...extra }; };
+  await store.insert(PV.PREVIEW_ORG.id, mk("pv_fwd", DEMO_VIN, "2004 Porsche 911 Carrera 4S", "New"));
+  await store.insert(PV.PREVIEW_ORG.id, mk("pv_nocar", null, "Needs the car", "Needs the car"));
+  await store.insert(PV.PREVIEW_ORG.id, mk("pv_nocar2", null, "Needs the car", "Needs the car"));
+  const t = await PV.previewDeskApi({ action: "case_new", text: "1999 Porsche 911", seller_name: "Sam Typed" });
+  return { fwd: "pv_fwd", nocar: "pv_nocar", nocar2: "pv_nocar2", vin: DEMO_VIN, typed: t.id, typedOk: !!t.ok };
+}
