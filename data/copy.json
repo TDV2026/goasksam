@@ -34,7 +34,10 @@
     "H2_STAND": "Where we stand",
     "WHO_BEFORE": "GoAskSam is built by the team behind ",
     "WHO_LINK": "The Daily Vroom",
-    "WHO_AFTER": ", the incredibly popular collector car newsletter that has tracked this market every day for years. GoAskSam puts that same daily attention to real results to work for you: what cars like yours are bringing, which live cars are worth your time, and where to sell."
+    "WHO_AFTER": ", the incredibly popular collector car newsletter that has tracked this market every day for years. GoAskSam puts that same daily attention to real results to work for you: what cars like yours are bringing, which live cars are worth your time, and where to sell.",
+    "HISTORY_BEFORE": "Every car Sam has seen sell has its own page. ",
+    "HISTORY_LINK": "Browse the auction history",
+    "HISTORY_AFTER": "."
   },
   "howSamDecides": {
     "TITLE": "How Sam decides | GoAskSam",
@@ -92,7 +95,10 @@
         ]
       }
     ],
-    "H1": "How Sam decides."
+    "H1": "How Sam decides.",
+    "HISTORY_BEFORE": "Every car Sam has seen sell has its own page. ",
+    "HISTORY_LINK": "Browse the auction history",
+    "HISTORY_AFTER": "."
   },
   "feedback": {
     "TITLE": "Feedback | GoAskSam",
