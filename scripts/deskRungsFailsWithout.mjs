@@ -12,6 +12,8 @@ const MUT = [
   [RG, "an unknown tier is asked of the engine", s => s.replace(".filter(t => RUNG_TIERS.includes(Number(t)))", "")],
   [RG, "the untiered read is not asked", s => s.replace("const out = [await shape(null)];", "const out = [];")],
   [RG, "the sentence of a thin rung is dropped", s => s.replace("sentence: e.insufficient ? e.sentence : null", "sentence: null")],
+  [RG, "the whole engine answer is returned even when not asked for", s => s.replace("...(full ? { answer: r } : {})", "answer: r")],
+  [RG, "full returns a shortened answer, not the engine's own", s => s.replace("...(full ? { answer: r } : {})", "...(full ? { answer: { desk: { evidence: { count: 0 } } } } : {})")],
   [API, "the ops task writes a record", s => s.replace("const d = await rungsOf(input => sheetRead(env, input),", "await supabaseInsert(env, \"app_usage_events\", [{}]); const d = await rungsOf(input => sheetRead(env, input),")]
 ];
 function copyTree(dst) {
