@@ -64,8 +64,11 @@ for (const w of [1440, 1280, 1024, 390]) {
   const m0 = await V3.deskModel({ query: { case: V3.DEMO_ID } }), line = m0.kase.handling && m0.kase.handling.clock;
   ok(!!line && html.includes('<b id="clock">' + line.replace(/&/g, "&amp;") + "</b>"), "the top bar prints the server's own handling clock line (" + line + ")");
   const none = V4.pageHtml({ cases: [], activeId: null, kase: null }); ok(!/id="clock"/.test(none) && /id="saved"/.test(none), "no clock on the empty page");
-  const hk = await (async () => { const m = await V3.deskModel({ query: { case: V3.DEMO_ID } }); m.kase = { ...m.kase, handling: { ...(m.kase.handling || {}), clock: "Handled in 18 min." } }; return V4.pageHtml(m); })(); ok(/<b id="clock">Handled in 18 min\.<\/b>/.test(hk), "a clock the server sent is printed as sent");
-  ok(!/setInterval|setTimeout\([^)]*clock/.test(fs.readFileSync("lib/preview/deskV4.js", "utf8") + fs.readFileSync("lib/preview/deskV4Client.js", "utf8").replace(/setTimeout\(function \(\) \{ say/, "")), "the page runs no timer of its own for the clock"); }
+  const withClock = async c => { const m = await V3.deskModel({ query: { case: V3.DEMO_ID } }); m.kase = { ...m.kase, handling: { ...(m.kase.handling || {}), clock: c } }; return V4.pageHtml(m); };
+  ok(/<b id="clock">Handled in 18 min\.<\/b>/.test(await withClock("Handled in 18 min.")), "a clock the server sent is printed exactly as sent");
+  ok(!/id="clock"/.test(await withClock(null)) && !/id="clock"/.test(await withClock("")), "no clock field, no clock printed");
+  { const typed = html.replace(/<b id="clock">[^<]*<\/b>/, '<b id="clock">Handling time so far: 3 min.</b>'); ok(!typed.includes('<b id="clock">' + line.replace(/&/g, "&amp;") + "</b>"), "mutant caught: a clock the page typed does not equal the server's line"); }
+  ok(!/setInterval|clock[^\n]{0,40}setTimeout/.test(fs.readFileSync("lib/preview/deskV4.js", "utf8") + fs.readFileSync("lib/preview/deskV4Client.js", "utf8")), "the page runs no timer of its own for the clock"); }
 // ---------- 6 nothing computed ----------
 { const src = fs.readFileSync("lib/preview/deskV4.js", "utf8").replace(/\/\/.*$/gm, ""); ok(!/Math\.(round|floor|ceil|min|max)|parseFloat|toFixed|toLocaleString|\.reduce\(/.test(src), "the module carries no arithmetic on a figure"); }
 // ---------- mutants ----------
