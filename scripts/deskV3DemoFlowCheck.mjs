@@ -57,7 +57,7 @@ async function flow(mut = x => x, log = false) {
   await p.evaluate(() => document.querySelector('[data-tab="vehicle"]').click()); await wait(200);
   await p.click('[data-edit="accident_history"]'); await wait(150); await p.type("#pn-vehicle td input.ed", "No accidents reported"); await p.click("#pn-vehicle [data-save]"); await wait(800);   // the analyst enters the accident history from the seller's word, then verifies it
   const tried = new Set(); for (const sel0 of ['[data-need][data-act="verify"]', '[data-need][data-act="waive"]']) for (let i = 0; i < 6; i++) { const b = await p.$("#pn-vehicle " + sel0); if (!b) break; const key = sel0 + await b.evaluate(e => e.dataset.need); if (tried.has(key)) break; tried.add(key); await b.click(); await wait(700); }
-  await p.evaluate(() => document.querySelector('[data-tab="market"]').click()); const sel = await p.$("#pn-market [data-sel]"); if (sel) { await sel.click(); await wait(700); }
+  await p.evaluate(() => document.querySelector('[data-tab="market"]').click()); for (const i of [0, 1]) { await p.evaluate(() => { const xs = [...document.querySelectorAll("#pn-market [data-sel]:not([disabled])")].filter(x => !x.checked); if (xs[0]) xs[0].click(); }); await wait(900); }   // two comparables: the report check
   await p.evaluate(() => document.querySelector('[data-tab="decision"]').click()); await wait(300);
   const blockers = await p.$$eval("#dc-rdy [data-blocker]", l => l.map(x => x.textContent)); note("blockers: " + JSON.stringify(blockers));
   // 6. Preview report opens the draft in the pane

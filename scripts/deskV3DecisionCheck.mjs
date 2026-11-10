@@ -10,7 +10,7 @@ const dec = h => (h.match(/<div class="dec">[\s\S]*?<\/div><\/div>\s*<\/div>\s*<
 const now = new Date().toISOString(); let rk = structuredClone(kase);
 rk = W.setAssessment(rk, { figure: 58500, low: 56000, high: 61000, explanation: "Matches the median of nine manual sales, with the mileage close to the car's own." }, now); rk = W.setReserve(rk, { figure: 55500, rationale: "Held under the median so the car clears at auction." }, now);
 rk = (await W.refreshEvidence(rk, FX.demoRead, { caseDate: now.slice(0, 10), now })).case;   // the engine checks the reserve (reserveCheck): support is its answer
-rk = W.verify(W.verify(W.correctField(rk, "accident_history", "No accidents reported", { now }), "mileage", { now }), "accident_history", { now }); rk = W.setNeed(rk, "service_documents", "waived", "Invoices requested"); rk = W.selectComparables(rk, [rk.desk.comparables[0].id], now); rk.condition = { suggested: { tier: 3, name: "Good" }, selected: { tier: 3, name: "Good" } };
+rk = W.verify(W.verify(W.correctField(rk, "accident_history", "No accidents reported", { now }), "mileage", { now }), "accident_history", { now }); rk = W.setNeed(rk, "service_documents", "waived", "Invoices requested"); rk = W.selectComparables(rk, rk.desk.comparables.filter(x => x.url).slice(0, 2).map(x => x.id), now); rk.condition = { suggested: { tier: 3, name: "Good" }, selected: { tier: 3, name: "Good" } };
 rk.audit = [{ at: "2026-11-08T10:00:00Z", by: "Expert 1", what: "corrected", field: "colour", from: "Arctic Silver", to: "Guards Red" }];
 const rd = W.readinessOf(rk);
 function assertions(k, h, ready) {

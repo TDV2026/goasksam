@@ -9,7 +9,7 @@ await store.insert("t", { id: "s1", owner_seat: "crew", status: "In progress", c
 const fin = await A.handleSheetAction("case_finalize", { id: "s1" }, ctx);
 ok("a ready case finalizes: version 1, status finalized", fin.ok && fin.version === 1 && fin.case.status === "finalized", J(fin).slice(0, 200));
 const v1 = (await A.handleSheetAction("case_version", { id: "s1" }, ctx)).row, v1bytes = J(v1);
-ok("the version row carries figures, evidence, original, comparables, verification and wording slot", v1.figures.assessment.figure > 0 && v1.figures.reserve.figure > 0 && v1.evidence.median > 0 && v1.original && v1.comparables.length === 1 && v1.verification.mileage.verified === true && "wording" in v1);
+ok("the version row carries figures, evidence, original, comparables, verification and wording slot", v1.figures.assessment.figure > 0 && v1.figures.reserve.figure > 0 && v1.evidence.median > 0 && v1.original && v1.comparables.length === 2 && v1.verification.mileage.verified === true && "wording" in v1);
 ok("finalizing a finalized case is refused by the rule itself, before the store is asked", K.finalize(fin.case, { now: T }).ok === false);
 ok("a finalized case cannot be finalized twice", (await A.handleSheetAction("case_finalize", { id: "s1" }, ctx)).refused === true);
 // THE OLD FIELDS MIRROR THE ROW
@@ -33,7 +33,7 @@ for (const [op, extra] of edits) {
 }
 ok("editing the revision again makes no third sheet and no version 3", (await store.list("t")).filter(x => x.corrects === "s1").length === 1);
 ok("version 2 is not written until it is finalized", (await A.handleSheetAction("case_version", { id: revId }, ctx)).version === 1);
-{ const rec = (await store.get("t", revId)).case; await A.handleSheetAction("case_edit", { id: revId, op: "comparables", ids: [c.desk.comparables.find(x => x.inPopulation).id] }, ctx);
+{ const rec = (await store.get("t", revId)).case; await A.handleSheetAction("case_edit", { id: revId, op: "comparables", ids: c.desk.comparables.filter(x => x.inPopulation && x.url).slice(0, 2).map(x => x.id) }, ctx);
   const f2 = await A.handleSheetAction("case_finalize", { id: revId }, ctx); ok("version 2 finalizes as version 2, with its own report number", f2.ok && f2.version === 2 && f2.reportNumber !== fin.reportNumber, J(f2).slice(0, 200));
   const vs = await A.handleSheetAction("case_version", { id: revId }, ctx); ok("both versions are in the chain, in order, the latest first to read", J(vs.versions) === "[1,2]" && vs.row.version === 2);
   ok("version 1 is still untouched after version 2 is written", J((await A.handleSheetAction("case_version", { id: "s1", version: 1 }, ctx)).row) === v1bytes);
