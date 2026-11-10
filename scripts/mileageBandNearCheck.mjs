@@ -66,7 +66,7 @@ for (const ns of SHAPES) for (const miles of [20000, 28000, 38000, 49999, 50000,
   globalThis.fetch = f0;
   ok("storedBorrowedBand: true only for a row with nearBand.to", E.storedBorrowedBand(rows.borrowed.market.raw) === true && !E.storedBorrowedBand(rows.thinSentence.market.raw) && !E.storedBorrowedBand(rows.none.market.raw) && !E.storedBorrowedBand(rows.other.market.raw) && !E.storedBorrowedBand(null));
   ok("the warm read marks stale ONLY the borrowed row (reason borrowed_band_recheck); the other three keep serving", got.borrowed.raw === null && got.borrowed.reason === "borrowed_band_recheck" && ["thinSentence", "none", "other"].every(k => got[k].raw && got[k].reason !== "borrowed_band_recheck"), JSON.stringify(Object.fromEntries(Object.entries(got).map(([k, x]) => [k, x.raw ? "served" : x.reason]))));
-  ok("no engine stamp bump: the stamp is still the one of 60cfa555", /^e99-20261028-trimfix/.test(E.ENGINE_VERSION), E.ENGINE_VERSION); }
+  ok("no engine stamp bump: the stamp is still the one of 60cfa555", /^e100-20261110-oldergens/.test(E.ENGINE_VERSION), E.ENGINE_VERSION); }
 // 3. nothing to headline: no band has a range, the sentence is not made up
 { const fa = find(answer([4, 5, 3]), 38000); ok("no band has a range: the engine says too few (honest), with no near-band sentence", fa && fa.state === "few" && !fa.nearBand && /too few for a range/.test(fa.lines[0]), fa && JSON.stringify(fa.lines)); }
 // 4. km: 61,000 km is about 37,900 miles before it is banded, and the band label is in miles
