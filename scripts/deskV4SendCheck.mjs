@@ -11,18 +11,19 @@
 //   node scripts/deskV4SendCheck.mjs
 import { launch, openLive, tally, V3, PV, finalizeDemo } from "./deskV4Harness.mjs";
 const { ok, done } = tally(), wait = (ms = 700) => new Promise(r => setTimeout(r, ms));
-const PREVIEW = { to: "hal@example.com", subject: "Hagerty Marketplace: your 1999 Porsche 911 Carrera", message: "Hello Hal,\nYour report is attached.\nThank you.", attachmentName: "1999-Porsche-911-Carrera-report.pdf", version: 1 };
-const REFUSAL = "This sheet is being sent, or was just sent.", SENT = "Sent to pat@example.com on 10 November 2026 at 14:05.";
+// the shapes are Lane D's contract (docs/lane-notes.md, Nov 10 2026): case_send_preview answers flat, case_send answers { ok, sent, case, exports }, a sent case has stage "sent" and its one handling line
+const PREVIEW = { to: "hal@example.com", toLine: "hal@example.com", subject: "Hagerty Marketplace: your 1999 Porsche 911 Carrera", message: "Hello Hal,\nYour report is attached.\nThank you.", attachmentName: "1999-Porsche-911-Carrera-report.pdf", version: 1, from: "desk@hagerty.example", fromName: "Hagerty Marketplace", sendingReady: true, alreadySent: [{ to: "hal@example.com", at: "2026-11-09T10:00:00Z", version: 1 }] };
+const REFUSAL = "This sheet is being sent, or was just sent.", SENT = "Report sent to pat@example.com on 10 November 2026.";
 let sends = [];
 const stubOf = (mode = "ok", delay = 250) => async b => {
-  if (b.action === "case_send_preview") return { ok: true, preview: PREVIEW };
-  if (b.action === "case_send") { sends.push(b); await wait(delay); if (mode === "refuse") return { ok: false, refused: true, why: REFUSAL }; const g = await PV.previewDeskApi({ action: "case_get", id: b.id }); return { ok: true, case: { ...g.case, sentLine: SENT } }; }
+  if (b.action === "case_send_preview") return { ok: true, id: b.id, ...PREVIEW };
+  if (b.action === "case_send") { sends.push(b); await wait(delay); if (mode === "refuse") return { ok: false, refused: true, why: REFUSAL }; const g = await PV.previewDeskApi({ action: "case_get", id: b.id }); return { ok: true, sent: { to: b.to, at: "2026-11-10T14:05:00Z", version: b.version, subject: PREVIEW.subject }, case: { ...g.case, stage: "sent", handling: { ...g.case.handling, clock: SENT }, exports: [{ version: b.version, to: b.to, at: "2026-11-10T14:05:00Z" }] }, exports: 1 }; }
   return { ok: false, why: "stub" };
 };
 const b = await launch();
 const state = p => p.evaluate(() => { const q = i => document.getElementById(i), vis = e => !!e && !e.hidden && !!(e.offsetWidth || e.getClientRects().length);
   return { box: vis(q("sendBox")), btn: vis(q("bSend")), text: (q("bSend") || {}).textContent, dis: !!(q("bSend") || {}).disabled, hint: (q("sendHint") || {}).textContent, sentLine: vis(q("sentLine")) ? q("sentLine").textContent : null, dlg: vis(q("sendScrim")),
-    to: (q("sendTo") || {}).value, subject: (q("sendSubject") || {}).textContent, message: (q("sendMsg") || {}).textContent, att: (q("sendAtt") || {}).textContent, ver: (q("sendVer") || {}).textContent, err: vis(q("sendErr")) ? q("sendErr").textContent : null, goDis: !!(q("sendGo") || {}).disabled }; });
+    to: (q("sendTo") || {}).value, subject: (q("sendSubject") || {}).textContent, message: (q("sendMsg") || {}).textContent, att: (q("sendAtt") || {}).textContent, ver: (q("sendVer") || {}).textContent, from: (q("sendFrom") || {}).textContent, earlier: [...document.querySelectorAll("#sendEarlier .ro")].map(e => e.textContent), exportTiles: [...document.querySelectorAll("#docs [data-export]")].map(e => e.textContent), err: vis(q("sendErr")) ? q("sendErr").textContent : null, goDis: !!(q("sendGo") || {}).disabled }; });
 
 // ---- 1 no button before finalize ----
 { const p = await openLive(b, { stub: stubOf() }); const s = await state(p); ok(!s.box && !s.btn, "no Send button before the case has a finalized version"); await p.close(); }
@@ -34,7 +35,7 @@ const fin = await finalizeDemo(); ok(fin.ok === true, "the demonstration case fi
 
   // ---- 3 the confirm panel ----
   await p.click("#bSend"); await wait(500); const o = await state(p);
-  ok(o.dlg && o.to === PREVIEW.to && o.subject === PREVIEW.subject && o.message === PREVIEW.message && o.att === PREVIEW.attachmentName && o.ver === String(PREVIEW.version), "the confirm panel prints exactly the preview: recipient, subject, message, attachment name and version");
+  ok(o.dlg && o.to === PREVIEW.to && o.subject === PREVIEW.subject && o.message === PREVIEW.message && o.att === PREVIEW.attachmentName && o.ver === String(PREVIEW.version) && o.from === PREVIEW.fromName + " " + PREVIEW.from && o.earlier.length === 1 && o.earlier[0].includes(PREVIEW.alreadySent[0].to), "the confirm panel prints exactly the preview: recipient, subject, message, attachment name, version, the sender and the earlier sends");
   ok(p._posts.filter(x => x.action === "case_send_preview").length === 1 && sends.length === 0, "opening it asks for the preview and sends nothing");
   ok(await p.evaluate(() => document.getElementById("sendTo").type === "email" && document.activeElement.id === "sendTo" && !!document.querySelector('#sendDlg[role="dialog"][aria-modal="true"]')), "the recipient is an editable email input with focus, in an in-page dialog");
   await p.click("#sendNo"); await wait(200); ok(!(await state(p)).dlg && sends.length === 0, "Cancel closes the panel and sends nothing");
@@ -44,17 +45,17 @@ const fin = await finalizeDemo(); ok(fin.ok === true, "the demonstration case fi
   await p.click("#sendGo", { clickCount: 2, delay: 20 }); await p.evaluate(() => document.getElementById("sendGo").click()); await wait(1200);
   ok(sends.length === 1 && sends[0].to === "pat@example.com" && sends[0].version === 1 && sends[0].id === V3.DEMO_ID, `Send calls case_send with the address shown, the previewed version and this case, ONCE despite a double click (${sends.length} call)`);
   // ---- 5 after success ----
-  const a = await state(p); ok(!a.dlg && a.sentLine === SENT && a.text === "Send again" && !a.dis, "after success: the panel closes, the case's sent line is shown as given and the button reads Send again");
+  const a = await state(p); ok(!a.dlg && a.sentLine === SENT && a.text === "Send again" && !a.dis && a.exportTiles.length === 1 && a.exportTiles[0].includes("pat@example.com"), "after success: the panel closes, the case's one handling line is shown as the sent line, the case's export is a tile in Documents and the button reads Send again");
   await p.click("#bSend"); await wait(500); ok((await state(p)).dlg && p._posts.filter(x => x.action === "case_send_preview").length === 3, "Send again goes through the same confirm panel (a new preview)"); await p.click("#sendNo");
   ok(p._err.length === 0, "no page error"); await p.close(); }
 // ---- 6 a refusal is shown as given ----
 sends = [];
 { const p = await openLive(b, { stub: stubOf("refuse") }); await p.click("#bSend"); await wait(500); await p.click("#sendGo"); await wait(900); const s = await state(p);
   ok(s.dlg && s.err === REFUSAL && !s.goDis, "a refusal is shown exactly as the server gave it, the dialog stays and Send works again"); await p.close(); }
-{ const p = await openLive(b, { stub: stubOf("refuse"), mutate: h => h.replace('refusal: function (r) { return (r && (r.why || r.message || r.line)) || ""; }', 'refusal: function (r) { return "That could not be sent."; }') }); await p.click("#bSend"); await wait(500); await p.click("#sendGo"); await wait(900); const s = await state(p); ok(s.err !== REFUSAL, "mutant caught: a refusal worded by the page"); await p.close(); }
+{ const p = await openLive(b, { stub: stubOf("refuse"), mutate: h => h.replace('refusal: function (r) { return (r && r.why) || ""; }', 'refusal: function (r) { return "That could not be sent."; }') }); await p.click("#bSend"); await wait(500); await p.click("#sendGo"); await wait(900); const s = await state(p); ok(s.err !== REFUSAL, "mutant caught: a refusal worded by the page"); await p.close(); }
 sends = [];
 { const p = await openLive(b, { stub: stubOf("ok", 500), mutate: h => h.replace("if (sending || !pv) return; sending = true; $(\"sendGo\").disabled = true;", "if (!pv) return; $(\"sendGo\").disabled = false;") }); await p.click("#bSend"); await wait(500); await p.click("#sendGo"); await p.evaluate(() => document.getElementById("sendGo").click()); await wait(1200); ok(sends.length !== 1, "mutant caught: a double click that sends twice"); await p.close(); }
-{ const p = await openLive(b, { stub: stubOf("ok"), mutate: h => h.replace('return k.sentLine || (k.sent && (k.sent.line || k.sent.sentLine)) || null;', 'return k.sentLine ? "Sent just now." : null;') }); await p.click("#bSend"); await wait(500); await p.click("#sendGo"); await wait(1200); const s = await state(p); ok(s.sentLine !== SENT, "mutant caught: a typed sent line"); await p.close(); }
+{ const p = await openLive(b, { stub: stubOf("ok"), mutate: h => h.replace('return k.stage === "sent" && k.handling && k.handling.clock ? k.handling.clock : null;', 'return k.stage === "sent" ? "Sent just now." : null;') }); await p.click("#bSend"); await wait(500); await p.click("#sendGo"); await wait(1200); const s = await state(p); ok(s.sentLine !== SENT, "mutant caught: a typed sent line"); await p.close(); }
 sends = [];
 { const p = await openLive(b, { stub: stubOf(), mutate: h => h.replace('$("sendSubject").textContent = pv.subject || "";', '$("sendSubject").textContent = "Your report";') }); await p.click("#bSend"); await wait(500); const s = await state(p); ok(s.subject !== PREVIEW.subject, "mutant caught: a typed subject in the confirm panel"); await p.close(); }
 ok(sends.length === 0, "no send reached the real reader or the stub outside the steps above");
