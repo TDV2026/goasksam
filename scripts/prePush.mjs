@@ -657,6 +657,13 @@ try {
 } catch (e) {
   record("Car pages link only hubs that exist (scripts/hubLinkCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// No orphan history pages (Lane E, Nov 7 2026): footer links to /history, index > make > hub in three hops, VIN pages from their hubs, plain links on the result pages. No network.
+try {
+  const out = execSync("node scripts/historyReachCheck.mjs", { encoding: "utf8" });
+  record("History pages are reachable by link (scripts/historyReachCheck.mjs)", "PASS", (out.match(/historyReachCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("History pages are reachable by link (scripts/historyReachCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // Buy Stage 1c (Sam's review, Oct 20 2026; Lane C): history once in the Sam area, compact no-range cards, the grid. No network.
 try {
   const out = execSync("node scripts/buyStage1cCheck.mjs", { encoding: "utf8" });

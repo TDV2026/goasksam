@@ -33,6 +33,7 @@ import { bidState, bidTimePT, lastBidLine } from "../lib/tasks/bidTime.js";
 import { heldFor } from "../lib/_hold.js";
 import { countNoun } from "../lib/countNoun.js";
 import { routeLimit, sendTooMany } from "../lib/_routeLimit.js";
+import { historyGraph, makeOf, indexMakes, hubNav, nearbyVins } from "../lib/historyLinks.js";
 
 const SITE = "https://goasksam.com";
 // Card design system (Oct 2026, the /buy cards): #FAF8F4 paper, near-black ink, one red (#D7262C),
@@ -103,6 +104,10 @@ body{background:var(--page);color:var(--ink)}.rail{background:var(--page)}
 .others .p{font-weight:600}.others .m{color:var(--sec)}
 .faq dt{margin-top:16px;font:500 19px/1.4 var(--serif)}
 .faq dd{margin:4px 0 0;font:400 16px/1.55 var(--sans);color:var(--ink)}
+.hx{list-style:none;margin:0;padding:0;columns:3 220px;column-gap:28px;font:400 15px/1.5 var(--sans)}
+.hx li{break-inside:avoid;padding:3px 0}.hx a{color:var(--ink);text-underline-offset:3px;text-decoration-color:#B9B2A6}
+.hxs{margin:0 0 4px}.hxs h2 a{color:var(--ink);text-decoration:none}.hxs h2 a:hover{text-decoration:underline}
+.hxn{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0 0 6px;padding:0;list-style:none;font:500 14px/1.5 var(--sans)}.hxn a{color:var(--ink)}
 .vlinks{display:flex;flex-wrap:wrap;gap:12px 28px;margin-top:30px;font:500 16px/1.4 var(--sans)}
 .vlinks a,.vlinks button{color:var(--ink);background:none;border:0;padding:0;font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#B9B2A6;min-height:44px}
 .vlinks a.red{color:var(--red);text-decoration-color:var(--red)}
@@ -437,6 +442,8 @@ async function carPage(req, res, env, slug, vin) {
   const fams = [id.family, id.trim, id.familyKey].filter((f, i, a) => f && saneLinkFamily(f) && a.findIndex(x => slugify(x) === slugify(f)) === i);
   const pickHub = async year => { for (const f of fams) { const s = await hubLink(year, f); if (s) return { href: `/history/${s}`, family: f }; } return null; };
   const [modelHubL, yearHubL] = await Promise.all([pickHub(null), id.year ? pickHub(id.year) : null]);
+  const lg = await linkGraph(env).catch(() => null);
+  const makeHubL = (() => { const m = lg && makeOf(lg.g, slugify(id.make), lg.dead); return m ? { href: `/history/${m.slug}`, name: m.name } : null; })();
   const body = `
 <header class="vhead"><div><span class="eyebrow">Auction history</span>
 <h1>${esc(name)}</h1><div class="vinline">VIN ${esc(vinNorm)}</div>
@@ -448,7 +455,8 @@ ${live ? liveCardHtml(live, name, noun) : ""}
 ${saidHtml(said)}
 ${groupListsHtml(d, id, vinNorm, poolCards, urlVins, others, noun)}
 <section class="sec"><h2>Questions</h2><dl class="faq">${faq.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join("")}</dl></section>
-<nav class="vlinks" aria-label="More">${modelHubL ? `<a href="${esc(modelHubL.href)}">All ${esc(id.make + " " + modelHubL.family)} auction results</a>` : ""}${yearHubL ? `<a href="${esc(yearHubL.href)}">Every ${esc(id.year + " " + id.make + " " + yearHubL.family)} by VIN</a>` : ""}<a class="red" href="${esc(sellHref(id))}">Where to sell it</a></nav>
+<nav class="vlinks" aria-label="More">${modelHubL ? `<a href="${esc(modelHubL.href)}">All ${esc(id.make + " " + modelHubL.family)} auction results</a>` : ""}${yearHubL ? `<a href="${esc(yearHubL.href)}">Every ${esc(id.year + " " + id.make + " " + yearHubL.family)} by VIN</a>` : ""}${makeHubL ? `<a href="${esc(makeHubL.href)}">All ${esc(makeHubL.name)} auction results</a>` : ""}<a class="red" href="${esc(sellHref(id))}">Where to sell it</a></nav>
+${nearbyHtml(lg, id, vinNorm)}
 
 ${keepLookingHtml({ context: "spec", subject: name, href: keepLookingHref({ subject: name, vin: vinNorm }) })}
 ${whyResultHtml(crew)}
@@ -726,11 +734,11 @@ async function hubPage(req, res, env, slug) {
   const ctx = hubLead({ year: hub.year, make: id.make, family: id.family, n, win: hubWindow(d), date: asOfDate() });
   const canonical = `${SITE}/history/${slug}`;
   profMark("renderStart");
+  // An all-years list links each VIN to its own year's page; the car page 301s if the year differs.
+  const hrefOf = g => { const cy = hub.year || (g.apps.find(x => x.year) || {}).year; return hub.year ? `/history/${slug}/${g.vin}` : (cy && id.family ? `/history/${[cy, hubSlug(id.make, id.family)].filter(Boolean).join("-")}/${g.vin}` : `/vin/${g.vin}`); };
   const rows = list.slice(0, 200).map(g => {
     const a = g.last, ph = g.apps.find(x => x.image) || null;
-    // An all-years list links each VIN to its own year's page; the car page 301s if the year differs.
-    const cy = hub.year || (g.apps.find(x => x.year) || {}).year;
-    const carHref = hub.year ? `/history/${slug}/${g.vin}` : (cy && id.family ? `/history/${[cy, hubSlug(id.make, id.family)].filter(Boolean).join("-")}/${g.vin}` : `/vin/${g.vin}`);
+    const carHref = hrefOf(g);
     return `<tr><td class="thumbcell">${ph ? photoHtml(ph.image, ph.url, ph.house, g.vin, "thumb") : '<span class="thumb"></span>'}</td><td data-l="VIN"><a href="${esc(carHref)}">${esc(g.vin)}</a></td><td data-l="Appearances" class="r">${g.apps.length}</td><td data-l="Last result" class="${a.kind === "sale" ? "sold" : "muted"}">${esc(resultText(a))}</td><td data-l="Date">${esc(monShort(a.date))}</td><td data-l="Miles" class="r">${esc(miles(a.mileage))}</td></tr>`;
   }).join("");
   const body = `
@@ -739,6 +747,9 @@ ${cold.timedOut && !d ? coldCardHtml(stillReadingMarket()) : oneBoxBlock(d, id, 
 <p class="answer" style="margin:0">${esc(ctx)}</p>
 <section class="card"><div class="sh"><h2>Every ${esc(name)} by VIN</h2><span class="muted">Newest sale first</span></div>
 <table class="stack"><thead><tr><th><span style="position:absolute;left:-9999px">Photo</span></th><th>VIN</th><th class="r">Appearances</th><th>Last result</th><th>Date</th><th class="r">Miles</th></tr></thead><tbody>${rows}</tbody></table></section>
+${list.length > 200 ? `<section class="sec hxs" aria-label="More cars"><h2>More ${esc(name)} auction histories</h2><ul class="hx">${list.slice(200, 1700).map(g => `<li><a href="${esc(hrefOf(g))}">${esc(((g.apps.find(x => x.year) || {}).year ? (g.apps.find(x => x.year) || {}).year + ", " : "") + "VIN " + g.vin)}</a></li>`).join("")}</ul></section>` : ""}
+${hubNavHtml(await linkGraph(env), hub.year ? hubSlug(hub.makeSlug, hub.modelSlug) : slug)}
+${hub.year ? `<nav class="vlinks" aria-label="More"><a href="/history/${esc(hubSlug(hub.makeSlug, hub.modelSlug))}">All years of the ${esc(id.make + " " + id.family)}</a></nav>` : ""}
 ${keepLookingHtml({ context: "spec", subject: name, href: keepLookingHref({ subject: name }) })}
 ${whyResultHtml(crew)}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
@@ -756,6 +767,60 @@ ${whyResultHtml(crew)}
     ["total", prof.deadPhotosDone - prof.t0]
   ].filter(([, v]) => v != null).map(([k, v]) => `${k};dur=${v}`).join(", ");
   send(res, 200, page({ title: `${name} auction results and sale prices`, description: ctx, canonical, body, ld, index: hubIndex, crew, req }), { "Server-Timing": serverTiming, ...(cold.timedOut && !d ? { "Cache-Control": "private, no-store" } : {}) }, hubIndex, crew, req);
+}
+
+// ---------------------------------------------------------------- the history index and the make pages (Lane E, Nov 7 2026)
+// Read from the stored nightly rollout only (never the live rollout(), which can run for minutes): when the table is unreadable the page says
+// Sam is busy and asks again; it is never filled from a guess. Nothing on these pages is a market figure.
+async function rolloutStored(env) {
+  const r = await Promise.race([rolloutCached(env, { storedOnly: true }), new Promise(x => setTimeout(() => x(null), 2500))]).catch(() => null);
+  return r && Array.isArray(r.hubs) ? r : null;
+}
+const busyPage = (req, res, crew) => send(res, 503, page({ title: "GoAskSam", crew, body: `<section class="card"><p>Sam is busy right now, try again in a minute.</p></section>`, req }), {}, false, crew, req);
+async function indexPage(req, res, env) {
+  const crew = isCrewRequest(req);
+  const r = await rolloutStored(env); if (!r) return busyPage(req, res, crew);
+  const dead = await deadPhotos(env), g = historyGraph(r), makes = indexMakes(g, dead.hubs);
+  if (!makes.length) return busyPage(req, res, crew);
+  const lead = `Every make and model with recorded auction results on GoAskSam, as of ${asOfDate()}.`;
+  const body = `<div><span class="eyebrow">Auction history</span><h1 style="margin:6px 0 0;font:600 40px/1.12 var(--serif)">Collector car auction history by make and model</h1></div>
+<p class="answer" style="margin:0" data-lead-sentence>${esc(lead)}</p>
+<nav class="sec" aria-label="Makes"><ul class="hxn">${makes.map(m => `<li><a href="#${esc(m.slug)}">${esc(m.name)}</a></li>`).join("")}</ul></nav>
+${makes.map(m => `<section class="sec hxs" id="${esc(m.slug)}"><h2><a href="/history/${esc(m.slug)}">${esc(m.name)} auction results</a></h2><ul class="hx">${m.hubs.map(h => `<li><a href="/history/${esc(h.slug)}">${esc(h.name)}</a></li>`).join("")}</ul></section>`).join("")}
+<p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
+  const ld = [{ "@context": "https://schema.org", "@type": "CollectionPage", name: "Collector car auction history by make and model", url: `${SITE}/history`, description: lead }];
+  send(res, 200, page({ title: "Collector car auction history by make and model | GoAskSam", description: lead, canonical: `${SITE}/history`, body, ld, index: !crew, crew, req }), {}, !crew, crew, req);
+}
+// /history/{make}: the parent of the model hubs. Returns false when the slug is not a make the rollout holds.
+async function makePage(req, res, env, slug) {
+  const crew = isCrewRequest(req);
+  const r = await rolloutStored(env); if (!r) { busyPage(req, res, crew); return true; }
+  const dead = await deadPhotos(env), m = makeOf(historyGraph(r), slug, dead.hubs);
+  if (!m) return false;
+  const lead = `Model pages with recorded ${m.name} auction results, as of ${asOfDate()}.`;
+  const body = `<div><span class="eyebrow">Auction history</span><h1 style="margin:6px 0 0;font:600 40px/1.12 var(--serif)">${esc(m.name)} auction results</h1></div>
+<p class="answer" style="margin:0" data-lead-sentence>${esc(lead)}</p>
+<section class="sec hxs"><h2>${esc(m.name)} models</h2><ul class="hx">${m.hubs.map(h => `<li><a href="/history/${esc(h.slug)}">${esc(h.name)}</a></li>`).join("")}</ul></section>
+<nav class="vlinks" aria-label="More"><a href="/history">All makes</a></nav>
+<p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
+  const ld = [{ "@context": "https://schema.org", "@type": "CollectionPage", name: `${m.name} auction results`, url: `${SITE}/history/${m.slug}`, description: lead }];
+  send(res, 200, page({ title: `${m.name} auction results by model | GoAskSam`, description: lead, canonical: `${SITE}/history/${m.slug}`, body, ld, index: !crew, crew, req }), {}, !crew, crew, req);
+  return true;
+}
+// The links a hub page and a car page add to the graph: read as stored, drawn only when the rollout is readable (a missing graph adds nothing).
+async function linkGraph(env) {
+  const r = await rolloutStored(env); if (!r) return null;
+  const dead = await deadPhotos(env);
+  return { g: historyGraph(r), dead: dead.hubs };
+}
+function hubNavHtml(lg, slug) {
+  const n = lg && hubNav(lg.g, slug, lg.dead); if (!n) return "";
+  return `<nav class="sec hxs" aria-label="Related hubs"><h2>More ${esc(n.make.name)} auction results</h2><ul class="hx">${n.siblings.map(h => `<li><a href="/history/${esc(h.slug)}">${esc(h.name)}</a></li>`).join("")}</ul><p style="margin:12px 0 0"><a href="/history/${esc(n.make.slug)}">All ${esc(n.make.name)} auction results</a> · <a href="/history">All makes</a></p></nav>`;
+}
+function nearbyHtml(lg, id, vinNorm) {
+  const n = lg ? nearbyVins(lg.g, id.make, id.family, id.year, vinNorm) : [];
+  if (!n.length) return "";
+  return `<section class="sec" aria-label="Nearby cars"><h2>More ${esc(id.make + " " + id.family)} auction histories</h2><ul class="hx">${n.map(x => `<li><a href="${esc(x.href)}">${esc([x.year, x.make, x.family].filter(Boolean).join(" "))}, VIN ${esc(x.vin)}</a></li>`).join("")}</ul></section>`;
 }
 
 // ---------------------------------------------------------------- handler
@@ -800,8 +865,9 @@ async function handler(req, res) {
       res.setHeader("Cache-Control", "public, s-maxage=3600");
       return res.status(301).end();
     }
+    if (q.index && !slug && !vin) return await indexPage(req, res, env);
     if (slug && vin) return await carPage(req, res, env, slug, vin);
-    if (slug) return await hubPage(req, res, env, slug);
+    if (slug) { if (!parseHubSlug(slug) && await makePage(req, res, env, slug)) return; return await hubPage(req, res, env, slug); }
     return notFound(req, res, "that page");
   } catch (e) {
     console.error("history page failed:", (e && e.stack) || e);
@@ -1060,7 +1126,7 @@ export async function identityFor(env, appearances, vin) {
   const vehicle = same ? live.vehicle : ((await resolveText([ident.year, ident.make, ident.family].filter(Boolean).join(" ")).catch(() => null)) || live.vehicle);
   return mergeIdentity(live, ident, vehicle && ident.year ? { ...vehicle, year: ident.year } : vehicle);
 }
-async function rolloutCached(env) {
+async function rolloutCached(env, opts = {}) {
   if (ROLL && Date.now() - ROLL_AT < 6 * 3600e3) return ROLL;
   if (env) {
     const rows = await supabaseSelectSafe(env, `vin_rollout_cache?key=eq.current&select=data,computed_at&limit=1`);
@@ -1068,6 +1134,7 @@ async function rolloutCached(env) {
     // so this stays a one-line addition, not a second copy of anything.
     if (Array.isArray(rows) && rows[0] && rows[0].data) { ROLL = { ...rows[0].data, _source: "table", _computedAt: rows[0].computed_at || null }; ROLL_AT = Date.now(); return ROLL; }
   }
+  if (opts.storedOnly) return null;   // the link pages never build the rollout themselves
   const live = await rollout(env);
   return live ? { ...live, _source: "live", _computedAt: null } : live;
 }
@@ -1117,7 +1184,12 @@ async function sitemap(res, env, which) {
   const dead = await deadPhotos(env);
   if (which === "motorcycles") return res.status(200).send(urlset((r.motos || []).filter(u => !dead.vins.has(u.vin))));
   if (which === "other") return res.status(200).send(urlset((r.others || []).filter(u => !dead.vins.has(u.vin))));
-  if (which === "hubs") return res.status(200).send(urlset(r.hubs.filter(h => !dead.hubs.has(h)).map(h => ({ loc: `${SITE}/history/${h}`, lastmod: (r.hubLast && r.hubLast[h]) || "" }))));
+  if (which === "hubs") {
+    // The history index and each make page join the hub sitemap (Lane E, Nov 7 2026): they are indexable pages, so they are listed (search rule 7).
+    const g = historyGraph(r), mk = indexMakes(g, dead.hubs), newestOf = hs => hs.reduce((m, h) => (h.last > m ? h.last : m), "");
+    const top = [{ loc: `${SITE}/history`, lastmod: newestOf(mk.flatMap(m => m.hubs)) }].concat(mk.map(m => ({ loc: `${SITE}/history/${m.slug}`, lastmod: newestOf(m.hubs) })));
+    return res.status(200).send(urlset(top.concat(r.hubs.filter(h => !dead.hubs.has(h)).map(h => ({ loc: `${SITE}/history/${h}`, lastmod: (r.hubLast && r.hubLast[h]) || "" })))));
+  }
   const page = Math.max(1, Number(which) || 1) - 1;
   return res.status(200).send(urlset(r.vins.filter(u => !dead.vins.has(u.vin)).slice(page * SITEMAP_PAGE, (page + 1) * SITEMAP_PAGE)));
 }

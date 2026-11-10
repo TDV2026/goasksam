@@ -18,6 +18,7 @@ const REGISTRY = [
   ["api/buySearch.js", /Promise\.race\(\[Promise\.resolve\(\)\.then\(\(\) => enrichOne/, P, "show-more batch: each card's read keeps running (listingMarket keepAlive) and the page asks card by card"],
   ["api/buySearch.js", /Promise\.race\(\[parseQueryResolved/, N, "a parse"],
   ["api/history.js", /vin_rollout_cache/, N, "one stored row"],
+  ["api/history.js", /rolloutCached\(env, \{ storedOnly: true \}\)/, N, "one stored row for the index and make pages, 2.5s wait, no archive read"],
   ["api/partnerAnswer.js", /decodeVinFacts/, N, "a VIN decode"],
   ["api/partnerDemo.js", /Promise\.race\(\[read, late\]\)/, P, "client-side wait; the read is the page's own request"],
   ["api/sellerDecision.js", /await Promise\.race\(\[fxLoad/, N, "the exchange-rate table"],
