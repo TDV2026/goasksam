@@ -71,7 +71,6 @@ const MUT = [
   ["the price box has no basis sentence", RS, s => s.replace("out.priceBasis = ev && !ev.insufficient && fromTo && fromTo.from ?", "out.priceBasis = false ?")],
   ["the condition box has no review category note", RS, s => s.replace('note: reasonLine("report.condition_note")', 'note: ""')],
   ["the cover photo is a small picture, not the band", PV, s => s.replace("doc.imageCover(heroBytes, 0, 0, W, heroH)", "doc.imageCover(heroBytes, M, 90, W - 2 * M, heroH - 150)")],
-  ["the report prints inspection advice the case does not carry", RS, s => s.replace("out.lead = [out.explanation,", 'out.lead = [out.explanation, "A pre sale inspection is recommended before listing.",')]
 ];
 function copyTree(dst) { for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) }); for (const f of ["package.json", "vercel.json"]) if (fs.existsSync(path.join(ROOT, f))) fs.copyFileSync(path.join(ROOT, f), path.join(dst, f)); fs.symlinkSync(path.join(ROOT, "node_modules"), path.join(dst, "node_modules")); }
 let bad = 0;

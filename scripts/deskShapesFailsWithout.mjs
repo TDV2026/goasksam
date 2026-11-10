@@ -4,7 +4,7 @@ const ROOT = path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url))
 const MUT = [
   ["the market line counts the matching sales, not the population of the case", "lib/desk/reportState.js", s => s.replace('sales: countNoun(ev.count, "sale", { words: false }), date: shortDate(ev.asOf) })', 'sales: countNoun(ev.matching, "sale", { words: false }), date: shortDate(ev.asOf) })')],
   ["the stored read is kept under a stale key (the case's tier is left out of the key)", "lib/desk/caseWorkflow.js", s => s.replace("c.condition.selected ? c.condition.selected.tier : null, c.exclusions", "null, c.exclusions")],
-  ["the assessment is not seeded from the engine's median", "lib/desk/caseWorkflow.js", s => s.replace("  return seedAssessment(c, iso(now));\n}", "  return c;\n}")],
+  ["the assessment is not seeded from the engine's median", "lib/desk/caseWorkflow.js", s => s.replace("return seedReserve(seedAssessment(c, iso(now)), iso(now));", "return seedReserve(c, iso(now));")],
   ["a seeded assessment is not marked source engine", "lib/desk/caseWorkflow.js", s => s.replace("source: ok ? \"engine\" : null };", "source: null };")],
   ["the seeded assessment writes no audit line", "lib/desk/caseWorkflow.js", s => s.replace("  logAudit(c, { at: iso(now), by: \"engine\", what: ok ?", "  void ({ at: iso(now), by: \"engine\", what: ok ?")],
   ["the analyst's change leaves the source engine", "lib/desk/caseWorkflow.js", s => s.replace("a.explanation, source: \"analyst\" };", "a.explanation, source: a.source };")],
@@ -34,7 +34,9 @@ const MUT = [
   ["photo_add re-calls the engine", "lib/desk/caseWorkflow.js", s => s.replace("c.fields.mileage.value, c.fields.transmission.value", "c.fields.mileage.value, c.photos.items.length, c.fields.transmission.value")],
   ["caseView sends no difference line", "lib/desk/caseView.js", s => s.replace("assessment: { ...c.assessment, differenceLine: rs.differenceLine }", "assessment: { ...c.assessment }")],
   ["caseView sends no position line", "lib/desk/caseView.js", s => s.replace("positionLine: rs.reservePositionLine, ", "")],
-  ["caseView sends no mileage line", "lib/desk/caseView.js", s => s.replace("vehicle: { mileageLine: rs.mileageWords }", "vehicle: {}")],
+  ["caseView sends no mileage line", "lib/desk/caseView.js", s => s.replace("vehicle: { mileageLine: rs.mileageWords, submittedLine: submittedLine(c) }", "vehicle: { submittedLine: submittedLine(c) }")],
+  ["caseView sends no received line", "lib/desk/caseView.js", s => s.replace("submittedLine: submittedLine(c) }", "}")],
+  ["the received line is typed in caseView", "lib/desk/caseView.js", s => s.replace("reasonLine(\"case.vehicle.received\", { date: d })", "\"Received \" + d + \".\"")],
   ["a blank case gets blank text instead of null", "lib/desk/reportState.js", s => s.replace("out.mileageWords = m.value == null ? null :", 'out.mileageWords = m.value == null ? "" :')],
   ["the demonstration case is a different lead", "lib/desk/caseDemo.js", s => s.replace('leadRef: "HM-24117"', 'leadRef: "HM-1"')]
 ];

@@ -2736,6 +2736,24 @@ try {
   record("Desk v3 preview door images (scripts/deskPreviewImageCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/deskReserveFlowCheck.mjs", { encoding: "utf8", timeout: 200000 });
+  record("Desk v4 stage 1: the recommended reserve is the case's one figure, the engine starts and checks it, the period is an engine input, no file compares a reserve to a range (scripts/deskReserveFlowCheck.mjs)", "PASS", (out.match(/deskReserveFlowCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 1 reserve (scripts/deskReserveFlowCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskNextStepsCheck.mjs", { encoding: "utf8", timeout: 200000 });
+  record("Desk v4 stage 3: next steps are the case's own list, seeded through reasonWords, edited, removed, added and reordered by step key, printed as written (scripts/deskNextStepsCheck.mjs)", "PASS", (out.match(/deskNextStepsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 3 next steps (scripts/deskNextStepsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskActionsResolveCheck.mjs", { encoding: "utf8", timeout: 200000 });
+  record("Desk v4 stage 2: every needs attention action on every case resolves by item key and returns the caseView; doc_add, Select all, touched comparable rows (scripts/deskActionsResolveCheck.mjs)", "PASS", (out.match(/deskActionsResolveCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 2 ops that always resolve (scripts/deskActionsResolveCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/deskDemoCarCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("Desk v3 demonstration car is a real archive sale: VIN, listing and first photo from one record, recorded rung counts in the lane notes (scripts/deskDemoCarCheck.mjs)", "PASS", (out.match(/deskDemoCarCheck: .*/) || [""])[0]);
 } catch (e) {
