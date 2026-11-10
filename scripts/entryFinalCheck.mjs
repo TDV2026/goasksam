@@ -67,7 +67,7 @@ for (const [n, h, re] of [["find", find(), /^\/find\?q=(.+)$/], ["market-check",
 const textLines = h => h.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, "\n").replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/&quot;/g, '"').split("\n").map(x => x.trim()).filter(Boolean);
 const section = (h, re) => (re.exec(h) || [""])[0];
 const FIND_SEC = /<section class="proof fx"[\s\S]*?<\/section>/, MC_SEC = /<section class="proof" data-mc-card[\s\S]*?<\/section>/, SELL_SEC = /<section class="proof" data-sell-card[\s\S]*?<\/section>/;
-const labels = new Set([RW.reasonLine("entry.find_live"), RW.reasonLine("entry.find_sold"), RW.reasonLine("entry.mc_example"), RW.reasonLine("entry.sell_example"), RW.reasonLine("entry.sell_day"), RW.reasonLine("entry.sell_reserve"), RW.reasonLine("entry.sell_link"), BC.ENTRY_BRIEF_COPY.platformPickLabel, "·", "↗", "→"]);
+const labels = new Set([BC.ENTRY_BRIEF_COPY.viewAuction, RW.reasonLine("entry.find_live"), RW.reasonLine("entry.find_sold"), RW.reasonLine("entry.mc_example"), RW.reasonLine("entry.sell_example"), RW.reasonLine("entry.sell_day"), RW.reasonLine("entry.sell_reserve"), RW.reasonLine("entry.sell_link"), BC.ENTRY_BRIEF_COPY.platformPickLabel, "·", "↗", "→"]);
 function featuredBad(sec, allowed) { const bad = []; for (const l of textLines(sec)) { if (labels.has(l) || allowed.has(l)) continue; const parts = l.split(" · "); if (parts.length > 1 && parts.every(x => allowed.has(x))) continue; bad.push(l); } return bad; }
 { const f = F.findField(), allowed = new Set(f.cars.flatMap(c => [c.card.title, c.card.source, c.venue, c.timing, c.intelligence.line])), sec = section(find(f), FIND_SEC); const bad = featuredBad(sec, allowed); ok(sec && !bad.length && f.cars.every(c => sec.includes(c.intelligence.line.replace(/&/g, "&amp;"))), `Find: every word in the live row is Lane B's field or a table label${bad.length ? " (" + bad.join(" | ") + ")" : ""}`);
   ok(f.cars.every(c => sec.includes('href="' + (c.intelligence.kind === "market_range" ? c.intelligence.url.replace("/market-check?", "/preview/market-check?") : c.intelligence.url) + '"')), "Find: Sold before and Listed before open the car's history, Market range opens its Market Check, as sent");
@@ -120,6 +120,19 @@ for (const w of [1440, 1024, 390]) { const bad = [];
     const cut = html.replace(MS.railHtml(MS.KINDS[k]), ""), p2 = await open(cut, 1440), r2 = await p2.evaluate(read); await p2.close(); ok(r2 === null, `mutant caught: the rail removed from a ${k} results page is seen`); }
   const shellSrc = fs.readFileSync("lib/appShell.js", "utf8"), rb = blobOf("origin/main", "lib/appShell.js"); ok(!rb || hashOf(shellSrc) === rb, "Find results: the live shell that carries its rail (lib/appShell.js) is byte identical to origin/main");
   ok(!rb || hashOf(shellSrc + "\n// edit") !== rb, "mutant caught: a change to the Find results shell is seen"); }
+// ---------- 8 View auction on every Find card ----------
+{ const f = F.findField(), none = F.findField(); none.cars[1].intelligence = { kind: "none", line: null, url: null };
+  const cards = h => [...h.matchAll(/<div class="lc">[\s\S]*?<\/div>(?=<div class="lc">|<\/div><\/section>)/g)].map(m => m[0]);
+  const views = h => cards(h).map(c => { const m = /<a class="lc-v" data-view-auction href="([^"]*)" target="_blank" rel="noopener">([^<]*)<\/a>/.exec(c); return m ? { href: m[1].replace(/&amp;/g, "&"), text: m[2], intel: /class="lc-i"/.test(c) } : null; });
+  const goodAll = (h, ff) => { const v = views(h); return v.length === ff.cars.length && v.every((x, i) => x && x.text === "View auction" && x.href === ff.cars[i].card.url); };
+  ok(goodAll(find(f), f), "Find: every Live now card has a View auction link, in a new tab, whose href is the record's own listing URL (card.url)");
+  ok(goodAll(find(none), none) && views(find(none))[1].intel === false, "Find: a plain card (no intelligence row) has its View auction link in the row's place");
+  ok(views(find(f)).filter(Boolean).length === 3 && (find(f).match(/class="lc-i"/g) || []).length === 3, "Find: the intelligence rows keep their own links beside View auction");
+  ok(!goodAll(find(f).replace(/<a class="lc-v"[^>]*>View auction<\/a>/, ""), f), "mutant caught: a card without the link");
+  ok(!goodAll(find(f).replace(/(<a class="lc-v" data-view-auction href=")[^"]*"/, '$1https://example.test/typed"'), f), "mutant caught: a link to a typed URL");
+  ok(!goodAll(find(f).replace(">View auction</a>", ">Visit</a>"), f), "mutant caught: other words on the link");
+  for (const w of [1440, 390]) { const p = await open(find(f), w), r = await p.evaluate(() => [...document.querySelectorAll(".lc")].map(c => { const q = s => { const e = c.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { y: b.top, h: b.height, w: b.width, l: b.left }; }, v = q(".lc-v"), i = q(".lc-i"), cb = c.getBoundingClientRect(); return { v, i, inside: v && v.y + v.h <= cb.bottom + 1 && v.l >= cb.left }; })); await p.close();
+    ok(r.every(x => x.v && x.inside && x.v.h <= 36 && x.v.w < 160 && (!x.i || x.v.y >= x.i.y + x.i.h - 1)), `@${w}: View auction is small (36px high or less), inside its card and under the intelligence row`); } }
 await b.close();
 function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
 done("entryFinalCheck");
