@@ -54,8 +54,9 @@ function assertions(M, label, { entry, results }) {
       chk(count(html, /aria-current="page"/g) === 1 && new RegExp(`aria-current="page">${c.tab}</a>`).test(html), `${w}: one cream pill and it is ${c.tab}`);
       chk(count(html, /<footer class="ft"/g) === 1 && html.includes(ftr), `${w}: one footer and it is the shared footer`);
       chk(OLD_NAV.every(re => !re.test(html)), `${w}: no old left navigation, mobile bar or floating sign in bar (${OLD_NAV.filter(re => re.test(html)).map(String).join(" ")})`);
-      chk(html.includes(`<aside class="rail" aria-label="${k.aria}" data-kind="${k.active}">`) && html.includes(`${c.rail[0]}</a>`) && html.includes(`>${c.rail[1]}</div>`), `${w}: the Find rail for ${kind}: + ${c.rail[0]} and ${c.rail[1]}`);
-      chk(!/<aside class="rail"[\s\S]*?<\/aside>/.exec(html)[0].match(/href="\/(about|business|terms|privacy|whats-new|feedback)/), `${w}: no footer links inside the rail`);
+      if (where === "entry") chk(!/<aside/.test(html), `${w}: the landing page carries no rail (Nov 10 2026)`);
+      else { chk(html.includes(`<aside class="rail" aria-label="${k.aria}" data-kind="${k.active}">`) && html.includes(`${c.rail[0]}</a>`) && html.includes(`>${c.rail[1]}</div>`), `${w}: the Find rail for ${kind}: + ${c.rail[0]} and ${c.rail[1]}`);
+        chk(!/<aside class="rail"[\s\S]*?<\/aside>/.exec(html)[0].match(/href="\/(about|business|terms|privacy|whats-new|feedback)/), `${w}: no footer links inside the rail`); }
       chk(html.indexOf('<footer class="ft"') > html.indexOf("<main"), `${w}: the footer follows the content`);
       chk(!/[–—]/.test(text(html).replace(/Sam[’']s? /g, "")) || where === "results", `${w}: no em or en dash in the page's own words`);
     }
@@ -171,9 +172,13 @@ else {
   const STYLE = sel => { const el = document.querySelector(sel); if (!el) return null; const s = getComputedStyle(el), skip = sel === ".rail" ? ["height", "minHeight"] : sel === ".rail .new" ? ["width"] : []; return ["backgroundColor", "color", "fontFamily", "fontSize", "fontWeight", "lineHeight", "height", "minHeight", "borderRadius", "paddingTop", "paddingLeft", "marginLeft", "width", "borderRightWidth", "borderTopWidth", "justifyContent", "display"].filter(k => skip.indexOf(k) < 0).map(k => k + ":" + s[k]).join(";"); };
   const PARTS = [".gh", ".gh .wm b", ".gh .beta", ".tabs a", ".tabs a[aria-current]", ".tabs a.acct", ".rail", ".rail .new", ".ft", ".ft .wm b", ".ft nav a", ".ft .cp"];
   for (const w of [1440, 1024, 390]) {   // 1024 too: a copy of the shell footer that drifts shows at every desktop width
-    const f = await open("/preview/find", w), fs0 = await f.evaluate((P, S) => P.map(s => [s, new Function("sel", "return (" + S + ")(sel)")(s)]), PARTS, STYLE.toString());
+    const f = await open("/preview/find", w), fsF = await f.evaluate((P, S) => P.map(s => [s, new Function("sel", "return (" + S + ")(sel)")(s)]), PARTS, STYLE.toString());
+    // Find's landing page has no rail (Nov 10 2026): the rail's reference look is the Market Check results page's, the header and footer's is Find's
+    const fr = await open("/preview/market-check?q=2001+BMW+M3", w), fsR = await fr.evaluate((P, S) => P.map(s => [s, new Function("sel", "return (" + S + ")(sel)")(s)]), PARTS, STYLE.toString()); await fr.close();
+    const RAILP = s => s === ".rail" || s === ".rail .new"; let fs0 = fsF;
     for (const [name, url, tab] of [["mc entry", "/preview/market-check", "Market Check"], ["sell entry", "/preview/sell", "Sell"], ["mc results", "/preview/market-check?q=2001+BMW+M3", "Market Check"], ["sell results", "/preview/sell?car=2006+BMW+M5", "Sell"]]) {
       const p = await open(url, w), st = await p.evaluate((P, S) => P.map(s => [s, new Function("sel", "return (" + S + ")(sel)")(s)]), PARTS, STYLE.toString());
+      fs0 = fsF.map(([s, v], i) => RAILP(s) ? (name.includes("entry") ? [s, null] : fsR[i]) : [s, v]);
       const diffs = st.filter(([s, v], i) => v !== fs0[i][1] && !(s === ".tabs a[aria-current]" && false)).map(([s, v], i) => s);
       // the active pill sits on a different tab, so compare it by its own computed look, not by position
       const same = st.every(([s, v], i) => v === fs0[i][1] || s === ".tabs a[aria-current]" || s === ".tabs a");
@@ -183,7 +188,7 @@ else {
       const geo = await p.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, rail: (document.querySelector(".rail") || {}).offsetWidth, old: !!document.querySelector("#gas-rail,#gas-scrim,.gas-mhead,.gas-signbar"), ob: (document.querySelector("#ob") || {}).offsetWidth || 0, foot: (document.querySelector(".ft") || { getBoundingClientRect: () => ({ top: 0 }) }).getBoundingClientRect().top + scrollY, last: Math.max(...[...document.querySelectorAll("main, #gas-main, .main")].map(e => e.getBoundingClientRect().bottom + scrollY)) }));
       ok(geo.sw <= geo.cw, `${name} at ${w}: no horizontal overflow (${geo.sw} > ${geo.cw})`);
       ok(!geo.old, `${name} at ${w}: no old navigation in the browser`);
-      ok(w === 390 || geo.rail === 200, `${name} at ${w}: the rail is 200px wide (${geo.rail})`);
+      ok(name.includes("entry") ? geo.rail === undefined : (w === 390 || geo.rail === 200), `${name} at ${w}: the rail is 200px wide (${geo.rail})`);
       ok(geo.foot >= geo.last - 1, `${name} at ${w}: the footer sits after the content, never over it (${Math.round(geo.foot)} vs ${Math.round(geo.last)})`);
       if (name.includes("results") && w === 1440) ok(geo.ob > 1040, `${name}: the results container is wider than the old 1040 cap (${geo.ob})`);
       ok(p._err.length === 0, `${name} at ${w}: no page error (${p._err.join(" | ")})`);
@@ -191,15 +196,15 @@ else {
     await f.close();
   }
   // the rail's recent list is the product's own history, and follows a new entry
-  { const p = await open("/preview/market-check", 1440, { init: () => { try { sessionStorage.setItem("gas_ob_recent", JSON.stringify([{ q: "1995 Porsche 911", label: "1995 Porsche 911" }, { q: "2006 Ford GT", label: "2006 Ford GT" }])); localStorage.setItem("gas_sell_recent", JSON.stringify([{ key: "x", label: "NOT FOR MARKET CHECK", url: "/sell?car=x" }])); } catch (e) {} } });
+  { const p = await open("/preview/market-check?q=2001%20BMW%20M3", 1440, { init: () => { try { sessionStorage.setItem("gas_ob_recent", JSON.stringify([{ q: "1995 Porsche 911", label: "1995 Porsche 911" }, { q: "2006 Ford GT", label: "2006 Ford GT" }])); localStorage.setItem("gas_sell_recent", JSON.stringify([{ key: "x", label: "NOT FOR MARKET CHECK", url: "/sell?car=x" }])); } catch (e) {} } });
     const items = await p.evaluate(() => [...document.querySelectorAll("#mc-rail-recent a")].map(a => a.textContent + "|" + a.getAttribute("href")) .concat([document.getElementById("mc-rail-head").hidden ? "head hidden" : document.getElementById("mc-rail-head").textContent]));
-    ok(items.join(" ; ") === "1995 Porsche 911|/preview/market-check?q=1995%20Porsche%20911 ; 2006 Ford GT|/preview/market-check?q=2006%20Ford%20GT ; Recent Market Checks", "Market Check rail: its own recent history, each item reopening its search in the preview, headed Recent Market Checks, and not Sell's list (" + items.join(" ; ") + ")");
+    ok(items.join(" ; ") === "2001 BMW M3|/preview/market-check?q=2001%20BMW%20M3 ; 1995 Porsche 911|/preview/market-check?q=1995%20Porsche%20911 ; 2006 Ford GT|/preview/market-check?q=2006%20Ford%20GT ; Recent Market Checks", "Market Check rail: its own recent history, each item reopening its search in the preview, headed Recent Market Checks, and not Sell's list (" + items.join(" ; ") + ")");
     await p.evaluate(() => sessionStorage.setItem("gas_ob_recent", JSON.stringify([{ q: "2020 BMW M3", label: "2020 BMW M3" }]))); const after = await p.evaluate(() => [...document.querySelectorAll("#mc-rail-recent a")].map(a => a.textContent));
     ok(after.join() === "2020 BMW M3", "Market Check rail: a new entry written by the page shows without a reload (" + after.join() + ")"); await p.close(); }
-  { const p = await open("/preview/sell", 1440, { init: () => { try { localStorage.setItem("gas_sell_recent", JSON.stringify([{ key: "m5", label: "2006 BMW M5", url: "/sell?car=2006%20BMW%20M5&state=CA" }, { key: "bad", label: "evil", url: "//evil.test/x" }])); sessionStorage.setItem("gas_ob_recent", JSON.stringify([{ q: "NOT FOR SELL", label: "NOT FOR SELL" }])); } catch (e) {} } });
+  { const p = await open("/preview/sell?car=2006+BMW+M5", 1440, { init: () => { try { localStorage.setItem("gas_sell_recent", JSON.stringify([{ key: "m5", label: "2006 BMW M5", url: "/sell?car=2006%20BMW%20M5&state=CA" }, { key: "bad", label: "evil", url: "//evil.test/x" }])); sessionStorage.setItem("gas_ob_recent", JSON.stringify([{ q: "NOT FOR SELL", label: "NOT FOR SELL" }])); } catch (e) {} } });
     const items = await p.evaluate(() => [...document.querySelectorAll("#mc-rail-recent a")].map(a => a.textContent + "|" + a.getAttribute("href")).concat([document.getElementById("mc-rail-head").textContent]));
     ok(items.join(" ; ") === "2006 BMW M5|/preview/sell?car=2006%20BMW%20M5&state=CA ; Recent selling analyses", "Sell rail: its own recent history, each item reopening its saved address in the preview, off site addresses dropped, and not Market Check's list (" + items.join(" ; ") + ")"); await p.close(); }
-  { const p = await open("/preview/sell", 1440), items = await p.evaluate(() => ({ n: document.querySelectorAll("#mc-rail-recent a").length, hidden: document.getElementById("mc-rail-head").hidden })); ok(items.n === 0 && items.hidden, "Sell rail: with no history it is minimal, no list and no heading, no promotional copy"); await p.close(); }
+  { const p = await open("/preview/sell?car=2006+BMW+M5", 1440), items = await p.evaluate(() => ({ n: document.querySelectorAll("#mc-rail-recent a").length, hidden: document.getElementById("mc-rail-head").hidden })); ok(items.n === 0 && items.hidden, "Sell rail: with no history it is minimal, no list and no heading, no promotional copy"); await p.close(); }
   for (const [url, typed, want] of [["/preview/market-check", "2001 BMW M3 manual", "/preview/market-check?q=2001%20BMW%20M3%20manual"], ["/preview/sell", "2006 BMW M5", "/preview/sell?car=2006%20BMW%20M5"]]) {
     const p = await open(url, 1440), navs = []; p.on("request", r => { if (r.isNavigationRequest()) navs.push(new URL(r.url())); }); await p.evaluate(t => { document.getElementById("pq").value = t; }, typed);
     await Promise.all([p.waitForNavigation({ waitUntil: "domcontentloaded" }).catch(() => {}), p.evaluate(() => document.getElementById("pq-form").requestSubmit())]);
