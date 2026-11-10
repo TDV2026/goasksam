@@ -11,6 +11,7 @@ import { resolveSeatCookie } from "../lib/desk/seatCookie.js";
 import { resolveViewAs } from "../lib/desk/viewAs.js";
 import { PREVIEW_PAGES, homeHtmlFor, findHtml } from "../lib/preview/previewPages.js";
 import { tasksPublicHtml, crewLimitMax } from "../lib/preview/tasksPreview.js";
+import { taskLimitFor } from "../lib/tasks/limit.js";
 import { tasksMineHtml, previewTasksApi } from "../lib/preview/tasksMine.js";
 import { findField } from "../lib/preview/fieldCompose.js";
 import { entryHtml, wrapLive, patchOneboxJs, exampleResultOf, exampleFrameHtml } from "../lib/preview/mcSellPreview.js";
@@ -26,6 +27,18 @@ import historyPage from "./history.js";
 import { SITE, wrapSite } from "../lib/preview/sitePages.js";
 import { renderDeskPreview, previewDeskApi } from "../lib/preview/deskPreview.js";
 import { renderDeskV4, deskV4Shell } from "../lib/preview/deskV4.js";
+import { AsyncLocalStorage } from "node:async_hooks";
+// PUBLIC MODE (go live Stage 3): when the new design answers a public address (lib/_newDesign.js, newPageHtml), every example read runs in a time box and a read that is slow, fails or says "could not read" leaves its section OUT, silently:
+// the search box is in the page the moment it is sent and never waits on an example. The crew previews are unchanged (a failed read still prints its visible line there).
+const PUBLIC_CTX = new AsyncLocalStorage();
+export const PUBLIC_READ_MS = Number(process.env.PUBLIC_READ_MS) > 0 ? Number(process.env.PUBLIC_READ_MS) : 2000;
+const boxed = async (fn, what) => {
+  if (!PUBLIC_CTX.getStore()) return fn();
+  let timer; const timeout = new Promise(r => { timer = setTimeout(() => r(null), PUBLIC_READ_MS); });
+  try { const r = await Promise.race([Promise.resolve().then(fn), timeout]); return r && typeof r === "object" && r.couldNotRead === true ? null : r; }
+  catch (e) { try { console.error(JSON.stringify({ tag: "public_example_failed", what: String(what).slice(0, 120), message: String(e && e.message || e).slice(0, 200) })); } catch {} return null; }
+  finally { clearTimeout(timer); }
+};
 // The crew preview of the Homepage reads Lane B's featuredHistory (the same read GET /api/featuredHistory answers with, crew cookie required inside it). FEATURED is the seam the local run swaps for a test store.
 export const FEATURED = { read: async req => { const { historyEnv } = await import("./_historyData.js"), env = historyEnv(); if (!env) return null; const { readFeaturedHistory } = await import("../lib/live/featuredHistory.js"); return readFeaturedHistory(env, req); }, now: () => Date.now() };
 // A page is a file in lib/crewPages/ or a render function (the design previews /preview/home and /preview/find, built from the engine's approved copy at request time). hiddenCrewCheck reads this list, so a page added here is covered by it.
@@ -41,8 +54,10 @@ const failed = (what, e) => { try { console.error(JSON.stringify({ tag: "crew_re
 export const readField = async (file, fn, req) => { try { const { historyEnv } = await import("./_historyData.js"), env = historyEnv(); if (!env) return null; const m = await import(file); if (typeof m[fn] !== "function") return failed(file + " " + fn, new Error("the module has no " + fn)); return await m[fn](env, req); } catch (e) { return failed(file + " " + fn, e); } };
 export const FIND_EXAMPLES = { read: req => readField("../lib/live/findExamples.js", "findExamplesField", req), now: () => Date.now() };
 // THE ENGINE ANSWERS live ?? fallback ITSELF (Lane B, lane-b-examples3: findExamplesField, tasksDemoField, watchingDemoField, in the engine card shapes of docs/lane-notes.md SHAPES B lane-e-crew-refine8): each reader returns the live answer, else the fallback (a recent sale or ended car), else null. The page reads the one answer and picks nothing.
-const safe = async (f, what = "field") => { try { return await f(); } catch (e) { return failed(what, e); } };
-const tasksPublicFor = async req => { const ex = await safe(() => TASKS_EMAIL_EXAMPLE.read(req), "tasksEmailExample"); return couldNotRead(ex) ? tasksPublicHtml({ max: await crewLimitMax(), readError: "Could not read the Tasks email." }) : tasksPublicHtml({ max: await crewLimitMax(), emailExample: ex }); };
+const safe = async (f, what = "field") => { if (PUBLIC_CTX.getStore()) return boxed(f, what); try { return await f(); } catch (e) { return failed(what, e); } };
+// the Tasks limit a PUBLIC page prints is the live one (3); only a crew viewer sees the crew limit
+const tasksMaxFor = async req => PUBLIC_CTX.getStore() ? taskLimitFor(isCrewRequest(req) === true) : crewLimitMax();
+const tasksPublicFor = async req => { const ex = await safe(() => TASKS_EMAIL_EXAMPLE.read(req), "tasksEmailExample"); return couldNotRead(ex) ? tasksPublicHtml({ max: await tasksMaxFor(req), readError: "Could not read the Tasks email." }) : tasksPublicHtml({ max: await tasksMaxFor(req), emailExample: ex }); };
 const findFor = async req => { const ex = await safe(() => FIND_EXAMPLES.read(req), "findExamplesField"); return couldNotRead(ex) ? findHtml({ examples: null, readError: "Could not read the Find examples.", now: FIND_EXAMPLES.now() }) : findHtml({ examples: findField(ex, null), now: FIND_EXAMPLES.now() }); };
 // MARKET CHECK AND SELL ON THE NEW SHELL (Sam's approved brief, Nov 8 2026; lib/preview/mcSellPreview.js). Without a search in the address the page is the new ENTRY; with one (?q= or ?car= or ?vin=, and every address the live pages push) it is the LIVE page, exactly as the live handler answers it, inside the shell. Nothing is computed here.
 // The two example fields are Lane B's (marketCheckExampleSales, sellExample); a field's module that is not built yet is simply absent (the section is hidden), one that is built and fails prints the visible could-not-read line like every other read.
@@ -96,9 +111,10 @@ async function historyFor(req) {
   return wrapSite(live.body);
 }
 const SITE_PAGES = Object.fromEntries(Object.keys(SITE).map(k => ["preview-site-" + k, { frame: true, render: () => "", renderAsync: req => siteFor(k, req) }]));
-export const PAGES = { ...SITE_PAGES, "preview-history": { frame: true, render: () => "", renderAsync: historyFor }, "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-desk": { render: () => deskV4Shell(), renderAsync: renderDeskV4 }, "preview-desk-valuations": { render: renderDeskPreview }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: FEATURED.read, now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"], renderAsync: findFor }, "preview-market-check": { render: () => entryHtml("mc"), renderAsync: req => mcSellFor("mc", req) }, "preview-sell": { render: () => entryHtml("sell"), renderAsync: req => mcSellFor("sell", req) }, "preview-market-check-example": { frame: true, render: () => { throw new Error("no example result"); }, renderAsync: exampleFrame }, "preview-onebox-js": { render: oneboxJs, contentType: "application/javascript; charset=utf-8" } };
+export const PAGES = { ...SITE_PAGES, "preview-history": { frame: true, render: () => "", renderAsync: historyFor }, "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-desk": { render: () => deskV4Shell(), renderAsync: renderDeskV4 }, "preview-desk-valuations": { render: renderDeskPreview }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: r => boxed(() => FEATURED.read(r), "featuredHistory"), now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"], renderAsync: findFor }, "preview-market-check": { render: () => entryHtml("mc"), renderAsync: req => mcSellFor("mc", req) }, "preview-sell": { render: () => entryHtml("sell"), renderAsync: req => mcSellFor("sell", req) }, "preview-market-check-example": { frame: true, render: () => { throw new Error("no example result"); }, renderAsync: exampleFrame }, "preview-onebox-js": { render: oneboxJs, contentType: "application/javascript; charset=utf-8" } };
 // The new design's page for a public address (lib/_newDesign.js): the same renderer the crew preview uses, no crew test here (the switch is the permission).
-export async function newPageHtml(name, req) {
+export function newPageHtml(name, req) { return PUBLIC_CTX.run({ public: true }, () => newPageHtmlIn(name, req)); }
+async function newPageHtmlIn(name, req) {
   const p = PAGES[name]; if (!p) return null;
   const html = p.renderAsync ? await p.renderAsync(req) : p.render ? p.render() : fs.readFileSync(path.join(process.cwd(), "lib/crewPages", p.file), "utf8");
   if (/^<!DOCTYPE html><meta charset="utf-8"><title>Preview<\/title>/.test(String(html))) throw new Error("the new page could not be built (" + name + ")");   // the preview's could-not-build page is never a public answer

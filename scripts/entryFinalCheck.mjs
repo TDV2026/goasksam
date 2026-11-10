@@ -89,11 +89,11 @@ function featuredBad(sec, allowed) { const bad = []; for (const l of textLines(s
 ok(!/data-find-examples/.test(find(null)) && !/data-find-examples/.test(find({ cars: [], fallback: [] })), "Find: no section when the engine sent nothing");
 // ---------- 5 results pages untouched ----------
 const RESULTS = ["public/js/onebox.js", "public/onebox.html", "api/marketCheck.js", "api/sell.js", "lib/findCardKit.js", "public/js/result-v2.js", "public/js/result.js"].filter(f => fs.existsSync(f));
-const blobOf = (ref, f) => { try { return execFileSync("git", ["rev-parse", ref + ":" + f], { encoding: "utf8" }).trim(); } catch { return null; } }, hashOf = s => crypto.createHash("sha1").update("blob " + Buffer.byteLength(s) + "\0").update(s).digest("hex");
-// a results source is unchanged when it equals origin/main's, or the re-cut history links branch's (the history links add a link and nothing else to the results page, Sam's order of Nov 9)
-const BASES = ["origin/main", "lane-e-history-links"];
 // the one change the go live switch makes to a results source is its wrapper (lib/_newDesign.js): the import line and withNewDesign("route", ...) around the export. Both are taken out before the comparison, so every other byte is still pinned.
 const unwrapSwitch = src => src.replace(/^import \{ withNewDesign \} from "\.\.\/lib\/_newDesign\.js";\n/m, "").replace(/export default withNewDesign\((?:"[^"]*"|[^,]+), (.+)\);/, "export default $1;");
+const blobOf = (ref, f) => { try { const t = execFileSync("git", ["show", ref + ":" + f], { encoding: "utf8", maxBuffer: 1 << 28 }); return hashOf(/^api\/(marketCheck|sell)\.js$/.test(f) ? unwrapSwitch(t) : t); } catch { return null; } }, hashOf = s => crypto.createHash("sha1").update("blob " + Buffer.byteLength(s) + "\0").update(s).digest("hex");
+// a results source is unchanged when it equals origin/main's, or the re-cut history links branch's (the history links add a link and nothing else to the results page, Sam's order of Nov 9)
+const BASES = ["origin/main", "lane-e-history-links"];
 const changed = (files, read = f => unwrapSwitch(fs.readFileSync(f, "utf8"))) => files.filter(f => blobOf("origin/main", f) && !BASES.some(r => blobOf(r, f) === hashOf(read(f))));
 { const ch = changed(RESULTS); ok(ch.length === 0, `the results pages' sources are byte identical to origin/main (${RESULTS.length} files)${ch.length ? ": changed " + ch : ""}`);
   ok(changed(RESULTS, f => unwrapSwitch(fs.readFileSync(f, "utf8")) + (f === RESULTS[0] ? "\n// edit" : "")).length === 1, "mutant caught: one results source changed by a comment is reported"); }
