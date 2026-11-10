@@ -9,6 +9,9 @@ import { engineReader } from "../lib/desk/intake/engineRead.js";
 import { decodeVinPublic } from "../lib/desk/intake/run.js";
 import { resolveVehicle } from "../lib/vehicle.js";
 import { supabaseEnv } from "../lib/_supabase.js";
+import { storeFor } from "../lib/desk/sheetStore.js";
+import { caseReader } from "../lib/desk/intake/toCase.js";
+import { readSheet } from "../lib/desk/sheetRead.js";
 import { keepAlive } from "../lib/keepAlive.js";
 import { failBody } from "../lib/_fail.js";
 
@@ -46,9 +49,10 @@ export default async function handler(req, res) {
     const mail = await fetchReceived(emailId, apiKey);   // throws -> 500 -> Resend retries
     const store = supabaseStore(env);
     let simpleParser = null; try { simpleParser = (await import("mailparser")).simpleParser; } catch { /* forwarded-as-attachment mail then stays a document */ }
-    const reader = engineReader(store, env);
+    const reader = engineReader(store, env), sheets = storeFor(env), caseRead = caseReader({ sheets, readSheet: input => readSheet(env, input) });
     const out = await processInbound(mail, {
-      store, resolveVehicle, decodeVin: decodeVinPublic, simpleParser,
+      store, sheets, resolveVehicle, decodeVin: decodeVinPublic, simpleParser,
+      startCaseRead: (orgId, sheetId) => { keepAlive(caseRead(orgId, sheetId)); },
       startRead: (sheet, car, read) => { keepAlive(reader(sheet, car, read)); }
     });
     return res.status(200).json({ outcome: out.outcome });

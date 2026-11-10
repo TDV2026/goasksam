@@ -2735,6 +2735,12 @@ try {
   record("Desk v4 stage 4 report consistency (scripts/reportConsistencyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/intakeToCaseCheck.mjs", { encoding: "utf8", timeout: 250000 });
+  record("Desk v4 forwarded lead: one stored forwarded case per lead, supplied fields seller supplied and unverified, the original email signed on the view, the engine read on the typed case's own road, guards kept (scripts/intakeToCaseCheck.mjs)", "PASS", (out.match(/intakeToCaseCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 forwarded lead to case (scripts/intakeToCaseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/deskNextStepsCheck.mjs", { encoding: "utf8", timeout: 200000 });
   record("Desk v4 stage 3: next steps are the case's own list, seeded through reasonWords, edited, removed, added and reordered by step key, printed as written (scripts/deskNextStepsCheck.mjs)", "PASS", (out.match(/deskNextStepsCheck: .*/) || [""])[0]);
 } catch (e) {
