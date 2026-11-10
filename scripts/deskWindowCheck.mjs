@@ -12,6 +12,9 @@ const args = process.argv.slice(2), rootArg = args.find(a => !a.startsWith("--")
 if (args.includes("--mutants")) {
   const DV = "lib/deskV3.js", SR = "lib/sheetRead.js";
   const muts = [
+    [DV, "medianLine: reasonLine(\"desk4.median\", { median: quant(prices, 0.5) }), q1:", "q1:", "(7) the window has no medianLine"],
+    [DV, "median: e.median, medianLine: e.medianLine, q3: e.q3", "median: e.median, q3: e.q3", "(7) the window entry has no medianLine"],
+    [DV, "priceLine: reasonLine(\"desk4.price\", { price: Math.round(Number(r.price)) }), dateLine", "dateLine", "(7) a sale has no priceLine"],
     [DV, "d.setUTCMonth(d.getUTCMonth() - months);", "d.setUTCMonth(d.getUTCMonth() - 12);", "(1) every window reads twelve months"],
     [DV, "iso(r.date) >= c); };", "iso(r.date) > c); };", "(1) the cutoff day is out"],
     [DV, "(rows || []).filter(r => iso(r.date) && iso(r.date) >= c)", "(rows || []).filter(r => !iso(r.date) || iso(r.date) >= c)", "(5) an undated sale is in every window"],
@@ -19,7 +22,7 @@ if (args.includes("--mutants")) {
     [DV, "return { ...e, windowMonths: months,", "return { ...evidenceOf(pop, matching, d, env), windowMonths: months,", "(2) the evidence is the whole population, not the chosen window"],
     [SR, "p25: ev.q1, median: ev.median, p75: ev.q3, high: ev.high };", "p25: ev.q1, median: ev.byWindow[\"24\"].median, p75: ev.q3, high: ev.high };", "(2) the meter reads another window"],
     [DV, "const min = desk.tier ? DESK_TIER_MIN : DESK_EVIDENCE_MIN;", "const min = 1;", "(3) one sale gives a reference"],
-    [DV, "median: null, q1: null, q3: null, low: null, high: null, typicalLine", "median: quant(prices, 0.5), q1: null, q3: null, low: null, high: null, typicalLine", "(3) an insufficient window returns a median"],
+    [DV, "median: null, medianLine: null, q1: null, q3: null, low: null, high: null, typicalLine", "median: quant(prices, 0.5), medianLine: null, q1: null, q3: null, low: null, high: null, typicalLine", "(3) an insufficient window returns a median"],
     [DV, "reasonLine(\"desk4.period\", { from: deskDateShort(iso(dated[dated.length - 1].date)), to: deskDateShort(asOf) })", "reasonLine(\"desk4.period\", { to: deskDateShort(iso(dated[dated.length - 1].date)), from: deskDateShort(asOf) })", "(4) the period runs backwards"],
     [DV, "const dated = rows.filter(r => iso(r.date)).sort((a, b) => iso(b.date).localeCompare(iso(a.date))), latest = dated[0] || null;", "const dated = rows.filter(r => iso(r.date)).sort((a, b) => iso(a.date).localeCompare(iso(b.date))), latest = dated[0] || null;", "(4) the latest sale is the oldest"],
     [DV, "url: latest.url || null } : null,", "url: null } : null,", "(4) the latest sale has no link"],
@@ -113,4 +116,12 @@ for (const c of W.CASES) {
   ok("the 996 world: six months reads fewer sales than twelve", a.count < b.count, `${a.count} < ${b.count}`);
 }
 console.error = quiet;
+// (7) THE LINES A SCREEN PRINTS (Lane S): evidence.medianLine on the chosen window and on each window of byWindow, priceLine and dateLine and milesLine on every sale, all from the reason table (money through moneyWords)
+{ const full = await DV.deskBlock(rows, { caseDate: CASE, subject: sub, subjectFacts: {}, windowMonths: 12 }), e = full.evidence, usd = v => "$" + v.toLocaleString("en-US");
+  ok("(7) evidence.medianLine is the chosen window's median as money, from the table", e.medianLine === usd(e.median) && e.medianLine === RW.reasonLine("desk4.median", { median: e.median }), e.medianLine);
+  ok("(7) every window carries its own medianLine, equal to its median", ["6", "12", "24"].every(k => e.byWindow[k].medianLine === usd(e.byWindow[k].median) && e.byWindow[k].medianLine === RW.reasonLine("desk4.median", { median: e.byWindow[k].median })), JSON.stringify(["6", "12", "24"].map(k => e.byWindow[k].medianLine)));
+  ok("(7) the windows' medianLines differ where their medians do", new Set(["6", "12", "24"].map(k => e.byWindow[k].medianLine)).size === new Set(["6", "12", "24"].map(k => e.byWindow[k].median)).size);
+  ok("(7) every sale carries priceLine (its price as money), dateLine (its date in words) and milesLine (null when it states none)", full.sales.length > 0 && full.sales.every(x => x.priceLine === usd(x.price) && x.priceLine === RW.reasonLine("desk4.price", { price: x.price }) && /^[A-Z][a-z]{2} \d{1,2}, \d{4}$/.test(x.dateLine) && (x.milesLine === null || /^[\d,]+ miles$/.test(x.milesLine))), JSON.stringify(full.sales[0]));
+  const thin = (await DV.deskBlock(rows.slice(0, 2), { caseDate: CASE, subject: sub, subjectFacts: {}, windowMonths: 12 })).evidence;
+  ok("(7) an insufficient window has no medianLine (a number is never made up)", thin.insufficient && thin.medianLine === null && Object.values(thin.byWindow).every(w => !w.insufficient || w.medianLine === null)); }
 console.log(`\ndeskWindowCheck: ${n - failed} pass, ${failed} FAIL`); process.exit(failed ? 1 : 0);
