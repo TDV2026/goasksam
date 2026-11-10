@@ -43,6 +43,7 @@
 // is reported as SKIP, never counted as a pass - state it plainly in the push report.
 import { execSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
+import { normalizeStatus } from "./_prePushStatus.mjs";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -78,7 +79,7 @@ if (process.argv.includes("--tier-only")) process.exit(0);
 const BASELINE_FAILURES = [];
 
 const results = [];
-function record(name, status, detail) { results.push({ name, status, detail }); console.log(`${status.padEnd(4)}  ${name}${detail ? "  " + detail : ""}`); }
+function record(name, status, detail) { const r = normalizeStatus(name, status, detail); results.push(r); console.log(`${r.status.padEnd(4)}  ${r.name}${r.detail ? "  " + r.detail : ""}`); }
 
 console.log("=== PRE-PUSH SMOKE TEST ===\n");
 
@@ -999,26 +1000,33 @@ try {
 } catch (e) {
   record("Sell example in Lane E's shape: the reader accepts it, every number traces to the Sell answer, sentences from the reason table, fewer than two cars hides the section, the kill switch; nine mutants (scripts/sellExampleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// prePushStatusCheck (Lane B, Nov 10 2026): every record() status is a word and a non-word status is a red row with the check's name, never a crash; five mutants.
+try {
+  const out = execSync("node scripts/prePushStatusCheck.mjs --mutants", { encoding: "utf8", timeout: 60000 });
+  record("prePush statuses: every check hands record() PASS, FAIL or SKIP; a boolean is a red row with the check's name, not a crash; five mutants (scripts/prePushStatusCheck.mjs)", "PASS", (out.match(/prePushStatusCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("prePush statuses: every check hands record() PASS, FAIL or SKIP; a boolean is a red row with the check's name, not a crash; five mutants (scripts/prePushStatusCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL|SURVIVED/.test(l)).slice(0, 3).join(" | "));
+}
 // mcExampleCheck (Lane B, Nov 9 2026): the Market Check entry card (range, count, period and recent sale from one engine answer, the sale inside the pool, no narrowing, the most focused range preferred); eleven mutants.
 try {
   const out = execSync("node scripts/mcExampleCheck.mjs", { encoding: "utf8", timeout: 250000 });
-  record("Market Check entry card: one engine answer, recent sale inside the pool, no narrowing; eleven mutants (scripts/mcExampleCheck.mjs)", /, 0 FAIL/.test(out), (out.match(/mcExampleCheck: .*/) || [""])[0]);
+  record("Market Check entry card: one engine answer, recent sale inside the pool, no narrowing; eleven mutants (scripts/mcExampleCheck.mjs)", /, 0 FAIL/.test(out) ? "PASS" : "FAIL", (out.match(/mcExampleCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("Market Check entry card: one engine answer, recent sale inside the pool, no narrowing; eleven mutants (scripts/mcExampleCheck.mjs)", false, String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
+  record("Market Check entry card: one engine answer, recent sale inside the pool, no narrowing; eleven mutants (scripts/mcExampleCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 // findIntelCheck (Lane B, Nov 9 2026): the Find cards' intelligence line (sold_before only with a recorded sale, listed_before never with a price, market_range equals the engine's band, no invented line, cars only); eleven mutants.
 try {
   const out = execSync("node scripts/findIntelCheck.mjs", { encoding: "utf8", timeout: 250000 });
-  record("Find card intelligence: sold before, market range, listed before, none; cars only; eleven mutants (scripts/findIntelCheck.mjs)", /, 0 FAIL/.test(out), (out.match(/findIntelCheck: .*/) || [""])[0]);
+  record("Find card intelligence: sold before, market range, listed before, none; cars only; eleven mutants (scripts/findIntelCheck.mjs)", /, 0 FAIL/.test(out) ? "PASS" : "FAIL", (out.match(/findIntelCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("Find card intelligence: sold before, market range, listed before, none; cars only; eleven mutants (scripts/findIntelCheck.mjs)", false, String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
+  record("Find card intelligence: sold before, market range, listed before, none; cars only; eleven mutants (scripts/findIntelCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 // functionBundleCheck (Lane B, Nov 9 2026): every file a module loaded by a variable path needs (api/crewPage.js readers, api/pullLive.js run) is reached by a literal import or copied by includeFiles; the Sell example was empty because three files were in no bundle.
 try {
   const out = execSync("node scripts/functionBundleCheck.mjs", { encoding: "utf8", timeout: 120000 });
-  record("Function bundles: every file a variable-path module needs ships with its function, and so does the closure of every public function that imports an example reader; six mutants (scripts/functionBundleCheck.mjs)", /, 0 FAIL/.test(out), (out.match(/functionBundleCheck: .*/) || [""])[0]);
+  record("Function bundles: every file a variable-path module needs ships with its function, and so does the closure of every public function that imports an example reader; six mutants (scripts/functionBundleCheck.mjs)", /, 0 FAIL/.test(out) ? "PASS" : "FAIL", (out.match(/functionBundleCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("Function bundles: every file a variable-path module needs ships with its function, and so does the closure of every public function that imports an example reader; six mutants (scripts/functionBundleCheck.mjs)", false, String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
+  record("Function bundles: every file a variable-path module needs ships with its function, and so does the closure of every public function that imports an example reader; six mutants (scripts/functionBundleCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 // entryExamplesCheck (Lane B, Nov 8 2026): marketCheckExampleSales (three real sales of one model that show mileage moving the price) and sellExample (one model's record by venue from the Sell engine): daily pick, crew gate, never invented.
 try {
