@@ -2315,6 +2315,18 @@ try {
   record("Desk v4 shell: zones (queue 232, centre, Reserve panel 372 sticky), no Vehicle, Market evidence or Decision tabs, one shadow, top bar, no overflow at 1440, 1280, 1024 and 390, light and dark, crew only (scripts/deskV4ShellCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/deskV4WireCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 wire: every figure and sentence on the screen is a string the server sent, the only arithmetic is the plot's own axis (exactly invertible); mutants: a typed sentence, a page built count, a page built range, a Math.round on a sent figure (scripts/deskV4WireCheck.mjs)", "PASS", (out.match(/deskV4WireCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 wire: every figure and sentence on the screen is a string the server sent, the only arithmetic is the plot's own axis (exactly invertible); mutants: a typed sentence, a page built count, a page built range, a Math.round on a sent figure (scripts/deskV4WireCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/deskV4FlowCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 flow in Chrome on the real readers: tick and untick (the list stays), exclude and restore, every condition, the window, type and drag the reserve above the range and tick the seller's request, add a document, resolve attention, Select all photos, edit a step, Preview, Finalize; mutants for each bug Sam hit (scripts/deskV4FlowCheck.mjs)", "PASS", (out.match(/deskV4FlowCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 flow in Chrome on the real readers: tick and untick (the list stays), exclude and restore, every condition, the window, type and drag the reserve above the range and tick the seller's request, add a document, resolve attention, Select all photos, edit a step, Preview, Finalize; mutants for each bug Sam hit (scripts/deskV4FlowCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/previewShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Preview shell is one full height column (footer at the bottom of a short page, after a long one, on every preview page at 1440, 1280, 1024 and 390) and the Tasks email section sits on the hero's left edge (scripts/previewShellCheck.mjs)", "PASS", (out.match(/previewShellCheck: .*/) || [""])[0]);
 } catch (e) {
