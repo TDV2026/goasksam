@@ -53,6 +53,7 @@ ${list}
 <p>${esc(NEVER)}</p>
 <h2 class="ab-h2">${copyText("about.H2_STAND")}</h2>
 <p>${esc(STAND)}</p>
+<p class="ab-hist">${copyText("about.HISTORY_BEFORE")}<a class="inline" href="/history">${copyText("about.HISTORY_LINK")}</a>${copyText("about.HISTORY_AFTER")}</p>
 </div></main>${SHELL_MAIN_CLOSE}
 <script>${SHELL_JS}</script>
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>

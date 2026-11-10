@@ -59,6 +59,7 @@ ${railOpenHtml({ active: "how", crew, req, analytics: true })}
 <main><div class="hd-col">
 <h1 class="hd-h1">${copyText("howSamDecides.H1")}</h1>
 ${body}
+<p class="hd-body hd-p hd-hist">${copyText("howSamDecides.HISTORY_BEFORE")}<a href="/history">${copyText("howSamDecides.HISTORY_LINK")}</a>${copyText("howSamDecides.HISTORY_AFTER")}</p>
 </div></main>${SHELL_MAIN_CLOSE}
 <script>${SHELL_JS}</script>
 <script>window.gasIsGuestLink=window.gasIsGuestLink||function(){return false};window.GAS_AUTH_MODE="topbar";</script>
