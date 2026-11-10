@@ -28,7 +28,11 @@ const lib = await imp("lib/whatsNew.js").catch(() => null);
 ok(!!lib, "lib/whatsNew.js reads the data file");
 const file = (() => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, "data/whatsNew.json"), "utf8")); } catch { return null; } })();
 ok(Array.isArray(file) && file.length >= 6, "data/whatsNew.json holds the seeded entries (" + (file ? file.length : "missing") + ")");
-for (const e of file || []) { ok(/^\d{4}-\d{2}-\d{2}$/.test(e.date) && typeof e.text === "string" && e.text.length > 10 && /[.!?]$/.test(e.text), `seed entry is a dated sentence: ${JSON.stringify(e).slice(0, 70)}`); wordsOk(e.text + " " + (e.thanks || ""), "seed entry"); }
+for (const e of file || []) {
+  const lines = Array.isArray(e.lines) ? e.lines : null, words = lines ? [e.title, ...lines] : [e.text];
+  ok((/^\d{4}-\d{2}-\d{2}$/.test(e.date || "") || (e.dateEnv && e.when === "NEW_DESIGN")) && words.every(w => typeof w === "string" && w.length > 10 && /[.!?]$/.test(w) || w === e.title) && (!lines || (typeof e.title === "string" && e.title.length > 3 && lines.length >= 1)), `seed entry is a dated sentence or a titled entry: ${JSON.stringify(e).slice(0, 70)}`);
+  wordsOk(words.join(" ") + " " + (e.thanks || ""), "seed entry");
+}
 ok(!/data\/whatsNew|whatsNew\.json/.test(page), "the page never prints its data path");
 
 // FIXTURES: 0, 1 and 12 entries over several days, dates out of order in the file
@@ -85,6 +89,34 @@ if (mod) for (const [name, list] of CASES) for (const width of [1440, 390]) {
 }
 await b.close();
 
+// THE NEW ENTRIES (Lane E, Nov 10 2026, Sam's order): a new look (only while NEW_DESIGN is on, dated the day it is flipped), Modified or original (2026-11-09), Auction history (2026-11-10).
+{
+  const L = lib, COMP = (await import(pathToFileURL(path.join(ROOT, "scripts/copyRules.mjs")).href)).competitorIn;
+  const OFF = L.whatsNewEntries({}), ON = L.whatsNewEntries({ NEW_DESIGN: "all" }), ONDATED = L.whatsNewEntries({ NEW_DESIGN: "all", NEW_DESIGN_DATE: "2026-11-12" }), SOME = L.whatsNewEntries({ NEW_DESIGN: "home,find", NEW_DESIGN_DATE: "2026-11-12" });
+  const look = list => list.find(e => e.title === "A new look for GoAskSam");
+  ok(!look(OFF) && !look(L.whatsNewEntries({ NEW_DESIGN: "off", NEW_DESIGN_DATE: "2026-11-12" })) && !look(L.whatsNewEntries({ NEW_DESIGN: "0", NEW_DESIGN_DATE: "2026-11-12" })), "A new look: not in the list while NEW_DESIGN is off, unset, 0 or off, even with the date set");
+  ok(!look(ON), "A new look: with the switch on but no date set it is not shown (no made up date)");
+  ok(!look(L.whatsNewEntries({ NEW_DESIGN: "all", NEW_DESIGN_DATE: "next week" })) && !look(L.whatsNewEntries({ NEW_DESIGN: "all", NEW_DESIGN_DATE: "2026-13-45x" })), "A new look: a date that is not YYYY-MM-DD is not used");
+  const nl = look(ONDATED);
+  ok(nl && nl.date === "2026-11-12" && nl.lines.length === 4, "A new look: with the switch on and the date set it shows, dated that day, with four lines");
+  ok(look(SOME), "A new look: shows when the switch is on for some routes");
+  const T = nl ? nl.lines.join(" ") : "";
+  ok(/Find, Market Check and Sell each open on one search box/.test(T) && /type or speak/i.test(T) && /three cars at auction right now/.test(T) && /sold for before or what cars like it sell for/.test(T) && /Market Check and Sell each show a real example/.test(T) && /same header and footer/.test(T) && /phone/.test(T), "A new look: the four lines say what Sam asked for");
+  const mod2 = L.whatsNewEntries({}).find(e => e.title === "Modified or original"), ah = L.whatsNewEntries({}).find(e => e.title === "Auction history");
+  ok(mod2 && mod2.date === "2026-11-09" && /sales mix modified and original cars, Market Check lets you see each on its own/.test(mod2.lines.join(" ")), "Modified or original: 2026-11-09, always shown");
+  ok(ah && ah.date === "2026-11-10" && /Every car Sam has seen sell has its own page, grouped by make and model/.test(ah.lines.join(" ")), "Auction history: 2026-11-10, always shown");
+  for (const e of [nl, mod2, ah].filter(Boolean)) { const w = [e.title, ...e.lines].join(" "); wordsOk(w, "new entry " + e.title); ok(!COMP(w), `new entry ${e.title}: no competitor name`); ok(!/\b(sources?|venues?|houses|platforms)\b/i.test(w) && !/\b\d+\b/.test(w), `new entry ${e.title}: no source count or number`); }
+  // the page: off shows no new look, on shows it dated, newest day first, each line on its own line with a dot
+  const pageOff = mod.whatsNewPageHtml({ headers: { host: "goasksam.com" } }, L.whatsNewEntries({})), pageOn = mod.whatsNewPageHtml({ headers: { host: "goasksam.com" } }, ONDATED);
+  ok(!/A new look for GoAskSam/.test(pageOff) && /Modified or original/.test(pageOff) && /Auction history/.test(pageOff), "the page with the switch off: no new look, the other two entries present");
+  ok(/A new look for GoAskSam/.test(pageOn) && /12 November 2026/.test(pageOn) && pageOn.indexOf("12 November 2026") < pageOn.indexOf("10 November 2026") && pageOn.indexOf("10 November 2026") < pageOn.indexOf("9 November 2026"), "the page with the switch on: the new look under 12 November 2026, above 10 November, above 9 November");
+  ok((pageOn.match(/class="wn-e wn-ln"/g) || []).length >= 6, "each line of a titled entry is a line of its own");
+  const live = async env => { const old = { ...process.env }; Object.assign(process.env, env); try { return await call("whatsNew", "/whats-new"); } finally { for (const k of Object.keys(env)) { if (k in old) process.env[k] = old[k]; else delete process.env[k]; } } };
+  const hOff = await live({ NEW_DESIGN: "", NEW_DESIGN_DATE: "" }), hOn = await live({ NEW_DESIGN: "all", NEW_DESIGN_DATE: "2026-11-12" });
+  ok(!/A new look for GoAskSam/.test(hOff) && /A new look for GoAskSam/.test(hOn), "the real handler: the new look shows only when NEW_DESIGN is on");
+  // the class: any entry that is tied to a switch or to an environment date must hide without it. A file entry with when/dateEnv and no date shows nowhere else.
+  for (const e of file || []) if (e.when || e.dateEnv) ok(e.when === "NEW_DESIGN" && !e.date && /^[A-Z_]+$/.test(e.dateEnv || ""), `a gated entry (${e.title || e.text}) carries the gate and an environment date, never a fixed one`);
+}
 // THE RAIL AND THE FOOTER ON EVERY PAGE THAT DRAWS THEM (one function, lib/appShell.js shellFoot): About, What's new, Feedback in that order, the link going to /whats-new
 for (const [m2, url] of [["about", "/about"], ["howSamDecides", "/how-sam-decides"], ["feedback", "/feedback"], ["whatsNew", "/whats-new"], ["business", "/business"], ["tasksPage", "/tasks"], ["marketCheck", "/market-check"], ["buy", "/find"]]) {
   const h = await call(m2, url), links = [...h.matchAll(/<a [^>]*class="gas-navitem[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)].map(x => [x[1], x[2].replace(/<[^>]+>/g, "").trim()]);

@@ -1,5 +1,30 @@
 [
   {
+    "when": "NEW_DESIGN",
+    "dateEnv": "NEW_DESIGN_DATE",
+    "title": "A new look for GoAskSam",
+    "lines": [
+      "Find, Market Check and Sell each open on one search box. Type or speak what you want.",
+      "Find shows three cars at auction right now, with what each sold for before or what cars like it sell for.",
+      "Market Check and Sell each show a real example, so you can see what you get before you search.",
+      "Every page shares the same header and footer, and reads better on a phone."
+    ]
+  },
+  {
+    "date": "2026-11-10",
+    "title": "Auction history",
+    "lines": [
+      "Every car Sam has seen sell has its own page, grouped by make and model."
+    ]
+  },
+  {
+    "date": "2026-11-09",
+    "title": "Modified or original",
+    "lines": [
+      "When a car's sales mix modified and original cars, Market Check lets you see each on its own."
+    ]
+  },
+  {
     "date": "2026-11-03",
     "text": "Find has two new sorts. Furthest below the range puts the cars with the biggest gap between the bid and what they sell for first. Closest to me asks for your zip once and orders by distance. Both carry through Show more.",
     "thanks": "Thanks Francis for asking for both."
