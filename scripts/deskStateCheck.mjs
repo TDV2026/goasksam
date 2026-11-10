@@ -18,11 +18,12 @@ ok("mileage reads as stated by the seller until verified", /as stated by the sel
 ok("the next steps are the case's own list: the call and the agree steps print whatever the mileage says (the old confirm-the-mileage step is gone with desk v3)", [rs(unv), rs(ver)].every(x => x.nextSteps.includes("We will call you to talk through this report.") && !x.nextSteps.includes("Confirm the mileage.")));
 ok("the mileage in the sentence is the case's mileage", rs(K.correctField(ver, "mileage", 70000, { now: T })).mileageLine.includes("70,000"));
 // 3. reserve across q1 and q3
-const at = f => K.setReserve(base, { figure: f }, T), below = rs(at(ev.q1 - 1)), inside = rs(at(Math.round((ev.q1 + ev.q3) / 2))), above = rs(at(ev.q3 + 1));
+// the position is the ENGINE's answer for the reserve it was asked about, so each case is read for its own figure
+const at = async f => (await K.refreshEvidence(K.setReserve(base, { figure: f }, T), read, { caseDate: today, now: T })).case, bc = await at(ev.q1 - 1), ic = await at(Math.round((ev.q1 + ev.q3) / 2)), ac = await at(ev.q3 + 1), below = rs(bc), inside = rs(ic), above = rs(ac);
 ok("a reserve below q1 reads below, inside reads inside, above q3 reads above", below.reservePosition === "below" && inside.reservePosition === "inside" && above.reservePosition === "above" && /below the typical range/.test(below.reservePositionLine) && /inside the typical range/.test(inside.reservePositionLine) && /above the typical range/.test(above.reservePositionLine));
 ok("the three sentences differ", new Set([below.reservePositionLine, inside.reservePositionLine, above.reservePositionLine]).size === 3);
-ok("exactly at q1 and at q3 reads inside", rs(at(ev.q1)).reservePosition === "inside" && rs(at(ev.q3)).reservePosition === "inside");
-ok("the workspace and the report use one comparison", K.reservePosition(at(ev.q1 - 1)) === below.reservePosition && K.reservePosition(at(ev.q3 + 1)) === above.reservePosition);
+ok("exactly at q1 and at q3 reads inside", rs(await at(ev.q1)).reservePosition === "inside" && rs(await at(ev.q3)).reservePosition === "inside");
+ok("the workspace and the report use one comparison", K.reservePosition(bc) === below.reservePosition && K.reservePosition(ac) === above.reservePosition);
 ok("the reserve sentence names the engine's quartiles", inside.reservePositionLine.includes("$" + ev.q1.toLocaleString("en-US")) && inside.reservePositionLine.includes("$" + ev.q3.toLocaleString("en-US")));
 // 4. seller agreement
 const ag = K.setReserve(base, { seller_agreed: true }, T), nag = K.setReserve(base, { seller_agreed: false }, T);
@@ -67,7 +68,7 @@ ok("a VIN with an earlier record has no such line, and neither has a case with n
 // THE DRAFT NEVER CLAIMS WHAT THE CASE CANNOT SUPPORT: every combination of the state, each claim against the independent fact
 let combos = 0, bad = 0;
 for (const docs of [null, "outstanding", "received"]) for (const mv of [false, true]) for (const agreed of [false, true]) for (const figure of [null, ev.q1 - 100, ev.median, ev.q3 + 100]) for (const speaks of [false, true]) {
-  let c = cl(base); c.fields.mileage.verified = mv; c.fields.mileage.source = mv ? "analyst_verified" : "seller"; c.reserve = { figure, rationale: "r", seller_agreed: agreed }; c.fields.service_history = { value: speaks ? "IMS bearing replaced, per the seller" : null, source: speaks ? "seller" : "missing", verified: false, candidates: [] };
+  let c = cl(base); c.fields.mileage.verified = mv; c.fields.mileage.source = mv ? "analyst_verified" : "seller"; c.reserve = { figure, rationale: "r", why: "r", seller_agreed: agreed }; c.desk = { ...c.desk, reserveCheck: figure == null ? null : { reserve: figure, position: figure < ev.q1 ? "below" : figure > ev.q3 ? "above" : "inside", positionLine: "This figure is " + (figure < ev.q1 ? "below" : figure > ev.q3 ? "above" : "inside") + " the typical range of $" + ev.q1.toLocaleString("en-US") + " to $" + ev.q3.toLocaleString("en-US") + ".", reachedLine: "n of m sales reached this figure." } };   /* the engine's answer for this reserve, from the independent fact */ c.fields.service_history = { value: speaks ? "IMS bearing replaced, per the seller" : null, source: speaks ? "seller" : "missing", verified: false, candidates: [] };
   c.documents = docs ? [{ id: "d", name: "service invoice", kind: "service", status: docs }] : [];
   const s = rs(c), txt = J(s), exp = figure == null ? null : figure < ev.q1 ? "below" : figure > ev.q3 ? "above" : "inside"; combos++;
   const wrong = [

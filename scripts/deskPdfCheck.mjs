@@ -1,6 +1,6 @@
 // Desk v3 stage 4: the four page report. node scripts/deskPdfCheck.mjs [rootDir]
 import path from "node:path"; import fs from "node:fs"; import { pathToFileURL } from "node:url"; import { setup } from "./_deskCaseWorld.mjs";
-const root = path.resolve(process.argv[2] || "."), { M, K, readyCase, T } = await setup(root), imp = f => import(pathToFileURL(path.join(root, f)).href);
+const root = path.resolve(process.argv[2] || "."), { M, K, read, readyCase, T, today } = await setup(root), imp = f => import(pathToFileURL(path.join(root, f)).href);
 const P = await imp("lib/desk/reportPdfV3.js"), R = await imp("lib/desk/reportState.js"), mini = await imp("lib/pdf/mini.js"), A = await imp("lib/desk/sheetActions.js"), { memoryStore } = await imp("lib/desk/sheetStore.js");
 let pass = 0, fail = 0; const ok = (n, c, d) => { if (c) pass++; else { fail++; console.log("FAIL " + n + (d ? "  " + d : "")); } }; const cl = x => structuredClone(x);
 const PNG = fs.readFileSync(path.join(root, "public/icon-512.png"));   // a real picture: the check never needs a placeholder
@@ -8,7 +8,8 @@ const fetchImage = async u => (/real\.example/.test(String(u)) ? PNG : null);
 const base = await readyCase();
 // the demonstration case: four comparables selected, two of them with a photo, a real cover
 const pool = base.desk.comparables.filter(x => x.inPopulation).slice(0, 4).map((x, i) => ({ ...x, photo: i < 2 ? "https://real.example/" + i + ".jpg" : null, url: "https://example.com/sale/" + i }));
-let demo = cl(base); demo.desk.comparables = [...pool, ...base.desk.comparables.filter(x => !pool.some(p => p.id === x.id))]; demo = K.setCondition(demo, { tier: 2, name: "Excellent" }, T); demo = K.setReserve(K.selectComparables(demo, pool.map(x => x.id), T), { figure: base.desk.evidence.q1 + 300 }, T);   // a reserve that is not the low of the range, so the two boxes cannot be confused
+let demo = cl(base); demo.desk.comparables = [...pool, ...base.desk.comparables.filter(x => !pool.some(p => p.id === x.id))]; demo = K.setCondition(demo, { tier: 2, name: "Excellent" }, T); demo = K.setReserve(K.selectComparables(demo, pool.map(x => x.id), T), { figure: base.desk.evidence.q1 + 300, sellerRequested: true }, T);   // (the Excellent pool is too thin for the engine to support any reserve, so it is marked as the seller's request) a reserve that is not the low of the range, so the two boxes cannot be confused
+demo.desk.reserveCheck = (await read(K.recallInput(demo, today))).desk.reserveCheck;   // the engine's check of that very reserve
 demo.desk.live = [{ title: "1999 Porsche 911 Carrera", platform: "Bring a Trailer", type: "bid", figure: 36000, ends: "2026-11-12T18:00:00Z", url: "https://example.com/live1" }, { title: "1999 Porsche 911 C2", platform: "Hemmings", type: "ask", figure: 41000, ends: null, url: null }, { title: "1999 Porsche 911", platform: "Cars & Bids", type: "no_sale", figure: null, ends: null, url: null }];
 const sheetOf = (c, o = {}) => ({ id: "x", owner_seat: "Jane Park", forwarded_by: "Jane Park", created_at: T, submission: { typed: false, photos: o.noCover ? [] : [{ id: c.photos.items[0].id, url: "https://real.example/cover.jpg" }] }, state: {}, case: c, final: { reportNumber: "DV-2026-0007", org: { name: "Acme Auctions", color: o.color || null }, finalisedAt: T } });
 const build = async (c, o = {}) => P.buildReportV3(sheetOf(c, o), { name: "Acme Auctions", color: o.color, logo: o.logo, paper: o.paper, contactEmail: "desk@acme.example", ...(o.contact === false ? { contactEmail: null } : { contactPhone: "+1 555 0100", contactAddress: "12 Main Street, Springfield" }), sendingAddress: "noreply@acme.example" }, { fetchImage, draft: !!o.draft });
@@ -67,7 +68,7 @@ ok("only https addresses become links", mini.pdfPages && !Buffer.from((await bui
   ok("a detail the org row does not hold is not printed, and the sending address is not a contact", !pagesOf(await build(demo, { contact: false }))[3].includes("12 Main Street") && !pg.join(" ").includes("noreply@acme.example")); }
 
 // case_pdf: THE PREVIEW PANE'S DOOR (draft true: the case as it stands, nothing stored; draft false: the finalized version's PDF), crew only like every case_* action
-{ const store = memoryStore(), cx = { org: "t", seat: "crew", store, now: T, env: {}, fetchImage, orgSettings: { name: "Acme Auctions", monthlyExportCap: 3 } }, readText = d => mini.pdfPages(Buffer.from(d.pdf_b64, "base64")).map(p => p.join(" "));
+{ const store = memoryStore(), cx = { org: "t", seat: "crew", store, now: T, env: {}, readSheet: async (e, input) => read(input), fetchImage, orgSettings: { name: "Acme Auctions", monthlyExportCap: 3 } }, readText = d => mini.pdfPages(Buffer.from(d.pdf_b64, "base64")).map(p => p.join(" "));
   await store.insert("t", { id: "p1", owner_seat: "crew", status: "In progress", created_at: T, submission: { typed: false, photos: [{ id: base.photos.items[0].id, url: "https://real.example/cover.jpg" }], documents: [] }, state: {}, case: demo, version: 1 });
   const rowBefore = JSON.stringify(await store.get("t", "p1")), d1 = await A.handleSheetAction("case_pdf", { id: "p1", draft: true }, cx), t1 = d1.ok ? readText(d1) : [];
   ok("case_pdf draft true returns the four page report of the case as it stands, DRAFT, no report number", d1.ok && d1.draft === true && d1.pages === 4 && d1.reportNumber === null && t1.length === 4 && t1.every(t => /DRAFT/.test(t)) && !t1.join(" ").match(/DV-\d{4}/), JSON.stringify(d1).slice(0, 140));
@@ -159,7 +160,7 @@ const logo = await build(demo, { logo: "https://real.example/logo.png" }); ok("t
 { const s = Buffer.from(fin.bytes).toString("latin1"), xs = [...s.matchAll(/BT \/\w+ [\d.]+ Tf [\d. ]+ rg ([\d.-]+) ([\d.-]+) Td/g)].map(m => [Number(m[1]), Number(m[2])]);
   ok("print safe margins: every text origin sits inside 36 points of the page edge", xs.length > 40 && xs.every(([x, y]) => x >= 36 && x <= 595 - 36 && y >= 36 && y <= 842 - 24), JSON.stringify(xs.filter(([x, y]) => !(x >= 36 && x <= 559 && y >= 36 && y <= 818)).slice(0, 3))); }
 // the actions
-{ const store = memoryStore(), cx = { org: "t", seat: "crew", store, now: T, env: {}, fetchImage }, A2 = A;
+{ const store = memoryStore(), cx = { org: "t", seat: "crew", store, now: T, env: {}, readSheet: async (e, input) => read(input), fetchImage }, A2 = A;
   await store.insert("t", { id: "d1", owner_seat: "crew", status: "In progress", created_at: T, submission: { typed: false, photos: [{ id: base.photos.items[0].id, url: "https://real.example/cover.jpg" }], documents: [] }, state: {}, case: demo, version: 1 });
   const d = await A2.handleSheetAction("sheet_pdf", { id: "d1", draft: true }, cx);
   ok("sheet_pdf draft on a V3 case returns the four page DRAFT report, with no report number", d.ok && d.draft && d.pages === 4 && d.reportNumber === null && mini.pdfPages(Buffer.from(d.pdf_b64, "base64")).every(p => /DRAFT/.test(p.join(" "))), JSON.stringify(d).slice(0, 120));
