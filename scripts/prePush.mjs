@@ -2670,6 +2670,12 @@ try {
   record("Desk older cars (the 24 recorded answers of Lane F as the fixture): no refusal (a typed body falls back to sibling words then all bodies, each named; a tier with no data reads all conditions), the years widen by the engine's own walk until the Desk population meets the minimum, a thin 12 months defaults to 24 with a sentence, three or more comparables with why lines, one name for the car; sixteen mutants (scripts/deskOlderCarsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/tasksCriteriaCheck.mjs --mutants", { encoding: "utf8", timeout: 240000 });
+  record("Tasks criteria: the signed in owner's list answer carries each Task's criteria in the engine's words (criteriaOf, the match email's source), equal to the crew preview door's, empty for a Task with no filters or a research Task, never another user's; six mutants (scripts/tasksCriteriaCheck.mjs)", "PASS", (out.match(/tasksCriteriaCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Tasks criteria: the signed in owner's list answer carries each Task's criteria in the engine's words (criteriaOf, the match email's source), equal to the crew preview door's, empty for a Task with no filters or a research Task, never another user's; six mutants (scripts/tasksCriteriaCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^(FAIL|SURVIVED)/.test(l)).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/deskQuarterCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk v3 stage 3: a quarter under DESK_QUARTER_MIN sales has shown false and no median; live listings are typed bid, ask or no_sale and never in the evidence or the comparables; seven mutants (scripts/deskQuarterCheck.mjs)", "PASS", (out.match(/deskQuarterCheck: .*/) || [""])[0]);
 } catch (e) {

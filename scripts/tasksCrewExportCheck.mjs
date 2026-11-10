@@ -73,7 +73,9 @@ export async function findings(mut = {}) {
     for (const [name, [cookie]] of Object.entries(nonCrew)) {
       TASKS = mkTasks([2, 0, 3, 0]); const a = await call(cookie, LIST), r2 = resOf(); await ho(reqOf(cookie, LIST), r2);
       if ("badge" in (a.body || {})) fails.push(`${name}: the list answer carries a badge`);
-      if (JSON.stringify(a.body) !== JSON.stringify(r2.body)) fails.push(`${name}: the list answer is not byte-identical to origin/main (${JSON.stringify(a.body).slice(0, 70)} vs ${JSON.stringify(r2.body).slice(0, 70)})`);
+      // each Task's `criteria` (the engine's words, lib/tasks/tasks.js criteriaOf, covered by scripts/tasksCriteriaCheck.mjs) is the one key the list may carry beyond origin/main's handler of before it; every other byte must match
+      const noCrit = b => JSON.stringify(b, (k, v) => (k === "criteria" ? undefined : v));
+      if (noCrit(a.body) !== noCrit(r2.body)) fails.push(`${name}: the list answer is not byte-identical to origin/main (${JSON.stringify(a.body).slice(0, 70)} vs ${JSON.stringify(r2.body).slice(0, 70)})`);
     }
   } else fails.push("could not read origin/main's api/tasks.js to compare");
   // 4. the reset rule: the list and the summary mark nothing; opening one Task resets only that Task and it leaves the sum

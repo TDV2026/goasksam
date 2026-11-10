@@ -25,7 +25,7 @@ import { limitFacts, taskMaxOf } from "../lib/tasks/limit.js";
 import { taskUserFor, tapUser, badgeCount, badgeFor } from "../lib/tasks/crewGate.js";
 import { TASKS_MAX_DURATION_S, budgetMs } from "../lib/tasks/runBudget.js";
 import { makePace } from "../lib/tasks/sendPace.js";
-import { jobPhrase, notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, draftFresh, startDraft, applyEdit, slotTask, firstRun, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
+import { criteriaOf, jobPhrase, notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, draftFresh, startDraft, applyEdit, slotTask, firstRun, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
 import crypto from "node:crypto";
 import { CHAT_MODEL } from "../lib/live/chatHttp.js";
 import { recordUsageEvent } from "./_usage.js";
@@ -540,6 +540,8 @@ async function handler(req, res) {
             if (good) liveIds = keep; } } catch (e) { liveIds = null; }
         for (const t of withThreads) t.overview = overviewFacts(t, liveIds);
         for (const t of withThreads) for (const u of t.updates || []) if (u && typeof u.text === "string") u.text = withoutRestCount(u.text); }
+      // Each Task's criteria in the engine's words (lib/tasks/tasks.js criteriaOf), for the signed in owner's own Tasks only: userTasks reads this user's rows and no other
+      for (const t of withThreads) t.criteria = criteriaOf(t);
       // Opening the list is an interaction; the open thread's updates are read.
       if (b.open && /^[0-9a-f-]{36}$/.test(String(b.open))) { const t = tasks.find(x => x.id === b.open); if (t) await saveTask(env, t.id, { unread: 0, last_interaction_at: new Date().toISOString() }); }
       const working = tasks.filter(t => ["running", "needs_you"].includes(t.state)).length;
