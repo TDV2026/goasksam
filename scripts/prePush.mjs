@@ -2621,6 +2621,18 @@ try {
   record("Desk v4 stage 1: desk.evidence.byWindow for 6, 12 and 24 months holds exactly the dated sales on or after each cutoff, the chosen window (default 12) is desk.evidence and market.meter, an insufficient window has a sentence and no number; twelve mutants (scripts/deskWindowCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/deskSalesCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v4 stage 2: desk.sales is the chosen window's population (every dot a pool sale, newest first, photo own or null) and desk.rungs counts agree with the dots, a band only at five or more and a thin rung lists what it sold for; ten mutants (scripts/deskSalesCheck.mjs)", "PASS", (out.match(/deskSalesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 2: desk.sales is the chosen window's population (every dot a pool sale, newest first, photo own or null) and desk.rungs counts agree with the dots, a band only at five or more and a thin rung lists what it sold for; ten mutants (scripts/deskSalesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/deskReserveCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v4 stage 3: desk.reserveCheck reached equals the window's sales at or above the figure for a sweep of figures, position and supported follow q1 and q3, an insufficient window has no position, desk.reserveStart is q1; thirteen mutants (scripts/deskReserveCheck.mjs)", "PASS", (out.match(/deskReserveCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 3: desk.reserveCheck reached equals the window's sales at or above the figure for a sweep of figures, position and supported follow q1 and q3, an insufficient window has no position, desk.reserveStart is q1; thirteen mutants (scripts/deskReserveCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/deskEvidenceCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk v3 stage 1: desk.evidence (as of date, count, median, quartiles, range, latest sale, stale flag) equals the meter for every Desk model; an insufficient population carries a sentence and no number; the stale flag flips at the threshold; eight mutants (scripts/deskEvidenceCheck.mjs)", "PASS", (out.match(/deskEvidenceCheck: .*/) || [""])[0]);
 } catch (e) {
