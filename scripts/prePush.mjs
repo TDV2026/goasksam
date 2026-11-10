@@ -78,7 +78,7 @@ if (process.argv.includes("--tier-only")) process.exit(0);
 const BASELINE_FAILURES = [];
 
 const results = [];
-function record(name, status, detail) { results.push({ name, status, detail }); console.log(`${status.padEnd(4)}  ${name}${detail ? "  " + detail : ""}`); }
+function record(name, status, detail) { if (status === true) status = "PASS"; else if (status === false) status = "FAIL"; results.push({ name, status, detail }); console.log(`${status.padEnd(4)}  ${name}${detail ? "  " + detail : ""}`); }
 
 console.log("=== PRE-PUSH SMOKE TEST ===\n");
 
