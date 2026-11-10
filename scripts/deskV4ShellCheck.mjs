@@ -5,11 +5,13 @@
 //   3 ONE SHADOW: exactly one element on the page has a box shadow, the Reserve panel.
 //   4 TOP BAR: GoAskSam Desk, the org name, the two tabs (Analyst workspace, Seller report; the report view opens and closes), the saved state; the handling clock only when the server sent one.
 //   5 LAYOUT: no horizontal overflow at 1440, 1280, 1024 and 390; light and dark tokens both defined and the page background changes with the scheme.
+//   5b FOOTER IN VIEW: the Reserve panel's footer (Preview report, Finalize, the check lines, Send) is on screen at 1440, 1280 and 1024 with the window 900 high, at load and (sticky) after the page scrolls, even in the fullest state (four check lines, finalized, Send, a sent line): the panel scrolls its middle, never its footer.
 //   6 NOTHING COMPUTED: the module's text carries no arithmetic on a figure.
 //   CLASS: any tab beside the two, any second shadow, a panel that scrolls away or sits below the centre column on a small screen, a queue that squeezes the centre column. Mutants run through the same assertions must be caught.
 //   node scripts/deskV4ShellCheck.mjs
 import fs from "node:fs";
 import { launch, openPage, imp, tally, ROOT } from "./deskV3Harness.mjs";
+import { finalizeDemo } from "./deskV4Harness.mjs";
 import { createRequire } from "node:module";
 import path from "node:path";
 process.env.CURTAIN_CREW_CODE = "fixture-crew-code"; process.env.LAUNCH_STAGE = "2";
@@ -69,6 +71,14 @@ for (const w of [1440, 1280, 1024, 390]) {
   ok(!/id="clock"/.test(await withClock(null)) && !/id="clock"/.test(await withClock("")), "no clock field, no clock printed");
   { const typed = html.replace(/<b id="clock">[^<]*<\/b>/, '<b id="clock">Handling time so far: 3 min.</b>'); ok(!typed.includes('<b id="clock">' + line.replace(/&/g, "&amp;") + "</b>"), "mutant caught: a clock the page typed does not equal the server's line"); }
   ok(!/setInterval|clock[^\n]{0,40}setTimeout/.test(fs.readFileSync("lib/preview/deskV4.js", "utf8") + fs.readFileSync("lib/preview/deskV4Client.js", "utf8")), "the page runs no timer of its own for the clock"); }
+// ---------- 5b the footer stays in view ----------
+{ const FOOT = () => { const f = document.querySelector("#val .ft").getBoundingClientRect(), fin = document.getElementById("bFin").getBoundingClientRect(), pv = document.getElementById("bPrev").getBoundingClientRect(); return { ftBot: Math.round(f.bottom), vh: innerHeight, btns: fin.bottom <= innerHeight && fin.top >= 0 && pv.bottom <= innerHeight && pv.top >= 0 }; };
+  const probe = async (h, w, label, { scroll = false } = {}) => { const p = await openPage(b, h, w, 900); if (scroll) await p.evaluate(() => { document.getElementById("col").style.minHeight = "3000px"; window.scrollTo(0, 1200); });
+    const sl = await p.evaluate(() => { const e = document.getElementById("sentLine"); if (e && !document.getElementById("sendBox").hidden) { e.hidden = false; e.textContent = "Report sent to a.long.address@example.com on 10 November 2026 at 14:05 in the afternoon."; } return null; }); const m = await p.evaluate(FOOT); await p.close(); return m; };
+  for (const w of [1440, 1280, 1024]) { const m = await probe(html, w), m2 = w >= 1280 ? await probe(html, w, "scrolled", { scroll: true }) : m; ok(m.ftBot <= m.vh && m.btns && m2.ftBot <= m2.vh && m2.btns, `@${w} x 900: the Reserve panel's footer and its Preview and Finalize buttons are on screen${w >= 1280 ? " at load and after the page scrolls" : ""} (footer ends at ${m.ftBot}${w >= 1280 ? " then " + m2.ftBot : ""})`); }
+  await finalizeDemo(); const fullest = await V4.renderDeskV4({ query: { case: V3.DEMO_ID } });
+  for (const w of [1440, 1280, 1024]) { const m = await probe(fullest, w); ok(m.ftBot <= m.vh && m.btns, `@${w} x 900, the fullest state (finalized, Send, a sent line): the footer is still on screen (ends at ${m.ftBot})`); }
+  { const bad = fullest.replace("</style>", "@media (min-width:1101px){.val{max-height:none!important}}@media (max-width:1100px){.val .bd{max-height:none!important}}</style>"), m = await probe(bad, 1280), m3 = await probe(bad, 1024); ok(!(m.ftBot <= m.vh && m3.ftBot <= m3.vh), `mutant caught: a panel that does not scroll its middle pushes the footer off screen (${m.ftBot} at 1280, ${m3.ftBot} at 1024)`); } }
 // ---------- 6 nothing computed ----------
 { const src = fs.readFileSync("lib/preview/deskV4.js", "utf8").replace(/\/\/.*$/gm, ""); ok(!/Math\.(round|floor|ceil|min|max)|parseFloat|toFixed|toLocaleString|\.reduce\(/.test(src), "the module carries no arithmetic on a figure"); }
 // ---------- mutants ----------

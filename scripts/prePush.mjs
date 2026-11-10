@@ -2377,6 +2377,18 @@ try {
   record("Go live Tasks signed in on the public address: create, edit and stop send their calls to /api/tasks, the Account button opens the same sign in card (scripts/goLiveTasksFlowCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveTasksFlowCheck:/.test(l)).slice(0, 5).join(" | "));
 }
 try {
+  const out = execSync("node scripts/deskV4SendCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 Send to seller: no button before finalize, disabled after an edit, the confirm panel prints the preview, a refusal as given, the sent line as the case carries it, a double click sends once, never a real send; mutants (scripts/deskV4SendCheck.mjs)", "PASS", (out.match(/deskV4SendCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 Send to seller: no button before finalize, disabled after an edit, the confirm panel prints the preview, a refusal as given, the sent line as the case carries it, a double click sends once, never a real send; mutants (scripts/deskV4SendCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/deskV4IntakeQueueCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 forwarded leads: the Forwarded lead tag in New leads only, seller supplied facts Unverified until verified, the original email opens from Documents in a new tab, an unidentified car shows the case's line and can be identified in place; mutants (scripts/deskV4IntakeQueueCheck.mjs)", "PASS", (out.match(/deskV4IntakeQueueCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 forwarded leads: the Forwarded lead tag in New leads only, seller supplied facts Unverified until verified, the original email opens from Documents in a new tab, an unidentified car shows the case's line and can be identified in place; mutants (scripts/deskV4IntakeQueueCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/previewShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Preview shell is one full height column (footer at the bottom of a short page, after a long one, on every preview page at 1440, 1280, 1024 and 390) and the Tasks email section sits on the hero's left edge (scripts/previewShellCheck.mjs)", "PASS", (out.match(/previewShellCheck: .*/) || [""])[0]);
 } catch (e) {
@@ -2808,6 +2820,24 @@ try {
   record("Desk v4 stage 1: the recommended reserve is the case's one figure, the engine starts and checks it, the period is an engine input, no file compares a reserve to a range (scripts/deskReserveFlowCheck.mjs)", "PASS", (out.match(/deskReserveFlowCheck: .*/) || [""])[0]);
 } catch (e) {
   record("Desk v4 stage 1 reserve (scripts/deskReserveFlowCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/reportConsistencyCheck.mjs", { encoding: "utf8", timeout: 250000 });
+  record("Desk v4 stage 4: the report cannot contradict itself, 576 case states against the four panel checks (scripts/reportConsistencyCheck.mjs)", "PASS", (out.match(/reportConsistencyCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 4 report consistency (scripts/reportConsistencyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/intakeToCaseCheck.mjs", { encoding: "utf8", timeout: 250000 });
+  record("Desk v4 forwarded lead: one stored forwarded case per lead, supplied fields seller supplied and unverified, the original email signed on the view, the engine read on the typed case's own road, guards kept (scripts/intakeToCaseCheck.mjs)", "PASS", (out.match(/intakeToCaseCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 forwarded lead to case (scripts/intakeToCaseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/caseSendCheck.mjs", { encoding: "utf8", timeout: 250000 });
+  record("Desk v4 Send to seller: preview and send refuse a draft, an edited case, a wrong version, a bad address and an unverified sender; a send is the stored report's bytes, one export, sent stage, handling line; no check sends (scripts/caseSendCheck.mjs)", "PASS", (out.match(/caseSendCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 Send to seller (scripts/caseSendCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
   const out = execSync("node scripts/deskNextStepsCheck.mjs", { encoding: "utf8", timeout: 200000 });

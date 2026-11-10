@@ -14,6 +14,7 @@ ok(/microphone=\(self\)/.test(H["Permissions-Policy"] || "") && /camera=\(\)/.te
 const ro = H["Content-Security-Policy-Report-Only"] || "";
 ok(/report-uri \/api\/cspReport/.test(ro) && /object-src 'none'/.test(ro) && /base-uri 'self'/.test(ro) && /default-src 'self'/.test(ro), "the script policy is report-only and reports to /api/cspReport");
 ok(!Object.keys(H).some(k => k === "Content-Security-Policy" && /script-src/.test(H[k])), "no script policy is enforced yet");
+ok(/frame-src [^;]*\bblob:/.test(ro) && /frame-src [^;]*'self'/.test(ro), "frame-src names blob: (the Desk report pane frames the PDF it just built), so the report pane does not depend on the policy staying report-only (Lane S, Nov 10 2026)");
 ok(/script-src [^;]*https:\/\/www\.googletagmanager\.com[^;]*https:\/\/challenges\.cloudflare\.com/.test(ro) && /connect-src [^;]*https:\/\/otkmxyrglikdoychnmvy\.supabase\.co/.test(ro), "the hosts the pages load (analytics, Turnstile, Supabase) are named");
 // The report endpoint: one trimmed line per report, never a full address, nothing over the size cap.
 const l = reportLine(JSON.stringify({ "csp-report": { "document-uri": "https://goasksam.com/buy?q=my+car", "effective-directive": "script-src-elem", "blocked-uri": "https://cdn.example/x.js?token=abc" } }));
