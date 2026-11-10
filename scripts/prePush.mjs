@@ -999,6 +999,13 @@ try {
 } catch (e) {
   record("Sell example in Lane E's shape: the reader accepts it, every number traces to the Sell answer, sentences from the reason table, fewer than two cars hides the section, the kill switch; nine mutants (scripts/sellExampleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// warmVinCursorCheck (Lane B, Nov 10 2026): a loop of warmVin calls handles each VIN once, a fresh VIN costs no limit, the cursor moves; four mutants.
+try {
+  const out = execSync("node scripts/warmVinCursorCheck.mjs --mutants", { encoding: "utf8", timeout: 60000 });
+  record("warmVin cursor: two calls in a row never handle the same VIN, the walk ends; four mutants (scripts/warmVinCursorCheck.mjs)", "PASS", (out.match(/warmVinCursorCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("warmVin cursor: two calls in a row never handle the same VIN, the walk ends; four mutants (scripts/warmVinCursorCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL|SURVIVED/.test(l)).slice(0, 3).join(" | "));
+}
 // mcExampleCheck (Lane B, Nov 9 2026): the Market Check entry card (range, count, period and recent sale from one engine answer, the sale inside the pool, no narrowing, the most focused range preferred); eleven mutants.
 try {
   const out = execSync("node scripts/mcExampleCheck.mjs", { encoding: "utf8", timeout: 250000 });

@@ -5986,12 +5986,10 @@ if (task === "optiondetail") {
       // A FAILED READ IS NOT AN EMPTY LIST (Nov 8 2026): a database failure answers "could not read", never "nothing to warm"
       let rr; try { rr = mustRows(await supabaseSelect(env, "vin_rollout_cache?key=eq.current&select=data&limit=1"), "ops warmVin vin_rollout_cache"); } catch (e) { return res.status(503).json({ task: "warmVin", error: "could not read", line: "Could not read the VIN list (vin_rollout_cache), so nothing was warmed.", writes: 0, listed: null }); }
       const dd = rr && rr[0] && rr[0].data; const linked = new Set((dd && dd.linkedVins) || []); vins = ((dd && dd.vins) || []).map(u => u.vin).filter(v => linked.has(v)); }
-    const budgetMs = Math.min(270000, Number(req.query?.budget) || 200000), width = Math.min(3, Math.max(1, Number(req.query?.width) || 2)), limit = Math.max(1, Number(req.query?.limit) || 400), t0 = Date.now();
-    const out = { task: "warmVin", listed: vins.length, asked: 0, stored: 0, fresh: 0, other: 0, notReached: 0, states: {}, ms: 0 };
-    let qi = 0;
-    const worker = async () => { while (qi < vins.length && out.asked < limit) { if (Date.now() - t0 > budgetMs) return; const v = vins[qi++]; out.asked++; let r; try { r = await warmVinPage(env, v); } catch (e) { r = { state: "error" }; } out.states[r.state] = (out.states[r.state] || 0) + 1; if (r.state === "stored") out.stored++; else if (r.state === "fresh") out.fresh++; else out.other++; } };
-    await Promise.all(Array.from({ length: width }, worker));
-    out.notReached = Math.max(0, vins.length - qi); out.ms = Date.now() - t0;
+    const budgetMs = Math.min(270000, Number(req.query?.budget) || 200000), width = Math.min(3, Math.max(1, Number(req.query?.width) || 2)), limit = Math.max(1, Number(req.query?.limit) || 400);
+    // THE CURSOR (Nov 10 2026): &after=<the last VIN of the previous call>; the answer carries next (the VIN to pass on the following call, null when the list is done), handled, fresh, notReached (lib/warmVinPass.js)
+    const { warmVinPass } = await import("../lib/warmVinPass.js");
+    const out = { task: "warmVin", ...(await warmVinPass(vins, { after: req.query?.after ? String(req.query.after) : null, limit, budgetMs, width, warm: v => warmVinPage(env, v) })) };
     return res.status(200).json(out);
   }
   if (task === "warmLive" || task === "warmlive") {
