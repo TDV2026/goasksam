@@ -10,12 +10,12 @@ const imsDone = (() => { const c = cl(ims); c.documents[0].status = "received"; 
 // 1. documents received
 ok("IMS reads seller reported with the invoices outstanding", /reported by the seller/.test(rs(ims).imsLine) && /outstanding/.test(rs(ims).imsLine));
 ok("IMS reads documented once the documents are received, and not before", /documented by the service invoices/.test(rs(imsDone).imsLine) && !/documented/.test(rs(ims).imsLine));
-ok("the invoices step is in the next steps while outstanding and gone when received", rs(ims).nextSteps.includes("Send the service invoices.") && !rs(imsDone).nextSteps.includes("Send the service invoices."));
+ok("the invoices step is in the next steps while outstanding and gone when received", rs(ims).nextSteps.includes("Send us the service invoice.") && !rs(imsDone).nextSteps.includes("Send us the service invoice."));
 ok("a car whose case never speaks of IMS gets no IMS line", rs(M.newCase({ now: T, vehicle: { year: 1999, make: "Porsche", model: "911" } })).imsLine === null);
 // 2. mileage verified
 const unv = cl(base); unv.fields.mileage.verified = false; unv.fields.mileage.source = "seller"; const ver = cl(base); ver.fields.mileage.verified = true;
 ok("mileage reads as stated by the seller until verified", /as stated by the seller/.test(rs(unv).mileageLine) && /is verified/.test(rs(ver).mileageLine) && rs(unv).mileageLine !== rs(ver).mileageLine);
-ok("the confirm-the-mileage step goes when verified", rs(unv).nextSteps.includes("Confirm the mileage.") && !rs(ver).nextSteps.includes("Confirm the mileage."));
+ok("the next steps are the case's own list: the call and the agree steps print whatever the mileage says (the old confirm-the-mileage step is gone with desk v3)", [rs(unv), rs(ver)].every(x => x.nextSteps.includes("We will call you to talk through this report.") && !x.nextSteps.includes("Confirm the mileage.")));
 ok("the mileage in the sentence is the case's mileage", rs(K.correctField(ver, "mileage", 70000, { now: T })).mileageLine.includes("70,000"));
 // 3. reserve across q1 and q3
 const at = f => K.setReserve(base, { figure: f }, T), below = rs(at(ev.q1 - 1)), inside = rs(at(Math.round((ev.q1 + ev.q3) / 2))), above = rs(at(ev.q3 + 1));
@@ -27,7 +27,7 @@ ok("the reserve sentence names the engine's quartiles", inside.reservePositionLi
 // 4. seller agreement
 const ag = K.setReserve(base, { seller_agreed: true }, T), nag = K.setReserve(base, { seller_agreed: false }, T);
 ok("seller agreement appears only when seller_agreed is true", /seller has agreed/.test(rs(ag).sellerLine) && rs(nag).sellerLine === null && rs(base).sellerLine === null);
-ok("the agree-the-reserve step goes once the seller agreed", rs(nag).nextSteps.includes("Agree the reserve with the seller.") && !rs(ag).nextSteps.includes("Agree the reserve with the seller."));
+ok("the agree step is in the list as the analyst left it, whether or not the seller agreed", [rs(nag), rs(ag)].every(x => x.nextSteps.some(t => /agree the reserve/i.test(t))));
 ok("a seller_agreed that is not exactly true prints nothing", ["yes", 1, "true"].every(v => rs({ ...base, reserve: { ...base.reserve, seller_agreed: v } }).sellerLine === null));
 // 5. a comparable excluded from the market calculation changes the evidence sentence
 { let ex = base; for (const c of base.desk.comparables.filter(x => x.inPopulation).slice(0, 3)) ex = M.excludeSale(ex, { saleId: c.id, scope: "market_calc", reason: "Salvage title", now: T });
@@ -76,14 +76,14 @@ for (const docs of [null, "outstanding", "received"]) for (const mv of [false, t
     /seller has agreed/.test(txt) !== (agreed && true),
     /is verified/.test(txt) !== mv,
     s.reservePosition !== exp,
-    /Send the service invoices/.test(txt) !== (docs === "outstanding"),
-    /Agree the reserve/.test(txt) !== (figure != null && !agreed)
+    /Send us the service invoice/.test(txt) !== (docs !== "received" && (docs === "outstanding" || !!speaks)),
+    !/Together we agree the reserve/.test(txt)
   ];
   if (wrong.some(Boolean)) { bad++; if (bad < 4) console.log("  claim mismatch", J({ docs, mv, agreed, figure, speaks }), wrong.map(Number).join("")); }
 }
 ok(`${combos} case states: every claim is exactly as true as the case says`, bad === 0, bad + " mismatches");
 // an empty draft says nothing it cannot support
-{ const s = rs(M.newCase({ now: T })); ok("an empty case claims nothing: no range, reserve, position, agreement, mileage, IMS, condition or note", ["rangeLine", "reserveLine", "typicalLine", "reservePositionLine", "sellerLine", "mileageLine", "imsLine", "conditionLine"].every(k => s[k] === null) && s.noteLines.length === 0 && s.nextSteps.join() === "No further steps are open."); }
+{ const s = rs(M.newCase({ now: T })); ok("an empty case claims nothing: no range, reserve, position, agreement, mileage, IMS, condition or note, and only the plain seeded next steps", ["rangeLine", "reserveLine", "typicalLine", "reservePositionLine", "sellerLine", "mileageLine", "imsLine", "conditionLine"].every(k => s[k] === null) && s.noteLines.length === 0 && s.nextSteps.join("|") === ["We will call you to talk through this report.", "Book a pre sale inspection.", "Together we agree the reserve and schedule your listing for a date that suits you."].join("|")); }
 // the finalized row carries the wording, the same wording
 { const A = await import(pathToFileURL(path.join(root, "lib/desk/sheetActions.js")).href), { memoryStore } = await import(pathToFileURL(path.join(root, "lib/desk/sheetStore.js")).href), store = memoryStore();
   await store.insert("t", { id: "w1", owner_seat: "crew", status: "In progress", created_at: T, submission: { typed: true, photos: [], documents: [] }, state: {}, case: base, version: 1 });
