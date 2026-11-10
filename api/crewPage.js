@@ -100,7 +100,9 @@ export const PAGES = { ...SITE_PAGES, "preview-history": { frame: true, render: 
 // The new design's page for a public address (lib/_newDesign.js): the same renderer the crew preview uses, no crew test here (the switch is the permission).
 export async function newPageHtml(name, req) {
   const p = PAGES[name]; if (!p) return null;
-  return p.renderAsync ? await p.renderAsync(req) : p.render ? p.render() : fs.readFileSync(path.join(process.cwd(), "lib/crewPages", p.file), "utf8");
+  const html = p.renderAsync ? await p.renderAsync(req) : p.render ? p.render() : fs.readFileSync(path.join(process.cwd(), "lib/crewPages", p.file), "utf8");
+  if (/^<!DOCTYPE html><meta charset="utf-8"><title>Preview<\/title>/.test(String(html))) throw new Error("the new page could not be built (" + name + ")");   // the preview's could-not-build page is never a public answer
+  return html;
 }
 export default async function handler(req, res) {
   const name = String((req.query && req.query.page) || "").toLowerCase(), p = PAGES[name];

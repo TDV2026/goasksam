@@ -2314,6 +2314,12 @@ try {
   record("Go live switch: NEW_DESIGN off serves bytes identical to the baseline on every public route, on keeps status and headers and replays redirects, per route, crew look, no POST switched (scripts/goLiveSwitchCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveSwitchCheck:/.test(l)).slice(0, 5).join(" | "));
 }
 try {
+  const out = execSync("node scripts/goLiveParityCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Go live parity: per route, the new public page wears the current page's title, description, robots, canonical, Open Graph and JSON-LD byte for byte, one h1, no preview address or title, no unlisted lost link or script (scripts/goLiveParityCheck.mjs; the held list is docs/go-live-held.json, --ready is the go live gate)", "PASS", (out.match(/goLiveParityCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Go live parity: per route, the new public page wears the current page's title, description, robots, canonical, Open Graph and JSON-LD byte for byte, one h1, no preview address or title, no unlisted lost link or script (scripts/goLiveParityCheck.mjs; the held list is docs/go-live-held.json, --ready is the go live gate)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveParityCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
   const out = execSync("node scripts/previewShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Preview shell is one full height column (footer at the bottom of a short page, after a long one, on every preview page at 1440, 1280, 1024 and 390) and the Tasks email section sits on the hero's left edge (scripts/previewShellCheck.mjs)", "PASS", (out.match(/previewShellCheck: .*/) || [""])[0]);
 } catch (e) {

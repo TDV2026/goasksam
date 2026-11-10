@@ -65,6 +65,7 @@ const same = (a, b) => a.code === b.code && a.body === b.body && JSON.stringify(
 // 1. OFF: bytes identical to the baseline, for every case
 for (const [name, url, f] of CASES) {
   const A = await call(await mod(base, f), url), B = await call(await mod(ROOT, f), url);
+  if (name === "whatsnew") { ok(B.code === A.code && A.h["cache-control"] === B.h["cache-control"] && A.h["x-robots-tag"] === B.h["x-robots-tag"] && B.body.length >= A.body.length && !/A new look for GoAskSam/.test(B.body), `OFF ${name}: What's new gained its two dated entries on this branch (Modified or original, Auction history) so its bytes are not compared; same status and headers, the new look entry absent`); ok(!("x-design" in B.h), `OFF ${name}: no X-Design header`); continue; }
   ok(same(A, B), `OFF ${name} ${url}: status, headers and body identical to ${baseRef} (${A.code}/${B.code}, ${A.body.length}/${B.body.length} bytes${A.threw || B.threw ? ", threw: " + (A.threw || B.threw) : ""})`);
   ok(!("x-design" in B.h), `OFF ${name}: no X-Design header`);
 }
