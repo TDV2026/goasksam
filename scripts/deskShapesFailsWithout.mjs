@@ -2,9 +2,11 @@
 import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { execFileSync } from "node:child_process"; import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 const MUT = [
+  ["the market line counts the matching sales, not the population of the case", "lib/desk/reportState.js", s => s.replace('sales: countNoun(ev.count, "sale", { words: false }), date: shortDate(ev.asOf) })', 'sales: countNoun(ev.matching, "sale", { words: false }), date: shortDate(ev.asOf) })')],
+  ["the stored read is kept under a stale key (the case's tier is left out of the key)", "lib/desk/caseWorkflow.js", s => s.replace("c.condition.selected ? c.condition.selected.tier : null, c.exclusions", "null, c.exclusions")],
   ["the assessment is not seeded from the engine's median", "lib/desk/caseWorkflow.js", s => s.replace("  return seedAssessment(c, iso(now));\n}", "  return c;\n}")],
   ["a seeded assessment is not marked source engine", "lib/desk/caseWorkflow.js", s => s.replace("source: ok ? \"engine\" : null };", "source: null };")],
-  ["the seeded assessment writes no audit line", "lib/desk/caseWorkflow.js", s => s.replace("  c.audit.push({ at: iso(now), by: \"engine\", what: ok ?", "  void ({ at: iso(now), by: \"engine\", what: ok ?")],
+  ["the seeded assessment writes no audit line", "lib/desk/caseWorkflow.js", s => s.replace("  logAudit(c, { at: iso(now), by: \"engine\", what: ok ?", "  void ({ at: iso(now), by: \"engine\", what: ok ?")],
   ["the analyst's change leaves the source engine", "lib/desk/caseWorkflow.js", s => s.replace("a.explanation, source: \"analyst\" };", "a.explanation, source: a.source };")],
   ["a later read overwrites the analyst's figure", "lib/desk/caseWorkflow.js", s => s.replace("if (a.source === \"analyst\" || (a.source !== \"engine\" && a.figure != null)) return c0;", "")],
   ["an engine figure survives a read with too few sales", "lib/desk/caseWorkflow.js", s => s.replace("const next = ok ? { figure: ev.median, low: ev.q1, high: ev.q3 } : { figure: null, low: null, high: null };", "if (!ok) return c0; const next = { figure: ev.median, low: ev.q1, high: ev.q3 };")],
@@ -25,7 +27,7 @@ const MUT = [
   ["a label is renamed", "lib/desk/caseView.js", s => s.replace("Reports finalized today", "Done today")],
   ["finalized today counts any day", "lib/desk/caseView.js", s => s.replace("String(c.finalized_at).slice(0, 10) === today", "true")],
   ["case_edit has no cover op", "lib/desk/sheetActions.js", s => s.replace('else if (op === "cover")', 'else if (op === "cover_x")')],
-  ["a cover change is not logged", "lib/desk/caseWorkflow.js", s => s.replace('c.audit.push({ at: iso(now), by: "analyst", what: "cover set", field: "photos", to: id }); return c; }', 'return c; }')],
+  ["a cover change is not logged", "lib/desk/caseWorkflow.js", s => s.replace('logAudit(c, { at: iso(now), by: "analyst", what: "cover set", field: "photos", to: id }); return c; }', 'return c; }')],
   ["the report selection can drop the cover", "lib/desk/caseModel.js", s => s.replace("if (c.photos.coverId && !c.photos.reportIds.includes(c.photos.coverId)) c.photos.reportIds.unshift(c.photos.coverId); return c; }", "return c; }")],
   ["a photo added through the case is not on the sheet's submission", "lib/desk/sheetActions.js", s => s.replace("s0 = { ...s0, submission: { ...s0.submission, photos: [...(s0.submission.photos || []), ph] },", "s0 = { ...s0, submission: { ...s0.submission },")],
   ["photo_add takes a file that is not a photo", "lib/desk/sheetActions.js", s => s.replace('if (!(isJpg || isPng || isWebp)) return { refuse: "That file is not a photo (JPG, PNG or WebP)." };', "").replace('else if (!isJpg) return { refuse: "This session takes JPG photos only." };', "")],

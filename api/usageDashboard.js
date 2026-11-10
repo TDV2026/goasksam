@@ -1057,6 +1057,18 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "deskrungs", ms: Date.now() - t0, ...d });
   }
 
+  // task=deskcars: READ-ONLY (Lane D, Nov 9 2026). Real sales of one car from the archive with their VIN, listing address and a photo that passes the photo rule (lib/live/photoRule.js: a HEAD, 200, an image, at most 600 KB), for a demonstration case that must be a real car.
+  //   ?view=ops&task=deskcars&year=1999&make=Porsche&title=Carrera&limit=6   (bounded: 40 rows read, at most 12 returned, one HEAD per photo)
+  if (task === "deskcars") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { choosePhoto, photoCandidates } = await import("../lib/live/photoRule.js"), q = req.query || {}, t0 = Date.now();
+    const year = Math.round(Number(q.year)) || 0, make = String(q.make || "").replace(/[^A-Za-z0-9 -]/g, ""), title = String(q.title || "").replace(/[^A-Za-z0-9 -]/g, ""), limit = Math.min(12, Math.max(1, Math.round(Number(q.limit)) || 6));
+    if (!year || !make) return res.status(400).json({ error: "year and make are required." });
+    const rows = await supabaseSelect(env, `sales_archive?make=ilike.${encodeURIComponent(make)}&year=eq.${year}&vin_norm=neq.&sale_price=not.is.null${title ? `&listing_title=ilike.*${encodeURIComponent(title)}*` : ""}&select=id,source_slug,platform,sale_date,sale_price,listing_title,vin,mileage:raw_record->>mileage,image:raw_record->>featured_image_url,srcurl:raw_record->>url&order=sale_date.desc&limit=40`);
+    const out = []; for (const r of rows || []) { if (out.length >= limit) break; if (!r.vin || !/^https:\/\//i.test(String(r.image || ""))) continue; const photo = await choosePhoto(photoCandidates({ photo_url: r.image })); if (photo) out.push({ id: r.id, platform: r.platform, date: r.sale_date, price: r.sale_price, title: r.listing_title, vin: r.vin, mileage: r.mileage, url: r.srcurl, photo }); }
+    return res.status(200).json({ task: "deskcars", ms: Date.now() - t0, read: (rows || []).length, cars: out });
+  }
+
   if (task === "deskexample") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { deskExample } = await import("../lib/live/deskExample.js");

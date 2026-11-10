@@ -28,7 +28,7 @@ function assertions(k, h, ready) {
   const blockers = W.readinessOf(k).blockers; for (const b of blockers) if (!d.includes(`data-blocker="${b.key}"`) || !d.includes(b.why)) bad.push("readiness item missing: " + b.key); if ((d.match(/data-blocker=/g) || []).length !== blockers.length) bad.push("readiness lists items that are not blockers");
   const fin = /id="b-fin"( disabled)?/.exec(d); if (!fin) bad.push("no Finalize"); else if (!!fin[1] === ready) bad.push(ready ? "Finalize is disabled on a ready case" : "Finalize is enabled before Lane D says ready");
   if (!/id="b-save"/.test(d) || !/id="b-prev"/.test(d)) bad.push("Save draft or Preview report missing");
-  for (const x of k.audit || []) if (!d.includes(x.at) || !d.includes(x.what)) bad.push("an audit line is missing"); if (!(k.audit || []).length && /Audit trail/.test(d)) bad.push("an audit heading with no lines");
+  for (const x of k.audit || []) if (!d.includes(x.at) || !d.includes(x.line || x.what)) bad.push("an audit line is missing"); if (!(k.audit || []).length && /Audit trail/.test(d)) bad.push("an audit heading with no lines");
   if (!/id="in-agreed" type="checkbox"( checked)?/.test(d)) bad.push("no seller agreed box");
   return bad;
 }
