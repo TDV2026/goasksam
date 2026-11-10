@@ -29,11 +29,14 @@ export async function finalizeDemo(id = V3.DEMO_ID) {
 export async function seedIntake() {
   await V3.deskModel({ query: {} }).catch(() => {});
   const store = await PV.previewStore(), { ensureCase } = await imp("lib/desk/caseModel.js"), { DEMO_VIN } = await imp("lib/desk/demoCar.js"), at = new Date(Date.now() - 3600e3).toISOString();
-  const mk = (id, vin, label, status, extra = {}) => { const sheet = { id, owner_seat: PV.PREVIEW_SEAT, forwarded_by: PV.PREVIEW_SEAT, vin, car_label: label, status, created_at: at, opened_at: null, version: 0, submission: { consignor: { name: "Pat Lee", email: "pat@example.com" }, mileage: vin ? 61200 : null, photos: [], documents: [] }, state: { heroId: null, photosSelected: [] }, read: null, events: [] };
-    const c = ensureCase(sheet, at); c.sourceEmail = { name: "Original email from Pat Lee.eml", url: "https://example.test/mail/" + id + ".eml", line: "Kept whole, as it arrived." }; sheet.case = c; return { ...sheet, ...extra }; };
-  await store.insert(PV.PREVIEW_ORG.id, mk("pv_fwd", DEMO_VIN, "2004 Porsche 911 Carrera 4S", "New"));
+  // origin is Lane D's field: "forwarded" (intake), "typed" (the Desk's own form), null. lead_ref is NOT the marker (a typed case can carry one; a forwarded case may not).
+  const mk = (id, vin, label, status, { origin = "forwarded", leadRef, ask = null, url = true } = {}) => { const sheet = { id, owner_seat: PV.PREVIEW_SEAT, forwarded_by: PV.PREVIEW_SEAT, vin, car_label: label, status, created_at: at, opened_at: null, version: 0, submission: { consignor: { name: "Pat Lee", email: "pat@example.com", ...(ask ? { asking_price: ask } : {}) }, mileage: vin ? 61200 : null, photos: [], documents: [], sourceEmail: { path: "hagerty/" + id + "/mail/original.eml", ext: ".eml", ...(url ? { url: "https://example.test/mail/" + id + ".eml" } : {}) } }, state: { heroId: null, photosSelected: [] }, read: null, events: [] };
+    const c = ensureCase(sheet, at); c.origin = origin; if (leadRef !== undefined) c.lead_ref = leadRef; sheet.case = c; return sheet; };
+  await store.insert(PV.PREVIEW_ORG.id, mk("pv_fwd", DEMO_VIN, "2004 Porsche 911 Carrera 4S", "New", { ask: 58000 }));
   await store.insert(PV.PREVIEW_ORG.id, mk("pv_nocar", null, "Needs the car", "Needs the car"));
   await store.insert(PV.PREVIEW_ORG.id, mk("pv_nocar2", null, "Needs the car", "Needs the car"));
+  await store.insert(PV.PREVIEW_ORG.id, mk("pv_typedlead", DEMO_VIN, "2001 Porsche 911 Carrera", "New", { origin: "typed", leadRef: "LEAD-TYPED-1" }));   // a typed case that carries a lead reference: NOT a forwarded lead
+  await store.insert(PV.PREVIEW_ORG.id, mk("pv_fwdnoref", DEMO_VIN, "2002 Porsche 911 Carrera", "New", { origin: "forwarded", leadRef: null, url: false }));   // a forwarded case with no lead reference and no signed address: still a forwarded lead, with no email link
   const t = await PV.previewDeskApi({ action: "case_new", text: "1999 Porsche 911", seller_name: "Sam Typed" });
-  return { fwd: "pv_fwd", nocar: "pv_nocar", nocar2: "pv_nocar2", vin: DEMO_VIN, typed: t.id, typedOk: !!t.ok };
+  return { fwd: "pv_fwd", nocar: "pv_nocar", nocar2: "pv_nocar2", typedlead: "pv_typedlead", fwdnoref: "pv_fwdnoref", vin: DEMO_VIN, typed: t.id, typedOk: !!t.ok };
 }
