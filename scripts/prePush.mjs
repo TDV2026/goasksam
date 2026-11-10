@@ -2633,6 +2633,18 @@ try {
   record("Desk v4 stage 3: desk.reserveCheck reached equals the window's sales at or above the figure for a sweep of figures, position and supported follow q1 and q3, an insufficient window has no position, desk.reserveStart is q1; thirteen mutants (scripts/deskReserveCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/deskWhyCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v4 stage 4: desk.supports, desk.considered and desk.whyDraft from the factors and the case's verification states; a seller stated item is never support and reads outstanding until verified for every factor and state, no figure unless the sales isolated an effect, the draft is one or two table sentences; ten mutants (scripts/deskWhyCheck.mjs)", "PASS", (out.match(/deskWhyCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 4: desk.supports, desk.considered and desk.whyDraft from the factors and the case's verification states; a seller stated item is never support and reads outstanding until verified for every factor and state, no figure unless the sales isolated an effect, the draft is one or two table sentences; ten mutants (scripts/deskWhyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/deskHeaderCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v4 stage 5: desk.titleLine is the engine's title and not the typed label, desk.specLine, comparables carry url and a photo that is null or passed the rule, live rows carry url, quarters carry count and shown; seven mutants (scripts/deskHeaderCheck.mjs)", "PASS", (out.match(/deskHeaderCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 5: desk.titleLine is the engine's title and not the typed label, desk.specLine, comparables carry url and a photo that is null or passed the rule, live rows carry url, quarters carry count and shown; seven mutants (scripts/deskHeaderCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/deskEvidenceCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk v3 stage 1: desk.evidence (as of date, count, median, quartiles, range, latest sale, stale flag) equals the meter for every Desk model; an insufficient population carries a sentence and no number; the stale flag flips at the threshold; eight mutants (scripts/deskEvidenceCheck.mjs)", "PASS", (out.match(/deskEvidenceCheck: .*/) || [""])[0]);
 } catch (e) {
