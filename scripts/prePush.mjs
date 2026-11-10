@@ -2367,7 +2367,7 @@ try {
   record("Go live switch: NEW_DESIGN off serves bytes identical to the baseline on every public route, on keeps status and headers and replays redirects, per route, crew look, no POST switched (scripts/goLiveSwitchCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveSwitchCheck:/.test(l)).slice(0, 5).join(" | "));
 }
 try {
-  const out = execSync("node scripts/goLiveGuardsCheck.mjs --base origin/main", { encoding: "utf8", timeout: 240000 });
+  const out = execSync("node scripts/goLiveGuardsCheck.mjs --base ee488ab5", { encoding: "utf8", timeout: 240000 });
   record("Go live guards: every crew preview route renders the same with the switch off and on, no render before the crew gate, every wrapper an api file had (calm, tracking, hold) is kept and calm stays outer (scripts/goLiveGuardsCheck.mjs)", "PASS", (out.match(/goLiveGuardsCheck: .*/) || [""])[0]);
 } catch (e) {
   record("Go live guards: every crew preview route renders the same with the switch off and on, no render before the crew gate, every wrapper an api file had (calm, tracking, hold) is kept and calm stays outer (scripts/goLiveGuardsCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveGuardsCheck:/.test(l)).slice(0, 5).join(" | "));

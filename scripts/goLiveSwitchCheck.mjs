@@ -19,6 +19,7 @@ if (args.includes("--mutants")) {
     ["any cookie counts as crew", "lib/_newDesign.js", "isCrewRequest(req) === true", "true"],
     ["a POST is switched", "lib/_newDesign.js", "if (m !== \"GET\" && m !== \"HEAD\") return { new: false };", ""],
     ["a Find search is swapped for the landing", "api/buy.js", 'return q.get("q") ? "find-results" : [...q.keys()].length ? null : "find"; }', 'return "find"; }'],
+    ["the router's _crew parameter read as a Find search", "api/buy.js", 'q.delete("_crew"); ', ""],
     ["the switch ignores the route list", "lib/_newDesign.js", "const list = v.split(/[\\s,]+/).filter(k => ROUTES.includes(k));", "const list = ROUTES.slice();"]
   ];
   let bad = 0;
@@ -114,6 +115,26 @@ delete process.env.NEW_DESIGN;
   ok(!("x-design" in plain.h) && !("x-design" in forged.h), "OFF: ?design=new without the signed crew cookie (none, forged) changes nothing");
   ok(crew.h["x-design"] === "new" && /private, no-store/.test(crew.h["cache-control"] || "") && /noindex/.test(crew.h["x-robots-tag"] || ""), "OFF: the signed crew cookie plus ?design=new sees the new page, private, no-store, noindex");
   ok(!("x-design" in crewPlain.h), "OFF: the crew without ?design=new gets today's page");
+}
+// 4b. EVERY ROUTE'S LANDING (no query), the three ways it is switched (Lane C's live render, Nov 10: /find?design=new answered today's page because the router hands a crew cookie /api/buy?_crew=1 and the route test read the extra key as a search; the offline case had no router in it):
+//   (a) NEW_DESIGN=<the route's own key> turns that landing on, (b) NEW_DESIGN=all does, (c) the crew look (switch off, signed cookie, ?design=new) does, on the address the ROUTER builds from vercel.json (its added parameters, _crew=1 and the route's own).
+{
+  const KEY = { home: "home", find: "find", "find results": "find-results", "market-check": "market-check", "market-check results": "market-check", sell: "sell", tasks: "tasks", "tasks-mine": "tasks-mine", business: "business", how: "how", about: "about", whatsnew: "whatsnew", feedback: "feedback", terms: "terms", privacy: "privacy", "history index": "history", "history hub": "history", "history VIN": "history" };
+  const vj = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
+  const routerUrl = url => { const u = new URL(url, "https://goasksam.com"), rule = (vj.rewrites || []).find(r => r.source === u.pathname && (r.has || []).some(x => x.type === "cookie" && x.key === "gas_crew")); if (rule) for (const [k, v] of new URL(rule.destination, "https://x").searchParams) if (!u.searchParams.has(k)) u.searchParams.set(k, v); u.searchParams.set("design", "new"); return u.pathname + u.search; };
+  const { ROUTES: ALL } = await import(pathToFileURL(path.join(ROOT, "lib/_newDesign.js")).href);
+  const covered = new Set();
+  for (const [name, url, f] of CASES) {
+    if (/[?&]q=/.test(url) || !KEY[name]) continue;
+    delete process.env.NEW_DESIGN; const A = await call(await mod(ROOT, f), url), page = A.code === 200 && /text\/html/.test(A.h["content-type"] || "");
+    if (!page) continue;
+    covered.add(KEY[name]);
+    process.env.NEW_DESIGN = KEY[name]; const R = await call(await mod(ROOT, f), url); ok(R.h["x-design"] === "new", `landing ${name} ${url}: NEW_DESIGN=${KEY[name]} serves the new page`);
+    process.env.NEW_DESIGN = "all"; const L = await call(await mod(ROOT, f), url); ok(L.h["x-design"] === "new", `landing ${name} ${url}: NEW_DESIGN=all serves the new page`);
+    delete process.env.NEW_DESIGN; const C = await call(await mod(ROOT, f), routerUrl(url), { cookie: CREW }); ok(C.h["x-design"] === "new", `landing ${name}: the crew look on the router's address (${routerUrl(url)}) serves the new page`);
+  }
+  // history is the one route with no page in this empty stub (503 and 404 without the nightly rollout); sitePagesHistoryCheck builds its world and proves the new history pages; the live render proves its landing
+  for (const k of ALL.filter(k => k !== "find-results" && k !== "history")) ok(covered.has(k), `the landing of every route key is covered here (${k})`);
 }
 // 5. POST and the history modes are never switched
 process.env.NEW_DESIGN = "all";

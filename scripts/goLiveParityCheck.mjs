@@ -23,10 +23,13 @@ if (args.includes("--mutants")) {
     ["a preview address reaching the public", "lib/_publicHead.js", '  for (const [from, to] of ADDR) h = h.split(from).join(to);', ''],
     ["a dropped control (the voice button on Home)", "lib/preview/previewPages.js", 'aria-label="Speak your search"', 'aria-label="Talk"'],
     ["the sign in script missing", "lib/_publicHead.js", 'if (!/\\/auth\\.js/.test(h)) end.push(', 'if (false) end.push('],
-    ["the analytics script missing", "lib/_publicHead.js", 'end.push(track[0], ...inline);', 'end.push(...inline);'],
+    ["the banner waiting for the analytics tag (Home has the banner and no tag)", "lib/_publicHead.js", "if (L.includes(CONSENT_BANNER_HTML) && !h.includes(CONSENT_BANNER_HTML)) end.push(CONSENT_BANNER_HTML);\n  if (track && !TRACK_RE.test(h))", "if (track && L.includes(CONSENT_BANNER_HTML) && !h.includes(CONSENT_BANNER_HTML)) end.push(CONSENT_BANNER_HTML);\n  if (track && !TRACK_RE.test(h))"],
+    ["the analytics script missing", "lib/_publicHead.js", 'if (track && !TRACK_RE.test(h)) end.push(track[0]);', ''],
     ["the consent banner missing", "lib/_publicHead.js", 'if (L.includes(CONSENT_BANNER_HTML) && !h.includes(CONSENT_BANNER_HTML)) end.push(CONSENT_BANNER_HTML);', ''],
     ["the Account button not opening the card", "lib/_publicHead.js", 'if (/id="acct"/.test(h)) end.push(', 'if (false) end.push('],
     ["How Sam decides out of the footer", "lib/preview/previewPages.js", '<a href="/how-sam-decides">${copyText("rail.FOOT_HOW")}</a>', ''],
+    ["the crew look reading the page a crew cookie is handed (Sell's noindex)", "lib/_newDesign.js", "capture(handler, w.look ? asPublic(req) : req)", "capture(handler, req)"],
+    ["the crew look keeping ?design=new in the address it reads (a query page is noindex)", "lib/_newDesign.js", 'u.searchParams.delete("design");', ""],
     ["a lost link (About in the footer)", "lib/preview/previewPages.js", '<a href="/about">', '<a href="/about-us">']
   ];
   let bad = 0;
@@ -61,10 +64,10 @@ const ROUTES = [
   ["business", "/business", "business", "site"], ["how", "/how-sam-decides", "howSamDecides", "site"], ["about", "/about", "about", "site"], ["whats-new", "/whats-new", "whatsNew", "site"],
   ["feedback", "/feedback", "feedback", "site"], ["terms", "/terms?page=terms", "legal", "site"], ["privacy", "/privacy?page=privacy", "legal", "site"]
 ];
-async function get(handler, url) {
+async function get(handler, url, cookie) {
   const res = { h: {}, code: 200, body: "", setHeader(k, v) { this.h[String(k).toLowerCase()] = String(v); return this; }, getHeader(k) { return this.h[String(k).toLowerCase()]; }, removeHeader() {}, writeHead(c) { this.code = c; return this; }, status(c) { this.code = c; return this; }, send(b) { this.body = b == null ? "" : String(b); return this; }, end(b) { if (b != null) this.body = String(b); return this; }, json(o) { this.body = JSON.stringify(o); return this; } };
   const u = new URL(url, "https://goasksam.com");
-  await quiet(() => handler({ method: "GET", url, query: Object.fromEntries(u.searchParams), headers: { host: "goasksam.com" }, socket: {} }, res).catch(() => {}));
+  await quiet(() => handler({ method: "GET", url, query: Object.fromEntries(u.searchParams), headers: { host: "goasksam.com", ...(cookie ? { cookie } : {}) }, socket: {} }, res).catch(() => {}));
   return res;
 }
 const strip = h => String(h).replace(/<script\b[\s\S]*?<\/script>/gi, "").replace(/<style\b[\s\S]*?<\/style>/gi, "");
@@ -77,11 +80,19 @@ const LIVE_RENDER = { sell: /^\/js\/(wizard|pipeline|steps|result|chat-core|resu
 const h1Of = h => { const m = [...strip(h).matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi)].map(x => x[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim()); return m; };
 const held = (() => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, "docs/go-live-held.json"), "utf8")); } catch { return []; } })();
 const lost = [];   // { route, kind, item }
+// the address the handler sees for a crew cookie: vercel.json rewrites each public address, for a crew cookie, to its handler WITH added parameters (_crew=1, and the route's own, such as app=1); ?design=new rides along. Read from vercel.json, never typed.
+const VJ = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
+const lookUrl = url => { const u = new URL(url, "https://goasksam.com"), rule = (VJ.rewrites || []).find(r => r.source === u.pathname && (r.has || []).some(x => x.type === "cookie" && x.key === "gas_crew")); if (rule) for (const [k, v] of new URL(rule.destination, "https://x").searchParams) if (!u.searchParams.has(k)) u.searchParams.set(k, v); u.searchParams.set("design", "new"); return u.pathname + u.search; };
+process.env.CURTAIN_CREW_CODE = "go-live-parity"; const CREW_COOKIE = "gas_crew=" + (await import(pathToFileURL(path.join(ROOT, "lib/_crew.js")).href)).mintCrewCookieValue();
 
 for (const [name, url, f, kind] of ROUTES) {
   const h = await mod(f);
   delete process.env.NEW_DESIGN; const A = await get(h, url); process.env.NEW_DESIGN = "all"; const B = await get(h, url); delete process.env.NEW_DESIGN;
   if (A.code !== 200) { ok(B.code === A.code, `${name}: today answers ${A.code}, the new answers ${B.code}`); continue; }
+  // THE CREW LOOK IS THE FLIP, SEEN EARLY (Lane C's live render, Nov 10: Sell's look carried noindex, nofollow where the public Sell is index, follow, because the look read the Sell a crew cookie is handed, not the Sell a visitor gets): with the switch OFF, the crew cookie plus ?design=new must carry the head of the PUBLIC page on EVERY route: title, description, robots, canonical, og, twitter, structured data.
+  { const C = await get(h, lookUrl(url), CREW_COOKIE), ca = headTagsOf(A.body), cb = headTagsOf(C.body);
+    if (C.h["x-design"] === "new") for (const k of ["title", "description", "robots", "canonical", "og", "twitter", "ld"]) ok(JSON.stringify(ca[k]) === JSON.stringify(cb[k]), `${name} ${url}: the crew look's ${k} is the PUBLIC page's, byte for byte (${ca[k].length} public, ${cb[k].length} look)`);
+    else ok(false, `${name} ${url}: the crew look serves the new page (X-Design: new)`); }
   ok(B.h["x-design"] === "new", `${name}: the new page is served (X-Design: new)`);
   if (B.h["x-design"] !== "new") continue;
   const a = headTagsOf(A.body), b = headTagsOf(B.body), t = `${name} ${url}`;
@@ -115,12 +126,17 @@ for (const [name, url, f, kind] of ROUTES) {
     ok(/id="signin-area"/.test(B.body) && /GAS_AUTH_MODE="topbar"/.test(B.body), `${t}: the sign in bar's container is in the page and the script runs in top bar mode`);
     ok(!/id="acct"/.test(B.body) || /openSignInCard\(undefined/.test(B.body), `${t}: the Account button opens the sign in card`);
   }
-  // ANALYTICS AND THE CONSENT BANNER (go live held item 3): exactly the pieces the current page loads, lifted from it
-  if (/\/api\/track\?js=1/.test(A.body)) {
-    ok(/<script\b[^>]*\bsrc="\/api\/track\?js=1"/.test(B.body), `${t}: the analytics script is loaded`);
-    const inlineA = [...A.body.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).filter(x => /gasConsent|gas-consent-banner|gasOutboundInstall\(/.test(x)), inlineB = new Set([...B.body.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]));
-    ok(inlineA.every(x => inlineB.has(x)), `${t}: the consent banner script and the outbound tagging are loaded as today (${inlineA.length} scripts)`);
-    ok(!/id="gas-consent-banner"/.test(A.body) || /id="gas-consent-banner"/.test(B.body), `${t}: the consent banner markup is in the page`);
+  // ANALYTICS AND THE CONSENT BANNER (go live held item 3): exactly the pieces the current page carries, each on its own, and none it does not. The banner, its script and the outbound tagging are NOT tied to the /api/track?js=1 tag: Home, Feedback and the legal pages carry the banner without it (Lane C's live read, Nov 10; the first version of this check only looked when the tag was there, so those pages were never read)
+  {
+    const has = (body, re) => re.test(body), inl = body => [...body.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+    const pieces = [["the analytics script", /<script\b[^>]*\bsrc="\/api\/track\?js=1"/], ["the consent banner markup", /id="gas-consent-banner"/], ["the consent banner script", /gasConsent|gas-consent-banner/]];
+    for (const [what, re] of pieces) {
+      const inA = what === "the consent banner script" ? inl(A.body).some(x => re.test(x)) : has(A.body, re), inB = what === "the consent banner script" ? inl(B.body).some(x => re.test(x)) : has(B.body, re);
+      ok(inA === inB, `${t}: ${what} is in the new page exactly when the current page has it (today ${inA}, new ${inB})`);
+    }
+    const oA = inl(A.body).filter(x => /gasOutboundInstall\(/.test(x)), oB = new Set(inl(B.body));
+    ok(oA.every(x => oB.has(x)), `${t}: the outbound tagging scripts are loaded as today (${oA.length})`);
+    const inlineA = inl(A.body).filter(x => /gasConsent|gas-consent-banner/.test(x)); ok(inlineA.every(x => oB.has(x)), `${t}: every consent script of the current page is in the new page (${inlineA.length})`);
   }
   // controls
   if (["home", "find", "market-check", "sell"].includes(name)) {

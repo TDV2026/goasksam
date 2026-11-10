@@ -8,7 +8,7 @@
 //   node scripts/goLiveGuardsCheck.mjs [--base <ref>] [--mutants]
 import fs from "node:fs"; import path from "node:path"; import { execFileSync } from "node:child_process"; import { fileURLToPath, pathToFileURL } from "node:url";
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), ".."); process.chdir(ROOT);
-const args = process.argv.slice(2), baseRef = args.includes("--base") ? args[args.indexOf("--base") + 1] : "origin/main";
+const args = process.argv.slice(2), baseRef = args.includes("--base") ? args[args.indexOf("--base") + 1] : "ee488ab5";   // the tree before go live: the sweep always covers every api file the go live work touched
 if (args.includes("--mutants")) {
   const MUT = [
     ["the calm wrapper dropped from Sell", "api/sell.js", 'export default withCalm(withNewDesign("sell", handler), "sell");', 'export default withNewDesign("sell", handler);'],
@@ -40,7 +40,7 @@ const cp = fs.readFileSync("api/crewPage.js", "utf8");
 { const changed = execFileSync("git", ["diff", baseRef, "--name-only", "--", "api"], { encoding: "utf8" }).split("\n").filter(f => /^api\/[^/]+\.js$/.test(f));
   ok(changed.length > 0, "C: the tip changes api files (" + changed.length + ")");
   for (const f of changed) {
-    let before = ""; try { before = execFileSync("git", ["show", baseRef + ":" + f], { encoding: "utf8", maxBuffer: 1 << 26 }); } catch { continue; }
+    let before = ""; try { before = execFileSync("git", ["show", baseRef + ":" + f], { encoding: "utf8", maxBuffer: 1 << 26, stdio: ["ignore", "pipe", "ignore"] }); } catch { continue; }
     const now = fs.readFileSync(f, "utf8");
     for (const w of ["withCalm", "withTracking", "withHold"]) { const had = (before.match(new RegExp("\\b" + w + "\\(", "g")) || []).length, has = (now.match(new RegExp("\\b" + w + "\\(", "g")) || []).length; ok(has >= had, `C: ${f} keeps ${w} (${had} before, ${has} now)`); }
     const m = now.match(/export default withCalm\(withNewDesign\(/), under = /export default withNewDesign\([^\n]*withCalm\(/.test(now);
