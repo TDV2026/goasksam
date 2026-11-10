@@ -1048,12 +1048,12 @@ async function handleOps(req, res) {
   // writes it to spec_market_cache, so the page shows it immediately instead of waiting for the nightly
   // run (docs/nightly-workflow.yml). Zero writes beyond that one cache row.
   // task=deskrungs: READ-ONLY (Lane D, Nov 9 2026). The engine's own sheet read for one car at each condition rung: the count and range per rung, or its too-few-sales sentence. Stores nothing, sequential (one read at a time, at most four rungs).
-  //   ?view=ops&task=deskrungs&year=1999&make=Porsche&model=911&mileage=61200&transmission=Manual&body=Coupe&tiers=2|3|4
+  //   ?view=ops&task=deskrungs&year=1999&make=Porsche&model=911&mileage=61200&transmission=Manual&body=Coupe&tiers=2|3|4   (add &full=1 to get the engine's whole answer for each rung, to record it; use tiers= with one tier to keep the answer small)
   if (task === "deskrungs") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { rungsOf } = await import("../lib/desk/rungs.js"), { sheetRead } = await import("../lib/sheetRead.js");
     const q = req.query || {}, t0 = Date.now();
-    const d = await rungsOf(input => sheetRead(env, input), { year: q.year, make: q.make, model: q.model, mileage: q.mileage, transmission: q.transmission, body: q.body }, String(q.tiers || "2|3|4").split("|").map(Number));
+    const d = await rungsOf(input => sheetRead(env, input), { year: q.year, make: q.make, model: q.model, mileage: q.mileage, transmission: q.transmission, body: q.body }, String(q.tiers || "2|3|4").split("|").map(Number), undefined, { full: String(q.full || "") === "1" });
     return res.status(200).json({ task: "deskrungs", ms: Date.now() - t0, ...d });
   }
 

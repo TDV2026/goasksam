@@ -2717,6 +2717,12 @@ try {
   record("Desk v3 stage 1: the case record (scripts/deskCaseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/deskPreviewImageCheck.mjs", { encoding: "utf8", timeout: 90000 });
+  record("Desk v3 preview door: the report fetches its cover, comparables and logo from the listing photo hosts only, https, under the photo rule (scripts/deskPreviewImageCheck.mjs)", "PASS", (out.match(/deskPreviewImageCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 preview door images (scripts/deskPreviewImageCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/deskDemoCarCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("Desk v3 demonstration car is a real archive sale: VIN, listing and first photo from one record, recorded rung counts in the lane notes (scripts/deskDemoCarCheck.mjs)", "PASS", (out.match(/deskDemoCarCheck: .*/) || [""])[0]);
 } catch (e) {
