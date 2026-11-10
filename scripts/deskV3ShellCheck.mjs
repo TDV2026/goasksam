@@ -78,8 +78,11 @@ function textAssertions(html, tag, { activeId, demoCase } = {}) {
 }
 
 // ---------- the module computes nothing ----------
-function computes(src) { const bad = []; const body = src.replace(/\/\/.*$/gm, ""); if (/Math\.(round|floor|ceil|min|max|abs)|reduce\(|parseFloat|toLocaleString|toFixed|Intl\.|\bNumber\([^)]*\)\s*[-+*/]/.test(body)) bad.push("arithmetic on a figure"); if (/\$\{?\s*\d/.test(body) || /"\$[\d,]+/.test(body)) bad.push("a typed dollar figure"); return bad; }
-{ const src = fs.readFileSync("lib/preview/deskV3.js", "utf8"); const b = computes(src); ok(!b.length, "deskV3.js carries no page arithmetic" + (b.length ? ": " + b : "")); }
+function computes(src) { const bad = []; const body = src.replace(/\/\/ DRAG_JS_BEGIN[\s\S]*?\/\/ DRAG_JS_END/, "").replace(/\/\/.*$/gm, ""); if (/Math\.(round|floor|ceil|min|max|abs)|reduce\(|parseFloat|toLocaleString|toFixed|Intl\.|\bNumber\([^)]*\)\s*[-+*/]/.test(body)) bad.push("arithmetic on a figure"); if (/\$\{?\s*\d/.test(body) || /"\$[\d,]+/.test(body)) bad.push("a typed dollar figure"); return bad; }
+{ const src = fs.readFileSync("lib/preview/deskV3.js", "utf8"); const b = computes(src); ok(!b.length, "deskV3.js carries no page arithmetic outside the marker block" + (b.length ? ": " + b : ""));
+  const BLK = s => (/\/\/ DRAG_JS_BEGIN([\s\S]*?)\/\/ DRAG_JS_END/.exec(s) || ["", ""])[1].replace(/\/\/.*$/gm, "");
+  ok(BLK(src).length > 100 && /dataset\.lo/.test(BLK(src)) && !/median|evidence|reserve|\bq1\b|\bq3\b|desk\./i.test(BLK(src)), "the one block of arithmetic (the draggable marker) reads only the bar's own lowest and highest figure, never the median, the range, the evidence or the reserve");
+  const mutated = src.replace("function hi(){var b=bar();return b?Number(b.dataset.hi):0}", "function hi(){return window.__DESK_V3__.median}"); ok(mutated !== src && /median/i.test(BLK(mutated)) && !/median/i.test(BLK(src)), "mutant: a marker block that reads the median is caught"); }
 
 // ---------- 4 in Chrome ----------
 async function inChrome(htmlList, label) {
@@ -111,6 +114,13 @@ async function inChrome(htmlList, label) {
 }
 async function goodPage() { await call("/api/crewPage?page=preview-desk", crew); const r = await call(`/api/crewPage?page=preview-desk&case=${V3.DEMO_ID}`, crew); return r.body; }
 const html = await goodPage();
+// ONE FIGURE IN THE HEADER (Sam, Nov 9 2026): the Valuation, with the market line under it. No reserve, no second or third big figure, in the summary or the sticky bar.
+const headerBad = h => { const bad = [], sum = (/<section class="sum"[\s\S]*?<\/section>/.exec(h) || [""])[0], stk = (/<div class="stk"[\s\S]*?<\/div>\s*<section/.exec(h) || [""])[0], big = (sum.match(/class="fg-v/g) || []).length;
+  if (big !== 1) bad.push(`the summary holds ${big} big figures, not one`); if (!/id="valBig"/.test(sum) || !/class="fg-k">Valuation</.test(sum)) bad.push("the one figure is not the Valuation"); if (!/id="mline"/.test(sum)) bad.push("no market line under the figure");
+  if (/Reserve|figR/i.test(sum.replace(/<span class="mk mk-res[\s\S]*?<\/span>/, ""))) bad.push("the reserve is in the header"); if (/Reserve/i.test(stk)) bad.push("the reserve is in the sticky bar"); return bad; };
+{ const b = headerBad(html); for (const x of b) ok(false, x); ok(!b.length, "the header holds one big figure, the Valuation, with the market line under it, and no reserve (summary and sticky bar)");
+  ok(headerBad(html.replace('id="valBig"', 'id="valBig"').replace('</div><div class="rvw"', '<span class="fg-v cu">$1</span><span class="fg-v cu">$2</span></div><div class="rvw"')).length > 0, "mutant: a header with three figures is caught");
+  ok(headerBad(html.replace('</div><div class="rvw"', '<button class="fig cu" data-go="reserve" id="figR"><span class="fg-k">Proposed reserve</span></button></div><div class="rvw"')).length > 0, "mutant: a reserve back in the header is caught"); }
 { const b = await inChrome(html); for (const x of b) ok(false, "chrome: " + x); ok(!b.length, "in Chrome at 1440, 1280, 1024 and 390: no overflow, rail and header drawn, flat, search works"); }
 
 // ---------- mutants: each must be caught by the same assertions ----------
@@ -146,7 +156,7 @@ for (const [name, fn, kind] of MUT) {
       let m = await st(); if (!m.hidden) bad.push(`the sticky bar shows with the summary in view at ${w}`);
       await p.evaluate(() => window.scrollTo(0, 900)); await new Promise(r => setTimeout(r, 250)); m = await st();
       if (m.hidden) bad.push(`the sticky bar does not appear when the summary scrolls out at ${w}`);
-      else { if (m.h > 92) bad.push(`the sticky bar is ${m.h}px tall at ${w}`); if (m.top > 60 || m.top < 46) bad.push(`the sticky bar is not stuck directly under the top bar at ${w} (top ${m.top})`); for (const k of ["Market", "Assessment", "Reserve", "Review", "Vehicle", "Market evidence", "Decision"]) if (!m.txt.toLowerCase().includes(k.toLowerCase())) bad.push(`the sticky bar lacks ${k} at ${w}`); }
+      else { if (m.h > 92) bad.push(`the sticky bar is ${m.h}px tall at ${w}`); if (m.top > 60 || m.top < 46) bad.push(`the sticky bar is not stuck directly under the top bar at ${w} (top ${m.top})`); for (const k of ["Market", "Valuation", "Review", "Vehicle", "Market evidence", "Decision"]) if (!m.txt.toLowerCase().includes(k.toLowerCase())) bad.push(`the sticky bar lacks ${k} at ${w}`); }
       await p.evaluate(() => { window.scrollTo(0, 0); document.querySelector('[data-tab="market"]').click(); }); await new Promise(r => setTimeout(r, 200)); m = await st(); if (m.hidden) bad.push(`the sticky bar is not kept on Market evidence at ${w}`);
       await p.click("#figA"); await new Promise(r => setTimeout(r, 300)); m = await st();
       const inp = await p.evaluate(() => { const r = document.getElementById("in-alow").getBoundingClientRect(); return { top: Math.round(r.top) }; });
