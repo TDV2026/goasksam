@@ -4,7 +4,7 @@ const root = path.resolve(process.argv[2] || "."), imp = f => import(pathToFileU
 const M = await imp("lib/desk/caseModel.js"), V = await imp("lib/desk/caseView.js"), D = await imp("lib/desk/caseDemo.js"), A = await imp("lib/desk/sheetActions.js"), { memoryStore } = await imp("lib/desk/sheetStore.js");
 let pass = 0, fail = 0; const ok = (n, c) => { if (c) pass++; else { fail++; console.log("FAIL " + n); } };
 const T = "2026-11-08T10:00:00.000Z";
-ok("the stages are exactly new, review, ready, final", M.STAGES.join() === "new,review,ready,final");
+ok("the stages are exactly new, review, ready, final, sent (sent is the sheet's own state, not a case status)", M.STAGES.join() === "new,review,ready,final,sent");
 ok("every stored status maps to a stage, and no two share one", M.CASE_STATUS.map(s => M.STAGE_OF[s]).join() === "new,review,ready,final");
 // a mixed org: the page is told the counts, none are worked out from the list
 const mk = (id, status, extra = {}) => ({ id, created_at: T, submission: { typed: true, photos: [], documents: [] }, case: { ...M.newCase({ now: T }), status, ...extra } });
