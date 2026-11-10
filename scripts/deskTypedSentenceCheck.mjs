@@ -6,7 +6,7 @@ import fs from "node:fs"; import path from "node:path"; import { fileURLToPath, 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."), rd = f => fs.readFileSync(path.join(ROOT, f), "utf8");
 const { REASON_TABLE } = await import(pathToFileURL(path.join(ROOT, "lib/reasonWords.js")).href);
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
-const FILES = ["lib/desk/sheetShape.js", "lib/sheetRead.js", "lib/desk/reportPdf.js", "lib/desk/send.js", "lib/desk/sheetActions.js", "lib/desk/decisionRules.js", "public/js/deskvals.js"].filter(f => fs.existsSync(path.join(ROOT, f)));
+const FILES = ["lib/desk/sheetShape.js", "lib/sheetRead.js", "lib/desk/reportPdf.js", "lib/desk/send.js", "lib/desk/sheetActions.js", "lib/desk/caseSend.js", "lib/desk/caseWorkflow.js", "lib/desk/decisionRules.js", "public/js/deskvals.js"].filter(f => fs.existsSync(path.join(ROOT, f)));
 const lines = new Map();
 for (const [id, e] of Object.entries(REASON_TABLE)) {
   if (e.before && !/\d|^\(new/.test(e.before)) lines.set(e.before, id);
@@ -36,6 +36,8 @@ const MUT = [
   ["typed Market Check thin line", "lib/desk/sheetShape.js", s => s + `\nconst y = "These sales sit in very different price ranges, so no typical range is shown. These are the sales on record.";`],
   ["page reads optionsNote", "lib/sheetRead.js", s => s + `\nconst z = a.optionsNote;`],
   ["page reads windowNote", "lib/desk/reportPdf.js", s => s + `\nconst z = d.windowNote;`],
+  ["typed send-cap refusal in the action", "lib/desk/sheetActions.js", s => s + `\nconst c1 = refuse("The monthly export limit for your organisation is reached.");`],
+  ["typed send refusal in caseSend", "lib/desk/caseSend.js", s => s + `\nconst c2 = "A draft cannot be sent, so finalize the case first";`],
   ["count glued to a plural", "lib/sheetRead.js", s => s + "\nconst w = `holds ${sameN} sales.`;"],
   ["count glued to listings", "lib/desk/reportPdf.js", s => s + "\nconst w = `${n} listings`;"]
 ];
