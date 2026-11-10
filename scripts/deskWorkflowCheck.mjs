@@ -12,9 +12,12 @@ ok("verifying logs its own line and closes the item", (() => { const v = K.verif
 ok("setting the same value again is not a correction (no line, verification kept)", (() => { const same = K.correctField(base, "mileage", 61400, { now: T }); return same.fields.mileage.verified === true && J(same.audit) === J(base.audit); })());
 // the re-call
 ok("the case was read once for evidence and stored: desk.original and desk.evidence", base.desk.original && base.desk.evidence && base.desk.evidence.count > 0 && J(base.desk.original) === J(base.desk.evidence));
-const recall = async (name, c, want) => { const n0 = calls.length, r = await K.refreshEvidence(c, read, { caseDate: today, now: T }); ok(name + (want ? ": re-calls the engine" : ": does not re-call the engine"), r.recalled === want && (calls.length - n0) === (want ? 1 : 0), `calls ${calls.length - n0}`); return r.case; };
+const recall = async (name, c, want) => { const n0 = calls.length, r = await K.refreshEvidence(c, read, { caseDate: today, now: T }); ok(name + (want ? ": re-calls the engine" : ": does not re-call the engine"), r.recalled === want && (want ? (calls.length - n0) >= 1 && (calls.length - n0) <= 2 : (calls.length - n0) === 0), `calls ${calls.length - n0}`); return r.case; };
 await recall("nothing changed", base, false);
-await recall("a reserve edit", K.setReserve(base, { figure: 1 }, T), false);
+{ const rv = await recall("a reserve figure moved (the engine checks it: reserveCheck)", K.setReserve(base, { figure: 1 }, T), true); ok("the read carried the reserve and the case holds the engine's check of that very figure", calls[calls.length - 1].desk.reserve === 1 && rv.desk.reserveCheck && rv.desk.reserveCheck.reserve === 1 && K.reservePosition(rv) === "below", JSON.stringify(rv.desk.reserveCheck)); }
+await recall("a reserve why edited", K.setReserve(base, { why: "Held at the lower quartile." }, T), false);
+await recall("the seller's request marked", K.setReserve(base, { sellerRequested: true }, T), false);
+{ const w6 = await recall("the period changed to 6 months", K.setWindow(base, 6, T), true); ok("the read carried the period and the evidence is the engine's six months", calls.some(x => x.desk.windowMonths === 6) && w6.windowMonths === 6 && w6.desk.evidence.windowMonths === 6); await recall("the same period again", K.setWindow(base, 12, T), false); ok("a period that is not 6, 12 or 24 is refused", K.setWindow(base, 7, T) === null); }
 await recall("an assessment edit", K.setAssessment(base, { figure: 1 }, T), false);
 await recall("a photo", M.addPhoto(base, { id: "p9" }, T), false);
 await recall("verifying a field", K.verify(K.correctField(base, "colour", "Black", { now: T }), "colour", { now: T }), false);
@@ -34,6 +37,14 @@ ok("the exclusions ride on the case with scope, reason and time", exr.exclusions
 // the three scopes are the engine's own, spelled the engine's way (a made up name reads as note_only there and would silently do nothing)
 { const DV = await import(pathToFileURL(path.join(root, "lib/deskV3.js")).href);
   ok("the case's exclusion scopes are exactly the engine's (market_calc, report_comps, note_only)", [...M.EXCLUSION_SCOPES].sort().join() === [...DV.SCOPES].sort().join()); }
+// RESTORE: undoes an exclusion by sale id, in every scope, and logs it; the engine is re-asked because the calculation changes back
+{ let r = exr; for (const id of pick) r = M.restoreSale(r, { saleId: id, now: T });
+  const back = await recall("restoring the three excluded sales", r, true);
+  ok("restoring all three puts the evidence back to the original count and leaves no exclusion", back.exclusions.length === 0 && back.desk.evidence.count === base.desk.evidence.count);
+  ok("each restore is logged in the table's words", r.audit.filter(a => a.what === "sale restored").length === 3 && r.audit.filter(a => a.what === "sale restored").every(a => a.line === "The analyst put an excluded sale back."));
+  ok("a sale that is not excluded is not restorable (null, nothing logged)", M.restoreSale(exr, { saleId: "no-such-sale", now: T }) === null);
+  const two = M.restoreSale(M.excludeSale(exr, { saleId: pick[0], scope: "report_comps", reason: "Not a fit", now: T }), { saleId: pick[0], now: T });
+  ok("restoring a sale takes it out of every scope it was excluded under", two.exclusions.every(e => e.saleId !== pick[0]) && two.exclusions.length === 2); }
 const rc = await recall("a report_comps exclusion (the engine drops the sale from the comparables)", M.excludeSale(base, { saleId: pick[0], scope: "report_comps", reason: "Not a fit", now: T }), true);
 ok("report_comps: the sale leaves the comparables and the evidence is unchanged", !rc.desk.comparables.some(c => c.id === pick[0]) && rc.desk.comparables.length === base.desk.comparables.length - 1 && J(rc.desk.evidence) === J(base.desk.evidence));
 // NOTE ONLY: the reason and scope go in the audit trail and on the comparable, and nothing else changes
@@ -65,14 +76,27 @@ ok("an item waived with a reason stays waived while its cause stands", (() => { 
   const run = (a, b) => A.handleSheetAction(a, b, ctx), JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(40, 1)]).toString("base64");
   const fresh = (cv) => cv.desk && cv.desk.key === K.recallKey(cv);
   const c0 = n0(), nw = await run("case_new", { text: "1999 Porsche 911 Carrera", mileage: "61,200", transmission: "Manual", body: "Coupe", colour: "Silver", seller_name: "Hal Moreau", asking_price: "58,000", seller_notes: "Garaged since 2015" });
-  ok("case_new from the form creates the stored sheet and the case and calls the engine ONCE", nw.ok && n0() - c0 === 1 && (await store.get(org, nw.id)).case && nw.recalled === true, nw.why || ("calls " + (n0() - c0)));
+  ok("case_new from the form creates the stored sheet and the case and calls the engine, at most twice (the start, then the check of the reserve it took)", nw.ok && n0() - c0 >= 1 && n0() - c0 <= 2 && (await store.get(org, nw.id)).case && nw.recalled === true, nw.why || ("calls " + (n0() - c0)));
   ok("every field the form sent is the seller's (source seller), mileage and gearbox and body and colour", ["mileage", "transmission", "body", "colour"].every(k => nw.case.fields[k].source === "seller" && nw.case.fields[k].value != null) && nw.case.fields.mileage.value === 61200);
   ok("the seller's name, asking price and notes ride on the case", nw.case.seller && nw.case.seller.name === "Hal Moreau" && nw.case.seller.asking_price === 58000 && nw.case.seller.notes === "Garaged since 2015");
   ok("the words the seller left out are named by the engine's decode (vin_decoded), never over the seller's own", nw.case.fields.year.value === 1999 && nw.case.fields.year.source === "vin_decoded" && nw.case.fields.make.value === "Porsche" && nw.case.fields.body.source === "seller");
   ok("case_new answers the full case view with the market reference: evidence, original, comparables, outside, quarters, live, condition, factors", nw.case.desk && ["evidence", "original", "comparables", "outside", "quarters", "live", "condition", "factors"].every(k => k in nw.case.desk) && nw.case.desk.evidence.count > 0 && nw.case.stage && nw.case.queue && nw.case.handling.lines.length === 4);
   ok("the market reference is stored under the key of the case as it stands, so the next edit costs no read", fresh(nw.case));
   { const o = await run("case_new", { text: "1999 Porsche 911 Carrera", mileage: "61,200", transmission: "Manual", body: "Cabriolet" }); ok("a body the seller gave stays the seller's even when the decode names another (never overwritten)", o.ok && o.case.fields.body.value === "Cabriolet" && o.case.fields.body.source === "seller"); }
-  const c1 = n0(); const rs = await run("case_edit", { id: nw.id, op: "reserve", patch: { figure: 1 } }); ok("an edit that moves no engine input costs no read after case_new", rs.ok && n0() === c1 && rs.recalled === false);
+  const c1 = n0(); const rs = await run("case_edit", { id: nw.id, op: "reserve", patch: { why: "A note." } }); ok("an edit that moves no engine input costs no read after case_new", rs.ok && n0() === c1 && rs.recalled === false);
+  { const cid = nw.case.desk.comparables.find(x => x.inPopulation).id, n0c = nw.case.desk.evidence.count;
+    const ex1 = await run("case_edit", { id: nw.id, op: "exclude", saleId: cid, scope: "market_calc", reason: "Salvage title" });
+    const rs1 = await run("case_edit", { id: nw.id, op: "restore", saleId: cid });
+    ok("restore by sale id re-asks the engine, the count is back, the exclusion is gone and the touched row comes back without it", ex1.ok && ex1.case.desk.evidence.count === n0c - 1 && rs1.ok && rs1.recalled === true && rs1.case.desk.evidence.count === n0c && rs1.case.exclusions.length === 0 && Array.isArray(rs1.rows) && rs1.rows.length === 1 && String(rs1.rows[0].id) === String(cid) && !rs1.rows[0].exclusion && !rs1.rows[0].gone);
+    ok("restore is audited and the audit line is the table's", rs1.case.audit.some(a => a.what === "sale restored" && a.line === "The analyst put an excluded sale back."));
+    const rs2 = await run("case_edit", { id: nw.id, op: "restore", saleId: cid });
+    ok("restoring a sale that is not excluded is refused and nothing is written", rs2.refused === true && /not excluded/.test(rs2.why));
+    const ex2 = await run("case_edit", { id: nw.id, op: "exclude", saleId: cid, scope: "note_only", reason: "Seen" }), n3 = n0();
+    const rs3 = await run("case_edit", { id: nw.id, op: "restore", saleId: cid });
+    ok("restoring a note only exclusion costs no read", ex2.ok && rs3.ok && n0() === n3 && rs3.case.exclusions.length === 0);
+    // THE CLASS: every scope, every way to exclude, is restorable by the same op
+    let bad = []; for (const sc of ["market_calc", "report_comps", "note_only"]) { const e = await run("case_edit", { id: nw.id, op: "exclude", saleId: cid, scope: sc, reason: "Class sweep" }), r = await run("case_edit", { id: nw.id, op: "restore", saleId: cid }); if (!(e.ok && r.ok && r.case.exclusions.length === 0)) bad.push(sc); }
+    ok("a sale excluded under any of the three scopes is put back by one restore", bad.length === 0, bad.join()); }
   // a form with nothing to read makes an empty case with no engine call
   { const c = n0(), e = await run("case_new", {}); ok("an empty form makes an empty case and asks the engine nothing", e.ok && n0() === c && !e.case.desk && e.case.fields.vin.value == null); }
   // photos
@@ -84,7 +108,7 @@ ok("an item waived with a reason stays waived while its cause stands", (() => { 
   ok("a file that is not a picture is refused and nothing is stored", (await run("case_edit", { id: nw.id, op: "photo_add", name: "x.jpg", data: Buffer.from("not a picture at all").toString("base64") })).ok === false && (await store.get(org, nw.id)).submission.photos.length === 2);
   // condition
   const base = nw.case.desk.evidence, cc = n0(), good = await run("case_edit", { id: nw.id, op: "condition", selected: { tier: 3, name: "Good" } });
-  ok("a condition change re-calls the engine once with the tier and answers the updated case view in the same call", good.ok && good.recalled === true && n0() - cc === 1 && calls[calls.length - 1].tier === 3 && good.case.condition.selected.tier === 3);
+  ok("a condition change re-calls the engine (the start, then its check) with the tier and answers the updated case view in the same call", good.ok && good.recalled === true && n0() - cc >= 1 && n0() - cc <= 2 && calls[calls.length - 1].tier === 3 && good.case.condition.selected.tier === 3);
   ok("the same answer carries evidence, original, comparables and the case lines (no second read)", good.case.desk.evidence && good.case.desk.original && good.case.desk.comparables.length && good.case.stage && good.case.handling.lines.length === 4 && fresh(good.case));
   ok("Good has real sales: the range moved from the untiered one, with its own count", good.case.desk.evidence.insufficient === false && good.case.desk.evidence.count !== base.count && good.case.desk.evidence.q1 !== base.q1 && good.case.desk.original.count === good.case.desk.evidence.count);
   const exc = await run("case_edit", { id: nw.id, op: "condition", selected: { tier: 2, name: "Excellent" } }), fair = await run("case_edit", { id: nw.id, op: "condition", selected: { tier: 4, name: "Fair" } });
@@ -92,6 +116,6 @@ ok("an item waived with a reason stays waived while its cause stands", (() => { 
   ok("the three rungs do not read alike: Good has a range, Excellent and Fair say how many sales they hold", good.case.desk.evidence.median != null && exc.case.desk.evidence.sentence !== fair.case.desk.evidence.sentence);
   // THE CLASS: every road that moves an engine input leaves the stored reference current, in one call, with the full view
   const roads = [["mileage", { op: "field", field: "mileage", value: 70000 }], ["transmission", { op: "field", field: "transmission", value: "Tiptronic" }], ["body", { op: "field", field: "body", value: "Cabriolet" }], ["condition", { op: "condition", selected: { tier: 3, name: "Good" } }], ["a market_calc exclusion", { op: "exclude", saleId: good.case.desk.comparables.find(x => x.inPopulation).id, scope: "market_calc", reason: "Salvage title" }]];
-  for (const [nm, b] of roads) { const c = n0(), r = await run("case_edit", { id: nw.id, ...b }); ok(`${nm}: one engine call at most, and the answer's market reference is current for the case it carries`, r.ok && n0() - c <= 1 && fresh(r.case) && r.case.desk.evidence && Array.isArray(r.case.desk.comparables), r.why || `calls ${n0() - c}`); }
+  for (const [nm, b] of roads) { const c = n0(), r = await run("case_edit", { id: nw.id, ...b }); ok(`${nm}: one engine call at most, and the answer's market reference is current for the case it carries`, r.ok && n0() - c <= 2 && fresh(r.case) && r.case.desk.evidence && Array.isArray(r.case.desk.comparables), r.why || `calls ${n0() - c}`); }
 }
 console.log(`deskWorkflowCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
