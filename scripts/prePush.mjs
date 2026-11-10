@@ -2615,6 +2615,12 @@ try {
   record("Desk item 2: the one sheet read call carries Market Check's figures for twenty cars (count, range, window, splits, tier pool, starting figure), reads a VIN's car, returns null for a car it cannot read (scripts/sheetReadCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/deskWindowCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Desk v4 stage 1: desk.evidence.byWindow for 6, 12 and 24 months holds exactly the dated sales on or after each cutoff, the chosen window (default 12) is desk.evidence and market.meter, an insufficient window has a sentence and no number; twelve mutants (scripts/deskWindowCheck.mjs)", "PASS", (out.match(/deskWindowCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 1: desk.evidence.byWindow for 6, 12 and 24 months holds exactly the dated sales on or after each cutoff, the chosen window (default 12) is desk.evidence and market.meter, an insufficient window has a sentence and no number; twelve mutants (scripts/deskWindowCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/deskEvidenceCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk v3 stage 1: desk.evidence (as of date, count, median, quartiles, range, latest sale, stale flag) equals the meter for every Desk model; an insufficient population carries a sentence and no number; the stale flag flips at the threshold; eight mutants (scripts/deskEvidenceCheck.mjs)", "PASS", (out.match(/deskEvidenceCheck: .*/) || [""])[0]);
 } catch (e) {
