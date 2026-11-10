@@ -56,6 +56,9 @@ async function scenario(name, W, expect) {
 // MARKET CHECK AND SELL ENTRY PAGES with Lane B's real example readers (lib/live/marketCheckExamples.js) over the stand-in world of scripts/_mcExamplesWorld.mjs, through the real api/crewPage.js (Lane B, Nov 8 2026): the section is drawn from the real field at 1440 and 390, a stranger gets the 404, and the kill switch leaves no section.
 { const { load: loadMc } = await import(pathToFileURL(path.join(root, "scripts/_mcExamplesWorld.mjs")).href), X = await loadMc(root), cookie = X.CREW.headers.cookie;
   const mc = X.world(X.ALLMC(X.pool(14))), sl = X.world({}, X.ALLSELL(X.places(3)));
+  // THE FINAL ENTRY-PAGE READERS (Lane B, Nov 9 2026): the Market Check card and the Sell card run for real over the stand-in world, and the page's crew gate gives a stranger nothing (the sections themselves are Lane E's)
+  { const mcc = await X.MX.marketCheckExample(X.env, X.CREW, X.world(X.ALLMC(X.pool(14))).d), scc = await X.MX.sellExampleCard(X.env, X.CREW, X.world({}, {}, X.D1, Object.fromEntries(X.EE.SELL_CANDIDATES.map(t => [t, X.block()]))).d), none = await X.MX.sellExampleCard(X.env, X.NOCREW, X.world({}, {}, X.D1, {}).d);
+    ok(!!(mcc && mcc.range && mcc.recentSale && mcc.resultUrl && scc && scc.platformPick && scc.reserve && scc.resultUrl) && none === null, "Lane B's marketCheckExample and sellExampleCard answer over the stand-in world and give a visitor without the crew cookie nothing"); }
   crewPage.MC_EXAMPLES.read = () => X.MX.marketCheckExampleResult(X.env, X.CREW, mc.d); crewPage.SELL_EXAMPLE.read = () => X.MX.sellExample(X.env, X.CREW, sl.d);
   const m = await call("/api/crewPage?page=preview-market-check", cookie), se = await call("/api/crewPage?page=preview-sell", cookie), st = await call("/api/crewPage?page=preview-market-check", null);
   ok(m.code === 200 && se.code === 200 && st.code === 404, "Market Check and Sell entry: crew gets both pages, a stranger gets the 404");

@@ -985,6 +985,27 @@ try {
 } catch (e) {
   record("Sell example in Lane E's shape: the reader accepts it, every number traces to the Sell answer, sentences from the reason table, fewer than two cars hides the section, the kill switch; nine mutants (scripts/sellExampleCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// mcExampleCheck (Lane B, Nov 9 2026): the Market Check entry card (range, count, period and recent sale from one engine answer, the sale inside the pool, no narrowing, the most focused range preferred); eleven mutants.
+try {
+  const out = execSync("node scripts/mcExampleCheck.mjs", { encoding: "utf8", timeout: 250000 });
+  record("Market Check entry card: one engine answer, recent sale inside the pool, no narrowing; eleven mutants (scripts/mcExampleCheck.mjs)", /, 0 FAIL/.test(out), (out.match(/mcExampleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Market Check entry card: one engine answer, recent sale inside the pool, no narrowing; eleven mutants (scripts/mcExampleCheck.mjs)", false, String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+// findIntelCheck (Lane B, Nov 9 2026): the Find cards' intelligence line (sold_before only with a recorded sale, listed_before never with a price, market_range equals the engine's band, no invented line, cars only); eleven mutants.
+try {
+  const out = execSync("node scripts/findIntelCheck.mjs", { encoding: "utf8", timeout: 250000 });
+  record("Find card intelligence: sold before, market range, listed before, none; cars only; eleven mutants (scripts/findIntelCheck.mjs)", /, 0 FAIL/.test(out), (out.match(/findIntelCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find card intelligence: sold before, market range, listed before, none; cars only; eleven mutants (scripts/findIntelCheck.mjs)", false, String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+// functionBundleCheck (Lane B, Nov 9 2026): every file a module loaded by a variable path needs (api/crewPage.js readers, api/pullLive.js run) is reached by a literal import or copied by includeFiles; the Sell example was empty because three files were in no bundle.
+try {
+  const out = execSync("node scripts/functionBundleCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Function bundles: every file a variable-path module needs ships with its function; four mutants (scripts/functionBundleCheck.mjs)", /, 0 FAIL/.test(out), (out.match(/functionBundleCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Function bundles: every file a variable-path module needs ships with its function; four mutants (scripts/functionBundleCheck.mjs)", false, String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
+}
 // entryExamplesCheck (Lane B, Nov 8 2026): marketCheckExampleSales (three real sales of one model that show mileage moving the price) and sellExample (one model's record by venue from the Sell engine): daily pick, crew gate, never invented.
 try {
   const out = execSync("node scripts/entryExamplesCheck.mjs", { encoding: "utf8", timeout: 280000 });
@@ -2633,6 +2654,12 @@ try {
   record("Desk v3 stage 1: the case record (one source per field, asked once, mileage in one place, photos append only, needs review and exclusions carry reasons) (scripts/deskCaseCheck.mjs)", "PASS", (out.match(/deskCaseCheck: .*/) || [""])[0]);
 } catch (e) {
   record("Desk v3 stage 1: the case record (scripts/deskCaseCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  const out = execSync("node scripts/deskRungsCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("Desk v3 condition rungs: the engine's count and range per rung for a demonstration car, read only (scripts/deskRungsCheck.mjs)", "PASS", (out.match(/deskRungsCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v3 condition rungs (scripts/deskRungsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
   const out = execSync("node scripts/deskShapesCheck.mjs", { encoding: "utf8", timeout: 60000 });

@@ -75,7 +75,7 @@ let sid = 0;
 const sale = (o = {}) => ({ id: 7000 + sid, source_slug: ["bringatrailer", "carsandbids", "pcarmarket"][sid % 3], mileage: 40000 + sid, vin_norm: "WP0SALE" + String(sid).padStart(10, "0"), sale_date: "2026-10-" + String(28 - (sid % 20)).padStart(2, "0"), transmission: "Manual", exterior_color: "Red", body_style: "Coupe", platform: ["Bring a Trailer", "Cars & Bids", "PCarMarket"][sid % 3], listing_title: `${1990 + sid} Porsche 911 Carrera`, year: 1990 + sid, make: "Porsche", model: "911", sale_price_usd: 100000 + 1000 * (sid++), img: "https://img.test/p" + sid + ".jpg", url: "https://auction.test/s" + sid, ...o });
 function world(rows, sales = []) {
   const w = { store: new Map(), rows, sales, clock: NOW, ownSale: null };
-  w.d = { now: () => w.clock, head: async () => ({ status: 200, bytes: 1000, type: "image/jpeg" }),  market: async () => w.market === undefined ? { kind: "range", low: 55000, high: 78000, count: 24, query: "2003 Porsche 911", basisLine: "Based on 24 sales, the latest in October 2026.", soldLine: "Cars like this sold for $55,000 to $78,000." } : w.market,
+  w.d = { now: () => w.clock, answer: async () => null, head: async () => ({ status: 200, bytes: 1000, type: "image/jpeg" }),  market: async () => w.market === undefined ? { kind: "range", low: 55000, high: 78000, count: 24, query: "2003 Porsche 911", basisLine: "Based on 24 sales, the latest in October 2026.", soldLine: "Cars like this sold for $55,000 to $78,000." } : w.market,
     select: async (e, q) => { let m = /^app_config\?key=eq\.([a-z_]+)/.exec(q); if (m) { const v = w.store.get(m[1]); return v ? [{ value: v }] : []; }
       m = /live_listings\?id=eq\.([^&]+)/.exec(q); if (m) return w.rows.filter(r => String(r.id) === decodeURIComponent(m[1])).slice(0, 1);
       if (/^live_listings\?status=eq\.live/.test(q)) return w.rows.filter(r => r.status === "live" && r.photo_url && Date.parse(r.end_time) > w.clock);
@@ -98,7 +98,7 @@ const live3 = () => [car({ id: 1, make: "Ferrari", model: "F430", listing_title:
 {
   const W = world(live3(), [sale(), sale(), sale(), sale()]); await FE.refreshFindExamples(env, W.d);
   const three = await FE.findExamplesField(env, CREW, W.d);
-  ok("(1) three live cars: the plain list of { card }", Array.isArray(three) && three.length === 3 && three.every(i => Object.keys(i).join() === "card"), JSON.stringify(three && three.map(i => i.card && i.card.title)));
+  ok("(1) three live cars: the plain list of { card }", Array.isArray(three) && three.length === 3 && three.every(i => Object.keys(i).join() === "card,intelligence,venue,timing"), JSON.stringify(three && three.map(i => i.card && i.card.title)));
   ok("(4) each live card carries the bid badge, the platform tag, the pills and the SAM block lines, a photo and a link", three.every(i => printsAll(i.card) && bidBadge(i.card)), JSON.stringify(three.map(i => [!!printsAll(i.card), !!bidBadge(i.card)])));
   ok("(1) a live card has no sold line and an end in the future", three.every(i => !i.card.sold && Date.parse(i.card.end_time) > NOW));
   W.rows = W.rows.slice(0, 1); const mix = await FE.findExamplesField(env, CREW, W.d);

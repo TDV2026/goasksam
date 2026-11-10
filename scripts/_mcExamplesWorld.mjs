@@ -22,16 +22,24 @@ export async function load(ROOT) {
       latestSaleLine: "Latest sale: October 2026.", basisLine: "Based on " + cards.length + " sales over the last 36 months.", countLine: cards.length + " sales", updatedLine: "Updated Nov 8, 2026.",
       chart: { type: "candles", size: "quarter", buckets: [{ label: "Q3 2026", low: lo, high: hi, count: cards.length }] }, rawPool: cards.map(c => ({ id: c.id })), timings: { x: 1 } }; };
   W.places = (n = 3) => ({ cohort_name: "2008 Porsche 911", window_label: "in the last 24 months", places: [{ name: "Bring a Trailer", house: false, sales: 9, most_sold_between: [60000, 80000] }, { name: "Cars & Bids", house: false, sales: 5, most_sold_between: null }, { name: "RM Sotheby's", house: true, sales: n, most_sold_between: null }] });
-  W.world = (poolsByText, placesByText, now = W.D1) => {
+  W.world = (poolsByText, placesByText, now = W.D1, blocksByText = {}) => {
     W.EE.resetRetryGuard(); W.MX.resetRecheck();
     const w = { store: new Map(), clock: now, asked: [], heads: {} };
     w.d = { now: () => w.clock, head: async u => (u in w.heads ? w.heads[u] : { status: 200, bytes: 1000, type: "image/jpeg" }),
       select: async (e, q) => { const m = /^app_config\?key=eq\.([a-z_]+)/.exec(q); if (m) { const v = w.store.get(m[1]); return v ? [{ value: v }] : []; } return []; },
       write: async (e, row) => { w.store.set(row.key, row.value); },
       answer: async (e, text) => { w.asked.push(text); const p = poolsByText[text]; return p ? (Array.isArray(p) ? W.engineAnswer(p) : p) : null; },
-      places: async (e, text) => { w.asked.push(text); return placesByText[text] || null; } };
+      places: async (e, text) => { w.asked.push(text); return placesByText[text] || null; },
+      sellBlock: async (e, text) => { w.asked.push(text); const b = blocksByText[text]; if (b instanceof Error) throw b; return b || null; } };
     return w;
   };
+  // the Sell engine's block for a car as buildBlock returns it: places (cohort, by_day, reserve_split, pool_years), recent sales, the online pick. The numbers are the fixture's own (it plays the engine).
+  W.block = (o = {}) => ({ first: { refusal: null, question: null, noRange: null }, builtAt: "2026-11-09T00:00:00Z",
+    places: { cohort_name: "2008 Porsche 911", total: 14, window_label: "in the last 24 months", pool_years: [2008, 2008], places: [], others: [],
+      by_day: { total: 14, dated: 14, undated: 0, days: [{ day: "Wednesday", count: 5 }, { day: "Friday", count: 4 }, { day: "Monday", count: 3 }, { day: "Sunday", count: 2 }], top: { day: "Wednesday", count: 5 }, tied: null, other: { count: 9 } },
+      reserve_split: { winner: "reserve", a: { side: "no_reserve", n: 6, median: 61000 }, b: { side: "reserve", n: 8, median: 66000 }, n: 14, gap_pct: 8, scope_label: "2008 911", window: {} } },
+    recent: [{ title: "2008 Porsche 911", date: "2026-10-01", price: 70000, house: "Bring a Trailer", photo: "https://img.test/s1.jpg" }, { title: "2008 Porsche 911", date: "2026-09-01", price: 65000, house: "Cars & Bids", photo: "https://img.test/s2.jpg" }], extraPhoto: { photo: "https://img.test/s3.jpg", title: "x" },
+    pickOnline: { mode: "online", platform: "bringatrailer", platformDisplay: "Bring a Trailer", evidenceSales: 11, thin: false, byPlatform: { bringatrailer: { evidenceSales: 11, medianHammer: 66000 }, carsandbids: { evidenceSales: 3, medianHammer: 60000 } } }, ...o });
   W.ALLMC = c => Object.fromEntries(W.EE.MC_CANDIDATES.map(t => [t, c]));
   W.ALLSELL = c => Object.fromEntries(W.EE.SELL_CANDIDATES.map(t => [t, c]));
   return W;

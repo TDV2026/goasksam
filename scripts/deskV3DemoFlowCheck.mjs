@@ -34,6 +34,7 @@ async function flow(mut = x => x, log = false) {
   note(JSON.stringify({ car: sm.car, spec: sm.spec, big: sm.big, mline: sm.mline }));
   if (!/2001 BMW M3/.test(sm.car || "")) bad.push("the case header is not the car entered: " + sm.car);
   if (!/72,100/.test(sm.spec + sm.vehicle)) bad.push("the mileage did not reach the case"); if (!/Silver/.test(sm.vehicle)) bad.push("the colour did not reach the case"); if (!/Manual/.test(sm.vehicle)) bad.push("the transmission did not reach the case");
+  { const head = await p.evaluate(() => (document.getElementById("chd") || {}).innerText || ""); if (!/Hal Moreau/.test(head)) bad.push("the seller name did not reach the case header (Lane D's case_new takes seller_name)"); }
   if (!/^Market: typical \$[\d,]+ to \$[\d,]+ · \d+ sales/.test(sm.mline || "")) bad.push("the engine's market line is not in the summary of the new case: " + sm.mline);
   if (!/^\$[\d,]+$/.test(sm.big || "")) bad.push("the Valuation did not start at the engine's median: " + sm.big);
   // 2. photos: both appear as real images, the first is the cover and the header photo

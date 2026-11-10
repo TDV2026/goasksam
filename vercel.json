@@ -210,7 +210,7 @@
     },
     "api/crewPage.js": {
       "maxDuration": 60,
-      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,public/onebox.html,public/styles.css,public/js/onebox.js}"
+      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,lib/sell/sellFacts.js,lib/sell/sellBlock.js,lib/platformPick.js,lib/specializationShare.js,lib/houseCalendar.js,lib/specPages.js,public/onebox.html,public/styles.css,public/js/onebox.js}"
     },
     "api/publicConfig.js": {
       "includeFiles": "public/onebox.html"

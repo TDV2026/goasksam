@@ -1047,6 +1047,16 @@ async function handleOps(req, res) {
   // (lib/live/deskExample.js, three year-pinned Porsche 911 generations through the shared engine) and
   // writes it to spec_market_cache, so the page shows it immediately instead of waiting for the nightly
   // run (docs/nightly-workflow.yml). Zero writes beyond that one cache row.
+  // task=deskrungs: READ-ONLY (Lane D, Nov 9 2026). The engine's own sheet read for one car at each condition rung: the count and range per rung, or its too-few-sales sentence. Stores nothing, sequential (one read at a time, at most four rungs).
+  //   ?view=ops&task=deskrungs&year=1999&make=Porsche&model=911&mileage=61200&transmission=Manual&body=Coupe&tiers=2|3|4
+  if (task === "deskrungs") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { rungsOf } = await import("../lib/desk/rungs.js"), { sheetRead } = await import("../lib/sheetRead.js");
+    const q = req.query || {}, t0 = Date.now();
+    const d = await rungsOf(input => sheetRead(env, input), { year: q.year, make: q.make, model: q.model, mileage: q.mileage, transmission: q.transmission, body: q.body }, String(q.tiers || "2|3|4").split("|").map(Number));
+    return res.status(200).json({ task: "deskrungs", ms: Date.now() - t0, ...d });
+  }
+
   if (task === "deskexample") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { deskExample } = await import("../lib/live/deskExample.js");
@@ -1581,6 +1591,20 @@ async function handleOps(req, res) {
       if (rows.length < 1000) break;
     }
     return res.status(200).json({ task: "storedcount", ocdSpend: 0, writes: 0, ...counts, ms: Date.now() - t0 });
+  }
+  // task=storedwide (Lane B, Nov 9 2026; READ-ONLY, zero OldCarsData, zero writes): the stored Market Check rows by the cause their wide line names (market.raw.wideCause), counted with exact counts (no row bodies), and the keys of the rows whose
+  // wide line names modified cars (mods) or a year span (year): those are the rows that gain the Modified and Original or the year pills only when they are computed again (the warm list). Two small key reads (up to 500 keys each, light columns); counts are HEAD reads.
+  if (task === "storedwide") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const t0 = Date.now(), H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const cq = async f => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/spec_market_cache?spec_key=like.MCWARM%3A*${f}&select=spec_key&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const out = { task: "storedwide", ocdSpend: 0, writes: 0, rows: await cq(""), results: await cq("&market-%3Eraw-%3E%3Etier=eq.result"), byCause: {}, keys: {} };
+    for (const c of ["mods", "year", "mileage", "period", "none"]) out.byCause[c] = await cq("&market-%3Eraw-%3E%3EwideCause=eq." + c);
+    for (const c of ["mods", "year"]) {
+      const rows = await supabaseSelect(env, `spec_market_cache?spec_key=like.MCWARM%3A*&market-%3Eraw-%3E%3EwideCause=eq.${c}&select=spec_key&order=spec_key.asc&limit=500`);
+      out.keys[c] = Array.isArray(rows) ? rows.map(r => String(r.spec_key).replace(/^MCWARM:/, "")) : { readFailed: true };
+    }
+    return res.status(200).json({ ...out, ms: Date.now() - t0 });
   }
   // task=storedquestions (Lane B, Oct 30 2026; READ-ONLY, zero OldCarsData, zero writes): the stored Market Check rows the reader now treats as no row because a question rule may have overtaken them (lib/onebox.js storedMayNowAsk): result or thin rows with NO YEAR
   // and without the current questionRulesTag. Counted by whether the make and model have two or more generations in the table (the generation question), with the examples. Paged by after (spec key).
