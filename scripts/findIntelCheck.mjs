@@ -25,12 +25,16 @@ if (args.includes("--mutants")) {
     ["lib/_classify.js", "|rv\\s?\\d{2,3})(?:[a-z]{1,2}\\d?)?\\b/i]", "|rv\\s?\\d{2,3})\\b/i]", "(8) a Suzuki bike code with a letter suffix passes the fence"],
     ["lib/_classify.js", "|ce\\s?0?4)(?:[a-z]{1,2}\\d?)?\\b/i]", "|ce\\s?0?4)\\b/i]", "(8) a BMW bike code with a letter suffix passes the fence"],
     [FE, " || isMotorcycleTitle(`${make} ${model}`, make)", "", "(8) the model the record files is not read"],
-    [FE, " || BIKE_DESC_RE.test(String(row.description || \"\").slice(0, 400))", "", "(8) the description is not read"],
+    [FE, "BIKE_DESC_RES.some(re => re.test(String(row.description || \"\").slice(0, 400)))", "false", "(8) the description is not read"],
+    [FE, "if (byMake && byMake !== \"car\") return byMake;", "", "(8) the record's make is not typed"],
+    [FE, "/\\bthe\\s+(?:motorcycle|scooter|bike)\\s+(?:is|was|has|features|runs|shows|now)\\b/i, ", "/motorcycle/i, ", "(8) any mention of a motorcycle in the description makes a motorcycle"],
     [FE, "if (row.vehicle_type && row.vehicle_type !== \"car\") return String(row.vehicle_type);", "", "(8) the record's own type is not read"],
     [FE, "if (!have) { const r = await intelWithWhy", "if (false) { const r = await intelWithWhy", "(9) a stored pick without the field is not given it"],
     [FE, "st.pickDate !== dateKey || force;", "st.pickDate !== dateKey;", "(9) force does not build again"],
     [FE, "if (funnel.noIntel.length) console.error(", "if (false) console.error(", "(9) a card with none does not say why"],
     [FE, "intel: intelShape(c.intel), why:", "why:", "(9) the daily build does not write intelligence"],
+    [FE, "      await settle();\n      const spare", "      const spare0 = 0;\n      const spare", "(10) the chosen cards are not read before the candidates"],
+    [FE, "      await settle();\n      const spare = Math.max(0, MAX_ENGINE_READS - engineReads);", "      await readBand(order.filter(c => needs(c)).slice(0, MAX_ENGINE_READS)); await settle();\n      const spare = Math.max(0, MAX_ENGINE_READS - engineReads);", "(10) the candidates are read first, the cap spent on them, then the chosen"],
     [FE, "(INTEL_RANK[(c.intel && c.intel.kind) || \"none\"] || 0)", "0", "(6) a card with intelligence is not preferred"],
     [FE, "venue: houseName(row.source), timing: reasonLine(\"find.timing\", { ms: left })", "venue: \"\", timing: \"\"", "(6) venue and timing are not from the record"],
     [RW, "`Market range \\u00b7 ${moneyK(p.lo)} to ${moneyK(p.hi)}`", "`Market range \\u00b7 ${money(p.lo)} to ${money(p.hi)}`", "(3) the band is not in the k form"]
@@ -130,7 +134,7 @@ const byTitle = items => Object.fromEntries(items.map(i => [i.title, i]));
   ok("(8) every bike code of Honda, Suzuki and BMW is a motorcycle with or without the maker's letter suffix", slipped.length === 0, slipped.slice(0, 6).join(" | "));
   const stay = [["1967 Honda S800", "Honda"], ["1969 Honda N600", "Honda"], ["1992 Honda NSX", "Honda"], ["2001 Honda S2000", "Honda"], ["1974 Triumph TR6", "Triumph"], ["1962 Triumph TR4", "Triumph"], ["1972 BMW 2002tii", "BMW"], ["2001 BMW Z3 M Coupe", "BMW"], ["1988 BMW M3 E30", "BMW"], ["1989 Suzuki Cappuccino", "Suzuki"], ["1987 Suzuki Samurai", "Suzuki"]];
   ok("(8) cars with a bike-like name stay cars", stay.every(([t, mk]) => !moto(t, mk)), JSON.stringify(stay.filter(([t, mk]) => moto(t, mk))));
-  const mini = car("Honda", "CT70H Trail", 1970, { title: "1970 Honda CT70H Trail" }), byModel = car("Honda", "CT70H", 1971, { title: "1971 Honda Trail" }), byDesc = car("Honda", "Sport", 1969, { title: "1969 Honda Sport", more: { description: "This original minibike has 3,100 miles and a new chain." } }), byType = car("Yamaha", "DT250", 1975, { title: "1975 Yamaha DT250 Enduro", more: { vehicle_type: "motorcycle" } }), real = car("Honda", "S800", 1967, { title: "1967 Honda S800 Coupe" });
+  const mini = car("Honda", "CT70H Trail", 1970, { title: "1970 Honda CT70H Trail" }), byModel = car("Honda", "CT70H", 1971, { title: "1971 Honda Trail" }), byDesc = car("Honda", "Sport", 1969, { title: "1969 Honda Sport", more: { description: "This original minibike has 3,100 miles and a new chain." } }), byType = car("Ford", "Pit Racer", 1975, { title: "1975 Ford Pit Racer", more: { vehicle_type: "motorcycle" } }), real = car("Honda", "S800", 1967, { title: "1967 Honda S800 Coupe" });
   ok("(8) the record's whole text is read: title, the model the record files, the opening of the description, the record's own type", [mini, byModel, byDesc, byType].every(r => FE.vehicleKindOf(r) !== "car" && !FE.isCarRow(r)) && FE.vehicleKindOf(real) === "car", JSON.stringify([mini, byModel, byDesc, byType, real].map(r => FE.vehicleKindOf(r))));
   const vB = "VINBIKE00000000010", pool = [mini, byModel, byDesc, byType, car("Porsche", "911", 1995, { source: "bringatrailer" }), car("BMW", "M3", 2006, { source: "carsandbids" }), car("Ferrari", "F430", 2007, { source: "rmsothebys" })];
   for (const r of pool.slice(0, 4)) r.vin_norm = vB + r.id;
@@ -139,6 +143,10 @@ const byTitle = items => Object.fromEntries(items.map(i => [i.title, i]));
   ok("(8) four bike records with a recorded sale each are never chosen: the pool gives its three cars", items && items.length === 3 && items.every(i => /Porsche|BMW|Ferrari/.test(i.title)), JSON.stringify(items && items.map(i => i.title)));
   const r2 = world([...pool.slice(0, 4)]), res2 = await FE.refreshFindExamples(env, r2.d);
   ok("(8) a pool of bikes alone gives no card", res2.stored === null && (res2.funnel ? res2.funnel.eligible === 0 : true), JSON.stringify(res2.why));
+}
+{ // (8b) the rest of the class, from the live pool of Nov 10 2026: a pure motorcycle marque (Ducati, Vespa, Yamaha) is typed by its make like the archive does; a car whose history names a motorcycle rider stays a car; a boat is not a car
+  const duc = car("Ducati", "Supersport", 1978, { title: "1978 Ducati 900 Super Sport" }), ves = car("Vespa", "Primavera 150", 2020, { title: "2020 Piaggio Vespa Primavera 150 Edition" }), yam = car("Yamaha", "XS", 1977, { title: "1977 Yamaha XS400" }), boat = car("Comitti", "Venezia 28", 2024, { title: "2024 Comitti Venezia 28 Classic Teak", more: { description: "This 2024 Comitti Venezia is a fiberglass-hulled 28 foot runabout powered by a MerCruiser V8." } }), playboy = car("Playboy", "A-48", 1948, { title: "1948 Playboy A-48", more: { description: "The Playboy was a tiny three-passenger runabout with a folding hardtop." } }), bmw = car("BMW", "328", 1939, { title: "1939 BMW 328 Roadster", more: { description: "At the 1936 Eifelrennen, Works motorcycle racer Ernst Henne powered to victory in the 2.0-litre class." } }), janus = car("Zündapp", "Janus 250", 1958, { title: "1958 Zündapp Janus 250" });
+  ok("(8) a pure motorcycle marque, a scooter marque and a boat are not cars; a car whose history names a motorcycle rider, and a microcar from a bike maker, are", [duc, ves, yam, boat].every(r => !FE.isCarRow(r)) && FE.isCarRow(bmw) && FE.isCarRow(janus) && FE.isCarRow(playboy), JSON.stringify([duc, ves, yam, boat, bmw, janus].map(r => FE.vehicleKindOf(r))));
 }
 { // (9) the daily build writes intelligence, and a stored pick from before it did gets it at the next build; a card with none says why
   const vS = "VINSOLD0000000011", rows = [car("Porsche", "911", 1995, { vin: vS, source: "bringatrailer" }), car("BMW", "M3", 2006, { vin: null, source: "carsandbids" }), car("Ferrari", "F430", 2007, { vin: null, source: "rmsothebys" })];
@@ -160,6 +168,28 @@ const byTitle = items => Object.fromEntries(items.map(i => [i.title, i]));
   ok("(9) force reads the pool and writes intelligence again", forced2.why === "picked" && forced2.funnel.live >= 3 && forced2.stored.entries.every(e => e.intel), forced2.why);
   process.env.FIND_EXAMPLES = "0"; const off = await FE.refreshFindExamples(env, { ...W.d, force: true }); delete process.env.FIND_EXAMPLES;
   ok("(9) force does not pass the kill switch", off.why === "off");
+}
+{ // (10) THE ORDER OF THE READS: the chosen cards are read first, the cap of 12 is spent on the other candidates after, and no chosen card misses its row because the cap ran out on candidates
+  const mk = (i, src) => car(["Porsche", "BMW", "Ferrari", "Audi", "Mazda", "Nissan", "Toyota", "Honda", "Ford", "Dodge", "Chevrolet", "Jaguar", "Lotus", "Datsun", "Volvo", "Saab", "Fiat", "Alfa Romeo"][i], "M" + i, 1960 + (i * 3) % 50, { source: src, vin: null, h: 400 });
+  const rows = [...Array.from({ length: 14 }, (_, i) => mk(i, "bringatrailer")), mk(14, "carsandbids"), mk(15, "rmsothebys"), mk(16, "pcarmarket"), mk(17, "hemmings")];
+  const answers = Object.fromEntries(rows.map((r, i) => [FE.titleOf(r), answerOf(20000 + i * 1000, 30000 + i * 1000)]));
+  let bad = [], firstOk = true, capOk = true;
+  for (let day = 0; day < 8; day++) {
+    const W = world(rows, { answers }); W.clock = NOW0 + day * 86400e3; await FE.refreshFindExamples(env, W.d);
+    const entries = W.store.get(FE.STORE_KEY).entries, chosenTitles = entries.map(e => FE.titleOf(rows.find(r => r.id === e.listingId)));
+    if (!entries.every(e => e.intel && e.intel.kind === "market_range")) bad.push(day);
+    if (!W.asked.slice(0, 3).every(t => chosenTitles.includes(t)) && W.asked.slice(0, 3).some(t => !chosenTitles.includes(t)) && !chosenTitles.every(t => W.asked.slice(0, 12).includes(t))) firstOk = false;
+    if (W.asked.length > 12 + 3) capOk = false;
+  }
+  ok("(10) over eight days every chosen card carries its market range, with 18 candidates and the cap of 12", bad.length === 0, "days without: " + bad.join(","));
+  ok("(10) the first engine reads are the chosen cards", firstOk);
+  ok("(10) the cap of 12 stands: the reads never pass it by more than the chosen cards", capOk);
+  // a world where the cap is the only thing between a chosen card and its row: 3 platforms only the last three candidates (hash order) can fill the slots
+  const only3 = [mk(0, "bringatrailer"), ...Array.from({ length: 13 }, (_, i) => mk(i + 1, "bringatrailer")), mk(14, "carsandbids"), mk(15, "rmsothebys")];
+  const W2 = world(only3, { answers: Object.fromEntries(only3.map((r, i) => [FE.titleOf(r), answerOf(20000 + i * 1000, 30000 + i * 1000)])) });
+  await FE.refreshFindExamples(env, W2.d); const e2 = W2.store.get(FE.STORE_KEY).entries;
+  ok("(10) of 16 candidates and a cap of 12 the three chosen each carry their row", e2.length === 3 && e2.every(e => e.intel.kind === "market_range"), JSON.stringify(e2.map(e => e.intel.kind)));
+  ok("(10) the three chosen cards are the first three asked", W2.asked.slice(0, 3).every(t => e2.some(e => FE.titleOf(only3.find(r => r.id === e.listingId)) === t)), JSON.stringify(W2.asked.slice(0, 4)));
 }
 ok("(7) zero requests left the fake database", ocdCalls === 0, String(ocdCalls));
 console.log(`\nfindIntelCheck: ${n - failed} pass, ${failed} FAIL`); process.exit(failed ? 1 : 0);
