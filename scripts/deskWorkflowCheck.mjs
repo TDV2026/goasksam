@@ -56,7 +56,7 @@ await recall("a note_only exclusion", noteCase, false);
   ok("note_only: the exclusion is on the case with its scope, reason and time", noteCase.exclusions.length === 1 && noteCase.exclusions[0].scope === "note_only" && noteCase.exclusions[0].reason && noteCase.exclusions[0].at);
   const V = await import(pathToFileURL(path.join(root, "lib/desk/caseView.js")).href), vw = V.caseView({ id: "n", created_at: T, submission: { typed: true, photos: [], documents: [] }, case: noteCase }, [], T).desk.comparables;
   ok("note_only: the note rides on that comparable and on no other, which is still listed", vw.find(c => c.id === pick[0]).exclusion.scope === "note_only" && vw.filter(c => c.exclusion).length === 1 && vw.length === base.desk.comparables.length);
-  ok("note_only: the report's selected comparable is not dropped, readiness is unchanged", K.readinessOf(K.selectComparables(noteCase, [pick[0]], T)).blockers.every(b => b.key !== "comparable")); }
+  ok("note_only: the report's selected comparable is not dropped, readiness is unchanged", K.readinessOf(K.selectComparables(noteCase, pick.slice(0, 2), T)).blockers.every(b => b.key !== "comparable")); }
 { const sel = K.selectComparables(base, [pick[0]], T), gone = (await K.refreshEvidence(M.excludeSale(sel, { saleId: pick[0], scope: "report_comps", reason: "Not a fit", now: T }), read, { caseDate: today, now: T })).case;
   ok("report_comps: a selected comparable the engine no longer lists does not count as selected", K.readinessOf(gone).blockers.some(b => b.key === "comparable")); }
 // a retry or failed read never replaces a good one

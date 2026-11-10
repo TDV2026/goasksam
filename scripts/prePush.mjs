@@ -2760,6 +2760,12 @@ try {
   record("Desk v4 stage 1 reserve (scripts/deskReserveFlowCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/reportConsistencyCheck.mjs", { encoding: "utf8", timeout: 250000 });
+  record("Desk v4 stage 4: the report cannot contradict itself, 576 case states against the four panel checks (scripts/reportConsistencyCheck.mjs)", "PASS", (out.match(/reportConsistencyCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 4 report consistency (scripts/reportConsistencyCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/deskNextStepsCheck.mjs", { encoding: "utf8", timeout: 200000 });
   record("Desk v4 stage 3: next steps are the case's own list, seeded through reasonWords, edited, removed, added and reordered by step key, printed as written (scripts/deskNextStepsCheck.mjs)", "PASS", (out.match(/deskNextStepsCheck: .*/) || [""])[0]);
 } catch (e) {
