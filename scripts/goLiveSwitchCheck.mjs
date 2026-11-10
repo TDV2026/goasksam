@@ -18,6 +18,7 @@ if (args.includes("--mutants")) {
     ["the cache header is dropped", "lib/_newDesign.js", "for (const k of Object.keys(cap.h)) { if (k === \"content-length\" ||", "for (const k of Object.keys(cap.h)) { if (k === \"cache-control\" || k === \"content-length\" ||"],
     ["any cookie counts as crew", "lib/_newDesign.js", "isCrewRequest(req) === true", "true"],
     ["a POST is switched", "lib/_newDesign.js", "if (m !== \"GET\" && m !== \"HEAD\") return { new: false };", ""],
+    ["a Find search is swapped for the landing", "api/buy.js", 'return [...q.keys()].length ? null : "find";', 'return "find";'],
     ["the switch ignores the route list", "lib/_newDesign.js", "return v.split(/[\\s,]+/).filter(k => ROUTES.includes(k));", "return ROUTES.slice();"]
   ];
   let bad = 0;
@@ -88,6 +89,11 @@ for (const [name, url, f] of [["home", "/", "home"], ["find", "/find", "buy"], [
   ok(A.code === 302 ? (B.code === 302 && B.h.location === A.h.location && !("x-design" in B.h)) : B.code === A.code, `ON, launch stage 1, ${name}: the redirect (${A.code} to ${A.h.location || "none"}) is replayed untouched`);
 }
 process.env.LAUNCH_STAGE = "2";
+// 2c. Find results: a search is never swapped for the landing (the search box of the new Find sends people to /find?q=, the same route)
+{
+  const h = await mod(ROOT, "buy");
+  for (const url of ["/find?q=porsche+911", "/find?q=1995+bmw+m3&sort=near", "/find?part=landing"]) { delete process.env.NEW_DESIGN; const A = await call(h, url); process.env.NEW_DESIGN = "all"; const B = await call(h, url); ok(!("x-design" in B.h) && same(A, B), `ON: ${url} is today's results page, byte for byte (the search box of the new Find lands here)`); }
+}
 // 3. per route
 process.env.NEW_DESIGN = "about";
 {

@@ -68,6 +68,8 @@ export const SELL_EXAMPLE = { read: req => readIfBuilt("../lib/live/marketCheckE
 async function readIfBuilt(file, fn, req) { try { if (!fs.existsSync(new URL(file.replace("../", "../"), import.meta.url))) return null; } catch { return null; } return readField(file, fn, req); }
 const hasSearch = req => /[?&](q|car|vin)=[^&]/.test(String(req.url || ""));
 function capture(handler, url, req) {
+  // the door (lib/_newDesign.js) has already run the current handler for this very address: its answer is used ONCE instead of running the handler again
+  if (req && req.__legacy) { const L = req.__legacy; req.__legacy = null; return Promise.resolve({ code: L.code, h: L.h, body: String(L.body) }); }
   return new Promise((resolve, reject) => {
     const u = new URL(url, "https://goasksam.com"), res = { h: {}, code: 200, setHeader(k, v) { this.h[String(k).toLowerCase()] = v; return this; }, getHeader(k) { return this.h[String(k).toLowerCase()]; }, removeHeader() {}, writeHead(c) { this.code = c; return this; }, status(c) { this.code = c; return this; }, json(o) { return this.send(JSON.stringify(o)); }, end(x) { return this.send(x); }, send(x) { resolve({ code: this.code, h: this.h, body: x == null ? "" : String(x) }); return this; } };
     Promise.resolve(handler({ ...req, method: "GET", url, query: Object.fromEntries(u.searchParams), headers: req.headers || {} }, res)).catch(reject);

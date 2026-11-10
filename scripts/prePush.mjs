@@ -2326,6 +2326,12 @@ try {
   record("Go live examples: Home, Find, Market Check, Sell and Tasks on a public address hide a section whose example is null, fails, says could-not-read or never answers (time boxed), keep the search box, print the live Tasks limit (scripts/goLiveExamplesCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveExamplesCheck:/.test(l)).slice(0, 5).join(" | "));
 }
 try {
+  const out = execSync("node scripts/goLivePerfCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Go live performance: the new landing pages are no heavier to download and no slower to a first usable search than today's at 1440 and 390 (scripts/goLivePerfCheck.mjs)", "PASS", (out.match(/goLivePerfCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Go live performance: the new landing pages are no heavier to download and no slower to a first usable search than today's at 1440 and 390 (scripts/goLivePerfCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLivePerfCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
   const out = execSync("node scripts/previewShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Preview shell is one full height column (footer at the bottom of a short page, after a long one, on every preview page at 1440, 1280, 1024 and 390) and the Tasks email section sits on the hero's left edge (scripts/previewShellCheck.mjs)", "PASS", (out.match(/previewShellCheck: .*/) || [""])[0]);
 } catch (e) {

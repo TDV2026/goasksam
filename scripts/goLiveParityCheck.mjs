@@ -42,13 +42,16 @@ process.env.SUPABASE_URL = "https://db.test"; process.env.SUPABASE_SERVICE_ROLE_
 globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => [], text: async () => "[]", headers: { get: () => null } });
 const origLog = console.log, origErr = console.error;
 const quiet = async fn => { console.log = () => {}; console.error = () => {}; try { return await fn(); } finally { console.log = origLog; console.error = origErr; } };
-const { headTagsOf } = await import(pathToFileURL(path.join(ROOT, "lib/_publicHead.js")).href);
+// the tags are read by this check's OWN patterns, not by the code under test (a mutant of that code must not blind the check)
+const TAGS = { title: /<title\b[^>]*>[\s\S]*?<\/title>/gi, description: /<meta\b[^>]*\bname=["']description["'][^>]*>/gi, robots: /<meta\b[^>]*\bname=["']robots["'][^>]*>/gi, canonical: /<link\b[^>]*\brel=["']canonical["'][^>]*>/gi,
+  og: /<meta\b[^>]*\bproperty=["']og:[^"']*["'][^>]*>/gi, twitter: /<meta\b[^>]*\bname=["']twitter:[^"']*["'][^>]*>/gi, ld: /<script\b[^>]*\btype=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi };
+const headTagsOf = html => { const s = String(html || ""), head = (/<head\b[\s\S]*?<\/head>/i.exec(s) || [s])[0], o = {}; for (const [k, re] of Object.entries(TAGS)) o[k] = (k === "ld" ? s : head).match(re) || []; return o; };
 const mod = async f => (await import(pathToFileURL(path.join(ROOT, "api", f + ".js")).href)).default;
 
 // [name, address, handler file, kind]: kind "landing" (the new design's own page, its h1 is its own), "site" (the current page's <main> carried over, same h1), "results" (the current page inside the new shell)
 const ROUTES = [
   ["home", "/", "home", "landing"], ["find", "/find", "buy", "landing"], ["market-check", "/market-check", "marketCheck", "landing"], ["sell", "/sell", "sell", "landing"], ["tasks", "/tasks", "tasksPage", "landing"],
-  ["market-check results", "/market-check?q=1995+bmw+m3", "marketCheck", "results"], ["find results", "/find?q=porsche+911", "buy", "landing"],
+  ["market-check results", "/market-check?q=1995+bmw+m3", "marketCheck", "results"],
   ["tasks-mine", "/tasks/mine?app=1", "tasksPage", "results"],
   ["business", "/business", "business", "site"], ["how", "/how-sam-decides", "howSamDecides", "site"], ["about", "/about", "about", "site"], ["whats-new", "/whats-new", "whatsNew", "site"],
   ["feedback", "/feedback", "feedback", "site"], ["terms", "/terms?page=terms", "legal", "site"], ["privacy", "/privacy?page=privacy", "legal", "site"]
@@ -97,12 +100,14 @@ for (const [name, url, f, kind] of ROUTES) {
   if (["home", "find", "market-check", "sell"].includes(name)) {
     const s = strip(B.body);
     ok(/<(textarea|input)\b[^>]*(id="[^"]*(q|input|inp)[^"]*"|placeholder)/i.test(s), `${t}: a search box`);
-    ok(/<button\b[^>]*class="mic"/.test(s) || /<button\b[^>]*aria-label="Speak/.test(s), `${t}: the voice button`);
+    ok(/<button\b[^>]*aria-label="Speak[^"]*"/.test(s), `${t}: the voice button`);
     ok(/<button\b[^>]*type="submit"/.test(s) || /<button\b[^>]*aria-label="Go ask Sam"/.test(s) || /<button\b[^>]*id="[^"]*(go|btn)"/.test(s), `${t}: the search button`);
   }
   if (name === "tasks") ok(/<button\b[^>]*id="tkcta/.test(B.body) || /Start a Task|Tell Sam/.test(strip(B.body)), `${t}: the create control`);
   if (name === "feedback") { const s = strip(B.body); ok(/<form\b/.test(s) && /<textarea\b/.test(s) && /<button\b/.test(s), `${t}: the feedback form`); }
 }
+// Find results: a page of the new design only when it answers X-Design: new (today it does not, so the search keeps working on today's page)
+{ const h = await mod("buy"); process.env.NEW_DESIGN = "all"; const R = await get(h, "/find?q=porsche+911"); delete process.env.NEW_DESIGN; if (R.h["x-design"] !== "new") lost.push({ route: "find results", kind: "page", item: "/find?q= in the new shell with its rail" }); }
 // HELD list against what is lost
 const key = x => `${x.route}|${x.kind}|${x.item}`, heldKeys = new Set(held.map(key)), lostKeys = new Set(lost.map(key));
 if (PRINT) { fs.writeFileSync(path.join(ROOT, "docs/go-live-held.json"), JSON.stringify(lost.map(x => ({ ...x, note: "" })), null, 1) + "\n"); origLog("wrote docs/go-live-held.json with " + lost.length + " items"); process.exit(0); }

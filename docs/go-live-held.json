@@ -144,24 +144,6 @@
   "note": "The current header/footer link How Sam decides; the new header and footer have no such link (the approved shell lists Find, Market Check, Sell, Tasks, Account; footer About, For business, What's new, Feedback, Terms, Privacy). Sam to decide where it lives."
  },
  {
-  "route": "find results",
-  "kind": "link",
-  "item": "/how-sam-decides",
-  "note": "The current header/footer link How Sam decides; the new header and footer have no such link (the approved shell lists Find, Market Check, Sell, Tasks, Account; footer About, For business, What's new, Feedback, Terms, Privacy). Sam to decide where it lives."
- },
- {
-  "route": "find results",
-  "kind": "script",
-  "item": "/js/auth.js",
-  "note": "The current page loads the sign-in script and bar (Sign in free, the signed-in state). The new shell has an Account link only. Sam to decide; do not drop sign in silently."
- },
- {
-  "route": "find results",
-  "kind": "script",
-  "item": "/api/track?js=1",
-  "note": "The current page loads the analytics and consent script (/api/track?js=1). The new page does not, so no page view events and no consent banner. Needs a decision before go live."
- },
- {
   "route": "tasks-mine",
   "kind": "link",
   "item": "/how-sam-decides",
@@ -256,5 +238,11 @@
   "kind": "script",
   "item": "/js/auth.js",
   "note": "The current page loads the sign-in script and bar (Sign in free, the signed-in state). The new shell has an Account link only. Sam to decide; do not drop sign in silently."
+ },
+ {
+  "route": "find results",
+  "kind": "page",
+  "item": "/find?q= in the new shell with its rail",
+  "note": "The order puts the Find results page in the new shell with its rail. Only the Find landing exists on the new shell; a search (the new Find's search box sends people to /find?q=) gets today's results page, unchanged, so Find keeps working. Needs the same wrapper Market Check and Sell have (a new build, not a copy), or Sam accepts today's Find results page behind the new landing."
  }
 ]
