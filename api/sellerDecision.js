@@ -36,6 +36,7 @@ import { isMaterialVariant } from "../lib/materialVariants.js";
 import { buildHouseComparison } from "../lib/houseCalendar.js";
 import { isHouseSource } from "../lib/_houseComps.js";
 import { vinFeatureActive, findVinArchiveMatch, looksLikeChassisId } from "../lib/_flags.js";
+import { findVinLiveMatch, liveVehicleOf, liveFactsOf } from "../lib/vinLiveMatch.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
 import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
 import { poolTrimFor } from "../lib/modelFamilies.js";
@@ -3392,8 +3393,13 @@ async function handler(req, res) {
     let vinCtx = null;
     if (req.body?.oneBox && vehicle && (vehicle.vin || vehicle.chassis)) {
       let vinArchive = null; try { vinArchive = await findVinArchiveMatch({ supabaseUrl, supabaseKey }, { vin: vehicle.vin || vehicle.chassis }); } catch { vinArchive = null; }   // what the archive holds for this exact VIN: a question it already answers is not asked (lib/vinAsTyped.js settleVinAnswer)
-      let vinLive = null; try { const id = String(vehicle.vin || vehicle.chassis || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); const lr = id ? await supabaseSelect({ supabaseUrl, supabaseKey }, `live_listings?vin_norm=eq.${encodeURIComponent(id)}&status=eq.live&select=listing_title,mileage&limit=1`) : null; vinLive = Array.isArray(lr) && lr[0] ? { title: lr[0].listing_title || null, mileage: lr[0].mileage || null } : null; } catch { vinLive = null; }   // the live listing of this VIN: its title words are the car's own
-      const plan = await vinSearchPlan(vehicle, { resolveVehicle, archive: vinArchive, live: vinLive, rerunWords: req.body.vinTrimRun ? req.body.vinRerunWords : null });
+      // THE VIN'S OWN LIVE LISTING, read the way every door reads it (lib/vinLiveMatch.js): the car it names is the car (the same step api/vehicleIdentity takes: this door is reached with the VIN as typed), its title words and mileage are the typed search's facts,
+      // and the listing itself rides on the answer (vinLiveMatch, ownLive) so a page says "This car is live now" and never counts it as a comparable car
+      const vinIdLive = String(vehicle.vin || vehicle.chassis || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      let liveMatch = null; try { liveMatch = vinIdLive.length === 17 ? await findVinLiveMatch({ supabaseUrl, supabaseKey }, { vin: vinIdLive }) : null; } catch { liveMatch = null; }
+      const vinLive = liveFactsOf(liveMatch);
+      if (liveMatch && !vinArchive) { const lv = await liveVehicleOf(liveMatch, vehicle, resolveVehicle).catch(() => null); if (lv) vehicle = { ...vehicle, ...lv, trim: lv.trim || null }; }
+      const plan = await vinSearchPlan(vehicle, { resolveVehicle, archive: vinArchive, live: vinLive, liveMatch, rerunWords: req.body.vinTrimRun ? req.body.vinRerunWords : null });
       if (plan && plan.unresolved) return res.status(200).json({ status: "one_box", tier: "not_tracked", resolvedCar: null, samLine: plan.line, refusal_line: plan.line });
       if (plan) { vinCtx = { ...plan.ctx, text: plan.text }; vehicle = plan.vehicle; }
     }

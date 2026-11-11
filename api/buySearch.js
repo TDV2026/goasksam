@@ -389,7 +389,11 @@ async function handler(req, res) {
       // position/positions (job 3): computed once in the engine (lib/live/search.js liveForFamily),
       // over the SAME fenced live-match set the count itself reports - this route only renders what
       // it returns, never a second placingFor call of its own.
-      const live = await liveForFamily(env, vehicle, generation, null, 3, band);
+      // A VIN's OWN live listing is never one of the "comparable cars" (Nov 11 2026): a Market Check of a VIN that is live now passes ?vin=, and this row is left out of the rows and the count (the answer's ownLive line speaks of it)
+      const ownVin = String(q.vin || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const live0 = await liveForFamily(env, vehicle, generation, null, ownVin.length === 17 ? 12 : 3, band);
+      const ownIn = ownVin.length === 17 ? (live0.rows || []).filter(r => String(r.vin_norm || "").toUpperCase() === ownVin) : [];
+      const live = ownIn.length ? { ...live0, total: Math.max(0, live0.total - ownIn.length), rows: live0.rows.filter(r => !ownIn.includes(r)).slice(0, 3) } : { ...live0, rows: ownVin.length === 17 ? live0.rows.slice(0, 3) : live0.rows };
       res.setHeader("Cache-Control", "public, s-maxage=300");
       // source_slug + id (Round 6 Job 1, tracking fix): the panel only ever sent the display name
       // (source, via houseName) and no row identifier at all - Lane A's auction_clickout needs the
