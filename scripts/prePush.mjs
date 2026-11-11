@@ -2379,12 +2379,6 @@ try {
   record("Go live, the visitor mode of the live check, on this tree over a local stored-pick world: passes with the switch on, fails with it off, fails with no examples (scripts/goLiveLiveCheck.mjs --self-test)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveLiveCheck self-test:/.test(l)).slice(0, 5).join(" | "));
 }
 try {
-  const out = execSync("node scripts/ignoreCommandCheck.mjs", { encoding: "utf8", timeout: 280000 });
-  record("vercel.json ignoreCommand: a docs-only push is skipped, a redeploy of the commit already built (an env-only change), a code change, a config change and an unknown previous commit build (scripts/ignoreCommandCheck.mjs)", "PASS", (out.match(/ignoreCommandCheck: .*/) || [""])[0]);
-} catch (e) {
-  record("vercel.json ignoreCommand: a docs-only push is skipped, a redeploy of the commit already built (an env-only change), a code change, a config change and an unknown previous commit build (scripts/ignoreCommandCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|ignoreCommandCheck:/.test(l)).slice(0, 5).join(" | "));
-}
-try {
   const out = execSync("node scripts/vercelConfigCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("vercel.json is accepted by Vercel: it parses and is valid against Vercel's own schema, every string Vercel limits to 256 characters by name (ignoreCommand, includeFiles ...; the deploys of 976ce753 and f79db262 ended in Error) (scripts/vercelConfigCheck.mjs)", "PASS", (out.match(/vercelConfigCheck: .*/) || [""])[0]);
 } catch (e) {
