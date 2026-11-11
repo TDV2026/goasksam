@@ -1763,6 +1763,19 @@ async function handleOps(req, res) {
   }
   // task=livescope (Lane B, Oct 28 2026, launch scope of the live feed): READ ONLY. Reads every live listing past the scope fence and counts those the launch scope leaves out (liveScopeOf in
   // lib/live/search.js: an excluded platform, or a place outside the US and Canada; a row with no place stays in and is counted apart), by reason and by platform, with five example titles. Writes nothing, spends nothing.
+  // task=livecurrency (Lane B, Nov 11 2026; READ-ONLY, zero OldCarsData, writes nothing): the live pool by the listing's own CURRENCY and venue. The example pickers (Home, Find, Tasks, Watching) pick only a listing priced in US dollars (lib/live/usdFence.js);
+  // this is the sweep behind that fence: every live row whose currency is not USD (or is not stated), by currency and by venue, with up to ten example titles, so a venue that lists abroad is seen by its rows and never by its name.
+  if (task === "livecurrency") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { pricedInUsd, listingCurrency } = await import("../lib/live/usdFence.js");
+    const rows = await supabaseSelectAll(env, "live_listings?status=eq.live&select=id,source,listing_title,currency,current_bid,current_bid_usd,country,location");
+    if (!Array.isArray(rows)) return res.status(200).json({ task: "livecurrency", readFailed: true, writes: 0, ocdSpend: 0 });
+    const byCurrency = {}, bySource = {}, notUsdBySource = {}, ex = [];
+    for (const r of rows) { const c = listingCurrency(r) || "(none)"; byCurrency[c] = (byCurrency[c] || 0) + 1; (bySource[r.source] = bySource[r.source] || {})[c] = (bySource[r.source][c] || 0) + 1;
+      if (!pricedInUsd(r)) { notUsdBySource[r.source] = (notUsdBySource[r.source] || 0) + 1; if (ex.length < 10) ex.push({ title: r.listing_title, source: r.source, currency: r.currency || null, country: r.country || null }); } }
+    const mixed = Object.entries(bySource).filter(([, m]) => Object.keys(m).length > 1).map(([src, m]) => ({ source: src, currencies: m }));
+    return res.status(200).json({ task: "livecurrency", live: rows.length, usd: rows.filter(pricedInUsd).length, notUsd: rows.length - rows.filter(pricedInUsd).length, byCurrency, notUsdBySource, venuesWithMixedCurrencies: mixed, examples: ex, ocdSpend: 0, writes: 0 });
+  }
   if (task === "livescope") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { liveRows, liveScopeOf } = await import("../lib/live/search.js");

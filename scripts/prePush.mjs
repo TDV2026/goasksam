@@ -2326,9 +2326,9 @@ try {
 }
 try {
   const out = execSync("node scripts/liveExamplesSoonCheck.mjs", { encoding: "utf8", timeout: 120000 });
-  record("live examples (Home, Find, Tasks, Watching): an auction ending within 7 days is preferred, a car more than 14 days out is never picked while one within 14 qualifies, the card carries the engine's time left line (scripts/liveExamplesSoonCheck.mjs)", "PASS", out.trim().split("\n").pop());
+  record("live examples (Home, Find, Tasks, Watching): an auction ending within 7 days is preferred, a car more than 14 days out is never picked while one within 14 qualifies, the card carries the engine's time left line, only US dollar listings, a car with a line before one with none (scripts/liveExamplesSoonCheck.mjs)", "PASS", out.trim().split("\n").pop());
 } catch (e) {
-  record("live examples (Home, Find, Tasks, Watching): an auction ending within 7 days is preferred, a car more than 14 days out is never picked while one within 14 qualifies, the card carries the engine's time left line (scripts/liveExamplesSoonCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").slice(-3).join(" | "));
+  record("live examples (Home, Find, Tasks, Watching): an auction ending within 7 days is preferred, a car more than 14 days out is never picked while one within 14 qualifies, the card carries the engine's time left line, only US dollar listings, a car with a line before one with none (scripts/liveExamplesSoonCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").slice(-3).join(" | "));
 }
 try {
   const out = execSync("node scripts/featuredWireCheck.mjs", { encoding: "utf8", timeout: 240000 });

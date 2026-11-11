@@ -121,7 +121,7 @@ const honest = (f, r) => { const fx = facts(r); return String(r.make).toLowerCas
   const good = car({ currency: "GBP", current_bid: 70000, current_bid_usd: 91000 }), gf = facts(good), gp = await D.proveCar(env, good, world([good]).d);
   const only = car({ currency: "USD", current_bid: 88000, current_bid_usd: null }), of = facts(only), op = await D.proveCar(env, only, world([only]).d);
   ok("(3) a dollar lot whose figure is only on current_bid prints that figure, never a $0 or a column the trust layer did not state", op.ok && of.priceUsd === 88000 && op.field.car.priceLabel === "Current bid $88,000", op.ok ? op.field.car.priceLabel : op.why);
-  ok("(4) a pound lot with a stated dollar conversion prints the trust layer's dollar figure, not the pound one", gp.ok && gp.field.car.priceLabel === "Current bid $" + Math.round(gf.priceUsd).toLocaleString("en-US"), gp.ok ? gp.field.car.priceLabel : gp.why);
+  ok("(4) a pound lot, even with a stated dollar conversion, is never the example: only a listing priced in US dollars is picked (lib/live/usdFence.js)", !gp.ok && gp.why === "not_usd", gp.ok ? gp.field.car.priceLabel : gp.why);
 }
 // (2) reader, matcher and honouring
 {
