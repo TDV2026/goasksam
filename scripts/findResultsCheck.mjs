@@ -25,6 +25,9 @@ if (process.argv.includes("--mutants")) {
     ["empty skeleton cards shown while the search runs", "var t2 = setTimeout(el.stillFinding, 20000);", "el.innerHTML += '<article class=skel></article><article class=skel></article>'; var t2 = setTimeout(el.stillFinding, 20000);"],
     ["a figure printed while the search runs", "esc(window.GAS_WAIT.find)", "esc(window.GAS_WAIT.find + ' 14 sales so far')"],
     ["a venue name printed while the search runs", "esc(window.GAS_WAIT.find)", "esc('Sam is searching Bring a Trailer for your car')"],
+    ["the height above the page not published before the page loads (a phone's column is the desktop's height at the focus)", "<script>${HDR_JS}</script><div class=\"mshell\">", "<div class=\"mshell\">"],
+    ["the phone's saved searches bar left out of the height above the page", "(h.offsetHeight+(m?m.offsetHeight:0))", "h.offsetHeight"],
+    ["New search drawn twice while the search runs (the rail's and the page's own)", "@media (min-width:861px){.msg.searching .shead-new{visibility:hidden}}", ""],
     ["a link dropped", "export const RAIL_JS = `(function(){", "export const RAIL_JS = `(function(){setTimeout(function(){var a=document.querySelector(\"#convo article.car a[href]\");if(a)a.parentNode.removeChild(a);},900);"],
     ["a heading removed", "export const RAIL_JS = `(function(){", "export const RAIL_JS = `(function(){setTimeout(function(){var h=document.querySelector(\"#convo h2,#convo h3\");if(h)h.parentNode.removeChild(h);},900);"]
   ];
@@ -168,8 +171,8 @@ for (const w of [1440, 390]) for (const sel of ["aside.rail a.new", "[data-newse
 }
 { const links = await (async () => { const p = await open(SHELL, 1440); await new Promise(r => setTimeout(r, 2500)); const l = await p.evaluate(() => [...document.querySelectorAll("a[href]")].map(a => a.getAttribute("href"))); await p.close(); return l; })();
   const bad = links.filter(h => /^\/preview(\/|$|\?)|[?&](crew|_crew|preview|design)=|gas_crew|\/api\/sellNext|\/onebox-preview/.test(h)); ok(bad.length === 0, "no link on the Find results page goes to a preview address or carries a crew or design query (" + (bad.join(", ") || links.length + " links") + ")"); }
-// AFTER A SEARCH THE HEADER IS ON SCREEN (Sam, Nov 11 2026): the page sized its column to the whole window under the shell's header, so it was one header taller than the screen and the bottom search box's focus scrolled the window down, the header off screen, on load and after a follow-up search. After the results draw, and after a follow-up search from the bottom box, at 1440, 1280 and 1024 the window is at the top and the header is on screen.
-for (const w of [1440, 1280, 1024]) {
+// AFTER A SEARCH THE HEADER IS ON SCREEN (Sam, Nov 11 2026): the page sized its column to the whole window under the shell's header, so it was one header taller than the screen and the bottom search box's focus scrolled the window down, the header off screen, on load and after a follow-up search. After the results draw, and after a follow-up search from the bottom box, at 1440, 1280, 1024 and on a phone (390) the window is at the top and the header is on screen (Nov 11 2026, the phone: the page focused its bottom box while loading, before the shell published the height above the page, so the column was the desktop's height and the focus scrolled the window by 238px).
+for (const w of [1440, 1280, 1024, 390]) {
   const p = await open(SHELL, w); await new Promise(r => setTimeout(r, 3000));
   const at = () => p.evaluate(() => ({ y: Math.round(scrollY), hdr: Math.round(document.querySelector("header.gh").getBoundingClientRect().top), focus: document.activeElement && document.activeElement.id }));
   const a = await at(); ok(a.y === 0 && a.hdr >= 0, `@${w}: after the results draw the window is at the top and the header is on screen (scroll ${a.y}, header top ${a.hdr}, focus #${a.focus})`);
@@ -190,6 +193,8 @@ for (const w of [1440, 1280, 1024]) {
     ok(!VENUE.test(L.text), `${t}: no venue name is printed while the search runs`);
     const area = await p.evaluate(() => (document.querySelector(".gas-wait") || { innerText: "" }).innerText);
     ok(!/[$\d]/.test(area), `${t}: no figure in the loading area (${area.replace(/\s+/g, " ").slice(0, 80)})`);
+    { const n = await p.evaluate(() => ({ text: (document.body.innerText.match(/New search/g) || []).length, ctl: [...document.querySelectorAll("[data-newsearch], .rail a.new")].filter(e => { const b = e.getBoundingClientRect(), cs = getComputedStyle(e); return b.width > 0 && b.height > 0 && cs.visibility !== "hidden" && cs.display !== "none"; }).length }));
+      ok(n.text === 1 && n.ctl === 1, `${t}: New search is ONE visible control while the search runs (page text ${n.text} times, ${n.ctl} visible controls)`); }
     ok(L.new_ && L.chips && L.chipTxt.length > 0 && L.row, `${t}: the New search row and the query chips are on screen from the start (${L.chipTxt})`);
     ok(L.waitBox && Math.abs((L.waitBox[0] + L.waitBox[2] / 2) - (L.col[0] + L.col[2] / 2)) <= 14, `${t}: the loading state is centred in the results area`);
     ok(await p.evaluate(() => { const t = document.querySelector(".gas-wait-line"); return !!t && t.textContent.trim().split(/(?<=[.!?])\s+/).length === 1; }), `${t}: one sentence`);
