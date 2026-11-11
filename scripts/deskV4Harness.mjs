@@ -3,11 +3,11 @@ import { launch, imp, tally, ROOT, V3 } from "./deskV3Harness.mjs";
 export { launch, imp, tally, ROOT, V3 };
 const V4 = await imp("lib/preview/deskV4.js"), PV = await imp("lib/preview/deskPreview.js");
 export { V4, PV };
-export async function openLive(b, { w = 1440, h = 900, id = V3.DEMO_ID, mutate = null, dark = false, stub = null } = {}) {
+export async function openLive(b, { w = 1440, h = 900, id = V3.DEMO_ID, mutate = null, dark = false, stub = null, intercept = null, delay = 0 } = {}) {
   let html = await V4.renderDeskV4({ query: { case: id } }); if (mutate) html = mutate(html);
   const p = await b.newPage(); await p.setViewport({ width: w, height: h }); await p.setRequestInterception(true); p._posts = []; p._err = [];
   p.on("request", async r => { const u = new URL(r.url());
-    if (u.host === "goasksam.com" && r.method() === "POST" && u.pathname === "/preview/desk/api") { let bd = {}; try { bd = JSON.parse(r.postData() || "{}"); } catch {} p._posts.push(bd); let out; if (/send/i.test(String(bd.action))) { p._sendCalls = (p._sendCalls || 0) + 1; out = stub ? await stub(bd) : { ok: false, why: "no stub: a check never sends" }; } else out = await PV.previewDeskApi(bd); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(out) }); }   // NEVER a real send: any send action is answered by the check's own stub and never reaches the reader
+    if (u.host === "goasksam.com" && r.method() === "POST" && u.pathname === "/preview/desk/api") { let bd = {}; try { bd = JSON.parse(r.postData() || "{}"); } catch {} p._posts.push(bd); let out; if (delay && bd.action === "case_edit") await new Promise(z => setTimeout(z, delay)); const own = intercept ? await intercept(bd) : undefined; if (own !== undefined) out = own; else if (/send/i.test(String(bd.action))) { p._sendCalls = (p._sendCalls || 0) + 1; out = stub ? await stub(bd) : { ok: false, why: "no stub: a check never sends" }; } else out = await PV.previewDeskApi(bd); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(out) }); }   // NEVER a real send: any send action is answered by the check's own stub and never reaches the reader
     if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html });
     return r.respond({ status: 204, body: "" }); });
   p.on("pageerror", e => p._err.push(String(e).slice(0, 200)));

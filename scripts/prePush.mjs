@@ -2493,6 +2493,12 @@ try {
   record("Desk v4 forwarded leads: the Forwarded lead tag in New leads only, seller supplied facts Unverified until verified, the original email opens from Documents in a new tab, an unidentified car shows the case's line and can be identified in place; mutants (scripts/deskV4IntakeQueueCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/deskV4NewCaseCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 New case form: photos accumulate with a Remove each, a VIN fills the car (marked decoded, editable), make model body gearbox colour are pickers with a typed value allowed, a refusal prints the server's why under the button, a refused photo keeps the case; mutants (scripts/deskV4NewCaseCheck.mjs)", "PASS", (out.match(/deskV4NewCaseCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 New case form: photos accumulate with a Remove each, a VIN fills the car (marked decoded, editable), make model body gearbox colour are pickers with a typed value allowed, a refusal prints the server's why under the button, a refused photo keeps the case; mutants (scripts/deskV4NewCaseCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/previewShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Preview shell is one full height column (footer at the bottom of a short page, after a long one, on every preview page at 1440, 1280, 1024 and 390) and the Tasks email section sits on the hero's left edge (scripts/previewShellCheck.mjs)", "PASS", (out.match(/previewShellCheck: .*/) || [""])[0]);
 } catch (e) {
