@@ -2908,6 +2908,12 @@ try {
   record("Desk v3 demonstration car (scripts/deskDemoCarCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  execSync("node scripts/deskViewsCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Desk v4 views: a switch of period or condition makes no engine read, and every view equals the engine's direct read (scripts/deskViewsCheck.mjs)", "PASS", "")
+} catch (e) {
+  record("Desk v4 views (scripts/deskViewsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160))
+}
+try {
   const out = execSync("node scripts/deskTypedCasesCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("Desk v4 stage 6 typed cases: 1965 Mustang, 1972 240Z, 1974 TR6 made from typed fields, read by the engine's recorded answer, range, three comparables with why lines, the name as typed, four page report (scripts/deskTypedCasesCheck.mjs)", "PASS", (out.match(/deskTypedCasesCheck: .*/) || [""])[0]);
 } catch (e) {

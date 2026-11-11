@@ -54,4 +54,46 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   await store.insert("t", { id: "k", owner_seat: "7", status: "In progress", created_at: T, submission: { typed: true, photos: [], documents: [] }, state: {}, case: base, version: 1 });
   let all = true; for (const b of [{ op: "reserve", patch: { figure: ev.q3 + 3000 } }, { op: "reserve", patch: { sellerRequested: true } }, { op: "comparables", ids: pop.slice(0, 1) }, { op: "comparables", ids: pop.slice(0, 2) }, { op: "window", months: 6 }]) { const r = await A.handleSheetAction("case_edit", { id: "k", ...b }, ctx); all = all && r.ok && JSON.stringify(r.case.checks) === JSON.stringify(r.readiness.checks) && r.case.finalizeHint === r.readiness.hint; }
   ok("every case_edit answer carries the panel's checks and hint, the same as its readiness", all); }
+// ---------- ONE ANSWER, ONE COUNT (Lane D, Nov 11 2026; Sam's first run: the demo 996 at Fair, 24 months, read "3 sales" in the header, "3 on record" in the support line and "4 in the last 24 months" in the Fair line) ----------
+// CAUSE: the header's sales are the case's population (the condition and the mileage band cut), and the condition's own line (desk.rungs) counted the car's sales of that condition with no mileage cut, so one window had two counts.
+// OTHER CARS AND PAGES: every Desk case with a condition chosen, on the workspace (header, support line, condition line, reserve check), the report's market line and the PDF. CLASS: for EVERY (condition, period) of the read, every count printed for the window equals the length of the window's sales list.
+{ const DV = await imp("lib/deskV3.js"); let views = 0, counts = 0; const off = [];
+  for (const t of [0, 1, 2, 3, 4]) for (const m of [6, 12, 24]) {
+    const k = K.setWindow(K.setCondition(base, t ? { tier: t, name: "x" } : null, T), m, T), d = k.desk, N = d.sales.length, found = []; views++;
+    const num = (what, x) => { if (x != null && x !== "") found.push([what, Number(x)]); };
+    num("evidence.count", d.evidence.count); num("evidence.countLine", (String(d.evidence.countLine).match(/^(\d+) sale/) || [])[1]); num("evidence.sentence", (String(d.evidence.sentence || "").match(/(\d+) on record/) || [])[1]);
+    num("byWindow.count", d.evidence.byWindow && d.evidence.byWindow[m] && d.evidence.byWindow[m].count); num("byWindow.populationLine", (String(d.evidence.byWindow && d.evidence.byWindow[m] && d.evidence.byWindow[m].populationLine || "").match(/^(\d+) of/) || [])[1]);
+    if (t) { const rg = d.rungs[t - 1]; num("rung.count", rg.count); num("rung.countLine", (String(rg.countLine).match(/^(\d+) sale/) || [])[1]); num("rung.sentence", (String(rg.sentence).match(/(?::|,) (\d+) in the last/) || String(rg.sentence).match(/^[A-Za-z]+: (\d+) sale/) || [])[1]); }
+    if (d.reserveCheck) num("reserveCheck.of", d.reserveCheck.of);
+    for (const [what, v] of found) { counts++; if (v !== N) off.push(`${t}:${m} ${what} ${v} vs ${N} sales`); }
+  }
+  ok(`every count printed for a window equals the window's sales list (${counts} counts over ${views} views)`, views === 15 && counts >= 60 && !off.length, off.slice(0, 6).join(" | ")); }
+// A SHORTER PERIOD WITH THE SAME SALES SAYS SO (Lane D, Nov 11 2026): the line is the engine's (desk.evidence.sameLine), present exactly when the shorter period holds as many sales as the next longer one, so a switch that changes nothing is printed, not silent.
+{ const DV = await imp("lib/deskV3.js"), day = 864e5, iso = n => new Date(Date.parse(today) - n * day).toISOString().slice(0, 10);
+  const mk = days => days.map((n, i) => ({ id: "s" + i, price: 30000 + i * 500, date: iso(n), miles: 50000, platform: "Bring a Trailer", tier: null, inPopulation: true, year: 1999, gearbox: "manual", generation: "996" }));
+  const sub = { transmission: "Manual", body: "coupe" }, blk = async (rows, m) => DV.deskBlock(rows, { caseDate: today, subject: sub, subjectFacts: { generation: "996", year: 1999 }, windowMonths: m, head: async () => null });
+  const same3 = await blk(mk([10, 40, 90]), 12), grow = await blk(mk([10, 40, 90, 200, 500]), 12), all24 = await blk(mk([10, 40, 90]), 24), only = await blk(mk([10, 40, 90, 500]), 24);
+  ok("three sales that all fall in the last 6 months: the 12 month answer says it is the same 3 sales", same3.evidence.sameLine === "Same 3 sales in the last 12 months." && same3.evidence.byWindow["6"].sameLine === "Same 3 sales in the last 6 months.", String(same3.evidence.sameLine));
+  ok("a longer period with more sales prints no such line", grow.evidence.sameLine === null && grow.evidence.byWindow["6"].sameLine === null, JSON.stringify([grow.evidence.sameLine, grow.evidence.byWindow["6"].sameLine]));
+  ok("the longest period never prints one", all24.evidence.sameLine === null && only.evidence.sameLine === null);
+  ok("the count in the line is the count of the window's sales list", same3.evidence.sameLine.includes(same3.sales.length + " sales")); }
+// ---------- A NEEDS ATTENTION LINE IS ONLY EVER THERE WHILE ITS MARK SAYS SO (Lane D, Nov 11 2026; Sam's first run: "Mileage is not confirmed (waived)" listed while the Mileage row read Verified) ----------
+// CAUSE: syncNeeds closed an OPEN item when its cause was gone but left a WAIVED one standing for ever, and the report prints waived items as limitations. OTHER CARS AND PAGES: every case, for each of the five rules (car, mileage, VIN agreement, accident history, service documents), in the workspace list, the case view's readiness blockers and the report's limitations.
+// CLASS: for every rule, every earlier state of its item (none, open, waived, done) and the cause on or off, the list the page shows (open or waived) holds the rule if and only if its source mark says the cause stands, and the report's limitations name only those.
+{ const mkC = (rule, on) => { const c = cl(base); c.fields.accident_history = { ...c.fields.accident_history, value: "None reported", verified: true, source: "analyst_verified" }; c.documents = [{ id: "d", name: "service invoice", kind: "service", status: "received" }];
+    c.fields.mileage = { ...c.fields.mileage, verified: true }; c.needs_review = [];
+    if (on) { if (rule === "car_unidentified") for (const k of ["vin", "year", "make", "model"]) c.fields[k] = { ...c.fields[k], value: null }; if (rule === "mileage_unconfirmed") c.fields.mileage = { ...c.fields.mileage, verified: false }; if (rule === "vin_mismatch") c.fields.vin = { ...c.fields.vin, source: "conflicting" };
+      if (rule === "accident_unclear") c.fields.accident_history = { ...c.fields.accident_history, verified: false }; if (rule === "service_documents") c.documents = []; }
+    return c; };
+  let n = 0; const wrong = [];
+  for (const r of K.NEED_RULES) for (const was of ["none", "open", "waived", "done"]) for (const on of [true, false]) for (const first of [true, false]) {
+    let c = mkC(r.id, first);   // the cause as it stood when the item was made, then the marks move to `on`
+    c = K.syncNeeds(c); if (was !== "none" && c.needs_review.find(x => x.id === r.id)) c = K.setNeed(c, r.id, was === "open" ? "open" : was, was === "waived" ? "stated by the seller" : "");
+    const moved = mkC(r.id, on); c = { ...c, fields: moved.fields, documents: moved.documents }; c = K.syncNeeds(c); n++;
+    const shown = c.needs_review.filter(x => x.state === "open" || x.state === "waived").map(x => x.id), applies = K.NEED_RULES.filter(x => x.applies(c)).map(x => x.id), lim = R.reportState(c).limitations.join(" | ");
+    const s = `${r.id}/was ${was}/first ${first}/now ${on}`;
+    if (shown.includes(r.id) !== applies.includes(r.id)) wrong.push(`${s}: shown ${shown.includes(r.id)}, the mark says ${applies.includes(r.id)}`);
+    if (!applies.includes(r.id) && lim.includes(r.label)) wrong.push(`${s}: the report still limits on it`);
+  }
+  ok(`a needs attention line stands exactly while its mark says so (${n} states over the five rules)`, n === 80 && !wrong.length, wrong.slice(0, 5).join(" | ")); }
 console.log(`reportConsistencyCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

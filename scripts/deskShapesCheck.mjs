@@ -83,7 +83,7 @@ ok("the Desk page does not count cases itself", !/\.queue\.(new|review|ready|fin
   const ph = await run("case_edit", { id: nw.id, op: "photo_add", name: "front.jpg", data: JPG });
   ok("photo_add answers the case view with photos.items [{ id, name, addedAt, url, width, height }], coverId and reportIds, the first photo the cover", ph.ok && ph.case.photos.items.length === 1 && ["id", "name", "addedAt", "url", "width", "height"].every(k => k in ph.case.photos.items[0]) && ph.case.photos.coverId === ph.case.photos.items[0].id && ph.case.photos.reportIds.length === 1 && /^data:image\/jpeg/.test(ph.case.photos.items[0].url));
   const c = await run("case_edit", { id: nw.id, op: "condition", selected: { tier: 4, name: "Fair" } });
-  ok("a condition change answers { ok, id, version, recalled, case, readiness, reservePosition } with the engine asked for the tier", c.ok && c.recalled === true && c.version > 0 && "readiness" in c && "reservePosition" in c && calls[calls.length - 1].tier === 4);
+  ok("a condition change answers { ok, id, version, recalled, case, readiness, reservePosition } from the view the engine already sent for the tier, no read", c.ok && c.recalled === false && c.version > 0 && "readiness" in c && "reservePosition" in c && c.case.desk.view.tier === 4);
   ok("a tier with too few sales answers desk.evidence { insufficient: true, sentence } with no median, q1 or q3", c.case.desk.evidence.insufficient === true && c.case.desk.evidence.sentence && c.case.desk.evidence.median == null && c.case.desk.evidence.q1 == null && c.case.desk.evidence.q3 == null);
   const g = await run("case_edit", { id: nw.id, op: "condition", selected: { tier: 3, name: "Good" } });
   ok("a tier with five or more sales answers a range from them (insufficient false, q1 and q3 set), different from the untiered one", g.case.desk.evidence.insufficient === false && g.case.desk.evidence.q1 > 0 && g.case.desk.evidence.q3 >= g.case.desk.evidence.q1 && g.case.desk.evidence.count !== nw.case.desk.evidence.count);
@@ -110,5 +110,18 @@ ok("the Desk page does not count cases itself", !/\.queue\.(new|review|ready|fin
   ok("the analyst's first change makes the source analyst, logged", an.case.assessment.source === "analyst" && an.case.assessment.figure === 61000 && an.case.audit.some(a => a.what === "assessment taken over from the engine"));
   const after = await run("case_edit", { id: nw.id, op: "condition", selected: { tier: 2, name: "Excellent" } });
   ok("after that no read touches the analyst's figure", after.case.assessment.figure === 61000 && after.case.assessment.source === "analyst");
+}
+// ---------- THE RESERVE THE ENGINE PROPOSES IS A ROUND FIGURE (Lane D, Nov 11 2026, Sam's first run: "Recommended reserve is a round number") ----------
+// CAUSE: reserveStart was the first quartile as the engine read it ($27,460), and the case took it as the reserve. To the nearest $500 under $50,000 and $1,000 from $50,000 up (lib/deskV3.js roundReserve); the analyst may still type any figure and the typical range itself is never rounded.
+// OTHER PAGES: every page that prints the reserve (workspace, report, preview, the send dialog) takes it from the case; none makes its own. CLASS: every figure the engine proposes as a reserve, in every view of every read, is round.
+{ const { setup } = await imp("scripts/_deskCaseWorld.mjs"), DV = await imp("lib/deskV3.js"), W = await setup(root), c = await W.readyCase(), step = n => (n < 50000 ? 500 : 1000);
+  const isRound = n => Number.isInteger(n) && n % step(n) === 0;
+  ok("roundReserve: to the nearest 500 under 50,000 and the nearest 1,000 from 50,000 up", DV.roundReserve(27460) === 27500 && DV.roundReserve(27249) === 27000 && DV.roundReserve(49749) === 49500 && DV.roundReserve(54400) === 54000 && DV.roundReserve(54500) === 55000 && DV.roundReserve(null) === null && DV.roundReserve(0) === null);
+  const figs = Object.entries(c.desk.views).map(([k, v]) => [k, v.reserveStart && v.reserveStart.figure]).filter(x => x[1] != null);
+  ok("every view of the read proposes a round reserve (" + figs.length + " views with a range)", figs.length >= 5 && figs.every(([, f]) => isRound(f)), figs.filter(([, f]) => !isRound(f)).join(" "));
+  const nw = await W.K.refreshEvidence(M.newCase({ now: T, vehicle: { year: 1999, make: "Porsche", model: "911", trim: "Carrera", body: "Coupe", transmission: "Manual", mileage: 61400 }, source: "seller" }), W.read, { caseDate: T.slice(0, 10), now: T });
+  ok("a new case's reserve is the engine's round start, and the typical range is not rounded", isRound(nw.case.reserve.figure) && nw.case.reserve.figure === nw.case.desk.reserveStart.figure, JSON.stringify([nw.case.reserve.figure, nw.case.desk.evidence.q1]));
+  ok("the sentence says what the figure is: rounded, to what", /rounded to the nearest \$(500|1,000)\./.test(c.desk.reserveStart.sentence), c.desk.reserveStart.sentence);
+  const typed = W.K.setReserve(c, { figure: 31234 }, T); ok("the analyst may type any figure and it is kept as typed", typed.reserve.figure === 31234 && typed.reserve.source === "analyst");
 }
 console.log(`deskShapesCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

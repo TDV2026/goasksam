@@ -1,0 +1,41 @@
+// DESK V4, THE VIEWS (Lane D, Nov 11 2026; Sam's first run: a click on 6, 12 or 24 months, or on a condition, felt broken).
+// CAUSE: the period and the condition were part of the key the case recalls the engine by (lib/desk/caseWorkflow.js recallKey), so every click asked the engine for a whole new read, and a changed reserve then asked a second one (two reads a click). Today every click read:
+//   the period (6, 12, 24)     one read, the second one to check the reserve the first had set
+//   the condition (1 to 4, all)  one read, the second to check the reserve
+//   an exclusion, a field, the reserve  one read (these do change what the engine is asked)
+// FIX: the engine's one read carries a view for every period and every condition (desk.views, lib/deskV3.js packViews; built in lib/onebox.js withDesk from the same rows); a switch adopts the stored view and the engine's own reserveCheck is made over its sales. No read.
+// OTHER PAGES AND CARS: every Desk case on every page that switches period or condition (the case workspace, the report preview, the PDF, a forwarded lead's case); every car, because the views are built for each read.
+// CLASS (a switch that reads, or a view that is not what a read would have said): this check (1) counts engine reads on a period or condition switch at the action level, (2) compares EVERY view with the engine's direct read of that very question (condition x period), field by field.
+//   node scripts/deskViewsCheck.mjs [rootDir]
+import path from "node:path"; import { pathToFileURL } from "node:url"; import { setup } from "./_deskCaseWorld.mjs";
+const root = path.resolve(process.argv[2] || "."), { K, read, calls, readyCase, T, today } = await setup(root);
+const DV = await import(pathToFileURL(path.join(root, "lib/deskV3.js")).href);
+let pass = 0, fail = 0; const ok = (n, c, d) => { if (c) pass++; else { fail++; console.log("FAIL " + n + (d ? " :: " + d : "")); } };
+const J = x => JSON.stringify(x);
+const base = await readyCase();
+ok("the engine's read carries a view for every condition and period (5 x 3) and the sales are stored once", DV.hasViews(base.desk) && Object.keys(base.desk.views).length === 15 && base.desk.pool.length > 0 && base.desk.pool.length < 15 * 80, Object.keys(base.desk.views || {}).length + " views, pool " + (base.desk.pool || []).length);
+// (1) no read on a switch, from every state to every other
+let reads = 0, n0 = calls.length, c = base;
+for (const m of [6, 24, 12]) { c = K.setWindow(c, m, T); ok(`period ${m}: the case is at that view and nothing asks the engine`, c.desk.view.months === m && c.desk.evidence.windowMonths === m && !K.needsRecall(c)); }
+for (const t of [1, 2, 3, 4, null]) { c = K.setCondition(c, t ? { tier: t, name: "x" } : null, T); ok(`condition ${t || "all"}: the case is at that view and nothing asks the engine`, c.desk.view.tier === (t || 0) && !K.needsRecall(c)); }
+const r0 = await K.refreshEvidence(c, read, { caseDate: today, now: T }); ok("no read was made by any switch (nor by the refresh after them)", calls.length === n0 && r0.recalled === false, `calls ${calls.length - n0}`);
+// (2) every view is what a direct read of that question says. A direct read here is the engine asked for that tier and that period with no views (the way every click was answered before).
+const ASKED = ["evidence", "original", "sales", "rungs", "reserveStart", "comparables", "outside", "quarters", "condition", "factors", "whyDraft", "supports", "considered", "conditionNote", "specLine"];
+let compared = 0; const bad = [];
+for (const t of [0, 1, 2, 3, 4]) for (const m of [6, 12, 24]) {
+  let k = K.setWindow(K.setCondition(base, t ? { tier: t, name: "x" } : null, T), m, T);
+  const direct = await read({ ...K.recallInput(k, today), desk: { ...K.recallInput(k, today).desk, views: false } }), dd = direct && direct.desk;
+  if (!dd) { bad.push(`${t}:${m} no direct read`); continue; }
+  for (const f of ASKED) { compared++; const a = J(k.desk[f]), b = J(dd[f]); if (a !== b) bad.push(`${t}:${m}.${f}`); }
+}
+ok(`every view equals the engine's direct read of that condition and period (${compared} fields over 15 views)`, compared >= 15 * ASKED.length && !bad.length, bad.slice(0, 8).join(" "));
+// (3) the reserve check after a switch is the engine's check of the reserve the case holds, over that view's sales
+{ let k = K.setReserve(base, { figure: 30000 }, T); k = K.setWindow(k, 6, T); const ck = k.desk.reserveCheck, want = DV.reserveCheckOf(k.desk.sales, k.desk.evidence, 30000, 6);
+  ok("the reserve check after a switch is of the case's own reserve over the new view's sales", !!ck && J(ck) === J(want) && ck.of === k.desk.evidence.count, J(ck)); }
+// (4) an old case (no views) is read once on a switch, then holds views again
+{ const old = structuredClone(base); delete old.desk.views; delete old.desk.pool; const sw = K.setWindow(old, 6, T), n = calls.length, r = await K.refreshEvidence(sw, read, { caseDate: today, now: T });
+  ok("a case with no views reads once on a switch and then holds them", K.needsRecall(sw) && r.recalled === true && calls.length - n >= 1 && DV.hasViews(r.case.desk) && !K.needsRecall(r.case)); }
+// (5) the page is not sent the pool
+{ const V = await import(pathToFileURL(path.join(root, "lib/desk/caseView.js")).href), v = V.caseView({ id: "n", created_at: T, submission: { typed: true, photos: [], documents: [] }, case: base }, [], T);
+  ok("the case view the page gets carries the active view and not the views or the pool", v.desk && !("views" in v.desk) && !("pool" in v.desk) && Array.isArray(v.desk.sales) && v.desk.sales.length === base.desk.sales.length); }
+console.log(`deskViewsCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
