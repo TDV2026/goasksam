@@ -98,6 +98,74 @@ for (const a of answers) {
   ok("report: 'updated engine' maps to the engine swap chip, naming the phrase", m.hasMap && m.hasMap.word === "swap" && m.hasMap.from === "updated engine" && m.hasMap.label === "Engine swap (from 'updated engine')", m.hasMap);
   ok("report: the page says nothing about 'updated' or 'engine' being unused", !m.unusedLine && !(m.unusedWords || []).length, [m.unusedLine, m.unusedWords]);
   ok("report: the one car without the swap is shown with the line that says so", a.cards === 1 && /read from 'updated engine'/.test(m.note || ""), [a.cards, m.note]); }
+// ---- lane-b-find-paths (Nov 11 2026): three defects from Lane C's live run of the same search ----
+// (8) BOTH ANSWERS, ONE PHRASE MAPPING. The page's no-model search (the written answer paused or failed) used to drop "updated engine" silently: no chip, no phrase, "updated" and "engine" unused. Now it asks for the search of the typed words
+// (filtersFromText, then runFilters with the words as lastUser, the call the written answer ends in). Every recorded query runs down both paths; the engine-change phrase maps to the same chip, the same words are used, and the cards a mapped word drops are shown the same way.
+const ENGINE_TYPED = /\b(?:updated|upgraded|new|newer|rebuilt|built|different|modern|replacement|swapped|re-?powered)\s+(?:engine|motor|drivetrain|powertrain)\b/i;
+ok("(8) the no-model search has its own reading of the words (samChat.filtersFromText)", typeof sc.filtersFromText === "function");
+if (typeof sc.filtersFromText === "function") {
+  for (const a of answers) {
+    const pw = await sc.filtersFromText(env, a.typed).catch(() => null); if (!pw) { ok(`(8) "${a.typed}": the words read to a search`, false); continue; }
+    const r2 = await runFilters(env, pw, { lastUser: a.typed }), m2 = r2.meta || {}, tag = `(8) "${a.typed}"`;
+    const used2 = (r2.state && r2.state.filters) || pw, chips2 = page.filterParts({ ...pw, ...used2 }, null, null, hasLabelOf(m2)).map(x => x.label);
+    if (/\bE30\b/i.test(a.typed)) ok(`${tag}: a make and a generation code alone read to the car and its generation`, pw.make === "BMW" && /3/.test(String(pw.model)) && /^e30$/i.test(String(pw.generation || "")), pw);
+    const typedPhrase = ENGINE_TYPED.test(a.typed) && a.p.has === "swap";   /* a has word the model chose for itself ("rebuilt") is its own choice; the phrase mapping is the swap word */
+    if (typedPhrase) {
+      ok(`${tag}: the engine phrase maps to the same chip on the no-model path`, !!(m2.hasMap && a.m.hasMap && m2.hasMap.label === a.m.hasMap.label && chips2.includes(m2.hasMap.label)), { written: a.m.hasMap && a.m.hasMap.label, words: m2.hasMap && m2.hasMap.label, chips2 });
+      const u2 = (m2.unusedWords || []).map(w => String(w).toLowerCase());
+      ok(`${tag}: no-model path never calls "updated" or "engine" unused`, !u2.some(w => /^(updated|upgraded|rebuilt|built|new|newer|engine|motor|drivetrain|powertrain|swapped|replacement)$/.test(w)), m2.unusedWords);
+      ok(`${tag}: no-model path draws the mapped word's chip once`, chips2.filter(x => /^Engine swap/.test(x)).length === 1, chips2);
+      if (pw.make) ok(`${tag}: both paths show the same number of cars`, (r2.cards || []).length === a.cards, [(r2.cards || []).length, a.cards]);   /* a bare make is read from the taxonomy tables, which this fake world has none of */
+    }
+    // any answer: a no-model chip is a chip of the written answer's (nothing the buyer cannot account for), and no count twice
+    for (const t of chips2) ok(`${tag}: no-model chip "${t}" prints its count once`, !/\(\d[\d,]*\)\s*\(\d[\d,]*\)/.test(t), t);
+  }
+}
+// the page asks for it: the fallback runs the typed words through action rerun (the written answer's own render), and the old converse view is no longer the no-model search
+{ const fb = c.slice(c.indexOf("var fallback = function"), c.indexOf("var finish = function(d)"));
+  ok("(8) the page's fallback asks for the typed words' search through the written answer's own render", /__words/.test(fb) && !/ask\(\)/.test(fb.replace(/chatAsk\(/g, "")), fb.slice(0, 400));
+  { const bs = fs.readFileSync(path.join(root, "api/buySearch.js"), "utf8"); ok("(8) the rerun action takes words and answers like the written answer (api/buySearch.js)", /if \(!b\.filters && b\.text\) \{[\s\S]{0,300}filtersFromText\(env, text\)/.test(bs) && /lastUser: \(byWords && byWords\.lastUser\)/.test(bs)); } }
+// (9) A VISITOR NEVER SEES THAT THE WRITTEN ANSWER IS PAUSED. Sweep: every line a visitor can read on Find, Market Check and Sell that names written answers, the model, a pause or a limit of the model.
+{ const rd = f => { try { return fs.readFileSync(path.join(root, f), "utf8"); } catch { return ""; } };
+  const MODEL_WORDS = /written answers?|answers? (?:are|is) paused|(?:is|are) paused for the moment|paused for the moment|the model\b|Claude\b|Anthropic\b|model (?:is )?(?:paused|busy|limit)/i;
+  const visitor = ["api/buy.js", "api/buySearch.js", "lib/live/samChat.js", "lib/live/converse.js", "lib/live/chatHttp.js", "api/sellChat.js", "api/chat.js", "api/sellerDecision.js", "public/js/entry.js", "public/js/result.js", "public/js/result-v2.js", "public/js/onebox.js", "public/js/chat-core.js", "public/js/sell.js", "lib/_ceilings.js", "lib/tasks/tasks.js"];
+  for (const f of visitor) {
+    const src = rd(f); if (!src) continue;
+    // a string literal a visitor may read (a quoted sentence), outside comments
+    const lits = (src.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n").match(/(["'`])(?:(?!\1)[^\\\n]|\\.){12,}\1/g) || []).filter(l => MODEL_WORDS.test(l) && /[a-z]{3,} [a-z]{3,}/i.test(l) && !/^["'`](?:\s*\/\/|\s*\*)/.test(l));
+    const real = lits.filter(l => !/Anthropic API error/.test(l) && !/\b(?:systemPrompt|SYSTEM|You are|never invent|Never say|do not say|Do not say|\bapi\.anthropic|content-type|model:|MODEL|model_spend|sell_model)\b/i.test(l) && !/^["'`][a-z_]+["'`]$/.test(l));
+    ok(`(9) ${f}: no sentence a visitor reads names written answers, the model or a pause`, real.length === 0, real.slice(0, 3));
+  } }
+// (10) A CAR WHOSE TITLE NAMES ANOTHER BODY NEVER MATCHES A TYPED BODY. Only a listing silent on body gets "Some of these may be a convertible. The listing doesn't say." A 1989 BMW 325is (coupe) matched a convertible search with that line.
+// The shapes a listing states its body in (the title, the field, the nameplate, the first sentence of its description) or leaves unsaid, each searched for every typed body down Find (runFilters) and the Tasks matcher.
+{ const base = rows.length, row = (i, title, body, desc, y = 1989, model = "3 Series") => ({ ...mk(40 + i, "BMW", model, y, title, body, "Manual", "Black"), id: 900 + i, description: desc || "" });
+  const SHAPES = [
+    [1, "1989 BMW 325i Convertible 5-Speed", "convertible", "", "convertible", "title"], [2, "1989 BMW 325is Coupe 5-Speed", "coupe", "", "coupe", "title names coupe"],
+    [3, "1989 BMW 325is 5-Speed", null, "", "coupe", "nameplate 325is is a coupe"], [4, "1989 BMW 325i 5-Speed", null, "", null, "silent"],
+    [5, "1989 BMW 325ix 5-Speed", "sedan", "", "sedan", "field names sedan"], [6, "1990 BMW 325i 5-Speed", null, "This 1990 BMW 325i sedan is finished in black over tan leather. It has 80,000 miles.", "sedan", "description names sedan"],
+    [7, "1989 BMW 325i Touring Wagon", "convertible", "", "wagon", "title names wagon, field says convertible"], [8, "1991 BMW 325iC 5-Speed", null, "", "convertible", "nameplate 325iC is a convertible"],
+    [9, "1989 BMW 325i 5-Speed", "coupe", "", "coupe", "field names coupe"], [10, "1989 BMW 325i Cabriolet", null, "", "convertible", "title names cabriolet (open family)"]
+  ];
+  const BR = SHAPES.map(([i, t, b, d]) => row(i, t, b, d, Number(t.slice(0, 4)))); const saved = rows.splice(0, rows.length, ...BR);
+  const idOf = c => (c.r && c.r.id) || c.id;
+  for (const typed of ["convertible", "coupe", "sedan", "wagon"]) {
+    const fam = b => b === typed || (typed === "convertible" && b === "convertible");
+    const want = SHAPES.filter(x => x[4] && fam(x[4])).map(x => 900 + x[0]), silent = SHAPES.filter(x => !x[4]).map(x => 900 + x[0]);
+    for (const more of [false, true]) {
+      const r = await runFilters(env, { make: "BMW", model: "3 Series", body: typed, ...(more ? { include_unstated: true } : {}) }, { lastUser: `BMW 3 Series ${typed}` }), cards = r.cards || [], ids = cards.map(idOf), mode = more ? "with the ones that don't say" : "as asked";
+      ok(`(10) Find "${typed}" ${mode}: every car that states ${typed} is shown`, want.every(w => ids.includes(w)), { want, ids });
+      ok(`(10) Find "${typed}" ${mode}: a car that names another body is never shown (${SHAPES.filter(x => x[4] && !fam(x[4])).map(x => x[5]).join("; ")})`, ids.every(i => want.includes(i) || silent.includes(i)), { ids, want, silent });
+      ok(`(10) Find "${typed}" ${mode}: only a car silent on body carries the "doesn't say" mark`, cards.filter(c => (c.unknown || []).includes("body")).every(c => silent.includes(idOf(c))), cards.filter(c => (c.unknown || []).includes("body")).map(idOf));
+      ok(`(10) Find "${typed}" ${mode}: a car that states ${typed} carries no "doesn't say" mark`, cards.filter(c => want.includes(idOf(c))).every(c => !(c.unknown || []).includes("body")), cards.filter(c => want.includes(idOf(c)) && (c.unknown || []).includes("body")).map(idOf));
+      if (!more) ok(`(10) Find "${typed}" as asked: the count of cars that don't say is the silent cars alone`, Number((r.meta || {}).unstated || 0) === silent.length, { unstated: (r.meta || {}).unstated, silent });
+    }
+    // the Tasks matcher: it never notifies on an unknown, so only a car that states the body matches; a car naming another body never does
+    const T = await import(pathToFileURL(path.join(root, "lib/tasks/tasks.js")).href);
+    const tm = await T.findMatchesDetail(env, { id: "t", kind: "hunt", filters: { make: "BMW", model: "3 Series", body: typed }, reported_ids: [] }, { rows: BR }, null).catch(e => ({ err: String(e.message) })), tids = ((tm && tm.matches) || []).map(x => Number(x.r.id));
+    ok(`(10) Tasks "${typed}": no car that names another body matches`, !tm.err && tids.every(i => want.includes(i)), { tids, want, err: tm.err });
+    ok(`(10) Tasks "${typed}": every car that states ${typed} matches`, !tm.err && want.every(w => tids.includes(w)), { tids, want, err: tm.err });
+  }
+  rows.splice(0, rows.length, ...saved); void base; }
 console.log(`findVoiceCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
 
@@ -111,7 +179,17 @@ function mutants() {
     ["the zero count line never names the offer", "lib/live/samChat.js", s => s.replace("ctx.searchMeta.zeroLine = `No live matches with '${String(f.has).toLowerCase()}'. ${wh.added} without it.`;", "")],
     ["a mapped word is never dropped", "lib/live/samChat.js", s => s.replace("hasDrop = { ...hm, n: r2.matches.length };", "")],
     ["the dropped line does not say what was read", "lib/live/samChat.js", s => s.replace(" (read from '${hasDrop.from}')", "")],
-    ["the page ignores the chip label", "api/buy.js", s => s.replace('add(hasLabel || capWord(f.has), [\\"has\\"])', 'add(capWord(f.has), [\\"has\\"])')]
+    ["the page ignores the chip label", "api/buy.js", s => s.replace('add(hasLabel || capWord(f.has), [\\"has\\"])', 'add(capWord(f.has), [\\"has\\"])')],
+    ["the engine phrase maps nowhere (no swap word)", "lib/live/samChat.js", s => s.replace('const ENGINE_HAS = "swap";', 'const ENGINE_HAS = "";')],
+    ["a part-word swap ('swapped') is not mapped from its phrase", "lib/live/samChat.js", s => s.replace("if (!(ph && word === ENGINE_HAS) && new RegExp", "if (new RegExp")],
+    ["a make and a generation code alone read to no car", "lib/live/samChat.js", s => s.replace("if (fam && new Set(", "if (false && fam && new Set(")],
+    ["the engine phrase stays in the car's words", "lib/live/samChat.js", s => s.replace('t.replace(ENGINE_PHRASE_RE, " ")', "t")],
+    ["the rerun action takes no words", "api/buySearch.js", s => s.replace("if (!b.filters && b.text) {", "if (false) {")],
+    ["the paused sentence is sent again", "api/buySearch.js", s => s.replace("capped: mg.why });", "capped: mg.why, note: \"Sam's written answers are paused for the moment. Here are the search results on their own.\" });")],
+    ["the Sell chat says the answers are paused", "lib/_ceilings.js", s => s.replace("Sam can't answer that one just now. Try again in a little while.", "Sam's written answers are paused for the moment. Try again later today.")],
+    ["Tasks says the answers are paused", "lib/tasks/tasks.js", s => s.replace("? TASKS_MODEL_BUSY :", "? \"Sam's written answers are paused for the moment. Try again later today.\" :")],
+    ["a nameplate that is only a coupe says nothing", "lib/live/search.js", s => s.replace("const nb = bodyOfNameplate(title, r.make, r.year);", "const nb = null;")],
+    ["a description's first sentence names no body", "lib/live/search.js", s => s.replace("const db = bodyOfDescription(desc, BODY_RE, BODIES);", "const db = null;")]
   ];
   let survived = 0;
   for (const [name, file, fn] of M) {

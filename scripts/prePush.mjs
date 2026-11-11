@@ -2337,6 +2337,18 @@ try {
   record("Find says one thing: 20 recorded searches through the real search turn and the page's own chip and count code; no count twice, no unused word that a chip used, no card line on a page with no card, the count line agrees with the offer (scripts/findVoiceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 200));
 }
 try {
+  const out = execSync("node scripts/converseRetiredCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Find: the old converse endpoint is retired and nothing calls it (scripts/converseRetiredCheck.mjs)", "PASS", (out.match(/converseRetiredCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find: the old converse endpoint is retired and nothing calls it (scripts/converseRetiredCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/findGenerationsCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Find: every generation code of the curated table (246 rows: E30, E36, 964, 993, C2, C3, Mk1, W113, 100 Series and the rest) finds its live cars and is printed once (scripts/findGenerationsCheck.mjs)", "PASS", out.trim().split("\n").pop());
+} catch (e) {
+  record("Find: every generation code of the curated table (246 rows: E30, E36, 964, 993, C2, C3, Mk1, W113, 100 Series and the rest) finds its live cars and is printed once (scripts/findGenerationsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 200));
+}
+try {
   const out = execSync("node scripts/pickRaceCheck.mjs", { encoding: "utf8", timeout: 180000 });
   record("example picks: a pull or revalidation never overwrites a pick newer than the one it read; a rebuild is the last write (Find, Home, Tasks, Watching; scripts/pickRaceCheck.mjs)", "PASS", out.trim().split("\n").pop());
 } catch (e) {
@@ -2397,7 +2409,7 @@ try {
   record("Desk v4 flow in Chrome on the real readers: tick and untick (the list stays), exclude and restore, every condition, the window, type and drag the reserve above the range and tick the seller's request, add a document, resolve attention, Select all photos, edit a step, Preview, Finalize; mutants for each bug Sam hit (scripts/deskV4FlowCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
-  const out = execSync("node scripts/goLiveSwitchCheck.mjs --base ce206e95", { encoding: "utf8", timeout: 240000 });
+  const out = execSync("node scripts/goLiveSwitchCheck.mjs --base 723b420d", { encoding: "utf8", timeout: 240000 });
   record("Go live switch: NEW_DESIGN off serves bytes identical to the baseline on every public route, on keeps status and headers and replays redirects, per route, crew look, no POST switched (scripts/goLiveSwitchCheck.mjs)", "PASS", (out.match(/goLiveSwitchCheck: .*/) || [""])[0]);
 } catch (e) {
   record("Go live switch: NEW_DESIGN off serves bytes identical to the baseline on every public route, on keeps status and headers and replays redirects, per route, crew look, no POST switched (scripts/goLiveSwitchCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveSwitchCheck:/.test(l)).slice(0, 5).join(" | "));

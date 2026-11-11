@@ -157,7 +157,7 @@ export async function jsFindings(t = {}) {
     res = mkRes(); await handler({ method: "POST", headers: { cookie: `gas_crew=${crew}` }, body: { action: "org.purge", org: "sam", confirm: "wrong" } }, res);
     eq(res.code, 400, "an org purge needs the org id repeated");
   } finally { undo(); }
-  const grepAll = (files, re) => files.filter(f => fs.existsSync(path.join(ROOT, f)) && re.test(fs.readFileSync(path.join(ROOT, f), "utf8")));
+  const grepAll = (files, re) => files.filter(f => fs.existsSync(path.join(ROOT, f)) && re.test(fs.readFileSync(path.join(ROOT, f), "utf8").split("\n").filter(l => !(f === "public/robots.txt" && /^Disallow:\s*\/desk\s*$/.test(l))).join("\n")));   // the retired /desk Disallow line (Nov 11 2026) is allowed in robots
   const pubFiles = fs.readdirSync(path.join(ROOT, "public")).filter(f => /sitemap.*\.xml$|^robots\.txt$/.test(f)).map(f => "public/" + f);
   eq(grepAll(["lib/appShell.js", "lib/authBar.js", "api/sitemapPages.js", "api/_chrome.js", ...pubFiles], /["'>\/](?:desk|deskOrg)(?:["'<?#\s]|$)|goasksam\.com\/desk|\/api\/deskOrg/), [], "/desk and the admin endpoint are in no nav, sitemap or robots file");
   const vj = fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8");

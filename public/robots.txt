@@ -1,6 +1,7 @@
 # Launched Aug 2026: the site is public and indexable. The pre-launch rule that
 # blocked everything but /privacy while the curtain was up has been removed.
 # Crew-only pages are not listed here: they answer a stranger exactly as an address that was never there.
+# The retired Desk screen (Nov 11 2026) answers 404; every group below also disallows its address so nothing is indexed.
 #
 # Crawler policy (docs/search-rules.md rule 8). Search + AI-answer crawlers are explicitly allowed:
 # Googlebot, Bingbot (search); OAI-SearchBot, Claude-SearchBot, Claude-User, PerplexityBot (AI answers).
@@ -14,36 +15,46 @@
 # --- search crawlers ---
 User-agent: Googlebot
 Allow: /
+Disallow: /desk
 
 User-agent: Bingbot
 Allow: /
+Disallow: /desk
 
 # --- AI answer / citation crawlers ---
 User-agent: OAI-SearchBot
 Allow: /
+Disallow: /desk
 
 User-agent: Claude-SearchBot
 Allow: /
+Disallow: /desk
 
 User-agent: Claude-User
 Allow: /
+Disallow: /desk
 
 User-agent: PerplexityBot
 Allow: /
+Disallow: /desk
 
 # --- training crawlers (allowed for now; see docs/search-rules.md) ---
 User-agent: GPTBot
 Allow: /
+Disallow: /desk
 
 User-agent: ClaudeBot
 Allow: /
+Disallow: /desk
 Crawl-delay: 10
 
 User-agent: Google-Extended
 Allow: /
+Disallow: /desk
 
 # --- everyone else ---
 User-agent: *
 Allow: /
+Disallow: /desk
 
 Sitemap: https://goasksam.com/sitemap-index.xml

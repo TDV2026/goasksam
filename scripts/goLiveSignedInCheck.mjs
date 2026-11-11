@@ -91,6 +91,11 @@ for (const url of ["/find?q=red+Porsche", "/market-check?q=1995+bmw+m3", "/sell?
   ok(signed && here === url, `${url}: after signing in the browser is on the page it started from, query intact, and signed in (${here})`); await closePage(pg);
 }
 { const pg = await openPage(b, O({ w: 1440, url: "/find?q=red+Porsche" })); await settle(700); await signIn(pg, { forget: true }); const here = await pg.evaluate(() => location.pathname + location.search); ok(here === "/", `nothing remembered: signing in goes Home (${here})`); await closePage(pg); }
+// ---- THE SIGN IN CARD IS STYLED like the Find search box (Nov 11 2026, the form class: scripts/_railProbe.mjs formProblems; goLiveLiveCheck judges every other form)
+{ const { probeForms, probeFormReference, formProblems } = await import(pathToFileURL(path.join(ROOT, "scripts/_railProbe.mjs")).href);
+  for (const w of [1440, 390]) { const rp = await openPage(b, O({ w, url: "/find" })); await settle(900); const ref = await probeFormReference(rp); await closePage(rp);
+    const pg = await openPage(b, O({ w, url: "/" })); await settle(700); await pg.click("#acct"); await settle(900); const card = (await probeForms(pg)).filter(f => /auth/.test(f.id)), bad = formProblems(card, ref, `sign in card @${w}`);
+    ok(card.length >= 2 && bad.length === 0, `sign in card @${w}: its field and buttons are styled like the Find search box (${card.length} controls${bad.length ? "; " + bad.join(" | ").slice(0, 400) : ""})`); await closePage(pg); } }
 // ---- SIGNED IN: the menu at both widths; no strip
 for (const w of [1440, 390]) for (const url of ["/", "/find?q=red+Porsche", "/market-check?q=1995+bmw+m3", "/sell?car=2008+Porsche+911+Carrera", "/tasks", HISTORY_HUB]) {
   const pg = await openPage(b, O({ w, url, session: true })); await settle(1200);

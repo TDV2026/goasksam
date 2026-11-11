@@ -24,8 +24,6 @@ const SCEN = [
   { name: "none left out says so (chat)", via: "chat", excluded: [EX(L_NONE, "not:rf")], say: [L_NONE] },
   { name: "empty excluded (chat)", via: "chat", excluded: [], say: [] },
   { name: "no excluded field (chat)", via: "chat", excluded: undefined, say: [] },
-  { name: "one exclusion (search box)", via: "converse", excluded: [EX(L_RF, "not:rf")], say: [L_RF] },
-  { name: "empty excluded (search box)", via: "converse", excluded: [], say: [] },
 ];
 async function run(width, sc) {
   const p = await b.newPage(); await p.setViewport({ width, height: 900 }); const errs = []; p.on("pageerror", e => errs.push(e.message.slice(0, 120)));
@@ -37,7 +35,6 @@ async function run(width, sc) {
       const J = o => r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(o) });
       if (body.action === "panel") return J({ market: FIX[0].market, engineAnswer: { cards: [] } });
       if (body.action === "chat" || body.action === "rerun") return J({ reply: "", suggest: [], state: { filters: { make: "Mazda", model: "Miata" } }, turns: 1, meta: { count: 3, live: 3, asks: [], ...(sc.excluded !== undefined ? { excluded: sc.excluded } : {}) }, cards: FIX, searchNote: "" });
-      if (body.action === "converse") return J({ type: "results", say: "3 live.", total: 3, cards: FIX, setAside: [], facets: null, filters: { make: "Mazda", model: "Miata" }, ...(sc.excluded !== undefined ? { excluded: sc.excluded } : {}) });
       return J(body.action === "list" ? { items: [] } : {}); }
     if ((u.host === "goasksam.com" && /^\/(api|js)/.test(u.pathname))) return r.respond({ status: 200, contentType: /\.js$/.test(u.pathname) ? "application/javascript" : "application/json", body: /\.js$/.test(u.pathname) ? "" : "{}" });
     if (u.host !== "goasksam.com") return r.respond({ status: 204, body: "" }); r.continue(); });
@@ -47,7 +44,6 @@ async function run(width, sc) {
 }
 try {
   for (const width of [1440, 390]) for (const sc of SCEN) {
-    if (sc.via === "converse" && width === 390) continue;   // the search box's path is the same markup; the phone width is covered by the chat path
     const r = await run(width, sc), tag = `${width} ${sc.name}`;
     ok(r.cars > 0, `${tag}: the cars are drawn (${r.cars})`);
     ok(sc.say.length ? sc.say.every(s => r.lines.join(" | ").includes(s)) && r.lines.length === 1 : r.lines.length === 0, `${tag}: ${sc.say.length ? "prints " + JSON.stringify(sc.say) : "prints nothing"}, got ${JSON.stringify(r.lines)}`);
@@ -61,7 +57,6 @@ try {
 {
   const rd = x => fs.readFileSync(new URL("../" + x, import.meta.url), "utf8");
   ok(/excluded: res\.excluded \|\| \[\] \}/.test(rd("lib/live/samChat.js")) && /excluded: \(sr\.excluded \|\| \[\]\)\.map/.test(rd("lib/live/samChat.js")), "the chat path carries the search's excluded[] into meta.excluded");
-  ok(/vins: vinsOf\(matches\), excluded: res\.excluded \|\| \[\]/.test(rd("lib/live/converse.js")) && /excluded: r\.excluded && r\.excluded\.length \? r\.excluded : undefined/.test(rd("api/buySearch.js")), "the search box path carries excluded[] into its answer");
 }
 await b.close();
 console.log(`findExcludedCheck: ${pass} pass, ${fail} FAIL`);
