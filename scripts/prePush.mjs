@@ -2325,6 +2325,18 @@ try {
   record("VIN decode keeps the trim: 36 VINs (Porsche, Corvette Z06/ZR1, Shelby, BMW M, Mercedes-AMG) through the real decode and resolver read the trim the car's title names, or none where the VIN does not say (scripts/vinDecodeTrimCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").slice(-3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/findAlwaysCardsCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Find: a search with live matches always draws the cars; every narrowing question (generation, body, miles, budget, kind, where, how far) is an offer above them, never the answer alone (scripts/findAlwaysCardsCheck.mjs)", "PASS", out.trim().split("\n").pop());
+} catch (e) {
+  record("Find: a search with live matches always draws the cars; every narrowing question (generation, body, miles, budget, kind, where, how far) is an offer above them, never the answer alone (scripts/findAlwaysCardsCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").filter(l => l.startsWith("FAIL")).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/pickRaceCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("example picks: a pull or revalidation never overwrites a pick newer than the one it read; a rebuild is the last write (Find, Home, Tasks, Watching; scripts/pickRaceCheck.mjs)", "PASS", out.trim().split("\n").pop());
+} catch (e) {
+  record("example picks: a pull or revalidation never overwrites a pick newer than the one it read; a rebuild is the last write (Find, Home, Tasks, Watching; scripts/pickRaceCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").filter(l => l.startsWith("FAIL")).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/liveExamplesSoonCheck.mjs", { encoding: "utf8", timeout: 120000 });
   record("live examples (Home, Find, Tasks, Watching): an auction ending within 7 days is preferred, a car more than 14 days out is never picked while one within 14 qualifies, the card carries the engine's time left line, only US dollar listings, a car with a line before one with none (scripts/liveExamplesSoonCheck.mjs)", "PASS", out.trim().split("\n").pop());
 } catch (e) {
