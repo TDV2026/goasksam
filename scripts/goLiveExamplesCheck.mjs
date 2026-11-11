@@ -63,7 +63,7 @@ for (const [name, url, f, seams] of PAGES) {
   const { FREE_TASK_LIMIT, taskLimitFor } = await import(pathToFileURL(path.join(ROOT, "lib/tasks/limit.js")).href), CREW_LIMIT = taskLimitFor(true), { freeTasksWords } = await import(pathToFileURL(path.join(ROOT, "lib/tasks/limit.js")).href);
   ok(r.h["x-design"] === "new", "Tasks: the new page is served");
   ok(new RegExp(freeTasksWords(CREW_LIMIT).replace(/\s+/g, "\\s+"), "i").test(text) === false, `Tasks: the public page never prints the crew limit (${freeTasksWords(CREW_LIMIT)})`);
-  ok(!/\bten\b|\b10\b active/i.test(text), "Tasks: no ten, no 10 active in the public page");
+  ok(new RegExp("\\b(" + FREE_TASK_LIMIT + "|" + freeTasksWords(FREE_TASK_LIMIT).split(" ")[0] + ") active Tasks", "i").test(text), `Tasks: the public page prints the live limit (${FREE_TASK_LIMIT}), read from lib/tasks/limit.js`);
 }
 console.log(`goLiveExamplesCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

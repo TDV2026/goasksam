@@ -11,7 +11,7 @@ import path from "node:path";
 import { spawnSync, execFileSync } from "node:child_process";
 const ROOT = path.resolve(new URL("..", import.meta.url).pathname);
 const SCAN_ONLY = process.argv.includes("--scan-only"), FULL = process.argv.includes("--full"), REF = (process.argv.find(a => a.startsWith("--ref=")) || "").slice(6);
-export const LITERAL = /max: ?3\b|limitLine\(3\)|limitFacts\(3\)|limitEntryLine\(3\)|FREE_TASK_LIMIT ?=== ?3|three active Tasks|\b3 Tasks running|\b[0-3] of 3 Tasks|Tasks \d of 3\b|(?:working|limit|max|atLimit)\w*\s*(?:===|>=|>)\s*3\b|\bof 3 \(searches|MAX_TASKS ?= ?3|workingCount ?>= ?3|"the limit is three"|lookingCounts\(3\b/;
+export const LITERAL = /max: ?3\b|limitLine\(3\)|limitFacts\(3\)|limitEntryLine\(3\)|FREE_TASK_LIMIT ?=== ?3|three active Tasks|\b3 Tasks running|\b[0-3] of 3 Tasks|Tasks \d of 3\b|(?:working|limit|max|atLimit)\w*\s*(?:===|>=|>)\s*3\b|\bof 3 \(searches|MAX_TASKS ?= ?3|workingCount ?>= ?3|"the limit is three"|lookingCounts\(3\b|limitLine\(10\)|limitFacts\(10\)|limitEntryLine\(10\)|FREE_TASK_LIMIT ?=== ?10\b|ten active Tasks|\b10 Tasks running|\b\d+ of 10 Tasks|Tasks \d+ of 10\b|MAX_TASKS ?= ?10|workingCount ?>= ?10|lookingCounts\(10\b/;   // the live number is ten since Nov 11 2026 (Sam, in writing); both numbers are caught
 export function scan(files) {   // files: { path: text } -> [ "path:line: text" ]
   const hits = [];
   for (const [f, text] of Object.entries(files)) {
@@ -50,20 +50,21 @@ async function main() {
   ok(hits.length === 0, `${hits.length} hard coded limit literal(s)${REF ? " at " + REF : ""}:\n  ` + hits.slice(0, 20).join("\n  "));
   // 2. the pin
   if (SCAN_ONLY) { console.log(`taskLimitLiteralCheck (scan only): ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0); }
-  if (!REF) { const L = await import("../lib/tasks/limit.js"); ok(L.FREE_TASK_LIMIT === 3, "the live free limit is 3 (it changes only when Sam says so in writing)"); ok(L.CREW_TASK_LIMIT > L.FREE_TASK_LIMIT, "the crew limit is above the free limit"); }
+  if (!REF) { const L = await import("../lib/tasks/limit.js"); ok(L.FREE_TASK_LIMIT === 10, "the live free limit is 10 (Sam, in writing, Nov 11 2026; it changes only when Sam says so in writing)"); ok(L.CREW_TASK_LIMIT > L.FREE_TASK_LIMIT, "the crew limit is above the free limit"); }
   if (!REF) {
     // 3. both values
     for (const c of LIMIT_CHECKS.filter(c => FULL || c.fast)) {
       const f = `scripts/${c.name}.mjs`; if (!fs.existsSync(path.join(ROOT, f))) { ok(false, `${f} is listed but missing`); continue; }
-      for (const lim of [0, 10]) { const r = run(f, lim); ok(r.code === 0, `${c.name} with the constant at ${lim || 3} fails (exit ${r.code}): ${r.fails.join(" | ") || r.last}`); }
+      for (const lim of [0, 3]) { const r = run(f, lim); ok(r.code === 0, `${c.name} with the constant at ${lim || 10} fails (exit ${r.code}): ${r.fails.join(" | ") || r.last}`); }
     }
     // 4. it fails on a literal
     const fx = scan({ "scripts/__fixture.mjs": 'ok(s.limit.statusLine === "You have 2 of 3 Tasks running. 1 Task left.", "x");' }); ok(fx.length === 1, "the scan did not find a literal in a fixture line");
+    const fx10 = scan({ "scripts/__fixture.mjs": 'ok(s.limit.statusLine === "You have 2 of 10 Tasks running. 8 Tasks left.", "x");' }); ok(fx10.length === 1, "the scan did not find a literal ten in a fixture line");
     const fx2 = scan({ "scripts/__fixture.mjs": "if (working >= 3) return blocked;" }); ok(fx2.length === 1, "the scan did not find `working >= 3`");
     const src = fs.readFileSync(path.join(ROOT, "scripts/tasksLimitCheck.mjs"), "utf8"), mut = path.join(ROOT, "scripts/__litmut_tasksLimitCheck.mjs");
     if (!/const L = FREE_TASK_LIMIT,/.test(src)) ok(false, "tasksLimitCheck no longer reads the constant into L"); else {
-      fs.writeFileSync(mut, src.replace("const L = FREE_TASK_LIMIT,", "const L = 3,").replace(/from "\.\//g, 'from "./').replace(/import\("\.\.\//g, 'import("../'));
-      try { const r = run("scripts/__litmut_tasksLimitCheck.mjs", 10); ok(r.code !== 0, "a limit check with the number hard coded to 3 PASSED with the constant at 10 (the check cannot see the literal)"); } finally { fs.rmSync(mut, { force: true }); }
+      fs.writeFileSync(mut, src.replace("const L = FREE_TASK_LIMIT,", "const L = 10,").replace(/from "\.\//g, 'from "./').replace(/import\("\.\.\//g, 'import("../'));
+      try { const r = run("scripts/__litmut_tasksLimitCheck.mjs", 3); ok(r.code !== 0, "a limit check with the number hard coded to 10 PASSED with the constant at 3 (the check cannot see the literal)"); } finally { fs.rmSync(mut, { force: true }); }
     }
   }
   console.log(`taskLimitLiteralCheck: ${pass} pass, ${fail} FAIL${FULL ? " (full)" : ""}`); process.exit(fail ? 1 : 0);

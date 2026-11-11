@@ -19,7 +19,7 @@ async function start(c, i, extra = {}) { return T.startDraft(c.env, c.user, draf
 const working = async c => (await T.workingTasks(c.env, c.user.userId)).length;
 const facts = async c => limitFacts((await T.userTasks(c.env, c.user.userId)).filter(t => ["running", "needs_you"].includes(t.state)).length);
 
-ok(FREE_TASK_LIMIT === (Number(process.env.TASK_LIMIT_OVERRIDE) || 3), "the limit is the constant, and 3 unless a run overrides it");
+ok(FREE_TASK_LIMIT === (Number(process.env.TASK_LIMIT_OVERRIDE) || 10), "the limit is the constant, and 10 (Sam, in writing, Nov 11 2026) unless a run overrides it");
 ok(limitLine(L) === `You have ${L} Tasks running. Stop one to start this one.` && limitEntryLine(L) === `You have ${L} Tasks running. Stop one to add another.`, "the two sentences, word for word");
 ok(freeTasksWords() === `${WORD} active Tasks` && tasksCount(1) === "1 Task", "the plain words come from the one number");
 ok(!/[–—]/.test(limitLine() + limitEntryLine() + freeTasksWords()), "no dashes");

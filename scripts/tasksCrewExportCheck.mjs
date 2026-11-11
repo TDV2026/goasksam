@@ -58,7 +58,8 @@ export async function findings(mut = {}) {
     for (const [name, [cookie, q]] of Object.entries(nonCrew)) {
       const n = await call(cookie, where === "list" ? LIST : q), nb = n.body || {};
       if (!(nb.limit && nb.limit.max === FREE && nb.counts && nb.counts.tasks.max === FREE)) fails.push(`${name} ${where}: the facts carry ${nb.limit && nb.limit.max}, expected ${FREE}`);
-      if (JSON.stringify(nb).includes(`of ${CREW} `) || JSON.stringify(nb.limit || {}).includes(String(CREW)) || JSON.stringify(nb.counts || {}).includes(`"max":${CREW}`)) fails.push(`${name} ${where}: the answer names the crew number ${CREW}`);
+      // the TASK limit only: Find's watches and alerts have their own caps (lib/live/lookingCaps.js) that can equal the crew number, so "25" alone proves nothing
+      if (JSON.stringify(nb).includes(`of ${CREW} Task`) || (nb.limit && nb.limit.max === CREW) || (nb.counts && nb.counts.tasks && nb.counts.tasks.max === CREW)) fails.push(`${name} ${where}: the answer names the crew number ${CREW} as the Tasks limit`);
     }
   }
   // 2. the export is the one source, and only crew-gated code may import it

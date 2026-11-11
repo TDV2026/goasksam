@@ -30,6 +30,7 @@ const { mintSeatCookieValue } = await import("../lib/desk/seatCookie.js");
 // FREE and CREW are READ from lib/tasks/limit.js, never written here (scripts/taskLimitLiteralCheck.mjs).
 const { FREE_TASK_LIMIT: FREE, CREW_TASK_LIMIT: CREW } = await import("../lib/tasks/limit.js");
 const NAMES = [["Porsche", "911"], ["Ford", "Mustang"], ["Chevrolet", "Camaro"], ["BMW", "M3"], ["Toyota", "Supra"], ["Dodge", "Charger"], ["Jaguar", "E-Type"], ["Mazda", "Miata"], ["Nissan", "Skyline"], ["Honda", "NSX"], ["Ferrari", "308"], ["Lotus", "Esprit"], ["Audi", "Quattro"]];
+for (let i = NAMES.length; i < CREW + FREE + 2; i++) NAMES.push(["Make" + i, "Model" + i]);   // enough distinct hunts to pass the crew limit and then some, whatever the numbers are
 const draftOf = (make, model) => ({ kind: "hunt", filters: { make, model }, words: `${make} ${model}`, summary: `Sam is looking for ${make} ${model}s.` });
 const opts = { rows: [], testDrafts: [] };
 const reqOf = ({ cookie = "", query = {}, headers = {} } = {}) => ({ method: "POST", headers: { cookie, ...headers }, query });
@@ -67,22 +68,22 @@ export async function findings(mut = {}) {
     // the crew account's setup turn is not blocked at 5 and is blocked at 10
     // ---- the email tap: a crew account with 5 working Tasks and a paused one. The tap resumes nothing (free limit), keep_looking neither.
     const env2 = { mem: T.memStore() }, crewUser = G.taskUserFor(reqOf({ cookie: "gas_crew=" + crewVal }), { userId: uid(), email: null });
-    for (let i = 0; i < 6; i++) await T.startDraft(env2, crewUser, draftOf(...NAMES[i]), opts);
+    for (let i = 0; i < FREE + 1; i++) await T.startDraft(env2, crewUser, draftOf(...NAMES[i]), opts);   // the free limit's worth working, and one that is then paused
     const all = await T.userTasks(env2, crewUser.userId); await T.controlTask(env2, crewUser, all[0].id, "pause");
     for (const act of ["resume", "keep_looking"]) {
       const tapped = await T.controlTask(env2, G.tapUser({ user_id: crewUser.userId }), all[0].id, act, { via: "email_link" });
       const st = (await T.getTask(env2, all[0].id)).state;
-      if (!(tapped.blocked && tapped.blocked.max === FREE) || st !== "paused") fails.push(`the email ${act} tap on a crew account with 5 Tasks working: not refused with max 3 (state ${st}, max ${tapped.blocked && tapped.blocked.max})`);
+      if (!(tapped.blocked && tapped.blocked.max === FREE) || st !== "paused") fails.push(`the email ${act} tap on a crew account with the free limit working: not refused with the free max (state ${st}, max ${tapped.blocked && tapped.blocked.max})`);
     }
-    const viaPage = await T.controlTask(env2, crewUser, all[0].id, "resume"); if (!(viaPage.task && viaPage.task.state === "running")) fails.push("the crew account could not resume its paused Task from the Tasks page (5 working, limit 10)");
+    const viaPage = await T.controlTask(env2, crewUser, all[0].id, "resume"); if (!(viaPage.task && viaPage.task.state === "running")) fails.push("the crew account could not resume its paused Task from the Tasks page (under the crew limit)");
   }
   // a non-crew account under the limit: the tap still works, and a paused Task over the limit is held by keep_looking too
   {
     const env = { mem: T.memStore() }, u = { userId: uid(), email: null };
-    for (let i = 0; i < 3; i++) await T.startDraft(env, u, draftOf(...NAMES[i]), opts);
-    const t0 = (await T.userTasks(env, u.userId))[0]; await T.controlTask(env, u, t0.id, "pause"); await T.startDraft(env, u, draftOf(...NAMES[3]), opts);
+    for (let i = 0; i < FREE; i++) await T.startDraft(env, u, draftOf(...NAMES[i]), opts);
+    const t0 = (await T.userTasks(env, u.userId))[0]; await T.controlTask(env, u, t0.id, "pause"); await T.startDraft(env, u, draftOf(...NAMES[FREE]), opts);
     const kl = await T.controlTask(env, G.tapUser({ user_id: u.userId }), t0.id, "keep_looking", { via: "email_link" });
-    if (!(kl.blocked && (await T.getTask(env, t0.id)).state === "paused")) fails.push("the email keep_looking tap on a paused Task at three working Tasks started a 4th Task");
+    if (!(kl.blocked && (await T.getTask(env, t0.id)).state === "paused")) fails.push("the email keep_looking tap on a paused Task at the free limit of working Tasks started one more");
     const other = (await T.workingTasks(env, u.userId))[0]; await T.controlTask(env, u, other.id, "stop");
     const ok = await T.controlTask(env, G.tapUser({ user_id: u.userId }), t0.id, "keep_looking", { via: "email_link" }); if (!(ok.task && ok.task.state === "running")) fails.push("the email keep_looking tap does not work once a slot is free");
   }
@@ -104,7 +105,7 @@ export const MUTANTS = [
   ["the gate swapped for a query parameter", { gate: s => rep(s, "taskLimitFor(isCrewRequest(req) === true)", "taskLimitFor(!!(req.query && req.query.crew))") }],
   ["the crew limit read outside isCrewRequest (a cookie shape test)", { gate: s => rep(s, "taskLimitFor(isCrewRequest(req) === true)", "taskLimitFor(/gas_crew=/.test(String((req.headers || {}).cookie || \"\")))") }],
   ["the crew limit read from a header", { gate: s => rep(s, "taskLimitFor(isCrewRequest(req) === true)", "taskLimitFor(!!(req.headers && req.headers[\"x-crew\"]))") }],
-  ["the email tap inherits the crew limit", { gate: s => rep(s, "export const tapUser = task => ({ userId: task.user_id });", "export const tapUser = task => ({ userId: task.user_id, taskMax: 10 });") }],
+  ["the email tap inherits the crew limit", { gate: s => rep(s, "export const tapUser = task => ({ userId: task.user_id });", `export const tapUser = task => ({ userId: task.user_id, taskMax: ${CREW} });`) }],
   ["taskMaxOf trusts any number", { limit: s => rep(s, "user && user.taskMax === CREW_TASK_LIMIT ? CREW_TASK_LIMIT : FREE_TASK_LIMIT", "user && user.taskMax > 0 ? user.taskMax : FREE_TASK_LIMIT") }],
   ["keep_looking skips the slot check (the hole)", { tasks: s => rep(s, 'if (task.state === "paused") { const held = await slotTask(env, user.userId, task.id, taskMaxOf(user)); if (held) return { ...blockedOf(held, taskMaxOf(user)), task }; }\n', "") }],
   ["the crew limit ignored by the slot check", { tasks: s => rep(s, "const held = await slotTask(env, user.userId, task.id, taskMaxOf(user)); if (held) return { ...blockedOf(held, taskMaxOf(user)), task };\n    task = await saveTask(env, task.id, { state: \"running\"", "const held = await slotTask(env, user.userId, task.id); if (held) return { ...blockedOf(held), task };\n    task = await saveTask(env, task.id, { state: \"running\"") }]
