@@ -2313,6 +2313,12 @@ try {
   record("homepage feature (CREW ONLY, NOT LIVE): the one featured car passes every eligibility rule (same VIN, live, real photos, evidence link, complete, listed never sold), stays put, replaces itself when its auction ends, is null on a failed refresh and never stale, and no public route, page, feed or cache key can return it (scripts/featuredHistoryCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/liveExamplesSoonCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("live examples (Home, Find, Tasks, Watching): an auction ending within 7 days is preferred, a car more than 14 days out is never picked while one within 14 qualifies, the card carries the engine's time left line (scripts/liveExamplesSoonCheck.mjs)", "PASS", out.trim().split("\n").pop());
+} catch (e) {
+  record("live examples (Home, Find, Tasks, Watching): an auction ending within 7 days is preferred, a car more than 14 days out is never picked while one within 14 qualifies, the card carries the engine's time left line (scripts/liveExamplesSoonCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").slice(-3).join(" | "));
+}
+try {
   const out = execSync("node scripts/featuredWireCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("homepage feature preview (CREW ONLY, NOT LIVE): a stored sold or listed pick prints through the crew route, anything short of a complete live pick is hidden, a failed image hides the section, the route is a bare 404 without the cookie (scripts/featuredWireCheck.mjs)", "PASS", (out.match(/featuredWireCheck: .*/) || [""])[0]);
 } catch (e) {

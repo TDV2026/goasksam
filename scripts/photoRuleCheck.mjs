@@ -114,11 +114,11 @@ function liveWorld(rows, table, extra = {}) {
 { // (2) the Homepage pick
   const VIN1 = "WP0AB29988S783456", VIN2 = "WP0AB29988S783457", sale = vin => ({ kind: "sale", date: "2022-05-14", house: "Bring a Trailer", url: "https://bringatrailer.com/listing/" + vin + "/", mileage: 30000, priceUsd: 61000, image: "https://img.example.com/prev-" + vin + ".jpg", year: 2008, make: "Porsche", model: "911", vinNorm: vin });
   const lv = (id, vin, days, o = {}) => ({ id, source: "bringatrailer", url: "https://bringatrailer.com/listing/2008-porsche-911-" + id + "/", listing_title: "2008 Porsche 911 Carrera", year: 2008, make: "Porsche", model: "911", vin_norm: vin, mileage: 34000, mileage_unit: "miles", end_time: new Date(NOW + days * DAY).toISOString(), photo_url: "https://img.example.com/cur-" + id + ".jpg", status: "live", ...o });
-  const rows = [lv("L1", VIN1, 5), lv("L2", VIN2, 3)], apps = { [VIN1]: [sale(VIN1)], [VIN2]: [sale(VIN2)] };
+  const rows = [lv("L1", VIN1, 3), lv("L2", VIN2, 5)], apps = { [VIN1]: [sale(VIN1)], [VIN2]: [sale(VIN2)] };
   const mk = table => { let w; const base = liveWorld(rows, table).d.select; w = liveWorld(rows, table, { select: async (e, q) => { if (/^(vin_index|sales_archive)\?vin_norm=in\./.test(q)) { const want = decodeURIComponent(/in\.\((.*)\)&/.exec(q)[1]).replace(/"/g, "").split(","); return want.filter(v => apps[v]).map(v => ({ vin_norm: v })); } return liveWorldSelect(w, q); }, appearances: async (e, vin) => ({ ok: true, vinNorm: vin, appearances: apps[vin] || [] }), cardName: async () => ({ name: null, trim: null }), clear: async () => { w.store.delete(FH.STORE_KEY); } }); return w; };
   const w0 = mk({}); await FH.refreshFeaturedHistory(env, w0.d);
   const w1 = mk({ "https://img.example.com/cur-L1.jpg": BIG }); await FH.refreshFeaturedHistory(env, w1.d);
-  ok("(2) Homepage: with no photo problem the car ending later (L1) is picked", w0.store.get(FH.STORE_KEY) && w0.store.get(FH.STORE_KEY).listingId === "L1");
+  ok("(2) Homepage: with no photo problem the car ending sooner (L1, 3 days; L2 is 5) is picked", w0.store.get(FH.STORE_KEY) && w0.store.get(FH.STORE_KEY).listingId === "L1");
   const s1 = w1.store.get(FH.STORE_KEY);
   ok("(2) Homepage: L1's photo is 3.1 MB, so the next best car (L2) is picked, with a photo that passed (never L1's earlier sale photo)", s1 && s1.listingId === "L2" && s1.featured.current.photo === "https://img.example.com/cur-L2.jpg", JSON.stringify(s1 && [s1.listingId, s1.featured.current.photo]));
   const w2 = mk({ "https://img.example.com/cur-L1.jpg": BIG, "https://img.example.com/cur-L2.jpg": { status: 404, bytes: null, type: "" } }); const r2 = await FH.refreshFeaturedHistory(env, w2.d);
