@@ -21,6 +21,7 @@ if (process.argv.includes("--mutants")) {
     ["a results element restyled", "export const RESULTS_SHELL_CSS = `", "export const RESULTS_SHELL_CSS = `#convo article.car a{color:#c00!important;font-size:21px!important}"],
     ["a container pushed past the screen", "export const RESULTS_SHELL_CSS = `", "export const RESULTS_SHELL_CSS = `#convo{width:3000px!important}"],
     ["the New search handler dropped (the page's own button resets in place again)", "location.assign(L);", "void 0;"],
+    ["the results column not fitted below the header (the window scrolls to the bottom search box)", ".buymain{height:calc(100dvh - var(--gas-hdr,76px))!important;", ".buymain{"],
     ["a link dropped", "export const RAIL_JS = `(function(){", "export const RAIL_JS = `(function(){setTimeout(function(){var a=document.querySelector(\"#convo article.car a[href]\");if(a)a.parentNode.removeChild(a);},900);"],
     ["a heading removed", "export const RAIL_JS = `(function(){", "export const RAIL_JS = `(function(){setTimeout(function(){var h=document.querySelector(\"#convo h2,#convo h3\");if(h)h.parentNode.removeChild(h);},900);"]
   ];
@@ -162,6 +163,14 @@ for (const w of [1440, 390]) for (const sel of ["aside.rail a.new", "[data-newse
 }
 { const links = await (async () => { const p = await open(SHELL, 1440); await new Promise(r => setTimeout(r, 2500)); const l = await p.evaluate(() => [...document.querySelectorAll("a[href]")].map(a => a.getAttribute("href"))); await p.close(); return l; })();
   const bad = links.filter(h => /^\/preview(\/|$|\?)|[?&](crew|_crew|preview|design)=|gas_crew|\/api\/sellNext|\/onebox-preview/.test(h)); ok(bad.length === 0, "no link on the Find results page goes to a preview address or carries a crew or design query (" + (bad.join(", ") || links.length + " links") + ")"); }
+// AFTER A SEARCH THE HEADER IS ON SCREEN (Sam, Nov 11 2026): the page sized its column to the whole window under the shell's header, so it was one header taller than the screen and the bottom search box's focus scrolled the window down, the header off screen, on load and after a follow-up search. After the results draw, and after a follow-up search from the bottom box, at 1440, 1280 and 1024 the window is at the top and the header is on screen.
+for (const w of [1440, 1280, 1024]) {
+  const p = await open(SHELL, w); await new Promise(r => setTimeout(r, 3000));
+  const at = () => p.evaluate(() => ({ y: Math.round(scrollY), hdr: Math.round(document.querySelector("header.gh").getBoundingClientRect().top), focus: document.activeElement && document.activeElement.id }));
+  const a = await at(); ok(a.y === 0 && a.hdr >= 0, `@${w}: after the results draw the window is at the top and the header is on screen (scroll ${a.y}, header top ${a.hdr}, focus #${a.focus})`);
+  await p.evaluate(() => { const q = document.getElementById("q"); if (q) { q.focus(); q.value = "2006 Mercedes SL65"; q.dispatchEvent(new Event("input", { bubbles: true })); } }); await p.keyboard.press("Enter"); await new Promise(r => setTimeout(r, 3000));
+  const c = await at(); ok(c.y === 0 && c.hdr >= 0, `@${w}: after a follow-up search from the bottom box the window is still at the top and the header is on screen (scroll ${c.y}, header top ${c.hdr})`); await p.close();
+}
 await b.close();
 for (const l of out) console.log(l);
 console.log(`findResultsCheck: ${pass} passed, ${fail} failed`);
