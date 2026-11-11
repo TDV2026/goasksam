@@ -36,7 +36,7 @@ const MUT = [
   // lane F 7. one document state
   ["the documents tile counts every document as on file", "reportConsistencyCheck", "lib/desk/caseView.js", rep('received: c.documents.filter(d => d.status === \"received\").length,', 'received: c.documents.length,')],
   // lane F 8. the rail lists what the counts count
-  ["the rail lists every sheet, including a finalized version a revision replaced", "deskPersistCheck", "lib/preview/deskV3.js", rep("cases = all.filter(c => liveIds.has(c.id));", "cases = all;")],
+  ["the rail lists every sheet, including a finalized version a revision replaced", "deskPersistCheck", "lib/preview/deskV3.js", rep("cases = all.filter(c => liveIds.has(c.id) || c.id === id);", "cases = all;")],
   // lane F 9. the Desk's own word
   ["the PDF title says valuation report again", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep('reasonLine("report.title_final", { number: number || "" }).trim()', '`Valuation report ${number || ""}`.trim()')],
   ["the preview's send subject says valuation report again", "deskPdfCheck", "lib/preview/deskPreview.js", rep('subject: reasonLine("report.title_final", { number: p.reportNumber })', 'subject: "Valuation report " + p.reportNumber')],
@@ -54,6 +54,14 @@ const MUT = [
   ["the demonstration case's reset puts it on Good", "deskPersistCheck", "lib/preview/deskPreview.js", rep('op: "condition", selected: null }, ctxOf(store, {}, seat));', 'op: "condition", selected: { tier: 3, name: "Good" } }, ctxOf(store, {}, seat));')],
   ["the Any button counts one sale too many", "reportConsistencyCheck", DV, rep("return { count: n, countLine: countNoun(n, \"sale\", { words: false }) };", "return { count: n + 1, countLine: countNoun(n + 1, \"sale\", { words: false }) };")],
   ["the page has no Any condition button", "deskV4FlowCheck", "lib/preview/deskV4Client.js", rep("if (any) box.appendChild(", "if (false) box.appendChild(")],
+  // no reserve in the report
+  ["a thin engine answer lets no reserve be chosen with no why", "reportConsistencyCheck", CW, rep("if (rm.thin === true && !text) return { refuse: \"case.reserve_mode.refuse_thin\" };", "")],
+  ["Finalize does not check the no reserve choice", "reportConsistencyCheck", CW, rep("if (rmode.mode === \"no_reserve\" && !rm) add(", "if (false) add(")],
+  ["the case view prints no engine line for no reserve", "reportConsistencyCheck", "lib/desk/caseView.js", rep("reasonLine(\"report.reserve_mode_line\", { line: c.desk.reserveMode.line || \"\" })", "null")],
+  ["the report keeps the figure off page 2", "deskPdfCheck", "lib/desk/reportState.js", rep("expected: noRes && r.figure != null ?", "expected: false ?")],
+  ["the cover still prints the figure under no reserve", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep("if (v.noReserve) {", "if (false) {")],
+  ["the seller's answer is not printed beside no reserve", "deskPdfCheck", "lib/desk/reportState.js", rep("preference: r.sellerPreference ? reasonLine(", "preference: false ? reasonLine(")],
+  ["the report is no reserve whatever the analyst set", "reportConsistencyCheck", "lib/desk/reportState.js", rep("const noRes = reportReserveModeOf(c).mode === \"no_reserve\",", "const noRes = true,")],
   // 4. a waived item whose cause is gone leaves the list
   ["a waived item stays when the mark that caused it is set", "reportConsistencyCheck", CW, rep('else if (!on && it && it.state === "waived") c.needs_review', 'else if (false) c.needs_review')],
   // 7. a switch with nothing to show says so

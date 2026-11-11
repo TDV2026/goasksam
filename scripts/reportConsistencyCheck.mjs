@@ -143,6 +143,35 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
 { const J = x => JSON.stringify(x), off = []; for (const m of [6, 12, 24]) for (const t of [0, 1, 2, 3, 4]) { const here = K.setWindow(K.setCondition(base, t ? { tier: t, name: "x" } : null, T), m, T).desk, any = K.setWindow(K.setCondition(base, null, T), m, T).desk;
     if (!here.anyCondition || here.anyCondition.count !== any.evidence.count || here.anyCondition.countLine !== any.evidence.countLine) off.push(`${t}:${m} button ${J(here.anyCondition)} vs ${any.evidence.count}`); }
   ok("the Any condition button's count is what no condition reads, in every view", !off.length, off.slice(0, 3).join(" | ")); }
+// ---------- NO RESERVE IN THE REPORT (Lane D, Nov 11 2026; Lane B's desk.reserveMode on the engine's answer) ----------
+// CAUSE of the work: a report could only recommend a reserve figure; for a car where the engine's own read favours no reserve, or cannot say, the analyst had no way to say so and the cover still printed a figure. The case carries desk.reserveMode (the engine's, never made here); the analyst sets report.reserveMode to no_reserve with a why line; the cover then prints "Recommended: no reserve" and the engine's line in place of the figure, the figure stays on page 2 as the expected result, and the seller's own Yes, No or Not sure is printed beside it. Where the engine says the sales are too few (thin) the why line is required, and Finalize checks it.
+// OTHER CARS AND PAGES: every case, on the panel row, the case view's reserveModeLine, the report's cover and page 2, and Finalize. CLASS: for every engine answer (reserve, no_reserve, unclear and thin, unclear and not thin, none), every why line (written or blank) and every seller answer (none, yes, no, not sure): the setter, the blocker, the case view and the report state agree.
+{ const RW = await imp("lib/reasonWords.js"); const off = []; let n = 0;
+  const RM = { reserve: { recommendation: "reserve", line: "Sales with a reserve held a higher median.", withReserve: { count: 12, soldShare: 80, medianLine: "$40,000" }, noReserve: { count: 9, soldShare: 70, medianLine: "$36,000" }, thin: false, thinLine: null },
+    no_reserve: { recommendation: "no_reserve", line: "Sales with no reserve held a higher median.", withReserve: { count: 12, soldShare: 70, medianLine: "$36,000" }, noReserve: { count: 9, soldShare: 80, medianLine: "$40,000" }, thin: false, thinLine: null },
+    thin: { recommendation: "unclear", line: "Too few sales with no reserve to say.", withReserve: { count: 12, soldShare: 70, medianLine: "$36,000" }, noReserve: { count: 2, soldShare: null, medianLine: null }, thin: true, thinLine: "Only 2 sales with no reserve, too few to compare." },
+    unclear: { recommendation: "unclear", line: "The two sides are level.", withReserve: { count: 12, soldShare: 75, medianLine: "$38,000" }, noReserve: { count: 9, soldShare: 74, medianLine: "$38,000" }, thin: false, thinLine: null }, none: null };
+  for (const [rname, rm] of Object.entries(RM)) for (const why of ["", "Seller wants the widest buyer pool."]) for (const pref of [null, "yes", "no", "not_sure"]) {
+    let c = cl(base); c.desk.reserveMode = rm; c.reserve = { ...c.reserve, sellerPreference: pref }; n++;
+    const o = K.setReportReserveMode(c, "no_reserve", why, T), want = !!rm && !(rm.thin && !why);
+    if (!!o.case !== want) { off.push(`${rname}/why${!!why}/${pref}: setter ${o.case ? "accepted" : "refused " + o.refuse}, wanted ${want}`); continue; }
+    if (!want) { if (rm && !o.refuse) off.push(`${rname}: no refusal line`); else if (!rm && o.refuse !== "case.reserve_mode.refuse_none") off.push(`${rname}: wrong refusal ${o.refuse}`); else if (rm && rm.thin && o.refuse !== "case.reserve_mode.refuse_thin") off.push(`${rname}: wrong refusal ${o.refuse}`); }
+    const on = o.case || (() => { const x = cl(c); x.report = { reserveMode: { mode: "no_reserve", why } }; return x; })(), off1 = (() => { const x = cl(c); x.report = { reserveMode: { mode: null, why: "" } }; return x; })();
+    // the blocker: present exactly when no reserve is chosen and the engine has no answer, or says thin and there is no why
+    const bl = K.readinessOf(on).blockers.some(b => b.key === "reserve_mode"), wantBl = !rm || (rm.thin === true && !why);
+    if (bl !== wantBl) off.push(`${rname}/why${!!why}: blocker ${bl}, wanted ${wantBl}`);
+    if (K.readinessOf(off1).blockers.some(b => b.key === "reserve_mode")) off.push(`${rname}: a report that is not no reserve has the blocker`);
+    if (bl && K.finalize(on, { now: T }).ok) off.push(`${rname}/why${!!why}: finalized with the blocker`);
+    // the case view and the report state
+    const v1 = V.caseView({ id: "r", created_at: T, case: on, submission: { typed: true, photos: [], documents: [] } }, [], T), v0 = V.caseView({ id: "r", created_at: T, case: off1, submission: { typed: true, photos: [], documents: [] } }, [], T);
+    const line = rm ? RW.reasonLine("report.reserve_mode_line", { line: rm.line }) : null;
+    if (v1.report.reserveModeLine !== line || v0.report.reserveModeLine !== null) off.push(`${rname}: the case view's line is "${v1.report.reserveModeLine}"`);
+    const r1 = R.reportState(on).v4, r0 = R.reportState(off1).v4;
+    if (!(r1.noReserve && r1.noReserve.headline === "Recommended: no reserve" && r1.noReserve.line === (rm ? rm.line : null) && r1.figure === on.reserve.figure && (on.reserve.figure == null || (r1.expected && r1.expected.line === RW.reasonLine("v4.expected_result", { figure: on.reserve.figure }))))) off.push(`${rname}: the no reserve cover is wrong: ${JSON.stringify(r1.noReserve)}`);
+    if ((pref && !(r1.noReserve.preference === RW.reasonLine("case.reserve.seller_preference", { answer: pref }))) || (!pref && r1.noReserve.preference !== null)) off.push(`${rname}/${pref}: the seller's answer is "${r1.noReserve.preference}"`);
+    if (r0.noReserve !== null || r0.expected !== null) off.push(`${rname}: a reserve report carries a no reserve cover`);
+  }
+  ok(`no reserve in the report: the setter, the blocker, Finalize, the case view and the report state agree over ${n} states`, n === 40 && !off.length, off.slice(0, 5).join(" | ")); }
 // ---------- ONE ANSWER PER RUNG (Lane D, Nov 11 2026; Lane F's run: the Excellent button said 8 sales, picking it read 5 at $36,500 to $40,500, the line under it $30,876 to $39,075; the same for Good and Fair) ----------
 // CAUSE: the rung buttons and lines were the car's sales of that condition with no mileage cut, and picking a rung reads those sales cut by the mileage band, so a rung had two populations. OTHER CARS AND PAGES: every car with a mileage and tiered sales (the demo 996, the Mustang, the 240Z, the Mini), on the workspace buttons, the rung line and the report's condition tile.
 // CLASS: in EVERY view (condition x period), every rung's count and typical range are the evidence of the view for that rung (what picking it reads): count, q1, median and q3 (or none when the engine has too few).
