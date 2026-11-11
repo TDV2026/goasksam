@@ -13,7 +13,7 @@ import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { recordUsageEvent, anthropicCost } from "./_usage.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { vinFeatureActive, findVinArchiveMatch, looksLikeChassisId } from "../lib/_flags.js";
-import { findVinLiveMatch } from "../lib/vinLiveMatch.js";
+import { findVinLiveMatch, liveVehicleOf, ownLiveOf } from "../lib/vinLiveMatch.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -310,16 +310,16 @@ export default async function handler(req, res) {
       }
     }
     // A VIN AT AUCTION RIGHT NOW IS KNOWN FROM ITS OWN LISTING (lib/vinLiveMatch.js, Nov 11 2026): no recorded sale, but the live pool holds this VIN. The listing's title names the car, so the car is that one: no decode question, the listing travels as vinLiveMatch.
-    if (!vinMatch && !chassisVehicle && vinActive && result.vehicle?.vin) {
-      const live = await findVinLiveMatch(env, { vin: result.vehicle.vin });
+    const liveAny = !chassisVehicle && vinActive && result.vehicle?.vin ? await findVinLiveMatch(env, { vin: result.vehicle.vin }) : null;   // read for every VIN: a recorded sale leads the identity, the live listing still rides beside it
+    if (liveAny) result.vinLiveMatch = liveAny;
+    if (!vinMatch && liveAny) {
+      const live = liveAny;
       if (live) {
-        const canon = await resolveVehicle(live.displayName).catch(() => null), cv = canon && canon.status === "valid" && !canon.clarification && canon.vehicle && canon.vehicle.make && canon.vehicle.model ? canon.vehicle : null;
-        if (cv) {
-          const dv = result.vehicle || {};
-          const vehicle = { ...cv, vin: dv.vin, bodyStyle: cv.bodyStyle || live.bodyStyle || dv.bodyStyle || null, ...(dv.marketSpec && !cv.marketSpec ? { marketSpec: dv.marketSpec, marketSpecLabel: dv.marketSpecLabel, marketSpecShort: dv.marketSpecShort } : {}) };
-          return res.status(200).json({ status: "valid", vehicle, clarification: null, corrections: [...(result.corrections || []), { type: "vin_live_match", to: live.displayName }], archiveModelCount: modelCount, vinLiveMatch: live, fallback: fallbackUsed || undefined, _debug: _dbg });
+        const vehicle = await liveVehicleOf(live, result.vehicle, resolveVehicle);   // the same step every door takes (lib/vinLiveMatch.js)
+        if (vehicle) {
+          return res.status(200).json({ status: "valid", vehicle, clarification: null, corrections: [...(result.corrections || []), { type: "vin_live_match", to: live.displayName }], archiveModelCount: modelCount, vinLiveMatch: live, ownLive: ownLiveOf(live), fallback: fallbackUsed || undefined, _debug: _dbg });
         }
-        result.vinLiveMatch = live;   // the listing could not be resolved to one car: the decode question stands, with the listing beside it
+        // the listing could not be resolved to one car: the decode question stands, with the listing beside it (result.vinLiveMatch is set above)
       }
     }
     // A typed number that looks like a chassis but matched nothing (and the resolver gave it no clarification of its own) says so plainly and asks for the car.
@@ -348,7 +348,7 @@ export default async function handler(req, res) {
       corrections: result.corrections,
       archiveModelCount: modelCount,
       vinArchiveMatch: vinMatch || undefined,
-      ...(result.vinLiveMatch ? { vinLiveMatch: result.vinLiveMatch } : {}),
+      ...(result.vinLiveMatch ? { vinLiveMatch: result.vinLiveMatch, ownLive: ownLiveOf(result.vinLiveMatch) } : {}),
       fallback: fallbackUsed || undefined,
       _debug: _dbg
     });

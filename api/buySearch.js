@@ -28,6 +28,7 @@ import { photoOrNull } from "../lib/photoHosts.js";
 import { asideRowsFor, asideMatch, setAsideLabel } from "../lib/tasks/setAside.js";
 import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
+import { reasonLine } from "../lib/reasonWords.js";
 import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, prefetchSpecs, stillReadingMarket, ladderSteps, walkLadder, panelOf } from "../lib/live/search.js";
 import { vinAppearances } from "./_historyData.js";
 import { applyRung, askedName, countText } from "../lib/live/rung.js";
@@ -389,13 +390,17 @@ async function handler(req, res) {
       // position/positions (job 3): computed once in the engine (lib/live/search.js liveForFamily),
       // over the SAME fenced live-match set the count itself reports - this route only renders what
       // it returns, never a second placingFor call of its own.
-      const live = await liveForFamily(env, vehicle, generation, null, 3, band);
+      // A VIN's OWN live listing is never one of the "comparable cars" (Nov 11 2026): a Market Check of a VIN that is live now passes ?vin=, and this row is left out of the rows and the count (the answer's ownLive line speaks of it)
+      const ownVin = String(q.vin || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const live0 = await liveForFamily(env, vehicle, generation, null, ownVin.length === 17 ? 12 : 3, band);
+      const ownIn = ownVin.length === 17 ? (live0.rows || []).filter(r => String(r.vin_norm || "").toUpperCase() === ownVin) : [];
+      const live = ownIn.length ? { ...live0, total: Math.max(0, live0.total - ownIn.length), rows: live0.rows.filter(r => !ownIn.includes(r)).slice(0, 3) } : { ...live0, rows: ownVin.length === 17 ? live0.rows.slice(0, 3) : live0.rows };
       res.setHeader("Cache-Control", "public, s-maxage=300");
       // source_slug + id (Round 6 Job 1, tracking fix): the panel only ever sent the display name
       // (source, via houseName) and no row identifier at all - Lane A's auction_clickout needs the
       // real platform slug, never the display name, and a listing id for which car was clicked.
       // Both are already on the row; this just carries them through, nothing computed.
-      return res.status(200).json({ count: live.total, positions: live.positions, rows: live.rows.map(r => ({ id: r.id, source: houseName(r.source), source_slug: r.source || null, title: r.listing_title, url: r.url, photo_url: r.photo_url || null, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: r.position, miles: cardMiles(listingFacts(r)) })) });
+      return res.status(200).json({ count: live.total, positions: live.positions, rows: live.rows.map(r => ({ id: r.id, source: houseName(r.source), source_slug: r.source || null, title: r.listing_title, url: r.url, photo_url: r.photo_url || null, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: r.position, vsRangeLine: r.position ? reasonLine("live.vs_range", { placing: r.position }) : null, miles: cardMiles(listingFacts(r)) })) });
     }
     if (req.method !== "POST") return res.status(405).json({ status: "error" });
     // Everything from here down is Buy's own endpoint (search, chat, saved searches, alerts) - gated

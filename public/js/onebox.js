@@ -303,25 +303,38 @@
   // "No bids yet" - exactly today's fallback tree, just laid out as two lines (amount, then time)
   // instead of one sentence. Job 4 (Oct 2026): api/buySearch.js panel=1 rows now carry `miles` (a
   // whole number, or null when the listing has none usable) - l.miles.
+  // THIS CAR IS LIVE NOW (Nov 11 2026): a VIN that is at auction right now. The engine sends the line, the time left, the mileage and bid lines and the listing (d.ownLive); the page prints them as sent and counts the listing in no "comparable car" sentence
+  function ownLiveBlock(d) {
+    var o = d && d.ownLive, l = o && o.listing; if (!l || !o.line) return "";
+    return '<div class="ownlive"><div class="sec-head"><div><h2>' + esc(o.line) + '</h2></div></div>' +
+      '<table class="lptable"><thead><tr><th class="colhead">Car</th><th class="colhead">Venue</th><th class="colhead">Last bid seen</th><th class="colhead">Vs. range</th></tr></thead><tbody><tr><td><span class="lp-car">' +
+      (l.photo ? '<span class="lp-ph"><img src="' + esc(l.photo) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()"></span>' : "") +
+      '<span class="lp-cbody"><a class="lp-title" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener">' + esc(l.title) + "</a>" + (l.mileageLine ? '<span class="lp-miles">' + esc(l.mileageLine) + "</span>" : "") + "</span></span></td>" +
+      '<td><span class="lp-venue">' + esc(l.venue || "") + '</span><span class="lp-ends">' + esc(o.endsLine || "") + "</span></td>" +
+      '<td class="lp-bid"><b>' + esc(l.bidLine || "") + "</b></td>" +
+      '<td class="lp-vsrange">' + (l.placing && placingDotClass(l.placing) ? '<span class="lp-dot ' + placingDotClass(l.placing) + '"></span>' : "") + esc(l.vsRangeLine || "") + "</td></tr></tbody></table></div>";
+  }
   function loadLivePanel(d, m) {
     var slot = document.getElementById("ob-live"); var rc = d && d.resolvedCar;
     if (!slot || !rc || !rc.make || !rc.model) return;
+    var ownHtml = ownLiveBlock(d);
     // Item 5 (placing, Oct 2026): the headline's own typical band (d.cluster), when this result has
     // one, so the server can judge each live figure against the SAME range shown on the page - never
     // a second band. No cluster (thin/span-only tiers) -> no lo/hi -> the server returns no placing.
     var band = Array.isArray(d.cluster) && d.cluster.length === 2 ? d.cluster : null;
     var qs = "panel=1&make=" + encodeURIComponent(rc.make) + "&model=" + encodeURIComponent(rc.model) +
       (rc.trim ? "&trim=" + encodeURIComponent(rc.trim) : "") + (rc.year ? "&year=" + encodeURIComponent(rc.year) : "") + (rc.bodyStyle ? "&body=" + encodeURIComponent(rc.bodyStyle) : "") +
-      (band ? "&lo=" + Math.round(band[0]) + "&hi=" + Math.round(band[1]) : "");
+      (band ? "&lo=" + Math.round(band[0]) + "&hi=" + Math.round(band[1]) : "") + (d && d.vinLiveMatch && d.vinLiveMatch.vin ? "&vin=" + encodeURIComponent(d.vinLiveMatch.vin) : "");
     fetch(API_ORIGIN + "/api/buySearch?" + qs).then(function (r) { return r.json(); }).then(function (j) {
-      if (!j || !(j.count > 0) || !j.rows || !j.rows.length || !document.body.contains(slot)) return;
+      if (!document.body.contains(slot)) return;
+      if (!j || !(j.count > 0) || !j.rows || !j.rows.length) { if (ownHtml) { slot.className = "livepanel"; slot.innerHTML = ownHtml; slot.hidden = false; } return; }
       var rows = j.rows.map(function (l) {
         var amt = l.current_bid_usd ? usd(l.current_bid_usd) : (l.current_bid ? Math.round(l.current_bid).toLocaleString("en-US") + " " + l.currency : "");
         // Sam's small fixes (Oct 21 2026): the row reads "$25,250 at 11:21am PT" (the day added when not today, bidTimePT, the same format
         // as Buy's), under "Last bid seen"; never the word "current".
         var amountText = l.fixedPriceUsd ? "Asking " + usd(l.fixedPriceUsd) : (amt ? amt : "No bids yet");
         var timeText = (!l.fixedPriceUsd && amt && l.bid_at) ? ("at " + bidTimePT(l.bid_at)) : "";
-        var vsrange = placingPillText(l.placing);
+        var vsrange = l.vsRangeLine || placingPillText(l.placing);
         var vsrangeDot = placingDotClass(l.placing);
         var photo = l.photo_url ? '<img src="' + esc(l.photo_url) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">' : "";
         var href = utmUrl(l.url);
@@ -345,7 +358,7 @@
       var scopeSentence = years ? (summary + " " + cap(years) + ".") : summary;
       var seeAll = j.count === 1 ? "See it live" : "See all " + obNumWordLow(j.count) + " live";
       slot.className = "livepanel";
-      slot.innerHTML = '<div class="sec-head"><div><h2>Live right now</h2></div></div>' +
+      slot.innerHTML = ownHtml + '<div class="sec-head"><div><h2>Live right now</h2></div></div>' +
         '<p class="lp-summary">' + lint(esc(scopeSentence), "live.summary") + "</p>" +
         '<table class="lptable"><thead><tr><th class="colhead">Car</th><th class="colhead">Venue</th><th class="colhead">Last bid seen</th><th class="colhead">Vs. range</th></tr></thead><tbody>' + rows + "</tbody></table>" +
         '<a class="linkbtn" href="/find?q=' + encodeURIComponent(q) + '">' + esc(seeAll) + " &#8594;</a>";
