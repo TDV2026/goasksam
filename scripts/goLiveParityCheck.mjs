@@ -125,7 +125,9 @@ for (const [name, url, f, kind, envx] of ROUTES) {
   if (sa.size && [...sa].some(x => /\/js\/auth\.js$/.test(x))) {
     ok([...sb].some(x => /\/js\/auth\.js$/.test(x)), `${t}: the sign in script is loaded`);
     ok(/id="signin-area"/.test(B.body) && /GAS_AUTH_MODE="topbar"/.test(B.body), `${t}: the sign in bar's container is in the page and the script runs in top bar mode`);
-    ok(!/id="acct"/.test(B.body) || /openSignInCard\(undefined/.test(B.body), `${t}: the Account button opens the sign in card`);
+    ok(!/id="acct"/.test(B.body) || (/openSignInCard\(\)/.test(B.body) && !/dest:"\/tasks/.test(B.body)), `${t}: the Account button opens the sign in card and names no destination of its own (the card remembers this page)`);
+    ok(!/id="acct"/.test(B.body) || (/id="acct-menu"/.test(B.body) && /class="acct-out"/.test(B.body)), `${t}: the Account button has its account menu (the address and Sign out)`);
+    ok(/\.gas-signbar,\.gas-signbar-m\{display:none!important\}/.test(B.body), `${t}: the sign in strip is never shown (the header's Account menu replaces it)`);
   }
   // ANALYTICS AND THE CONSENT BANNER (go live held item 3): exactly the pieces the current page carries, each on its own, and none it does not. The banner, its script and the outbound tagging are NOT tied to the /api/track?js=1 tag: Home, Feedback and the legal pages carry the banner without it (Lane C's live read, Nov 10; the first version of this check only looked when the tag was there, so those pages were never read)
   {

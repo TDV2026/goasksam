@@ -11,7 +11,6 @@ import { resolveSeatCookie } from "../lib/desk/seatCookie.js";
 import { resolveViewAs } from "../lib/desk/viewAs.js";
 import { PREVIEW_PAGES, homeHtmlFor, findHtml } from "../lib/preview/previewPages.js";
 import { tasksPublicHtml, crewLimitMax } from "../lib/preview/tasksPreview.js";
-import { taskLimitFor } from "../lib/tasks/limit.js";
 import { tasksMineHtml, previewTasksApi } from "../lib/preview/tasksMine.js";
 import { findField } from "../lib/preview/fieldCompose.js";
 import { publicFindExamples as publicFind } from "../lib/preview/publicFind.js";
@@ -62,9 +61,7 @@ const publicFindExamples = req => publicFind(readField, couldNotRead, req);
 export const FIND_EXAMPLES = { read: req => PUBLIC_CTX.getStore() ? publicFindExamples(req) : readField("../lib/live/findExamples.js", "findExamplesField", req), now: () => Date.now() };
 // THE ENGINE ANSWERS live ?? fallback ITSELF (Lane B, lane-b-examples3: findExamplesField, tasksDemoField, watchingDemoField, in the engine card shapes of docs/lane-notes.md SHAPES B lane-e-crew-refine8): each reader returns the live answer, else the fallback (a recent sale or ended car), else null. The page reads the one answer and picks nothing.
 const safe = async (f, what = "field") => { if (PUBLIC_CTX.getStore()) return boxed(f, what); try { return await f(); } catch (e) { return failed(what, e); } };
-// the Tasks limit a PUBLIC page prints is the live one (3); only a crew viewer sees the crew limit
-const tasksMaxFor = async req => PUBLIC_CTX.getStore() ? taskLimitFor(isCrewRequest(req) === true) : crewLimitMax();
-const tasksPublicFor = async req => { const ex = await safe(() => TASKS_EMAIL_EXAMPLE.read(req), "tasksEmailExample"); return couldNotRead(ex) ? tasksPublicHtml({ max: await tasksMaxFor(req), readError: "Could not read the Tasks email." }) : tasksPublicHtml({ max: await tasksMaxFor(req), emailExample: ex }); };
+const tasksPublicFor = async req => { const ex = await safe(() => TASKS_EMAIL_EXAMPLE.read(req), "tasksEmailExample"); return couldNotRead(ex) ? tasksPublicHtml({ readError: "Could not read the Tasks email." }) : tasksPublicHtml({ emailExample: ex }); };
 // FIND RESULTS ON THE NEW SHELL (go live): with a search in the address the page is today's Find page (its own results, its own script) inside the new header, the rail (New search, recent searches) and the footer, exactly as Market Check and Sell are; without one it is the new landing.
 const findResultsFor = async req => {
   try { const search = String(req.url).slice(String(req.url).indexOf("?")), live = await capture(findPage, "/find" + search, req); if (live.code !== 200) throw new Error("the live page answered " + live.code); return wrapLive("find", live.body); }
