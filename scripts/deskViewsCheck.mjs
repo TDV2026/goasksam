@@ -29,6 +29,9 @@ for (const t of [0, 1, 2, 3, 4]) for (const m of [6, 12, 24]) {
   for (const f of ASKED) { compared++; const a = J(k.desk[f]), b = J(dd[f]); if (a !== b) bad.push(`${t}:${m}.${f}`); }
 }
 ok(`every view equals the engine's direct read of that condition and period (${compared} fields over 15 views)`, compared >= 15 * ASKED.length && !bad.length, bad.slice(0, 8).join(" "));
+// (2b) ONE ANSWER FOR THE CAR'S CONDITION SIGNALS (Lane F's run: "no signals counted" became "4 signals counted" after a window click). CAUSE: a click read the engine again, and the second read answered the car's own condition record differently from the first (the VIN's archive match is read with a timeout and may come back empty once and full the next time). The views come from the one read, so the signals line is the same whichever period or condition is shown.
+{ const lines = new Set(); for (const t of [0, 1, 2, 3, 4]) for (const m of [6, 12, 24]) lines.add(J(K.setWindow(K.setCondition(base, t ? { tier: t, name: "x" } : null, T), m, T).desk.condition));
+  ok("the car's condition signals read the same in every period and condition of one read", lines.size === 1 && J(base.desk.condition) === [...lines][0], lines.size + " different"); }
 // (3) the reserve check after a switch is the engine's check of the reserve the case holds, over that view's sales
 { let k = K.setReserve(base, { figure: 30000 }, T); k = K.setWindow(k, 6, T); const ck = k.desk.reserveCheck, want = DV.reserveCheckOf(k.desk.sales, k.desk.evidence, 30000, 6);
   ok("the reserve check after a switch is of the case's own reserve over the new view's sales", !!ck && J(ck) === J(want) && ck.of === k.desk.evidence.count, J(ck)); }

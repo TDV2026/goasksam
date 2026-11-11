@@ -33,4 +33,11 @@ for (const [name, e] of edits) {
   }
 }
 const last = await session(); ok("after all four edits a cold start still shows the edited case, not the seeded one", last.g.case.reserve.figure === 31000 && (last.g.case.selectedComparables || []).length === 2 && last.g.case.condition.selected.tier === 2);
+// ---------- THE RAIL LISTS WHAT THE GROUP COUNTS COUNT (Lane F's run: the Finalized group read 0 above a listed finalized case) ----------
+// CAUSE: the counts are of the live sheets (a finalized sheet that a revision corrects is replaced by the revision) and the rail listed every row, so a superseded finalized version was listed in a group that did not count it. OTHER PAGES: every group of the rail in every state (new, review, ready, final, sent). CLASS: in every state of the store, each group's count equals the cases listed under it.
+{ const V = await imp("lib/preview/deskV3.js"), states = []; const check = async tag => { const m = await V.deskModel({ query: {} }); for (const k of ["new", "review", "ready", "final", "sent"]) { const n = m.cases.filter(c => c.group === k).length; if (m.queue[k] !== n) states.push(`${tag}: ${k} counts ${m.queue[k]} lists ${n}`); } return m; };
+  await check("seeded");
+  const fin = P.previewUuid("pv_fin"), rev = await api({ action: "case_edit", id: fin, op: "reserve", patch: { figure: 29000 } });
+  ok("an edit of the finalized sample makes a revision (the finalized version is superseded)", rev.ok === true && !!rev.revisedFrom, String(rev.why || ""));
+  const m = await check("after a revision"); ok("every group's count equals the cases listed under it, before and after a revision", !states.length && m.cases.some(c => c.group === "review"), states.join(" | ")); }
 console.log(`deskPersistCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

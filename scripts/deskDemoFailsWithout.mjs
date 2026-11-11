@@ -24,7 +24,7 @@ const MUT = [
   ["no limit on photos", "lib/desk/sheetActions.js", s => s.replace("if ((s0.submission.photos || []).length >= MAX_HAND_PHOTOS)", "if (false)")],
   ["another seat may add a photo", "lib/desk/sheetActions.js", s => s.replace("if (!accessOf(s0, seat).canEdit) return refuse(accessOf(s0, seat).why || \"This sheet is read only to you.\");", "")],
   ["the PDF ignores the org colour", "lib/desk/reportPdf.js", s => s.replace("accentOf((fin.org && fin.org.color) || org.color)", "GREEN_DEFAULT")],
-  ["the PDF file carries GoAskSam again", "lib/pdf/mini.js", s => s.replace("/Producer (Valuation report writer)", "/Producer (GoAskSam Desk)")],
+  ["the PDF file carries GoAskSam again", "lib/pdf/mini.js", s => s.replace("/Producer (Market report writer)", "/Producer (GoAskSam Desk)")],
   ["the email loses the org colour", "lib/desk/send.js", s => s.replace("border-bottom:3px solid ${accent};font-weight:600;color:${accent}", "font-weight:600")],
   ["the colour is not frozen at finalise", "lib/desk/sheetActions.js", s => s.replace("color: set.color || null } }, events:", "color: null } }, events:")],
   ["the PDF stops at 24 sales", "lib/desk/reportPdf.js", s => s.replace("(m.comparables || [])) {", "(m.comparables || []).slice(0, 24)) {")],
