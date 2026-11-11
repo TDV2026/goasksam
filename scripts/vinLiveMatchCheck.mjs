@@ -13,10 +13,11 @@ let pass = 0, fail = 0; const ok = (n, c, d) => { if (c) pass++; else { fail++; 
 const VIN = "WP0AF2A92GS187171", DAY = 864e5;
 const VPIC = { ModelYear: "2016", Make: "PORSCHE", Model: "911", Trim: "RS", Series: "Turbo/Turbo S", Series2: "Type 991", BodyClass: "Coupe", ErrorCode: "0" };   // fetched from vPIC Nov 11 2026
 const liveRow = (o = {}) => ({ id: 255975, source: "sothebysmotorsport", url: "https://www.sothebysmotorsport.com/auction/2016-porsche-911gt3rs-12587", listing_title: "2016 Porsche 911 GT3 RS", year: 2016, make: "Porsche", model: "991", vin_norm: VIN, mileage: 40292, mileage_unit: "mi", body: "coupe", end_time: new Date(Date.now() + 2 * DAY).toISOString(), photo_url: "https://img.example.com/gt3rs.jpg", status: "live", current_bid_usd: 180000, location: "Houston, TX", ...o });
+const VIN2 = "1G1YZ23J3M5800527", VPICS = { [VIN2]: { ModelYear: "1991", Make: "CHEVROLET", Model: "Corvette", Trim: "ZR1", Series: "", BodyClass: "Coupe", ErrorCode: "0" } };   // fetched from vPIC Nov 11 2026
 let LIVE = [liveRow()], ARCH = [], LASTLIVE = "";
 globalThis.fetch = async (url) => {
   const u = String(url), j = (b, s = 200) => new Response(JSON.stringify(b), { status: s });
-  if (/vpic\.nhtsa/.test(u)) return j({ Results: [VPIC] });
+  if (/vpic\.nhtsa/.test(u)) return j({ Results: [(VPICS[(/DecodeVinValues\/([A-Z0-9]+)/.exec(u) || [])[1]] || VPIC)] });
   if (/\/rest\/v1\/app_config/.test(u)) return j([{ value: "1" }]);
   if (/\/rest\/v1\/live_listings/.test(u)) { LASTLIVE = u; const m = /vin_norm=eq\.([A-Z0-9]+)/.exec(u); return j(LIVE.filter(r => !m || r.vin_norm === m[1])); }   // the stub does NOT apply the status and end filters: the module's own check must hold, and the request must carry them
   if (/\/rest\/v1\/sales_archive/.test(u) && /vin_norm=eq/.test(u)) return j(ARCH);
@@ -54,6 +55,20 @@ LIVE = [liveRow()];
     const m = F.mapLiveRecord({ source_slug: src, source_record_id: "r-" + src, title: "2016 Porsche 911 GT3 RS", make: "Porsche", model: "911", year: 2016, [key]: "WP0AF2A92GS187171", url: "https://example.com/" + src, auction_end_at: new Date(Date.now() + DAY).toISOString(), featured_image_url: "https://img.example.com/a.jpg" }, new Date().toISOString());
     ok(`(5) ${src}: a feed record carrying the VIN as "${key}" is stored with vin_norm`, m && m.vin_norm === "WP0AF2A92GS187171", m && m.vin_norm);
   } }
+// (8) THE LISTING'S SPELLING OF A TRIM (Nov 11 2026). The 1991 Corvette ZR-1 (VIN 1G1YZ23J3M5800527) is live as "45k-Mile 1991 Chevrolet Corvette ZR-1": the resolver holds ZR1, not "ZR-1", so the live match could not name the car, the decode question was asked, and the page's VIN read was the bare 1991 Corvette ($7,000 to $14,000, 10 sales; the ZR1 reads $23,000 to $35,000, 8)
+{ LIVE = [liveRow({ id: 327086, vin_norm: VIN2, listing_title: "45k-Mile 1991 Chevrolet Corvette ZR-1", year: 1991, make: "Chevrolet", model: "Corvette", mileage: 45000, source: "bringatrailer", url: "https://bringatrailer.com/listing/1991-chevrolet-corvette-zr-1-75/" })];
+  const d = await call(VIN2);
+  ok("(8) a live VIN whose listing writes the trim ZR-1 is named from the listing: no question, the 1991 Chevrolet Corvette ZR1", d.status === "valid" && !d.clarification && d.vehicle && d.vehicle.year === 1991 && d.vehicle.make === "Chevrolet" && d.vehicle.model === "Corvette" && d.vehicle.trim === "ZR1", [d.status, d.clarification && d.clarification.kind, d.vehicle && [d.vehicle.year, d.vehicle.model, d.vehicle.trim]]);
+  ok("(8) the listing keeps its own title and the engine's time left", d.vinLiveMatch && d.vinLiveMatch.listing.title === "45k-Mile 1991 Chevrolet Corvette ZR-1" && d.ownLive && d.ownLive.line === "This car is live now");
+  const Dt = await import(pathToFileURL(path.join(root, "lib/vinDecodeTrim.js")).href);
+  for (const [t, mk, want] of [["1991 Chevrolet Corvette ZR-1", "Chevrolet", "1991 Chevrolet Corvette ZR1"], ["2015 Chevrolet Corvette Z-06 Coupe", "Chevrolet", "2015 Chevrolet Corvette Z06 Coupe"], ["2019 Chevrolet Corvette ZR-1X", "Chevrolet", "2019 Chevrolet Corvette ZR1X"], ["2016 Porsche 911 GT-3 RS", "Porsche", "2016 Porsche 911 GT3 RS"], ["1991 Chevrolet Corvette", "Chevrolet", "1991 Chevrolet Corvette"], ["2016 Porsche 911 GT3 RS", "Porsche", "2016 Porsche 911 GT3 RS"]])
+    ok(`(8) the trim spellings: "${t}" reads "${want}"`, Dt.spellTrimWords(t, mk) === want, Dt.spellTrimWords(t, mk));
+  // production's resolver answers "ZR-1" with a typo confirmation ("Did you mean ZR1?"), which is no car: the live match must hand it the trim as the resolver holds it
+  { const LM = await import(pathToFileURL(path.join(root, "lib/vinLiveMatch.js")).href), live = LM.liveMatchOf(LIVE[0]);
+    const asProduction = async t => /ZR-1/.test(t) ? { status: "needs_confirmation", clarification: { kind: "typo_confirmation" }, vehicle: { make: "Chevrolet", model: "Corvette", year: 1991 } } : { status: "valid", vehicle: { year: 1991, make: "Chevrolet", model: "Corvette", trim: "ZR1" } };
+    const v = await LM.liveVehicleOf(live, { vin: VIN2 }, asProduction);
+    ok("(8) a resolver that asks about ZR-1 still names the car: the listing's spelling is written as the trim the resolver holds", v && v.trim === "ZR1" && v.year === 1991, v); }
+  LIVE = [liveRow()]; }
 // (6) ONE VIN IDENTITY FOR EVERY DOOR (Nov 11 2026). Lane C read the public page for this VIN as "2016 Porsche 911 Coupe", Carrera rows, "one comparable car" for the VIN's own listing. The page asks api/sellerDecision with the VIN as typed (never api/vehicleIdentity); Desk reads it through lib/sheetRead.js;
 // Sell asks vehicleIdentity and then sellerDecision; Find's card links Market Check with ?vin=. Each door must name the same car (2016 Porsche 911 GT3 RS), read the same pool (the typed GT3 RS read of the same world: GT3 RS sales, never the Carrera rows), carry the same listing (vinLiveMatch) and the engine's line.
 // CAUSE found by this sweep: (a) only vehicleIdentity named a live VIN's car from its listing; sellerDecision and sheetRead read the listing's title words for the trim only and sheetRead passed no live listing at all; (b) when that first read was thin or the decode named a body, decodeTrimRerun read the car again with the body
@@ -111,6 +126,8 @@ console.log(`vinLiveMatchCheck: ${fail ? fail + " FAIL" : "all pass"} (${pass})`
 
 function mutants() {
   const M = [
+    ["lib/vinLiveMatch.js", "const canon = await resolve(words).catch(() => null)", "const canon = await resolve(live.displayName).catch(() => null)", "(8) a resolver that asks about ZR-1 still names the car"],
+    ["lib/vinDecodeTrim.js", 'out = out.replace(new RegExp("(^|[^A-Za-z0-9])" + body + "(?![A-Za-z0-9])", "ig"), (m, lead) => lead + w);', "", "(8) the trim spellings"],
     ["lib/vinAsTyped.js", "const own = [recOwn, deps && deps.rerunWords].filter(Boolean).join(\" \") || null;", "const own = (deps && deps.rerunWords) || recOwn || null;", "(6) Market Check page, VIN as typed in lower case"],
     ["api/sellerDecision.js", "live: vinLive, liveMatch,", "live: vinLive,", "(6) Market Check page, VIN as typed in upper case"],
     ["lib/sheetRead.js", "liveMatch = d.liveMatch ? await d.liveMatch(env, { vin }).catch(() => null) : null;", "liveMatch = null;", "(6) Desk (sheetRead)"],
