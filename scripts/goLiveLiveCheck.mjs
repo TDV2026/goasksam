@@ -47,7 +47,7 @@ async function visitorRun(base, baseline, fetchFn, say = () => {}) {
     c(F.robots === B.robots && F.xRobots === B.xRobots, `${p}: robots is what it was before the flip: meta ${B.robots || "none"}, header ${B.xRobots || "none"} (now meta ${F.robots || "none"}, header ${F.xRobots || "none"})`);
     c(F.title === B.title && F.description === B.description && F.canonical === B.canonical, `${p}: title, description and canonical are what they were before the flip`);
     c(F.ld >= B.ld, `${p}: structured data kept (${B.ld} before, ${F.ld} now)`);
-    c(F.banner === B.banner && F.track === B.track, `${p}: the consent banner and the analytics script are where they were (banner ${B.banner} to ${F.banner}, analytics script ${B.track} to ${F.track})`);
+    c(F.banner === (B.banner || B.track) && F.track === B.track, `${p}: the analytics script is where it was and a page that loads it offers the consent choice (banner ${B.banner} before, ${F.banner} now; analytics script ${B.track} before, ${F.track} now)`);
     c(F.h1 === 1, `${p}: one h1 (${F.h1})`);
     c(!/\/preview[/?"']/.test(strip(r.html).replace(/indexOf\("\/preview\/"\)/g, "")), `${p}: no crew preview address in the page`);
     const en = ENTRY[p]; if (en) { const has = r.html.includes(en[0]), data = en[1].some(n => E[n] != null);
@@ -61,7 +61,7 @@ if (RECORD) { const b = await recordBaseline(BASE, realFetch); fs.writeFileSync(
 if (VISITOR) { const base = JSON.parse(fs.readFileSync(BASEFILE, "utf8")), r = await visitorRun(BASE, base, realFetch, console.log); console.log(`goLiveLiveCheck visitor: ${r.pass} passed, ${r.fail} failed (${BASE}, baseline ${base.recordedAt})`); process.exit(r.fail ? 1 : 0); }
 if (args.includes("--self-test-mutants")) {
   const MUT = [["a noindex reaching the public (the head's robots not lifted)", "lib/_publicHead.js", '["robots", META("robots")],', ""], ["the consent banner not lifted", "lib/_publicHead.js", "if (L.includes(CONSENT_BANNER_HTML) && !h.includes(CONSENT_BANNER_HTML)) end.push(CONSENT_BANNER_HTML);", ""],
-    ["Find showing a visitor no cars", "api/crewPage.js", "PUBLIC_CTX.getStore() ? publicFindExamples(req) : readField(", "false ? publicFindExamples(req) : readField("], ["the Tasks page printing the crew limit to a visitor", "api/crewPage.js", "PUBLIC_CTX.getStore() ? taskLimitFor(isCrewRequest(req) === true) : crewLimitMax()", "crewLimitMax()"]];
+    ["Sell loading the analytics script with no consent choice", "lib/_publicHead.js", "if (track && !L.includes(CONSENT_BANNER_HTML) && !h.includes(CONSENT_BANNER_HTML)) {", "if (false) {"], ["Find showing a visitor no cars", "api/crewPage.js", "PUBLIC_CTX.getStore() ? publicFindExamples(req) : readField(", "false ? publicFindExamples(req) : readField("], ["the Tasks page printing the crew limit to a visitor", "api/crewPage.js", "PUBLIC_CTX.getStore() ? taskLimitFor(isCrewRequest(req) === true) : crewLimitMax()", "crewLimitMax()"]];
   let bad = 0; for (const [name, file, from, to] of MUT) { const f = path.join(ROOT, file), orig = fs.readFileSync(f, "utf8"); if (!orig.includes(from)) { console.log("MUTANT NOT APPLICABLE: " + name); bad++; continue; } let code = 0;
     try { fs.writeFileSync(f, orig.replace(from, () => to)); try { execFileSync("node", [fileURLToPath(import.meta.url), "--self-test"], { stdio: "pipe" }); } catch (e) { code = e.status || 1; } } finally { fs.writeFileSync(f, orig); }
     console.log((code ? "caught   " : "MISSED   ") + "without " + name); if (!code) bad++; }
@@ -70,7 +70,7 @@ if (SELF) { await selfTest(); }
 async function selfTest() {
   const http = await import("node:http"), { visitorWorld } = await import(pathToFileURL(path.join(ROOT, "scripts/_visitorWorld.mjs")).href);
   await visitorWorld(ROOT);   // the stored picks, the fake database as fetch
-  for (const k of ["NEW_DESIGN", "PUBLIC_EXAMPLES", "NEW_DESIGN_DATE"]) delete process.env[k];
+  for (const k of ["NEW_DESIGN", "PUBLIC_EXAMPLES", "NEW_DESIGN_DATE"]) delete process.env[k]; process.env.SELL_NEXT_ON = "1";   // the Sell production serves: the analytics script and no banner
   const imp = f => import(pathToFileURL(path.join(ROOT, "api", f + ".js")).href + "?v=" + Math.random());
   const MAP = u => { const x = new URL(u, "http://x"), pth = x.pathname, q = x.searchParams; const set = o => { for (const [k, v] of Object.entries(o)) if (!q.has(k)) q.set(k, v); };
     const simple = { "/": "home", "/find": "buy", "/market-check": "marketCheck", "/sell": "sell", "/tasks": "tasksPage", "/about": "about", "/how-sam-decides": "howSamDecides", "/whats-new": "whatsNew", "/business": "business", "/feedback": "feedback", "/api/publicExamples": "publicExamples" };

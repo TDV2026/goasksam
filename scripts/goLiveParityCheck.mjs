@@ -24,6 +24,7 @@ if (args.includes("--mutants")) {
     ["a dropped control (the voice button on Home)", "lib/preview/previewPages.js", 'aria-label="Speak your search"', 'aria-label="Talk"'],
     ["the sign in script missing", "lib/_publicHead.js", 'if (!/\\/auth\\.js/.test(h)) end.push(', 'if (false) end.push('],
     ["the banner waiting for the analytics tag (Home has the banner and no tag)", "lib/_publicHead.js", "if (L.includes(CONSENT_BANNER_HTML) && !h.includes(CONSENT_BANNER_HTML)) end.push(CONSENT_BANNER_HTML);\n  if (track && !TRACK_RE.test(h))", "if (track && L.includes(CONSENT_BANNER_HTML) && !h.includes(CONSENT_BANNER_HTML)) end.push(CONSENT_BANNER_HTML);\n  if (track && !TRACK_RE.test(h))"],
+    ["Sell loading the analytics script with no consent choice", "lib/_publicHead.js", "if (track && !L.includes(CONSENT_BANNER_HTML) && !h.includes(CONSENT_BANNER_HTML)) {", "if (false) {"],
     ["the analytics script missing", "lib/_publicHead.js", 'if (track && !TRACK_RE.test(h)) end.push(track[0]);', ''],
     ["the consent banner missing", "lib/_publicHead.js", 'if (L.includes(CONSENT_BANNER_HTML) && !h.includes(CONSENT_BANNER_HTML)) end.push(CONSENT_BANNER_HTML);', ''],
     ["the Account button not opening the card", "lib/_publicHead.js", 'if (/id="acct"/.test(h)) end.push(', 'if (false) end.push('],
@@ -58,7 +59,7 @@ const mod = async f => (await import(pathToFileURL(path.join(ROOT, "api", f + ".
 
 // [name, address, handler file, kind]: kind "landing" (the new design's own page, its h1 is its own), "site" (the current page's <main> carried over, same h1), "results" (the current page inside the new shell)
 const ROUTES = [
-  ["home", "/", "home", "landing"], ["find", "/find", "buy", "landing"], ["market-check", "/market-check", "marketCheck", "landing"], ["sell", "/sell", "sell", "landing"], ["tasks", "/tasks", "tasksPage", "landing"],
+  ["home", "/", "home", "landing"], ["find", "/find", "buy", "landing"], ["market-check", "/market-check", "marketCheck", "landing"], ["sell", "/sell", "sell", "landing"], ["sell (SELL_NEXT_ON=1, what production serves)", "/sell", "sell", "landing", { SELL_NEXT_ON: "1" }], ["tasks", "/tasks", "tasksPage", "landing"],
   ["market-check results", "/market-check?q=1995+bmw+m3", "marketCheck", "results"], ["find results", "/find?q=porsche+911", "buy", "results"],
   ["tasks-mine", "/tasks/mine?app=1", "tasksPage", "results"],
   ["business", "/business", "business", "site"], ["how", "/how-sam-decides", "howSamDecides", "site"], ["about", "/about", "about", "site"], ["whats-new", "/whats-new", "whatsNew", "site"],
@@ -76,7 +77,7 @@ const linksOf = h => { const o = new Set(); for (const m of strip(h).matchAll(/<
 const normScript = x => x.replace(/^\/?(?:js|obx|dsk)\.[0-9]+[a-z]?\//, "/js/").replace(/^js\//, "/js/");
 const scriptsOf = h => new Set([...String(h).matchAll(/<script\b[^>]*\bsrc="([^"]+)"/gi)].map(m => normScript(m[1])));
 // FOR LANE C'S LIVE RENDER, not held for Sam (Sam's answer, Nov 10): the Sell landing's wizard scripts (the new Sell entry opens today's Sell results, which load them) and Market Check's results script (the new entry hands the search to today's results page, which loads it). The live render must show a search from each entry reaching a working results page.
-const LIVE_RENDER = { sell: /^\/js\/(wizard|pipeline|steps|result|chat-core|result-copy|result-v2|entry|homepage)\.js$/, "market-check": /^\/js\/onebox\.js$/ };
+const LIVE_RENDER = { sell: /^\/js\/(wizard|pipeline|steps|result|chat-core|result-copy|result-v2|entry|homepage|onebox)\.js$/, "market-check": /^\/js\/onebox\.js$/ };
 const h1Of = h => { const m = [...strip(h).matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi)].map(x => x[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim()); return m; };
 const held = (() => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, "docs/go-live-held.json"), "utf8")); } catch { return []; } })();
 const lost = [];   // { route, kind, item }
@@ -85,8 +86,8 @@ const VJ = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
 const lookUrl = url => { const u = new URL(url, "https://goasksam.com"), rule = (VJ.rewrites || []).find(r => r.source === u.pathname && (r.has || []).some(x => x.type === "cookie" && x.key === "gas_crew")); if (rule) for (const [k, v] of new URL(rule.destination, "https://x").searchParams) if (!u.searchParams.has(k)) u.searchParams.set(k, v); u.searchParams.set("design", "new"); return u.pathname + u.search; };
 process.env.CURTAIN_CREW_CODE = "go-live-parity"; const CREW_COOKIE = "gas_crew=" + (await import(pathToFileURL(path.join(ROOT, "lib/_crew.js")).href)).mintCrewCookieValue();
 
-for (const [name, url, f, kind] of ROUTES) {
-  const h = await mod(f);
+for (const [name, url, f, kind, envx] of ROUTES) {
+  const h = await mod(f); delete process.env.SELL_NEXT_ON; Object.assign(process.env, envx || {});
   delete process.env.NEW_DESIGN; const A = await get(h, url); process.env.NEW_DESIGN = "all"; const B = await get(h, url); delete process.env.NEW_DESIGN;
   if (A.code !== 200) { ok(B.code === A.code, `${name}: today answers ${A.code}, the new answers ${B.code}`); continue; }
   // THE CREW LOOK IS THE FLIP, SEEN EARLY (Lane C's live render, Nov 10: Sell's look carried noindex, nofollow where the public Sell is index, follow, because the look read the Sell a crew cookie is handed, not the Sell a visitor gets): with the switch OFF, the crew cookie plus ?design=new must carry the head of the PUBLIC page on EVERY route: title, description, robots, canonical, og, twitter, structured data.
@@ -115,7 +116,7 @@ for (const [name, url, f, kind] of ROUTES) {
   // links and scripts
   const la = linksOf(A.body), lb = linksOf(B.body), sa = scriptsOf(A.body), sb = scriptsOf(B.body);
   for (const x of la) if (!lb.has(x)) lost.push({ route: name, kind: "link", item: x });
-  for (const x of sa) if (!sb.has(x) && !(LIVE_RENDER[name] && LIVE_RENDER[name].test(x))) lost.push({ route: name, kind: "script", item: x });
+  for (const x of sa) if (!sb.has(x) && !(LIVE_RENDER[name.split(" ")[0]] && LIVE_RENDER[name.split(" ")[0]].test(x))) lost.push({ route: name, kind: "script", item: x });
   // THE FOOTER: How Sam decides, in the footer of the new page, as a link like the others (go live held item 1)
   { const ft = /<footer\b[\s\S]*?<\/footer>/i.exec(B.body); const fl = ft ? [...ft[0].matchAll(/<a\b[^>]*\bhref="([^"]+)"[^>]*>([^<]*)<\/a>/g)].map(m => [m[1], m[2].trim()]) : [];
     ok(fl.some(x => x[0] === "/how-sam-decides" && x[1] === "How Sam decides"), `${t}: the footer links How Sam decides (${fl.map(x => x[1]).join(", ")})`);
@@ -132,7 +133,9 @@ for (const [name, url, f, kind] of ROUTES) {
     const pieces = [["the analytics script", /<script\b[^>]*\bsrc="\/api\/track\?js=1"/], ["the consent banner markup", /id="gas-consent-banner"/], ["the consent banner script", /gasConsent|gas-consent-banner/]];
     for (const [what, re] of pieces) {
       const inA = what === "the consent banner script" ? inl(A.body).some(x => re.test(x)) : has(A.body, re), inB = what === "the consent banner script" ? inl(B.body).some(x => re.test(x)) : has(B.body, re);
-      ok(inA === inB, `${t}: ${what} is in the new page exactly when the current page has it (today ${inA}, new ${inB})`);
+      // a page that loads the analytics script offers the consent choice (Sell with SELL_NEXT_ON=1 loads it and had no banner: the new page gives it the shared one); a page that loads neither gets neither
+      const trackA = has(A.body, pieces[0][1]), want = /banner/.test(what) ? inA || trackA : inA;
+      ok(want === inB, `${t}: ${what} is in the new page exactly when the current page has it, or loads the analytics script (today ${inA}, analytics script ${trackA}, new ${inB})`);
     }
     const oA = inl(A.body).filter(x => /gasOutboundInstall\(/.test(x)), oB = new Set(inl(B.body));
     ok(oA.every(x => oB.has(x)), `${t}: the outbound tagging scripts are loaded as today (${oA.length})`);
@@ -148,6 +151,7 @@ for (const [name, url, f, kind] of ROUTES) {
   if (name === "tasks") ok(/<button\b[^>]*id="tkcta/.test(B.body) || /Start a Task|Tell Sam/.test(strip(B.body)), `${t}: the create control`);
   if (name === "feedback") { const s = strip(B.body); ok(/<form\b/.test(s) && /<textarea\b/.test(s) && /<button\b/.test(s), `${t}: the feedback form`); }
 }
+delete process.env.SELL_NEXT_ON;
 // HELD list against what is lost
 const key = x => `${x.route}|${x.kind}|${x.item}`, heldKeys = new Set(held.map(key)), lostKeys = new Set(lost.map(key));
 if (PRINT) { fs.writeFileSync(path.join(ROOT, "docs/go-live-held.json"), JSON.stringify(lost.map(x => ({ ...x, note: "" })), null, 1) + "\n"); origLog("wrote docs/go-live-held.json with " + lost.length + " items"); process.exit(0); }
