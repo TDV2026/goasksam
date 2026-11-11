@@ -1,0 +1,47 @@
+// DESK V4 RESERVE OR NO RESERVE, SELLER PREFERENCE AND SELLER WORDS (Lane S, Nov 11 2026), built against Lane D's posted names (docs/lane-notes.md "NAMES POSTED BEFORE BUILD"): desk.reserveMode {line, withReserve {count, medianLine}, noReserve {count, medianLine}, thin, thinLine},
+//   report.reserveMode {mode, why} and report.reserveModeLine through case_edit report_reserve_mode, reserve.sellerPreferenceLine, and case.documents entries with sellerWords: true (field, title, text). The names Lane D marked PLANNED are not on the server yet, so the page is given the case through the page's own model (the check
+//   edits the case the server sent before it is drawn) and the one write is answered by the check's stub in Lane D's shape. When the server carries them the row lights up with no change here.
+//   1 THE ROW PRINTS AS SENT: under the figure, "Reserve or no reserve" prints desk.reserveMode.line, each count and median line, and the thinLine only when thin. No desk.reserveMode, no row.
+//   2 THE CONTROL: sets report.reserveMode with the why line (mode "no_reserve", and null to take it back); when thin it is disabled, with the thinLine on screen, until the why line is written; the answer's own reserveModeLine is printed.
+//   3 THE SELLER'S PREFERENCE is printed as the case words it (reserve.sellerPreferenceLine) when the case carries it, nothing when not.
+//   4 THE SELLER'S WORDS: a Forwarded lead's free-text answers (documents with sellerWords) show in Documents as their own words, the form's question and the text as received, not as file tiles.
+//   MUTANTS: the thin line printed when not thin; the control enabled when thin with no why; the row printing the recommendation instead of the line; a preference the page wrote; a seller's words cut or rewritten.
+//   node scripts/deskV4ReserveModeCheck.mjs
+import { launch, openLive, tally, V3, PV, V4 } from "./deskV4Harness.mjs";
+const { ok, done } = tally(), wait = ms => new Promise(r => setTimeout(r, ms)), b = await launch();
+const RM = (thin) => ({ recommendation: "reserve", line: "A reserve is supported: 9 of 12 sales with a reserve sold.", withReserve: { count: 12, soldShare: 0.75, medianLine: "Median $57,875 with a reserve." }, noReserve: { count: 7, soldShare: 0.86, medianLine: "Median $52,100 with no reserve." }, thin: !!thin, thinLine: thin ? "Only 7 sales had no reserve, too few to rely on." : null });
+const base = await V4.renderDeskV4({ query: { case: V3.DEMO_ID } });
+// the page is given the case the server sent, with the planned fields on it (they ride on the same case view)
+const give = (mut) => { const m = /window\.__V4__=([\s\S]*?);window\.__DESK_V3__/.exec(base); const o = JSON.parse(m[1]); mut(o.kase); return base.replace(m[0], "window.__V4__=" + JSON.stringify(o).replace(/</g, "\\u003c") + ";window.__DESK_V3__"); };
+const PREF = "The seller asked for a reserve.", WORDS = [{ id: "sw1", sellerWords: true, kind: "other", field: "special", title: "What makes this car special?", text: "Single owner since 2004, every service at the dealer.\nGarage kept.", status: "received" }, { id: "sw2", sellerWords: true, kind: "other", field: "flaws", title: "Any flaws we should know about?", text: "Small stone chip on the nose.", status: "received" }];
+const wrote = [], cur = { rm: null };
+const stub = async bd => { if (bd.op === "report_reserve_mode") { wrote.push(bd); const g = await PV.previewDeskApi({ action: "case_get", id: bd.id }); const c = g.case; if (cur.rm) c.desk.reserveMode = cur.rm; c.report = { reserveMode: { mode: bd.mode, why: bd.why || "" }, reserveModeLine: bd.mode ? "Recommended: no reserve. " + (c.desk.reserveMode ? c.desk.reserveMode.line : "") : null }; return { ok: true, id: bd.id, case: c }; } };
+const SEE = () => { const t = i => { const e = document.getElementById(i); return e && !e.hidden && e.offsetHeight > 0 ? e.textContent : null; }; const cb = document.getElementById("rmNoRes");
+  return { row: !!document.getElementById("rmode") && !document.getElementById("rmode").hidden, line: t("rmLine"), with: t("rmWith"), no: t("rmNo"), thin: t("rmThin"), dis: cb ? cb.disabled : null, checked: cb ? cb.checked : null, set: t("rmSet"), pref: t("sellerPref"), words: [...document.querySelectorAll("#sellerWords .sw")].map(x => [x.querySelector("b").textContent, x.querySelector("p").textContent]), wtitle: t("sellerWords") ? (document.querySelector("#sellerWords h4") || {}).textContent : null, tilesWithWords: [...document.querySelectorAll("#docs .doc")].some(x => /What makes this car special|Single owner/.test(x.textContent)),
+    belowFigure: (() => { const f = document.getElementById("valIn").getBoundingClientRect(), r = document.getElementById("rmode").getBoundingClientRect(); return r.top >= f.bottom - 1; })() }; };
+const open = async (html, mutate) => { const p = await openLive(b, { mutate, intercept: stub }); return p; };
+const page = async (mut, mutate) => { const h = give(mut); const p = await openLive(b, { intercept: stub, mutate: x => (mutate ? mutate(h) : h) }); return p; };
+
+{ // 1 and 4 not thin
+  const p = await page(c => { c.desk.reserveMode = RM(false); c.reserve.sellerPreferenceLine = PREF; c.documents = [...(c.documents || []), ...WORDS]; }); const r = await p.evaluate(SEE); await p.close();
+  ok(r.row && r.belowFigure && r.line === RM(false).line && r.with.includes("12") && r.with.includes(RM(false).withReserve.medianLine) && r.no.includes("7") && r.no.includes(RM(false).noReserve.medianLine) && r.thin === null, "Reserve or no reserve: the line, both counts and both median lines print as sent under the figure, and no thin line when not thin");
+  ok(r.pref === PREF, "the seller's preference prints as the case words it (" + r.pref + ")");
+  ok(r.words.length === 2 && r.words[0][0] === WORDS[0].title && r.words[0][1] === WORDS[0].text && r.words[1][1] === WORDS[1].text && /own words/.test(r.wtitle || "") && !r.tilesWithWords, "a forwarded lead's free-text answers show in Documents as the seller's own words, question and text as received, not as file tiles"); }
+{ const p = await page(() => {}); const r = await p.evaluate(SEE); await p.close(); ok(!r.row && r.pref === null && r.words.length === 0, "a case with none of these fields draws no row, no preference and no seller's words"); }
+{ // 2 thin, the control
+  cur.rm = RM(true); const p = await page(c => { c.desk.reserveMode = RM(true); }); wrote.length = 0; const a = await p.evaluate(SEE);
+  ok(a.thin === RM(true).thinLine && a.dis === true, "thin: the engine's thin line is on screen and the choice is disabled until the why line is written");
+  await p.type("#rmWhy", "Seller wants it sold at any price, the car is cheap to ship"); await wait(150); const b2 = await p.evaluate(SEE); ok(b2.dis === false, "writing the why line enables it");
+  await p.click("#rmNoRes"); await wait(500); const c2 = await p.evaluate(SEE);
+  ok(wrote.length === 1 && wrote[0].mode === "no_reserve" && wrote[0].why === "Seller wants it sold at any price, the car is cheap to ship" && c2.checked && /Recommended: no reserve/.test(c2.set || ""), `the control writes report.reserveMode (mode no_reserve with the why) and prints the answer's own line (${c2.set})`);
+  await p.click("#rmNoRes"); await wait(500); ok(wrote.length === 2 && wrote[1].mode === null, "unticking takes the choice back (mode null)"); await p.close(); }
+{ const p = await page(c => { c.desk.reserveMode = RM(false); }); const r = await p.evaluate(SEE); await p.close(); ok(r.dis === false && r.thin === null, "not thin: the choice is open with no why line needed"); }
+// mutants
+{ const run = async (mut, f) => { const p = await page(mut, f); const r = await p.evaluate(SEE); await p.close(); return r; };
+  const m1 = await run(c => { c.desk.reserveMode = RM(false); c.desk.reserveMode.thinLine = "Only 7 sales had no reserve."; }, h => h.replace('th.textContent = rm.thin ? (rm.thinLine || "") : "";', 'th.textContent = rm.thinLine || "";')); ok(m1.thin !== null, "mutant caught: a thin line printed when the engine did not say thin");
+  const m2 = await run(c => { c.desk.reserveMode = RM(true); }, h => h.replace("cb.disabled = !on && rm.thin === true && !why.value.trim();", "cb.disabled = false;")); ok(m2.dis === false, "mutant caught: thin with no why line and the control still enabled");
+  const m3 = await run(c => { c.desk.reserveMode = RM(false); }, h => h.replace('$("rmLine").textContent = rm.line || "";', '$("rmLine").textContent = rm.recommendation || "";')); ok(m3.line !== RM(false).line, "mutant caught: the recommendation word printed instead of the engine's line");
+  const m4 = await run(c => { c.reserve.sellerPreferenceLine = PREF; }, h => h.replace('sp.textContent = r.sellerPreferenceLine || "";', 'sp.textContent = "The seller would like a reserve.";')); ok(m4.pref !== PREF, "mutant caught: a preference the page wrote");
+  const m5 = await run(c => { c.documents = [...(c.documents || []), ...WORDS]; }, h => h.replace('el("p", { text: x.text || "" })', 'el("p", { text: String(x.text || "").slice(0, 20) })')); ok(m5.words[0][1] !== WORDS[0].text, "mutant caught: a seller's words cut short"); }
+await b.close();
+done("deskV4ReserveModeCheck");

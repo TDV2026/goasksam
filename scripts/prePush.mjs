@@ -2409,7 +2409,7 @@ try {
   record("Desk v4 flow in Chrome on the real readers: tick and untick (the list stays), exclude and restore, every condition, the window, type and drag the reserve above the range and tick the seller's request, add a document, resolve attention, Select all photos, edit a step, Preview, Finalize; mutants for each bug Sam hit (scripts/deskV4FlowCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
-  const out = execSync("node scripts/goLiveSwitchCheck.mjs --base 723b420d", { encoding: "utf8", timeout: 240000 });
+  const out = execSync("node scripts/goLiveSwitchCheck.mjs --base 6a1637b2", { encoding: "utf8", timeout: 240000 });
   record("Go live switch: NEW_DESIGN off serves bytes identical to the baseline on every public route, on keeps status and headers and replays redirects, per route, crew look, no POST switched (scripts/goLiveSwitchCheck.mjs)", "PASS", (out.match(/goLiveSwitchCheck: .*/) || [""])[0]);
 } catch (e) {
   record("Go live switch: NEW_DESIGN off serves bytes identical to the baseline on every public route, on keeps status and headers and replays redirects, per route, crew look, no POST switched (scripts/goLiveSwitchCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveSwitchCheck:/.test(l)).slice(0, 5).join(" | "));
@@ -2497,6 +2497,12 @@ try {
   record("Desk v4 New case form: photos accumulate with a Remove each, a VIN fills the car (marked decoded, editable), make model body gearbox colour are pickers with a typed value allowed, a refusal prints the server's why under the button, a refused photo keeps the case; mutants (scripts/deskV4NewCaseCheck.mjs)", "PASS", (out.match(/deskV4NewCaseCheck: .*/) || [""])[0]);
 } catch (e) {
   record("Desk v4 New case form: photos accumulate with a Remove each, a VIN fills the car (marked decoded, editable), make model body gearbox colour are pickers with a typed value allowed, a refusal prints the server's why under the button, a refused photo keeps the case; mutants (scripts/deskV4NewCaseCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/deskV4ReserveModeCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 Reserve or no reserve: the engine's line, both counts and the thin line print as sent, the no reserve choice is disabled when thin until the why line is written and writes report.reserveMode, the seller's preference as the case words it, a forwarded lead's own words in Documents; mutants (scripts/deskV4ReserveModeCheck.mjs)", "PASS", (out.match(/deskV4ReserveModeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 Reserve or no reserve: the engine's line, both counts and the thin line print as sent, the no reserve choice is disabled when thin until the why line is written and writes report.reserveMode, the seller's preference as the case words it, a forwarded lead's own words in Documents; mutants (scripts/deskV4ReserveModeCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
   const out = execSync("node scripts/previewShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
@@ -2846,6 +2852,12 @@ try {
   record("Desk v3 stage 2: desk.comparables are decided by verified year, generation, body, gearbox and miles (never the model name), why sentences come from the reason table, a photo is the one that passed the photo rule or null, outside groups are never inside the population; eleven mutants (scripts/deskCompsCheck.mjs)", "PASS", (out.match(/deskCompsCheck: .*/) || [""])[0]);
 } catch (e) {
   record("Desk v3 stage 2: desk.comparables are decided by verified year, generation, body, gearbox and miles (never the model name), why sentences come from the reason table, a photo is the one that passed the photo rule or null, outside groups are never inside the population; eleven mutants (scripts/deskCompsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/deskReserveModeCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("Desk reserve mode (desk.reserveMode): the 24 older cars and the demo 996 held against an oracle, a recommendation only with five outcomes a side and a stated margin, a venue without the flag on neither side, every sentence from reasonWords (scripts/deskReserveModeCheck.mjs)", "PASS", (out.match(/deskReserveModeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk reserve mode (desk.reserveMode): the 24 older cars and the demo 996 held against an oracle, a recommendation only with five outcomes a side and a stated margin, a venue without the flag on neither side, every sentence from reasonWords (scripts/deskReserveModeCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 try {
   const out = execSync("node scripts/deskOlderCarsCheck.mjs", { encoding: "utf8", timeout: 240000 });
