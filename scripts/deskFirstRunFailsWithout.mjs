@@ -24,6 +24,9 @@ const MUT = [
   ["a rung button counts the car's sales of that condition with no mileage cut", "reportConsistencyCheck", DV, rep("byTier: desk.rungPools ? Object.fromEntries", "byTier: null && Object.fromEntries")],
   // lane F 3. where the record starts
   ["a window that reaches past the first sale on record says nothing", "reportConsistencyCheck", DV, rep("firstOn && firstOn > cutoffOf(caseDate, m) ?", "false ?")],
+  // lane F 1. edits hold across sessions
+  ["the preview keeps its cases in memory per instance and seeds them afresh (the store behind the door is ignored)", "deskPersistCheck", "lib/preview/deskPreview.js", rep("    if (backing) return backing;\n", "")],
+  ["the preview's edits are written to a store and the PDF is built from the seeded case", "deskPersistCheck", "lib/desk/sheetActions.js", rep("if (action === \"case_pdf\")", "if (action === \"case_pdf_x\")")],
   // 4. a waived item whose cause is gone leaves the list
   ["a waived item stays when the mark that caused it is set", "reportConsistencyCheck", CW, rep('else if (!on && it && it.state === "waived") c.needs_review', 'else if (false) c.needs_review')],
   // 7. a switch with nothing to show says so

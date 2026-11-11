@@ -1049,6 +1049,17 @@ async function handleOps(req, res) {
   // run (docs/nightly-workflow.yml). Zero writes beyond that one cache row.
   // task=deskrungs: READ-ONLY (Lane D, Nov 9 2026). The engine's own sheet read for one car at each condition rung: the count and range per rung, or its too-few-sales sentence. Stores nothing, sequential (one read at a time, at most four rungs).
   //   ?view=ops&task=deskrungs&year=1999&make=Porsche&model=911&mileage=61200&transmission=Manual&body=Coupe&tiers=2|3|4   (add &full=1 to get the engine's whole answer for each rung, to record it; use tiers= with one tier to keep the answer small)
+  // task=deskpreviewseed: WRITES to the production Desk store (Lane D, Nov 11 2026; Sam's decision on Lane F item 1). Puts the V4 preview's demonstration case (pv_hm) and its engine-read samples (pv_240z, pv_thin, pv_fin) into the Hagerty org of desk_sheets, once.
+  // Idempotent: it does nothing when the demonstration case is already there (reports seeded:false); the sheet ids are fixed uuids (lib/preview/deskPreview.js previewUuid), so a second run cannot double them. It makes no engine read and sends nothing. Needs the org row 'hagerty' and a seat with subject DESK_PREVIEW_SEAT (default 'crew') in desk_seats (Lane S's seat admin); it says so if the seat is missing.
+  //   ?view=ops&task=deskpreviewseed        (Lane C runs it; the deployed preview then reads and writes every case there)
+  if (task === "deskpreviewseed") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    try {
+      const { seedPreviewStore, previewSeatOf } = await import("../lib/preview/deskPreview.js"), { supabaseStore } = await import("../lib/desk/sheetStore.js");
+      const r = await seedPreviewStore(supabaseStore(env), { realIds: true, seat: previewSeatOf(env) });
+      return res.status(200).json({ ok: true, ...r });
+    } catch (e) { return res.status(200).json({ ok: false, why: String(e && e.message || e).slice(0, 200) }); }
+  }
   if (task === "deskrungs") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { rungsOf } = await import("../lib/desk/rungs.js"), { sheetRead } = await import("../lib/sheetRead.js");

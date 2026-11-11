@@ -2968,6 +2968,12 @@ try {
   record("Desk v3 demonstration car (scripts/deskDemoCarCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  execSync("node scripts/deskPersistCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Desk v4 persistence: after each edit two fresh sessions read the case and build the PDF, and what is printed is what was saved (scripts/deskPersistCheck.mjs)", "PASS", "")
+} catch (e) {
+  record("Desk v4 persistence (scripts/deskPersistCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160))
+}
+try {
   execSync("node scripts/deskViewsCheck.mjs", { encoding: "utf8", timeout: 120000 });
   record("Desk v4 views: a switch of period or condition makes no engine read, and every view equals the engine's direct read (scripts/deskViewsCheck.mjs)", "PASS", "")
 } catch (e) {
