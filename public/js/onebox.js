@@ -303,25 +303,38 @@
   // "No bids yet" - exactly today's fallback tree, just laid out as two lines (amount, then time)
   // instead of one sentence. Job 4 (Oct 2026): api/buySearch.js panel=1 rows now carry `miles` (a
   // whole number, or null when the listing has none usable) - l.miles.
+  // THIS CAR IS LIVE NOW (Nov 11 2026): a VIN that is at auction right now. The engine sends the line, the time left, the mileage and bid lines and the listing (d.ownLive); the page prints them as sent and counts the listing in no "comparable car" sentence
+  function ownLiveBlock(d) {
+    var o = d && d.ownLive, l = o && o.listing; if (!l || !o.line) return "";
+    return '<div class="ownlive"><div class="sec-head"><div><h2>' + esc(o.line) + '</h2></div></div>' +
+      '<table class="lptable"><thead><tr><th class="colhead">Car</th><th class="colhead">Venue</th><th class="colhead">Last bid seen</th><th class="colhead">Vs. range</th></tr></thead><tbody><tr><td><span class="lp-car">' +
+      (l.photo ? '<span class="lp-ph"><img src="' + esc(l.photo) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()"></span>' : "") +
+      '<span class="lp-cbody"><a class="lp-title" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener">' + esc(l.title) + "</a>" + (l.mileageLine ? '<span class="lp-miles">' + esc(l.mileageLine) + "</span>" : "") + "</span></span></td>" +
+      '<td><span class="lp-venue">' + esc(l.venue || "") + '</span><span class="lp-ends">' + esc(o.endsLine || "") + "</span></td>" +
+      '<td class="lp-bid"><b>' + esc(l.bidLine || "") + "</b></td>" +
+      '<td class="lp-vsrange">' + (l.placing && placingDotClass(l.placing) ? '<span class="lp-dot ' + placingDotClass(l.placing) + '"></span>' : "") + esc(l.vsRangeLine || "") + "</td></tr></tbody></table></div>";
+  }
   function loadLivePanel(d, m) {
     var slot = document.getElementById("ob-live"); var rc = d && d.resolvedCar;
     if (!slot || !rc || !rc.make || !rc.model) return;
+    var ownHtml = ownLiveBlock(d);
     // Item 5 (placing, Oct 2026): the headline's own typical band (d.cluster), when this result has
     // one, so the server can judge each live figure against the SAME range shown on the page - never
     // a second band. No cluster (thin/span-only tiers) -> no lo/hi -> the server returns no placing.
     var band = Array.isArray(d.cluster) && d.cluster.length === 2 ? d.cluster : null;
     var qs = "panel=1&make=" + encodeURIComponent(rc.make) + "&model=" + encodeURIComponent(rc.model) +
       (rc.trim ? "&trim=" + encodeURIComponent(rc.trim) : "") + (rc.year ? "&year=" + encodeURIComponent(rc.year) : "") + (rc.bodyStyle ? "&body=" + encodeURIComponent(rc.bodyStyle) : "") +
-      (band ? "&lo=" + Math.round(band[0]) + "&hi=" + Math.round(band[1]) : "");
+      (band ? "&lo=" + Math.round(band[0]) + "&hi=" + Math.round(band[1]) : "") + (d && d.vinLiveMatch && d.vinLiveMatch.vin ? "&vin=" + encodeURIComponent(d.vinLiveMatch.vin) : "");
     fetch(API_ORIGIN + "/api/buySearch?" + qs).then(function (r) { return r.json(); }).then(function (j) {
-      if (!j || !(j.count > 0) || !j.rows || !j.rows.length || !document.body.contains(slot)) return;
+      if (!document.body.contains(slot)) return;
+      if (!j || !(j.count > 0) || !j.rows || !j.rows.length) { if (ownHtml) { slot.className = "livepanel"; slot.innerHTML = ownHtml; slot.hidden = false; } return; }
       var rows = j.rows.map(function (l) {
         var amt = l.current_bid_usd ? usd(l.current_bid_usd) : (l.current_bid ? Math.round(l.current_bid).toLocaleString("en-US") + " " + l.currency : "");
         // Sam's small fixes (Oct 21 2026): the row reads "$25,250 at 11:21am PT" (the day added when not today, bidTimePT, the same format
         // as Buy's), under "Last bid seen"; never the word "current".
         var amountText = l.fixedPriceUsd ? "Asking " + usd(l.fixedPriceUsd) : (amt ? amt : "No bids yet");
         var timeText = (!l.fixedPriceUsd && amt && l.bid_at) ? ("at " + bidTimePT(l.bid_at)) : "";
-        var vsrange = placingPillText(l.placing);
+        var vsrange = l.vsRangeLine || placingPillText(l.placing);
         var vsrangeDot = placingDotClass(l.placing);
         var photo = l.photo_url ? '<img src="' + esc(l.photo_url) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">' : "";
         var href = utmUrl(l.url);
@@ -345,7 +358,7 @@
       var scopeSentence = years ? (summary + " " + cap(years) + ".") : summary;
       var seeAll = j.count === 1 ? "See it live" : "See all " + obNumWordLow(j.count) + " live";
       slot.className = "livepanel";
-      slot.innerHTML = '<div class="sec-head"><div><h2>Live right now</h2></div></div>' +
+      slot.innerHTML = ownHtml + '<div class="sec-head"><div><h2>Live right now</h2></div></div>' +
         '<p class="lp-summary">' + lint(esc(scopeSentence), "live.summary") + "</p>" +
         '<table class="lptable"><thead><tr><th class="colhead">Car</th><th class="colhead">Venue</th><th class="colhead">Last bid seen</th><th class="colhead">Vs. range</th></tr></thead><tbody>' + rows + "</tbody></table>" +
         '<a class="linkbtn" href="/find?q=' + encodeURIComponent(q) + '">' + esc(seeAll) + " &#8594;</a>";
@@ -1741,6 +1754,22 @@
   // query was a VIN (the /vin/{vin} page is keyed on it).
   // flat (follow-up round, Oct 2026, 3rd arg, default false): classEraHtml and renderChassisMatch
   // call this too but are out of the Market Check result-page spec's scope - left boxed, unchanged.
+  // THE CAR IS AT AUCTION NOW (Lane B, Nov 11 2026: vinLiveMatch.listing on the identity answer): the listing as the engine sent it, a card ABOVE the market read, with "View this auction". Each part prints only when the field carries it; the page words and decides nothing (the time left is the engine's own line, endsLine).
+  function vinLiveListing(d) {
+    var l = d && d.vinLiveMatch && d.vinLiveMatch.listing; if (!l || typeof l !== "object") return null;
+    return typeof l.title === "string" && l.title.trim() && typeof l.url === "string" && /^https:\/\//.test(l.url) ? l : null;
+  }
+  function vinLiveCardHtml(l) {
+    if (!l) return "";
+    var line1 = [l.venue, l.endsLine].filter(function (x) { return typeof x === "string" && x.trim(); }).map(esc).join(" &middot; ");
+    var mi = Number(l.mileage), bid = Number(l.currentBidUsd), facts = [];
+    if (isFinite(mi) && mi > 0) facts.push(esc(mi.toLocaleString("en-US") + " miles"));
+    if (isFinite(bid) && bid > 0) facts.push(esc("Current bid " + usd(bid)));
+    if (typeof l.location === "string" && l.location.trim()) facts.push(esc(l.location));
+    var photo = typeof l.photo === "string" && /^https:\/\//.test(l.photo) ? '<a class="vlc-ph" href="' + esc(l.url) + '" target="_blank" rel="noopener" aria-label="View this auction: ' + esc(l.title) + '"><img src="' + esc(l.photo) + '" alt="" loading="eager" referrerpolicy="no-referrer"></a>' : "";
+    return '<style>.vlc{display:flex;gap:16px;align-items:center;margin:0 0 20px;padding:12px;border:1px solid var(--div,#DCD8CC);border-radius:16px;background:var(--card,#fff)}.vlc-ph{flex:none;width:200px;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#E6E2D8}.vlc-ph img{display:block;width:100%;height:100%;object-fit:cover}.vlc-ct{min-width:0}.vlc-eb{margin:0 0 4px;font:600 12px/1.3 var(--sans,inherit);letter-spacing:.14em;text-transform:uppercase;color:var(--green,#1E4D38)}.vlc h3{margin:0;font:500 20px/1.3 var(--serif,inherit);color:var(--ink,#15201A)}.vlc p{margin:2px 0 0;color:var(--sec,#5E6B63);font:400 14.5px/1.4 var(--sans,inherit)}.vlc a.vlc-v{display:inline-block;margin-top:10px;color:var(--green,#1E4D38);font:600 14.5px/1.3 var(--sans,inherit);text-underline-offset:3px}@media (max-width:560px){.vlc{flex-direction:column;align-items:stretch}.vlc-ph{width:100%}}</style>' +
+      '<section class="vlc" data-stage="live" data-vin-live aria-label="This car is at auction now">' + photo + '<div class="vlc-ct"><div class="vlc-eb">At auction now</div><h3>' + esc(l.title) + "</h3>" + (line1 ? "<p>" + line1 + "</p>" : "") + (facts.length ? "<p>" + facts.join(" &middot; ") + "</p>" : "") + '<a class="vlc-v" data-view-auction href="' + esc(l.url) + '" target="_blank" rel="noopener">View this auction</a></div></section>';
+  }
   function vinHeroCardHtml(m, rc, flat) {
     var name = m.displayName || carLabel(rc);
     var priceHtml, venueLine;
@@ -2506,6 +2535,7 @@
     if (!m && vinQueryNoSale) {
       head += '<div class="notes vinnosale" data-stage="anchor"><p>' + lint(esc("No recorded sale for this VIN. Here’s the market for the " + (carLabel(d.resolvedCar) || "model") + " instead."), "vin.nosale") + "</p></div>";
     }
+    head = vinLiveCardHtml(vinLive) + head;   // the listing first: the market read below is never mistaken for this car's own
     var body, foot = false;
     if (d.tier === "thin") body = thinHtml(d, m);
     else if (d.tier === "class_era") body = classEraHtml(d, m);
@@ -2546,7 +2576,7 @@
     // The car's OWN sale shows first (Stage 3, Oct 23 2026), labelled "Sold before", ABOVE any question the engine still has about the car
     // (the 1995 911 Carrera VIN used to open on "Has documented history or No documented history?" with its own sale nowhere on the page).
     var own = vinAnchor && (vinAnchor.price || vinAnchor.history) ? '<div class="cards5 single" data-stage="anchor">' + vinHeroCardHtml(vinAnchor, obResolvedCar) + "</div>" : "";
-    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + own + html;
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + vinLiveCardHtml(vinLive) + own + html;
     wire();
   }
   // renderRefineChoice (gearbox_choice/variant_choice as a bare-chip refine) had no remaining
@@ -2813,6 +2843,8 @@
   // (the premium back-out line renders ONLY when the pool actually contains auction-house sales).
   // Never a fake progress bar or percentage.
   function loaderHtml() {
+    // THE WAITING STATE (Sam, Nov 11 2026; the new design only, window.GAS_WAIT is set by the shell): one centred sentence from the engine's table (reasonWords wait.mc) with pulsing dots, under the search box, and nothing else until the answer lands; the stage lines below are the old design's.
+    if (window.GAS_WAIT && window.GAS_WAIT.mc) return '<div class="gas-wait" role="status" data-wait="mc" data-stage="note"><span class="gw-d" aria-hidden="true"><i></i><i></i><i></i></span><p class="gas-wait-line">' + esc(window.GAS_WAIT.mc) + '</p><p class="lslow" hidden>This one is taking longer than usual.</p></div>';
     return '<div class="loader" data-stage="note"><span class="ltext"></span>' +
       '<span class="ldots"><i></i><i></i><i></i></span></div><p class="lslow" hidden>This one is taking longer than usual.</p>';
   }
@@ -2860,6 +2892,7 @@
 
   // ---------------------------------------------------------------- VIN anchor (Task 2)
   var vinAnchor = null;   // carried from the confirm step into the result render
+  var vinLive = null;   // the engine's vinLiveMatch.listing when this VIN is at auction now (Lane B, Nov 11 2026): shown as a listing card above the market read, as sent
   var vinQueryNoSale = false;   // the query WAS a VIN that resolved a car but has NO recorded sale in our archive
   var pendingVin = null;  // resolved vehicle awaiting confirmation
   var mcFromCard = false;   // the address came from a card's Market Check link (from=card): no confirm question
@@ -2941,7 +2974,7 @@
     // A brand-new search resets the question count; a chip answer (keepAsk) carries it forward so
     // the engine can enforce the two-question cap across generation/body re-queries (Part 3).
     if (!keepAsk) { obAsked = 0; obSearchId = obNewSearchId(); }   // a brand-new search gets a new id; a chip answer keeps it, so a question and its answer carry the same one (analytics)
-    lastQuery = text; obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obIdOrigVariantLines = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
+    lastQuery = text; obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obIdOrigVariantLines = null; obLastD = null; vinAnchor = null; vinLive = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
     // straight to the archive pool.
@@ -3014,7 +3047,7 @@
     mcFromCard = sp.get("from") === "card";
     if (!vin && !car) { renderEmpty(); syncRailResults(); return; }
     var refine = mcRefineFromParams(sp);
-    obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obIdOrigVariantLines = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
+    obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obIdOrigVariantLines = null; obLastD = null; vinAnchor = null; vinLive = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
     mcCarHint = vin && car ? deslugifyQuery(car) : null;   // the card's own car text beside the VIN: used when the VIN decode alone would leave the trim or the model unnamed
     if (vin) { vinResolve(vin); return; }   // VIN re-decode is the full, tested path - refine on a VIN result is a rare combo and not threaded through it.
     runPool(lastQuery, null, refine);
@@ -3167,6 +3200,7 @@
     wire(); setLoaderLine("Reading that VIN");
     obFetch(API_ORIGIN + "/api/vehicleIdentity", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text }) }, 25000)
       .then(function (r) { return r.json(); }).then(function (d) {
+        vinLive = vinLiveListing(d);
         var cl = d && d.clarification;
         // Branch on clarification KIND first (status can be needs_confirmation OR
         // needs_clarification for a vin_confirmation depending on the resolver path).

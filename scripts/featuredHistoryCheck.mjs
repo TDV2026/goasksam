@@ -14,7 +14,7 @@ const F = await import(pathToFileURL(path.join(root, "lib/live/featuredHistory.j
 const { mintCrewCookieValue } = await import(pathToFileURL(path.join(root, "lib/_crew.js")).href);
 const NOW = Date.parse("2026-11-05T12:00:00Z"), HOUR = 3600000, DAY = 24 * HOUR;
 const VIN = "WP0AB29988S783456";
-const live = (o = {}) => ({ id: "L1", source: "bringatrailer", url: "https://bringatrailer.com/listing/2008-porsche-911-1/", listing_title: "2008 Porsche 911 Carrera", year: 2008, make: "Porsche", model: "911", vin_norm: VIN, mileage: 34000, mileage_unit: "miles", end_time: new Date(NOW + 2 * DAY).toISOString(), photo_url: "https://img.example.com/cur-1.jpg", status: "live", ...o });
+const live = (o = {}) => ({ id: "L1", source: "bringatrailer", currency: "USD", url: "https://bringatrailer.com/listing/2008-porsche-911-1/", listing_title: "2008 Porsche 911 Carrera", year: 2008, make: "Porsche", model: "911", vin_norm: VIN, mileage: 34000, mileage_unit: "miles", end_time: new Date(NOW + 2 * DAY).toISOString(), photo_url: "https://img.example.com/cur-1.jpg", status: "live", ...o });
 const sale = (o = {}) => ({ kind: "sale", date: "2022-05-14", house: "Bring a Trailer", url: "https://bringatrailer.com/listing/2008-porsche-911-0/", mileage: 30000, priceUsd: 61000, image: "https://img.example.com/prev-0.jpg", year: 2008, make: "Porsche", model: "911", vinNorm: VIN, ...o });
 const attempt = (o = {}) => ({ kind: "attempt", date: "2021-03-02", house: "Cars & Bids", url: "https://carsandbids.com/auctions/abc/", mileage: 29000, bidUsd: 52000, status: "not_sold", image: "https://img.example.com/prev-a.jpg", year: 2008, make: "Porsche", model: "911", vinNorm: VIN, ...o });
 const ev = (l, apps, extra = {}) => F.evaluateCandidate(l, apps, { nowMs: NOW, ...extra });

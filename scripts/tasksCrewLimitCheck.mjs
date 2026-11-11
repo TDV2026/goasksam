@@ -110,8 +110,38 @@ export const MUTANTS = [
   ["keep_looking skips the slot check (the hole)", { tasks: s => rep(s, 'if (task.state === "paused") { const held = await slotTask(env, user.userId, task.id, taskMaxOf(user)); if (held) return { ...blockedOf(held, taskMaxOf(user)), task }; }\n', "") }],
   ["the crew limit ignored by the slot check", { tasks: s => rep(s, "const held = await slotTask(env, user.userId, task.id, taskMaxOf(user)); if (held) return { ...blockedOf(held, taskMaxOf(user)), task };\n    task = await saveTask(env, task.id, { state: \"running\"", "const held = await slotTask(env, user.userId, task.id); if (held) return { ...blockedOf(held), task };\n    task = await saveTask(env, task.id, { state: \"running\"") }]
 ];
+// THE PUBLIC COPY IS THE PUBLIC LIMIT, WHOEVER ASKS (Sam, Nov 11 2026): the Tasks page's headline, its "Run up to N Tasks at once" line, its FAQ and the page script print the PUBLIC limit (lib/tasks/limit.js FREE_TASK_LIMIT) to the crew too; a signed in account's own cap shows only on its Tasks list and in the message it gets when it hits it (the API's facts).
+// CAUSE of the miss: the crew look and the crew preview of the Tasks page handed the viewer's own limit (taskLimitFor(isCrew), crewLimitMax) to the copy. This renders the page AS CREW three ways and reads the copy.
+async function publicCopyFindings() {
+  const out = [], { FREE_TASK_LIMIT: FREE_N, CREW_TASK_LIMIT: CREW_N, freeTasksWords } = await import("../lib/tasks/limit.js"), crew = "gas_crew=" + mintCrewCookieValue(), saved = { ...process.env };
+  Object.assign(process.env, { LAUNCH_STAGE: "2", SUPABASE_URL: "https://db.test", SUPABASE_SERVICE_ROLE_KEY: "k", SUPABASE_ANON_KEY: "k" });
+  const call = async (file, url, ck) => { const res = { h: {}, code: 200, body: "", setHeader(k, v) { this.h[String(k).toLowerCase()] = String(v); return this; }, getHeader(k) { return this.h[String(k).toLowerCase()]; }, removeHeader() {}, writeHead(c) { this.code = c; return this; }, status(c) { this.code = c; return this; }, send(b) { this.body = String(b); return this; }, end(b) { if (b != null) this.body = String(b); return this; }, json(o) { this.body = JSON.stringify(o); return this; } };
+    const u = new URL(url, "https://goasksam.com"), m = await import(pathToFileURL(path.join(ROOT, "api", file + ".js")).href + "?c=" + Math.random()), log = console.error; console.error = () => {};
+    try { await m.default({ method: "GET", url, query: Object.fromEntries(u.searchParams), headers: { host: "goasksam.com", cookie: ck }, socket: {} }, res); } finally { console.error = log; } return res.body; };
+  try {
+    const renders = [["the crew look of the Tasks page (?design=new)", "tasksPage", "/tasks?design=new", ""], ["the Tasks page with the switch on, asked by the crew", "tasksPage", "/tasks", "all"], ["the crew preview of the Tasks page", "crewPage", "/api/crewPage?page=preview-tasks", ""]];
+    for (const [name, file, url, sw] of renders) {
+      if (sw) process.env.NEW_DESIGN = sw; else delete process.env.NEW_DESIGN;
+      const html = await call(file, url, crew), text = html.replace(/<style[\s\S]*?<\/style>/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+      if (!new RegExp(`\\b${FREE_N} active Tasks\\. Completely free`).test(text)) out.push(`${name}: the headline does not say the public limit (${FREE_N} active Tasks. Completely free.)`);
+      if (!new RegExp(`Run up to ${FREE_N} Tasks at once`).test(text)) out.push(`${name}: the line "Run up to ${FREE_N} Tasks at once" is missing or names another number`);
+      const crewBits = [`${CREW_N} active Tasks`, `Run up to ${CREW_N} `, freeTasksWords(CREW_N)].filter(x => html.includes(x));
+      if (crewBits.length) out.push(`${name}: the page prints the crew limit to the crew (${crewBits.join(" | ")})`);
+    }
+    // the SWEEP: every other page that could print the limit, asked by the crew: none carries the crew number, and the Tasks page's FAQ (its structured data too) says the public limit
+    const others = [["Home", "home", "/", "all"], ["What's new", "whatsNew", "/whats-new", "all"], ["the Tasks page (legacy, with its FAQ structured data)", "tasksPage", "/tasks", ""], ["Home (legacy)", "home", "/", ""], ["What's new (legacy)", "whatsNew", "/whats-new", ""]];
+    for (const [name, file, url, sw] of others) {
+      if (sw) process.env.NEW_DESIGN = sw; else delete process.env.NEW_DESIGN;
+      const html = await call(file, url, crew), bits = [`${CREW_N} active Tasks`, `Run up to ${CREW_N} `, freeTasksWords(CREW_N), `${CREW_N} Tasks running`].filter(x => html.includes(x));
+      if (bits.length) out.push(`${name}, asked by the crew: the page prints the crew limit (${bits.join(" | ")})`);
+      if (file === "tasksPage" && !html.includes(freeTasksWords(FREE_N))) out.push(`${name}, asked by the crew: the FAQ does not say the public limit (${freeTasksWords(FREE_N)})`);
+    }
+  } finally { for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k]; Object.assign(process.env, saved); }
+  return out;
+}
 export async function main() {
   let pass = 0, fail = 0;
+  { const c = await publicCopyFindings(); if (c.length) { fail += c.length; c.forEach(x => console.log("FAIL " + x)); } else pass++; }
   const f = await findings(); if (f.length) { fail += f.length; f.forEach(x => console.log("FAIL " + x)); } else pass++;
   for (const [name, mut] of MUTANTS) {
     let g; try { g = await findings(mut); } catch (e) { fail++; console.log(`FAIL mutant "${name}": ${String(e.message).split("\n")[0]}`); continue; }

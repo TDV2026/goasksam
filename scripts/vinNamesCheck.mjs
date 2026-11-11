@@ -38,7 +38,7 @@ const CASES = [
   ["2C3CDZFJ5JH100005", row(2018, "DODGE", "Challenger", "R/T 392", "Coupe"), "Challenger", "R/T 392", "coupe", "live: slash trim kept"],
   ["2C3CDXCT5EH100008", row(2014, "DODGE", "Charger", "R/T", "Sedan/Saloon"), "Charger", "R/T", "sedan", "live: slash trim kept"],
   ["2C3CDXGJ5HH100009", row(2017, "DODGE", "Charger", "R/T 392", "Sedan/Saloon"), "Charger", "R/T 392", "sedan", "live: slash trim kept"],
-  ["1G1YM2D75F5100022", row(2015, "CHEVROLET", "Corvette", "Stingray 3LT w/Z51", "Coupe"), "Corvette", "Stingray 3LT w/Z51", "coupe", "live: w/ is part of the name"],
+  ["1G1YM2D75F5100022", row(2015, "CHEVROLET", "Corvette", "Stingray 3LT w/Z51", "Coupe"), "Corvette", null, "coupe", "live: w/ is part of the name, not a list of variants; since Nov 11 2026 (lib/vinDecodeTrim.js) the equipment (3LT, w/Z51) is dropped and Stingray is the plain model, so no trim: scripts/vinDecodeTrimCheck.mjs"],
   ["JM1NC2PF5E0100028", row(2014, "MAZDA", "MX-5", "Grand Touring/GT", "Convertible/Cabriolet"), "MX-5", null, "convertible", "live: two names for one trim, no trim"],
   ["5TFTX4CN1FX000065", row(2015, "TOYOTA", "Tacoma", "Delux Grade", "Pickup", "TRN225L/GRN225L"), "Tacoma", "Delux Grade", null, "live control: the Series code list never becomes a trim"],
   ["WBABN53432JJ12345", row(2002, "BMW", "330Ci", "", "Coupe", "3-Series"), "330Ci", null, "coupe", "live control: a marketed name is not a code"],

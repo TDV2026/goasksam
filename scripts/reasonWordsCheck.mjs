@@ -17,7 +17,7 @@ const sentences = t => t.split(/(?<=[.!?])\s+/).filter(Boolean).length;
 // the allowance is exact, so a listed line that changes length fails, and a new two-sentence line fails until Sam's ruling is named here.
 const TWO_SENTENCES = { "footer.range": 2, "trim.fallback": 2, "nearband.line": 2, "find.near_band": 2, "card.apart_line": 2, "norange.few_comparable": 2, "norange.few_comparable_house": 2 };   // the last two (Sam, Nov 5 2026): "9 sales since May 2025. 3 online sales have a photo to compare, too few for a range." - the pool, then what the range test counted; their wording and number are pinned below   // the last two: Sam's own wording for a thin mileage band, Nov 2 2026 ("Few sales under 50,000 miles. Pick a mileage band to see its range.")
 // Sam's own sentence (the launch-day ruling, Oct 30 2026): "Sales do not say their engine, so Sam could not filter by V8." names Sam; exact, for this one line
-const NAMES_SAM = new Set(["typed.not_carried"]);
+const NAMES_SAM = new Set(["typed.not_carried", "wait.find", "wait.mc", "wait.sell", "wait.sell_slot"]);   // the four waiting sentences (Sam's order, Nov 11 2026: "Sam is checking live auctions and matching your search." is the shape)
 for (const [id, e] of Object.entries(RW.REASON_TABLE)) {
   const t = e.text(probe), want = TWO_SENTENCES[id] || 1;
   ok(`${id}: plain, ${want === 1 ? "one sentence" : "the " + want + " sentences Sam ruled"}, no dash, no Sam, no jargon`, !RW.STYLE_BANNED.some(re => re.test(NAMES_SAM.has(id) ? t.replace(/\bSam\b/g, "") : t)) && sentences(t) === want && !/–|—|--/.test(t), t);

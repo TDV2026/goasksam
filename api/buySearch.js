@@ -27,7 +27,7 @@ import { placingFor, bidPlaceOf, timeLeftWords, ENGINE_VERSION } from "../lib/on
 import { photoOrNull } from "../lib/photoHosts.js";
 import { asideRowsFor, asideMatch, setAsideLabel } from "../lib/tasks/setAside.js";
 import { findGeneration } from "../lib/generations.js";
-import { converse } from "../lib/live/converse.js";
+import { reasonLine } from "../lib/reasonWords.js";
 import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, prefetchSpecs, stillReadingMarket, ladderSteps, walkLadder, panelOf } from "../lib/live/search.js";
 import { vinAppearances } from "./_historyData.js";
 import { applyRung, askedName, countText } from "../lib/live/rung.js";
@@ -44,7 +44,7 @@ async function rungMarket(env, r, facts, m) {
 const CountText = n => { const s = countText(n); return s.charAt(0).toUpperCase() + s.slice(1); };
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential, hasHeaderKey, keyInAddress, ADDRESS_KEY_REFUSED } from "../lib/_credential.js";
-import { checkCeiling, testLimits, CALM, buyModelGuard, recordBuyModelTurn, noteBuySearch, BUY_MODEL_PAUSED } from "../lib/_ceilings.js";
+import { checkCeiling, testLimits, CALM, buyModelGuard, recordBuyModelTurn, noteBuySearch } from "../lib/_ceilings.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 import { logEvent, EVENTS } from "../lib/events.js";
 import { readVisitorId } from "../lib/_visitor.js";
@@ -52,7 +52,7 @@ import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js
 import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.js";
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
-import { runTurn, runFilters, runSearch, suggestFor, BATCH_BUDGET_MS, useMarketRank, radiusOf } from "../lib/live/samChat.js";
+import { runTurn, runFilters, runSearch, filtersFromText, suggestFor, BATCH_BUDGET_MS, useMarketRank, radiusOf } from "../lib/live/samChat.js";
 // The composer's suggestions (Stage 1c item 6), from the shaped cards (seen_before exists only after shaping).
 const withSuggest = (out, r) => ({ ...r, suggest: suggestFor({ meta: out.meta, filters: out.state && out.state.filters, seenAny: (r.cards || []).some(c => c && c.seen_before) }) });
 import { humanTitle } from "../lib/carTitle.js";
@@ -389,13 +389,17 @@ async function handler(req, res) {
       // position/positions (job 3): computed once in the engine (lib/live/search.js liveForFamily),
       // over the SAME fenced live-match set the count itself reports - this route only renders what
       // it returns, never a second placingFor call of its own.
-      const live = await liveForFamily(env, vehicle, generation, null, 3, band);
+      // A VIN's OWN live listing is never one of the "comparable cars" (Nov 11 2026): a Market Check of a VIN that is live now passes ?vin=, and this row is left out of the rows and the count (the answer's ownLive line speaks of it)
+      const ownVin = String(q.vin || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const live0 = await liveForFamily(env, vehicle, generation, null, ownVin.length === 17 ? 12 : 3, band);
+      const ownIn = ownVin.length === 17 ? (live0.rows || []).filter(r => String(r.vin_norm || "").toUpperCase() === ownVin) : [];
+      const live = ownIn.length ? { ...live0, total: Math.max(0, live0.total - ownIn.length), rows: live0.rows.filter(r => !ownIn.includes(r)).slice(0, 3) } : { ...live0, rows: ownVin.length === 17 ? live0.rows.slice(0, 3) : live0.rows };
       res.setHeader("Cache-Control", "public, s-maxage=300");
       // source_slug + id (Round 6 Job 1, tracking fix): the panel only ever sent the display name
       // (source, via houseName) and no row identifier at all - Lane A's auction_clickout needs the
       // real platform slug, never the display name, and a listing id for which car was clicked.
       // Both are already on the row; this just carries them through, nothing computed.
-      return res.status(200).json({ count: live.total, positions: live.positions, rows: live.rows.map(r => ({ id: r.id, source: houseName(r.source), source_slug: r.source || null, title: r.listing_title, url: r.url, photo_url: r.photo_url || null, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: r.position, miles: cardMiles(listingFacts(r)) })) });
+      return res.status(200).json({ count: live.total, positions: live.positions, rows: live.rows.map(r => ({ id: r.id, source: houseName(r.source), source_slug: r.source || null, title: r.listing_title, url: r.url, photo_url: r.photo_url || null, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: r.position, vsRangeLine: r.position ? reasonLine("live.vs_range", { placing: r.position }) : null, miles: cardMiles(listingFacts(r)) })) });
     }
     if (req.method !== "POST") return res.status(405).json({ status: "error" });
     // Everything from here down is Buy's own endpoint (search, chat, saved searches, alerts) - gated
@@ -598,23 +602,23 @@ async function handler(req, res) {
       return res.status(200).json({ title: r.listing_title, key: spec.key, steps, refine: spec.refine || null, chosen: chosen && { step: chosen.step, family: chosen.family, refinedNote: chosen.refinedNote || null, kind: chosen.kind, count: chosen.count, low: chosen.low, high: chosen.high, span: chosen.span } });
     }
     if (b.action === "geocoverage") return res.status(200).json(await geoCoverage(env));
-    if (b.action === "converse") { const cv = await converseOut(env, b); noteNearMeZip(req, b, cv); await noteBuySearch(env, req, cv && cv.filters); return res.status(200).json(cv); }
+    // The old conversation action ("converse") is retired (lane-b-find-retire, Nov 11 2026): the page asks the written answer or, without it, action rerun with the typed words. scripts/converseRetiredCheck.mjs asserts nothing calls it.
     // The invisible ceiling on every search path (lib/_ceilings.js, the one guard Buy and Sell share): a
     // calm reply when hit, never a sign in demand. Our own jobs (credential) skip it unless a test ceiling
     // is sent with them (x-ceiling-test), which is how the ceiling is tested without touching real numbers.
-    const searching = b.action === "chat" || b.action === "rerun" || b.action === "converse" || (!b.action && b.q);
+    const searching = b.action === "chat" || b.action === "rerun" || (!b.action && b.q);
     if (searching) {
       const cred = hasServerCredential(req), lim = testLimits(req, cred);
       if (!cred || lim) {
         const ce = await checkCeiling(env, req, b.action === "chat" ? "buy_chat" : "buy_search", { tool: "buy", limits: lim });
-        if (!ce.ok) return res.status(200).json(b.action === "chat" || b.action === "rerun" || b.action === "converse" ? { reply: CALM.search, cards: [], limited: true, turns: Number(b.turns) || 0 } : { status: "unresolved", message: CALM.search, limited: true });
+        if (!ce.ok) return res.status(200).json(b.action === "chat" || b.action === "rerun" ? { reply: CALM.search, cards: [], limited: true, turns: Number(b.turns) || 0 } : { status: "unresolved", message: CALM.search, limited: true });
       }
     }
     if (b.action === "chat") {
       // The model's own ceilings (lib/_ceilings.js buyModelGuard: 20 model turns per device a day, a nuisance
       // guard; $50 of Buy chat model cost a day, the authoritative one). Past either: the page's no-model search.
       const mg = await buyModelGuard(env, req);
-      if (!mg.ok) return res.status(200).json({ fallback: true, capped: mg.why, note: BUY_MODEL_PAUSED });
+      if (!mg.ok) return res.status(200).json({ fallback: true, capped: mg.why });   // no sentence: a visitor never reads that the written answer is paused, the page runs the scripted search alone
       return await buyChat(res, env, b, readVisitorId(req), req);
     }
     // The searching state's "what has been understood so far": the words parsed and the car resolved (the
@@ -642,8 +646,15 @@ async function handler(req, res) {
     }
     // A result address reloaded or pasted (/buy?q=...&make=...): the same search from its filters, no model call.
     if (b.action === "rerun") {
+      // THE NO-MODEL SEARCH (lane-b-find-paths): the typed words, searched by the same engine call the written answer ends in (filtersFromText, then runFilters with the words as lastUser). The page asks for it when the written answer is paused or failed.
+      let byWords = null;
+      if (!b.filters && b.text) {
+        const text = String(b.text).slice(0, 400), pw = await filtersFromText(env, text);
+        if (!pw) return res.status(200).json({ reply: "Tell Sam a car and Sam will find what's live.", cards: [], meta: null, state: { filters: {} }, turns: (Number(b.turns) || 0) + 1 });
+        byWords = { filters: pw, lastUser: text };
+      }
       // zip: the buyer's zip for the distance question (kept by the page for the session), never a filter by itself.
-      const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, radius: radiusOf(b.radius) });
+      const out = await runFilters(env, (byWords && byWords.filters) || b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, radius: radiusOf(b.radius), lastUser: (byWords && byWords.lastUser) || "" });
       const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
       return res.status(200).json({ reply: out.reply, searchNote: out.searchNote || null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
     }
@@ -758,55 +769,6 @@ function cleanChatFilters(f) {
 }
 // near_me_zip (round 2): the five-digit zip a buyer gave for "near me", logged when this turn's filters carry a zip the
 // turn before did not. A coarse place, counted once per new zip; never blocks the answer.
-function noteNearMeZip(req, b, cv) {
-  try {
-    const now = String((cv && cv.filters && cv.filters.location) || ""), was = String((b && b.state && b.state.filters && b.state.filters.location) || "");
-    if (/^\d{5}$/.test(now) && now !== was) track(req, "near_me_zip", { zip: now }, { product: "buy", surface: "buy_page" });
-  } catch {}
-}
-async function converseOut(env, b) {
-  const st = cleanState(b.state);
-  if (!st.messages.length) return { type: "nonsense", say: "Tell Sam a car, a budget or a type of car and Sam will find what's live.", options: ["a black manual BMW M3", "Porsches under $50k", "anything ending today"] };
-  const r = await converse(env, st);
-  if (r.type === "question" || r.type === "nonsense") return r;
-  const seenN = r.vins && r.vins.length ? await seenCount(env, r.vins).catch(() => 0) : 0;
-  if (r.type === "groups") {
-    // Each group: its cards (the first four enriched here, so every card a buyer can see renders WITH
-    // its Sam line) and its set-aside cars (modified, engine-swapped, project), which are not cards.
-    // The heading is a plain Sam line; each card carries its own exact-spec range.
-    const shape = list => Promise.all((list || []).map(async g => {
-      const { keep, aside } = splitAside(g.items);
-      const cards = await Promise.all(keep.slice(0, 40).map((x, i) => i < 4 ? enrich(env, x) : cardOf(x)));
-      cards.forEach((c, i) => { if (keep[i] && keep[i].distance != null) c.distance = keep[i].distance; });
-      return { label: g.label, n: keep.length, cards, setAside: await setAsideOf(env, aside) };
-    })).then(gs => gs.filter(g => g.n || g.setAside.length));
-    const [groups, maybeGroups] = await Promise.all([shape(r.groups), shape(r.maybeGroups)]);
-    const total = groups.concat(maybeGroups).reduce((k, g) => k + g.n, 0);
-    const say = r.near ? r.say : total && seenN ? `${CountText(total)} live, grouped by model. ${sauce(seenN)}` : (r.say || null);
-    logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
-    return { type: "groups", say, groups, maybeGroups, maybeKeys: r.maybeKeys || [], filters: r.filters || null, geo: !!r.geo, footnote: !!r.footnote, perCard: !!r.perCard };
-  }
-  const matches = (r.matches || []).slice(0, MAX);
-  // Stated matches first, then the ones whose listing doesn't say; nearest first within each.
-  const ordered = [...matches].sort((a, x) => { const k = c => (c.unknown.length ? 10 : 0) + (c.distance != null ? 0 : (isAbroadRow(c.r) ? 2 : 1)); return k(a) - k(x) || ((a.distance == null ? 1e9 : a.distance) - (x.distance == null ? 1e9 : x.distance)); });
-  const split = splitAside(ordered);
-  // Fill every card drawn first: the first 10 confirmed matches and the first 4 unconfirmed ones.
-  let unsureSeen = 0, sureSeen = 0;
-  const cards = await Promise.all(split.keep.map(x => { const un = (x.unknown || []).length; const k = un ? unsureSeen++ : sureSeen++; return (un ? k < 4 : k < FIRST) ? enrich(env, x) : cardOf(x); }));
-  cards.forEach((c, i) => { if (split.keep[i].distance != null) c.distance = split.keep[i].distance; });
-  const setAside = await setAsideOf(env, split.aside);
-  logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
-  // The opener carries what only Sam knows: how many of these have an auction history.
-  let say = r.say;
-  // Count only the confirmed matches; the ones whose listing doesn't say are named as such.
-  const allM = r.matches || [], unsure = allM.filter(x => (x.unknown || []).length).length, sureN = allM.length - unsure;
-  const countLine = (unsure && sureN) ? `${CountText(sureN)} live, and ${countText(unsure)} more whose listing doesn't say.` : `${CountText(allM.length)} live.`;
-  // A nearest-years result keeps the shared sentence (lib/live/search.js nearLine) as its opener.
-  if (r.near) say = r.say;
-  else if (!r.closest && !r.outOfScope && /^There are [\w,]+ live right now\./.test(r.say || "") && (seenN || (unsure && sureN))) say = countLine + (seenN ? " " + sauce(seenN) : "") + (r.geo ? " Closest first." : "");
-  else if (seenN && !r.closest && !r.outOfScope) say = allM.length === 1 ? r.say + " It has been through auction before, and Sam has its history." : (r.say || "") + " " + sauce(seenN);
-  return { type: "results", say: say, near: r.near || null, market: applyRung(r.market) || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: cards.length, cards, setAside, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null, excluded: r.excluded && r.excluded.length ? r.excluded : undefined };
-}
 // Set-aside cars (modified, engine-swapped, project) are never cards: one quiet line each, with a thumbnail.
 const ASIDE_KINDS = { engine_swap: "engine-swapped", modified: "modified", project: "a project car" };
 function splitAside(items) {

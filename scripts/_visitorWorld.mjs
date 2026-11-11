@@ -55,7 +55,8 @@ export async function visitorWorld(root, ok = () => {}) {
   store();
   W.store.set(FE.FALLBACK_KEY, { v: FE.FALLBACK_V, builtAt: new Date(NOW).toISOString(), items: [1, 2, 3].map(i => ({ title: "199" + i + " Porsche 911 Carrera", platform: ["Bring a Trailer", "Cars & Bids", "PCarMarket"][i - 1], url: "https://auction.test/s" + i, photo: "https://img.test/s" + i + ".jpg", priceLabel: "Sold for $10" + i + ",000", dateLine: "Sold October 2026", live: false, fallback: true, soldAt: "2026-10-1" + i, findUrl: "/find" })) });
 
-  const dbRows = u => { const s = String(u); let m = /app_config\?key=eq\.([a-z_]+)/.exec(s); if (m) { const v = W.store.get(m[1]); return v ? [{ value: v }] : []; } m = /live_listings\?id=eq\.([^&]+)/.exec(s); if (m) return W.rows.filter(r => String(r.id) === decodeURIComponent(m[1])).slice(0, 1); if (/live_listings\?status=eq\.live/.test(s)) return W.rows.filter(r => r.status === "live" && r.photo_url && Date.parse(r.end_time) > Date.now()); return []; };
+  const { historyRows } = await import(pathToFileURL(path.join(root, "scripts/_historyStub.mjs")).href);
+  const dbRows = u => { const s = String(u); const hr = historyRows(s); if (hr) return hr; let m = /app_config\?key=eq\.([a-z_]+)/.exec(s); if (m) { const v = W.store.get(m[1]); return v ? [{ value: v }] : []; } m = /live_listings\?id=eq\.([^&]+)/.exec(s); if (m) return W.rows.filter(r => String(r.id) === decodeURIComponent(m[1])).slice(0, 1); if (/live_listings\?status=eq\.live/.test(s)) return W.rows.filter(r => r.status === "live" && r.photo_url && Date.parse(r.end_time) > Date.now()); return []; };
   globalThis.fetch = async u => new Response(JSON.stringify(/fake\.supabase\.test/.test(String(u)) ? dbRows(u) : []), { status: 200, headers: { "content-type": "application/json" } });
   process.env.LAUNCH_STAGE = "2"; delete process.env.CURTAIN_SEALED; process.env.SUPABASE_ANON_KEY = "k";
   return { W, API, NAMES, CREW, FE, C };

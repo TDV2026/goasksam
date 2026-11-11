@@ -38,11 +38,13 @@ function authTakeReturn() {
 }
 // After a sign-in: go where the person was going (true when it left this page). What they had typed waits for them on the destination.
 function authLandAfterSignIn() {
-  const r = authTakeReturn(); if (!r) return false;
+  const r = authTakeReturn(); window.__authLanded = r ? "here" : "none"; if (!r) return false;   // "none": nothing was remembered (the new design sends that to Home, below)
   try { if (r.typed) localStorage.setItem(AUTH_TYPED_KEY, JSON.stringify({ text: r.typed, path: r.path.replace(/[?#].*$/, ""), at: Date.now() })); } catch (e) {}
-  if (r.path !== location.pathname + location.search + location.hash) { location.assign(r.path); return true; }
+  if (r.path !== location.pathname + location.search + location.hash) { window.__authLanded = "left"; location.assign(r.path); return true; }
   authApplyTyped(); return false;
 }
+// THE NEW DESIGN (window.GAS_NEW_DESIGN, set by lib/_publicHead.js): a sign in goes back to the page it was started from, query and all (openSignInCard remembers it), and to Home when nothing was remembered. Other pages keep their own fallback.
+function authLandHomeIfNone() { if (window.GAS_NEW_DESIGN && window.__authLanded === "none") { location.assign("/"); return true; } return false; }
 function authApplyTyped() {
   try {
     const raw = localStorage.getItem(AUTH_TYPED_KEY); if (!raw) return;
@@ -211,6 +213,7 @@ async function authVerifyCode(btn) {
     authRenderTopbar();
     authCloseModal();
     if (authLandAfterSignIn()) return;   // the destination they were going to (a page's own gateAfterSignup is only the fallback)
+    if (authLandHomeIfNone()) return;
     if (typeof gateAfterSignup === "function") gateAfterSignup();
   } catch (e) { done(); authCardError("That code could not be verified just now. Try again in a moment."); }
 }
@@ -752,7 +755,7 @@ async function authBootTopbarOnly() {
   const returned = authHandleCallback();
   authRenderTopbar();
   if (authIsSignedIn()) { await authEnsureAccount(returned ? { forceRecheck: true, freshSignIn: true, method: "google" } : undefined); authRenderTopbar(); }
-  if (returned) { authCloseModal(); authLandAfterSignIn(); }
+  if (returned) { authCloseModal(); if (!authLandAfterSignIn()) authLandHomeIfNone(); }
   setTimeout(authApplyTyped, 700);   // what they typed before signing in is waiting in the page's box
 }
 if (typeof document !== "undefined" && document.addEventListener) {

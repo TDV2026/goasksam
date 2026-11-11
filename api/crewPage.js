@@ -1,21 +1,17 @@
 // CREW-ONLY STATIC PAGES, SERVED BY THE SERVER (Sam, Oct 28 2026). The design preview (/onebox-preview) and the Desk page (/desk) used to sit in public/, where Vercel serves a file to anyone who asks for its path (/onebox-preview.html, /desk.html) and the
 // only gate was a script inside the page. They now live in lib/crewPages/ (never served as files) and this function sends them only to a request carrying the signed crew cookie (the Desk also to a tester): everyone else gets the same disguised 404 as a
 // page that was never there. vercel.json rewrites /onebox-preview and /desk here.
-import { noRangeLineOn } from "../lib/noRangeFlag.js";
 import fs from "node:fs";
 import path from "node:path";
 import { isCrewRequest } from "../lib/_crew.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { sendDisguisedNotFound } from "../lib/_notFound.js";
-import { resolveSeatCookie } from "../lib/desk/seatCookie.js";
-import { resolveViewAs } from "../lib/desk/viewAs.js";
 import { PREVIEW_PAGES, homeHtmlFor, findHtml } from "../lib/preview/previewPages.js";
 import { tasksPublicHtml, crewLimitMax } from "../lib/preview/tasksPreview.js";
-import { taskLimitFor } from "../lib/tasks/limit.js";
 import { tasksMineHtml, previewTasksApi } from "../lib/preview/tasksMine.js";
 import { findField } from "../lib/preview/fieldCompose.js";
 import { publicFindExamples as publicFind } from "../lib/preview/publicFind.js";
-import { entryHtml, wrapLive, patchOneboxJs, exampleResultOf, exampleFrameHtml } from "../lib/preview/mcSellPreview.js";
+import { entryHtml, wrapLive, headingFromQuery, patchOneboxJs, exampleResultOf, exampleFrameHtml } from "../lib/preview/mcSellPreview.js";
 import marketCheckPage from "./marketCheck.js";
 import sellDoor from "./sell.js";
 import findPage from "./buy.js";
@@ -62,12 +58,10 @@ const publicFindExamples = req => publicFind(readField, couldNotRead, req);
 export const FIND_EXAMPLES = { read: req => PUBLIC_CTX.getStore() ? publicFindExamples(req) : readField("../lib/live/findExamples.js", "findExamplesField", req), now: () => Date.now() };
 // THE ENGINE ANSWERS live ?? fallback ITSELF (Lane B, lane-b-examples3: findExamplesField, tasksDemoField, watchingDemoField, in the engine card shapes of docs/lane-notes.md SHAPES B lane-e-crew-refine8): each reader returns the live answer, else the fallback (a recent sale or ended car), else null. The page reads the one answer and picks nothing.
 const safe = async (f, what = "field") => { if (PUBLIC_CTX.getStore()) return boxed(f, what); try { return await f(); } catch (e) { return failed(what, e); } };
-// the Tasks limit a PUBLIC page prints is the live one (3); only a crew viewer sees the crew limit
-const tasksMaxFor = async req => PUBLIC_CTX.getStore() ? taskLimitFor(isCrewRequest(req) === true) : crewLimitMax();
-const tasksPublicFor = async req => { const ex = await safe(() => TASKS_EMAIL_EXAMPLE.read(req), "tasksEmailExample"); return couldNotRead(ex) ? tasksPublicHtml({ max: await tasksMaxFor(req), readError: "Could not read the Tasks email." }) : tasksPublicHtml({ max: await tasksMaxFor(req), emailExample: ex }); };
+const tasksPublicFor = async req => { const ex = await safe(() => TASKS_EMAIL_EXAMPLE.read(req), "tasksEmailExample"); return couldNotRead(ex) ? tasksPublicHtml({ readError: "Could not read the Tasks email." }) : tasksPublicHtml({ emailExample: ex }); };
 // FIND RESULTS ON THE NEW SHELL (go live): with a search in the address the page is today's Find page (its own results, its own script) inside the new header, the rail (New search, recent searches) and the footer, exactly as Market Check and Sell are; without one it is the new landing.
 const findResultsFor = async req => {
-  try { const search = String(req.url).slice(String(req.url).indexOf("?")), live = await capture(findPage, "/find" + search, req); if (live.code !== 200) throw new Error("the live page answered " + live.code); return wrapLive("find", live.body); }
+  try { const search = String(req.url).slice(String(req.url).indexOf("?")), live = await capture(findPage, "/find" + search, req); if (live.code !== 200) throw new Error("the live page answered " + live.code); return wrapLive("find", live.body, { h1: headingFromQuery("find", req.url) }); }
   catch (e) { return previewFailed("find", e); }
 };
 const findFor = async req => hasSearch(req) ? findResultsFor(req) : findLandingFor(req);
@@ -94,7 +88,7 @@ async function mcSellFor(kind, req) {
     if (hasSearch(req)) {
       const search = String(req.url).slice(String(req.url).indexOf("?")), live = await capture(kind === "mc" ? marketCheckPage : sellDoor, (kind === "mc" ? "/market-check" : "/sell") + search, req);
       if (live.code !== 200) throw new Error("the live page answered " + live.code);
-      return wrapLive(kind, live.body);
+      return wrapLive(kind, live.body, { h1: headingFromQuery(kind, req.url) });
     }
     const f = await safe(() => (kind === "mc" ? MC_CARD : SELL_CARD).read(req), kind === "mc" ? "marketCheckExample" : "sellExampleCard");
     return couldNotRead(f) ? entryHtml(kind, { readError: kind === "mc" ? "Could not read the Market Check example." : "Could not read the selling example." }) : entryHtml(kind, kind === "mc" ? { mcCard: f } : { sellCard: f });
@@ -126,7 +120,7 @@ async function historyFor(req) {
   return wrapSite(live.body);
 }
 const SITE_PAGES = Object.fromEntries(Object.keys(SITE).map(k => ["preview-site-" + k, { frame: true, render: () => "", renderAsync: req => siteFor(k, req) }]));
-export const PAGES = { ...SITE_PAGES, "preview-history": { frame: true, render: () => "", renderAsync: historyFor }, "onebox-preview": { file: "onebox-preview.html", tester: true }, desk: { file: "desk.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-desk": { render: () => deskV4Shell(), renderAsync: renderDeskV4 }, "preview-desk-valuations": { render: renderDeskPreview }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: r => boxed(() => FEATURED.read(r), "featuredHistory"), now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"], renderAsync: findFor }, "preview-market-check": { render: () => entryHtml("mc"), renderAsync: req => mcSellFor("mc", req) }, "preview-sell": { render: () => entryHtml("sell"), renderAsync: req => mcSellFor("sell", req) }, "preview-market-check-example": { frame: true, render: () => { throw new Error("no example result"); }, renderAsync: exampleFrame }, "preview-onebox-js": { render: oneboxJs, contentType: "application/javascript; charset=utf-8" } };
+export const PAGES = { ...SITE_PAGES, "preview-history": { frame: true, render: () => "", renderAsync: historyFor }, "onebox-preview": { file: "onebox-preview.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-desk": { render: () => deskV4Shell(), renderAsync: renderDeskV4 }, "preview-desk-valuations": { render: renderDeskPreview }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: r => boxed(() => FEATURED.read(r), "featuredHistory"), now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"], renderAsync: findFor }, "preview-market-check": { render: () => entryHtml("mc"), renderAsync: req => mcSellFor("mc", req) }, "preview-sell": { render: () => entryHtml("sell"), renderAsync: req => mcSellFor("sell", req) }, "preview-market-check-example": { frame: true, render: () => { throw new Error("no example result"); }, renderAsync: exampleFrame }, "preview-onebox-js": { render: oneboxJs, contentType: "application/javascript; charset=utf-8" } };
 export default async function handler(req, res) {
   const name = String((req.query && req.query.page) || "").toLowerCase(), p = PAGES[name];
   if (name === "preview-tasks-api") {   // the Tasks preview's own door: crew only, POST only; the live handler answers (lib/preview/tasksMine.js)
@@ -140,18 +134,13 @@ export default async function handler(req, res) {
     const out = await previewDeskApi(b || {}); res.setHeader("Content-Type", "application/json; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store"); res.setHeader("X-Robots-Tag", "noindex, nofollow");
     return res.status(200).send(JSON.stringify(out));
   }
-  let seat = false;
-  if (p && name === "desk" && !(isCrewRequest(req) || (p.tester && isTesterRequest(req)))) {   // a seat: a signed gas_seat cookie whose seat is still active (re-read here); the page opens in Valuations mode
-    const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-    seat = !!(url && await resolveSeatCookie(req, { env: { supabaseUrl: url, supabaseKey: key } }).catch(() => null));
+  if (name === "desk") {   // THE OLD DESK PAGE IS RETIRED (Lane E, Nov 11 2026): /desk and /desk/* answer a visitor, a tester and a seat with the same disguised 404 as an address that was never there; the crew go to the Desk V4 preview. The Desk APIs, the intake, the send code and desk_sheets are untouched.
+    if (!isCrewRequest(req)) return sendDisguisedNotFound(res, req);
+    res.setHeader("Cache-Control", "private, no-store"); res.setHeader("X-Robots-Tag", "noindex, nofollow"); res.setHeader("Location", "/preview/desk");
+    return res.status(302).send("");
   }
-  let viewing = false;   // the crew, switched to view as one seat: the page opens as that seat does (Valuations only) with the way back
-  if (p && name === "desk" && isCrewRequest(req)) { const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY; viewing = !!(url && await resolveViewAs(req, { env: { supabaseUrl: url, supabaseKey: key } }).catch(() => null)); }
-  if (!p || !(seat || isCrewRequest(req) || (p.tester && isTesterRequest(req)))) return sendDisguisedNotFound(res, req);
+  if (!p || !isCrewRequest(req) && !(p.tester && isTesterRequest(req))) return sendDisguisedNotFound(res, req);
   let html; try { html = p.renderAsync ? await p.renderAsync(req) : p.render ? p.render() : fs.readFileSync(path.join(process.cwd(), "lib/crewPages", p.file), "utf8"); } catch { return sendDisguisedNotFound(res, req); }
-  if (name === "desk") html = html.replace("<script>", "<script>window.GAS_NORANGE=" + (noRangeLineOn(req) ? "true" : "false") + ";</script><script>");   // the no-range wording flag (lib/noRangeFlag.js)
-  if (seat) html = html.replace("<script>", "<script>window.__DESK_SEAT__=1;</script><script>");
-  else if (viewing) html = html.replace("<script>", "<script>window.__DESK_VIEWAS__=1;</script><script>");
   res.setHeader("Content-Type", p.contentType || "text/html; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store"); res.setHeader("X-Robots-Tag", "noindex, nofollow");
   res.status(200).send(html);
 }

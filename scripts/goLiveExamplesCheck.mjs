@@ -12,7 +12,7 @@ if (process.argv.includes("--mutants")) {
     ["public mode off (a failed read prints its line)", "api/crewPage.js", "const safe = async (f, what = \"field\") => { if (PUBLIC_CTX.getStore()) return boxed(f, what);", "const safe = async (f, what = \"field\") => { if (false) return boxed(f, what);"],
     ["no time box (a hanging read holds the page)", "api/crewPage.js", "setTimeout(() => r(null), PUBLIC_READ_MS)", "setTimeout(() => r(null), 1e9)"],
     ["a could-not-read marker passes through", "api/crewPage.js", "return r && typeof r === \"object\" && r.couldNotRead === true ? null : r; }", "return r; }"],
-    ["the crew Tasks limit on a public page", "api/crewPage.js", "PUBLIC_CTX.getStore() ? taskLimitFor(isCrewRequest(req) === true) : crewLimitMax()", "crewLimitMax()"]
+    ["the crew Tasks limit on the public copy", "lib/preview/tasksPreview.js", "const f = limitFacts(0, FREE_TASK_LIMIT).max,", "const f = limitFacts(0, FREE_TASK_LIMIT + 15).max,"]
   ];
   let bad = 0;
   for (const [name, file, from, to] of MUT) {

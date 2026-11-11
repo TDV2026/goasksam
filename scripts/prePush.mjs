@@ -2313,10 +2313,52 @@ try {
   record("homepage feature (CREW ONLY, NOT LIVE): the one featured car passes every eligibility rule (same VIN, live, real photos, evidence link, complete, listed never sold), stays put, replaces itself when its auction ends, is null on a failed refresh and never stale, and no public route, page, feed or cache key can return it (scripts/featuredHistoryCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
-  const out = execSync("node scripts/liveExamplesSoonCheck.mjs", { encoding: "utf8", timeout: 120000 });
-  record("live examples (Home, Find, Tasks, Watching): an auction ending within 7 days is preferred, a car more than 14 days out is never picked while one within 14 qualifies, the card carries the engine's time left line (scripts/liveExamplesSoonCheck.mjs)", "PASS", out.trim().split("\n").pop());
+  const out = execSync("node scripts/vinLiveMatchCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("VIN live match: a VIN in the live pool is the car its own listing names, no decode question, the listing and its time left carried, every venue, the feed keeps the VIN (scripts/vinLiveMatchCheck.mjs)", "PASS", out.trim().split("\n").pop());
 } catch (e) {
-  record("live examples (Home, Find, Tasks, Watching): an auction ending within 7 days is preferred, a car more than 14 days out is never picked while one within 14 qualifies, the card carries the engine's time left line (scripts/liveExamplesSoonCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").slice(-3).join(" | "));
+  record("VIN live match: a VIN in the live pool is the car its own listing names, no decode question, the listing and its time left carried, every venue, the feed keeps the VIN (scripts/vinLiveMatchCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").slice(-3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/vinDecodeTrimCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("VIN decode keeps the trim: 36 VINs (Porsche, Corvette Z06/ZR1, Shelby, BMW M, Mercedes-AMG) through the real decode and resolver read the trim the car's title names, or none where the VIN does not say (scripts/vinDecodeTrimCheck.mjs)", "PASS", out.trim().split("\n").pop());
+} catch (e) {
+  record("VIN decode keeps the trim: 36 VINs (Porsche, Corvette Z06/ZR1, Shelby, BMW M, Mercedes-AMG) through the real decode and resolver read the trim the car's title names, or none where the VIN does not say (scripts/vinDecodeTrimCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").slice(-3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/findAlwaysCardsCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Find: a search with live matches always draws the cars; every narrowing question (generation, body, miles, budget, kind, where, how far) is an offer above them, never the answer alone (scripts/findAlwaysCardsCheck.mjs)", "PASS", out.trim().split("\n").pop());
+} catch (e) {
+  record("Find: a search with live matches always draws the cars; every narrowing question (generation, body, miles, budget, kind, where, how far) is an offer above them, never the answer alone (scripts/findAlwaysCardsCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").filter(l => l.startsWith("FAIL")).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/findVoiceCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Find says one thing: 20 recorded searches through the real search turn and the page's own chip and count code; no count twice, no unused word that a chip used, no card line on a page with no card, the count line agrees with the offer (scripts/findVoiceCheck.mjs)", "PASS", out.trim().split("\n").pop());
+} catch (e) {
+  record("Find says one thing: 20 recorded searches through the real search turn and the page's own chip and count code; no count twice, no unused word that a chip used, no card line on a page with no card, the count line agrees with the offer (scripts/findVoiceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 200));
+}
+try {
+  const out = execSync("node scripts/converseRetiredCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Find: the old converse endpoint is retired and nothing calls it (scripts/converseRetiredCheck.mjs)", "PASS", (out.match(/converseRetiredCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find: the old converse endpoint is retired and nothing calls it (scripts/converseRetiredCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/findGenerationsCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("Find: every generation code of the curated table (246 rows: E30, E36, 964, 993, C2, C3, Mk1, W113, 100 Series and the rest) finds its live cars and is printed once (scripts/findGenerationsCheck.mjs)", "PASS", out.trim().split("\n").pop());
+} catch (e) {
+  record("Find: every generation code of the curated table (246 rows: E30, E36, 964, 993, C2, C3, Mk1, W113, 100 Series and the rest) finds its live cars and is printed once (scripts/findGenerationsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 200));
+}
+try {
+  const out = execSync("node scripts/pickRaceCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("example picks: a pull or revalidation never overwrites a pick newer than the one it read; a rebuild is the last write (Find, Home, Tasks, Watching; scripts/pickRaceCheck.mjs)", "PASS", out.trim().split("\n").pop());
+} catch (e) {
+  record("example picks: a pull or revalidation never overwrites a pick newer than the one it read; a rebuild is the last write (Find, Home, Tasks, Watching; scripts/pickRaceCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").filter(l => l.startsWith("FAIL")).slice(0, 3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/liveExamplesSoonCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("live examples (Home, Find, Tasks, Watching): an auction ending within 7 days is preferred, a car more than 14 days out is never picked while one within 14 qualifies, the card carries the engine's time left line, only US dollar listings, a car with a line before one with none (scripts/liveExamplesSoonCheck.mjs)", "PASS", out.trim().split("\n").pop());
+} catch (e) {
+  record("live examples (Home, Find, Tasks, Watching): an auction ending within 7 days is preferred, a car more than 14 days out is never picked while one within 14 qualifies, the card carries the engine's time left line, only US dollar listings, a car with a line before one with none (scripts/liveExamplesSoonCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").slice(-3).join(" | "));
 }
 try {
   const out = execSync("node scripts/featuredWireCheck.mjs", { encoding: "utf8", timeout: 240000 });
@@ -2367,7 +2409,7 @@ try {
   record("Desk v4 flow in Chrome on the real readers: tick and untick (the list stays), exclude and restore, every condition, the window, type and drag the reserve above the range and tick the seller's request, add a document, resolve attention, Select all photos, edit a step, Preview, Finalize; mutants for each bug Sam hit (scripts/deskV4FlowCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
-  const out = execSync("node scripts/goLiveSwitchCheck.mjs --base ee488ab5", { encoding: "utf8", timeout: 240000 });
+  const out = execSync("node scripts/goLiveSwitchCheck.mjs --base 723b420d", { encoding: "utf8", timeout: 240000 });
   record("Go live switch: NEW_DESIGN off serves bytes identical to the baseline on every public route, on keeps status and headers and replays redirects, per route, crew look, no POST switched (scripts/goLiveSwitchCheck.mjs)", "PASS", (out.match(/goLiveSwitchCheck: .*/) || [""])[0]);
 } catch (e) {
   record("Go live switch: NEW_DESIGN off serves bytes identical to the baseline on every public route, on keeps status and headers and replays redirects, per route, crew look, no POST switched (scripts/goLiveSwitchCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveSwitchCheck:/.test(l)).slice(0, 5).join(" | "));
@@ -2389,6 +2431,18 @@ try {
   record("vercel.json is accepted by Vercel: it parses and is valid against Vercel's own schema, every string Vercel limits to 256 characters by name (ignoreCommand, includeFiles ...; the deploys of 976ce753 and f79db262 ended in Error) (scripts/vercelConfigCheck.mjs)", "PASS", (out.match(/vercelConfigCheck: .*/) || [""])[0]);
 } catch (e) {
   record("vercel.json is accepted by Vercel: it parses and is valid against Vercel's own schema, every string Vercel limits to 256 characters by name (ignoreCommand, includeFiles ...; the deploys of 976ce753 and f79db262 ended in Error) (scripts/vercelConfigCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|vercelConfigCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
+  const out = execSync("node scripts/goLiveSignedInCheck.mjs", { encoding: "utf8", timeout: 590000 });
+  record("Go live, signed in and out: the Find, Market Check and Sell results rails measured on screen at four widths, the Account menu with no sign in strip, sign in returns to the page it started from (Home when none), no stray replacement marker on any page (scripts/goLiveSignedInCheck.mjs)", "PASS", (out.match(/goLiveSignedInCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Go live, signed in and out: the Find, Market Check and Sell results rails measured on screen at four widths, the Account menu with no sign in strip, sign in returns to the page it started from (Home when none), no stray replacement marker on any page (scripts/goLiveSignedInCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveSignedInCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
+  const out = execSync("node scripts/mcVinLiveCheck.mjs", { encoding: "utf8", timeout: 590000 });
+  record("Market Check VIN at auction now: the engine's vinLiveMatch listing is a card above the market read, as sent, with View this auction, each part only when carried (scripts/mcVinLiveCheck.mjs)", "PASS", (out.match(/mcVinLiveCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Market Check VIN at auction now: the engine's vinLiveMatch listing is a card above the market read, as sent, with View this auction, each part only when carried (scripts/mcVinLiveCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|mcVinLiveCheck:/.test(l)).slice(0, 5).join(" | "));
 }
 try {
   const out = execSync("node scripts/goLiveGuardsCheck.mjs --base ee488ab5", { encoding: "utf8", timeout: 240000 });
@@ -2437,6 +2491,12 @@ try {
   record("Desk v4 forwarded leads: the Forwarded lead tag in New leads only, seller supplied facts Unverified until verified, the original email opens from Documents in a new tab, an unidentified car shows the case's line and can be identified in place; mutants (scripts/deskV4IntakeQueueCheck.mjs)", "PASS", (out.match(/deskV4IntakeQueueCheck: .*/) || [""])[0]);
 } catch (e) {
   record("Desk v4 forwarded leads: the Forwarded lead tag in New leads only, seller supplied facts Unverified until verified, the original email opens from Documents in a new tab, an unidentified car shows the case's line and can be identified in place; mutants (scripts/deskV4IntakeQueueCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/deskV4NewCaseCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 New case form: photos accumulate with a Remove each, a VIN fills the car (marked decoded, editable), make model body gearbox colour are pickers with a typed value allowed, a refusal prints the server's why under the button, a refused photo keeps the case; mutants (scripts/deskV4NewCaseCheck.mjs)", "PASS", (out.match(/deskV4NewCaseCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 New case form: photos accumulate with a Remove each, a VIN fills the car (marked decoded, editable), make model body gearbox colour are pickers with a typed value allowed, a refusal prints the server's why under the button, a refused photo keeps the case; mutants (scripts/deskV4NewCaseCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
   const out = execSync("node scripts/previewShellCheck.mjs", { encoding: "utf8", timeout: 240000 });

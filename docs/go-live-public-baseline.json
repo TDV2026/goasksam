@@ -1,7 +1,7 @@
 {
  "recordedAt": "2026-11-11T00:36:39.817Z",
  "base": "https://goasksam.com",
- "note": "the public pages with NEW_DESIGN off, fetched with no cookie and no query (goLiveLiveCheck --record-baseline)",
+ "note": "the public pages with NEW_DESIGN off, fetched with no cookie and no query (goLiveLiveCheck --record-baseline) | /find description rebased Nov 11 2026: the page's own wording changed (updated time of day became \"now\"); dates and times are set aside by the comparison.",
  "routes": {
   "/": {
    "status": 200,
@@ -21,7 +21,7 @@
    "xRobots": "index, follow",
    "robots": "<meta name=\"robots\" content=\"index, follow\">",
    "title": "<title>Find enthusiast cars at auction, by what they sell for</title>",
-   "description": "<meta name=\"description\" content=\"Live auctions updated Nov 10, 2:45 PM PT. Sales to Nov 10, 2026. Each car is shown with what cars like it have actually sold for.\">",
+   "description": "<meta name=\"description\" content=\"Live auctions now. Sales to Nov 10, 2026. Each car is shown with what cars like it have actually sold for.\">",
    "canonical": "<link rel=\"canonical\" href=\"https://goasksam.com/find\">",
    "ld": 0,
    "banner": true,

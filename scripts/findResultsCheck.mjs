@@ -12,7 +12,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 if (!fs.existsSync(CHROME)) { console.log("findResultsCheck: SKIP no Chrome"); process.exit(0); }
 if (process.argv.includes("--mutants")) {
-  const f = "lib/preview/mcSellPreview.js", P = path.join(ROOT, f), orig = fs.readFileSync(P, "utf8");
+  const f = "lib/preview/mcSellPreview.js";
   const MUT = [
     ["the saved searches dropped from the signed in rail", '<div id="searches"></div>', '<div id="searches-x"></div>'],
     ["Before it ends dropped from the signed in rail", "box.innerHTML = html + alertsRailHtml();", "box.innerHTML = html;"],
@@ -20,11 +20,20 @@ if (process.argv.includes("--mutants")) {
     ["a card hidden by one CSS rule", "export const RESULTS_SHELL_CSS = `", "export const RESULTS_SHELL_CSS = `#convo article.car{display:none}"],
     ["a results element restyled", "export const RESULTS_SHELL_CSS = `", "export const RESULTS_SHELL_CSS = `#convo article.car a{color:#c00!important;font-size:21px!important}"],
     ["a container pushed past the screen", "export const RESULTS_SHELL_CSS = `", "export const RESULTS_SHELL_CSS = `#convo{width:3000px!important}"],
+    ["the New search handler dropped (the page's own button resets in place again)", "location.assign(L);", "void 0;"],
+    ["the results column not fitted below the header (the window scrolls to the bottom search box)", ".buymain{height:calc(100dvh - var(--gas-hdr,76px))!important;", ".buymain{"],
+    ["empty skeleton cards shown while the search runs", "var t2 = setTimeout(el.stillFinding, 20000);", "el.innerHTML += '<article class=skel></article><article class=skel></article>'; var t2 = setTimeout(el.stillFinding, 20000);"],
+    ["a figure printed while the search runs", "esc(window.GAS_WAIT.find)", "esc(window.GAS_WAIT.find + ' 14 sales so far')"],
+    ["a venue name printed while the search runs", "esc(window.GAS_WAIT.find)", "esc('Sam is searching Bring a Trailer for your car')"],
+    ["the height above the page not published before the page loads (a phone's column is the desktop's height at the focus)", "<script>${HDR_JS}</script><div class=\"mshell\">", "<div class=\"mshell\">"],
+    ["the phone's saved searches bar left out of the height above the page", "(h.offsetHeight+(m?m.offsetHeight:0))", "h.offsetHeight"],
+    ["New search drawn twice while the search runs (the rail's and the page's own)", "@media (min-width:861px){.msg.searching .shead-new{visibility:hidden}}", ""],
     ["a link dropped", "export const RAIL_JS = `(function(){", "export const RAIL_JS = `(function(){setTimeout(function(){var a=document.querySelector(\"#convo article.car a[href]\");if(a)a.parentNode.removeChild(a);},900);"],
     ["a heading removed", "export const RAIL_JS = `(function(){", "export const RAIL_JS = `(function(){setTimeout(function(){var h=document.querySelector(\"#convo h2,#convo h3\");if(h)h.parentNode.removeChild(h);},900);"]
   ];
   let bad = 0;
-  for (const [name, from, to] of MUT) {
+  for (const [name, from, to, file] of MUT) {
+    const P = path.join(ROOT, file || f), orig = fs.readFileSync(P, "utf8");
     if (!orig.includes(from)) { console.log("MUTANT NOT APPLICABLE (source changed): " + name); bad++; continue; }
     let code = 0; try { fs.writeFileSync(P, orig.replace(from, () => to)); try { execFileSync("node", [fileURLToPath(import.meta.url)], { stdio: "pipe", timeout: 240000 }); } catch (e) { code = e.status || 1; } } finally { fs.writeFileSync(P, orig); }
     console.log((code ? "caught   " : "MISSED   ") + "without " + name); if (!code) bad++;
@@ -69,13 +78,14 @@ async function open(page, width, o = {}) {
     if (/^\/api\//.test(u.pathname)) {
       if (/buySearch$/.test(u.pathname) && m === "POST") { let a = {}; try { a = JSON.parse(r.postData() || "{}"); } catch {}
         const json = o => r.respond({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(o) });
-        if (a.action === "parse") return json({ label: "2005 Mercedes-Benz SL65 AMG", chips: [] }); if (a.action === "chat" || a.action === "rerun") return r.respond({ status: 200, contentType: "text/event-stream; charset=utf-8", headers: { "access-control-allow-origin": "*" }, body: SSE });
+        if (a.action === "parse") return json({ label: "2005 Mercedes-Benz SL65 AMG", chips: [] }); if (a.action === "chat" || a.action === "rerun") { if (o.hold) await o.hold; return r.respond({ status: 200, contentType: "text/event-stream; charset=utf-8", headers: { "access-control-allow-origin": "*" }, body: SSE }); }
         if (a.action === "alerts_ready") return json({ ready: true, rule: "" }); if (a.action === "list") return json({ items: saved }); if (a.action === "alerts") return json({ items: alerts }); return json({ items: [] }); }
       return r.respond({ status: /track/.test(u.pathname) ? 204 : 200, contentType: "application/json", body: /track/.test(u.pathname) ? "" : "{}" }); }
     const loc = u.pathname.replace(/^\/js\.[^/]+\//, "/js/").replace(/^\/obx\.[^/]+\//, "/js/"), f = path.join(ROOT, "public", loc);
     if (fs.existsSync(f) && fs.statSync(f).isFile()) return r.respond({ status: 200, contentType: STATIC[path.extname(f)] || "application/octet-stream", body: fs.readFileSync(f) });
     return r.respond({ status: 404, body: "" }); } catch (e) { try { r.respond({ status: 500, body: String(e.message) }); } catch {} } });
   await p.goto("https://goasksam.com" + URL_, { waitUntil: "domcontentloaded", timeout: 60000 });
+  if (o.hold) { await p.waitForSelector(".msg.searching", { timeout: 20000 }).catch(() => {}); await new Promise(r => setTimeout(r, 800)); return p; }
   await p.waitForSelector("article.car", { timeout: 20000 }).catch(() => {});
   await new Promise(r => setTimeout(r, 1500)); return p;
 }
@@ -148,6 +158,54 @@ for (const width of [1440, 390]) {
   await sp.evaluate(() => document.querySelector(".mvbar .mvis").click()); await new Promise(r => setTimeout(r, 400));
   const L = await sp.evaluate(() => ({ open: !document.getElementById("mvlist").hidden, rows: [...document.querySelectorAll("#mvlist .vlist a.srch")].map(a => a.textContent.trim()) }));
   ok(L.open && L.rows.some(x => /Red Ferrari/.test(x)), `signed in @390: the Your searches button opens the page's own list with the account's saved searches (${L.rows.join(" ; ")})`); await sp.close(); }
+// EVERY NEW SEARCH GOES TO THE NEW LANDING (Sam, Nov 11 2026). The top right "New search" button (and the phone list's) ran the page's own goStart(): the OLD landing (the old search box, the old rail) inside the results page, at the address /find; only the rail's link navigated to the new landing. The rail's link, the top right button and the phone list's button must all navigate to the product's landing route, no query.
+for (const w of [1440, 390]) for (const sel of ["aside.rail a.new", "[data-newsearch]"]) {
+  if (w < 860 && sel === "aside.rail a.new") continue;   // the rail is the phone's Your searches list under 860px
+  const p = await open(SHELL, w); await new Promise(r => setTimeout(r, 2500));
+  if (w < 860 && sel === "[data-newsearch]") { await p.evaluate(() => { const m = document.querySelector("[data-mvisits]"); if (m) m.click(); }); await new Promise(r => setTimeout(r, 500)); }
+  const found = await p.evaluate(s => { const e = [...document.querySelectorAll(s)].find(x => x.getBoundingClientRect().width > 0); return e ? (e.getAttribute("href") || "button") : null; }, sel);
+  ok(found !== null, `@${w}: ${sel} is on the page`); if (found === null) { await p.close(); continue; }
+  const navs = []; p.on("request", r => { if (r.isNavigationRequest()) { const u = new URL(r.url()); navs.push(u.pathname + u.search); } });
+  await p.evaluate(s => [...document.querySelectorAll(s)].find(x => x.getBoundingClientRect().width > 0).click(), sel); await new Promise(r => setTimeout(r, 1200));
+  const to = navs[navs.length - 1] || null; ok(to === "/find", `@${w}: ${sel} navigates to the new Find landing, no query (${to})`); await p.close();
+}
+{ const links = await (async () => { const p = await open(SHELL, 1440); await new Promise(r => setTimeout(r, 2500)); const l = await p.evaluate(() => [...document.querySelectorAll("a[href]")].map(a => a.getAttribute("href"))); await p.close(); return l; })();
+  const bad = links.filter(h => /^\/preview(\/|$|\?)|[?&](crew|_crew|preview|design)=|gas_crew|\/api\/sellNext|\/onebox-preview/.test(h)); ok(bad.length === 0, "no link on the Find results page goes to a preview address or carries a crew or design query (" + (bad.join(", ") || links.length + " links") + ")"); }
+// AFTER A SEARCH THE HEADER IS ON SCREEN (Sam, Nov 11 2026): the page sized its column to the whole window under the shell's header, so it was one header taller than the screen and the bottom search box's focus scrolled the window down, the header off screen, on load and after a follow-up search. After the results draw, and after a follow-up search from the bottom box, at 1440, 1280, 1024 and on a phone (390) the window is at the top and the header is on screen (Nov 11 2026, the phone: the page focused its bottom box while loading, before the shell published the height above the page, so the column was the desktop's height and the focus scrolled the window by 238px).
+for (const w of [1440, 1280, 1024, 390]) {
+  const p = await open(SHELL, w); await new Promise(r => setTimeout(r, 3000));
+  const at = () => p.evaluate(() => ({ y: Math.round(scrollY), hdr: Math.round(document.querySelector("header.gh").getBoundingClientRect().top), focus: document.activeElement && document.activeElement.id }));
+  const a = await at(); ok(a.y === 0 && a.hdr >= 0, `@${w}: after the results draw the window is at the top and the header is on screen (scroll ${a.y}, header top ${a.hdr}, focus #${a.focus})`);
+  await p.evaluate(() => { const q = document.getElementById("q"); if (q) { q.focus(); q.value = "2006 Mercedes SL65"; q.dispatchEvent(new Event("input", { bubbles: true })); } }); await p.keyboard.press("Enter"); await new Promise(r => setTimeout(r, 3000));
+  const c = await at(); ok(c.y === 0 && c.hdr >= 0, `@${w}: after a follow-up search from the bottom box the window is still at the top and the header is on screen (scroll ${c.y}, header top ${c.hdr})`); await p.close();
+}
+// THE LOADING STATE (Sam, Nov 11 2026): while the engine answers, the results page keeps its layout (header, rail, the New search row, the chips row, the count slot) and the results area holds ONE centred sentence from the engine's table (reasonWords wait.find) with pulsing dots: no skeleton or empty cards, no venue name, no figure, nothing the engine has not said. When the answer lands the loading state is replaced by the real results and nothing above it moves. At 1440, 1280, 1024 and 390.
+{ const { waitLines } = await imp("lib/reasonWords.js"), WANT = waitLines().find, VENUE = /Bring a Trailer|Cars (?:&|and) Bids|Hagerty|PCAR|PCarMarket|Hemmings|MB Market|Sotheby|Gooding|Collecting Cars|Mecum|Barrett|Bonhams|Broad Arrow|Car (?:&|and) Classic|PistonHeads|The Market/i;
+  const SNAP = () => { const r = e => { if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top + scrollY), Math.round(b.width)]; }, q = s => document.querySelector(s);
+    return { hdr: r(q("header.gh")), rail: r(q(".rail")), top: r(q(".shead-top")), new_: !!q(".shead [data-newsearch]"), row: r(q(".srow2")), chips: r(q(".schips")), count: r(q(".scount")),
+      chipTxt: [...document.querySelectorAll(".schips .rchip")].map(x => x.textContent.trim()).join("|"), cards: document.querySelectorAll("#convo article.car").length, skel: document.querySelectorAll("#convo .skel,#convo .skelgrid,#convo [class*=skeleton]").length,
+      wait: (q(".gas-wait-line") || {}).textContent || "", waitBox: r(q(".gas-wait")), col: r(q("#convo")), text: (q("#convo") || { innerText: "" }).innerText.replace(/\s+/g, " ").trim(), stage: (q(".gas-wait") ? 1 : 0) }; };
+  for (const w of [1440, 1280, 1024, 390]) {
+    let go; const hold = new Promise(r => { go = r; });
+    const p = await open(SHELL, w, { hold }); const L = await p.evaluate(SNAP), t = `loading @${w}`;
+    ok(L.wait === WANT, `${t}: the results area holds the engine's table sentence, "${WANT}" (${L.wait})`);
+    ok(L.cards === 0 && L.skel === 0, `${t}: no skeleton or empty cards before the results (cards ${L.cards}, skeletons ${L.skel})`);
+    ok(!VENUE.test(L.text), `${t}: no venue name is printed while the search runs`);
+    const area = await p.evaluate(() => (document.querySelector(".gas-wait") || { innerText: "" }).innerText);
+    ok(!/[$\d]/.test(area), `${t}: no figure in the loading area (${area.replace(/\s+/g, " ").slice(0, 80)})`);
+    { const n = await p.evaluate(() => ({ text: (document.body.innerText.match(/New search/g) || []).length, ctl: [...document.querySelectorAll("[data-newsearch], .rail a.new")].filter(e => { const b = e.getBoundingClientRect(), cs = getComputedStyle(e); return b.width > 0 && b.height > 0 && cs.visibility !== "hidden" && cs.display !== "none"; }).length }));
+      ok(n.text === 1 && n.ctl === 1, `${t}: New search is ONE visible control while the search runs (page text ${n.text} times, ${n.ctl} visible controls)`); }
+    ok(L.new_ && L.chips && L.chipTxt.length > 0 && L.row, `${t}: the New search row and the query chips are on screen from the start (${L.chipTxt})`);
+    ok(L.waitBox && Math.abs((L.waitBox[0] + L.waitBox[2] / 2) - (L.col[0] + L.col[2] / 2)) <= 14, `${t}: the loading state is centred in the results area`);
+    ok(await p.evaluate(() => { const t = document.querySelector(".gas-wait-line"); return !!t && t.textContent.trim().split(/(?<=[.!?])\s+/).length === 1; }), `${t}: one sentence`);
+    if (process.env.SHOT_DIR) await p.screenshot({ path: path.join(process.env.SHOT_DIR, `find-loading-${w}.png`) });   // the waiting state, for the notes
+    go(); await p.waitForSelector("#convo article.car", { timeout: 20000 }).catch(() => {}); await new Promise(r => setTimeout(r, 1500));
+    const D = await p.evaluate(SNAP);
+    ok(D.cards > 0 && D.stage === 0 && !/Sam is checking live auctions/.test(D.text), `${t}: when the answer lands the loading state is replaced by the real results (${D.cards} cards)`);
+    const same = (x, y) => x && y && x[0] === y[0] && Math.abs(x[1] - y[1]) <= 1 && Math.abs(x[2] - y[2]) <= 1;
+    ok(same(L.hdr, D.hdr) && same(L.rail, D.rail) && same(L.top, D.top) && same(L.row, D.row) && L.chips[0] === D.chips[0] && Math.abs(L.chips[1] - D.chips[1]) <= 1, `${t}: nothing jumps when the results land: header, rail, New search row, chips row (before ${JSON.stringify([L.top, L.row, L.chips])}, after ${JSON.stringify([D.top, D.row, D.chips])})`);
+    await p.close(); }
+}
 await b.close();
 for (const l of out) console.log(l);
 console.log(`findResultsCheck: ${pass} passed, ${fail} failed`);
