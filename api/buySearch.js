@@ -45,7 +45,7 @@ async function rungMarket(env, r, facts, m) {
 const CountText = n => { const s = countText(n); return s.charAt(0).toUpperCase() + s.slice(1); };
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential, hasHeaderKey, keyInAddress, ADDRESS_KEY_REFUSED } from "../lib/_credential.js";
-import { checkCeiling, testLimits, CALM, buyModelGuard, recordBuyModelTurn, noteBuySearch, BUY_MODEL_PAUSED } from "../lib/_ceilings.js";
+import { checkCeiling, testLimits, CALM, buyModelGuard, recordBuyModelTurn, noteBuySearch } from "../lib/_ceilings.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 import { logEvent, EVENTS } from "../lib/events.js";
 import { readVisitorId } from "../lib/_visitor.js";
@@ -53,7 +53,7 @@ import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js
 import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.js";
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
-import { runTurn, runFilters, runSearch, suggestFor, BATCH_BUDGET_MS, useMarketRank, radiusOf } from "../lib/live/samChat.js";
+import { runTurn, runFilters, runSearch, filtersFromText, suggestFor, BATCH_BUDGET_MS, useMarketRank, radiusOf } from "../lib/live/samChat.js";
 // The composer's suggestions (Stage 1c item 6), from the shaped cards (seen_before exists only after shaping).
 const withSuggest = (out, r) => ({ ...r, suggest: suggestFor({ meta: out.meta, filters: out.state && out.state.filters, seenAny: (r.cards || []).some(c => c && c.seen_before) }) });
 import { humanTitle } from "../lib/carTitle.js";
@@ -619,7 +619,7 @@ async function handler(req, res) {
       // The model's own ceilings (lib/_ceilings.js buyModelGuard: 20 model turns per device a day, a nuisance
       // guard; $50 of Buy chat model cost a day, the authoritative one). Past either: the page's no-model search.
       const mg = await buyModelGuard(env, req);
-      if (!mg.ok) return res.status(200).json({ fallback: true, capped: mg.why, note: BUY_MODEL_PAUSED });
+      if (!mg.ok) return res.status(200).json({ fallback: true, capped: mg.why });   // no sentence: a visitor never reads that the written answer is paused, the page runs the scripted search alone
       return await buyChat(res, env, b, readVisitorId(req), req);
     }
     // The searching state's "what has been understood so far": the words parsed and the car resolved (the
@@ -647,8 +647,15 @@ async function handler(req, res) {
     }
     // A result address reloaded or pasted (/buy?q=...&make=...): the same search from its filters, no model call.
     if (b.action === "rerun") {
+      // THE NO-MODEL SEARCH (lane-b-find-paths): the typed words, searched by the same engine call the written answer ends in (filtersFromText, then runFilters with the words as lastUser). The page asks for it when the written answer is paused or failed.
+      let byWords = null;
+      if (!b.filters && b.text) {
+        const text = String(b.text).slice(0, 400), pw = await filtersFromText(env, text);
+        if (!pw) return res.status(200).json({ reply: "Tell Sam a car and Sam will find what's live.", cards: [], meta: null, state: { filters: {} }, turns: (Number(b.turns) || 0) + 1 });
+        byWords = { filters: pw, lastUser: text };
+      }
       // zip: the buyer's zip for the distance question (kept by the page for the session), never a filter by itself.
-      const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, radius: radiusOf(b.radius) });
+      const out = await runFilters(env, (byWords && byWords.filters) || b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, radius: radiusOf(b.radius), lastUser: (byWords && byWords.lastUser) || "" });
       const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
       return res.status(200).json({ reply: out.reply, searchNote: out.searchNote || null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
     }
