@@ -8,17 +8,17 @@
 //   CLASS: an edit on this screen that looks done and is not. Every step asserts the SERVER's state after the edit (the case the answer carried), not only that a control moved.
 //   node scripts/deskV4FlowCheck.mjs
 import fs from "node:fs"; import os from "node:os"; import path from "node:path";
-import { launch, openLive, tally, V3, PV, imp } from "./deskV4Harness.mjs";
+import { launch, openLive, tally, V3, PV, imp, compIds } from "./deskV4Harness.mjs";
 const { ok, done } = tally(), wait = (ms = 900) => new Promise(r => setTimeout(r, ms));
 const b = await launch();
 const stored = async (id = V3.DEMO_ID) => (await PV.previewDeskApi({ action: "case_get", id })).case;
-const { DEMO_VIN } = await imp("lib/desk/demoCar.js");
+const { DEMO_VIN } = await imp("lib/desk/demoCar.js"), CI = await compIds(), C6 = CI[0], C7 = CI[1], C8 = CI[2], C11 = CI[3];   // the engine's own sale ids (the recorded read), not typed ones
 const rowsOf = p => p.evaluate(() => document.querySelectorAll("#comps .comp").length);
 
 // ---------- the steps, each answering true when the SERVER's state shows the edit took ----------
 const S = {
-  async tick(p) { const n0 = await rowsOf(p); await p.click('[data-in="s6"]'); await wait(); const on = (await stored()).selectedComparables.map(String).includes("s6"), n1 = await rowsOf(p);
-    await p.click('[data-in="s6"]'); await wait(); const off = !(await stored()).selectedComparables.map(String).includes("s6"), n2 = await rowsOf(p); return { n0, n1, n2, on, off, pass: on && off && n0 > 0 && n1 === n0 && n2 === n0 }; },
+  async tick(p) { const n0 = await rowsOf(p); await p.click(`[data-in="${C6}"]`); await wait(); const on = (await stored()).selectedComparables.map(String).includes(C6), n1 = await rowsOf(p);
+    await p.click(`[data-in="${C6}"]`); await wait(); const off = !(await stored()).selectedComparables.map(String).includes(C6), n2 = await rowsOf(p); return { n0, n1, n2, on, off, pass: on && off && n0 > 0 && n1 === n0 && n2 === n0 }; },
   async condition(p) { const out = []; for (const t of [1, 2, 3, 4]) { await p.click(`#cond [data-c="${t}"]`); await wait(); out.push(await p.evaluate(t2 => ({ on: document.querySelector(`#cond [data-c="${t2}"]`).getAttribute("aria-pressed"), line: document.getElementById("rungline").textContent }), t)); }
     const sv = await stored(); return { out, pass: out.every(o => o.on === "true" && o.line.length > 5) && !!(sv.condition.selected && sv.condition.selected.tier === 4) }; },
   async attention(p) { const n0 = await p.evaluate(() => document.querySelectorAll("#att .i:not(.done)").length); await p.click('[data-need="accident_unclear"] [data-act="waive"]'); await p.type('[data-reason-need="accident_unclear"]', "Seller states none and holds no records"); await p.click('[data-need="accident_unclear"] .btn.sm'); await wait();
@@ -39,7 +39,7 @@ const MUT = [
 // ---------- path B: a case that fails exactly one check is refused, and the panel prints that check's line as the case sent it ----------
 const PB = await PV.previewDeskApi({ action: "case_new", vin: DEMO_VIN, mileage: "72000", seller_name: "Refusal path" }); ok(PB.ok === true, "path B: a case is made from the demonstration VIN");
 { const e = (op, x) => PV.previewDeskApi({ action: "case_edit", id: PB.id, op, ...x });
-  await e("comparables", { ids: ["s6", "s11"] }); await e("verify", { field: "mileage" }); for (const n of (await stored(PB.id)).needs_review.filter(n => n.state === "open")) await e("need", { item: n.id, state: "waived", reason: "Waived for the refusal path check" });
+  await e("comparables", { ids: [C6, C11] }); await e("verify", { field: "mileage" }); for (const n of (await stored(PB.id)).needs_review.filter(n => n.state === "open")) await e("need", { item: n.id, state: "waived", reason: "Waived for the refusal path check" });
   await e("reserve", { patch: { figure: 66000 } });
   const sv = await stored(PB.id), failing = (sv.checks || []).filter(c => c.ok === false).map(c => c.key); ok(failing.length === 1 && failing[0] === "reserve", `path B: exactly one check fails, the reserve (${failing.join(", ")})`);
   const fin = await PV.previewDeskApi({ action: "case_finalize", id: PB.id }); ok(fin.ok === false && (fin.blockers || []).some(x => x.key === "reserve_support") && (await stored(PB.id)).status !== "finalized", "path B: Finalize is refused by the server (reserve_support) and the case stays open");
@@ -56,11 +56,12 @@ for (const [label, mutate, step] of MUT) { const p = await openLive(b, { mutate 
 // ---------- the flow on the unmutated page ----------
 const p = await openLive(b, { w: 1440, h: 1000 });
 const t = await S.tick(p); ok(t.pass, `tick then untick a comparable: the saved selection follows and the list stays at ${t.n0} rows (${t.n1}, ${t.n2})`);
-{ const n0 = await rowsOf(p); await p.click('[data-x="s7"]'); await p.type('[data-reason="s7"]', "Wheels are aftermarket"); await p.click('[data-xo="s7"]'); await wait(1300);
-  const sv = await stored(), row = await p.evaluate(() => ({ cls: document.querySelector('[data-comp="s7"]').className, why: document.querySelector('[data-why="s7"]').textContent, re: !document.querySelector('[data-re="s7"]').hidden }));
-  ok(sv.exclusions.some(e => e.saleId === "s7" && /aftermarket/.test(e.reason)) && /ex/.test(row.cls) && /Wheels are aftermarket/.test(row.why) && row.re && (await rowsOf(p)) === n0, "exclude with a reason: saved with the reason, the row stays greyed with its reason and a Restore, the list stays");
-  await p.click('[data-re="s7"]'); await wait(1300); ok(!(await stored()).exclusions.some(e => e.saleId === "s7") && (await rowsOf(p)) === n0, "restore: the exclusion is gone from the case and the list stays"); }
-{ await p.click('[data-x="s8"]'); await p.click('[data-xo="s8"]'); await wait(300); ok(!(await stored()).exclusions.some(e => e.saleId === "s8"), "an exclusion with no reason is not sent"); await p.click('[data-comp="s8"] .exf .btn:last-child'); }
+// A SALE SET ASIDE changes the population the engine reads, so it is a question for the engine: this run has no archive and the recorded read answers only the question with no sale set aside, so the engine's refusal is the answer (nothing saved, the row stays as it was, the list stays).
+// With the archive (the crew door on the deployed site, scripts/deskV4LiveCheck.mjs) the exclusion is read by the engine, saved with its reason, greyed with a Restore.
+{ const n0 = await rowsOf(p); await p.click(`[data-x="${C7}"]`); await p.type(`[data-reason="${C7}"]`, "Wheels are aftermarket"); await p.click(`[data-xo="${C7}"]`); await wait(1300);
+  const sv = await stored(), row = await p.evaluate(id => ({ cls: document.querySelector('[data-comp="' + id + '"]').className }), C7);
+  ok(!sv.exclusions.some(e => e.saleId === C7) && !/\bex\b/.test(row.cls) && (await rowsOf(p)) === n0 && sv.desk.evidence.count === 39, "exclude with no archive to read it: the engine's refusal leaves the case as it was and the list stays"); }
+{ await p.click(`[data-x="${C8}"]`); await p.click(`[data-xo="${C8}"]`); await wait(300); ok(!(await stored()).exclusions.some(e => e.saleId === C8), "an exclusion with no reason is not sent"); await p.click(`[data-comp="${C8}"] .exf .btn:last-child`); }
 const rs = await S.reserve(p); ok(rs.pass, `type a reserve: the saved figure is the typed one (${rs.saved}) and the input shows it (${rs.shown})`);
 { const above = await p.evaluate(() => { const K = window.__v4.K(); return { warn: !document.getElementById("hiWarn").hidden, diff: document.getElementById("diff").textContent, q3: K.desk.evidence.q3, x: +document.getElementById("resline").getAttribute("x1"), bandR: +document.getElementById("band").getAttribute("x") + +document.getElementById("band").getAttribute("width"), sup: K.reserve.check && K.reserve.check.supported }; });
   ok(above.sup === false && above.warn && above.x > above.bandR && /above the typical range/.test(above.diff), "pushed above the typical range: the engine says unsupported, the warning shows, the marker sits right of the band, the engine's sentence is printed");
@@ -69,14 +70,15 @@ const rs = await S.reserve(p); ok(rs.pass, `type a reserve: the saved figure is 
   const sv = await stored(), shown = await p.evaluate(() => document.getElementById("valIn").value); ok(shown === sv.reserve.figureLine && shown.replace(/[^0-9]/g, "") === String(sv.reserve.figure) && sv.reserve.figure < 66000, `drag the marker: the input prints the server's figure line (${shown}) and it equals the saved figure`); }
 const c = await S.condition(p); ok(c.pass, "each condition button is clickable: it lights, prints its rung's sentence and the choice is saved");
 await p.click('#cond [data-c="3"]'); await wait(1200);
-for (const m of [6, 24, 12]) { await p.click(`#period [data-m="${m}"]`); await wait(1200); const w = (await stored()).windowMonths, on = await p.evaluate(() => document.querySelector("#period .on").dataset.m); ok(w === m && on === String(m), `window ${m} months: saved on the case and the switch follows`); }
+// THE PERIOD: this run has no archive, so the engine's recorded read answers only the 12 month question (lib/preview/recordedRead.js). A period the engine cannot read is refused whole (nothing saved, the figures stay on the earlier read and the switch stays where it was); the 12 month switch is saved and follows. With the archive the 6 and 24 month reads are the engine's.
+for (const m of [6, 24, 12]) { await p.click(`#period [data-m="${m}"]`); await wait(1200); const c = await stored(), on = await p.evaluate(() => document.querySelector("#period .on").dataset.m), unread = m !== 12; ok(unread ? c.windowMonths === 12 && on === "12" && c.desk.evidence.windowMonths === 12 : c.windowMonths === 12 && on === "12", `window ${m} months: ${unread ? "the engine could not read it, so nothing is saved and the switch stays at 12 (" + c.windowMonths + ", " + on + ")" : "saved on the case and the switch follows"}`); }
 const d = await S.document(p); ok(d.pass, `add a document: the file goes through doc_add and the tile is drawn (${d.n0} to ${d.sv})`);
 { await p.click('[data-need="mileage_unconfirmed"] [data-act="verify"]'); await wait(1200); }
 const a = await S.attention(p); ok(a.pass, `an attention action closes its item (${a.n0} open to ${a.n1}); no "say which item" answer`);
 { const open = (await stored()).needs_review.filter(n => n.state === "open").length; ok(open === 0 && /All clear/.test(await p.evaluate(() => document.getElementById("attN").textContent)), "every attention item is resolved (the invoice closed the service item, the others by verify and waive) and the panel says so"); }
 { await p.click("#pnone"); await wait(900); await p.click("#pall"); await wait(1000); const sv = await stored(); ok(sv.photos.reportIds.length === sv.photos.items.length && /6 of 6/.test(await p.evaluate(() => document.getElementById("pcount").textContent)), "Select all photos: every photo is in the saved report set"); }
 { await p.focus("[data-step]"); await p.keyboard.press("End"); await p.keyboard.type(" Thank you."); await p.keyboard.press("Tab"); await wait(1300); const sv = await stored(); ok(sv.nextSteps.some(s => /Thank you\./.test(s.text)), "edit a next step: the saved list carries the new words"); }
-await p.click('[data-in="s6"]'); await wait(900); await p.click('[data-in="s11"]'); await wait(900);
+await p.click(`[data-in="${C6}"]`); await wait(900); await p.click(`[data-in="${C11}"]`); await wait(900);
 { await p.focus("#why"); await p.evaluate(() => document.getElementById("why").select()); await p.keyboard.type("The manual gearbox and one long ownership support this figure."); await p.click("#bPrev"); await wait(2500);
   const sv = await stored(), posts = p._posts.map(x => x.op || x.action), shown = await p.evaluate(() => ({ vis: !document.getElementById("v-report").hidden, frame: !!document.getElementById("pdfframe"), msg: document.getElementById("pdfmsg").textContent }));
   ok(/long ownership/.test(sv.reserve.why) && posts.lastIndexOf("case_pdf") > posts.lastIndexOf("reserve") && shown.vis && shown.frame && /Draft/.test(shown.msg), "Preview: the unsaved why was written first, then the draft report is built and shown without a reload"); await p.click("#n-desk"); }

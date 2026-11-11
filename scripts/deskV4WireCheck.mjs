@@ -57,8 +57,8 @@ await run("the demonstration case as served", null, false);
   const rt = await p.evaluate(() => { const K = window.__v4.K(), e = K.desk.evidence, a = window.__v4; return [e.q1, e.median, e.q3].map(v => Math.abs(a.figureAt(a.scaleOf(v)) - v)); });
   ok(rt.every(d => d <= 1), `the plot's axis is exactly invertible (round trip off by ${rt.join(", ")} dollars)`); await p.close(); }
 // the mutants
-await run("a typed sentence (the count typed into the page)", h => h.replace('id: "mN", text: e.countLine', 'id: "mN", text: "39 sales"'), true);
-await run("a page built count (the sales listed, counted by the page, while the engine says otherwise)", h => h.split('"countLine":"9 sales"').join('"countLine":"41 sales"').replace('id: "mN", text: e.countLine', 'id: "mN", text: (desk().sales || []).length + " sales"'), true);
+await run("a typed sentence (the count typed into the page)", h => h.replace('id: "mN", text: e.countLine', 'id: "mN", text: "41 sales"'), true);
+await run("a page built count (the sales listed, counted by the page, while the engine says otherwise)", h => h.split('"countLine":"39 sales"').join('"countLine":"41 sales"').replace('id: "mN", text: e.countLine', 'id: "mN", text: (desk().sales || []).length + " sales"'), true);
 await run("a page built range (q1 and q3 joined by the page)", h => h.replace('id: "mBand", text: e.typicalLine', 'id: "mBand", text: "$" + e.q1 + " to $" + e.q3'), true);
 await run("a blank where the engine sent a price line", h => h.replace('text: c.priceLine || ""', 'text: ""'), "blank");
 await run("arithmetic on a sent figure (a Math.round on the median line)", h => h.replace('id: "mMed", text: e.medianLine', 'id: "mMed", text: String(Math.round(e.median * 1.1))'), true);

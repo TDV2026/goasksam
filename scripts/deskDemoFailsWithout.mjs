@@ -3,8 +3,14 @@
 import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { execFileSync } from "node:child_process"; import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 const MUT = [
-  ["the preview answers the 996's sales for any car", "lib/preview/deskV3Fixture.js", s => s.replace("  if (!isDemoCar(input)) return null;", "")],
-  ["the preview's engine stand-in ignores the tier", "lib/preview/deskV3Fixture.js", s => s.replace("tierOut = tier && t !== tier;", "tierOut = false;")],
+  ["the preview answers the 996's recorded read for any car", "lib/preview/recordedRead.js", s => s.replace(/return same && Number\(input\.mileage\) === s\.mileage[^;]*;/, "return true;")],
+  ["the preview's recorded read ignores the tier", "lib/preview/recordedRead.js", s => s.replace("if (r.tier !== tier) return false;", "")],
+  ["the demonstration case is given a typed assessment (a figure the engine did not read)", "lib/preview/deskV3Fixture.js", s => s.replace("  return settle(syncNeeds(c), now);", "  return settle(syncNeeds(setAssessment(c, { figure: 58500, low: 56000, high: 61000, explanation: \"\" }, now)), now);").replace("import { refreshEvidence,", "import { setAssessment, refreshEvidence,")],
+  ["the recorded read answers any period", "lib/preview/recordedRead.js", s => s.replace("if (d.windowMonths != null && Number(d.windowMonths) !== 12) return null;", "")],
+  ["the recorded read answers a set aside sale as if none were", "lib/preview/recordedRead.js", s => s.replace("if ((d.exclusions || []).length) return null;", "")],
+  ["the recorded read does not carry the engine's reserve check", "lib/preview/recordedRead.js", s => s.replace("k.reserveCheck = reserveCheckOf(", "void reserveCheckOf(")],
+  ["the preview door asks the recorded read even when the archive is reachable", "lib/preview/deskPreview.js", s => s.replace("((!env || !env.supabaseUrl) && (await recordedRead(input)))", "(await recordedRead(input))")],
+  ["an edit the engine could not read is saved over the earlier read (the 24 month switch keeps the 12 month figures)", "lib/desk/sheetActions.js", s => s.replace("if (READ_OPS.includes(op) && s0.case", "if (false && s0.case")],
   ["a listed preview case has no stored case (the seeding is skipped)", "lib/preview/deskPreview.js", s => s.replace("if (row.case) continue;", "continue;")],
   ["the demonstration case is stored only when a page renders (not at the first read)", "lib/preview/deskPreview.js", s => s.replace("await store.insert(PREVIEW_ORG.id, { id: DEMO_ID,", "if (false) await store.insert(PREVIEW_ORG.id, { id: DEMO_ID,")],
   ["a draft report refuses a sheet that has no stored case", "lib/desk/sheetActions.js", s => s.replace('if (!s0.case && body.draft !== true) return refuse', 'if (!s0.case) return refuse')],
@@ -37,7 +43,7 @@ function copyTree(dst) {
   for (const f of ["package.json", "vercel.json"]) if (fs.existsSync(path.join(ROOT, f))) fs.copyFileSync(path.join(ROOT, f), path.join(dst, f));
   fs.symlinkSync(path.join(ROOT, "node_modules"), path.join(dst, "node_modules"));
 }
-const run = dir => { try { const o = execFileSync("node", ["scripts/deskDemoCheck.mjs", dir], { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 110000 }); return { red: false, out: o }; } catch (e) { return { red: true, out: String(e.stdout || "") + String(e.stderr || "") }; } };
+const run = dir => { for (const f of ["deskDemoCheck", "deskDemoCarCheck", "deskTypedCasesCheck"]) { try { execFileSync("node", ["scripts/" + f + ".mjs", dir], { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 110000 }); } catch (e) { return { red: true, out: String(e.stdout || "") + String(e.stderr || "") }; } } return { red: false, out: "" }; };
 let bad = 0;
 const base = fs.mkdtempSync(path.join(os.tmpdir(), "dm-")); copyTree(base);
 const b0 = run(base); console.log((b0.red ? "FAIL" : "ok  ") + "  the real tree is green"); if (b0.red) { bad++; console.log(b0.out.split("\n").slice(-6).join("\n")); }

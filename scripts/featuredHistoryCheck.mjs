@@ -24,8 +24,8 @@ const why = (l, apps, extra) => { const r = ev(l, apps, extra); return r.ok ? "O
 { const r = ev(live(), [sale()]);
   ok("(1) a live car with a VIN, a photo, and a complete verified earlier sale is eligible", r.ok, JSON.stringify(r));
   const f = r.featured || {};
-  ok("(1) the agreed shape: kind, headline, current, previous, take, selectedAt, checkedAt, findUrl, and no other key but the announced extras (mileageWords, previous.historyUrl, and the figure lines nowLine, mileageLine, priceLine)", JSON.stringify(Object.keys(f).sort()) === JSON.stringify(["checkedAt", "current", "findUrl", "headline", "kind", "mileageDelta", "mileageWords", "nowLine", "previous", "selectedAt", "take"]), Object.keys(f).join(","));
-  ok("(1) current is title, platform, url, photo, live true, endsAt, mileage", JSON.stringify(Object.keys(f.current || {}).sort()) === JSON.stringify(["endsAt", "live", "mileage", "mileageLine", "photo", "platform", "title", "url"]) && f.current.live === true && f.current.title === "2008 Porsche 911");
+  ok("(1) the agreed shape: kind, headline, current, previous, take, selectedAt, checkedAt, findUrl, and no other key but the announced extras (mileageWords, previous.historyUrl, and the figure lines nowLine, mileageLine, priceLine)", JSON.stringify(Object.keys(f).sort()) === JSON.stringify(["checkedAt", "current", "findUrl", "headline", "intelligence", "kind", "mileageDelta", "mileageWords", "nowLine", "previous", "selectedAt", "take"]), Object.keys(f).join(","));
+  ok("(1) current is title, platform, url, photo, live true, endsAt, mileage", JSON.stringify(Object.keys(f.current || {}).sort()) === JSON.stringify(["endsAt", "endsLine", "live", "mileage", "mileageLine", "photo", "platform", "title", "url"]) && f.current.live === true && f.current.title === "2008 Porsche 911");
   ok("(1) previous is date (month and year), platform, mileage, price, photo, url, and the announced historyUrl", JSON.stringify(Object.keys(f.previous || {}).sort()) === JSON.stringify(["date", "historyUrl", "mileage", "mileageLine", "photo", "platform", "price", "priceLine", "url"]) && f.previous.date === "May 2022" && f.previous.price === 61000);
   ok("(1) the headline for a sold car is the agreed sentence", f.headline === "This car has sold before. Would you have known?" && f.kind === "sold");
   ok("(1) the take is the existing priorTake line, with the reliable mileage difference", f.take === "Back after selling in May 2022, now with 4,000 more miles." && f.mileageDelta === 4000, f.take);
@@ -67,7 +67,7 @@ const why = (l, apps, extra) => { const r = ev(l, apps, extra); return r.ok ? "O
   ok("(3) an attempt that carries a price field is still not a sale and prints no price", priced.ok && priced.featured.kind === "listed" && !("price" in priced.featured.previous));
   const both = ev(live(), [sale({ image: null }), attempt()]);
   ok("(3) when the sale cannot be shown (no photo), the car is listed and its take does not say it sold", both.ok && both.featured.kind === "listed" && !/selling|sold/i.test(both.featured.take), JSON.stringify(both.featured && [both.featured.kind, both.featured.take]));
-  const pick = F.chooseBest([ev(live({ id: "A" }), [attempt()]), ev(live({ id: "B" }), [sale()])].filter(x => x.ok));
+  const pick = F.chooseBest([ev(live({ id: "A" }), [attempt()]), ev(live({ id: "B" }), [sale()])].filter(x => x.ok), NOW);
   ok("(3) a confirmed sale is preferred over a listing", pick && pick.listingId === "B"); }
 
 // (4) mileage difference only when both readings are reliable
@@ -79,8 +79,8 @@ const why = (l, apps, extra) => { const r = ev(l, apps, extra); return r.ok ? "O
 { const a = ev(live({ id: "A", end_time: new Date(NOW + 1 * DAY).toISOString() }), [sale({ priceUsd: 900000 })]);
   const b = ev(live({ id: "B", end_time: new Date(NOW + 3 * DAY).toISOString() }), [sale({ priceUsd: 30000 }), sale({ date: "2019-01-01", url: "https://bringatrailer.com/listing/z/", image: "https://img.example.com/z.jpg" })]);
   const c = ev(live({ id: "C", end_time: new Date(NOW + 3 * DAY).toISOString() }), [sale({ priceUsd: 31000 })]);
-  ok("(5) with two sold cars the one with the fewest earlier appearances wins, then the longest time left, whatever the price", (F.chooseBest([a, b, c].filter(x => x.ok)) || {}).listingId === "C");
-  ok("(5) the choice does not read the price", (F.chooseBest([a, c].filter(x => x.ok)) || {}).listingId === "C" && (F.chooseBest([c, a].filter(x => x.ok)) || {}).listingId === "C"); }
+  ok("(5) with two sold cars the one with the fewest earlier appearances wins, then the longest time left, whatever the price", (F.chooseBest([a, b, c].filter(x => x.ok), NOW) || {}).listingId === "C");
+  ok("(5) the choice does not read the price", (F.chooseBest([a, c].filter(x => x.ok), NOW) || {}).listingId === "C" && (F.chooseBest([c, a].filter(x => x.ok), NOW) || {}).listingId === "C"); }
 
 // (6) the store: stable, replaces itself at the end, null on a failed refresh, never stale
 const fakeDb = () => {
@@ -233,6 +233,59 @@ const CREW = "gas_crew=" + mintCrewCookieValue();
     const stored = (await (async () => { const o = fakeDb(); await F.refreshFeaturedHistory(env, o.d); return F.readFeaturedHistory(env, CREW, o.d); })());
     ok("(9) gap 3: the served pick carries it", stored && /^\/vin\/[A-Z0-9]+$/.test(stored.previous.historyUrl)); }
 }
+
+// (10) ENDING SOON (Nov 10 2026): an auction ending within 7 days is preferred (within 3 best); a car more than 14 days from its end is never picked while any car within 14 days qualifies. The January lot of Nov 10 (60+ days out) won because the
+// order ended in "longest time left"; a sold car with one earlier appearance at 60 days used to beat a sold car with one earlier appearance at 2 days.
+{ const far = ev(live({ id: "FAR", end_time: new Date(NOW + 60 * DAY).toISOString() }), [sale()]), near = ev(live({ id: "NEAR", end_time: new Date(NOW + 2 * DAY).toISOString() }), [sale()]);
+  ok("(10) a pool with one car at 60 days and one at 2 days picks the 2 day car", [far, near].every(x => x.ok) && (F.chooseBest([far, near], NOW) || {}).listingId === "NEAR" && (F.chooseBest([near, far], NOW) || {}).listingId === "NEAR");
+  const listedNear = ev(live({ id: "LN", end_time: new Date(NOW + 2 * DAY).toISOString() }), [attempt()]);
+  ok("(10) a listed car at 2 days beats a sold car at 60 days (the cap comes before sold before listed)", (F.chooseBest([far, listedNear], NOW) || {}).listingId === "LN");
+  const d10 = ev(live({ id: "D10", end_time: new Date(NOW + 10 * DAY).toISOString() }), [sale()]), d5 = ev(live({ id: "D5", end_time: new Date(NOW + 5 * DAY).toISOString() }), [attempt()]), d2 = ev(live({ id: "D2", end_time: new Date(NOW + 2 * DAY).toISOString() }), [attempt()]), d5s = ev(live({ id: "D5s", end_time: new Date(NOW + 5 * DAY).toISOString() }), [sale()]), d2s = ev(live({ id: "D2s", end_time: new Date(NOW + 2 * DAY).toISOString() }), [sale()]);
+  ok("(10) among sold cars the nearer band comes first: within 3 days over within 7 over within 14", (F.chooseBest([d10, d5s, d2s], NOW) || {}).listingId === "D2s" && (F.chooseBest([d10, d5s], NOW) || {}).listingId === "D5s");
+  ok("(10) inside the 14 day band a car with an earlier sale ranks above one without, then the nearer band (a sold car at 10 days over a listed car at 2)", (F.chooseBest([d10, d2], NOW) || {}).listingId === "D10" && (F.chooseBest([d2, d10], NOW) || {}).listingId === "D10" && (F.chooseBest([d5, d2], NOW) || {}).listingId === "D2");
+  const fSold = ev(live({ id: "FS", end_time: new Date(NOW + 60 * DAY).toISOString() }), [sale()]), fList = ev(live({ id: "FL", end_time: new Date(NOW + 30 * DAY).toISOString() }), [attempt()]);
+  ok("(10) outside the band the same order is the fallback: a sold car at 60 days over a listed car at 30", (F.chooseBest([fList, fSold], NOW) || {}).listingId === "FS");
+  ok("(10) fewest appearances comes after the band: two sold cars in one band, the one with one earlier appearance wins", (() => { const one = ev(live({ id: "O1", end_time: new Date(NOW + 2 * DAY).toISOString() }), [sale()]), two = ev(live({ id: "O2", end_time: new Date(NOW + 2 * DAY).toISOString() }), [sale(), sale({ date: "2019-01-01", url: "https://bringatrailer.com/listing/z/", image: "https://img.example.com/z.jpg" })]); return (F.chooseBest([two, one], NOW) || {}).listingId === "O1"; })());
+  { const { db, d } = fakeDb(); db.live = [live({ id: "ONLYLISTED", end_time: new Date(NOW + 2 * DAY).toISOString() })]; db.apps[VIN] = [attempt()];
+    const r = await F.refreshFeaturedHistory(env, d), g = await F.readFeaturedHistory(env, CREW, d);
+    ok("(10) a pool whose only in-band car was listed before (never sold) is picked, as a listed car", r.why === "selected" && r.stored.listingId === "ONLYLISTED" && r.stored.featured.kind === "listed", JSON.stringify([r.why, r.stored && r.stored.listingId]));
+    ok("(10) the card carries the engine's line for which it is, as the Find rows do: listed_before, Listed before and the month, no price", g && g.intelligence && g.intelligence.kind === "listed_before" && g.intelligence.line === "Listed before \u00b7 " + g.previous.date.replace(/^([A-Z][a-z]{2})[a-z]*/, "$1") && !/\$/.test(g.intelligence.line) && /^\//.test(g.intelligence.url), JSON.stringify(g && g.intelligence)); }
+  { const { db, d } = fakeDb(); db.live = [live({ id: "SOLD1", end_time: new Date(NOW + 2 * DAY).toISOString() })];
+    const r = await F.refreshFeaturedHistory(env, d), g = await F.readFeaturedHistory(env, CREW, d);
+    ok("(10) a sold car's line is sold_before with the recorded price", g && g.intelligence && g.intelligence.kind === "sold_before" && g.intelligence.line === "Sold before \u00b7 $61,000", JSON.stringify(g && g.intelligence)); }
+  { const { db, d } = fakeDb(); db.live = [live({ id: "OUT1", end_time: new Date(NOW + 60 * DAY).toISOString() })];
+    const r = await F.refreshFeaturedHistory(env, d), g = await F.readFeaturedHistory(env, CREW, d);
+    ok("(10) beyond 14 days is the last resort: a pool with only a sold car 60 days out still picks it, with the time left line printed", r.why === "selected" && r.stored.listingId === "OUT1" && g && g.current.endsLine === "Ends in 60 days", JSON.stringify([r.why, g && g.current.endsLine])); }
+  { const { db, d } = fakeDb(); db.live = [live({ id: "NEARLIST", end_time: new Date(NOW + 3 * DAY).toISOString() }), live({ id: "FARSOLD", vin_norm: "WP0AB29988S783457", url: "https://bringatrailer.com/listing/b-1/", end_time: new Date(NOW + 40 * DAY).toISOString(), photo_url: "https://img.example.com/cur-2.jpg" })]; db.apps[VIN] = [attempt()]; db.apps.WP0AB29988S783457 = [sale({ vinNorm: "WP0AB29988S783457", url: "https://bringatrailer.com/listing/b-0/", image: "https://img.example.com/prev-b.jpg" })];
+    const r = await F.refreshFeaturedHistory(env, d);
+    ok("(10) the last resort is taken only when nothing within 14 days has an earlier record: a listed car at 3 days beats a sold car at 40", r.stored && r.stored.listingId === "NEARLIST", JSON.stringify([r.why, r.stored && r.stored.listingId])); }
+  { const { db, d } = fakeDb(); db.live = [live({ id: "NEARNONE", vin_norm: "WP0AB29988S700001", url: "https://bringatrailer.com/listing/n-1/", end_time: new Date(NOW + 3 * DAY).toISOString() }), live({ id: "FARSOLD", vin_norm: "WP0AB29988S783457", url: "https://bringatrailer.com/listing/b-1/", end_time: new Date(NOW + 40 * DAY).toISOString(), photo_url: "https://img.example.com/cur-2.jpg" })]; db.apps.WP0AB29988S783457 = [sale({ vinNorm: "WP0AB29988S783457", url: "https://bringatrailer.com/listing/b-0/", image: "https://img.example.com/prev-b.jpg" })];
+    const r = await F.refreshFeaturedHistory(env, d);
+    ok("(10) a car within 14 days with no earlier record does not stop the last resort: the sold car at 40 days is picked", r.stored && r.stored.listingId === "FARSOLD", JSON.stringify([r.why, r.stored && r.stored.listingId])); }
+  { const { db, d } = fakeDb(); db.live = [live({ id: "L", end_time: new Date(NOW + 2 * DAY).toISOString() }), live({ id: "S", vin_norm: "WP0AB29988S783457", url: "https://bringatrailer.com/listing/b-1/", end_time: new Date(NOW + 9 * DAY).toISOString(), photo_url: "https://img.example.com/cur-2.jpg" })]; db.apps[VIN] = [attempt()]; db.apps.WP0AB29988S783457 = [sale({ vinNorm: "WP0AB29988S783457", url: "https://bringatrailer.com/listing/b-0/", image: "https://img.example.com/prev-b.jpg" })];
+    const r = await F.refreshFeaturedHistory(env, d);
+    ok("(10) with a listed car at 2 days and a sold car at 9, the sold car is picked (an earlier sale first inside the band)", r.stored && r.stored.listingId === "S", JSON.stringify([r.why, r.stored && r.stored.listingId])); }
+  ok("(10) only far cars: the nearest of them is still picked (nothing nearer qualifies)", (F.chooseBest([far, ev(live({ id: "F2", end_time: new Date(NOW + 30 * DAY).toISOString() }), [sale()])], NOW) || {}).listingId === "F2");
+  ok("(10) the card carries the engine's time left line next to the venue: \"Ends in 2 days\"", near.featured.current.endsLine === "Ends in 2 days" && near.featured.current.platform === "Bring a Trailer", String(near.featured.current.endsLine));
+  const today = ev(live({ id: "T", end_time: new Date(NOW + 3 * HOUR).toISOString() }), [sale()]);
+  ok("(10) a car ending the same Pacific day says \"Ends today\"", /^Ends (today|tomorrow)$/.test(today.featured.current.endsLine) && F.withFigureLines({ ...today.featured }, NOW).current.endsLine === today.featured.current.endsLine, String(today.featured.current.endsLine));
+  ok("(10) no clock, no line: a fixture without a clock carries none", !("endsLine" in F.withFigureLines({ ...near.featured })));
+  // the search: the far lot is first in the table (end time descending was the old read), the near one is evaluated and wins
+  { const { db, d } = fakeDb(); db.live = [live({ id: "LATE", end_time: new Date(NOW + 60 * DAY).toISOString(), vin_norm: "WP0AB29988S783499", url: "https://bringatrailer.com/listing/late/", photo_url: "https://img.example.com/cur-late.jpg" }), db.live[1]];
+    db.apps["WP0AB29988S783499"] = [sale({ vinNorm: "WP0AB29988S783499", url: "https://bringatrailer.com/listing/late-0/", image: "https://img.example.com/prev-late.jpg" })];
+    const r = await F.refreshFeaturedHistory(env, d);
+    ok("(10) the refresh picks the car ending in 5 days over the sold car ending in 60", r.why === "selected" && r.stored.listingId === "L2", JSON.stringify([r.why, r.stored && r.stored.listingId]));
+    // a kept pick at 5 days is kept; a new car at 1 day does not replace a pick inside 7 days
+  }
+  { const { db, d } = fakeDb(); db.live = [live({ id: "MID", end_time: new Date(NOW + 10 * DAY).toISOString() })];
+    const r1 = await F.refreshFeaturedHistory(env, d); db.live.push(live({ id: "SOON", end_time: new Date(NOW + 1 * DAY + 5 * HOUR).toISOString(), vin_norm: "WP0AB29988S783498", url: "https://bringatrailer.com/listing/soon/", photo_url: "https://img.example.com/cur-soon.jpg" }));
+    db.apps["WP0AB29988S783498"] = [sale({ vinNorm: "WP0AB29988S783498", url: "https://bringatrailer.com/listing/soon-0/", image: "https://img.example.com/prev-soon.jpg" })];
+    db.now += 5 * 60000; const r2 = await F.refreshFeaturedHistory(env, d);
+    ok("(10) a kept pick 10 days out is replaced when a car ending within 7 days qualifies", r1.stored && r1.stored.listingId === "MID" && r2.why === "selected" && r2.stored.listingId === "SOON", JSON.stringify([r1.why, r2.why, r2.stored && r2.stored.listingId]));
+    db.now += 5 * 60000; const r3 = await F.refreshFeaturedHistory(env, d);
+    ok("(10) a pick inside 7 days is kept", r3.why === "kept" && r3.stored.listingId === "SOON", r3.why); }
+}
+
 console.log(fail ? `featuredHistoryCheck: ${fail} FAIL, ${pass} pass` : `featuredHistoryCheck: ${pass} pass, 0 FAIL`);
 process.exit(fail ? 1 : 0);
 
@@ -267,6 +320,16 @@ function runMutants() {
     [L, ['if ((await stillLive(env, st.listingId, d)) !== true) return null;', '!(Date.parse(f.current && f.current.endsAt) > now)'], ['', 'false'], "(6) when the auction ends the pick is no longer served"],
     [L, ['if (alive && Date.parse(st.featured.current.endsAt) > now) {', 'if (again.ok) { const keep'], ['if (true) {', 'if (true) { const keep'], "(6) the next refresh replaces it"],
     [L, 'if (again.ok) { const keep', 'if (true) { const keep', "(6) a kept pick whose earlier photo is gone"],
+    [L, "(soonBand(endOf(a), nowMs) < 3 ? 0 : 1) - (soonBand(endOf(b), nowMs) < 3 ? 0 : 1) ||", "", "(10) a listed car at 2 days beats a sold car at 60 days"],
+    [L, '(a.featured.kind === "sold" ? 0 : 1) - (b.featured.kind === "sold" ? 0 : 1) || soonBand(endOf(a), nowMs) - soonBand(endOf(b), nowMs) ||', 'soonBand(endOf(a), nowMs) - soonBand(endOf(b), nowMs) ||', "(10) inside the 14 day band a car with an earlier sale ranks above"],
+    [L, 'if (e.ok) ok.push(e);', 'if (e.ok && e.featured.kind === "sold") ok.push(e);', "(10) a pool whose only in-band car was listed before"],
+    [L, 'for (const scope of ["near", "far"]) {', 'for (const scope of ["near"]) {', "(10) beyond 14 days is the last resort"],
+    [L, 'for (const scope of ["near", "far"]) {', 'for (const scope of ["far", "near"]) {', "(10) the last resort is taken only when nothing within 14 days"],
+    [L, 'else if (out.kind === "listed" && out.previous.date) out.intelligence', 'else if (false) out.intelligence', "(10) the card carries the engine's line for which it is"],
+    [L, '(a.featured.kind === "sold" ? 0 : 1) - (b.featured.kind === "sold" ? 0 : 1) || soonBand(endOf(a), nowMs) - soonBand(endOf(b), nowMs) ||', 'soonBand(endOf(a), nowMs) - soonBand(endOf(b), nowMs) || (a.featured.kind === "sold" ? 0 : 1) - (b.featured.kind === "sold" ? 0 : 1) ||', "(10) inside the 14 day band a car with an earlier sale ranks above"],
+    [L, 'const reachable = screened.filter(r => Date.parse(r.end_time) - now >= minLeft).sort((a, b) => Date.parse(a.end_time) - Date.parse(b.end_time));', 'const reachable = screened.filter(r => Date.parse(r.end_time) - now >= minLeft).sort((a, b) => Date.parse(b.end_time) - Date.parse(a.end_time)).slice(0, 1);', "(10) the refresh picks the car ending in 5 days"],
+    [L, 'if (soonBand(Date.parse(st.featured.current.endsAt), now) <= 1) {', 'if (true) {', "(10) a kept pick 10 days out is replaced"],
+    [L, 'if (nowMs != null && Date.parse(out.current.endsAt) > nowMs) out.current.endsLine', 'if (false) out.current.endsLine', "(10) the card carries the engine's time left line"],
     [L, 'const drop = async why => { await Promise.resolve(d.clear(env)).catch(() => {}); return { stored: null, why }; };', 'const drop = async why => ({ stored: null, why });', "(6) a failed refresh returns nothing"],
     [L, 'if (st && st.featured && st.listingId && st.v === STORE_V) {\n      const alive', 'if (false) {\n      const alive', "(6) STABLE"],
     [L, 'if (process.env.FEATURED_HISTORY === "0" || !mayRead(reqOrCookie)) return null;', 'if (process.env.FEATURED_HISTORY === "0") return null;', "(7) no cookie: no field"],

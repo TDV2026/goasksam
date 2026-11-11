@@ -5,6 +5,8 @@ import { demoHtml, V3, FX, RW, CN, launch, openPage, tally } from "./deskV3Harne
 import { demoCaseRecord } from "../lib/preview/deskV3Fixture.js";
 const { ok, done } = tally(), kase = await demoCaseRecord(), d = kase.desk;
 const page = k => V3.pageHtml({ cases: [{ id: "x", car: "1999 Porsche 911 Carrera", spec: "", seller: "S", ref: "x", age: "1 d", submitted: "2026-11-08", status: "New", group: "new", photo: null, demo: true }], activeId: "x", kase: k, sheet: null });
+// the recorded read of the 996 held no listing for sale or ended on the day it was read, so the label mutants run on a variant that carries test listings formatted by the engine's own liveOf (test inputs, not part of the preview)
+const { liveOf } = await import("../lib/deskV3.js"), liveK = structuredClone(kase); liveK.desk.live = liveOf([{ listing_title: "1999 Porsche 911 Carrera", platform: "Bring a Trailer", current_bid_usd: 30000, end_time: "2099-01-01T00:00:00Z", listing_url: "https://example.test/l/1" }, { listing_title: "1999 Porsche 911 Carrera", platform: "Cars & Bids", status: "no sale", current_bid_usd: 28000, listing_url: "https://example.test/l/2" }]);
 const mk = h => (h.match(/<div class="mk4">[\s\S]*?<\/div><\/div>\s*<div class="pn" id="pn-decision"/) || h.match(/<div class="mk4">[\s\S]*$/) || [""])[0];
 const text = h => mk(h).replace(/<[^>]+>/g, "\n").split("\n").map(x => x.trim()).filter(Boolean);
 function assertions(k, h) {
@@ -29,7 +31,7 @@ const real = assertions(kase, page(kase)); for (const b of real) ok(false, b); o
 // variants: an excluded sale, a quarter with shown false, no live, no outside
 const withEx = structuredClone(kase); withEx.exclusions = [{ saleId: kase.desk.comparables[0].id, scope: "market_calc", reason: "A different car", at: "x" }, { saleId: kase.desk.comparables[1].id, scope: "report", reason: "Photos show a repaint", at: "x" }];
 { const b = assertions(withEx, page(withEx)); for (const x of b) ok(false, "excluded: " + x); ok(!b.length, "excluded sales stay in their rows, greyed, each with its scope and reason"); }
-const hid = structuredClone(kase); hid.desk.quarters = [{ label: "Q1 2026", median: null, count: 1, shown: false }, ...hid.desk.quarters]; hid.desk.live = []; hid.desk.outside = [];
+const hid = structuredClone(kase); hid.desk.quarters = [{ label: "Q2 2024", median: null, count: 1, shown: false }, ...hid.desk.quarters]; hid.desk.live = []; hid.desk.outside = [];
 { const b = assertions(hid, page(hid)); for (const x of b) ok(false, "sparse: " + x); ok(!b.length, "a quarter with shown false, no listings and no outsiders draw nothing"); }
 // the exclusion needs a reason, in Chrome
 { const br = await launch(), p = await openPage(br, await demoHtml(), 1440, 900);
@@ -40,9 +42,9 @@ const hid = structuredClone(kase); hid.desk.quarters = [{ label: "Q1 2026", medi
 // mutants
 const M = [["a page computed median on the current side", h => h.replace(/(Current selected set[\s\S]*?<dd>)\$[\d,]+/, "$1$99,999")],
   ["an excluded row removed", h => h.replace(/<tr class="cp ex[\s\S]*?<\/tr>/, "")],
-  ["a shown false quarter drawn", h => h.replace(/(<h2>By quarter<\/h2>[\s\S]*?<tbody>)/, "$1<tr><th scope=\"row\">Q1 2026</th><td>$1</td><td>1 sale</td></tr>")],
+  ["a shown false quarter drawn", h => h.replace(/(<h2>By quarter<\/h2>[\s\S]*?<tbody>)/, "$1<tr><th scope=\"row\">Q2 2024</th><td>$1</td><td>1 sale</td></tr>")],
   ["a listing without its label", h => h.replace(">Not sold<", "><")],
   ["the exclude control removed from a row", h => h.replace(/<button type="button" class="lnk" data-excl="[^"]*">Exclude<\/button>/, "")],
   ["the original column dropped", h => h.replace("Original engine result", "Result")]];
-for (const [n, fn] of M) { const base = n.startsWith("an excluded") || n.startsWith("a shown") ? (n.startsWith("an excluded") ? withEx : hid) : kase; ok(assertions(base, fn(page(base))).length > 0, "mutant caught: " + n); }
+for (const [n, fn] of M) { const base = n.startsWith("a listing") ? liveK : n.startsWith("an excluded") || n.startsWith("a shown") ? (n.startsWith("an excluded") ? withEx : hid) : kase; ok(assertions(base, fn(page(base))).length > 0, "mutant caught: " + n); }
 done("deskV3MarketCheck");
