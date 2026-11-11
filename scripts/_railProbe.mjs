@@ -10,7 +10,7 @@ export async function probeRail(pg) {
     const cs = e => { const c = getComputedStyle(e); return c.fontFamily + "|" + c.fontSize + "|" + c.textDecorationLine + "|" + c.color; };
     const kids = rail ? [...rail.querySelectorAll("*")].filter(vis).map(box) : [], rb = box(rail);
     const html = document.body.innerHTML.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, "");
-    return { vw: innerWidth, scrollW: document.documentElement.scrollWidth, rail: rb, railVisible: vis(rail), main: box(main), newBar: box(nw), heads, linkStyles: [...new Set(links.map(cs))], linkCount: links.length, mvisits: vis(mv), mvisBox: vis(mv) ? box(mv) : null, newLinkBox: (() => { const n = document.querySelector(".shead-new"); return vis(n) ? box(n) : null; })(),
+    return { h1: [...document.querySelectorAll("h1")].filter(vis).length + [...document.querySelectorAll("h1")].filter(e => !vis(e)).length, vw: innerWidth, scrollW: document.documentElement.scrollWidth, rail: rb, railVisible: vis(rail), main: box(main), newBar: box(nw), heads, linkStyles: [...new Set(links.map(cs))], linkCount: links.length, mvisits: vis(mv), mvisBox: vis(mv) ? box(mv) : null, newLinkBox: (() => { const n = document.querySelector(".shead-new"); return vis(n) ? box(n) : null; })(),
       clipped: rb ? kids.filter(k => k.l < rb.l - 1 || k.r > rb.r + 1 || k.l < 0).length : 0, stray: /\$[1-9&](?=<)/.test(html) || /(^|\n)\$[1-9]\s*(\n|$)/.test(document.body.innerText) };
   });
 }
@@ -18,6 +18,7 @@ export async function probeRail(pg) {
 export function railProblems(p, { signedIn = false, expectSaved = false, expectAlerts = false, expectRecent = false } = {}) {
   const out = [];
   if (p.stray) out.push("a stray replacement marker ($1) is in the page");
+  if (p.h1 !== 1) out.push(`the page has ${p.h1} h1 (one expected: the results pages get theirs from the query)`);
   if (p.scrollW > p.vw + 1) out.push(`the page scrolls sideways (${p.scrollW} wide in ${p.vw})`);
   if (p.vw <= 860 && p.mvisBox && p.newLinkBox) { const a = p.mvisBox, c = p.newLinkBox; if (a.l < c.r && c.l < a.r && a.t < c.b && c.t < a.b) out.push("the Your searches button overlaps the page's New search link"); }
   if (p.vw > 860) {
@@ -35,5 +36,19 @@ export function railProblems(p, { signedIn = false, expectSaved = false, expectA
     if (p.linkStyles.length > 1) out.push(`the rail's links are not in one style (${p.linkStyles.length} styles)`);
     if (p.linkStyles.some(s => /underline/.test(s))) out.push("the rail's links are underlined, the old raw link style");
   }
+  return out;
+}
+
+// THE HEADER, AS DRAWN (Sam, Nov 11 2026): the BETA pill was pale type on a pale fill on every results page and fine on the landings, because a results page carries the live page's own stylesheet and an old .beta rule showed through. The header is one design on every route: the computed style of each header element, read on a landing and on its results page, must be the same.
+export const HEADER_SELECTORS = ["header.gh", ".gh .wrap", ".gh .wm", ".gh .wm b", ".gh .beta", ".gh .tabs", ".gh .tabs a:not([aria-current]):not(.acct)", ".gh .tabs a[aria-current]", ".gh a.acct"];
+const HEADER_PROPS = ["color", "backgroundColor", "backgroundImage", "fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing", "textTransform", "textDecorationLine", "borderTopColor", "borderTopWidth", "borderTopStyle", "borderBottomWidth", "borderRadius", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "height", "display", "opacity", "boxShadow"];
+export async function probeHeader(pg) {
+  return pg.evaluate((sels, props) => Object.fromEntries(sels.map(s => { const e = document.querySelector(s); if (!e) return [s, null]; const c = getComputedStyle(e), r = e.getBoundingClientRect(); return [s, { ...Object.fromEntries(props.map(k => [k, c[k]])), _w: Math.round(r.width) }]; })), HEADER_SELECTORS, HEADER_PROPS);
+}
+// text widths and auto margins follow the web font's load, so only computed style is compared
+export function headerDiffs(landing, results) {
+  const out = [];
+  for (const s of HEADER_SELECTORS) { const a = landing[s], b = results[s]; if (!a && !b) continue; if (!a || !b) { out.push(`${s} is on ${a ? "the landing" : "the results page"} only`); continue; }
+    const d = Object.keys(a).filter(k => k !== "_w" && a[k] !== b[k]).map(k => `${k}: ${a[k]} on the landing, ${b[k]} on the results page`); if (d.length) out.push(`${s}: ${d.join("; ")}`); }
   return out;
 }

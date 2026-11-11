@@ -3,7 +3,7 @@
 import fs from "node:fs"; import path from "node:path";
 export const EMAIL = "stub.user@example.test", SUPA = "https://stub.supabase.test";
 const PLACEHOLDER = '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><rect width="640" height="360" fill="#d9d3c4"/></svg>';
-export async function openPage(browser, { ROOT, base, w, h = 900, url, session = false, remember = null, proxy = null, FX = null, seen = null, recent = false }) {
+export async function openPage(browser, { ROOT, base, w, h = 900, url, session = false, remember = null, proxy = null, FX = null, seen = null, recent = false, restricted = false }) {
   const ctx = await browser.createBrowserContext(), pg = await ctx.newPage(); pg.__ctx = ctx; pg.__errs = []; pg.__calls = [];
   pg.on("pageerror", e => pg.__errs.push(String(e.message).slice(0, 140)));
   await pg.setViewport({ width: w, height: h, isMobile: w < 500, hasTouch: w < 500 }); await pg.setRequestInterception(true);
@@ -18,7 +18,7 @@ export async function openPage(browser, { ROOT, base, w, h = 900, url, session =
     if (r.url().startsWith(SUPA + "/auth/v1/otp")) return j({}); if (r.url().startsWith(SUPA + "/auth/v1/verify")) return j({ access_token: "tok", refresh_token: "ref", expires_in: 3600, user: { email: EMAIL } });
     if (r.url().startsWith(SUPA + "/auth/v1/authorize")) { if (seen) seen.authorize = r.url(); return r.respond({ status: 200, contentType: "text/html", body: "<p>stub</p>" }); } if (r.url().startsWith(SUPA)) return j({});
     if (local && u.pathname === "/api/account") return j({ email: EMAIL, tier: "free", marketingConsent: false }); if (u.pathname === "/api/deskSeat") return r.respond({ status: 404, body: "" });
-    if (local && u.pathname === "/api/track") return u.searchParams.get("js") ? r.respond({ status: 200, contentType: "text/javascript", body: "window.gasTrack=window.gasTrack||function(){};" }) : j({ consent: "not_required", region_class: "open" });
+    if (local && u.pathname === "/api/track") return u.searchParams.get("js") ? r.respond({ status: 200, contentType: "text/javascript", body: "window.gasTrack=window.gasTrack||function(){};" }) : j(restricted ? { consent: "declined", region_class: "restricted" } : { consent: "not_required", region_class: "open" });
     if (local && u.pathname === "/api/buySearch" && r.method() === "POST") { let a = {}; try { a = JSON.parse(r.postData() || "{}"); } catch {} pg.__calls.push(a.action || "");
       if (session && a.action === "alerts") return j({ items: alertItems }); if (session && a.action === "list") return j({ items: savedItems });
       if (a.action === "alerts_ready" || a.action === "ready") return j({ ok: true }); if (!(proxy && !["alerts", "list"].includes(a.action))) return j({ items: [] }); }

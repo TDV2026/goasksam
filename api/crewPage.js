@@ -14,7 +14,7 @@ import { tasksPublicHtml, crewLimitMax } from "../lib/preview/tasksPreview.js";
 import { tasksMineHtml, previewTasksApi } from "../lib/preview/tasksMine.js";
 import { findField } from "../lib/preview/fieldCompose.js";
 import { publicFindExamples as publicFind } from "../lib/preview/publicFind.js";
-import { entryHtml, wrapLive, patchOneboxJs, exampleResultOf, exampleFrameHtml } from "../lib/preview/mcSellPreview.js";
+import { entryHtml, wrapLive, headingFromQuery, patchOneboxJs, exampleResultOf, exampleFrameHtml } from "../lib/preview/mcSellPreview.js";
 import marketCheckPage from "./marketCheck.js";
 import sellDoor from "./sell.js";
 import findPage from "./buy.js";
@@ -64,7 +64,7 @@ const safe = async (f, what = "field") => { if (PUBLIC_CTX.getStore()) return bo
 const tasksPublicFor = async req => { const ex = await safe(() => TASKS_EMAIL_EXAMPLE.read(req), "tasksEmailExample"); return couldNotRead(ex) ? tasksPublicHtml({ readError: "Could not read the Tasks email." }) : tasksPublicHtml({ emailExample: ex }); };
 // FIND RESULTS ON THE NEW SHELL (go live): with a search in the address the page is today's Find page (its own results, its own script) inside the new header, the rail (New search, recent searches) and the footer, exactly as Market Check and Sell are; without one it is the new landing.
 const findResultsFor = async req => {
-  try { const search = String(req.url).slice(String(req.url).indexOf("?")), live = await capture(findPage, "/find" + search, req); if (live.code !== 200) throw new Error("the live page answered " + live.code); return wrapLive("find", live.body); }
+  try { const search = String(req.url).slice(String(req.url).indexOf("?")), live = await capture(findPage, "/find" + search, req); if (live.code !== 200) throw new Error("the live page answered " + live.code); return wrapLive("find", live.body, { h1: headingFromQuery("find", req.url) }); }
   catch (e) { return previewFailed("find", e); }
 };
 const findFor = async req => hasSearch(req) ? findResultsFor(req) : findLandingFor(req);
@@ -91,7 +91,7 @@ async function mcSellFor(kind, req) {
     if (hasSearch(req)) {
       const search = String(req.url).slice(String(req.url).indexOf("?")), live = await capture(kind === "mc" ? marketCheckPage : sellDoor, (kind === "mc" ? "/market-check" : "/sell") + search, req);
       if (live.code !== 200) throw new Error("the live page answered " + live.code);
-      return wrapLive(kind, live.body);
+      return wrapLive(kind, live.body, { h1: headingFromQuery(kind, req.url) });
     }
     const f = await safe(() => (kind === "mc" ? MC_CARD : SELL_CARD).read(req), kind === "mc" ? "marketCheckExample" : "sellExampleCard");
     return couldNotRead(f) ? entryHtml(kind, { readError: kind === "mc" ? "Could not read the Market Check example." : "Could not read the selling example." }) : entryHtml(kind, kind === "mc" ? { mcCard: f } : { sellCard: f });

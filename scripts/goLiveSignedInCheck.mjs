@@ -16,11 +16,14 @@ if (process.argv.includes("--mutants")) {
     ["nothing remembered does not go Home", "public/js/auth.js", 'if (window.GAS_NEW_DESIGN && window.__authLanded === "none") { location.assign("/"); return true; }', "return false;"],
     ["the stray $1 deleting the shell's grid wrapper (the rail falls back to the drawer)", "lib/preview/mcSellPreview.js", 'aria-controls="mvlist">Your searches</button></div><div class="mshell">`);', 'aria-controls="mvlist">Your searches</button></div>$1`);'],
     ["the rail's saved searches drawn as raw underlined links", "lib/preview/mcSellPreview.js", ".find-saved .srch{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;min-height:38px;padding:4px 10px;border-radius:8px;overflow:hidden;color:var(--ink);text-decoration:none;", ".find-saved .srch{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;min-height:38px;padding:4px 10px;border-radius:8px;overflow:hidden;color:var(--ink);text-decoration:underline;"],
+    ["the old pale .beta fill showing through on results pages", "lib/preview/mcSellPreview.js", ".gh .wm .beta{display:inline-block;padding:3px 8px 4px;margin:0;border:1px solid rgba(255,255,255,.4);border-radius:var(--r-pill);background:transparent;", ".gh .wm .beta{display:inline-block;padding:3px 8px 4px;margin:0;border:1px solid rgba(255,255,255,.4);border-radius:var(--r-pill);"],
+    ["the results pages without their h1", "lib/preview/mcSellPreview.js", 'const h1 = opts.h1 ?', 'const h1 = false ?'],
+    ["the two prompts left on top of each other and on the search bar", "lib/preview/mcSellPreview.js", "<script>${STACK_BANNERS_JS}</script></body>`);", "</body>`);"],
     ["the address is not shown in the menu", "lib/_publicHead.js", 'm.querySelector(".acct-email").textContent=(e&&e.textContent)||"Signed in";', ""],
     ["Sign out does nothing", "lib/_publicHead.js", 'if(typeof authSignOut==="function")authSignOut();', ""]
   ];
   let bad = 0;
-  for (const [name, file, from, to] of MUT) { const f = path.join(ROOT, file), orig = fs.readFileSync(f, "utf8"); if (!orig.includes(from)) { console.log("MUTANT NOT APPLICABLE: " + name); bad++; continue; } let code = 0;
+  for (const [name, file, from, to] of MUT) { if (process.env.MUT_ONLY && !new RegExp(process.env.MUT_ONLY, "i").test(name)) continue; const f = path.join(ROOT, file), orig = fs.readFileSync(f, "utf8"); if (!orig.includes(from)) { console.log("MUTANT NOT APPLICABLE: " + name); bad++; continue; } let code = 0;
     try { fs.writeFileSync(f, orig.replace(from, () => to)); try { execFileSync("node", [fileURLToPath(import.meta.url)], { stdio: "pipe" }); } catch (e) { code = e.status || 1; } } finally { fs.writeFileSync(f, orig); }
     console.log((code ? "caught   " : "MISSED   ") + "without " + name); if (!code) bad++; }
   console.log(bad ? "goLiveSignedInCheck mutants: " + bad + " not caught" : "goLiveSignedInCheck mutants: all " + MUT.length + " caught"); process.exit(bad ? 1 : 0);
@@ -42,6 +45,27 @@ for (const w of [1440, 1280, 1024, 390]) for (const signedIn of [false, true]) f
   const p = await probeRail(pg), bad = railProblems(p, { signedIn, expectRecent: url.startsWith("/find") && w > 860, expectSaved: signedIn && url.startsWith("/find"), expectAlerts: signedIn && url.startsWith("/find") });
   ok(bad.length === 0, `${url} @${w} ${signedIn ? "signed in" : "signed out"}: the rail is on screen as designed (${bad.join("; ") || "ok"})`);
   if (w <= 860 && url.startsWith("/find")) ok(p.mvisits, `${url} @${w} ${signedIn ? "signed in" : "signed out"}: the Your searches button is on screen`);
+  await closePage(pg);
+}
+// ---- ONE HEADER ON EVERY ROUTE: the header on a landing equals the header on its results page, element for element, signed out and in
+{ const { probeHeader, headerDiffs } = await import(pathToFileURL(path.join(ROOT, "scripts/_railProbe.mjs")).href);
+  for (const w of [1440, 390]) for (const signedIn of [false, true]) for (const [land, res] of [["/find", RESULTS[0]], ["/market-check", RESULTS[1]], ["/sell", RESULTS[2]]]) {
+    const a = await openPage(b, O({ w, url: land, session: signedIn })); await settle(1200); const ha = await probeHeader(a); await closePage(a);
+    const r = await openPage(b, O({ w, url: res, session: signedIn })); await settle(1400); const hr = await probeHeader(r); await closePage(r);
+    const d = headerDiffs(ha, hr, { width: w >= 1440 }); ok(d.length === 0, `${res} @${w} ${signedIn ? "signed in" : "signed out"}: the header is the landing's header, element for element (${d.join(" | ").slice(0, 300) || "same"})`);
+  } }
+// ---- THE TWO BOTTOM PROMPTS, STACKED: the cookie bar and the analytics dialog (Sam, Nov 11 2026: they sat on top of each other and on Find's search bar). With both on screen, at 1440 and 390, neither covers the search bar and they do not cover each other.
+const GA_CSS = "position:fixed;left:16px;right:16px;bottom:16px;max-width:420px;margin:0 auto;background:#fff;border:1px solid #DCD8CC;border-radius:12px;padding:14px 16px;box-shadow:0 4px 20px rgba(0,0,0,.12);font:400 14px/1.4 system-ui,-apple-system,sans-serif;color:#15201A;z-index:9999";   // lib/analytics.js, as written
+for (const w of [1440, 390]) {
+  const pg = await openPage(b, O({ w, url: "/find?q=red+Porsche", restricted: true })); await settle(1800);
+  await pg.evaluate(css => { const d = document.createElement("div"); d.setAttribute("role", "dialog"); d.setAttribute("aria-label", "Analytics consent"); d.style.cssText = css; d.innerHTML = "<p style='margin:0 0 10px'>We use analytics to see how the site is used. No personal data.</p><button>Allow</button> <button>No thanks</button>"; document.body.appendChild(d); }, GA_CSS); await settle(600);
+  const r = await pg.evaluate(() => { const box = e => { if (!e) return null; const x = e.getBoundingClientRect(); return { l: x.left, r: x.right, t: x.top, b: x.bottom, w: x.width, h: x.height }; }, vis = e => e && !e.hidden && e.offsetHeight > 0, c = document.getElementById("gas-consent-banner"), g = document.querySelector('[aria-label="Analytics consent"]'), sb = document.querySelector(".composer .search, .composer");
+    return { cookie: vis(c) ? box(c) : null, ga: vis(g) ? box(g) : null, search: box(sb), vh: innerHeight, vw: innerWidth, cw: document.documentElement.clientWidth, vv: window.visualViewport && Math.round(window.visualViewport.width), gaw: g ? getComputedStyle(g).width : null }; });
+  const hit = (a, c) => a && c && a.l < c.r && c.l < a.r && a.t < c.b && c.t < a.b;
+  ok(!!r.cookie && !!r.ga && !!r.search, `Find results @${w}: the cookie bar, the analytics dialog and the search bar are all on screen (cookie ${!!r.cookie}, analytics ${!!r.ga}, search ${!!r.search})`);
+  ok(!hit(r.cookie, r.search) && !hit(r.ga, r.search), `Find results @${w}: neither prompt covers the search bar (search ${r.search && Math.round(r.search.t)} to ${r.search && Math.round(r.search.b)}, cookie bar from ${r.cookie && Math.round(r.cookie.t)}, analytics dialog ${r.ga && Math.round(r.ga.t)} to ${r.ga && Math.round(r.ga.b)})`);
+  ok(!hit(r.cookie, r.ga), `Find results @${w}: the two prompts do not cover each other`);
+  ok(!r.ga || (r.ga.t >= 0 && r.ga.l >= 0 && r.ga.r <= r.vw + 1), `Find results @${w}: the analytics dialog is inside the screen (${r.ga && JSON.stringify([Math.round(r.ga.l), Math.round(r.ga.r), Math.round(r.ga.t), Math.round(r.ga.b)])} of ${r.vw} x ${r.vh}, client ${r.cw}, visual ${r.vv}, css width ${r.gaw})`);
   await closePage(pg);
 }
 // ---- A STRAY REPLACEMENT MARKER anywhere: every page, signed out

@@ -24,7 +24,7 @@ for (const [name, url0, kind] of ROUTES) for (const state of ["visitor", "signed
   const pg = await openPage(b, { ROOT, base: site.base, w: 1440, h: 900, url, session: signed, recent: true, proxy, FX });
   // wait for what the page draws: Find's cars, Market Check's figures, Sell's pick (answering its questions with the first choice)
   const t0 = Date.now(); let note = "";
-  if (kind === "find") { await pg.waitForSelector("article.car", { timeout: 75000 }).catch(() => { note = "no cars drawn in 75 s"; }); await settle(2500); }
+  if (kind === "find") { await pg.waitForFunction(() => /live matches?|matches? shown|more don.t say|No live/i.test(document.body.innerText) && document.querySelectorAll("article.car img").length > 0, { timeout: 90000 }).catch(() => { note = "results not drawn in 90 s"; }); await settle(2500); }
   else if (kind === "mc") { for (let k = 0; k < 18; k++) { const n = await pg.evaluate(() => (document.body.innerText.match(/\$\d[\d,]+/g) || []).length).catch(() => 0); if (n > 2) break; await settle(4000); } await settle(2000); }
   else if (kind === "sell") { for (let k = 0; k < 16; k++) { const r = await pg.evaluate(() => /SAM'?S PICK/i.test(document.body.innerText)).catch(() => false); if (r) break; await pg.evaluate(() => { const e = [...document.querySelectorAll("button.chip, .chip, .chips button, .qchips button, [data-chip], .opts button")].find(x => x.getBoundingClientRect().width > 0); if (e) e.click(); }).catch(() => {}); await settle(4500); } await settle(1500); }
   else await settle(2500);

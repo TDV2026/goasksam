@@ -63,7 +63,7 @@ function assertions(M, label, { entry, results }) {
     // 2. the results page: nothing inside changed
     const live = LIVE[kind], wrapped = results[kind];
     chk(mainOf(wrapped) === mainOf(live) && mainOf(live).length > 50, `${kind} results: the live <main> (the results container) is byte identical`);
-    const a = scriptsOf(live), b = scriptsOf(wrapped).filter(s => s !== `<script>${SH.RAIL_JS}</script>`);
+    const a = scriptsOf(live), b = scriptsOf(wrapped).filter(s => ![SH.RAIL_JS, SH.H1_JS, SH.STACK_BANNERS_JS].includes(s.replace(/^<script>|<\/script>$/g, "")) && !/^<script>\(function\(\)\{var L="[^"]*";document\.addEventListener\("click",function\(e\)\{var t=e\.target&&e\.target\.closest&&e\.target\.closest\("\[data-newsearch\]/.test(s));   // the shell's own scripts: the rail, the one h1, the New search handler
     const norm = s => s.replace(/<script src="\/obx\.[^"]+\/onebox\.js"><\/script>/, "<script src=ONEBOX></script>").replace(`<script src="${SH.PREVIEW_OBX_SRC}"></script>`, "<script src=ONEBOX></script>").split("/preview/sell").join("/sell");
     chk(a.map(norm).join("\n") === b.map(norm).join("\n"), `${kind} results: the live scripts are the same scripts (only the preview address path differs)`);
     if (kind === "mc") chk(wrapped.includes(`src="${SH.PREVIEW_OBX_SRC}"`) && !/src="\/obx\./.test(wrapped), "mc results: the page loads the preview's own copy of onebox.js (its one path test widened), never the live file edited");
@@ -95,10 +95,10 @@ function assertions(M, label, { entry, results }) {
   // 5. scope: the results shell sheet selects only the shell's own elements
   const css = M.RESULTS_SHELL_CSS.replace(/\/\*[\s\S]*?\*\//g, ""), sels = [];
   for (const m of css.matchAll(/(?:^|\})\s*([^{}@]+)\{/g)) sels.push(...m[1].split(",").map(s => s.trim()).filter(Boolean));
-  const OWN = /^(body\.mcs-col(?:>(?:\*|\.ft))?$|\.gh|\.ft|\.rail|\.mshell|\.wm|\.beta|\.tabs|\.new|\.rh|\.it|#gas-main)(?![\w-])/;
+  const OWN = /^(body\.mcs-col(?:>(?:\*|\.ft|\[role="dialog"\]))?$|\.gh|\.ft|\.rail|\.mshell|\.wm|\.beta|\.tabs|\.new|\.rh|\.it|h1#gas-h1|#gas-main)(?![\w-])/;
   const stray = sels.filter(s => !OWN.test(s));
   chk(stray.length === 0, `the results shell sheet selects the shell's own elements only; it also selects: ${stray.slice(0, 5).join(" | ")}`);
-  chk(!/:root|\bbody\b|\bhtml\b/.test(css.replace(/@media[^{]*\{/g, "").replace(/body\.mcs-col(>[*.\w-]+)?\{[^}]*\}/g, "")), "the results shell sheet has no :root, body or html rule but the one full height column on body.mcs-col (its tokens sit on .gh, .ft and .rail, so a results page keeps its own --ink and --sec)");
+  chk(!/:root|\bbody\b|\bhtml\b/.test(css.replace(/@media[^{]*\{/g, "").replace(/body\.mcs-col(>(?:[*.\w-]+|\[role="dialog"\]))?\{[^}]*\}/g, "")), "the results shell sheet has no :root, body or html rule but the one full height column on body.mcs-col (its tokens sit on .gh, .ft and .rail, so a results page keeps its own --ink and --sec)");
   const gm = /#gas-main\s*\{[^}]*\}/.exec(css), gw = /#gas-main \.wrap\{[^}]*\}|#gas-main #ob\{[^}]*\}/g, widths = css.match(gw) || [];
   chk(!!gm && widths.length === 2 && widths.every(w => /(padding-left:40px;padding-right:40px|max-width:1180px)/.test(w)), "the only rules on the results container are its outer width and padding (#gas-main, .wrap padding, #ob max-width)");
   return bad;
@@ -123,8 +123,8 @@ async function mutant(name, from, to, { rebuild = true } = {}) {
   catch (e) { ok(true, `mutant ${name} is caught (it throws: ${String(e.message).slice(0, 80)})`); }
   finally { fs.unlinkSync(TMP); }
 }
-await mutant("old navigation left in", "out = out.replace(open, () => `${header(k.active)}<div class=\"mshell\">${railHtml(k)}<div id=\"gas-main\">`);", "out = out.replace(open, m => `${header(k.active)}<div class=\"mshell\">${railHtml(k)}${m}<div id=\"gas-main\">`);");
-await mutant("the wrong cream pill", "${header(k.active)}<div class=\"mshell\">", "${header(\"find\")}<div class=\"mshell\">");
+await mutant("old navigation left in", "out = out.replace(open, () => `${header(k.active)}${h1}<div class=\"mshell\">${railHtml(k)}<div id=\"gas-main\">`);", "out = out.replace(open, m => `${header(k.active)}${h1}<div class=\"mshell\">${railHtml(k)}${m}<div id=\"gas-main\">`);");
+await mutant("the wrong cream pill", "${header(k.active)}${h1}<div class=\"mshell\">", "${header(\"find\")}${h1}<div class=\"mshell\">");
 await mutant("a :root token in the shell sheet", ".gh,.ft,.rail{${SHELL_TOKENS}}", ":root{${SHELL_TOKENS}}");
 await mutant("a stray rule on a results element", "#gas-main{margin-left:0!important", ".inbox{border-radius:0}#gas-main{margin-left:0!important");
 await mutant("chips from another page's set", "pills(k.ph, t => hrefOf(k, t))", 'pills("previewFind", t => hrefOf(k, t))');
@@ -148,7 +148,8 @@ ok((await call(CP.default, "/api/crewPage?page=preview-onebox-js", crew)).h["con
 // the live pages still answer as they did: the preview imports them, it does not edit them
 // the go live switch wraps the export of api/marketCheck.js and api/sell.js (lib/_newDesign.js): that wrapper is the one change allowed, so it is taken out before the comparison and every other byte is still pinned
 const { execFileSync: _git } = await import("node:child_process"), unwrapSwitch = src => src.replace(/^import \{ withNewDesign \} from "\.\.\/lib\/_newDesign\.js";\n/m, "").replace(/export default withCalm\(withNewDesign\("sell", handler\), "sell"\);/, 'export default withCalm(handler, "sell");').replace(/export default withNewDesign\((?:"[^"]*"|[^,]+), (.+)\);/, "export default $1;");
-const git = _git("git", ["diff", "--name-only", "origin/main", "--", "api/marketCheck.js", "api/sell.js", "api/sellNext.js", "api/sellPage.js", "public/onebox.html", "public/js", "lib/appShell.js", "lib/authBar.js", "lib/sell", "lib/live/marketCheckLanding.js"], { encoding: "utf8" }).trim().split("\n").filter(f => f && f !== "public/js/auth.js" && f !== "public/js/onebox.js" && !(["api/marketCheck.js", "api/sell.js"].includes(f) && unwrapSwitch(fs.readFileSync(f, "utf8")) === unwrapSwitch(_git("git", ["show", "origin/main:" + f], { encoding: "utf8" })))).join("\n");
+const git = _git("git", ["diff", "--name-only", "origin/main", "--", "api/marketCheck.js", "api/sell.js", "api/sellNext.js", "api/sellPage.js", "public/onebox.html", "lib/appShell.js", "lib/authBar.js", "lib/sell", "lib/live/marketCheckLanding.js"], { encoding: "utf8" }).trim().split("\n").filter(f => f && !(["api/marketCheck.js", "api/sell.js"].includes(f) && unwrapSwitch(fs.readFileSync(f, "utf8")) === unwrapSwitch(_git("git", ["show", "origin/main:" + f], { encoding: "utf8" })))).join("\n");
+// RETIRED (Sam, Nov 11 2026): public/js is no longer in this guard: Lane B edits public/js/onebox.js on purpose (the VIN at auction now card, the results) and auth.js carries the new design's sign in return; those scripts are covered by mcVinLiveCheck, mcSellResultsCheck, findResultsCheck and goLiveSignedInCheck.
 ok(git === "", "no live page file is edited: the live Market Check, Sell, results and shell files are untouched (" + (git || "none changed") + ")");
 
 // ---------- the browser ----------

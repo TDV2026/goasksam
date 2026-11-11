@@ -37,6 +37,8 @@ const vget = async (base, p, fetchFn) => { const r = await fetchFn(base + p, { r
 const strip = h => String(h).replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, "");
 const facts = r => { const t = tags(r.html); return { status: r.status, xRobots: r.h.get("x-robots-tag") || "", robots: (t.robots[0] || "").replace(/\s*\/>$/, ">"), title: t.title[0] || "", description: t.description[0] || "", canonical: t.canonical[0] || "", ld: t.ld.length, banner: /<div[^>]*gas-consent-banner/.test(r.html), track: /<script\b[^>]*\bsrc="\/api\/track\?js=1"/.test(r.html), h1: (strip(r.html).match(/<h1\b/gi) || []).length }; };
 async function recordBaseline(base, fetchFn) { const routes = {}; for (const p of BASE_ROUTES) { const r = await vget(base, p, fetchFn); routes[p] = { ...facts(r), design: r.h.get("x-design") || "" }; } return { recordedAt: new Date().toISOString(), base, note: "the public pages with NEW_DESIGN off, fetched with no cookie and no query (goLiveLiveCheck --record-baseline)", routes }; }
+// the head carries day stamped words ("as of November 10, 2026", "updated Nov 10, 2:45 PM PT", "Sales to Nov 10, 2026"): a recorded baseline can never hold them, so a date and a time of day are read as one word on both sides
+const undate = x => String(x || "").replace(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:,?\s+\d{4})?/gi, "<date>").replace(/\b\d{1,2}:\d{2}\s*[AP]M(?:\s+[A-Z]{2,4})?/gi, "<time>");
 async function visitorRun(base, baseline, fetchFn, say = () => {}) {
   let np = 0, nf = 0; const c = (cond, m) => { if (cond) np++; else { nf++; say("FAIL " + m); } };
   const endpoint = async name => { try { const r = await fetchFn(base + "/api/publicExamples?name=" + name, { headers: base.startsWith("https") ? bypassH() : {} }); return (await r.json()).data ?? null; } catch { return null; } };
@@ -48,7 +50,7 @@ async function visitorRun(base, baseline, fetchFn, say = () => {}) {
     if (B.status !== 200) continue;
     c(r.h.get("x-design") === "new", `${p}: a visitor is served the new design (X-Design ${r.h.get("x-design") || "none"})`);
     c(F.robots === B.robots && F.xRobots === B.xRobots, `${p}: robots is what it was before the flip: meta ${B.robots || "none"}, header ${B.xRobots || "none"} (now meta ${F.robots || "none"}, header ${F.xRobots || "none"})`);
-    c(F.title === B.title && F.description === B.description && F.canonical === B.canonical, `${p}: title, description and canonical are what they were before the flip`);
+    c(undate(F.title) === undate(B.title) && undate(F.description) === undate(B.description) && F.canonical === B.canonical, `${p}: title, description and canonical are what they were before the flip (dates and times in them move every day and are set aside)`);
     c(F.ld >= B.ld, `${p}: structured data kept (${B.ld} before, ${F.ld} now)`);
     c(F.banner === (B.banner || B.track) && F.track === B.track, `${p}: the analytics script is where it was and a page that loads it offers the consent choice (banner ${B.banner} before, ${F.banner} now; analytics script ${B.track} before, ${F.track} now)`);
     c(F.h1 === 1, `${p}: one h1 (${F.h1})`);
@@ -71,6 +73,13 @@ async function railSection(base, c, openFn) {
     const p = await probeRail(pg), bad = railProblems(p, {}); c(bad.length === 0, `${url} @${w}: the rail is on screen as designed, signed out (${bad.join("; ") || "box " + JSON.stringify(p.rail)})`);
     if (w <= 860 && url.startsWith("/find")) c(p.mvisits, `${url} @${w}: the Your searches button is on screen`);
     try { await pg.__ctx.close(); } catch {}
+  }
+  // ONE HEADER ON EVERY ROUTE: the header's computed style on a landing equals the one on its results page (the BETA pill was pale on pale on every results page)
+  const { probeHeader, headerDiffs } = await import(pathToFileURL(path.join(ROOT, "scripts/_railProbe.mjs")).href), PAIRS = [["/find", RAIL_PAGES[0]], ["/market-check", RAIL_PAGES[1]], ["/sell", RAIL_PAGES[2]]];
+  for (const w of [1440, 390]) for (const [land, res] of PAIRS) {
+    const a = await openFn(w); await a.goto(base + land, { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {}); await new Promise(r => setTimeout(r, 2500)); const ha = await probeHeader(a); try { await a.__ctx.close(); } catch {}
+    const r = await openFn(w); await r.goto(base + res, { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {}); await new Promise(r2 => setTimeout(r2, 3500)); const hr = await probeHeader(r); try { await r.__ctx.close(); } catch {}
+    const d = headerDiffs(ha, hr, { width: w >= 1440 }); c(d.length === 0, `${res} @${w}: the header is the landing's (${land}) header, element for element (${d.join(" | ").slice(0, 400) || "same"})`);
   }
 }
 async function visitorBrowser(base, { searches }) {
