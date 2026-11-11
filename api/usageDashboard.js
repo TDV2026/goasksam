@@ -1055,9 +1055,9 @@ async function handleOps(req, res) {
   if (task === "deskpreviewseed") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     try {
-      const { seedPreviewStore, previewSeatOf } = await import("../lib/preview/deskPreview.js"), { supabaseStore } = await import("../lib/desk/sheetStore.js");
-      const r = await seedPreviewStore(supabaseStore(env), { realIds: true, seat: previewSeatOf(env) });
-      return res.status(200).json({ ok: true, ...r });
+      const { seedPreviewStore, previewSeatOf, resetPreviewDemo } = await import("../lib/preview/deskPreview.js"), { supabaseStore } = await import("../lib/desk/sheetStore.js");
+      const store = supabaseStore(env), opts = { realIds: true, seat: previewSeatOf(env) }, r = await seedPreviewStore(store, opts), back = String((req.query || {}).reset || "") === "1" ? await resetPreviewDemo(store, opts) : null;   // reset=1: the demonstration case back to Any condition (one ordinary edit of that case)
+      return res.status(200).json({ ok: true, ...r, ...(back ? { reset: back } : {}) });
     } catch (e) { return res.status(200).json({ ok: false, why: String(e && e.message || e).slice(0, 200) }); }
   }
   if (task === "deskrungs") {

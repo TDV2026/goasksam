@@ -40,4 +40,12 @@ const last = await session(); ok("after all four edits a cold start still shows 
   const fin = P.previewUuid("pv_fin"), rev = await api({ action: "case_edit", id: fin, op: "reserve", patch: { figure: 29000 } });
   ok("an edit of the finalized sample makes a revision (the finalized version is superseded)", rev.ok === true && !!rev.revisedFrom, String(rev.why || ""));
   const m = await check("after a revision"); ok("every group's count equals the cases listed under it, before and after a revision", !states.length && m.cases.some(c => c.group === "review"), states.join(" | ")); }
+// ---------- ANY CONDITION (Lane C's run: the demonstration case sat on Good and no button took it back) ----------
+// CAUSE: the buttons were the four rungs only, and a rung once chosen could not be un-chosen. OTHER CARS AND PAGES: every case, on the workspace buttons; the report's condition tile follows the case. CLASS: from every rung (and from no condition) the case can be put on Any condition, it then holds the engine's no-condition view (the count the Any button said), and the reset of the demonstration case does the same through one ordinary edit.
+{ const off = []; for (const t of [1, 2, 3, 4]) { await api({ action: "case_edit", id, op: "condition", selected: { tier: t, name: "x" } }); const on = (await api({ action: "case_get", id })).case, btn = on.desk.anyCondition;
+    const r = await api({ action: "case_edit", id, op: "condition", selected: null }), c = (await api({ action: "case_get", id })).case;
+    if (!(r.ok && c.condition.selected === null && c.desk.view.tier === 0)) off.push(`from ${t}: ${r.why || JSON.stringify(c.condition.selected)}`);
+    if (!(btn && c.desk.evidence.count === (await api({ action: "case_get", id })).case.desk.anyCondition.count)) off.push(`from ${t}: the Any button says ${btn && btn.count}, the case reads ${c.desk.evidence.count}`); }
+  await api({ action: "case_edit", id, op: "condition", selected: { tier: 3, name: "Good" } }); const back = await P.resetPreviewDemo(backing, { realIds: true, seat: "crew" }), c2 = (await api({ action: "case_get", id })).case;
+  ok("every rung can be taken back to Any condition, the Any button's count is what the case then reads, and the demonstration case resets to it", !off.length && back.ok === true && c2.condition.selected === null && c2.desk.view.tier === 0 && c2.desk.anyCondition && c2.desk.anyCondition.count === c2.desk.evidence.count, off.concat([back.why]).join(" | ")); }
 console.log(`deskPersistCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

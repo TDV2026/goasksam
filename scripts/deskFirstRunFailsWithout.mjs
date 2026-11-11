@@ -44,6 +44,16 @@ const MUT = [
   ["the population words fall back to cars again", "reportConsistencyCheck", "lib/reasonWords.js", rep('(!s.transmission && s.label ? String(s.label) : "cars")', '"cars"')],
   // lane F 11. a new case is read once
   ["a new case reads again to check the reserve it took", "deskTypedCasesCheck", CW, rep("if (fig != null && !(was && was.reserve === fig)) {", "if (false) {")],
+  // lane C 3. the Mini's trim and body, and the pickers before a case exists
+  ["a blank Trim with a Series that names the model and the trim is read as no trim", "deskTypedCasesCheck", "lib/vehicle.js", rep("cleanVinTrim(r.Trim) || seriesTrim || null", "cleanVinTrim(r.Trim) || null")],
+  ["a hatchback names no body", "deskTypedCasesCheck", "lib/vehicle.js", rep('if (/hatchback|liftback/.test(b)) return "hatchback";', "")],
+  ["case_pickers looks for a sheet and says no such sheet", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep('if (action === "case_pickers") {', 'if (action === "case_pickers") { if (!(await get(body.id))) return refuse("No such sheet.");')],
+  // lane C 1. one view per rung, stable across reads
+  ["the rung the read was made with is cut by the mileage band and the others are not", "deskViewsCheck", DV, rep("byTier: desk.rungPools ? Object.fromEntries", "byTier: false ? Object.fromEntries")],
+  // lane C 2. Any condition
+  ["the demonstration case's reset puts it on Good", "deskPersistCheck", "lib/preview/deskPreview.js", rep('op: "condition", selected: null }, ctxOf(store, {}, seat));', 'op: "condition", selected: { tier: 3, name: "Good" } }, ctxOf(store, {}, seat));')],
+  ["the Any button counts one sale too many", "reportConsistencyCheck", DV, rep("return { count: n, countLine: countNoun(n, \"sale\", { words: false }) };", "return { count: n + 1, countLine: countNoun(n + 1, \"sale\", { words: false }) };")],
+  ["the page has no Any condition button", "deskV4FlowCheck", "lib/preview/deskV4Client.js", rep("if (any) box.appendChild(", "if (false) box.appendChild(")],
   // 4. a waived item whose cause is gone leaves the list
   ["a waived item stays when the mark that caused it is set", "reportConsistencyCheck", CW, rep('else if (!on && it && it.state === "waived") c.needs_review', 'else if (false) c.needs_review')],
   // 7. a switch with nothing to show says so
