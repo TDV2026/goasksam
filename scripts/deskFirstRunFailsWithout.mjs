@@ -40,6 +40,10 @@ const MUT = [
   // lane F 9. the Desk's own word
   ["the PDF title says valuation report again", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep('reasonLine("report.title_final", { number: number || "" }).trim()', '`Valuation report ${number || ""}`.trim()')],
   ["the preview's send subject says valuation report again", "deskPdfCheck", "lib/preview/deskPreview.js", rep('subject: reasonLine("report.title_final", { number: p.reportNumber })', 'subject: "Valuation report " + p.reportNumber')],
+  // lane F 10. a thin pool names the car
+  ["the population words fall back to cars again", "reportConsistencyCheck", "lib/reasonWords.js", rep('(!s.transmission && s.label ? String(s.label) : "cars")', '"cars"')],
+  // lane F 11. a new case is read once
+  ["a new case reads again to check the reserve it took", "deskTypedCasesCheck", CW, rep("if (fig != null && !(was && was.reserve === fig)) {", "if (false) {")],
   // 4. a waived item whose cause is gone leaves the list
   ["a waived item stays when the mark that caused it is set", "reportConsistencyCheck", CW, rep('else if (!on && it && it.state === "waived") c.needs_review', 'else if (false) c.needs_review')],
   // 7. a switch with nothing to show says so
