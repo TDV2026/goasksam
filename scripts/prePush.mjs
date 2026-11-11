@@ -2337,6 +2337,12 @@ try {
   record("Find says one thing: 20 recorded searches through the real search turn and the page's own chip and count code; no count twice, no unused word that a chip used, no card line on a page with no card, the count line agrees with the offer (scripts/findVoiceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 200));
 }
 try {
+  const out = execSync("node scripts/converseRetiredCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Find: the old converse endpoint is retired and nothing calls it (scripts/converseRetiredCheck.mjs)", "PASS", (out.match(/converseRetiredCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Find: the old converse endpoint is retired and nothing calls it (scripts/converseRetiredCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/findGenerationsCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Find: every generation code of the curated table (246 rows: E30, E36, 964, 993, C2, C3, Mk1, W113, 100 Series and the rest) finds its live cars and is printed once (scripts/findGenerationsCheck.mjs)", "PASS", out.trim().split("\n").pop());
 } catch (e) {

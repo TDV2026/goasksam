@@ -20,17 +20,18 @@ const imp = f => import(pathToFileURL(path.join(root, f)).href);
 const { converse } = await imp("lib/live/converse.js"), { default: bs } = await imp("api/buySearch.js");
 const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
 const post = async body => { let out = null; const res = { statusCode: 200, headers: {}, setHeader(k, v) { this.headers[k] = v; }, getHeader() {}, status(c) { this.statusCode = c; return this; }, json(o) { out = o; return this; }, send(o) { out = o; return this; }, end() { return this; } }; await bs({ method: "POST", headers: { cookie: "", host: "x", "x-forwarded-for": "203.0.113." + Math.floor(Math.random() * 200) }, query: {}, body, url: "/api/buySearch" }, res); return out || {}; };
-const cardsOf = w => (w.cards || []).length + (w.groups || []).reduce((n, g) => n + (g.cards || []).length, 0);
+const wire = state => converse(env, state);   // the conversation function itself (the nightly crossProductCheck reads it); its page endpoint is retired (lane-b-find-retire)
+const cardsOf = w => (w.matches || []).length + [...(w.groups || []), ...(w.maybeGroups || [])].reduce((n, g) => n + (g.items || []).length, 0);
 // (1) the report: a bare make-model search with live matches always draws cars
 { const r = await converse(env, { messages: ["Porsche 911"], answered: [], asked: 0 });
   ok("(1) converse: Porsche 911 with 48 live matches is results with the cars, never a question alone", r.type === "results" && (r.matches || []).length > 0, [r.type, (r.matches || []).length]);
   ok("(1) the generation question rides with them as the offer", r.offer && r.offer.key === "generation" && /^Which generation\?/.test(r.offer.prompt) && r.offer.options.length >= 2, r.offer && r.offer.prompt);
-  const w = await post({ action: "converse", state: { id: "c1", messages: ["Porsche 911"], filters: null, answered: [], asked: 0, zip: null, place: null, showNow: false } });
+  const w = await wire({ id: "c1", messages: ["Porsche 911"], filters: null, answered: [], asked: 0, zip: null, place: null, showNow: false });
   ok("(1) the wire answer (what the page reads): results, cards drawn, the offer present", w.type === "results" && cardsOf(w) > 0 && w.offer && w.offer.key === "generation", [w.type, cardsOf(w), w.offer && w.offer.key]); }
 // (2) every narrowing question the conversation can ask, driven through its own answers: the cars every time, the question as the offer
 { const seen = []; let st = { messages: ["Porsche 911"], answered: [], asked: 0, filters: null };
   for (let step = 0; step < 6; step++) {
-    const w = await post({ action: "converse", state: { id: "c2", zip: null, place: null, showNow: false, ...st } });
+    const w = await wire({ id: "c2", zip: null, place: null, showNow: false, ...st });
     ok(`(2) step ${step + 1}: ${w.type}, never a question alone`, w.type !== "question" && (w.type === "results" || w.type === "groups") && cardsOf(w) > 0, [w.type, cardsOf(w)]);
     if (!w.offer) break;
     seen.push(w.offer.key);
@@ -38,30 +39,15 @@ const cardsOf = w => (w.cards || []).length + (w.groups || []).reduce((n, g) => 
   }
   ok("(2) the conversation offers at least generation, mileage and budget in turn, each beside the cars", ["generation", "mileage", "budget"].every(k => seen.includes(k)), seen); }
 // (3) a year typed leaves the body question: still the cars
-{ const w = await post({ action: "converse", state: { id: "c3", messages: ["2016 Porsche 911"], filters: null, answered: [], asked: 0, zip: null, place: null, showNow: false } });
+{ const w = await wire({ id: "c3", messages: ["2016 Porsche 911"], filters: null, answered: [], asked: 0, zip: null, place: null, showNow: false });
   ok("(3) 2016 Porsche 911: the cars, and any narrowing question is the offer", w.type !== "question" && cardsOf(w) > 0, [w.type, cardsOf(w), w.offer && w.offer.key]); }
 // (4) a broad search (no model): the groups, the kind question as the offer
-{ const w = await post({ action: "converse", state: { id: "c4", messages: ["manual cars"], filters: null, answered: [], asked: 0, zip: null, place: null, showNow: false } });
+{ const w = await wire({ id: "c4", messages: ["manual cars"], filters: null, answered: [], asked: 0, zip: null, place: null, showNow: false });
   ok("(4) a broad search with no model draws the groups, never a question alone, and the kind question is the offer", w.type === "groups" && cardsOf(w) > 0 && w.offer && w.offer.key === "kind", [w.type, cardsOf(w), w.offer && w.offer.key]); }
 // (5) near me with no zip: the cars (unsorted) and the question, not the question alone
-{ const w = await post({ action: "converse", state: { id: "c5", messages: ["Porsche 911 near me"], filters: null, answered: ["generation"], asked: 1, zip: null, place: null, showNow: false } });
+{ const w = await wire({ id: "c5", messages: ["Porsche 911 near me"], filters: null, answered: ["generation"], asked: 1, zip: null, place: null, showNow: false });
   ok("(5) near me with no zip: the cars are drawn and where-are-you is the offer", w.type !== "question" && cardsOf(w) > 0 && w.offer && w.offer.key === "location", [w.type, cardsOf(w), w.offer && w.offer.key]); }
-// (7) THE TIMING BUDGET PER STAGE (Nov 11 2026). Lane C measured /find?q=Porsche 911 at 15 s to the cards and a typed "Porsche 911" at over 60 s. Measured stages (production, Nov 11): live pool read 0.3 to 1.3 s, the first ten cards' market reads 6 to 9 s on a cold spec (the slowest held the whole answer),
-// the written answer's tool round 0.25 to 3.8 s plus its model round 1.5 s, and a typed answer that ran out of time was asked again (25 s, 25 s, then the scripted search). The cards must draw within a few seconds whatever the reads behind them do: a card whose reads are not back in CARD_BUDGET_MS is
-// drawn at once with the engine's being-read line and filled in place. Here the pool read is slow (400 ms) and every read behind a card takes 4.5 s: the answer still arrives inside its budget, with the cars.
-{ const { CARD_BUDGET_MS, converseOut } = await imp("api/buySearch.js"); DELAY.pool = 400;
-  const SLOW = 8000, slowEnrich = async (e, x) => { await new Promise(r => setTimeout(r, SLOW)); return { id: x.r.id, title: "slow", market: { kind: "range" } }; };   // a cold spec: the per-card read takes 8 s (Ford Bronco read 8.3 s cold in production)
-  const BUDGET = { converse: 2500, cards: 3900, total: 5500 };   // fixed numbers, not derived from the code under test: the cards 3 s plus 0.9 s, the whole answer 5.5 s
-  ok("(7) the first batch's own clock is three seconds", CARD_BUDGET_MS === 3000, CARD_BUDGET_MS);
-  const t0 = Date.now(), w = await converseOut(env, { action: "converse", debug: true, state: { id: "t1", messages: ["Porsche 911"], filters: null, answered: [], asked: 0, zip: null, place: null, showNow: false } }, { enrichOne: slowEnrich }), wall = Date.now() - t0;
-  ok(`(7) the cars are drawn within ${BUDGET.total} ms whatever the reads behind them take (wall ${wall} ms, a read takes ${SLOW} ms)`, w.type === "results" && cardsOf(w) > 0 && wall <= BUDGET.total, [wall, w.type, cardsOf(w)]);
-  const tm = w.times || {};
-  ok(`(7) stage budgets: the live pool and the resolve inside ${BUDGET.converse} ms (${tm.converse}), the cards inside ${BUDGET.cards} ms (${tm.cards})`, tm.converse <= BUDGET.converse && tm.cards <= BUDGET.cards, tm);
-  ok("(7) a card whose reads are late is drawn at once with the engine's being-read market (kind pending), never held back and never blank", (w.cards || []).filter(c => c.market && c.market.kind === "pending").length >= 1 && (w.cards || []).slice(0, 10).every(c => c.market !== undefined), (w.cards || []).slice(0, 3).map(c => c.market && c.market.kind));
-  ok("(7) the stage times travel with the answer (times) so a slow answer is read from the answer itself", typeof tm.converse === "number" && typeof tm.cards === "number" && typeof tm.total === "number", tm);
-  const fast = await converseOut(env, { action: "converse", debug: true, state: { id: "t2", messages: ["Porsche 911"], filters: null, answered: [], asked: 0, zip: null, place: null, showNow: false } }, { enrichOne: async (e, x) => ({ id: x.r.id, title: "fast", market: { kind: "range" } }) });
-  ok("(7) reads that are back in time are drawn whole (no card pending)", (fast.cards || []).slice(0, 10).every(c => c.market && c.market.kind === "range"), (fast.cards || []).slice(0, 3).map(c => c.market && c.market.kind));
-  DELAY.card = 0; DELAY.pool = 0; }
+// (7) the timing budget of the retired page endpoint is gone with it (lane-b-find-retire); the written answer and action rerun are timed by findSpeed checks.
 // (8) A PLAIN SEARCH CALLS NO MODEL (Nov 11 2026). A plain car search ran one model round that only routed it (the model's whole job was to call search_live with the make and model the code had already resolved; the reply was the fixed line): 1.5 s on every search and one of the device's 20 model
 // turns a day. PLAIN = the typed words are the car and nothing else: a make and a model with any of a trim, a generation code, a year, a colour, a body, a gearbox and the filler words of asking. Not plain, so the model reads it: no model (a make alone), a budget, miles, a place, an ending time, a soft
 // word, a question, a word the code cannot account for as the car, and every follow-up turn. The code runs the same search_live the model would have called; usage.calls stays 0, so the turn is not counted on the ceiling (afterTurn counts only turns that called the model).
@@ -85,8 +71,6 @@ function mutants() {
     ["lib/live/converse.js", "if (q) { offer = { ...q, key: q.key === \"body\" ? \"body\" : key, filters: f }; break; }", "if (q) return { type: \"question\", ...q, key: q.key === \"body\" ? \"body\" : key, filters: f };", "(1) converse: Porsche 911"],
     ["lib/live/converse.js", "if (q) { offer = { ...q, key, filters: f }; break; }", "if (q) return { type: \"question\", ...q, key, filters: f };", "(4) a broad search"],
     ["lib/live/converse.js", "    offer = { key: \"location\", prompt: \"Where are you?\", free: \"A ZIP or a city is fine, or say\", options: [{ label: \"anywhere\", value: \"__any\" }], noTail: true, filters: f };", "    return { type: \"question\", key: \"location\", prompt: \"Where are you?\", free: \"A ZIP or a city is fine, or say\", options: [{ label: \"anywhere\", value: \"__any\" }], noTail: true };", "(5) near me with no zip"],
-    ["api/buySearch.js", "perCard: !!r.perCard, ...(r.offer ? { offer: r.offer } : {}) };", "perCard: !!r.perCard };", "(4) a broad search"],
-    ["api/buySearch.js", "return { type: \"results\", ...(r.offer ? { offer: r.offer } : {}), say: say,", "return { type: \"results\", say: say,", "(1) the wire answer"],
     ["api/buy.js", "if (d.offer) offerAsk(d.offer);", "", "(6) the Find client parses"],
     ["lib/live/samChat.js", "directTool: async (lastUser, ctx) => {", "directTool: async (lastUser, ctx) => { return null;", "(8) plain \"Porsche 911\": no model call"],
     ["lib/live/chatCore.js", "if (surface.directTool && surface.endAfterTools && mustTool) {", "if (false) {", "(8) plain \"2016 Porsche 911\": no model call"],
@@ -95,9 +79,6 @@ function mutants() {
     ["lib/live/samChat.js", "|| /[?]/.test(t) ||", "|| false ||", "(8) not plain \"Porsche 911?\""],
     ["lib/live/samChat.js", ["if (!ctx.speculative || (ctx.prevFilters && Object.keys(ctx.prevFilters).length)) return null;", "speculative: !Object.keys(prevFilters).length && lastUser ? speculativeSearch(env, lastUser, resolved) : null"], ["if (!ctx.speculative) return null;", "speculative: lastUser ? speculativeSearch(env, lastUser, resolved) : null"], "(8) a follow-up turn"],
     ["lib/live/converse.js", "matches.length > 5 && !offer) {", "matches.length > 5) {", "(5) near me with no zip"],
-    ["api/buySearch.js", "const head = keep.slice(0, n), pre = preFor(head), got = await moreBatch(head, { enrichOne: async x => { await pre; return (deps.enrichOne || enrichFast)(env, x); }, pendingOf: pendingCardOf, budgetMs: CARD_BUDGET_MS });", "const head = keep.slice(0, n), got = await Promise.all(head.map(x => (deps.enrichOne || enrichFast)(env, x)));", "(7) the cars are drawn within"],
-    ["api/buySearch.js", "export const CARD_BUDGET_MS = BATCH_BUDGET_MS;", "export const CARD_BUDGET_MS = 60000;", "(7) the cars are drawn within"],
-    ["api/buySearch.js", "times.total = Date.now() - T0; if (out && typeof out === \"object\") { Object.defineProperty(out, \"_times\", { value: times, enumerable: false }); if (b.debug) out.times = times; }", "", "(7) the stage times travel"],
     ["api/buy.js", "return draw();", "var th = thinking(); return enrichThen(pend, function(){ th.done(); draw(); });", "(6) the Find client draws the scripted answer at once"],
     ["api/buy.js", "Date.now() - chatT0 < 10000", "true", "(6) the Find client draws the scripted answer at once"]
   ];
