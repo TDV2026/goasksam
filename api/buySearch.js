@@ -789,7 +789,7 @@ async function converseOut(env, b) {
     const total = groups.concat(maybeGroups).reduce((k, g) => k + g.n, 0);
     const say = r.near ? r.say : total && seenN ? `${CountText(total)} live, grouped by model. ${sauce(seenN)}` : (r.say || null);
     logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
-    return { type: "groups", say, groups, maybeGroups, maybeKeys: r.maybeKeys || [], filters: r.filters || null, geo: !!r.geo, footnote: !!r.footnote, perCard: !!r.perCard };
+    return { type: "groups", say, groups, maybeGroups, maybeKeys: r.maybeKeys || [], filters: r.filters || null, geo: !!r.geo, footnote: !!r.footnote, perCard: !!r.perCard, ...(r.offer ? { offer: r.offer } : {}) };
   }
   const matches = (r.matches || []).slice(0, MAX);
   // Stated matches first, then the ones whose listing doesn't say; nearest first within each.
@@ -810,7 +810,7 @@ async function converseOut(env, b) {
   if (r.near) say = r.say;
   else if (!r.closest && !r.outOfScope && /^There are [\w,]+ live right now\./.test(r.say || "") && (seenN || (unsure && sureN))) say = countLine + (seenN ? " " + sauce(seenN) : "") + (r.geo ? " Closest first." : "");
   else if (seenN && !r.closest && !r.outOfScope) say = allM.length === 1 ? r.say + " It has been through auction before, and Sam has its history." : (r.say || "") + " " + sauce(seenN);
-  return { type: "results", say: say, near: r.near || null, market: applyRung(r.market) || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: cards.length, cards, setAside, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null, excluded: r.excluded && r.excluded.length ? r.excluded : undefined };
+  return { type: "results", ...(r.offer ? { offer: r.offer } : {}), say: say, near: r.near || null, market: applyRung(r.market) || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: cards.length, cards, setAside, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null, excluded: r.excluded && r.excluded.length ? r.excluded : undefined };
 }
 // Set-aside cars (modified, engine-swapped, project) are never cards: one quiet line each, with a thumbnail.
 const ASIDE_KINDS = { engine_swap: "engine-swapped", modified: "modified", project: "a project car" };

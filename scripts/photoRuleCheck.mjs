@@ -140,7 +140,7 @@ function liveWorld(rows, table, extra = {}) {
 }
 { // (3) the class
   const dir = path.join(ROOT, "lib/live"), selecting = fs.existsSync(path.join(dir, "entryExamples.js")) ? ["entryExamples.js"] : [];
-  for (const f of fs.readdirSync(dir).filter(x => /\.js$/.test(x))) { const src = fs.readFileSync(path.join(dir, f), "utf8"); if (/export const STORE_KEY = "crew_/.test(src) && /export async function refresh\w+\(/.test(src)) selecting.push(f); }
+  for (const f of fs.readdirSync(dir).filter(x => /\.js$/.test(x))) { const src = fs.readFileSync(path.join(dir, f), "utf8"); if (/export const STORE_KEY = "crew_/.test(src) && /(export async function refresh\w+\(|export const refresh\w+ = guardedRefresh\(\w+Core)/.test(src)) selecting.push(f); }
   const missing = selecting.filter(f => !/from "\.\/photoRule\.js"/.test(fs.readFileSync(path.join(dir, f), "utf8")));
   ok("(3) every crew module that selects an example car uses the photo rule", selecting.length >= 4 && missing.length === 0, "selecting " + selecting.join(", ") + " missing " + missing.join(", "));
 }
