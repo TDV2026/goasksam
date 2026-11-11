@@ -4,23 +4,96 @@
 //   BROWSER (--browser): the look at 1440 and 390: Find results and the rail, the Your searches button, the Account button opening the sign in card, the analytics script and the banner, one Sell search through to a result.
 //   NOT RUN, said plainly: anything that needs a signed in ACCOUNT (the crew cookie is not an account).
 // The crew cookie and the protection bypass are read from the Keychain (goasksam-crew, goasksam-bypass) in this process, never printed, written or put in an address. Run only in a gap, with no push lock open.
-//   node scripts/goLiveLiveCheck.mjs [--browser] [--no-head] [BASE]
-import path from "node:path"; import { createRequire } from "node:module"; import { execFileSync } from "node:child_process"; import { fileURLToPath, pathToFileURL } from "node:url";
+//   VISITOR (--visitor), THE SWITCH ON: fetches as a visitor, no cookie and no query, and holds each public route to the page it was BEFORE the flip (docs/go-live-public-baseline.json, recorded from the live site with the switch off by --record-baseline): the same status, robots meta and header, title, description, canonical, banner and
+//     analytics script; X-Design: new; one h1; the examples on Find, Market Check, Sell, Tasks and Home exactly when /api/publicExamples has them for that page, and on Find and Market Check always; Tasks prints its live limit (3). It FAILS on a head with the switch off (no X-Design) and on a head whose pages show no examples.
+//   THE CREW LOOK (default) compares ?design=new with the crew cookie against the public page, so it only means anything with the switch OFF: with the switch on a crew fetch is the crew's page (noindex), never the public one, so the look comparison is skipped and says so; use --visitor.
+//   --self-test: serves THIS TREE's handlers over a stored-pick world on a local port (no network) and runs the visitor mode against it: it must pass with the switch on and fail with it off, with the examples off, and with each of three faults put in.
+//   node scripts/goLiveLiveCheck.mjs [--browser] [--no-head] [--visitor] [--record-baseline] [--self-test] [BASE]
+import fs from "node:fs"; import path from "node:path"; import { createRequire } from "node:module"; import { execFileSync } from "node:child_process"; import { fileURLToPath, pathToFileURL } from "node:url";
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), ".."), args = process.argv.slice(2), BASE = args.find(a => /^https?:/.test(a)) || "https://goasksam.com", BROWSER = args.includes("--browser");
 let pass = 0, fail = 0, notRun = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const skip = m => { notRun++; console.log("NOT RUN " + m); };
+const realFetch = globalThis.fetch, VISITOR = args.includes("--visitor"), RECORD = args.includes("--record-baseline"), SELF = args.includes("--self-test"), BASEFILE = path.join(ROOT, "docs/go-live-public-baseline.json");
 const { crewCookie } = await import(pathToFileURL(path.join(ROOT, "scripts/_crewCookie.mjs")).href);
-const CREW = await crewCookie();
-let BYP = ""; try { BYP = execFileSync("security", ["find-generic-password", "-s", "goasksam-bypass", "-w"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch {}
+const CREW = VISITOR || RECORD || SELF ? "n/a" : await crewCookie();
+let BYP = ""; if (!SELF) try { BYP = execFileSync("security", ["find-generic-password", "-s", "goasksam-bypass", "-w"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch {}
 if (!CREW) { console.log("REFUSED no crew cookie (Keychain goasksam-crew)"); process.exit(1); }
 const bypassH = () => BYP ? { "x-vercel-protection-bypass": BYP } : {};
-const get = (p, look) => fetch(BASE + p + (look ? (p.includes("?") ? "&" : "?") + "design=new" : ""), { redirect: "manual", headers: { ...bypassH(), ...(look ? { cookie: "gas_crew=" + CREW } : {}), "user-agent": "Mozilla/5.0 (goLiveLiveCheck)" } });
+const get = (p, look) => realFetch(BASE + p + (look ? (p.includes("?") ? "&" : "?") + "design=new" : ""), { redirect: "manual", headers: { ...bypassH(), ...(look ? { cookie: "gas_crew=" + CREW } : {}), "user-agent": "Mozilla/5.0 (goLiveLiveCheck)" } });
 const META = n => new RegExp(`<meta\\b[^>]*\\bname=["']${n}["'][^>]*>`, "gi"), PROP = p => new RegExp(`<meta\\b[^>]*\\bproperty=["']${p}[^"']*["'][^>]*>`, "gi");
 const SHAPES = { title: /<title\b[^>]*>[\s\S]*?<\/title>/gi, description: META("description"), robots: META("robots"), canonical: /<link\b[^>]*\brel=["']canonical["'][^>]*>/gi, og: PROP("og:"), twitter: META("twitter:[^\"']*"), ld: /<script\b[^>]*\btype=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi };
 const tags = html => { const head = (/<head\b[\s\S]*?<\/head>/i.exec(html) || [html])[0], o = {}; for (const [k, re] of Object.entries(SHAPES)) o[k] = (k === "ld" ? html : head).match(re) || []; return o; };
 const PIECES = [["the analytics script", /<script\b[^>]*\bsrc="\/api\/track\?js=1"/], ["the consent banner markup", /<div[^>]*gas-consent-banner/], ["the consent banner script", /<script>[^<]*(?:gasConsent|gas-consent-accept)/]];
 const ROUTES = ["/", "/find", "/market-check", "/sell", "/tasks", "/about", "/how-sam-decides", "/whats-new", "/terms", "/privacy", "/business", "/feedback", "/history"];
-for (const p of args.includes("--no-head") ? [] : ROUTES) {
+
+// ---- THE VISITOR (switch on) -----------------------------------------------------------------------------------------------------------------------------------------------------------------
+const BASE_ROUTES = [...ROUTES, "/history/porsche", "/history/1928-alfa-romeo-6c-spider/0110910"];
+const ENTRY = { "/": ["data-featured-history", ["featured"]], "/find": ["data-find-examples", ["find", "findSales"]], "/market-check": ["data-mc-card", ["mcCard"]], "/sell": ["data-sell-card", ["sellCard"]], "/tasks": ["data-task-email", ["tasksEmail"]] };
+const MUST = new Set(["/find", "/market-check"]);   // the order: examples present on Find and Market Check
+const vget = async (base, p, fetchFn) => { const r = await fetchFn(base + p, { redirect: "manual", headers: { ...(base.startsWith("https") ? bypassH() : {}), "user-agent": "Mozilla/5.0 (goLiveLiveCheck visitor)" } }); return { status: r.status, h: r.headers, html: await r.text() }; };
+const strip = h => String(h).replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, "");
+const facts = r => { const t = tags(r.html); return { status: r.status, xRobots: r.h.get("x-robots-tag") || "", robots: (t.robots[0] || "").replace(/\s*\/>$/, ">"), title: t.title[0] || "", description: t.description[0] || "", canonical: t.canonical[0] || "", ld: t.ld.length, banner: /<div[^>]*gas-consent-banner/.test(r.html), track: /<script\b[^>]*\bsrc="\/api\/track\?js=1"/.test(r.html), h1: (strip(r.html).match(/<h1\b/gi) || []).length }; };
+async function recordBaseline(base, fetchFn) { const routes = {}; for (const p of BASE_ROUTES) { const r = await vget(base, p, fetchFn); routes[p] = { ...facts(r), design: r.h.get("x-design") || "" }; } return { recordedAt: new Date().toISOString(), base, note: "the public pages with NEW_DESIGN off, fetched with no cookie and no query (goLiveLiveCheck --record-baseline)", routes }; }
+async function visitorRun(base, baseline, fetchFn, say = () => {}) {
+  let np = 0, nf = 0; const c = (cond, m) => { if (cond) np++; else { nf++; say("FAIL " + m); } };
+  const endpoint = async name => { try { const r = await fetchFn(base + "/api/publicExamples?name=" + name, { headers: base.startsWith("https") ? bypassH() : {} }); return (await r.json()).data ?? null; } catch { return null; } };
+  const E = {}; for (const n of ["find", "findSales", "featured", "mcCard", "sellCard", "tasksEmail"]) E[n] = await endpoint(n);
+  for (const p of BASE_ROUTES) {
+    const B = baseline.routes[p]; if (!B) { c(false, `${p}: the baseline has no entry for it`); continue; }
+    const r = await vget(base, p, fetchFn), F = facts(r);
+    c(F.status === B.status, `${p}: a visitor gets status ${B.status} as before (${F.status})`);
+    if (B.status !== 200) continue;
+    c(r.h.get("x-design") === "new", `${p}: a visitor is served the new design (X-Design ${r.h.get("x-design") || "none"})`);
+    c(F.robots === B.robots && F.xRobots === B.xRobots, `${p}: robots is what it was before the flip: meta ${B.robots || "none"}, header ${B.xRobots || "none"} (now meta ${F.robots || "none"}, header ${F.xRobots || "none"})`);
+    c(F.title === B.title && F.description === B.description && F.canonical === B.canonical, `${p}: title, description and canonical are what they were before the flip`);
+    c(F.ld >= B.ld, `${p}: structured data kept (${B.ld} before, ${F.ld} now)`);
+    c(F.banner === B.banner && F.track === B.track, `${p}: the consent banner and the analytics script are where they were (banner ${B.banner} to ${F.banner}, analytics script ${B.track} to ${F.track})`);
+    c(F.h1 === 1, `${p}: one h1 (${F.h1})`);
+    c(!/\/preview[/?"']/.test(strip(r.html).replace(/indexOf\("\/preview\/"\)/g, "")), `${p}: no crew preview address in the page`);
+    const en = ENTRY[p]; if (en) { const has = r.html.includes(en[0]), data = en[1].some(n => E[n] != null);
+      c(has === data, `${p}: the example section is on the page exactly when /api/publicExamples has it (page ${has}, endpoint ${data})`);
+      if (MUST.has(p)) c(has, `${p}: the examples are on the page (a visitor sees them)`); }
+    if (p === "/tasks") c(/\b3 active Tasks/.test(strip(r.html).replace(/<[^>]+>/g, " ")), `${p}: Tasks prints its live limit, 3`);
+  }
+  return { pass: np, fail: nf };
+}
+if (RECORD) { const b = await recordBaseline(BASE, realFetch); fs.writeFileSync(BASEFILE, JSON.stringify(b, null, 1) + "\n"); console.log(`recorded ${Object.keys(b.routes).length} routes from ${BASE} into docs/go-live-public-baseline.json`); console.log(Object.entries(b.routes).map(([p, x]) => `${p} ${x.status}${x.design ? " X-Design " + x.design : ""} robots ${x.robots || "none"}`).join("\n")); process.exit(0); }
+if (VISITOR) { const base = JSON.parse(fs.readFileSync(BASEFILE, "utf8")), r = await visitorRun(BASE, base, realFetch, console.log); console.log(`goLiveLiveCheck visitor: ${r.pass} passed, ${r.fail} failed (${BASE}, baseline ${base.recordedAt})`); process.exit(r.fail ? 1 : 0); }
+if (args.includes("--self-test-mutants")) {
+  const MUT = [["a noindex reaching the public (the head's robots not lifted)", "lib/_publicHead.js", '["robots", META("robots")],', ""], ["the consent banner not lifted", "lib/_publicHead.js", "if (L.includes(CONSENT_BANNER_HTML) && !h.includes(CONSENT_BANNER_HTML)) end.push(CONSENT_BANNER_HTML);", ""],
+    ["Find showing a visitor no cars", "api/crewPage.js", "PUBLIC_CTX.getStore() ? publicFindExamples(req) : readField(", "false ? publicFindExamples(req) : readField("], ["the Tasks page printing the crew limit to a visitor", "api/crewPage.js", "PUBLIC_CTX.getStore() ? taskLimitFor(isCrewRequest(req) === true) : crewLimitMax()", "crewLimitMax()"]];
+  let bad = 0; for (const [name, file, from, to] of MUT) { const f = path.join(ROOT, file), orig = fs.readFileSync(f, "utf8"); if (!orig.includes(from)) { console.log("MUTANT NOT APPLICABLE: " + name); bad++; continue; } let code = 0;
+    try { fs.writeFileSync(f, orig.replace(from, () => to)); try { execFileSync("node", [fileURLToPath(import.meta.url), "--self-test"], { stdio: "pipe" }); } catch (e) { code = e.status || 1; } } finally { fs.writeFileSync(f, orig); }
+    console.log((code ? "caught   " : "MISSED   ") + "without " + name); if (!code) bad++; }
+  console.log(bad ? "goLiveLiveCheck visitor mutants: " + bad + " not caught" : "goLiveLiveCheck visitor mutants: all " + MUT.length + " caught"); process.exit(bad ? 1 : 0); }
+if (SELF) { await selfTest(); }
+async function selfTest() {
+  const http = await import("node:http"), { visitorWorld } = await import(pathToFileURL(path.join(ROOT, "scripts/_visitorWorld.mjs")).href);
+  await visitorWorld(ROOT);   // the stored picks, the fake database as fetch
+  for (const k of ["NEW_DESIGN", "PUBLIC_EXAMPLES", "NEW_DESIGN_DATE"]) delete process.env[k];
+  const imp = f => import(pathToFileURL(path.join(ROOT, "api", f + ".js")).href + "?v=" + Math.random());
+  const MAP = u => { const x = new URL(u, "http://x"), pth = x.pathname, q = x.searchParams; const set = o => { for (const [k, v] of Object.entries(o)) if (!q.has(k)) q.set(k, v); };
+    const simple = { "/": "home", "/find": "buy", "/market-check": "marketCheck", "/sell": "sell", "/tasks": "tasksPage", "/about": "about", "/how-sam-decides": "howSamDecides", "/whats-new": "whatsNew", "/business": "business", "/feedback": "feedback", "/api/publicExamples": "publicExamples" };
+    if (simple[pth]) return [simple[pth], pth, q]; if (pth === "/terms" || pth === "/privacy") { set({ page: pth.slice(1) }); return ["legal", pth, q]; } if (pth === "/history") { set({ index: "1" }); return ["history", pth, q]; }
+    let m = /^\/history\/([^/]+)\/([^/]+)$/.exec(pth); if (m) { set({ slug: m[1], vin: m[2] }); return ["history", pth, q]; } m = /^\/history\/([^/]+)$/.exec(pth); if (m) { set({ slug: m[1] }); return ["history", pth, q]; } return null; };
+  const server = http.createServer(async (req, res) => { const m = MAP(req.url); if (!m) { res.statusCode = 404; return res.end("no"); }
+    const out = { h: {}, code: 200, body: "", setHeader(k, v) { this.h[String(k).toLowerCase()] = String(v); return this; }, getHeader(k) { return this.h[String(k).toLowerCase()]; }, removeHeader(k) { delete this.h[String(k).toLowerCase()]; }, writeHead(c, hh) { this.code = c; Object.assign(this.h, hh || {}); return this; }, status(c) { this.code = c; return this; }, send(b) { this.body = b == null ? "" : String(b); return this; }, end(b) { if (b != null) this.body = String(b); return this; }, json(o) { this.h["content-type"] = this.h["content-type"] || "application/json; charset=utf-8"; this.body = JSON.stringify(o); return this; } };
+    const log = console.error; console.error = () => {}; try { await (await imp(m[0])).default({ method: "GET", url: m[1] + (m[2].toString() ? "?" + m[2].toString() : ""), query: Object.fromEntries(m[2]), headers: { host: "goasksam.com", ...req.headers }, socket: {} }, out); } catch (e) { out.code = 500; out.body = String(e && e.message); } finally { console.error = log; }
+    res.writeHead(out.code, out.h); res.end(out.body); });
+  await new Promise(r => server.listen(0, "127.0.0.1", r)); const base = "http://127.0.0.1:" + server.address().port;
+  const runScenario = async (env, baseline) => { for (const k of ["NEW_DESIGN", "PUBLIC_EXAMPLES"]) delete process.env[k]; Object.assign(process.env, env); return visitorRun(base, baseline, realFetch); };
+  process.env.PUBLIC_EXAMPLES = "1"; delete process.env.NEW_DESIGN; const baseline = await recordBaseline(base, realFetch);
+  ok(Object.values(baseline.routes).some(r => r.status === 200 && /index/.test(r.robots)) && baseline.routes["/find"].design === "", "self-test: the baseline is today's pages (switch off): no X-Design, index pages present");
+  const on = await runScenario({ NEW_DESIGN: "all", PUBLIC_EXAMPLES: "1" }, baseline); ok(on.fail === 0, `self-test: this tree with the switch on and the examples on PASSES the visitor mode (${on.pass} passed, ${on.fail} failed)`);
+  const off = await runScenario({ PUBLIC_EXAMPLES: "1" }, baseline); ok(off.fail > 0, `self-test: a head with the switch OFF (today's live head) FAILS the visitor mode (${off.fail} failed)`);
+  const noex = await runScenario({ NEW_DESIGN: "all" }, baseline); ok(noex.fail > 0, `self-test: the switch on but no examples served FAILS the visitor mode (${noex.fail} failed)`);
+  server.close(); console.log(`INFO visitor mode: switch on ${on.pass}/${on.pass + on.fail}, switch off ${off.fail} failures, examples off ${noex.fail} failures`);
+  console.log(`goLiveLiveCheck self-test: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
+}
+// the crew look is only the flip seen early while the switch is OFF; with it on a crew fetch is the crew's own page (noindex), so it is never read as the public page
+const switchOn = !SELF && (await get("/", false)).headers.get("x-design") === "new";
+if (switchOn && !args.includes("--no-head")) { console.log("NOTE the switch is ON (the public page answers X-Design: new): a crew-cookie fetch is the crew's page, not the public one, so the look comparison is skipped. Run --visitor."); }
+for (const p of args.includes("--no-head") || switchOn ? [] : ROUTES) {
   const pub = await get(p, false); if (pub.status !== 200) { console.log(`SKIP ${p}: the public page answers ${pub.status}`); continue; }
   const look = await get(p, true), pubHtml = await pub.text(), lookHtml = await look.text(), A = tags(pubHtml), Bt = tags(lookHtml);
   for (const [what, re] of PIECES) ok(re.test(pubHtml) === re.test(lookHtml), `${p}: ${what} is in the look exactly when the public page has it (public ${re.test(pubHtml)}, look ${re.test(lookHtml)})`);

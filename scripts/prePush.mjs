@@ -2367,6 +2367,24 @@ try {
   record("Go live switch: NEW_DESIGN off serves bytes identical to the baseline on every public route, on keeps status and headers and replays redirects, per route, crew look, no POST switched (scripts/goLiveSwitchCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveSwitchCheck:/.test(l)).slice(0, 5).join(" | "));
 }
 try {
+  const out = execSync("node scripts/goLiveVisitorCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("Go live, a visitor: every entry page (Find, Market Check, Sell, Tasks, Home) draws the stored examples /api/publicExamples serves, as a visitor, through its real handler; the crew look shows the same; flag off hides them with no error line (scripts/goLiveVisitorCheck.mjs)", "PASS", (out.match(/goLiveVisitorCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Go live, a visitor: every entry page (Find, Market Check, Sell, Tasks, Home) draws the stored examples /api/publicExamples serves, as a visitor, through its real handler; the crew look shows the same; flag off hides them with no error line (scripts/goLiveVisitorCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveVisitorCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
+  const out = execSync("node scripts/goLiveLiveCheck.mjs --self-test", { encoding: "utf8", timeout: 280000 });
+  record("Go live, the visitor mode of the live check, on this tree over a local stored-pick world: passes with the switch on, fails with it off, fails with no examples (scripts/goLiveLiveCheck.mjs --self-test)", "PASS", (out.match(/goLiveLiveCheck self-test: .*/) || [""])[0]);
+} catch (e) {
+  record("Go live, the visitor mode of the live check, on this tree over a local stored-pick world: passes with the switch on, fails with it off, fails with no examples (scripts/goLiveLiveCheck.mjs --self-test)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveLiveCheck self-test:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
+  const out = execSync("node scripts/ignoreCommandCheck.mjs", { encoding: "utf8", timeout: 280000 });
+  record("vercel.json ignoreCommand: a docs-only push is skipped, a redeploy of the commit already built (an env-only change), a code change, a config change and an unknown previous commit build (scripts/ignoreCommandCheck.mjs)", "PASS", (out.match(/ignoreCommandCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("vercel.json ignoreCommand: a docs-only push is skipped, a redeploy of the commit already built (an env-only change), a code change, a config change and an unknown previous commit build (scripts/ignoreCommandCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|ignoreCommandCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
   const out = execSync("node scripts/goLiveGuardsCheck.mjs --base ee488ab5", { encoding: "utf8", timeout: 240000 });
   record("Go live guards: every crew preview route renders the same with the switch off and on, no render before the crew gate, every wrapper an api file had (calm, tracking, hold) is kept and calm stays outer (scripts/goLiveGuardsCheck.mjs)", "PASS", (out.match(/goLiveGuardsCheck: .*/) || [""])[0]);
 } catch (e) {

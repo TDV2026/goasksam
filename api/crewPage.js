@@ -14,6 +14,7 @@ import { tasksPublicHtml, crewLimitMax } from "../lib/preview/tasksPreview.js";
 import { taskLimitFor } from "../lib/tasks/limit.js";
 import { tasksMineHtml, previewTasksApi } from "../lib/preview/tasksMine.js";
 import { findField } from "../lib/preview/fieldCompose.js";
+import { publicFindExamples as publicFind } from "../lib/preview/publicFind.js";
 import { entryHtml, wrapLive, patchOneboxJs, exampleResultOf, exampleFrameHtml } from "../lib/preview/mcSellPreview.js";
 import marketCheckPage from "./marketCheck.js";
 import sellDoor from "./sell.js";
@@ -32,6 +33,9 @@ import { AsyncLocalStorage } from "node:async_hooks";
 // PUBLIC MODE (go live Stage 3): when the new design answers a public address (lib/_newDesign.js, newPageHtml), every example read runs in a time box and a read that is slow, fails or says "could not read" leaves its section OUT, silently:
 // the search box is in the page the moment it is sent and never waits on an example. The crew previews are unchanged (a failed read still prints its visible line there).
 const PUBLIC_CTX = new AsyncLocalStorage();
+// In public mode every example is read as a VISITOR reads it: the same request without the crew cookie. The crew look (?design=new) is the flip seen early, so it must show what a visitor will get (the stored daily pick, and nothing at all while PUBLIC_EXAMPLES is off).
+const withoutCrew = req => { const headers = { ...((req && req.headers) || {}) }, c = String(headers.cookie || ""); if (c) headers.cookie = c.split(/;\s*/).filter(x => !/^gas_crew=/.test(x)).join("; "); return Object.assign(Object.create(Object.getPrototypeOf(req || {})), req || {}, { headers }); };
+const visitorOf = req => PUBLIC_CTX.getStore() ? withoutCrew(req) : req;
 export const PUBLIC_READ_MS = Number(process.env.PUBLIC_READ_MS) > 0 ? Number(process.env.PUBLIC_READ_MS) : 2000;
 const boxed = async (fn, what) => {
   if (!PUBLIC_CTX.getStore()) return fn();
@@ -41,7 +45,7 @@ const boxed = async (fn, what) => {
   finally { clearTimeout(timer); }
 };
 // The crew preview of the Homepage reads Lane B's featuredHistory (the same read GET /api/featuredHistory answers with, crew cookie required inside it). FEATURED is the seam the local run swaps for a test store.
-export const FEATURED = { read: async req => { const { historyEnv } = await import("./_historyData.js"), env = historyEnv(); if (!env) return null; const { readFeaturedHistory } = await import("../lib/live/featuredHistory.js"); return readFeaturedHistory(env, req); }, now: () => Date.now() };
+export const FEATURED = { read: async req => { const { historyEnv } = await import("./_historyData.js"), env = historyEnv(); if (!env) return null; const { readFeaturedHistory } = await import("../lib/live/featuredHistory.js"); return readFeaturedHistory(env, visitorOf(req)); }, now: () => Date.now() };
 // A page is a file in lib/crewPages/ or a render function (the design previews /preview/home and /preview/find, built from the engine's approved copy at request time). hiddenCrewCheck reads this list, so a page added here is covered by it.
 // The Tasks redesign (crew only, not live): the public page reads Lane B's demo field when lib/live/tasksDemo.js exists (tasksDemo(env, req) -> the field or null) and the crew limit when Lane S's exists; otherwise the centrepiece is hidden and the live limit is printed.
 // The Tasks preview shows ONE real email (Sam, Nov 8 2026): Lane B's tasksEmailExample(env, req) -> { task, blocks, every } from a real stored update, or null (the section is then absent). Crew only inside the reader.
@@ -52,8 +56,10 @@ export const TASKS_EMAIL_EXAMPLE = { read: req => readField("../lib/live/tasksDe
 export const COULD_NOT_READ = "couldNotRead";
 export const couldNotRead = x => !!x && typeof x === "object" && x[COULD_NOT_READ] === true;
 const failed = (what, e) => { try { console.error(JSON.stringify({ tag: "crew_read_failed", what: String(what).slice(0, 120), message: String(e && e.message || e).slice(0, 300) })); } catch {} return { [COULD_NOT_READ]: true, what: String(what) }; };
-export const readField = async (file, fn, req) => { try { const { historyEnv } = await import("./_historyData.js"), env = historyEnv(); if (!env) return null; const m = await import(file); if (typeof m[fn] !== "function") return failed(file + " " + fn, new Error("the module has no " + fn)); return await m[fn](env, req); } catch (e) { return failed(file + " " + fn, e); } };
-export const FIND_EXAMPLES = { read: req => readField("../lib/live/findExamples.js", "findExamplesField", req), now: () => Date.now() };
+export const readField = async (file, fn, req) => { try { const { historyEnv } = await import("./_historyData.js"), env = historyEnv(); if (!env) return null; const m = await import(file); if (typeof m[fn] !== "function") return failed(file + " " + fn, new Error("the module has no " + fn)); return await m[fn](env, visitorOf(req)); } catch (e) { return failed(file + " " + fn, e); } };
+// the crew preview reads the engine's card field; a PUBLIC page reads the stored daily pick as a visitor does (the two readers /api/publicExamples serves as find and findSales), in one move into the card the page draws (lib/preview/fieldCompose.js publicFindField)
+const publicFindExamples = req => publicFind(readField, couldNotRead, req);
+export const FIND_EXAMPLES = { read: req => PUBLIC_CTX.getStore() ? publicFindExamples(req) : readField("../lib/live/findExamples.js", "findExamplesField", req), now: () => Date.now() };
 // THE ENGINE ANSWERS live ?? fallback ITSELF (Lane B, lane-b-examples3: findExamplesField, tasksDemoField, watchingDemoField, in the engine card shapes of docs/lane-notes.md SHAPES B lane-e-crew-refine8): each reader returns the live answer, else the fallback (a recent sale or ended car), else null. The page reads the one answer and picks nothing.
 const safe = async (f, what = "field") => { if (PUBLIC_CTX.getStore()) return boxed(f, what); try { return await f(); } catch (e) { return failed(what, e); } };
 // the Tasks limit a PUBLIC page prints is the live one (3); only a crew viewer sees the crew limit

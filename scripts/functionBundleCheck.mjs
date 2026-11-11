@@ -65,4 +65,20 @@ for (const e of readerEntries) {
   const variable = [...cl.keys()].filter(f => /\.m?js$/.test(f) && read(f) != null && /\bimport\(\s*[A-Za-z_`$]/.test(read(f).replace(/^\s*\/\/.*$/gm, "")) && !copied.includes(f) && !/^(api\/(crewPage|pullLive)\.js)$/.test(f)).map(f => f + " (imported by " + cl.get(f) + ")");
   ok(e + ": the closure of its literal imports has no missing file and no variable-path import (so its bundle ships what its readers need)", unreadable.length === 0 && variable.length === 0, [...unreadable, ...variable].slice(0, 6).join(", "));
 }
+// ---- EVERY PAGE FUNCTION THAT RUNS THE NEW DESIGN (Lane E, Nov 11 2026; the flip's rollback: Find and Market Check showed a visitor NO examples). The new design is built by api/crewPage.js, which loads each example reader by a VARIABLE path (readField, readIfBuilt)
+// and so ships them through ITS OWN includeFiles. A public page runs it INSIDE its own function (api/buy.js, api/marketCheck.js, api/home.js ...), reached by a literal import from lib/_newDesign.js, and that function's bundle holds crewPage and its literal imports and NOTHING crewPage's includeFiles copies:
+// "Cannot find module lib/live/findExamples.js", caught, null, the section silently left out (public mode hides a failed read). The crew previews ran inside api/crewPage.js itself, where the files are, so no crew check could see it.
+// RULE: every api entry whose default export is wrapped by withNewDesign (lib/_newDesign.js) has, reached by literal imports or copied by its own includeFiles, every file api/crewPage.js's bundle gets from its includeFiles (and everything those import).
+{
+  const crewConf = fns["api/crewPage.js"] || {}, crewCopied = ALL.filter(f => (typeof crewConf.includeFiles === "string" ? globRe(crewConf.includeFiles) : []).some(r => r.test(f)));
+  const crewNeed = closure(crewCopied.filter(f => /\.m?js$/.test(f))), crewNeeded = new Set([...crewCopied, ...[...crewNeed.keys()].filter(f => read(f) != null)]);
+  const crewStatic = closure(["api/crewPage.js"]);
+  const users = fs.readdirSync("api").filter(f => /\.js$/.test(f)).map(f => "api/" + f).filter(f => f !== "api/crewPage.js" && /export default [^\n]*withNewDesign\(/.test(read(f) || "") && closure([f]).has("api/crewPage.js"));   // the entries that SERVE the new design: their default export is wrapped by the door
+  ok("the check finds the page functions that serve the new design (Find, Market Check, Sell, Home, Tasks at least)", ["api/buy.js", "api/marketCheck.js", "api/sell.js", "api/home.js", "api/tasksPage.js"].every(f => users.includes(f)), users.join(" "));
+  for (const e of users) {
+    const conf = fns[e] || {}, copied = ALL.filter(f => (typeof conf.includeFiles === "string" ? globRe(conf.includeFiles) : []).some(r => r.test(f))), have = new Set([...closure([e]).keys(), ...copied]);
+    const missing = [...crewNeeded].filter(f => !crewStatic.has(f) && !have.has(f));
+    ok(e + ": its bundle holds every file the new design's example readers load by a variable path (reached by a literal import or in its includeFiles)", missing.length === 0, missing.slice(0, 5).join(", ") + (missing.length > 5 ? " and " + (missing.length - 5) + " more" : ""));
+  }
+}
 console.log("\nfunctionBundleCheck: " + (n - failed) + " pass, " + failed + " FAIL"); process.exit(failed ? 1 : 0);
