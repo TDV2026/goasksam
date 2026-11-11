@@ -2848,6 +2848,12 @@ try {
   record("Desk v3 stage 2: desk.comparables are decided by verified year, generation, body, gearbox and miles (never the model name), why sentences come from the reason table, a photo is the one that passed the photo rule or null, outside groups are never inside the population; eleven mutants (scripts/deskCompsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/deskReserveModeCheck.mjs", { encoding: "utf8", timeout: 600000 });
+  record("Desk reserve mode (desk.reserveMode): the 24 older cars and the demo 996 held against an oracle, a recommendation only with five outcomes a side and a stated margin, a venue without the flag on neither side, every sentence from reasonWords (scripts/deskReserveModeCheck.mjs)", "PASS", (out.match(/deskReserveModeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk reserve mode (desk.reserveMode): the 24 older cars and the demo 996 held against an oracle, a recommendation only with five outcomes a side and a stated margin, a venue without the flag on neither side, every sentence from reasonWords (scripts/deskReserveModeCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | "));
+}
+try {
   const out = execSync("node scripts/deskOlderCarsCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Desk older cars (the 24 recorded answers of Lane F as the fixture): no refusal (a typed body falls back to sibling words then all bodies, each named; a tier with no data reads all conditions), the years widen by the engine's own walk until the Desk population meets the minimum, a thin 12 months defaults to 24 with a sentence, three or more comparables with why lines, one name for the car; sixteen mutants (scripts/deskOlderCarsCheck.mjs)", "PASS", (out.match(/deskOlderCarsCheck: .*/) || [""])[0]);
 } catch (e) {
