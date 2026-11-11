@@ -78,5 +78,24 @@ const MUT = [
   ["a Sell card restyled", "</head>", "<style>#gas-main #ob .pcard,#gas-main #ob .pcard *{background:#eee!important;border-radius:0!important}</style></head>", CASES[3]]
 ];
 for (const [name, from, to, c] of MUT) { const r = await compare(c, 1440, { rewrite: h => h.replace(from, () => to), label: name }); const bad = r ? judge(c, 1440, r, "mutant: ") : []; ok(bad.length > 0, `mutant "${name}" on ${c.name} is caught (${bad[0] ? bad[0].slice(0, 140) : "NOT CAUGHT"})`); }
+// EVERY NEW SEARCH GOES TO THE PRODUCT'S NEW LANDING (Sam, Nov 11 2026): the rail's New link, and on Sell the results' own "New search" link, navigate to the landing route of their product, no query. Sell's link used to run the page's renderEmpty() in place (the old landing inside the results page).
+const LAND = { "market-check": "/preview/market-check", sell: "/preview/sell" };
+async function newSearchTargets(c, rewrite = null) {
+  const fx = loadFixtures(c.name), out = [];
+  for (const sel of [".rail a.new", "[data-newsearch]", "[data-sellnew]"]) {
+    const p = await open(b, c.prev, { width: 1440, fixtures: fx, settle: 3000, rewrite });
+    const has = await p.evaluate(s => !![...document.querySelectorAll(s)].find(x => x.getBoundingClientRect().width > 0), sel); if (!has) { await p.close(); continue; }
+    const navs = []; p.on("request", r => { if (r.isNavigationRequest()) { const u = new URL(r.url()); navs.push(u.pathname + u.search); } });
+    await p.evaluate(s => [...document.querySelectorAll(s)].find(x => x.getBoundingClientRect().width > 0).click(), sel); await new Promise(r => setTimeout(r, 1200));
+    out.push({ sel, target: navs[navs.length - 1] || null }); await p.close();
+  }
+  return out;
+}
+for (const c of [CASES[0], CASES[3]]) { const want = LAND[c.prev.startsWith("/preview/sell") ? "sell" : "market-check"], t = await newSearchTargets(c);
+  ok(t.some(x => x.sel === ".rail a.new"), `${c.name}: the rail's New link is on the results page`); if (c.prev.startsWith("/preview/sell")) ok(t.some(x => x.sel === "[data-sellnew]"), `${c.name}: the results' own New search link is on the page`);
+  for (const x of t) ok(x.target === want, `${c.name}: ${x.sel} navigates to the product's landing ${want}, no query (${x.target})`);
+  { const p = await open(b, c.prev, { width: 1440, fixtures: loadFixtures(c.name), settle: 3000 }); const links = await p.evaluate(() => [...document.querySelectorAll("a[href]")].map(a => a.getAttribute("href"))); await p.close();
+    const bad = links.filter(h => /[?&](crew|_crew|design)=|gas_crew|\/onebox-preview/.test(h)); ok(bad.length === 0, `${c.name}: no link carries a crew or design query (${bad.join(", ") || links.length + " links"})`); } }
+{ const c = CASES[3], t = await newSearchTargets(c, h => h.replace(/<script>\(function\(\)\{var L="[^"]*";document\.addEventListener\("click"[\s\S]*?<\/script>/, "")); ok(t.some(x => x.sel === "[data-sellnew]" && x.target !== LAND.sell), `mutant: without the New search handler the Sell results' own link no longer reaches the landing (${JSON.stringify(t.map(x => x.sel + " -> " + x.target))})`); }
 await b.close();
 console.log(out.join("\n")); console.log(`mcSellResultsCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

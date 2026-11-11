@@ -20,6 +20,7 @@ if (process.argv.includes("--mutants")) {
     ["a card hidden by one CSS rule", "export const RESULTS_SHELL_CSS = `", "export const RESULTS_SHELL_CSS = `#convo article.car{display:none}"],
     ["a results element restyled", "export const RESULTS_SHELL_CSS = `", "export const RESULTS_SHELL_CSS = `#convo article.car a{color:#c00!important;font-size:21px!important}"],
     ["a container pushed past the screen", "export const RESULTS_SHELL_CSS = `", "export const RESULTS_SHELL_CSS = `#convo{width:3000px!important}"],
+    ["the New search handler dropped (the page's own button resets in place again)", "location.assign(L);", "void 0;"],
     ["a link dropped", "export const RAIL_JS = `(function(){", "export const RAIL_JS = `(function(){setTimeout(function(){var a=document.querySelector(\"#convo article.car a[href]\");if(a)a.parentNode.removeChild(a);},900);"],
     ["a heading removed", "export const RAIL_JS = `(function(){", "export const RAIL_JS = `(function(){setTimeout(function(){var h=document.querySelector(\"#convo h2,#convo h3\");if(h)h.parentNode.removeChild(h);},900);"]
   ];
@@ -148,6 +149,19 @@ for (const width of [1440, 390]) {
   await sp.evaluate(() => document.querySelector(".mvbar .mvis").click()); await new Promise(r => setTimeout(r, 400));
   const L = await sp.evaluate(() => ({ open: !document.getElementById("mvlist").hidden, rows: [...document.querySelectorAll("#mvlist .vlist a.srch")].map(a => a.textContent.trim()) }));
   ok(L.open && L.rows.some(x => /Red Ferrari/.test(x)), `signed in @390: the Your searches button opens the page's own list with the account's saved searches (${L.rows.join(" ; ")})`); await sp.close(); }
+// EVERY NEW SEARCH GOES TO THE NEW LANDING (Sam, Nov 11 2026). The top right "New search" button (and the phone list's) ran the page's own goStart(): the OLD landing (the old search box, the old rail) inside the results page, at the address /find; only the rail's link navigated to the new landing. The rail's link, the top right button and the phone list's button must all navigate to the product's landing route, no query.
+for (const w of [1440, 390]) for (const sel of ["aside.rail a.new", "[data-newsearch]"]) {
+  if (w < 860 && sel === "aside.rail a.new") continue;   // the rail is the phone's Your searches list under 860px
+  const p = await open(SHELL, w); await new Promise(r => setTimeout(r, 2500));
+  if (w < 860 && sel === "[data-newsearch]") { await p.evaluate(() => { const m = document.querySelector("[data-mvisits]"); if (m) m.click(); }); await new Promise(r => setTimeout(r, 500)); }
+  const found = await p.evaluate(s => { const e = [...document.querySelectorAll(s)].find(x => x.getBoundingClientRect().width > 0); return e ? (e.getAttribute("href") || "button") : null; }, sel);
+  ok(found !== null, `@${w}: ${sel} is on the page`); if (found === null) { await p.close(); continue; }
+  const navs = []; p.on("request", r => { if (r.isNavigationRequest()) { const u = new URL(r.url()); navs.push(u.pathname + u.search); } });
+  await p.evaluate(s => [...document.querySelectorAll(s)].find(x => x.getBoundingClientRect().width > 0).click(), sel); await new Promise(r => setTimeout(r, 1200));
+  const to = navs[navs.length - 1] || null; ok(to === "/find", `@${w}: ${sel} navigates to the new Find landing, no query (${to})`); await p.close();
+}
+{ const links = await (async () => { const p = await open(SHELL, 1440); await new Promise(r => setTimeout(r, 2500)); const l = await p.evaluate(() => [...document.querySelectorAll("a[href]")].map(a => a.getAttribute("href"))); await p.close(); return l; })();
+  const bad = links.filter(h => /^\/preview(\/|$|\?)|[?&](crew|_crew|preview|design)=|gas_crew|\/api\/sellNext|\/onebox-preview/.test(h)); ok(bad.length === 0, "no link on the Find results page goes to a preview address or carries a crew or design query (" + (bad.join(", ") || links.length + " links") + ")"); }
 await b.close();
 for (const l of out) console.log(l);
 console.log(`findResultsCheck: ${pass} passed, ${fail} failed`);
