@@ -24,6 +24,21 @@ const car = (id, make, source, days, extra = {}) => ({ row: { id, make, model: "
   ok("(2) Find: with one near car, it is in the pick; the far cars fill the rest only because nothing else qualifies", two.includes(2) && two.length === 3, two.join());
   const one = FE.chooseNext([pool[0], pool[1]], [], null, NOW);
   ok("(2) Find: chooseNext picks the 2 day car over the 60 day sold car", one.row.id === 2); }
+// (2b) THE ORDER (Nov 11 2026): inside the 14 day band a car with an earlier sale ranks above one without, then the nearer band; at least one sold-before car among the three when one exists in the band; outside the band it is only the fallback
+{ const sold = (c, v = true) => { c.sold = v; return c; };
+  const a = [sold(car(1, "Porsche", "bringatrailer", 10)), car(2, "BMW", "carsandbids", 2), car(3, "Audi", "pcarmarket", 3), car(4, "Ford", "bringatrailer", 1)];
+  ok("(2b) Find: a sold car at 10 days is picked over unsold cars at 1, 2 and 3 days (chooseNext)", FE.chooseNext(a, [], null, NOW).row.id === 1);
+  const three = FE.pickDaily(a, [], "2026-11-10", NOW);
+  ok("(2b) Find: the three hold the sold car (10 days) though three nearer cars exist", three.length === 3 && three.some(c => c.row.id === 1), three.map(c => c.row.id).join());
+  const b = [car(1, "Porsche", "bringatrailer", 60), car(2, "BMW", "carsandbids", 2), car(3, "Audi", "pcarmarket", 3), car(4, "Ford", "bringatrailer", 1)]; b[0].sold = true;
+  ok("(2b) Find: a sold car at 60 days (outside the band) never displaces the cars within 14 days", !FE.pickDaily(b, [], "2026-11-10", NOW).some(c => c.row.id === 1));
+  const c2 = [car(1, "Porsche", "bringatrailer", 9), car(2, "BMW", "bringatrailer", 2), car(3, "Audi", "carsandbids", 3), car(4, "Ford", "pcarmarket", 1)]; c2[0].sold = true;
+  ok("(2b) Find: a sold car in the band is in the three even when it is the farthest of four in the band and shares a platform", FE.pickDaily(c2, [], "2026-11-10", NOW).some(c => c.row.id === 1));
+  const nw = [car(1, "Porsche", "bringatrailer", 5), car(2, "BMW", "carsandbids", 4), car(3, "Audi", "pcarmarket", 3), car(4, "Ford", "bringatrailer", 6), car(5, "Honda", "carsandbids", 7), car(6, "Mazda", "pcarmarket", 8)];
+  nw.forEach((c, i) => { c.row.first_seen = "2026-11-0" + (i + 1) + "T00:00:00Z"; }); nw[0].sold = true; nw[0].row.first_seen = "2026-11-09T00:00:00Z"; nw[3].row.first_seen = "2026-11-09T01:00:00Z"; nw[4].row.first_seen = "2026-11-09T02:00:00Z";
+  ok("(2b) Find: a sold car among the three newest listings is still in the three (the set-aside never costs the pick its sold car)", FE.pickDaily(nw, [], "2026-11-10", NOW).some(c => c.row.id === 1), FE.pickDaily(nw, [], "2026-11-10", NOW).map(c => c.row.id).join());
+  const d2 = [sold(car(1, "Porsche", "bringatrailer", 12)), sold(car(2, "BMW", "carsandbids", 2))];
+  ok("(2b) Find: two sold cars in the band: the nearer first", FE.chooseNext(d2, [], null, NOW).row.id === 2); }
 // (3) the card's line is the engine's: Find items and the Home pick print pick.ends
 ok("(3) pick.ends: 2 days out says Ends in 2 days; later today says Ends today; tomorrow says Ends tomorrow", RW.reasonLine("pick.ends", { endsAt: NOW + 2 * DAY, now: NOW }) === "Ends in 2 days" && RW.reasonLine("pick.ends", { endsAt: NOW + 3600e3, now: NOW }) === "Ends today" && RW.reasonLine("pick.ends", { endsAt: NOW + 20 * 3600e3, now: NOW }) === "Ends tomorrow", [RW.reasonLine("pick.ends", { endsAt: NOW + 2 * DAY, now: NOW }), RW.reasonLine("pick.ends", { endsAt: NOW + 3600e3, now: NOW }), RW.reasonLine("pick.ends", { endsAt: NOW + 20 * 3600e3, now: NOW })].join(" | "));
 // (4) the sweep: every live picker imports the rule and reads the table nearest end first; the pages compute nothing
@@ -39,7 +54,9 @@ console.log(`liveExamplesSoonCheck: ${fail ? fail + " FAIL" : "all pass"} (${pas
 
 function mutants() {
   const M = [
-    ["lib/live/findExamples.js", ["const score = c => soonScore(c) + (!haveSold", "list = nearLeft() ? open.filter(c => withinCap(Date.parse(c.row.end_time), now)) : open,"], ["const score = c => (!haveSold", "list = open,"], "(2) Find: with three cars within 4 days"],
+    ["lib/live/findExamples.js", "(!haveSold && c.sold ? 5000 : 0)", "(0)", "(2b) Find: a sold car at 10 days is picked"],
+    ["lib/live/findExamples.js", "if (!chosen.some(c => c.sold)) {", "if (false) {", "(2b) Find: a sold car among the three newest"],
+    ["lib/live/findExamples.js", ["const score = c => soonScore(c) + (!haveSold", "list = nearLeft() ? open.filter(c => withinCap(Date.parse(c.row.end_time), now)) : open,", "(near.length ? near : open).sort("], ["const score = c => (!haveSold", "list = open,", "open.sort("], "(2) Find: with three cars within 4 days"],
     ["lib/live/findExamples.js", 'if (makesIn(pool.filter(c => withinCap(Date.parse(c.row.end_time), now))) < MAX_ITEMS) pool = pool.concat(all.filter(c => !pool.includes(c) && withinCap(Date.parse(c.row.end_time), now)));', "", "(2) Find: with three cars within 4 days"],
     ["lib/live/findExamples.js", "&order=end_time.asc&limit=400", "&order=end_time.desc&limit=400", "(4) lib/live/findExamples.js never reads"],
     ["lib/live/tasksDemo.js", "&order=end_time.asc&limit=400", "&order=end_time.desc&limit=400", "(4) lib/live/tasksDemo.js never reads"],
