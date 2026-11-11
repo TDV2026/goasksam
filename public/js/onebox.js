@@ -2843,6 +2843,8 @@
   // (the premium back-out line renders ONLY when the pool actually contains auction-house sales).
   // Never a fake progress bar or percentage.
   function loaderHtml() {
+    // THE WAITING STATE (Sam, Nov 11 2026; the new design only, window.GAS_WAIT is set by the shell): one centred sentence from the engine's table (reasonWords wait.mc) with pulsing dots, under the search box, and nothing else until the answer lands; the stage lines below are the old design's.
+    if (window.GAS_WAIT && window.GAS_WAIT.mc) return '<div class="gas-wait" role="status" data-wait="mc" data-stage="note"><span class="gw-d" aria-hidden="true"><i></i><i></i><i></i></span><p class="gas-wait-line">' + esc(window.GAS_WAIT.mc) + '</p><p class="lslow" hidden>This one is taking longer than usual.</p></div>';
     return '<div class="loader" data-stage="note"><span class="ltext"></span>' +
       '<span class="ldots"><i></i><i></i><i></i></span></div><p class="lslow" hidden>This one is taking longer than usual.</p>';
   }
