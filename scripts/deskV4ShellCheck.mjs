@@ -7,11 +7,16 @@
 //   5 LAYOUT: no horizontal overflow at 1440, 1280, 1024 and 390; light and dark tokens both defined and the page background changes with the scheme.
 //   5b FOOTER IN VIEW: the Reserve panel's footer (Preview report, Finalize, the check lines, Send) is on screen at 1440, 1280 and 1024 with the window 900 high, at load and (sticky) after the page scrolls, even in the fullest state (four check lines, finalized, Send, a sent line): the panel scrolls its middle, never its footer.
 //   6 NOTHING COMPUTED: the module's text carries no arithmetic on a figure.
+//   7 THE FIGURE IS PRINTED AS SENT (Sam's first run, Nov 11): the Reserve input shows reserve.figureLine and nothing sits beside it, so no "$$25,000"; no page text carries two dollar signs in a row; no source adds a sign of its own. Mutant: a page added "$".
+//   8 A SWITCH IN FLIGHT IS NEVER A DEAD CLICK: while a period or a condition switch is waiting on the server the pressed control shows it (wait, aria-pressed) and the market and its sales are dimmed (busy, opacity below 1); the answer replaces them and the dimming goes. Mutant: no feedback.
+//   9 THE PANEL IS EMPTY WHILE THE NEW CASE FORM IS OPEN: only the "Recommended reserve" label is on screen (no figure, no checks, no Send) until the case exists; Cancel brings the case's panel back. Mutant: the panel keeps the previous case.
+//  10 THE RAIL'S STATS sit label and value on ONE line each, none cut off, the values aligned, at 1440, 1280 and in the drawer at 1024 and 390. Mutant: the old wrapping layout.
+//  11 THE QUEUE ROWS share one geometry: the same row height, the same thumbnail box and offset, the text at the same height and indent, for a photo, a text tile (no photo), a tag and a very long name. Mutant: the old row layout.
 //   CLASS: any tab beside the two, any second shadow, a panel that scrolls away or sits below the centre column on a small screen, a queue that squeezes the centre column. Mutants run through the same assertions must be caught.
 //   node scripts/deskV4ShellCheck.mjs
 import fs from "node:fs";
 import { launch, openPage, imp, tally, ROOT } from "./deskV3Harness.mjs";
-import { finalizeDemo } from "./deskV4Harness.mjs";
+import { finalizeDemo, openLive, seedIntake, PV } from "./deskV4Harness.mjs";
 import { createRequire } from "node:module";
 import path from "node:path";
 process.env.CURTAIN_CREW_CODE = "fixture-crew-code"; process.env.LAUNCH_STAGE = "2";
@@ -86,5 +91,49 @@ for (const w of [1440, 1280, 1024, 390]) {
   const m2 = html.replace("</style>", ".card.pad{box-shadow:0 1px 3px #000}</style>"); const p2 = await openPage(b, m2, 1440, 900), n = await p2.evaluate(MEASURE); await p2.close(); ok(n.shadows.length > 1, "mutant caught: a second shadow");
   const m3 = html.replace("</style>", ".val{position:static!important}</style>"); const p3 = await openPage(b, m3, 1440, 900); await p3.evaluate(() => { document.getElementById("col").style.minHeight = "3000px"; window.scrollTo(0, 1200); }); const s = await p3.evaluate(MEASURE); await p3.close(); ok(!(s.val.y >= -1 && s.val.y < 40), "mutant caught: a panel that is not sticky scrolls away");
   const m4 = html.replace("</style>", "@media (max-width:1100px){.val{order:5!important}.ws{display:flex;flex-direction:column}.col{order:1}}</style>"); const p4 = await openPage(b, m4, 1024, 900), q = await p4.evaluate(MEASURE); await p4.close(); ok(!(q.val.y < q.col.y), "mutant caught: a panel below the centre column on a small screen"); }
+// ---------- 7 to 11, Sam's first run ----------
+const CSSMUT = (h, css) => h.replace("</style>", css + "</style>");
+const wait = ms => new Promise(r => setTimeout(r, ms));
+{ // 7 the figure as sent
+  const SIGN = () => { const K = window.__v4.K(), nr = document.querySelector(".numrow"), vi = document.getElementById("valIn"); return { fl: K.reserve.figureLine, val: vi.value, beside: nr.textContent.trim(), twice: /\$\s*\$/.test(document.body.innerText + " " + [...document.querySelectorAll("input,textarea")].map(i => i.value).join(" ")) }; };
+  const probe = async h => { const p = await openPage(b, h, 1440, 900); const r = await p.evaluate(SIGN); await p.close(); return r; };
+  const g = await probe(html); ok(!!g.fl && g.val === g.fl && g.beside === "" && !g.twice, `the Reserve input prints the server's figureLine as sent (${g.val}) with nothing added beside it`);
+  const m = await probe(html.replace('<div class="numrow">', '<div class="numrow"><span>$</span>')); ok(m.beside !== "" && /\$\s*\$/.test(m.beside + m.val), `mutant caught: a page added "$" before the figure line reads ${m.beside}${m.val}`);
+  const src = ["lib/preview/deskV4.js", "lib/preview/deskV4Client.js", "lib/preview/deskV3.js"].map(f => fs.readFileSync(f, "utf8").split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n")).join("\n");
+  const RX = /(>\$<)|(["']\$ ?["'])|(\+\s*["']\$)|(["']\$["']\s*\+)|(`\$[^{])|(["']\$\d)/; ok(!RX.test(src), "no page source adds a dollar sign of its own (a sign comes only inside a line the server sent)");
+  ok(RX.test(src.replace("<h3>New case</h3>", "<h3>New case</h3><span>$</span>")), "mutant caught: the source scan finds a literal sign"); }
+{ // 8 feedback while a switch is in flight
+  const IN = () => { const q = s => document.querySelector(s), m = q("#s-market"), on = [...document.querySelectorAll("#period button")].find(x => x.classList.contains("wait")); return { wait: !!on, pressed: on && on.getAttribute("aria-pressed"), busy: m.classList.contains("busy"), op: Number(getComputedStyle(m).opacity), sales: Number(getComputedStyle(q("#s-closest")).opacity), cbusy: q("#cond").classList.contains("busy"), cop: Number(getComputedStyle(q("#cond")).opacity), cw: !!q("#cond .wait"), cpressed: (q("#cond .wait") || { getAttribute() {} }).getAttribute("aria-pressed"), msg: q("#swmsg").hidden ? "" : q("#swmsg").textContent, on: (q("#period .on") || {}).textContent }; };
+  // the demonstration case holds one recorded read (12 months), so the real reader REFUSES 6 and 24 with its own line; an answered switch is the real 12 month answer with the window the page asked for
+  const answered = async bd => { if (bd.action === "case_edit" && bd.op === "window") { const r = await PV.previewDeskApi({ ...bd, months: 12 }); r.case.desk.evidence.windowMonths = bd.months; r.case.windowMonths = bd.months; return r; } };
+  const run = async (mutate, intercept) => { const p = await openLive(b, { delay: 900, mutate, intercept }); await p.click('#period [data-m="24"]'); await wait(300); const a = await p.evaluate(IN); await wait(1500); const z = await p.evaluate(IN);
+    await p.evaluate(() => { const bt = [...document.querySelectorAll("#cond button")].find(x => x.getAttribute("aria-pressed") !== "true"); bt.click(); }); await wait(300); const c = await p.evaluate(IN); await wait(1500); const c2 = await p.evaluate(IN); await p.close(); return { a, z, c, c2 }; };
+  const g = await run(null, answered); ok(g.a.wait && g.a.pressed === "true" && g.a.busy && g.a.op < 1 && g.a.sales < 1, `a period switch in flight: the pressed control and the dimmed market and sales show it (opacity ${g.a.op})`);
+  ok(!g.z.busy && !g.z.wait && g.z.op === 1 && g.z.on === "24 months", "the server's answer replaces it: the dimming and the pressed state are gone and the period it answered for is on");
+  ok(g.c.cbusy && g.c.cw && g.c.cpressed === "true" && g.c.cop < 1 && g.c.op < 1, `a condition switch in flight shows it too (the picked rung pressed, the section dimmed, opacity ${g.c.cop})`);
+  ok(!g.c2.cbusy && !g.c2.cw && g.c2.cop === 1, "the condition answer replaces it and the dimming goes");
+  const rf = await run(null, null); ok(rf.a.busy && !rf.z.busy && !rf.z.wait && rf.z.on === "12 months" && /could not read the sales/.test(rf.z.msg), `a switch the server refuses: the controls come back as they were and its own line is printed under the period control (${rf.z.msg.slice(0, 50)})`);
+  const mu = await run(h => h.replace("function working(on, who) {", "function working(on, who) { return;"), answered); ok(!(mu.a.busy && mu.a.wait) && !(mu.c.cbusy && mu.c.cw), "mutant caught: a switch with no feedback is a dead click");
+  const mu2 = await run(h => h.replace("function switched(r) {", "function switched(r) { return;"), null); ok(!/could not read the sales/.test(mu2.z.msg), "mutant caught: a refusal that is not printed"); }
+{ // 9 the panel while the New case form is open
+  const VIS = () => { const v = e => { const x = document.querySelector(e); return !!x && x.offsetWidth > 0 && x.offsetHeight > 0 && getComputedStyle(x).visibility !== "hidden"; }; return { panel: v("#val"), label: v("#val .eyebrow"), fig: v("#valIn"), chk: v("#chk"), fin: v("#bFin"), send: v("#bSend"), cond: v("#cond"), text: (document.querySelector("#val .eyebrow") || {}).textContent }; };
+  const run = async (w, mutate) => { const p = await openLive(b, { w, mutate }); const before = await p.evaluate(VIS); await p.evaluate(() => document.getElementById("newcase-btn").click()); await wait(250); const open = await p.evaluate(VIS); await p.evaluate(() => document.getElementById("nc-x").click()); await wait(200); const after = await p.evaluate(VIS); await p.close(); return { before, open, after }; };
+  for (const w of [1440, 1024]) { const r = await run(w); ok(r.before.fig && r.open.panel && r.open.label && /Recommended reserve/.test(r.open.text) && !r.open.fig && !r.open.chk && !r.open.fin && !r.open.send && !r.open.cond && r.after.fig && r.after.fin, `@${w}: with the New case form open the Reserve panel shows its label only, and Cancel brings the case back`); }
+  const mu = await run(1440, h => h.replace(/body\[data-new\] #val \.hd>:not\(\.eyebrow\)[^}]*}/, "")); ok(mu.open.fig, "mutant caught: a panel that keeps the previous case's figure while the form is open"); }
+{ // 10 the rail's stats
+  const OPS = () => [...document.querySelectorAll(".ops div")].map(d => { const s = d.querySelector("span"), v = d.querySelector("b"), r = d.getBoundingClientRect(); return { h: Math.round(r.height), cut: s.scrollWidth > s.clientWidth + 1, right: Math.round(v.getBoundingClientRect().right), t: s.textContent }; });
+  const run = async (w, mutate, drawer) => { const p = await openLive(b, { w, mutate }); if (drawer) { await p.click("#qopen"); await wait(300); } const r = await p.evaluate(OPS); await p.close(); return r; };
+  const okOps = r => r.length >= 3 && r.every(x => x.h <= 18 && !x.cut) && new Set(r.map(x => x.right)).size === 1;
+  for (const [w, d] of [[1440, false], [1280, false], [1024, true], [390, true]]) { const r = await run(w, null, d); ok(okOps(r) && r.some(x => /Cases needing more from the seller/.test(x.t)), `@${w}${d ? " (drawer)" : ""}: every rail stat is one line, label whole, values aligned (${r.map(x => x.h).join(",")} px)`); }
+  const mu = await run(1440, h => CSSMUT(h, ".ops div{white-space:normal!important}.ops div span{overflow:visible!important}.ops{font-size:13px!important}"), false); ok(!okOps(mu), "mutant caught: the old wrapping stat layout"); }
+{ // 11 the queue rows
+  await seedIntake();
+  const ROWS = () => { const rows = [...document.querySelectorAll("#queue .qi")], q0 = rows[0].querySelector(".qn"); q0.textContent = "1999 Porsche 911 Carrera Cabriolet Tiptronic With A Very Long Name Indeed"; if (!rows[0].querySelector(".tag")) { const t = document.createElement("em"); t.className = "tag"; t.textContent = "Forwarded lead"; q0.parentElement.appendChild(t); }
+    return rows.map(q => { const r = q.getBoundingClientRect(), ph = q.querySelector(".ph").getBoundingClientRect(), bb = q.querySelector(".qt b").getBoundingClientRect(), sp = q.querySelector(".qt > span").getBoundingClientRect(); return { h: Math.round(r.height), pw: Math.round(ph.width), phh: Math.round(ph.height), pt: Math.round(ph.top - r.top), bt: Math.round(bb.top - r.top), bl: Math.round(bb.left - r.left), st: Math.round(sp.top - r.top), none: q.querySelector(".ph").classList.contains("none"), tile: q.querySelector(".ph").textContent.trim(), tag: !!q.querySelector(".tag") }; }); };
+  const run = async (w, mutate) => { const p = await openLive(b, { w, mutate }); const r = await p.evaluate(ROWS); await p.close(); return r; };
+  const same = r => ["h", "pw", "phh", "pt", "bt", "bl", "st"].every(k => new Set(r.map(x => x[k])).size === 1);
+  for (const w of [1440, 1280]) { const r = await run(w); ok(r.length >= 8 && r.some(x => x.none) && r.some(x => !x.none) && r.some(x => x.tag) && same(r) && r.filter(x => x.none).every(x => x.tile), `@${w}: ${r.length} queue rows (photo, text tile, tag, a very long name) share one row height, thumbnail box and text offset`); }
+  const t = await run(1440); ok(t.filter(x => x.none).every(x => /^\d\d[A-Z]$|^[A-Za-z]{1,5}$/.test(x.tile)), `the text tile is cut from the case's own title (${[...new Set(t.filter(x => x.none).map(x => x.tile))].join(", ")})`);
+  const mu = await run(1440, h => CSSMUT(h, ".qi{height:auto!important;padding:7px 8px!important}.qi .ph.none{width:30px!important;height:20px!important}.qi b{display:block!important;height:auto!important}.qi .tag{display:block!important}.qi .qn{white-space:normal!important}")); ok(!same(mu), "mutant caught: rows that differ in height and thumbnail box"); }
 await b.close();
 done("deskV4ShellCheck");
