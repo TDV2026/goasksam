@@ -21,9 +21,47 @@ const MUT = [
   ["a photo over 4 MB is refused in words of the code's own", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep('{ refuse: reasonLine("case.photo.refuse.size") }', '{ refuse: "too big" }')],
   ["the handler lets an action's error through", "deskTypedCasesCheck", "lib/desk/handler.js", rep('catch (e) { const { reasonLine }', 'catch (e) { throw e; const { reasonLine }')],
   // lane F 2. one answer per rung
-  ["a rung button counts the car's sales of that condition with no mileage cut", "reportConsistencyCheck", DV, rep("byTier: desk.rungPools ? Object.fromEntries", "byTier: null && Object.fromEntries")],
+  ["a rung button counts the car's sales of that condition with no mileage cut", "reportConsistencyCheck", DV, rep("byTier: desk.rungPools ? Object.fromEntries", "byTier: false ? Object.fromEntries")],
   // lane F 3. where the record starts
   ["a window that reaches past the first sale on record says nothing", "reportConsistencyCheck", DV, rep("firstOn && firstOn > cutoffOf(caseDate, m) ?", "false ?")],
+  // lane F 1. edits hold across sessions
+  ["the preview keeps its cases in memory per instance and seeds them afresh (the store behind the door is ignored)", "deskPersistCheck", "lib/preview/deskPreview.js", rep("    if (backing) return backing;\n", "")],
+  ["the preview's edits are written to a store and the PDF is built from the seeded case", "deskPersistCheck", "lib/desk/sheetActions.js", rep("if (action === \"case_pdf\")", "if (action === \"case_pdf_x\")")],
+  // lane F 5. the list and its count
+  ["the button counts the window's sales, not the list", "reportConsistencyCheck", DV, rep("sales, comparablesCount: comparables.length,", "sales, comparablesCount: sales.length,")],
+  ["a row says its miles are not stated whenever the car's are missing", "reportConsistencyCheck", DV, rep("if (!(r.miles > 0)) return reasonLine(\"desk3.why_nomiles\", { year });", "if (!(r.miles > 0) || !(sub.miles > 0)) return reasonLine(\"desk3.why_nomiles\", { year });")],
+  // lane F 6. one name, one generation
+  ["the queue names the car by the label the sheet was made with", "reportConsistencyCheck", "lib/desk/sheetStore.js", rep("car: (s.case && s.case.desk && s.case.desk.titleLine) || s.car_label ||", "car: s.car_label ||")],
+  ["the engine's generation is not put on the case", "reportConsistencyCheck", CW, rep('const withGen = gen && g && g.value == null ?', 'const withGen = false ?')],
+  // lane F 7. one document state
+  ["the documents tile counts every document as on file", "reportConsistencyCheck", "lib/desk/caseView.js", rep('received: c.documents.filter(d => d.status === \"received\").length,', 'received: c.documents.length,')],
+  // lane F 8. the rail lists what the counts count
+  ["the rail lists every sheet, including a finalized version a revision replaced", "deskPersistCheck", "lib/preview/deskV3.js", rep("cases = all.filter(c => liveIds.has(c.id) || c.id === id);", "cases = all;")],
+  // lane F 9. the Desk's own word
+  ["the PDF title says valuation report again", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep('reasonLine("report.title_final", { number: number || "" }).trim()', '`Valuation report ${number || ""}`.trim()')],
+  ["the preview's send subject says valuation report again", "deskPdfCheck", "lib/preview/deskPreview.js", rep('subject: reasonLine("report.title_final", { number: p.reportNumber })', 'subject: "Valuation report " + p.reportNumber')],
+  // lane F 10. a thin pool names the car
+  ["the population words fall back to cars again", "reportConsistencyCheck", "lib/reasonWords.js", rep('(!s.transmission && s.label ? String(s.label) : "cars")', '"cars"')],
+  // lane F 11. a new case is read once
+  ["a new case reads again to check the reserve it took", "deskTypedCasesCheck", CW, rep("if (fig != null && !(was && was.reserve === fig)) {", "if (false) {")],
+  // lane C 3. the Mini's trim and body, and the pickers before a case exists
+  ["a blank Trim with a Series that names the model and the trim is read as no trim", "deskTypedCasesCheck", "lib/vehicle.js", rep("cleanVinTrim(r.Trim) || seriesTrim || null", "cleanVinTrim(r.Trim) || null")],
+  ["a hatchback names no body", "deskTypedCasesCheck", "lib/vehicle.js", rep('if (/hatchback|liftback/.test(b)) return "hatchback";', "")],
+  ["case_pickers looks for a sheet and says no such sheet", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep('if (action === "case_pickers") {', 'if (action === "case_pickers") { if (!(await get(body.id))) return refuse("No such sheet.");')],
+  // lane C 1. one view per rung, stable across reads
+  ["the rung the read was made with is cut by the mileage band and the others are not", "deskViewsCheck", DV, rep("byTier: desk.rungPools ? Object.fromEntries", "byTier: false ? Object.fromEntries")],
+  // lane C 2. Any condition
+  ["the demonstration case's reset puts it on Good", "deskPersistCheck", "lib/preview/deskPreview.js", rep('op: "condition", selected: null }, ctxOf(store, {}, seat));', 'op: "condition", selected: { tier: 3, name: "Good" } }, ctxOf(store, {}, seat));')],
+  ["the Any button counts one sale too many", "reportConsistencyCheck", DV, rep("return { count: n, countLine: countNoun(n, \"sale\", { words: false }) };", "return { count: n + 1, countLine: countNoun(n + 1, \"sale\", { words: false }) };")],
+  ["the page has no Any condition button", "deskV4FlowCheck", "lib/preview/deskV4Client.js", rep("if (any) box.appendChild(", "if (false) box.appendChild(")],
+  // no reserve in the report
+  ["a thin engine answer lets no reserve be chosen with no why", "reportConsistencyCheck", CW, rep("if (rm.thin === true && !text) return { refuse: \"case.reserve_mode.refuse_thin\" };", "")],
+  ["Finalize does not check the no reserve choice", "reportConsistencyCheck", CW, rep("if (rmode.mode === \"no_reserve\" && !rm) add(", "if (false) add(")],
+  ["the case view prints no engine line for no reserve", "reportConsistencyCheck", "lib/desk/caseView.js", rep("reasonLine(\"report.reserve_mode_line\", { line: c.desk.reserveMode.line || \"\" })", "null")],
+  ["the report keeps the figure off page 2", "deskPdfCheck", "lib/desk/reportState.js", rep("expected: noRes && r.figure != null ?", "expected: false ?")],
+  ["the cover still prints the figure under no reserve", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep("if (v.noReserve) {", "if (false) {")],
+  ["the seller's answer is not printed beside no reserve", "deskPdfCheck", "lib/desk/reportState.js", rep("preference: r.sellerPreference ? reasonLine(", "preference: false ? reasonLine(")],
+  ["the report is no reserve whatever the analyst set", "reportConsistencyCheck", "lib/desk/reportState.js", rep("const noRes = reportReserveModeOf(c).mode === \"no_reserve\",", "const noRes = true,")],
   // 4. a waived item whose cause is gone leaves the list
   ["a waived item stays when the mark that caused it is set", "reportConsistencyCheck", CW, rep('else if (!on && it && it.state === "waived") c.needs_review', 'else if (false) c.needs_review')],
   // 7. a switch with nothing to show says so
