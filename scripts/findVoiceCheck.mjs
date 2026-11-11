@@ -166,6 +166,35 @@ if (typeof sc.filtersFromText === "function") {
     ok(`(10) Tasks "${typed}": every car that states ${typed} matches`, !tm.err && want.every(w => tids.includes(w)), { tids, want, err: tm.err });
   }
   rows.splice(0, rows.length, ...saved); void base; }
+// ---- lane-b-find-mapped (Nov 11 2026): "Find me a BMW E30 convertible With an updated engine" drew 0 cards, "No live matches with 'swap'. 7 without it.", and a stray "could not be read yet" line. CAUSE: the engine maps "updated engine" to the has word "swap"; the
+// mapped word was dropped (its cars shown, the line saying so) only when the search without it found one or two cars (WIDEN_MAX_SHOWN), so seven cars waited behind an offer as if the buyer had typed the word, and the none-live read of an empty answer printed its line.
+// CLASS: a word the buyer did not type is never a typed word, at any count of cars without it, for every phrase the engine maps, for every car. A typed word keeps its offer.
+{ const saved = rows.slice(), PH = ["updated engine", "upgraded engine", "rebuilt engine", "new motor", "swapped engine", "modern drivetrain", "re-powered engine"];
+  const CARS = [
+    { name: "BMW E30 convertible", make: "BMW", model: "3 Series", body: "convertible", yrs: [1982, 1994], title: y => `${y} BMW 325i Convertible`, ask: ph => `Find me a BMW E30 convertible with ${/^(?:updated|upgraded|rebuilt|new|modern|re-powered|swapped)/.test(ph) ? "an " : ""}${ph}`.replace("with an new", "with a new").replace("with an modern", "with a modern").replace("with an re-", "with a re-").replace("an rebuilt", "a rebuilt") },
+    { name: "Porsche 911 coupe", make: "Porsche", model: "911", body: "coupe", yrs: [1984, 1989], title: y => `${y} Porsche 911 Carrera Coupe`, ask: ph => `Find me a Porsche 911 coupe with a ${ph}` }
+  ];
+  for (const car of CARS) for (const ph of PH) for (const n of [1, 2, 3, 5, 7, 12]) {
+    const world = Array.from({ length: n }, (_, i) => mk(300 + i, car.make, car.model, car.yrs[0] + (i % (car.yrs[1] - car.yrs[0] + 1)), car.title(car.yrs[0] + (i % (car.yrs[1] - car.yrs[0] + 1))), car.body, "Manual", "Red"));
+    rows.splice(0, rows.length, ...world);
+    const typed = car.ask(ph), tag = `"${typed}" over ${n} cars without a swap`;
+    const hm = sc.hasMapOf ? sc.hasMapOf(typed, "swap", { make: car.make, model: car.model }, []) : null;
+    ok(`(11) ${tag}: the phrase is read as a phrase, never as the typed word`, !!hm && hm.from === ph.replace(/^an? /, ""), hm);
+    const r = await runFilters(env, { make: car.make, model: car.model, year_min: car.yrs[0] - 2, year_max: car.yrs[1] + 2, body: car.body, has: "swap" }, { lastUser: typed }), m = r.meta || {}, cards = (r.cards || []).length;
+    ok(`(11) ${tag}: all ${n} cars are shown, none hidden behind an offer`, cards === n, { cards, zero: m.zeroLine, widen: (m.widen || []).map(w => [w.kind, w.added]) });
+    ok(`(11) ${tag}: the line says the word was read from the phrase and the cars are those without it`, !!(m.hasMap && m.hasMap.dropped) && /read from '[^']+'/.test(String(m.note || "")) && /without it/.test(String(m.note || "")), { note: m.note });
+    ok(`(11) ${tag}: no zero count line and no offer for the word nobody typed`, !m.zeroLine && !(m.widen || []).some(w => w.kind === "anyhas"), { zero: m.zeroLine });
+    const none = m.noneLive || null; ok(`(11) ${tag}: no none-live line (no "could not be read yet") on an answer with cars`, !none && !/could not be read/i.test([r.reply, m.note, m.zeroLine, m.unusedLine].filter(Boolean).join(" ")), none);
+    ok(`(11) ${tag}: the chip of the dropped word is not drawn as a filter that ran`, !((r.state && r.state.filters) || {}).has, (r.state && r.state.filters) || null);
+  }
+  // a word the buyer TYPED is never dropped: no matches with it, the cars without it are an offer counted from the same rows
+  rows.splice(0, rows.length, ...Array.from({ length: 7 }, (_, i) => mk(300 + i, "BMW", "3 Series", 1987 + i % 6, `${1987 + i % 6} BMW 325i Convertible`, "convertible", "Manual", "Red")));
+  { const typed = "Find me a BMW E30 convertible with an engine swap", r = await runFilters(env, { make: "BMW", model: "3 Series", year_min: 1982, year_max: 1994, body: "convertible", has: "swap" }, { lastUser: typed }), m = r.meta || {};
+    ok("(11) a typed word is no mapped phrase", !(sc.hasMapOf && sc.hasMapOf(typed, "swap", { make: "BMW", model: "3 Series" }, [])), null);
+    ok("(11) a typed word keeps its offer: none shown, the offer counts the 7 without it, the line says 7", (r.cards || []).length === 0 && (m.widen || []).some(w => w.kind === "anyhas" && w.added === 7) && /\b7\b/.test(String(m.zeroLine || "")) && !(m.hasMap && m.hasMap.dropped), { cards: (r.cards || []).length, zero: m.zeroLine }); }
+  const code = fs.readFileSync(path.join(root, "lib/live/samChat.js"), "utf8"), dropAt = code.indexOf("if (!sr.matches.length && p.has && ctx.lastUser) {");
+  ok("(11) the drop of a mapped word has no count limit in its source", dropAt > 0 && !/WIDEN_MAX_SHOWN/.test(code.slice(dropAt, dropAt + 700)), null);
+  rows.splice(0, rows.length, ...saved); }
 console.log(`findVoiceCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
 
@@ -178,6 +207,7 @@ function mutants() {
     ["none-live passes a listing sentence", "lib/live/samChat.js", s => s.replace("filter(l => !LISTING_LINE_RE.test(String(l)))", "filter(l => true)")],
     ["the zero count line never names the offer", "lib/live/samChat.js", s => s.replace("ctx.searchMeta.zeroLine = `No live matches with '${String(f.has).toLowerCase()}'. ${wh.added} without it.`;", "")],
     ["a mapped word is never dropped", "lib/live/samChat.js", s => s.replace("hasDrop = { ...hm, n: r2.matches.length };", "")],
+    ["a mapped word is dropped only for one or two cars", "lib/live/samChat.js", s => s.replace("if (r2 && r2.matches.length > 0) { hasDrop", "if (r2 && r2.matches.length > 0 && r2.matches.length <= WIDEN_MAX_SHOWN) { hasDrop")],
     ["the dropped line does not say what was read", "lib/live/samChat.js", s => s.replace(" (read from '${hasDrop.from}')", "")],
     ["the page ignores the chip label", "api/buy.js", s => s.replace('add(hasLabel || capWord(f.has), [\\"has\\"])', 'add(capWord(f.has), [\\"has\\"])')],
     ["the engine phrase maps nowhere (no swap word)", "lib/live/samChat.js", s => s.replace('const ENGINE_HAS = "swap";', 'const ENGINE_HAS = "";')],
