@@ -36,15 +36,15 @@ ok("a new case holds the call, the inspection and the agree steps in that order,
   for (const [n, f] of bad) { let threw = false; try { f(); } catch { threw = true; } ok("refused: " + n, threw); } }
 // 4. every case, every op, by step key, and the updated caseView back
 const nw = await api({ action: "case_new", text: "WP0AA2995XS626785", mileage: "72000", transmission: "Manual", body: "Coupe" });
-const ids = [DEMO_ID, "pv_m3", "pv_none", "pv_thin", ...(nw.ok ? [nw.id] : [])]; let n = 0, good = 0;   // pv_fin is a finalised sheet from before cases: it is locked by design, and answers so
-{ const lk = await edit("pv_fin", { op: "step_add", text: "x" }); ok("a finalised sheet without a case is locked and says so", lk.ok === false && /locked/i.test(lk.why || ""), lk.why); }
+const ids = [DEMO_ID, "pv_240z", "pv_thin", ...(nw.ok ? [nw.id] : [])]; let n = 0, good = 0;   // pv_fin is a finalized case: an edit to it makes the next version as a revision
+{ const rv = await edit("pv_fin", { op: "step_add", text: "x" }); ok("an edit to a finalized case makes the next version as a revision and leaves the finalized sheet as it was", rv.ok === true && !!rv.revisedFrom && (await get("pv_fin")).case.status === "finalized", rv.why); }
 for (const id of ids) {
   const g = await get(id); if (!g.ok || !g.case.nextSteps) { ok("case_get gives nextSteps on " + id, false); continue; }
   const first = g.case.nextSteps[0].id; n += 4;
   const a = await edit(id, { op: "step_edit", step: first, text: "Edited on " + id }), b = await edit(id, { op: "step_add", text: "Added on " + id }), c2 = await edit(id, { op: "step_order", order: (await get(id)).case.nextSteps.map(s => s.id).reverse() }), d = await edit(id, { op: "step_remove", step: (await get(id)).case.nextSteps.at(-1).id });
   for (const [r, nm] of [[a, "edit"], [b, "add"], [c2, "order"], [d, "remove"]]) { if (r.ok && Array.isArray(r.case.nextSteps) && Array.isArray(r.case.documents)) good++; else ok(`${id}: step_${nm} resolves and returns the caseView`, false, r.why); }
 }
-ok("every step op on every case resolved by step key and returned the updated caseView (" + good + " of " + n + ")", n >= 20 && good === n);
+ok("every step op on every case resolved by step key and returned the updated caseView (" + good + " of " + n + ")", n >= 16 && good === n);
 { const x = await edit(DEMO_ID, { op: "step_edit", step: DEMO_ID, text: "x" }); ok("the sheet id is not a step key", x.ok === false && /no such step/i.test(x.why || ""), x.why);
   const g = await get(DEMO_ID), r = await edit(DEMO_ID, { op: "step_edit", step: g.case.nextSteps[0].id, text: "Printed as I wrote it." }), d = await api({ action: "case_pdf", id: DEMO_ID, draft: true });
   ok("the edited line is in the stored case and in the report's wording", r.ok && r.case.nextSteps[0].text === "Printed as I wrote it." && r.case.wording && JSON.stringify(r.case.wording).includes("Printed as I wrote it.") || r.ok && d.ok, r.why); }

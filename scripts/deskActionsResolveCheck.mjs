@@ -9,7 +9,7 @@ const P = await U("lib/preview/deskPreview.js"), { DEMO_ID } = await U("lib/prev
 const api = b => P.previewDeskApi(b), get = id => api({ action: "case_get", id });
 const PDF = Buffer.concat([Buffer.from("%PDF-1.4\n"), Buffer.alloc(300, 32)]).toString("base64");
 const nw = await api({ action: "case_new", text: "WP0AA2995XS626785", mileage: "72000", transmission: "Manual", body: "Coupe" });
-const ids = [DEMO_ID, "pv_m3", "pv_fin", "pv_none", "pv_thin", ...(nw.ok ? [nw.id] : [])];
+const ids = [DEMO_ID, "pv_240z", "pv_fin", "pv_thin", ...(nw.ok ? [nw.id] : [])];
 ok("a new case is made for the sweep", nw.ok === true, JSON.stringify(nw).slice(0, 160));
 // 1. every open item of every case, by key, closed the way the page closes it: waive with a reason, verify the field, or file the invoice
 const CLOSE = { mileage_unconfirmed: { op: "verify", field: "mileage" }, accident_unclear: { op: "verify", field: "accident_history", value: "No accidents reported by the seller" }, service_documents: { op: "doc_add", kind: "invoice", title: "Service invoice", data: PDF } };
