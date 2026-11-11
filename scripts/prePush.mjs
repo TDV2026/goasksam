@@ -2403,6 +2403,18 @@ try {
   record("vercel.json is accepted by Vercel: it parses and is valid against Vercel's own schema, every string Vercel limits to 256 characters by name (ignoreCommand, includeFiles ...; the deploys of 976ce753 and f79db262 ended in Error) (scripts/vercelConfigCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|vercelConfigCheck:/.test(l)).slice(0, 5).join(" | "));
 }
 try {
+  const out = execSync("node scripts/goLiveSignedInCheck.mjs", { encoding: "utf8", timeout: 590000 });
+  record("Go live, signed in and out: the Find, Market Check and Sell results rails measured on screen at four widths, the Account menu with no sign in strip, sign in returns to the page it started from (Home when none), no stray replacement marker on any page (scripts/goLiveSignedInCheck.mjs)", "PASS", (out.match(/goLiveSignedInCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Go live, signed in and out: the Find, Market Check and Sell results rails measured on screen at four widths, the Account menu with no sign in strip, sign in returns to the page it started from (Home when none), no stray replacement marker on any page (scripts/goLiveSignedInCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|goLiveSignedInCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
+  const out = execSync("node scripts/mcVinLiveCheck.mjs", { encoding: "utf8", timeout: 590000 });
+  record("Market Check VIN at auction now: the engine's vinLiveMatch listing is a card above the market read, as sent, with View this auction, each part only when carried (scripts/mcVinLiveCheck.mjs)", "PASS", (out.match(/mcVinLiveCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Market Check VIN at auction now: the engine's vinLiveMatch listing is a card above the market read, as sent, with View this auction, each part only when carried (scripts/mcVinLiveCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|mcVinLiveCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
   const out = execSync("node scripts/goLiveGuardsCheck.mjs --base ee488ab5", { encoding: "utf8", timeout: 240000 });
   record("Go live guards: every crew preview route renders the same with the switch off and on, no render before the crew gate, every wrapper an api file had (calm, tracking, hold) is kept and calm stays outer (scripts/goLiveGuardsCheck.mjs)", "PASS", (out.match(/goLiveGuardsCheck: .*/) || [""])[0]);
 } catch (e) {

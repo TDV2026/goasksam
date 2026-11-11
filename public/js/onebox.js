@@ -1741,6 +1741,22 @@
   // query was a VIN (the /vin/{vin} page is keyed on it).
   // flat (follow-up round, Oct 2026, 3rd arg, default false): classEraHtml and renderChassisMatch
   // call this too but are out of the Market Check result-page spec's scope - left boxed, unchanged.
+  // THE CAR IS AT AUCTION NOW (Lane B, Nov 11 2026: vinLiveMatch.listing on the identity answer): the listing as the engine sent it, a card ABOVE the market read, with "View this auction". Each part prints only when the field carries it; the page words and decides nothing (the time left is the engine's own line, endsLine).
+  function vinLiveListing(d) {
+    var l = d && d.vinLiveMatch && d.vinLiveMatch.listing; if (!l || typeof l !== "object") return null;
+    return typeof l.title === "string" && l.title.trim() && typeof l.url === "string" && /^https:\/\//.test(l.url) ? l : null;
+  }
+  function vinLiveCardHtml(l) {
+    if (!l) return "";
+    var line1 = [l.venue, l.endsLine].filter(function (x) { return typeof x === "string" && x.trim(); }).map(esc).join(" &middot; ");
+    var mi = Number(l.mileage), bid = Number(l.currentBidUsd), facts = [];
+    if (isFinite(mi) && mi > 0) facts.push(esc(mi.toLocaleString("en-US") + " miles"));
+    if (isFinite(bid) && bid > 0) facts.push(esc("Current bid " + usd(bid)));
+    if (typeof l.location === "string" && l.location.trim()) facts.push(esc(l.location));
+    var photo = typeof l.photo === "string" && /^https:\/\//.test(l.photo) ? '<a class="vlc-ph" href="' + esc(l.url) + '" target="_blank" rel="noopener" aria-label="View this auction: ' + esc(l.title) + '"><img src="' + esc(l.photo) + '" alt="" loading="eager" referrerpolicy="no-referrer"></a>' : "";
+    return '<style>.vlc{display:flex;gap:16px;align-items:center;margin:0 0 20px;padding:12px;border:1px solid var(--div,#DCD8CC);border-radius:16px;background:var(--card,#fff)}.vlc-ph{flex:none;width:200px;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#E6E2D8}.vlc-ph img{display:block;width:100%;height:100%;object-fit:cover}.vlc-ct{min-width:0}.vlc-eb{margin:0 0 4px;font:600 12px/1.3 var(--sans,inherit);letter-spacing:.14em;text-transform:uppercase;color:var(--green,#1E4D38)}.vlc h3{margin:0;font:500 20px/1.3 var(--serif,inherit);color:var(--ink,#15201A)}.vlc p{margin:2px 0 0;color:var(--sec,#5E6B63);font:400 14.5px/1.4 var(--sans,inherit)}.vlc a.vlc-v{display:inline-block;margin-top:10px;color:var(--green,#1E4D38);font:600 14.5px/1.3 var(--sans,inherit);text-underline-offset:3px}@media (max-width:560px){.vlc{flex-direction:column;align-items:stretch}.vlc-ph{width:100%}}</style>' +
+      '<section class="vlc" data-stage="live" data-vin-live aria-label="This car is at auction now">' + photo + '<div class="vlc-ct"><div class="vlc-eb">At auction now</div><h3>' + esc(l.title) + "</h3>" + (line1 ? "<p>" + line1 + "</p>" : "") + (facts.length ? "<p>" + facts.join(" &middot; ") + "</p>" : "") + '<a class="vlc-v" data-view-auction href="' + esc(l.url) + '" target="_blank" rel="noopener">View this auction</a></div></section>';
+  }
   function vinHeroCardHtml(m, rc, flat) {
     var name = m.displayName || carLabel(rc);
     var priceHtml, venueLine;
@@ -2506,6 +2522,7 @@
     if (!m && vinQueryNoSale) {
       head += '<div class="notes vinnosale" data-stage="anchor"><p>' + lint(esc("No recorded sale for this VIN. Here’s the market for the " + (carLabel(d.resolvedCar) || "model") + " instead."), "vin.nosale") + "</p></div>";
     }
+    head = vinLiveCardHtml(vinLive) + head;   // the listing first: the market read below is never mistaken for this car's own
     var body, foot = false;
     if (d.tier === "thin") body = thinHtml(d, m);
     else if (d.tier === "class_era") body = classEraHtml(d, m);
@@ -2546,7 +2563,7 @@
     // The car's OWN sale shows first (Stage 3, Oct 23 2026), labelled "Sold before", ABOVE any question the engine still has about the car
     // (the 1995 911 Carrera VIN used to open on "Has documented history or No documented history?" with its own sale nowhere on the page).
     var own = vinAnchor && (vinAnchor.price || vinAnchor.history) ? '<div class="cards5 single" data-stage="anchor">' + vinHeroCardHtml(vinAnchor, obResolvedCar) + "</div>" : "";
-    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + own + html;
+    root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + vinLiveCardHtml(vinLive) + own + html;
     wire();
   }
   // renderRefineChoice (gearbox_choice/variant_choice as a bare-chip refine) had no remaining
@@ -2860,6 +2877,7 @@
 
   // ---------------------------------------------------------------- VIN anchor (Task 2)
   var vinAnchor = null;   // carried from the confirm step into the result render
+  var vinLive = null;   // the engine's vinLiveMatch.listing when this VIN is at auction now (Lane B, Nov 11 2026): shown as a listing card above the market read, as sent
   var vinQueryNoSale = false;   // the query WAS a VIN that resolved a car but has NO recorded sale in our archive
   var pendingVin = null;  // resolved vehicle awaiting confirmation
   var mcFromCard = false;   // the address came from a card's Market Check link (from=card): no confirm question
@@ -2941,7 +2959,7 @@
     // A brand-new search resets the question count; a chip answer (keepAsk) carries it forward so
     // the engine can enforce the two-question cap across generation/body re-queries (Part 3).
     if (!keepAsk) { obAsked = 0; obSearchId = obNewSearchId(); }   // a brand-new search gets a new id; a chip answer keeps it, so a question and its answer carry the same one (analytics)
-    lastQuery = text; obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obIdOrigVariantLines = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
+    lastQuery = text; obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obIdOrigVariantLines = null; obLastD = null; vinAnchor = null; vinLive = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
     // Identifier-shaped input (VIN or chassis) routes through the shared resolver (decode +
     // confirm + exact-match + the honest VIN-invalid / chassis lines); everything else goes
     // straight to the archive pool.
@@ -3014,7 +3032,7 @@
     mcFromCard = sp.get("from") === "card";
     if (!vin && !car) { renderEmpty(); syncRailResults(); return; }
     var refine = mcRefineFromParams(sp);
-    obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obIdOrigVariantLines = null; obLastD = null; vinAnchor = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
+    obAsked = 0; lastQuery = vin || deslugifyQuery(car); obLastRefine = null; obIdOrigBody = null; obIdOrigTrim = null; obIdOrigVariantLines = null; obLastD = null; vinAnchor = null; vinLive = null; pendingVin = null; obSourceVin = null; choiceCtx = null; obLastVehicle = null; vinQueryNoSale = false; obWatchArmed = null; obWatchFirst = false; obIdQContext = null;
     mcCarHint = vin && car ? deslugifyQuery(car) : null;   // the card's own car text beside the VIN: used when the VIN decode alone would leave the trim or the model unnamed
     if (vin) { vinResolve(vin); return; }   // VIN re-decode is the full, tested path - refine on a VIN result is a rare combo and not threaded through it.
     runPool(lastQuery, null, refine);
@@ -3167,6 +3185,7 @@
     wire(); setLoaderLine("Reading that VIN");
     obFetch(API_ORIGIN + "/api/vehicleIdentity", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text }) }, 25000)
       .then(function (r) { return r.json(); }).then(function (d) {
+        vinLive = vinLiveListing(d);
         var cl = d && d.clarification;
         // Branch on clarification KIND first (status can be needs_confirmation OR
         // needs_clarification for a vin_confirmation depending on the resolver path).
