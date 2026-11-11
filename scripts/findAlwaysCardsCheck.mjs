@@ -13,7 +13,9 @@ let pass = 0, fail = 0; const ok = (n, c, d) => { if (c) pass++; else { fail++; 
 const NOW = Date.now(), DAY = 864e5, STATES = ["TX", "CA", "NY", "FL", "WA", "IL"], CITY = { TX: "Austin", CA: "Los Angeles", NY: "Albany", FL: "Miami", WA: "Seattle", IL: "Chicago" };
 const YEARS = [1987, 1995, 2001, 2003, 2008, 2010, 2014, 2016, 2017, 2020, 2022, 2023], TRIMS = ["Carrera", "Carrera", "Carrera 4S", "Carrera", "Carrera S", "Turbo", "Carrera S", "GT3 RS", "Carrera GTS", "Carrera S", "Turbo S", "GT3"], BODY = ["coupe", "coupe", "coupe", "cabriolet", "coupe", "coupe", "coupe", "coupe", "cabriolet", "coupe", "coupe", "coupe"];
 const rows = Array.from({ length: 48 }, (_, i) => { const k = i % 12, st = STATES[i % 6]; return { id: 100 + i, source: i % 3 ? "bringatrailer" : "carsandbids", source_listing_id: "s" + i, url: "https://auction.test/l/" + i, listing_title: `${YEARS[k]} Porsche 911 ${TRIMS[k]}`, make: "Porsche", model: "911", year: YEARS[k], vin_norm: null, mileage: 8000 + i * 2500, mileage_unit: "mi", body: BODY[k], transmission: i % 2 ? "Manual" : "Automatic", location: `${CITY[st]}, ${st}`, country: "US", currency: "USD", current_bid: 30000 + i * 6000, current_bid_usd: 30000 + i * 6000, end_time: new Date(NOW + (1 + i) * 3600e3 * 7).toISOString(), photo_url: "https://img.test/p" + i + ".jpg", status: "live", exterior_color: ["Red", "Black", "White", "Silver"][i % 4], description: "", bid_at: new Date(NOW - 3600e3).toISOString(), last_seen: new Date(NOW).toISOString(), first_seen: new Date(NOW - 5 * DAY).toISOString() }; });
-globalThis.fetch = async (url) => { const u = String(url); return new Response(JSON.stringify(/\/rest\/v1\/live_listings/.test(u) ? rows : []), { status: 200 }); };
+// the reads behind a card (the stored markets, the archive, the VIN history) can be slow: DELAY.card is how slow, in ms (the timing section sets it)
+const DELAY = { card: 0, pool: 0 };
+globalThis.fetch = async (url) => { const u = String(url); if (/\/rest\/v1\/(spec_market_cache|sales_archive|vin_index|auction_attempts|vin_summary)/.test(u) && DELAY.card) await new Promise(r => setTimeout(r, DELAY.card)); if (/\/rest\/v1\/live_listings/.test(u) && DELAY.pool) await new Promise(r => setTimeout(r, DELAY.pool)); return new Response(JSON.stringify(/\/rest\/v1\/live_listings/.test(u) ? rows : []), { status: 200 }); };
 const imp = f => import(pathToFileURL(path.join(root, f)).href);
 const { converse } = await imp("lib/live/converse.js"), { default: bs } = await imp("api/buySearch.js");
 const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
@@ -44,8 +46,25 @@ const cardsOf = w => (w.cards || []).length + (w.groups || []).reduce((n, g) => 
 // (5) near me with no zip: the cars (unsorted) and the question, not the question alone
 { const w = await post({ action: "converse", state: { id: "c5", messages: ["Porsche 911 near me"], filters: null, answered: ["generation"], asked: 1, zip: null, place: null, showNow: false } });
   ok("(5) near me with no zip: the cars are drawn and where-are-you is the offer", w.type !== "question" && cardsOf(w) > 0 && w.offer && w.offer.key === "location", [w.type, cardsOf(w), w.offer && w.offer.key]); }
+// (7) THE TIMING BUDGET PER STAGE (Nov 11 2026). Lane C measured /find?q=Porsche 911 at 15 s to the cards and a typed "Porsche 911" at over 60 s. Measured stages (production, Nov 11): live pool read 0.3 to 1.3 s, the first ten cards' market reads 6 to 9 s on a cold spec (the slowest held the whole answer),
+// the written answer's tool round 0.25 to 3.8 s plus its model round 1.5 s, and a typed answer that ran out of time was asked again (25 s, 25 s, then the scripted search). The cards must draw within a few seconds whatever the reads behind them do: a card whose reads are not back in CARD_BUDGET_MS is
+// drawn at once with the engine's being-read line and filled in place. Here the pool read is slow (400 ms) and every read behind a card takes 4.5 s: the answer still arrives inside its budget, with the cars.
+{ const { CARD_BUDGET_MS, converseOut } = await imp("api/buySearch.js"); DELAY.pool = 400;
+  const SLOW = 8000, slowEnrich = async (e, x) => { await new Promise(r => setTimeout(r, SLOW)); return { id: x.r.id, title: "slow", market: { kind: "range" } }; };   // a cold spec: the per-card read takes 8 s (Ford Bronco read 8.3 s cold in production)
+  const BUDGET = { converse: 2500, cards: 3900, total: 5500 };   // fixed numbers, not derived from the code under test: the cards 3 s plus 0.9 s, the whole answer 5.5 s
+  ok("(7) the first batch's own clock is three seconds", CARD_BUDGET_MS === 3000, CARD_BUDGET_MS);
+  const t0 = Date.now(), w = await converseOut(env, { action: "converse", debug: true, state: { id: "t1", messages: ["Porsche 911"], filters: null, answered: [], asked: 0, zip: null, place: null, showNow: false } }, { enrichOne: slowEnrich }), wall = Date.now() - t0;
+  ok(`(7) the cars are drawn within ${BUDGET.total} ms whatever the reads behind them take (wall ${wall} ms, a read takes ${SLOW} ms)`, w.type === "results" && cardsOf(w) > 0 && wall <= BUDGET.total, [wall, w.type, cardsOf(w)]);
+  const tm = w.times || {};
+  ok(`(7) stage budgets: the live pool and the resolve inside ${BUDGET.converse} ms (${tm.converse}), the cards inside ${BUDGET.cards} ms (${tm.cards})`, tm.converse <= BUDGET.converse && tm.cards <= BUDGET.cards, tm);
+  ok("(7) a card whose reads are late is drawn at once with the engine's being-read market (kind pending), never held back and never blank", (w.cards || []).filter(c => c.market && c.market.kind === "pending").length >= 1 && (w.cards || []).slice(0, 10).every(c => c.market !== undefined), (w.cards || []).slice(0, 3).map(c => c.market && c.market.kind));
+  ok("(7) the stage times travel with the answer (times) so a slow answer is read from the answer itself", typeof tm.converse === "number" && typeof tm.cards === "number" && typeof tm.total === "number", tm);
+  const fast = await converseOut(env, { action: "converse", debug: true, state: { id: "t2", messages: ["Porsche 911"], filters: null, answered: [], asked: 0, zip: null, place: null, showNow: false } }, { enrichOne: async (e, x) => ({ id: x.r.id, title: "fast", market: { kind: "range" } }) });
+  ok("(7) reads that are back in time are drawn whole (no card pending)", (fast.cards || []).slice(0, 10).every(c => c.market && c.market.kind === "range"), (fast.cards || []).slice(0, 3).map(c => c.market && c.market.kind));
+  DELAY.card = 0; DELAY.pool = 0; }
 // (6) the page prints the offer above the cards, from the server's own fields, and the client parses
 { const buy = fs.readFileSync(path.join(root, "api/buy.js"), "utf8"), m = /^const CLIENT = (".*");$/m.exec(buy); let parses = false, code = ""; try { code = eval(m[1]); new Function(code); parses = true; } catch (e) { parses = false; }
+  ok("(6) the Find client draws the scripted answer at once (no wait on every first card's line) and does not ask a timed-out written answer again", parses && /THE CARDS ARE DRAWN AT ONCE/.test(code) && !/enrichThen\(pend, function\(\)\{ th\.done\(\); draw\(\); \}\)/.test(code) && /Date\.now\(\) - chatT0 < 10000/.test(code), parses);
   ok("(6) the Find client parses and prints d.offer through the same question line (offerAsk), above the results", parses && /offerAsk\(d\.offer\)/.test(code) && code.indexOf("offerAsk(d.offer)") < code.indexOf("lastResult = d;") && /if \(d\.type === "question"\) \{ offerAsk\(d\); input\.focus\(\); return; \}/.test(code), parses); }
 console.log(`findAlwaysCardsCheck: ${fail ? fail + " FAIL" : "all pass"} (${pass})`); process.exit(fail ? 1 : 0);
 
@@ -57,7 +76,12 @@ function mutants() {
     ["api/buySearch.js", "perCard: !!r.perCard, ...(r.offer ? { offer: r.offer } : {}) };", "perCard: !!r.perCard };", "(4) a broad search"],
     ["api/buySearch.js", "return { type: \"results\", ...(r.offer ? { offer: r.offer } : {}), say: say,", "return { type: \"results\", say: say,", "(1) the wire answer"],
     ["api/buy.js", "if (d.offer) offerAsk(d.offer);", "", "(6) the Find client parses"],
-    ["lib/live/converse.js", "matches.length > 5 && !offer) {", "matches.length > 5) {", "(5) near me with no zip"]
+    ["lib/live/converse.js", "matches.length > 5 && !offer) {", "matches.length > 5) {", "(5) near me with no zip"],
+    ["api/buySearch.js", "const head = keep.slice(0, n), pre = preFor(head), got = await moreBatch(head, { enrichOne: async x => { await pre; return (deps.enrichOne || enrichFast)(env, x); }, pendingOf: pendingCardOf, budgetMs: CARD_BUDGET_MS });", "const head = keep.slice(0, n), got = await Promise.all(head.map(x => (deps.enrichOne || enrichFast)(env, x)));", "(7) the cars are drawn within"],
+    ["api/buySearch.js", "export const CARD_BUDGET_MS = BATCH_BUDGET_MS;", "export const CARD_BUDGET_MS = 60000;", "(7) the cars are drawn within"],
+    ["api/buySearch.js", "times.total = Date.now() - T0; if (out && typeof out === \"object\") { Object.defineProperty(out, \"_times\", { value: times, enumerable: false }); if (b.debug) out.times = times; }", "", "(7) the stage times travel"],
+    ["api/buy.js", "return draw();", "var th = thinking(); return enrichThen(pend, function(){ th.done(); draw(); });", "(6) the Find client draws the scripted answer at once"],
+    ["api/buy.js", "Date.now() - chatT0 < 10000", "true", "(6) the Find client draws the scripted answer at once"]
   ];
   let bad = 0;
   for (const [file, from, to, name] of M) {

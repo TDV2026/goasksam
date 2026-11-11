@@ -603,7 +603,7 @@ async function handler(req, res) {
       return res.status(200).json({ title: r.listing_title, key: spec.key, steps, refine: spec.refine || null, chosen: chosen && { step: chosen.step, family: chosen.family, refinedNote: chosen.refinedNote || null, kind: chosen.kind, count: chosen.count, low: chosen.low, high: chosen.high, span: chosen.span } });
     }
     if (b.action === "geocoverage") return res.status(200).json(await geoCoverage(env));
-    if (b.action === "converse") { const cv = await converseOut(env, b); noteNearMeZip(req, b, cv); await noteBuySearch(env, req, cv && cv.filters); return res.status(200).json(cv); }
+    if (b.action === "converse") { const cv = await converseOut(env, b); try { const tm = cv && cv._times; if (tm) res.setHeader("Server-Timing", Object.entries(tm).map(([k, v]) => `${k};dur=${v}`).join(", ")); } catch (e) {} noteNearMeZip(req, b, cv); await noteBuySearch(env, req, cv && cv.filters); return res.status(200).json(cv); }
     // The invisible ceiling on every search path (lib/_ceilings.js, the one guard Buy and Sell share): a
     // calm reply when hit, never a sign in demand. Our own jobs (credential) skip it unless a test ceiling
     // is sent with them (x-ceiling-test), which is how the ceiling is tested without touching real numbers.
@@ -769,23 +769,37 @@ function noteNearMeZip(req, b, cv) {
     if (/^\d{5}$/.test(now) && now !== was) track(req, "near_me_zip", { zip: now }, { product: "buy", surface: "buy_page" });
   } catch {}
 }
-async function converseOut(env, b) {
+// THE SCRIPTED ANSWER'S STAGES (Lane B, Nov 11 2026): times = { converse, seen, cards, total } in ms, sent when the request asks (b.debug) and always as the Server-Timing header, so a slow answer is read from the answer itself.
+// THE FIRST BATCH UNDER ITS OWN CLOCK: the first FIRST cards were each enriched with a blocking market read (the slowest cold spec held the whole answer: 6 to 9 s for "Porsche 911", "Ford Bronco", "Toyota Land Cruiser"); they now go through moreBatch like Show more:
+// a card whose read is back in CARD_BUDGET_MS is drawn whole, one that is not is drawn at once with the engine's being-read line and the page fills it in place (action enrich).
+export async function converseOut(env, b, deps = {}) {   // deps.enrichOne: the per-card read (a check passes a slow one); default enrichFast
+  const T0 = Date.now(), times = {};
+  const out = await converseOutCore(env, b, times, deps);
+  times.total = Date.now() - T0; if (out && typeof out === "object") { Object.defineProperty(out, "_times", { value: times, enumerable: false }); if (b.debug) out.times = times; }
+  return out;
+}
+export const CARD_BUDGET_MS = BATCH_BUDGET_MS;
+async function converseOutCore(env, b, times, deps = {}) {
   const st = cleanState(b.state);
   if (!st.messages.length) return { type: "nonsense", say: "Tell Sam a car, a budget or a type of car and Sam will find what's live.", options: ["a black manual BMW M3", "Porsches under $50k", "anything ending today"] };
-  const r = await converse(env, st);
+  const t1 = Date.now(); const r = await converse(env, st); times.converse = Date.now() - t1;
   if (r.type === "question" || r.type === "nonsense") return r;
-  const seenN = r.vins && r.vins.length ? await seenCount(env, r.vins).catch(() => 0) : 0;
+  const t2 = Date.now(), seenN = r.vins && r.vins.length ? await seenCount(env, r.vins).catch(() => 0) : 0; times.seen = Date.now() - t2;
+  const t3 = Date.now();
+  // one stored-row read for the first batch's spec keys inside the same clock (a failure only means each card reads as it would have)
+  const preFor = items => Promise.all((items || []).map(x => specOf(env, x.r, x.facts).catch(() => null))).then(sp => { const keys = sp.filter(Boolean).map(z => z.key); return keys.length ? prefetchSpecs(env, keys) : null; }).catch(() => null);
+  const fastCards = async (keep, n) => { const head = keep.slice(0, n), pre = preFor(head), got = await moreBatch(head, { enrichOne: async x => { await pre; return (deps.enrichOne || enrichFast)(env, x); }, pendingOf: pendingCardOf, budgetMs: CARD_BUDGET_MS }); return got.concat(keep.slice(n).map(cardOf)); };
   if (r.type === "groups") {
     // Each group: its cards (the first four enriched here, so every card a buyer can see renders WITH
     // its Sam line) and its set-aside cars (modified, engine-swapped, project), which are not cards.
     // The heading is a plain Sam line; each card carries its own exact-spec range.
     const shape = list => Promise.all((list || []).map(async g => {
       const { keep, aside } = splitAside(g.items);
-      const cards = await Promise.all(keep.slice(0, 40).map((x, i) => i < 4 ? enrich(env, x) : cardOf(x)));
+      const cards = (await fastCards(keep.slice(0, 40), 4));
       cards.forEach((c, i) => { if (keep[i] && keep[i].distance != null) c.distance = keep[i].distance; });
       return { label: g.label, n: keep.length, cards, setAside: await setAsideOf(env, aside) };
     })).then(gs => gs.filter(g => g.n || g.setAside.length));
-    const [groups, maybeGroups] = await Promise.all([shape(r.groups), shape(r.maybeGroups)]);
+    const [groups, maybeGroups] = await Promise.all([shape(r.groups), shape(r.maybeGroups)]); times.cards = Date.now() - t3;
     const total = groups.concat(maybeGroups).reduce((k, g) => k + g.n, 0);
     const say = r.near ? r.say : total && seenN ? `${CountText(total)} live, grouped by model. ${sauce(seenN)}` : (r.say || null);
     logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
@@ -796,10 +810,11 @@ async function converseOut(env, b) {
   const ordered = [...matches].sort((a, x) => { const k = c => (c.unknown.length ? 10 : 0) + (c.distance != null ? 0 : (isAbroadRow(c.r) ? 2 : 1)); return k(a) - k(x) || ((a.distance == null ? 1e9 : a.distance) - (x.distance == null ? 1e9 : x.distance)); });
   const split = splitAside(ordered);
   // Fill every card drawn first: the first 10 confirmed matches and the first 4 unconfirmed ones.
-  let unsureSeen = 0, sureSeen = 0;
-  const cards = await Promise.all(split.keep.map(x => { const un = (x.unknown || []).length; const k = un ? unsureSeen++ : sureSeen++; return (un ? k < 4 : k < FIRST) ? enrich(env, x) : cardOf(x); }));
+  const sureK = split.keep.filter(x => !(x.unknown || []).length), unsureK = split.keep.filter(x => (x.unknown || []).length);
+  const sureC = await fastCards(sureK, FIRST), unsureC = await fastCards(unsureK, 4), byKey = new Map(); sureK.forEach((x, i) => byKey.set(x, sureC[i])); unsureK.forEach((x, i) => byKey.set(x, unsureC[i]));
+  const cards = split.keep.map(x => byKey.get(x));
   cards.forEach((c, i) => { if (split.keep[i].distance != null) c.distance = split.keep[i].distance; });
-  const setAside = await setAsideOf(env, split.aside);
+  const setAside = await setAsideOf(env, split.aside); times.cards = Date.now() - t3;
   logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
   // The opener carries what only Sam knows: how many of these have an auction history.
   let say = r.say;
