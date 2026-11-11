@@ -14,8 +14,8 @@ const NOW = Date.now(), DAY = 864e5, STATES = ["TX", "CA", "NY", "FL", "WA", "IL
 const YEARS = [1987, 1995, 2001, 2003, 2008, 2010, 2014, 2016, 2017, 2020, 2022, 2023], TRIMS = ["Carrera", "Carrera", "Carrera 4S", "Carrera", "Carrera S", "Turbo", "Carrera S", "GT3 RS", "Carrera GTS", "Carrera S", "Turbo S", "GT3"], BODY = ["coupe", "coupe", "coupe", "cabriolet", "coupe", "coupe", "coupe", "coupe", "cabriolet", "coupe", "coupe", "coupe"];
 const rows = Array.from({ length: 48 }, (_, i) => { const k = i % 12, st = STATES[i % 6]; return { id: 100 + i, source: i % 3 ? "bringatrailer" : "carsandbids", source_listing_id: "s" + i, url: "https://auction.test/l/" + i, listing_title: `${YEARS[k]} Porsche 911 ${TRIMS[k]}`, make: "Porsche", model: "911", year: YEARS[k], vin_norm: null, mileage: 8000 + i * 2500, mileage_unit: "mi", body: BODY[k], transmission: i % 2 ? "Manual" : "Automatic", location: `${CITY[st]}, ${st}`, country: "US", currency: "USD", current_bid: 30000 + i * 6000, current_bid_usd: 30000 + i * 6000, end_time: new Date(NOW + (1 + i) * 3600e3 * 7).toISOString(), photo_url: "https://img.test/p" + i + ".jpg", status: "live", exterior_color: ["Red", "Black", "White", "Silver"][i % 4], description: "", bid_at: new Date(NOW - 3600e3).toISOString(), last_seen: new Date(NOW).toISOString(), first_seen: new Date(NOW - 5 * DAY).toISOString() }; });
 // the reads behind a card (the stored markets, the archive, the VIN history) can be slow: DELAY.card is how slow, in ms (the timing section sets it)
-const DELAY = { card: 0, pool: 0 };
-globalThis.fetch = async (url) => { const u = String(url); if (/\/rest\/v1\/(spec_market_cache|sales_archive|vin_index|auction_attempts|vin_summary)/.test(u) && DELAY.card) await new Promise(r => setTimeout(r, DELAY.card)); if (/\/rest\/v1\/live_listings/.test(u) && DELAY.pool) await new Promise(r => setTimeout(r, DELAY.pool)); return new Response(JSON.stringify(/\/rest\/v1\/live_listings/.test(u) ? rows : []), { status: 200 }); };
+const DELAY = { card: 0, pool: 0 }, MODEL = { calls: 0 };   // MODEL.calls counts the requests that reach the model (api.anthropic.com), which answer 500 here
+globalThis.fetch = async (url) => { const u = String(url); if (/api\.anthropic\.com/.test(u)) { MODEL.calls++; return new Response("{}", { status: 500 }); } if (/\/rest\/v1\/(spec_market_cache|sales_archive|vin_index|auction_attempts|vin_summary)/.test(u) && DELAY.card) await new Promise(r => setTimeout(r, DELAY.card)); if (/\/rest\/v1\/live_listings/.test(u) && DELAY.pool) await new Promise(r => setTimeout(r, DELAY.pool)); return new Response(JSON.stringify(/\/rest\/v1\/live_listings/.test(u) ? rows : []), { status: 200 }); };
 const imp = f => import(pathToFileURL(path.join(root, f)).href);
 const { converse } = await imp("lib/live/converse.js"), { default: bs } = await imp("api/buySearch.js");
 const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
@@ -62,6 +62,18 @@ const cardsOf = w => (w.cards || []).length + (w.groups || []).reduce((n, g) => 
   const fast = await converseOut(env, { action: "converse", debug: true, state: { id: "t2", messages: ["Porsche 911"], filters: null, answered: [], asked: 0, zip: null, place: null, showNow: false } }, { enrichOne: async (e, x) => ({ id: x.r.id, title: "fast", market: { kind: "range" } }) });
   ok("(7) reads that are back in time are drawn whole (no card pending)", (fast.cards || []).slice(0, 10).every(c => c.market && c.market.kind === "range"), (fast.cards || []).slice(0, 3).map(c => c.market && c.market.kind));
   DELAY.card = 0; DELAY.pool = 0; }
+// (8) A PLAIN SEARCH CALLS NO MODEL (Nov 11 2026). A plain car search ran one model round that only routed it (the model's whole job was to call search_live with the make and model the code had already resolved; the reply was the fixed line): 1.5 s on every search and one of the device's 20 model
+// turns a day. PLAIN = the typed words are the car and nothing else: a make and a model with any of a trim, a generation code, a year, a colour, a body, a gearbox and the filler words of asking. Not plain, so the model reads it: no model (a make alone), a budget, miles, a place, an ending time, a soft
+// word, a question, a word the code cannot account for as the car, and every follow-up turn. The code runs the same search_live the model would have called; usage.calls stays 0, so the turn is not counted on the ceiling (afterTurn counts only turns that called the model).
+{ const { runTurn } = await imp("lib/live/samChat.js");
+  const turn = async (q, state = {}) => { MODEL.calls = 0; let out = null, err = null; try { out = await runTurn({ env, apiKey: "k", model: "m", messages: [{ role: "user", content: q }], state, deadlineMs: 8000 }); } catch (e) { err = String(e && e.message || e).slice(0, 80); } return { q, calls: MODEL.calls, usage: out && out.usage && out.usage.calls, cards: out && (out.cards || []).length, direct: !!(out && out.direct), rounds: out && out.times && out.times.rounds && out.times.rounds.length, err }; };
+  const PLAIN = ["Porsche 911", "2016 Porsche 911", "red Porsche 911", "red 2016 Porsche 911", "Porsche 911 manual", "Porsche 911 coupe", "a Porsche 911 for sale", "Porsche 911 Carrera", "991 Porsche 911"];
+  for (const q of PLAIN) { const r = await turn(q); ok(`(8) plain "${q}": no model call, no model turn counted, the cars answered by the code`, r.calls === 0 && r.usage === 0 && r.direct && !r.err && r.rounds === 0, r); }
+  const t0 = Date.now(); const fastT = await turn("Porsche 911"); ok("(8) a plain search has no model round (rounds 0) and its cards are the search_live result (24 live)", fastT.cards === 24 && fastT.rounds === 0, fastT);
+  const NEEDS = ["Porsche 911?", "cheap Porsche 911", "Porsche 911 under 60k", "Porsche 911 near me", "what is the best Porsche 911?", "Porsche", "Porsche 911 ending today", "Porsche 911 with low miles", "Porsche 911 vs Cayman", "Porsche 911 in Texas", "Porsche 911 with a sunroof"];
+  for (const q of NEEDS) { const r = await turn(q); ok(`(8) not plain "${q}": the model is called`, r.calls >= 1 && !r.direct, r); }
+  const f = await turn("Porsche 911 manual", { filters: { make: "Porsche", model: "911" } });
+  ok("(8) a follow-up turn (a search already on screen) calls the model", f.calls >= 1 && !f.direct, f); }
 // (6) the page prints the offer above the cards, from the server's own fields, and the client parses
 { const buy = fs.readFileSync(path.join(root, "api/buy.js"), "utf8"), m = /^const CLIENT = (".*");$/m.exec(buy); let parses = false, code = ""; try { code = eval(m[1]); new Function(code); parses = true; } catch (e) { parses = false; }
   ok("(6) the Find client draws the scripted answer at once (no wait on every first card's line) and does not ask a timed-out written answer again", parses && /THE CARDS ARE DRAWN AT ONCE/.test(code) && !/enrichThen\(pend, function\(\)\{ th\.done\(\); draw\(\); \}\)/.test(code) && /Date\.now\(\) - chatT0 < 10000/.test(code), parses);
@@ -76,6 +88,12 @@ function mutants() {
     ["api/buySearch.js", "perCard: !!r.perCard, ...(r.offer ? { offer: r.offer } : {}) };", "perCard: !!r.perCard };", "(4) a broad search"],
     ["api/buySearch.js", "return { type: \"results\", ...(r.offer ? { offer: r.offer } : {}), say: say,", "return { type: \"results\", say: say,", "(1) the wire answer"],
     ["api/buy.js", "if (d.offer) offerAsk(d.offer);", "", "(6) the Find client parses"],
+    ["lib/live/samChat.js", "directTool: async (lastUser, ctx) => {", "directTool: async (lastUser, ctx) => { return null;", "(8) plain \"Porsche 911\": no model call"],
+    ["lib/live/chatCore.js", "if (surface.directTool && surface.endAfterTools && mustTool) {", "if (false) {", "(8) plain \"2016 Porsche 911\": no model call"],
+    ["lib/live/samChat.js", ["if (Object.keys(p).some(k => !PLAIN_KEYS.has(k) && p[k] != null && p[k] !== \"\")) return null;", "    return null;   // a word the code cannot account for as the car: the model reads it"], ["", "    continue;"], "(8) not plain \"Porsche 911 under 60k\""],
+    ["lib/live/samChat.js", "    return null;   // a word the code cannot account for as the car: the model reads it", "    continue;", "(8) not plain \"Porsche 911 with a sunroof\""],
+    ["lib/live/samChat.js", "|| /[?]/.test(t) ||", "|| false ||", "(8) not plain \"Porsche 911?\""],
+    ["lib/live/samChat.js", ["if (!ctx.speculative || (ctx.prevFilters && Object.keys(ctx.prevFilters).length)) return null;", "speculative: !Object.keys(prevFilters).length && lastUser ? speculativeSearch(env, lastUser, resolved) : null"], ["if (!ctx.speculative) return null;", "speculative: lastUser ? speculativeSearch(env, lastUser, resolved) : null"], "(8) a follow-up turn"],
     ["lib/live/converse.js", "matches.length > 5 && !offer) {", "matches.length > 5) {", "(5) near me with no zip"],
     ["api/buySearch.js", "const head = keep.slice(0, n), pre = preFor(head), got = await moreBatch(head, { enrichOne: async x => { await pre; return (deps.enrichOne || enrichFast)(env, x); }, pendingOf: pendingCardOf, budgetMs: CARD_BUDGET_MS });", "const head = keep.slice(0, n), got = await Promise.all(head.map(x => (deps.enrichOne || enrichFast)(env, x)));", "(7) the cars are drawn within"],
     ["api/buySearch.js", "export const CARD_BUDGET_MS = BATCH_BUDGET_MS;", "export const CARD_BUDGET_MS = 60000;", "(7) the cars are drawn within"],
@@ -90,8 +108,9 @@ function mutants() {
     for (const f of ["vercel.json", "package.json"]) if (fs.existsSync(path.join(root, f))) fs.copyFileSync(path.join(root, f), path.join(tmp, f));
     fs.symlinkSync(path.join(root, "node_modules"), path.join(tmp, "node_modules"));
     const fp = path.join(tmp, file), src = fs.readFileSync(fp, "utf8");
-    if (!src.includes(from)) { console.log("MUTANT BROKEN (text not found): " + name + " :: " + from.slice(0, 60)); bad++; continue; }
-    fs.writeFileSync(fp, src.replace(from, to));
+    const FR = [].concat(from), TO = [].concat(to);
+    if (!FR.every(x => src.includes(x))) { console.log("MUTANT BROKEN (text not found): " + name + " :: " + FR.map(x => x.slice(0, 50)).join(" | ")); bad++; continue; }
+    let mut = src; FR.forEach((x, i) => { mut = mut.replace(x, TO[i]); }); fs.writeFileSync(fp, mut);
     const r = spawnSync("node", [path.join(tmp, "scripts/findAlwaysCardsCheck.mjs"), tmp], { encoding: "utf8", timeout: 180000 }), out = (r.stdout || "") + (r.stderr || "");
     const named = out.split("\n").some(l => l.startsWith("FAIL") && l.includes(name));
     if (!(r.status !== 0 && named)) { console.log(`MUTANT SURVIVED: ${name}`); out.split("\n").filter(l => l.startsWith("FAIL")).slice(0, 3).forEach(l => console.log("   " + l.slice(0, 160))); bad++; }
