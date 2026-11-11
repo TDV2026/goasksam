@@ -71,9 +71,9 @@ r = await call("api/desk.js", { cookie: seat, body: { action: "sheet_queue", arc
 
 // 4. THE PAGE: Valuations for a seat, nothing for anyone else
 r = await call("api/crewPage.js", { method: "GET", url: "/api/crewPage?page=desk", cookie: seat });
-ok(r.code === 200 && /window\.__DESK_SEAT__=1/.test(String(r.body)) && /id="modeVals"/.test(String(r.body)), "the Desk page opens for a seat, flagged as a seat");
+ok(is404(r), "the old Desk page is retired (Nov 11 2026): a seat's /desk is the platform 404, the seat's API door below still works (scripts/deskRetiredCheck.mjs holds the page)");
 r = await call("api/crewPage.js", { method: "GET", url: "/api/crewPage?page=onebox-preview", cookie: seat }); ok(is404(r), "a seat cookie opens no other crew page");
-r = await call("api/crewPage.js", { method: "GET", url: "/api/crewPage?page=desk", cookie: crew }); ok(r.code === 200 && !/__DESK_SEAT__=1/.test(String(r.body)), "the crew path is unchanged: the Desk page without the seat flag");
+r = await call("api/crewPage.js", { method: "GET", url: "/api/crewPage?page=desk", cookie: crew }); ok(r.code === 302 && r.h.location === "/preview/desk", "the crew are sent from /desk to the Desk V4 preview");
 
 // 5. NOBODY ELSE: no cookie, forged, expired, wrong kind
 const forged = seat.replace(/\.[A-Za-z0-9_-]{43}$/, "." + "A".repeat(43)), expired = "gas_seat=" + mintSeatCookieValue(11, Date.now() - (SEAT_MAX_AGE_S + 60) * 1000);
@@ -98,9 +98,9 @@ r = await call("api/desk.js", { cookie: crew, body: { action: "list_views", desk
 
 // 8. WIRING: the router, the sign-in call and the Valuations landing
 const fs = await import("node:fs"), vj = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
-ok((vj.rewrites || []).some(x => x.source === "/desk" && (x.has || []).some(h => h.key === "gas_seat" && h.value === "s1\\..*") && x.destination === "/api/crewPage?page=desk"), "vercel.json routes /desk only for a gas_seat cookie of the s1. shape");
+ok(!(vj.rewrites || []).some(x => /^\/desk/.test(x.source) && (x.has || []).some(h => h.key === "gas_seat")), "vercel.json no longer routes /desk for a gas_seat cookie");
 ok(!(vj.rewrites || []).some(x => x.source === "/desk" && !(x.has || []).length), "no rewrite sends /desk to anyone without a cookie");
 const auth = fs.readFileSync("public/js/auth.js", "utf8"); ok(/\/api\/deskSeat/.test(auth) && /authDeskDoor\(s\.access_token\)/.test(auth), "the sign-in script calls the seat door after a session is written");
-const dv = fs.readFileSync("public/js/deskvals.js", "utf8"); ok(/__DESK_SEAT__/.test(dv) && /ab\.hidden = true/.test(dv), "a seat's page opens in Valuations with no Analyst mode");
+
 globalThis.fetch = realFetch;
 console.log(`seatAccessCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

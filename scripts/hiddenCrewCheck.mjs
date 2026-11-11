@@ -80,17 +80,20 @@ for (const [file, url] of [...PAGE_KEYS.filter(k => !DATA_FRAMES.includes(k)).ma
 
 // ---- 4. NO PUBLIC FILE OR PAGE NAMES A CREW ADDRESS
 const NAMES = [...new Set(["/desk", "/onebox-preview", "/partner-demo", "/admin", "/preview", ...sources])];   // every crew address vercel.json routes, so /preview/home and /preview/find are named-checked too
+const RETIRED_DESK_LINE = /^Disallow:\s*\/desk\s*$/;   // the one robots line allowed: /desk is the RETIRED Desk screen (Lane E, Nov 11 2026, Sam: "add it to the robots rules"); it answers 404, so there is no hidden page left for the line to announce
 const refs = [];
 const publicFiles = execSync("git ls-files public data", { encoding: "utf8" }).split("\n").filter(f => f && /\.(html|txt|xml|json|js|webmanifest|md)$/.test(f));
 const retired = new Set((vj.redirects || []).filter(r => /\.html$/.test(r.source) && !(r.has || []).length).map(r => "public" + r.source));   // a public/*.html a redirect answers for is never served as a file
 for (const f of publicFiles) {
   if (retired.has(f)) continue;
-  const t = fs.readFileSync(f, "utf8").split("\n").filter(l => !/^\s*(\/\/|\/\*|\*|#|<!--)/.test(l)).join("\n");
+  const t = fs.readFileSync(f, "utf8").split("\n").filter(l => !(f === "public/robots.txt" && RETIRED_DESK_LINE.test(l))).filter(l => !/^\s*(\/\/|\/\*|\*|#|<!--)/.test(l)).join("\n");
   for (const n of NAMES) if (new RegExp("(^|[\"'(=\\s>])" + n.replace(/[/-]/g, "\\$&") + "(?![A-Za-z0-9_-])").test(t)) refs.push(`${f} names ${n}`);
 }
 ok(refs.length === 0, `no public file or data file a visitor or crawler can read names a crew address (${refs.join("; ") || "none"})`);
 const robots = fs.readFileSync("public/robots.txt", "utf8");
-ok(!NAMES.some(n => robots.includes(n)) && !/Disallow:\s*\/(desk|admin|preview|onebox-preview)/i.test(robots) && !/\/(desk|admin|preview)/i.test(robots), "robots.txt names no crew address (a Disallow line would announce it)");
+const robotsLive = robots.split("\n").filter(l => !RETIRED_DESK_LINE.test(l)).join("\n");   // minus the retired /desk Disallow lines
+ok(!NAMES.some(n => robotsLive.includes(n)) && !/Disallow:\s*\/(desk|admin|preview|onebox-preview)/i.test(robotsLive) && !/\/(desk|admin|preview)/i.test(robotsLive), "robots.txt names no crew address (a Disallow line would announce it; the retired /desk line is the one allowed)");
+ok(robots.split("\n").filter(l => /^Disallow:\s*\/desk/.test(l)).every(l => RETIRED_DESK_LINE.test(l)), "the only /desk robots line is the plain Disallow: /desk of the retired page");
 // the pages and sitemaps a stranger is served, rendered with no cookie
 {
   const { PAGES } = await imp("api/sitemapPages.js");
