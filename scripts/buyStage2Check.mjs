@@ -34,11 +34,11 @@ ok(/<button type="button" class="rchip fchip" data-rmf="make,model,generation,tr
 const hh = block("  function headerHtml(", "  // With cars that don't state");
 const code = c.split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n");
 ok(!/Your search:/.test(code) && !/sq-k/.test(hh), "no 'Your search:' anywhere on the page");
-ok(!/chip-live/.test(hh) && !/data-nearme/.test(hh) && /var chips = filterChips\(f, m\.place, m\.radius\);/.test(hh), "no Live or Near me pill; the chips are the search's constraints");
+ok(!/chip-live/.test(hh) && !/data-nearme/.test(hh) && /var chips = filterChips\(f, m\.place, m\.radius, m\.hasMap && m\.hasMap\.label\);/.test(hh), "no Live or Near me pill; the chips are the search's constraints");
 ok(/if \(n <= 2\) widen\.forEach/.test(hh), "the engine's widenings (Any colour, abroad and the rest) show only for one, two or no cars");
 // Stage 1e item 7 (Sam, Oct 21 2026): no heading above the chips; the chips alone show the search.
 ok(!/class="sq"|data-sqedit|esc\(q\)/.test(hh) && /return '<div class="shead">' \+\s*('<div class="shead-top">[^']*<\/div>' \+\s*)?'<div class="srow2">/.test(hh), "no search heading above the chips (Stage 1e item 7): the header starts with the chips row");
-ok(/esc\(m\.countLine \|\| m\.liveLine \|\| matchesLine\(n, true\)\)/.test(hh) && /esc\(matchesLine\(0, !!qp, drawn\)\)/.test(hh), "the header's count is N live matches, or the engine's own countLine or liveLine (within a radius) while cars remain");
+ok(/esc\(m\.countLine \|\| m\.liveLine \|\| matchesLine\(n, true\)\)/.test(hh) && /esc\(m\.zeroLine \|\| matchesLine\(0, !!qp, drawn\)\)/.test(hh), "the header's count is N live matches, or the engine's own countLine or liveLine (within a radius) while cars remain");
 ok(!/insertAdjacentHTML\("beforeend", '<p class="snote">'/.test(c), "no 'Here's what's for sale' line over the cards");
 ok(/var lead = "";/.test(block("  function askHtml(", "  // Listings that don't state")), "the narrowing question does not repeat the count");
 ok(/'<div class="shead"><p class="sq"><b>' \+ esc\(said\) \+ '<\/b><\/p>/.test(c) && /matchesLine\(n, !!searchLabel/.test(c), "the searching block says the search once and its count as N live matches");
