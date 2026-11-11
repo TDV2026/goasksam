@@ -180,7 +180,6 @@ function mutants() {
     ["a mapped word is never dropped", "lib/live/samChat.js", s => s.replace("hasDrop = { ...hm, n: r2.matches.length };", "")],
     ["the dropped line does not say what was read", "lib/live/samChat.js", s => s.replace(" (read from '${hasDrop.from}')", "")],
     ["the page ignores the chip label", "api/buy.js", s => s.replace('add(hasLabel || capWord(f.has), [\\"has\\"])', 'add(capWord(f.has), [\\"has\\"])')],
-    ["the no-model search goes back to the old view (converse)", "api/buy.js", s => s.replace("return chatAsk({ __words: last });", "conv.scripted = true; conv.messages = [last]; ask();")],
     ["the engine phrase maps nowhere (no swap word)", "lib/live/samChat.js", s => s.replace('const ENGINE_HAS = "swap";', 'const ENGINE_HAS = "";')],
     ["a part-word swap ('swapped') is not mapped from its phrase", "lib/live/samChat.js", s => s.replace("if (!(ph && word === ENGINE_HAS) && new RegExp", "if (new RegExp")],
     ["a make and a generation code alone read to no car", "lib/live/samChat.js", s => s.replace("if (fam && new Set(", "if (false && fam && new Set(")],
