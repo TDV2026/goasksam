@@ -2499,6 +2499,12 @@ try {
   record("Desk v4 New case form: photos accumulate with a Remove each, a VIN fills the car (marked decoded, editable), make model body gearbox colour are pickers with a typed value allowed, a refusal prints the server's why under the button, a refused photo keeps the case; mutants (scripts/deskV4NewCaseCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/deskV4ReserveModeCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 Reserve or no reserve: the engine's line, both counts and the thin line print as sent, the no reserve choice is disabled when thin until the why line is written and writes report.reserveMode, the seller's preference as the case words it, a forwarded lead's own words in Documents; mutants (scripts/deskV4ReserveModeCheck.mjs)", "PASS", (out.match(/deskV4ReserveModeCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 Reserve or no reserve: the engine's line, both counts and the thin line print as sent, the no reserve choice is disabled when thin until the why line is written and writes report.reserveMode, the seller's preference as the case words it, a forwarded lead's own words in Documents; mutants (scripts/deskV4ReserveModeCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
   const out = execSync("node scripts/previewShellCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Preview shell is one full height column (footer at the bottom of a short page, after a long one, on every preview page at 1440, 1280, 1024 and 390) and the Tasks email section sits on the hero's left edge (scripts/previewShellCheck.mjs)", "PASS", (out.match(/previewShellCheck: .*/) || [""])[0]);
 } catch (e) {
@@ -2972,6 +2978,12 @@ try {
   record("Desk v3 demonstration car is a real archive sale: VIN, listing and first photo from one record, recorded rung counts in the lane notes (scripts/deskDemoCarCheck.mjs)", "PASS", (out.match(/deskDemoCarCheck: .*/) || [""])[0]);
 } catch (e) {
   record("Desk v3 demonstration car (scripts/deskDemoCarCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
+  execSync("node scripts/deskViewsCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Desk v4 views: a switch of period or condition makes no engine read, and every view equals the engine's direct read (scripts/deskViewsCheck.mjs)", "PASS", "")
+} catch (e) {
+  record("Desk v4 views (scripts/deskViewsCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160))
 }
 try {
   const out = execSync("node scripts/deskTypedCasesCheck.mjs", { encoding: "utf8", timeout: 60000 });

@@ -73,5 +73,36 @@ ok("the recorded reads in the code are the ones the lane notes post as read (the
     ok(n + ": the VIN read names the car as the typed twin does (title, label, decoded body)", typed.desk.titleLine === byVin.desk.titleLine && typed.car.label === byVin.car.label && byVin.car.decode.body === typed.car.decode.body, JSON.stringify([typed.desk.titleLine, byVin.desk.titleLine, byVin.car.decode.body]));
   } } finally { globalThis.fetch = f0; }
   ok("the twin check ran on three older cars (a coupe, a roadster, a trimmed car)", nCars === 3, String(nCars)); }
+// ---------- THE MINI THAT WAS REFUSED WITH NO REASON, AND EVERY OTHER REFUSAL OF case_new (Lane D, Nov 11 2026, Sam's first run) ----------
+// CAUSE: case_new answered the page's catch with nothing to print whenever the market read threw or came back empty for a VIN that did not decode (the handler had no catch, so the page got an error with no why/line). Sam's car: VIN WMWRE33575TL13132, 2005 Mini Cooper, 30,000 miles, Manual, Coupe, White, seller Jason Orange, one photo.
+// (The exact failure on the live read was not seen from here: no production read was made. This check holds every path that ends in a refusal.)
+// OTHER PAGES: the New case form, the older New sheet form and any caller of case_new; CLASS: every refusal of case_new, case_decode and photo_add carries a why line that is a reasonWords line, and no failure reaches the page without one.
+{ const A = await U("lib/desk/sheetActions.js"), S = await U("lib/desk/sheetStore.js"), H = await U("lib/desk/handler.js"), JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(64)]).toString("base64");
+  const mini = { vin: "WMWRE33575TL13132", mileage: "30,000", transmission: "Manual", body: "Coupe", colour: "White", seller_name: "Jason Orange" };
+  const mkCtx = (reader, store) => ({ now: "2026-11-11T12:00:00Z", env: {}, org: "s", seat: "a", store: store || (() => { const x = S.memoryStore(); x.reset(); return x; })(), orgSettings: { name: "H" }, readSheet: reader });
+  const decoded = async () => ({ car: { decode: { vin: "WMWRE33575TL13132", year: 2005, make: "Mini", model: "Cooper", trim: null, body: "Coupe", transmission: "Manual" }, label: "2005 Mini Cooper" } });
+  const st = S.memoryStore(); st.reset(); const m = await A.handleSheetAction("case_new", mini, mkCtx(decoded, st));
+  ok("Mini: the case is made from the VIN, with the decode filled as decoded and unverified and the form's own facts as the seller's", m.ok === true && m.case.fields.year.value === 2005 && m.case.fields.make.value === "Mini" && m.case.fields.model.value === "Cooper" && m.case.fields.year.source === "vin_decoded" && m.case.fields.year.verified === false && m.case.fields.mileage.value === 30000 && m.case.fields.mileage.source === "seller" && m.case.fields.body.value === "Coupe" && m.case.seller.name === "Jason Orange", JSON.stringify(m.why || ""));
+  const ph = await A.handleSheetAction("case_edit", { id: m.id, op: "photo_add", name: "front.jpg", data: JPG }, mkCtx(decoded, st));
+  const RWids = ["case.new.refuse.vin_format", "case.new.refuse.vin_not_decoded", "case.new.refuse.read_failed", "case.new.refuse.not_saved", "case.refuse.failed", "case.decode.refuse", "case.photo.refuse.size", "case.photo.refuse.type", "case.photo.refuse.unreadable", "case.photo.refuse.jpg_only"];
+  const words = new Set(RWids.map(id => RW.reasonLine(id, { detail: "" })).concat(RWids.map(id => RW.reasonLine(id, { detail: "boom" }))));
+  const badStore = (() => { const x = S.memoryStore(); x.reset(); x.insert = async () => { throw new Error("disk"); }; return x; })();
+  const cases = [
+    ["a VIN of the wrong length", () => A.handleSheetAction("case_new", { vin: "WMWRE335" }, mkCtx(decoded))],
+    ["the market read throws", () => A.handleSheetAction("case_new", mini, mkCtx(async () => { throw new Error("boom"); }))],
+    ["the case cannot be stored", () => A.handleSheetAction("case_new", mini, mkCtx(decoded, badStore))],
+    ["through the handler, an action that throws", () => H.handleDeskRequest({ action: "case_edit", id: "z", op: "field" }, { ...mkCtx(decoded, { get: async () => { throw new Error("db down"); } }), crew: true, seatCaller: true, env: {} })],
+    ["a photo over 4 MB", async () => { const x = await A.handleSheetAction("case_new", mini, mkCtx(decoded, st)); return A.handleSheetAction("case_edit", { id: x.id, op: "photo_add", name: "big.jpg", data: Buffer.alloc(4.5 * 1024 * 1024, 1).toString("base64") }, mkCtx(decoded, st)); }],
+    ["a file that is not a photo", async () => { const x = await A.handleSheetAction("case_new", mini, mkCtx(decoded, st)); return A.handleSheetAction("case_edit", { id: x.id, op: "photo_add", name: "a.jpg", data: Buffer.from("not a photo at all").toString("base64") }, mkCtx(decoded, st)); }],
+    ["a decode of a bad VIN", () => A.handleSheetAction("case_decode", { vin: "12" }, mkCtx(decoded))],
+    ["a decode the engine cannot make", () => A.handleSheetAction("case_decode", { vin: "WMWRE33575TL13132" }, { ...mkCtx(decoded), decodeVin: async () => null })]
+  ];
+  for (const [name, f] of cases) { let r, threw = null; try { r = await f(); } catch (e) { threw = e; }
+    ok(`refusal: ${name} is refused with a reasonWords why line and nothing is thrown at the page`, !threw && r && r.ok === false && typeof r.why === "string" && r.why.length > 8 && [...words].some(w => r.why === w) || RWids.some(id => r.why.startsWith(RW.reasonLine(id, { detail: "" }).split(" (")[0].split(":")[0])), threw ? String(threw.message) : JSON.stringify(r && (r.why || r.ok))); }
+  { const r = await A.handleSheetAction("case_new", mini, mkCtx(async () => null)); ok("a VIN the engine cannot decode keeps the case and says why in the engine-free line the page prints", r.ok === true && r.retry && r.retry.line === RW.reasonLine("case.new.refuse.vin_not_decoded"), JSON.stringify(r.retry || r.why)); }
+  const d = await A.handleSheetAction("case_decode", { vin: "WMWRE33575TL13132" }, { ...mkCtx(decoded), decodeVin: async () => ({ year: 2005, make: "Mini", model: "Cooper", trim: "S", bodyStyle: "Coupe", transmission: "Manual" }) });
+  ok("case_decode answers year, make, model, trim, body and gearbox for the VIN, each marked vin_decoded and unverified, and makes no case", d.ok === true && ["year", "make", "model", "trim", "body", "transmission"].every(k => d.decoded[k] && d.decoded[k].source === "vin_decoded" && d.decoded[k].verified === false) && d.decoded.year.value === 2005 && !d.id, JSON.stringify(d).slice(0, 160));
+}
+
 console.log("CASE IDS " + ids.join(" "));
 console.log(`deskTypedCasesCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

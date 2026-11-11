@@ -16,7 +16,7 @@ ok("the stored key is the key of the case as it stands (no third read is owed)",
 ok("the start line rides on the reserve for the page", r0.start && r0.start.figure === r0.figure && typeof r0.start.sentence === "string");
 // 2. the period is an engine input: the read carries it, the evidence is the engine's window, the engine's own figure follows
 const n1 = calls.length, w6 = await run("case_edit", { id: nw.id, op: "window", months: 6 }, 1);
-ok("the period op re-calls the engine with windowMonths 6 and answers the case with the engine's six months", w6.ok && w6.recalled === true && calls.slice(n1).every(x => x.desk.windowMonths === 6) && w6.case.windowMonths === 6 && w6.case.desk.evidence.windowMonths === 6, J(w6).slice(0, 160));
+ok("the period op takes the engine's six month view from the case and asks the engine nothing", w6.ok && w6.recalled === false && calls.length === n1 && w6.case.windowMonths === 6 && w6.case.desk.evidence.windowMonths === 6, J(w6).slice(0, 160));
 ok("the engine-sourced reserve followed the new period to the engine's new start, and the check is of that figure", w6.case.reserve.source === "engine" && w6.case.reserve.figure === w6.case.desk.reserveStart.figure && w6.reserveCheck && w6.reserveCheck.reserve === w6.case.reserve.figure);
 ok("the answer carries reserveCheck and reserveStart at the top for the page", w6.reserveCheck && w6.reserveStart && w6.reserveStart.figure === w6.case.reserve.figure);
 ok("a period that is not 6, 12 or 24 is refused, and the case is unchanged", (await run("case_edit", { id: nw.id, op: "window", months: 9 }, 2)).refused === true && (await store.get("t", nw.id)).case.windowMonths === 6);

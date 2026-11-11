@@ -20,7 +20,7 @@ if (args.includes("--mutants")) {
     [DV, "supported: position !== \"above\" }", "supported: position === \"inside\" }", "(2) a figure below the range is unsupported"],
     [DV, "supported: position !== \"above\" }", "supported: fig <= evidence.median }", "(2) supported flips at the median, not at q3"],
     [DV, "if (!evidence || evidence.insufficient) return { reserve: Math.round(fig), reached, of, reachedLine, position: null, positionLine: reasonLine(\"desk4.reserve_noband\"), supported: null };", "if (!evidence) return null;", "(3) a window with no range still gets a position"],
-    [DV, "figure: evidence.q1,", "figure: evidence.median,", "(4) the starting figure is the median"],
+    [DV, "figure: roundReserve(evidence.q1),", "figure: evidence.median,", "(4) the starting figure is the median"],
     [DV, "export function reserveStartOf(evidence, months) { return evidence && !evidence.insufficient ?", "export function reserveStartOf(evidence, months) { return evidence ?", "(4) a starting figure for an insufficient window"],
     [DV, "if (!(Number.isFinite(fig) && fig > 0)) return null;", "if (!Number.isFinite(fig)) return null;", "(4) a reserve of zero is checked"],
     [SR, "reserve: input.desk.reserve != null ? input.desk.reserve : null,", "reserve: null,", "(5) the sheet read drops the reserve"],
@@ -53,7 +53,7 @@ const prices = Array.from({ length: 39 }, (_, i) => 40000 + i * 1500);   // 40,0
 const rows = prices.map((p, i) => row("s" + i, p, `2026-${String(1 + (i % 10)).padStart(2, "0")}-${String(1 + (i % 27)).padStart(2, "0")}`));
 const sweepEdges = d => { const e = d.evidence, base = [e.low - 1, e.low, e.q1 - 1, e.q1, e.q1 + 1, e.median, e.q3 - 1, e.q3, e.q3 + 1, e.high, e.high + 1, 1, 1000000]; return [...new Set(base.filter(v => v > 0))]; };
 { const d0 = await DV.deskBlock(rows, { caseDate: CASE, subject: sub, subjectFacts: {} });
-  ok("the fixture: 39 sales in the window and a typical range", d0.evidence.count === 39 && !d0.evidence.insufficient && d0.reserveCheck === null && d0.reserveStart.figure === d0.evidence.q1, JSON.stringify(d0.reserveStart));
+  ok("the fixture: 39 sales in the window and a typical range", d0.evidence.count === 39 && !d0.evidence.insufficient && d0.reserveCheck === null && d0.reserveStart.figure === DV.roundReserve(d0.evidence.q1), JSON.stringify(d0.reserveStart));
   let swept = 0, bad = [];
   for (const fig of sweepEdges(d0)) {
     const d = await DV.deskBlock(rows, { caseDate: CASE, subject: sub, subjectFacts: {}, reserve: fig }), rc = d.reserveCheck, e = d.evidence, sales = d.sales;
@@ -74,7 +74,7 @@ const sweepEdges = d => { const e = d.evidence, base = [e.low - 1, e.low, e.q1 -
   ok("(4) no reserve, or one that is not a figure: no reserveCheck", [undefined, null, 0, -5, "abc", NaN].every(v => true) && (await Promise.all([undefined, null, 0, -5, "abc", NaN].map(v => DV.deskBlock(rows, { caseDate: CASE, subject: sub, subjectFacts: {}, reserve: v })))).every(x => x.reserveCheck === null));
   ok("(4) reserveStart is q1 of the chosen window with a table sentence", line("desk.reserveStart.sentence", d0.reserveStart.sentence) && noDash(d0.reserveStart.sentence), d0.reserveStart.sentence);
   const d6 = await DV.deskBlock(rows, { caseDate: CASE, subject: sub, subjectFacts: {}, windowMonths: 6, reserve: d0.evidence.q1 });
-  ok("(2) the sales and the range are the chosen window's: 6 months counts fewer sales", d6.reserveCheck.of === d6.evidence.count && d6.reserveCheck.of < 39 && d6.reserveStart.figure === d6.evidence.q1, `${d6.reserveCheck.of}`);
+  ok("(2) the sales and the range are the chosen window's: 6 months counts fewer sales", d6.reserveCheck.of === d6.evidence.count && d6.reserveCheck.of < 39 && d6.reserveStart.figure === DV.roundReserve(d6.evidence.q1), `${d6.reserveCheck.of}`);
   const ex = await DV.deskBlock(rows, { caseDate: CASE, subject: sub, subjectFacts: {}, reserve: 80000, excludedIds: ["s38"], exclusionScope: { s38: "market_calc" } });
   ok("(1) a sale excluded from the market calculation is not counted", ex.reserveCheck.of === 38 && ex.reserveCheck.reached === ex.sales.filter(s => s.price >= 80000).length);
 }
@@ -84,7 +84,7 @@ const today = new Date().toISOString().slice(0, 10);
 for (const c of W.CASES) {
   const base = await S.sheetRead(w.env, { year: c.year, make: c.make, model: c.model, mileage: 40000, desk: { caseDate: today, transmission: c.transmission, label: c.label } }, w.deps), e = base && base.desk && base.desk.evidence;
   if (!e || e.insufficient) { ok(`${c.model}: a reference to sweep`, false); continue; }
-  ok(`${c.model}: no reserve given, no reserveCheck; the starting figure is q1`, base.desk.reserveCheck === null && base.desk.reserveStart && base.desk.reserveStart.figure === e.q1);
+  ok(`${c.model}: no reserve given, no reserveCheck; the starting figure is q1`, base.desk.reserveCheck === null && base.desk.reserveStart && base.desk.reserveStart.figure === DV.roundReserve(e.q1));
   let allOk = true, tried = 0;
   for (const fig of [e.low - 1, e.low, e.q1, e.median, e.q3, e.q3 + 1, e.high, e.high + 1]) {
     const sh = await S.sheetRead(w.env, { year: c.year, make: c.make, model: c.model, mileage: 40000, desk: { caseDate: today, transmission: c.transmission, label: c.label, reserve: fig } }, w.deps), d = sh.desk, rc = d.reserveCheck; tried++;
