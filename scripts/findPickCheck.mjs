@@ -12,8 +12,8 @@ if (args.includes("--mutants")) {
   const FE = "lib/live/findExamples.js", PL = "api/pullLive.js";
   const muts = [
     [FE, "const pool = makesIn(rest) >= MAX_ITEMS ? rest : all;", "const pool = all;", "(2) the three newest listings are picked"],
-    [FE, "const s = String(row.source || \"\").toLowerCase(); return s === \"bringatrailer\" ? \"bringatrailer\" : s === \"carsandbids\"", "const s = String(row.source || \"\").toLowerCase(); return s === \"nothing\" ? \"bringatrailer\" : s === \"carsandbids\"", "(1) the Bring a Trailer slot is ignored"],
-    [FE, "s === \"carsandbids\" ? \"carsandbids\" : \"third\"", "s === \"nothing\" ? \"carsandbids\" : \"third\"", "(1) the Cars & Bids slot is ignored"],
+    [FE, 'export const SLOT_PLATFORMS = ["bringatrailer", "carsandbids"];', 'export const SLOT_PLATFORMS = ["nothing", "carsandbids"];', "(1) the Bring a Trailer slot is ignored"],
+    [FE, 'export const SLOT_PLATFORMS = ["bringatrailer", "carsandbids"];', 'export const SLOT_PLATFORMS = ["bringatrailer", "nothing"];', "(1) the Cars & Bids slot is ignored"],
     [FE, "tie = (a, b) => hashOf(dateKey + \":\" + a.row.id) - hashOf(dateKey + \":\" + b.row.id);\n  const all", "tie = (a, b) => Math.random() - 0.5;\n  const all", "(3) the pick within the day is not deterministic"],
     [FE, "if (eligibleRow(row, facts, now) && pickable(row) && !kept.some(", "if (liveNow(row, now - 7 * 864e5) && !kept.some(", "(4) an ended car is kept past the hour"],
     [FE, "if (!row) continue;   // withdrawn or gone: replaced below", "if (!row) { kept.push({ row: { id: e.listingId, make: \"x\" + e.listingId }, facts: {}, sold: false }); continue; }", "(4) a withdrawn car is kept"],

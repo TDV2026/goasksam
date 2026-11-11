@@ -28,6 +28,7 @@ import { photoOrNull } from "../lib/photoHosts.js";
 import { asideRowsFor, asideMatch, setAsideLabel } from "../lib/tasks/setAside.js";
 import { findGeneration } from "../lib/generations.js";
 import { converse } from "../lib/live/converse.js";
+import { reasonLine } from "../lib/reasonWords.js";
 import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, prefetchSpecs, stillReadingMarket, ladderSteps, walkLadder, panelOf } from "../lib/live/search.js";
 import { vinAppearances } from "./_historyData.js";
 import { applyRung, askedName, countText } from "../lib/live/rung.js";
@@ -399,7 +400,7 @@ async function handler(req, res) {
       // (source, via houseName) and no row identifier at all - Lane A's auction_clickout needs the
       // real platform slug, never the display name, and a listing id for which car was clicked.
       // Both are already on the row; this just carries them through, nothing computed.
-      return res.status(200).json({ count: live.total, positions: live.positions, rows: live.rows.map(r => ({ id: r.id, source: houseName(r.source), source_slug: r.source || null, title: r.listing_title, url: r.url, photo_url: r.photo_url || null, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: r.position, miles: cardMiles(listingFacts(r)) })) });
+      return res.status(200).json({ count: live.total, positions: live.positions, rows: live.rows.map(r => ({ id: r.id, source: houseName(r.source), source_slug: r.source || null, title: r.listing_title, url: r.url, photo_url: r.photo_url || null, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: r.position, vsRangeLine: r.position ? reasonLine("live.vs_range", { placing: r.position }) : null, miles: cardMiles(listingFacts(r)) })) });
     }
     if (req.method !== "POST") return res.status(405).json({ status: "error" });
     // Everything from here down is Buy's own endpoint (search, chat, saved searches, alerts) - gated

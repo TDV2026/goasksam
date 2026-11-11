@@ -72,6 +72,7 @@ LIVE = [liveRow()];
   LIVE = [liveRow()]; ARCH = [];
   const { default: sd } = await import(pathToFileURL(path.join(root, "api/sellerDecision.js")).href), { default: bs } = await import(pathToFileURL(path.join(root, "api/buySearch.js")).href), SR = await import(pathToFileURL(path.join(root, "lib/sheetRead.js")).href), V = await import(pathToFileURL(path.join(root, "lib/vehicle.js")).href);
   const run = async (h, req) => { let out = null; const res = { statusCode: 200, headers: {}, setHeader(k, v) { this.headers[k] = v; }, getHeader() {}, removeHeader() {}, status(c) { this.statusCode = c; return this; }, json(o) { out = o; return this; }, send(o) { out = o; return this; }, end() { return this; } }; await h({ headers: { cookie: "", host: "x", "x-forwarded-for": "203.0.113." + Math.floor(Math.random() * 200) }, query: {}, ...req }, res); return out || {}; };
+  const rd = f => fs.readFileSync(path.join(root, f), "utf8");
   const answer = body => run(sd, { method: "POST", body, url: "/api/sellerDecision" });
   const typed = await answer({ oneBox: true, anonId: "t", car: { raw: "2016 Porsche 911 GT3 RS" }, asked: 0 }), bare = await answer({ oneBox: true, anonId: "t", car: { raw: "2016 Porsche 911 Carrera" }, asked: 0 });
   ok("(6) the world separates the pools: the typed GT3 RS read and the typed Carrera read are not the same pool", typed.resolvedCar && typed.resolvedCar.trim === "GT3 RS" && (typed.rawPool || []).length > 0 && (typed.rawPool || []).length !== (bare.rawPool || []).length && /GT3 RS/.test(JSON.stringify((typed.cards || [])[0] || {})), [typed.resolvedCar && typed.resolvedCar.trim, (typed.rawPool || []).length, (bare.rawPool || []).length]);
@@ -90,12 +91,18 @@ LIVE = [liveRow()];
   ok("(6) Desk (sheetRead): the car is the 2016 Porsche 911 GT3 RS", sr && sr.car && /2016 Porsche 911 GT3 RS/.test(sr.car.label) && sr.car.decode.trim === "GT3 RS", sr && sr.car);
   ok("(6) Desk (sheetRead): the pool is the GT3 RS sales, never the Carrera rows (low figure above $150,000)", sr && sr.market && sr.market.tier === "result" && sr.market.low > 150000, sr && sr.market && [sr.market.tier, sr.market.low, sr.market.count]);
   ok("(6) Desk (sheetRead): the listing and the engine's line ride on the sheet", sr && sr.vinLiveMatch && sr.vinLiveMatch.listing.title === "2016 Porsche 911 GT3 RS" && sr.ownLive && sr.ownLive.line === "This car is live now", sr && [!!sr.vinLiveMatch, sr.ownLive && sr.ownLive.line]);
+  // (7) THE OWN LISTING'S VS-RANGE CELL (Nov 11 2026): the comparable rows carried "Below the range"; the own listing's row carried no cell. The same engine line, from the same comparison of the bid with the answer's range, rides on ownLive.listing and the page prints it as sent
+  { const own = sr && sr.ownLive && sr.ownLive.listing, panelRow = (await run(bs, { method: "GET", url: "/api/buySearch?x", query: { panel: "1", make: "Porsche", model: "911", trim: "GT3 RS", year: "2016", lo: String(sr.market.low), hi: String(sr.market.high) } })).rows || [];
+    ok("(7) the own listing carries where its bid sits against the range: placing and the engine's line (a $180,000 bid under a range from " + (sr && sr.market && sr.market.low) + ")", own && own.placing === "below the range" && own.vsRangeLine === "Below the range", own && [own.placing, own.vsRangeLine]);
+    ok("(7) it is the same line a comparable row carries for the same bid", panelRow.length === 1 && panelRow[0].vsRangeLine === own.vsRangeLine && panelRow[0].placing === own.placing, panelRow.map(r => [r.placing, r.vsRangeLine]));
+    const ab = await answer({ oneBox: true, anonId: "t", car: { raw: VIN }, asked: 0 });
+    ok("(7) an answer with no range (thin) carries no vs-range line on the listing, never a guess", ab.ownLive && ab.ownLive.listing && !ab.ownLive.listing.vsRangeLine && !ab.ownLive.listing.placing, ab.ownLive && ab.ownLive.listing.vsRangeLine);
+    ok("(7) the page prints the own listing's vsRangeLine as sent, and a comparable row's", /esc\(l\.vsRangeLine \|\| ""\)/.test(rd("public/js/onebox.js")) && /l\.vsRangeLine \|\| placingPillText/.test(rd("public/js/onebox.js"))); }
   // the live panel: the VIN's own listing is never one of the comparable cars
   const q = qs => run(bs, { method: "GET", url: "/api/buySearch?" + qs, query: Object.fromEntries(new URLSearchParams(qs)) });
   const p1 = await q("panel=1&make=Porsche&model=911&trim=GT3%20RS&year=2016"), p2 = await q("panel=1&make=Porsche&model=911&trim=GT3%20RS&year=2016&vin=" + VIN);
   ok("(6) the live panel counts the VIN's own listing as a comparable car only when no VIN is passed; with the VIN it is left out of the rows and the count", p1.count === 1 && (p1.rows || []).length === 1 && p2.count === 0 && (p2.rows || []).length === 0, [p1.count, p2.count]);
   // static: the page forwards the VIN and prints the engine's block as sent; chat and Find open no VIN decode of their own
-  const rd = f => fs.readFileSync(path.join(root, f), "utf8");
   ok("(6) the Market Check page forwards the VIN to the panel and prints ownLive as sent", /"&vin=" \+ encodeURIComponent\(d\.vinLiveMatch\.vin\)/.test(rd("public/js/onebox.js")) && /o\.line/.test(rd("public/js/onebox.js")) && !/This car is live now/.test(rd("public/js/onebox.js")));
   ok("(6) Sell opens the VIN through api/vehicleIdentity (the identity every door shares)", /api\/vehicleIdentity/.test(rd("public/js/entry.js")));
   for (const f of ["lib/live/samChat.js", "api/buySearch.js"]) ok(`(6) ${f} opens no VIN decode of its own`, !/vinConfirm|decodeVinRich|decodeVinFacts/.test(rd(f)));
@@ -108,7 +115,11 @@ function mutants() {
     ["api/sellerDecision.js", "live: vinLive, liveMatch,", "live: vinLive,", "(6) Market Check page, VIN as typed in upper case"],
     ["lib/sheetRead.js", "liveMatch = d.liveMatch ? await d.liveMatch(env, { vin }).catch(() => null) : null;", "liveMatch = null;", "(6) Desk (sheetRead)"],
     ["api/buySearch.js", "const live = ownIn.length ?", "const live = false ?", "(6) the live panel"],
-    ["lib/vinAsTyped.js", "if (ctx.liveMatch) { const ol = ownLiveOf(ctx.liveMatch);", "if (false) { const ol = ownLiveOf(ctx.liveMatch);", "the listing rides on the answer"],
+    ["lib/vinLiveMatch.js", 'const vs = placing ? { placing, vsRangeLine: reasonLine("live.vs_range", { placing }) } : {};', "const vs = {};", "(7) the own listing carries where its bid sits"],
+    ["lib/vinAsTyped.js", "Array.isArray(out.cluster) && out.cluster.length === 2 ? out.cluster.map(Number) : null));", "null));", "(7) the own listing carries where its bid sits"],
+    ["api/buySearch.js", 'vsRangeLine: r.position ? reasonLine("live.vs_range", { placing: r.position }) : null,', "", "(7) it is the same line a comparable row carries"],
+    ["public/js/onebox.js", 'esc(l.vsRangeLine || "") + "</td></tr></tbody></table></div>"', 'esc("") + "</td></tr></tbody></table></div>"', "(7) the page prints"],
+    ["lib/vinAsTyped.js", "if (ctx.liveMatch) { const ol = ownLiveOf(", "if (false) { const ol = ownLiveOf(", "the listing rides on the answer"],
     ["public/js/onebox.js", '(d && d.vinLiveMatch && d.vinLiveMatch.vin ? "&vin=" + encodeURIComponent(d.vinLiveMatch.vin) : "")', '""', "the Market Check page forwards the VIN"],
     ["api/vehicleIdentity.js", "if (!vinMatch && liveAny) {", "if (false) {", "(1) status valid"],
     ["lib/vinLiveMatch.js", 'String(row.status || "") !== "live" || !(Date.parse(row.end_time) > nowMs)', 'String(row.status || "") !== "live"', "(3) an ended listing"],

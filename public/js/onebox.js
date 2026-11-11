@@ -307,11 +307,12 @@
   function ownLiveBlock(d) {
     var o = d && d.ownLive, l = o && o.listing; if (!l || !o.line) return "";
     return '<div class="ownlive"><div class="sec-head"><div><h2>' + esc(o.line) + '</h2></div></div>' +
-      '<table class="lptable"><thead><tr><th class="colhead">Car</th><th class="colhead">Venue</th><th class="colhead">Last bid seen</th></tr></thead><tbody><tr><td><span class="lp-car">' +
+      '<table class="lptable"><thead><tr><th class="colhead">Car</th><th class="colhead">Venue</th><th class="colhead">Last bid seen</th><th class="colhead">Vs. range</th></tr></thead><tbody><tr><td><span class="lp-car">' +
       (l.photo ? '<span class="lp-ph"><img src="' + esc(l.photo) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()"></span>' : "") +
       '<span class="lp-cbody"><a class="lp-title" href="' + esc(utmUrl(l.url)) + '" target="_blank" rel="noopener">' + esc(l.title) + "</a>" + (l.mileageLine ? '<span class="lp-miles">' + esc(l.mileageLine) + "</span>" : "") + "</span></span></td>" +
       '<td><span class="lp-venue">' + esc(l.venue || "") + '</span><span class="lp-ends">' + esc(o.endsLine || "") + "</span></td>" +
-      '<td class="lp-bid"><b>' + esc(l.bidLine || "") + "</b></td></tr></tbody></table></div>";
+      '<td class="lp-bid"><b>' + esc(l.bidLine || "") + "</b></td>" +
+      '<td class="lp-vsrange">' + (l.placing && placingDotClass(l.placing) ? '<span class="lp-dot ' + placingDotClass(l.placing) + '"></span>' : "") + esc(l.vsRangeLine || "") + "</td></tr></tbody></table></div>";
   }
   function loadLivePanel(d, m) {
     var slot = document.getElementById("ob-live"); var rc = d && d.resolvedCar;
@@ -333,7 +334,7 @@
         // as Buy's), under "Last bid seen"; never the word "current".
         var amountText = l.fixedPriceUsd ? "Asking " + usd(l.fixedPriceUsd) : (amt ? amt : "No bids yet");
         var timeText = (!l.fixedPriceUsd && amt && l.bid_at) ? ("at " + bidTimePT(l.bid_at)) : "";
-        var vsrange = placingPillText(l.placing);
+        var vsrange = l.vsRangeLine || placingPillText(l.placing);
         var vsrangeDot = placingDotClass(l.placing);
         var photo = l.photo_url ? '<img src="' + esc(l.photo_url) + '" alt="" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">' : "";
         var href = utmUrl(l.url);
