@@ -12,6 +12,11 @@ if (process.argv.includes("--mutants")) {
     ["Find's visitor reader dropped (the page reads the crew only field again)", "api/crewPage.js", "PUBLIC_CTX.getStore() ? publicFindExamples(req) : readField(", "false ? publicFindExamples(req) : readField("],
     ["the look reads examples as the crew (a crew cookie reaches the readers in public mode)", "api/crewPage.js", "const visitorOf = req => PUBLIC_CTX.getStore() ? withoutCrew(req) : req;", "const visitorOf = req => req;"],
     ["a stored sale not moved into the card (Find's fallback sales dropped)", "lib/preview/fieldCompose.js", "const fallback = (Array.isArray(sales) ? sales : []).map(", "const fallback = (Array.isArray(sales) ? [] : []).map("],
+    ["Home not printing the engine's endsLine next to the venue", "lib/preview/previewPages.js", '${ends ? ` &middot; <span class="fh-ends">${esc(ends)}</span>` : ""}', ""],
+    ["Home not printing the engine's intelligence line", "lib/preview/previewPages.js", '${intel ? `<a class="fh-i"', '${false ? `<a class="fh-i"'],
+    ["Home inventing an ends line the field does not carry", "lib/preview/previewPages.js", 'typeof c.endsLine === "string" && c.endsLine.trim() ? c.endsLine : ""', 'typeof c.endsLine === "string" && c.endsLine.trim() ? c.endsLine : "Ends soon"'],
+    ["Find not printing the engine's timing line next to the venue", "lib/preview/fieldCompose.js", "venue: it.venue, timing: it.timing,", "venue: it.venue,"],
+    ["Find not printing the engine's intelligence line", "lib/preview/fieldCompose.js", "intelligence: it.intelligence, venue: it.venue,", "venue: it.venue,"],
     ["the example readers not shipped with the Find function", "vercel.json", '"api/buy.js": {\n      "includeFiles"', '"api/buy.js": {\n      "maxDuration"']
   ];
   let bad = 0;
@@ -45,6 +50,22 @@ ok("the public endpoint answers every example name as a visitor", NAMES.every(k 
   const titles = [...(E.find || []).map(x => x.title), ...(E.findSales || []).map(x => x.title)];
   ok("Find as a visitor: each car the endpoint serves as find is on the page, with its photo and link", (E.find || []).slice(0, 3).every(x => t.includes(x.title) && r.body.includes(x.photo) && r.body.includes(x.url)), titles.join(" | "));
   ok("Find as a visitor: no could-not-read line", !/data-could-not-read/.test(r.body)); }
+// THE ENGINE'S TWO NEW LINES (Lane B, Nov 11 2026), printed as sent: Home's current.endsLine next to the venue and featuredHistory.intelligence as a link; Find's timing line next to the venue and its intelligence row, on every example card. Nothing the field does not carry.
+{ const okc = (c, m) => ok(m, c), home = await page("home", "/"), hr = home.body, f = E.featured, c = f && f.current, intel = f && f.intelligence;
+  okc(!!c && typeof c.endsLine === "string" && !!intel && !!intel.line, "Home: the engine's featured field carries endsLine and intelligence in this world (" + (c && c.endsLine) + ", " + (intel && intel.line) + ")");
+  okc(c && hr.includes(`<span class="fh-ends">${c.endsLine}</span>`) && new RegExp(`<p class="fh-pl">${(c.platform || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} &middot; <span class="fh-ends">`).test(hr), "Home: the card prints the engine's endsLine next to the venue, as sent (" + (c && c.endsLine) + ")");
+  okc(intel && hr.includes(`href="${intel.url}">${intel.line.replace(/&/g, "&amp;")}</a>`) && /class="fh-i" data-intel="(sold|listed)_before"/.test(hr), "Home: the card prints the engine's intelligence line as a link to " + (intel && intel.url) + ", as sent (" + (intel && intel.line) + ")");
+  const { featuredHistoryHtml } = await import(pathToFileURL(path.join(root, "lib/preview/previewPages.js")).href), strip = x => { const o = JSON.parse(JSON.stringify(x)); return o; }, now = Date.now();
+  const none = strip(f); delete none.current.endsLine; delete none.intelligence; const h0 = featuredHistoryHtml(none, { now });
+  okc(h0.includes("data-featured-history") && !/fh-ends|fh-i"|Ends /.test(h0), "Home: a field without endsLine and intelligence prints neither (nothing is made up)");
+  const bad = strip(f); bad.intelligence = { kind: "other", line: "x", url: "/vin/X" }; bad.current.endsLine = "   "; const hb = featuredHistoryHtml(bad, { now }); okc(!/fh-ends|fh-i"/.test(hb), "Home: a malformed intelligence (an unknown kind) and a blank endsLine print nothing");
+  const ext = strip(f); ext.intelligence = { kind: "sold_before", line: "Sold before · $1", url: "https://elsewhere.test/x" }; okc(!/fh-i"/.test(featuredHistoryHtml(ext, { now })), "Home: an intelligence link that leaves the site is not printed");
+  const fp = await page("buy", "/find"), fr = fp.body, items = (E.find || []).slice(0, 3);
+  okc(items.length > 0 && items.every(it => !it.timing || new RegExp(`<span class="lc-p">[^<]*${it.venue ? it.venue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : ""}[^<]*${it.timing.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(fr) || fr.includes(it.timing)), "Find: every example card prints the engine's timing line next to the venue, as sent (" + items.map(i => i.timing).join(" | ") + ")");
+  const drawn = items.filter(it => it.intelligence && ["sold_before", "market_range", "listed_before"].includes(it.intelligence.kind) && it.intelligence.line);   // kind "none" draws no row
+  okc(drawn.length > 0 && drawn.every(it => fr.includes(`data-intel="${it.intelligence.kind}"`) && fr.includes(it.intelligence.line.replace(/&/g, "&amp;"))) && (fr.match(/class="lc-i"/g) || []).length === drawn.length, "Find: every example card whose field carries an intelligence line prints it as sent, and no card without one prints a row (" + drawn.map(i => i.intelligence.line).join(" | ") + ")");
+  const noTiming = await (async () => { const { publicFindField } = await import(pathToFileURL(path.join(root, "lib/preview/fieldCompose.js")).href), { findHtml } = await import(pathToFileURL(path.join(root, "lib/preview/previewPages.js")).href); const its = items.map(i => { const o = { ...i }; delete o.timing; delete o.intelligence; return o; }); return findHtml({ examples: publicFindField(its, []), now: Date.now() }); })();
+  okc(/data-find-examples/.test(noTiming) && !/Ends |data-intel=/.test(noTiming), "Find: a card without a timing line or an intelligence row prints neither (nothing is made up)"); }
 // MARKET CHECK, SELL, TASKS, HOME
 { const r = await page("marketCheck", "/market-check"); ok("Market Check as a visitor: the example card is on the page and it is the endpoint's card", r.h["x-design"] === "new" && /data-mc-card/.test(r.body) && text(r.body).includes(E.mcCard.titleLine) && text(r.body).includes(E.mcCard.rangeLine), E.mcCard && E.mcCard.titleLine); }
 { const r = await page("sell", "/sell"); ok("Sell as a visitor: the example card is on the page and it is the endpoint's card", r.h["x-design"] === "new" && /data-sell-card/.test(r.body) && text(r.body).includes(E.sellCard.titleLine), E.sellCard && E.sellCard.titleLine); }
