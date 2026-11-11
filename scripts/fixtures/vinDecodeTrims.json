@@ -1,0 +1,581 @@
+{
+ "fetched": "vPIC DecodeVinValues and the live pool (api/buySearch cards), Nov 11 2026",
+ "rows": [
+  {
+   "vin": "WP0AF2A92GS187171",
+   "title": "2016 Porsche 911 GT3 RS",
+   "vpic": {
+    "ModelYear": "2016",
+    "Make": "PORSCHE",
+    "Model": "911",
+    "Trim": "RS",
+    "Series": "Turbo/Turbo S",
+    "Series2": "Type 991",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "GT3 RS",
+   "note": "the report: 2016 GT3 RS, vPIC Trim RS"
+  },
+  {
+   "vin": "WP0AF2A93GS187213",
+   "title": "6k-Mile 2016 Porsche 911 GT3 RS",
+   "vpic": {
+    "ModelYear": "2016",
+    "Make": "PORSCHE",
+    "Model": "911",
+    "Trim": "RS",
+    "Series": "Turbo/Turbo S",
+    "Series2": "Type 991",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "GT3 RS",
+   "note": "2016 GT3 RS, vPIC Trim RS"
+  },
+  {
+   "vin": "WP0AF2A94RS272757",
+   "title": "2024 Porsche 911 GT3 RS Weissach",
+   "vpic": {
+    "ModelYear": "2024",
+    "Make": "PORSCHE",
+    "Model": "911",
+    "Trim": "GT3 RS",
+    "Series": "Type 992",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "GT3 RS",
+   "note": "2024 GT3 RS, vPIC GT3 RS (control: already right)"
+  },
+  {
+   "vin": "WP0AF2A98RS273779",
+   "title": "2024 Porsche 911 GT3 RS Weissach",
+   "vpic": {
+    "ModelYear": "2024",
+    "Make": "PORSCHE",
+    "Model": "911",
+    "Trim": "GT3 RS",
+    "Series": "Type 992",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "GT3 RS",
+   "note": "2024 GT3 RS (control)"
+  },
+  {
+   "vin": "WP0AE2A93JS186153",
+   "title": "1,600-Mile 2018 Porsche 911 GT2 RS Weissach",
+   "vpic": {
+    "ModelYear": "2018",
+    "Make": "PORSCHE",
+    "Model": "911",
+    "Trim": "GT2 RS",
+    "Series": "Type 991",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "GT2 RS",
+   "note": "2018 GT2 RS (control)"
+  },
+  {
+   "vin": "WP0AC2A94AS783639",
+   "title": "2010 Porsche 911 GT3 RS",
+   "vpic": {
+    "ModelYear": "2010",
+    "Make": "PORSCHE",
+    "Model": "911",
+    "Trim": "Base, RS",
+    "Series": "GT3",
+    "Series2": "Type 997",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": null,
+   "note": "2010 GT3 RS: vPIC 'Base, RS', GT3 and GT3 RS share WP0AC2A9 so the VIN does not say: no trim, never a guess"
+  },
+  {
+   "vin": "WP0AC2A94BS783562",
+   "title": "Original-Owner 2011 Porsche 911 GT3 RS",
+   "vpic": {
+    "ModelYear": "2011",
+    "Make": "PORSCHE",
+    "Model": "911",
+    "Trim": "GT3, GT3 RS",
+    "Series": "GT3",
+    "Series2": "Type 997",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": null,
+   "note": "2011 GT3 RS: 'GT3, GT3 RS': a list stays no trim"
+  },
+  {
+   "vin": "WP0AD2A91GS166348",
+   "title": "6k-Mile 2016 Porsche 911 Turbo S Coupe",
+   "vpic": {
+    "ModelYear": "2016",
+    "Make": "PORSCHE",
+    "Model": "911",
+    "Trim": "Base, S",
+    "Series": "Turbo/Turbo S",
+    "Series2": "Type 991",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": null,
+   "note": "2016 Turbo S: 'Base, S' a list stays no trim"
+  },
+  {
+   "vin": "WP0BA2A90FS132168",
+   "title": "One-Owner 2015 Porsche 991 Targa 4",
+   "vpic": {
+    "ModelYear": "2015",
+    "Make": "PORSCHE",
+    "Model": "911",
+    "Trim": "Targa 4",
+    "Series": "Targa",
+    "Series2": "Type 991",
+    "BodyClass": "Convertible/Cabriolet",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "Targa 4",
+   "note": "2015 Targa 4 (control)"
+  },
+  {
+   "vin": "WP0CF2A94KS172236",
+   "title": "2019 Porsche 911 Speedster \u2014 4,783 Miles",
+   "vpic": {
+    "ModelYear": "2019",
+    "Make": "PORSCHE",
+    "Model": "911",
+    "Trim": "Speedster",
+    "Series": "Type 991",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "Speedster",
+   "note": "2019 Speedster (control)"
+  },
+  {
+   "vin": "WP0AB2A85CS780178",
+   "title": "Original-Owner 2012 Porsche Cayman S 6-Speed",
+   "vpic": {
+    "ModelYear": "2012",
+    "Make": "PORSCHE",
+    "Model": "Cayman",
+    "Trim": "S",
+    "Series": "",
+    "Series2": "Type 987",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "S",
+   "note": "2012 Cayman S (control)"
+  },
+  {
+   "vin": "WP0AE2A88RS274151",
+   "title": "2024 Porsche 718 Cayman GT4 RS Weissach Package",
+   "vpic": {
+    "ModelYear": "2024",
+    "Make": "PORSCHE",
+    "Model": "718 Cayman",
+    "Trim": "GT4 RS",
+    "Series": "Type 982",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "GT4 RS",
+   "note": "2024 718 Cayman GT4 RS (control)"
+  },
+  {
+   "vin": "WP0AC2A8XNS275429",
+   "title": "6k-Mile 2022 Porsche 718 Cayman GT4 6-Speed",
+   "vpic": {
+    "ModelYear": "2022",
+    "Make": "PORSCHE",
+    "Model": "718 Cayman",
+    "Trim": "GT4",
+    "Series": "Type 982",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "GT4",
+   "note": "2022 718 Cayman GT4 (control)"
+  },
+  {
+   "vin": "WP0AA2A97GS106731",
+   "title": "34k-Mile 2016 Porsche 911 Carrera Coupe Black Edition 7-Speed",
+   "vpic": {
+    "ModelYear": "2016",
+    "Make": "PORSCHE",
+    "Model": "911",
+    "Trim": "Carrera (2WD), Carrera 4 (4WD)",
+    "Series": "Turbo/Turbo S",
+    "Series2": "Type 991",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": null,
+   "note": "2016 Carrera: 'Carrera (2WD), Carrera 4 (4WD)' a list stays no trim"
+  },
+  {
+   "vin": "1G1YT2D65F5601347",
+   "title": "ProCharger-Supercharged 2015 Chevrolet Corvette Z06 Coupe 3LZ Z07 7-Speed",
+   "vpic": {
+    "ModelYear": "2015",
+    "Make": "CHEVROLET",
+    "Model": "Corvette",
+    "Trim": "Stingray 3LZ w/Z06",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "Z06",
+   "note": "2015 Z06: vPIC 'Stingray 3LZ w/Z06'"
+  },
+  {
+   "vin": "1G1YU2D64G5607445",
+   "title": "Original-Owner, 19k-Mile 2016 Chevrolet Corvette Z06 Coupe 3LZ",
+   "vpic": {
+    "ModelYear": "2016",
+    "Make": "CHEVROLET",
+    "Model": "Corvette",
+    "Trim": "Premium 2LZ w/Z06",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "Z06",
+   "note": "2016 Z06: vPIC 'Premium 2LZ w/Z06'"
+  },
+  {
+   "vin": "1G1YE3D33R5604760",
+   "title": "2024 Chevrolet Corvette Z06 Convertible 2LZ",
+   "vpic": {
+    "ModelYear": "2024",
+    "Make": "CHEVROLET",
+    "Model": "Corvette",
+    "Trim": "Z06 Preferred 2LZ",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Convertible/Cabriolet",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "Z06",
+   "note": "2024 Z06: vPIC 'Z06 Preferred 2LZ'"
+  },
+  {
+   "vin": "1G1YY26E965113993",
+   "title": "178-Mile 2006 Chevrolet Corvette Z06 2LZ",
+   "vpic": {
+    "ModelYear": "2006",
+    "Make": "CHEVROLET",
+    "Model": "Corvette",
+    "Trim": "",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "Z06",
+   "note": "2006 Z06: vPIC names no trim, the VIN code does"
+  },
+  {
+   "vin": "1G1YN2DT7A5801364",
+   "title": "Single-Family-Owned, 3,300-Mile 2010 Chevrolet Corvette ZR1 3ZR",
+   "vpic": {
+    "ModelYear": "2010",
+    "Make": "CHEVROLET",
+    "Model": "Corvette",
+    "Trim": "ZR1 Custom - 3ZR",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "ZR1",
+   "note": "2010 ZR1: 'ZR1 Custom - 3ZR'"
+  },
+  {
+   "vin": "1G1Y52D9XK5802465",
+   "title": "2019 Chevrolet Corvette ZR1 Coupe 3ZR ZTK",
+   "vpic": {
+    "ModelYear": "2019",
+    "Make": "CHEVROLET",
+    "Model": "Corvette",
+    "Trim": "ZR1 Premium 3ZR",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "ZR1",
+   "note": "2019 ZR1: 'ZR1 Premium 3ZR'"
+  },
+  {
+   "vin": "1G1YR2D78T5900107",
+   "title": "2026 Chevrolet Corvette ZR1X Coupe 3LZ ZTK",
+   "vpic": {
+    "ModelYear": "2026",
+    "Make": "CHEVROLET",
+    "Model": "Corvette",
+    "Trim": "ZR1X 3LZ",
+    "Series": "",
+    "Series2": "Targa Body Style",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "ZR1X",
+   "note": "2026 ZR1X: 'ZR1X 3LZ'"
+  },
+  {
+   "vin": "1G1YZ23J3M5800527",
+   "title": "45k-Mile 1991 Chevrolet Corvette ZR-1",
+   "vpic": {
+    "ModelYear": "1991",
+    "Make": "CHEVROLET",
+    "Model": "Corvette",
+    "Trim": "ZR1",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "ZR1",
+   "note": "1991 ZR-1 (control)"
+  },
+  {
+   "vin": "1G1Y13D72K5112774",
+   "title": "222-Mile 2019 Chevrolet Corvette Grand Sport Convertible 3LT Z07 Yenko/SC Stage II",
+   "vpic": {
+    "ModelYear": "2019",
+    "Make": "CHEVROLET",
+    "Model": "Corvette",
+    "Trim": "Grand Sport Premium 3LT",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Convertible/Cabriolet",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "Grand Sport",
+   "note": "2019 Grand Sport: 'Grand Sport Premium 3LT'"
+  },
+  {
+   "vin": "1G1YL3D71H5110355",
+   "title": "545-Mile 2017 Chevrolet Corvette Stingray Convertible Z51 3LT 7-Speed",
+   "vpic": {
+    "ModelYear": "2017",
+    "Make": "CHEVROLET",
+    "Model": "Corvette",
+    "Trim": "Stingray Premium 3LT w/Z51",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Convertible/Cabriolet",
+    "ErrorCode": "0"
+   },
+   "expectTrim": null,
+   "note": "2017 Stingray: 'Stingray Premium 3LT w/Z51' is the plain model and equipment: no trim, and the car keeps its make and model"
+  },
+  {
+   "vin": "1G1YB2D44P5110173",
+   "title": "2023 Chevrolet Corvette Stingray Coupe 2LT Z51",
+   "vpic": {
+    "ModelYear": "2023",
+    "Make": "CHEVROLET",
+    "Model": "Corvette",
+    "Trim": "Preferred 2LT",
+    "Series": "",
+    "Series2": "Targa Body Style",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": null,
+   "note": "2023 Stingray: 'Preferred 2LT' is equipment only"
+  },
+  {
+   "vin": "1FA6P8JZ6G5521499",
+   "title": "2016 Ford Mustang Shelby GT350",
+   "vpic": {
+    "ModelYear": "2016",
+    "Make": "FORD",
+    "Model": "Mustang",
+    "Trim": "Shelby Coupe",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "Shelby GT350",
+   "note": "2016 GT350: vPIC 'Shelby Coupe' (also a GT350R and a GT500)"
+  },
+  {
+   "vin": "1FATP8JZ9G5524660",
+   "title": "1,800-Mile 2016 Ford Mustang Shelby GT350R",
+   "vpic": {
+    "ModelYear": "2016",
+    "Make": "FORD",
+    "Model": "Mustang",
+    "Trim": "Shelby Coupe",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "Shelby GT350R",
+   "note": "2016 GT350R: 'Shelby Coupe'"
+  },
+  {
+   "vin": "1ZVBP8JZ5D5266412",
+   "title": "250-Mile 2013 Ford Mustang Shelby GT500 Coupe",
+   "vpic": {
+    "ModelYear": "2013",
+    "Make": "FORD",
+    "Model": "Mustang",
+    "Trim": "Shelby Coupe",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "Shelby GT500",
+   "note": "2013 GT500: 'Shelby Coupe'"
+  },
+  {
+   "vin": "1ZVBP8KZ2E5206832",
+   "title": "2014 Ford Mustang Shelby GT500 Convertible",
+   "vpic": {
+    "ModelYear": "2014",
+    "Make": "FORD",
+    "Model": "Mustang",
+    "Trim": "Shelby Convertible",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Convertible/Cabriolet",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "Shelby GT500",
+   "note": "2014 GT500 convertible: 'Shelby Convertible'"
+  },
+  {
+   "vin": "1FA6P8SJ7L5500454",
+   "title": "2,500-Mile 2020 Ford Mustang Shelby GT500",
+   "vpic": {
+    "ModelYear": "2020",
+    "Make": "FORD",
+    "Model": "Mustang",
+    "Trim": "Shelby GT500 Coupe",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "Shelby GT500",
+   "note": "2020 GT500 (control)"
+  },
+  {
+   "vin": "WBS33BA05NCK61279",
+   "title": "2022 BMW M4 Competition xDrive Convertible",
+   "vpic": {
+    "ModelYear": "2022",
+    "Make": "BMW",
+    "Model": "M4",
+    "Trim": "M4 xDrive Competition",
+    "Series": "4-Series",
+    "Series2": "",
+    "BodyClass": "Convertible/Cabriolet",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "Competition",
+   "note": "2022 M4 Competition: vPIC 'M4 xDrive Competition' (read 'Xdrive Competition')"
+  },
+  {
+   "vin": "WBS33AY04MFL35000",
+   "title": "2k-Mile 2021 BMW M3 Competition",
+   "vpic": {
+    "ModelYear": "2021",
+    "Make": "BMW",
+    "Model": "M3",
+    "Trim": "M3 Competition",
+    "Series": "3-Series",
+    "Series2": "",
+    "BodyClass": "Sedan/Saloon",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "Competition",
+   "note": "2021 M3 Competition (control)"
+  },
+  {
+   "vin": "WBSBL934X1JR10374",
+   "title": "2001 BMW M3 Coupe 6-Speed",
+   "vpic": {
+    "ModelYear": "2001",
+    "Make": "BMW",
+    "Model": "M3",
+    "Trim": "",
+    "Series": "3-Series",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": null,
+   "note": "2001 M3: no trim (control)"
+  },
+  {
+   "vin": "WDDHF7GB8FB100707",
+   "title": "2015 Mercedes-Benz E63 S AMG 4MATIC Sedan",
+   "vpic": {
+    "ModelYear": "2015",
+    "Make": "MERCEDES-BENZ",
+    "Model": "E-Class",
+    "Trim": "E63 AMG-S",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Sedan/Saloon",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "E63 S AMG",
+   "note": "2015 E63 S: vPIC 'E63 AMG-S' (read 'E63 E')"
+  },
+  {
+   "vin": "WDDWJ8HB2LF976056",
+   "title": "2020 Mercedes-AMG C63 S Coupe",
+   "vpic": {
+    "ModelYear": "2020",
+    "Make": "MERCEDES-BENZ",
+    "Model": "C-Class",
+    "Trim": "AMG C63 S",
+    "Series": "",
+    "Series2": "",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": "C63 S",
+   "note": "2020 C63 S (control)"
+  },
+  {
+   "vin": "WP0AC2A92KS000001",
+   "title": "(shaped, not fetched) a 911 whose decode is a bare fragment under a code the table does not hold",
+   "vpic": {
+    "ModelYear": "2019",
+    "Make": "PORSCHE",
+    "Model": "911",
+    "Trim": "RS",
+    "Series": "Turbo/Turbo S",
+    "Series2": "Type 991",
+    "BodyClass": "Coupe",
+    "ErrorCode": "0"
+   },
+   "expectTrim": null,
+   "note": "a bare RS on a 911 is a fragment of GT3 RS or GT2 RS: no trim, never RS"
+  }
+ ]
+}

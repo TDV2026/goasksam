@@ -2313,6 +2313,18 @@ try {
   record("homepage feature (CREW ONLY, NOT LIVE): the one featured car passes every eligibility rule (same VIN, live, real photos, evidence link, complete, listed never sold), stays put, replaces itself when its auction ends, is null on a failed refresh and never stale, and no public route, page, feed or cache key can return it (scripts/featuredHistoryCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
+  const out = execSync("node scripts/vinLiveMatchCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("VIN live match: a VIN in the live pool is the car its own listing names, no decode question, the listing and its time left carried, every venue, the feed keeps the VIN (scripts/vinLiveMatchCheck.mjs)", "PASS", out.trim().split("\n").pop());
+} catch (e) {
+  record("VIN live match: a VIN in the live pool is the car its own listing names, no decode question, the listing and its time left carried, every venue, the feed keeps the VIN (scripts/vinLiveMatchCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").slice(-3).join(" | "));
+}
+try {
+  const out = execSync("node scripts/vinDecodeTrimCheck.mjs", { encoding: "utf8", timeout: 180000 });
+  record("VIN decode keeps the trim: 36 VINs (Porsche, Corvette Z06/ZR1, Shelby, BMW M, Mercedes-AMG) through the real decode and resolver read the trim the car's title names, or none where the VIN does not say (scripts/vinDecodeTrimCheck.mjs)", "PASS", out.trim().split("\n").pop());
+} catch (e) {
+  record("VIN decode keeps the trim: 36 VINs (Porsche, Corvette Z06/ZR1, Shelby, BMW M, Mercedes-AMG) through the real decode and resolver read the trim the car's title names, or none where the VIN does not say (scripts/vinDecodeTrimCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").slice(-3).join(" | "));
+}
+try {
   const out = execSync("node scripts/liveExamplesSoonCheck.mjs", { encoding: "utf8", timeout: 120000 });
   record("live examples (Home, Find, Tasks, Watching): an auction ending within 7 days is preferred, a car more than 14 days out is never picked while one within 14 qualifies, the card carries the engine's time left line (scripts/liveExamplesSoonCheck.mjs)", "PASS", out.trim().split("\n").pop());
 } catch (e) {
