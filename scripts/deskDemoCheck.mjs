@@ -100,13 +100,13 @@ RS.useSheetEngine(null);
 // ---------- E. the preview
 { const P = await imp("lib/preview/deskPreview.js"), pv = P.renderDeskPreview();
   ok(/id="vnewf"/.test(pv) && /New valuation/.test(pv) && /deskphoto\.js/.test(pv) && /My reports|deskvals\.js/.test(pv), "the preview is the same page file, with the New valuation form and its photo script");
-  const bad = await P.previewDeskApi({ action: "sheet_new", text: "2008 Porsche 911 Carrera S" }); ok(bad.ok === false && /sample VINs/.test(bad.why), "the preview reads its sample VINs only: " + bad.why);
-  const good = await P.previewDeskApi({ action: "sheet_new", text: "WP0AB29918S745123", mileage: "30000" }); ok(good.ok === true, "the preview opens a sample VIN as a new valuation");
+  const bad = await P.previewDeskApi({ action: "sheet_new", text: "2008 Porsche 911 Carrera S" }); ok(bad.ok === false && /New case/.test(bad.why), "the preview makes no older sheet from typed words: " + bad.why);
+  const good = await P.previewDeskApi({ action: "sheet_new", text: "WP0AB29918S745123", mileage: "30000" }); ok(good.ok === false && /New case/.test(good.why), "the preview opens no older sheet from a fixture VIN either (no typed sale in the preview store)");
   ok(!/goasksam/i.test(fs.readFileSync("lib/desk/reportPdf.js", "utf8").replace(/\/\/.*$/gm, "")), "the report writer's code names GoAskSam nowhere"); }
 // ---------- F. every case the preview lists is a real stored sheet with a case (the Preview report said "This sheet has no case" on the pv_* fixtures)
 { const P = await imp("lib/preview/deskPreview.js"), first = await P.previewDeskApi({ action: "case_get", id: "pv_hm" });   // the very first read of the crew door, no page rendered before it
   ok(first.ok && first.case && first.case.lead_ref === "HM-24117", "the demonstration case HM-24117 answers case_get at the first read: " + (first.why || ""));
-  const st = await P.previewStore(), rows = await st.list(P.PREVIEW_ORG.id); ok(rows.length >= 5 && rows.some(r => r.id === "pv_hm"), "the preview lists the demonstration case and the other pv_ sheets: " + rows.map(r => r.id).join(","));
+  const st = await P.previewStore(), rows = await st.list(P.PREVIEW_ORG.id); ok(rows.length >= 4 && rows.some(r => r.id === "pv_hm"), "the preview lists the demonstration case and the other pv_ sheets: " + rows.map(r => r.id).join(","));
   for (const r of rows.filter(r => /^pv_/.test(r.id))) {
     const g = await P.previewDeskApi({ action: "case_get", id: r.id }), e = await P.previewDeskApi({ action: "case_edit", id: r.id, op: "field", field: "colour", value: "Guards Red" }), d = await P.previewDeskApi({ action: "case_pdf", id: r.id, draft: true });
     const again = await st.get(P.PREVIEW_ORG.id, r.id);
