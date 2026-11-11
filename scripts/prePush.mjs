@@ -2386,9 +2386,9 @@ try {
 }
 try {
   const out = execSync("node scripts/vercelConfigCheck.mjs", { encoding: "utf8", timeout: 60000 });
-  record("vercel.json is accepted by Vercel: it parses and no functions includeFiles string is over 256 characters (the deploy of 976ce753 ended in Error on three) (scripts/vercelConfigCheck.mjs)", "PASS", (out.match(/vercelConfigCheck: .*/) || [""])[0]);
+  record("vercel.json is accepted by Vercel: it parses and is valid against Vercel's own schema, every string Vercel limits to 256 characters by name (ignoreCommand, includeFiles ...; the deploys of 976ce753 and f79db262 ended in Error) (scripts/vercelConfigCheck.mjs)", "PASS", (out.match(/vercelConfigCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("vercel.json is accepted by Vercel: it parses and no functions includeFiles string is over 256 characters (the deploy of 976ce753 ended in Error on three) (scripts/vercelConfigCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|vercelConfigCheck:/.test(l)).slice(0, 5).join(" | "));
+  record("vercel.json is accepted by Vercel: it parses and is valid against Vercel's own schema, every string Vercel limits to 256 characters by name (ignoreCommand, includeFiles ...; the deploys of 976ce753 and f79db262 ended in Error) (scripts/vercelConfigCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|vercelConfigCheck:/.test(l)).slice(0, 5).join(" | "));
 }
 try {
   const out = execSync("node scripts/goLiveGuardsCheck.mjs --base ee488ab5", { encoding: "utf8", timeout: 240000 });
