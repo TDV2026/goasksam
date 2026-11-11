@@ -101,5 +101,36 @@ for (const c of [CASES[0], CASES[3]]) { const want = LAND[c.prev.startsWith("/pr
 async function scrollAt(c, w, rewrite = null) { const p = await open(b, c.prev, { width: w, fixtures: loadFixtures(c.name), settle: 3000, rewrite, height: 800 }); const r = await p.evaluate(() => { const i = document.querySelector("#ob-input, #ob textarea, #ob input[type=text]"); if (i) i.focus(); return { y: Math.round(scrollY), hdr: Math.round(document.querySelector("header.gh").getBoundingClientRect().top) }; }); await new Promise(r2 => setTimeout(r2, 500)); const y2 = await p.evaluate(() => Math.round(scrollY)); await p.close(); return { ...r, y2 }; }
 for (const c of [CASES[0], CASES[3]]) for (const w of [1440, 1280, 1024]) { const r = await scrollAt(c, w); ok(r.y === 0 && r.y2 === 0 && r.hdr >= 0, `${c.name} @${w}: the window is at the top with the header on screen after the results draw and after the search box takes focus (scroll ${r.y}/${r.y2}, header top ${r.hdr})`); }
 { const r = await scrollAt(CASES[3], 1440, h => h.replace("</body>", () => "<script>window.addEventListener('load',function(){setTimeout(function(){window.scrollTo(0,140)},400)})</script></body>")); ok(!(r.y === 0 && r.y2 === 0 && r.hdr >= 0), `mutant: a page that scrolls itself on load is caught (scroll ${r.y}/${r.y2}, header top ${r.hdr})`); }
+// THE LOADING STATE (Sam, Nov 11 2026): while the engine answers, the page keeps its layout (header, rail, the search box) and the results area holds ONE centred sentence from the engine's table (reasonWords wait.mc / wait.sell) with pulsing dots: no skeleton or empty cards, no venue name, no figure, nothing the engine has not said. When the answer lands the loading state is replaced by the real results and nothing above it moves. (Market Check and Sell results carry no chips or serif title before the answer: the title is the engine's resolved car, so it is not printed early.)
+const { waitLines } = await import("../lib/reasonWords.js"), WL = waitLines(), VENUE = /Bring a Trailer|Cars (?:&|and) Bids|Hagerty|PCAR|PCarMarket|Hemmings|MB Market|Sotheby|Gooding|Collecting Cars|Mecum|Barrett|Bonhams|Broad Arrow|Car (?:&|and) Classic|PistonHeads|The Market/i;
+const LSNAP = () => { const q = s => document.querySelector(s), r = e => { if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top + scrollY), Math.round(b.width)]; };
+  const ob = q("#ob"), w = q(".gas-wait");
+  return { hdr: r(q("header.gh")), rail: r(q(".rail")), box: r(q("#ob .inbox")), wait: (q(".gas-wait-line") || {}).textContent || "", waitArea: w ? w.innerText : "", waitBox: r(w), main: r(q("#gas-main")), text: ob ? ob.innerText.replace(/\s+/g, " ") : "",
+    cards: ob ? ob.querySelectorAll("img, article, table, .pcard, [class*=skel], [class*=card], svg:not(.inbox-mag)").length : 0, hasWait: !!w }; };
+async function loadingProblems(c, w, rewrite = null) {
+  const bad = [], isSell = c.prev.startsWith("/preview/sell"), WANT = isSell ? WL.sell : WL.mc, t = `${c.name} loading @${w}`; let go; const hold = new Promise(r => { go = r; });
+  const p = await open(b, c.prev, { width: w, fixtures: loadFixtures(c.name), settle: 1800, hold, rewrite }); const L = await p.evaluate(LSNAP);
+  if (L.wait !== WANT) bad.push(`${t}: the results area does not hold the engine's table sentence "${WANT}" (${L.wait || "none"})`);
+  if (L.cards) bad.push(`${t}: ${L.cards} card or image elements are on screen before the results (no skeleton or empty cards)`);
+  if (VENUE.test(L.text)) bad.push(`${t}: a venue name is printed while the search runs`);
+  if (/[$\d]/.test(L.waitArea)) bad.push(`${t}: a figure is printed in the loading area (${L.waitArea.replace(/\s+/g, " ").slice(0, 60)})`);
+  if (L.waitArea.trim().split(/(?<=[.!?])\s+/).filter(x => !/taking longer than usual/.test(x)).length !== 1) bad.push(`${t}: the loading area is not one sentence`);
+  if (!L.waitBox || !L.main || Math.abs((L.waitBox[0] + L.waitBox[2] / 2) - (L.main[0] + L.main[2] / 2)) > 24) bad.push(`${t}: the loading state is not centred in the results area`);
+  if (!L.box) bad.push(`${t}: the search box is not on screen from the start`);
+  go(); await p.waitForFunction(() => !document.querySelector(".gas-wait") && document.querySelector("#ob h1,#ob h2"), { timeout: 25000 }).catch(() => {}); await new Promise(r => setTimeout(r, 2500));
+  const D = await p.evaluate(LSNAP), same = (x, y) => x && y && x[0] === y[0] && Math.abs(x[1] - y[1]) <= 1 && Math.abs(x[2] - y[2]) <= 1; await p.close();
+  if (D.hasWait) bad.push(`${t}: the loading state is still there after the answer landed`);
+  // on a phone the rail stacks under the page, so it follows the page's height and is not compared there
+  if (!(same(L.hdr, D.hdr) && (w < 700 || same(L.rail, D.rail)) && same(L.box, D.box))) bad.push(`${t}: something above the results moved when they landed (header ${JSON.stringify([L.hdr, D.hdr])}, rail ${JSON.stringify([L.rail, D.rail])}, search box ${JSON.stringify([L.box, D.box])})`);
+  return bad;
+}
+for (const c of [CASES[0], CASES[3]]) for (const w of [1440, 390]) { const bad = await loadingProblems(c, w); for (const m of bad) ok(false, m); ok(bad.length === 0, `${c.name} @${w}: the loading state is one centred engine sentence, no cards, no venue, no figure, and nothing above it moves when the results land`); }
+{ const LMUT = [
+    ["empty skeleton cards shown while the engine answers", "</body>", "<script>setTimeout(function(){var w=document.querySelector('.gas-wait');if(w)w.insertAdjacentHTML('afterend','<article class=skel></article><article class=skel></article>')},500)</script></body>", CASES[0]],
+    ["a figure printed while the engine answers", "Sam is pulling the sales on record for this car.", "Sam is pulling 23 sales on record for this car.", CASES[0]],
+    ["a venue name printed while the engine answers", "Sam is reading the sales on record to see where this car sells.", "Sam is reading the sales on record on Bring a Trailer.", CASES[3]],
+    ["empty cards shown while Sell answers", "</body>", "<script>setTimeout(function(){var w=document.querySelector('.gas-wait');if(w)w.insertAdjacentHTML('afterend','<article class=skel></article>')},500)</script></body>", CASES[3]]
+  ];
+  for (const [name, from, to, c] of LMUT) { const bad = await loadingProblems(c, 1440, h => h.replace(from, () => to)); ok(bad.length > 0, `mutant "${name}" is caught (${bad[0] ? bad[0].slice(0, 100) : "NOT CAUGHT"})`); } }
 await b.close();
 console.log(out.join("\n")); console.log(`mcSellResultsCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
