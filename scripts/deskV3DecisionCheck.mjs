@@ -8,8 +8,9 @@ const page = k => V3.pageHtml({ cases: [{ id: "x", car: "1999 Porsche 911 Carrer
 const dec = h => (h.match(/<div class="dec">[\s\S]*?<\/div><\/div>\s*<\/div>\s*<\/main>|<div class="dec">[\s\S]*$/) || [""])[0];
 // a ready case, built only through Lane D's own writers
 const now = new Date().toISOString(); let rk = structuredClone(kase);
-rk = W.setAssessment(rk, { figure: 58500, low: 56000, high: 61000, explanation: "Matches the median of nine manual sales, with the mileage close to the car's own." }, now); rk = W.setReserve(rk, { figure: 55500, rationale: "Held under the median so the car clears at auction." }, now);
-rk = (await W.refreshEvidence(rk, FX.demoRead, { caseDate: now.slice(0, 10), now })).case;   // the engine checks the reserve (reserveCheck): support is its answer
+const EV = kase.desk.evidence;   // the analyst's figures are taken from the engine's own read of the case (nothing typed from a sample world)
+rk = W.setAssessment(rk, { figure: EV.median, low: EV.q1, high: EV.q3, explanation: "Matches the median of the manual sales, with the mileage close to the car's own." }, now); rk = W.setReserve(rk, { figure: EV.q1, rationale: "Held at the low end of the typical range so the car clears at auction." }, now);
+rk = (await W.refreshEvidence(rk, (await import("../lib/preview/recordedRead.js")).recordedRead, { caseDate: now.slice(0, 10), now })).case;   // the engine checks the reserve (reserveCheck): support is its answer
 rk = W.verify(W.verify(W.correctField(rk, "accident_history", "No accidents reported", { now }), "mileage", { now }), "accident_history", { now }); rk = W.setNeed(rk, "service_documents", "waived", "Invoices requested"); rk = W.selectComparables(rk, rk.desk.comparables.filter(x => x.url).slice(0, 2).map(x => x.id), now); rk.condition = { suggested: { tier: 3, name: "Good" }, selected: { tier: 3, name: "Good" } };
 rk.audit = [{ at: "2026-11-08T10:00:00Z", by: "Expert 1", what: "corrected", field: "colour", from: "Arctic Silver", to: "Guards Red" }];
 const rd = W.readinessOf(rk);
@@ -39,7 +40,7 @@ ok(rd.ready === true, "the fixture ready case is ready by Lane D's own readiness
 // in Chrome
 { const br = await launch(), p = await openPage(br, await demoHtml(), 1440, 900), posts = []; p.on("request", r => { if (r.method() === "POST") { try { posts.push(JSON.parse(r.postData() || "{}")); } catch {} } });
   await p.evaluate(() => document.querySelector('[data-tab="decision"]').click());
-  const before = await p.$eval("#in-reserve", e => e.value); await p.$eval("#in-afigure", e => { e.value = ""; }); await p.type("#in-afigure", "59000"); const after = await p.$eval("#in-reserve", e => e.value); ok(before === after, "typing an assessment does not move the reserve input (" + before + " v " + after + ")");
+  const before = await p.$eval("#in-reserve", e => e.value); await p.$eval("#in-afigure", e => { e.value = ""; }); await p.type("#in-afigure", "33000"); const after = await p.$eval("#in-reserve", e => e.value); ok(before === after, "typing an assessment does not move the reserve input (" + before + " v " + after + ")");
   // THE MARKER (Sam, Nov 9): the analyst's marker on the bar is draggable and the big number follows it at once (before any round trip); typing the number moves the marker; both write the valuation alone through case_edit, debounced.
   await p.evaluate(() => document.querySelector('[data-tab="vehicle"]').click()); posts.length = 0;
   const mk = await p.$("#sum .mk-val"); ok(!!mk, "the bar carries the analyst's marker"); const bx = await mk.boundingBox(), big0 = await p.$eval("#valBig", e => e.textContent), left0 = await p.$eval("#sum .mk-val", e => e.style.left);
@@ -49,10 +50,10 @@ ok(rd.ready === true, "the fixture ready case is ready by Lane D's own readiness
   ok(dragged.big.replace(/[^\d]/g, "") === dragged.input, "the typed input follows the drag (" + dragged.big + " v " + dragged.input + ")");
   await new Promise(r => setTimeout(r, 700)); const dp = posts.filter(x => x.action === "case_edit"); ok(dp.length >= 1 && dp.every(x => x.op === "assessment" && Object.keys(x.patch).join() === "figure") && String(dp[dp.length - 1].patch.figure) === dragged.input, "the drag writes the valuation alone through case_edit, debounced, with the figure the page showed (" + JSON.stringify(dp.map(x => x.patch)) + ")");
   ok(!posts.some(x => x.op === "reserve"), "a valuation change writes no reserve");
-  await p.evaluate(() => document.querySelector('[data-tab="decision"]').click()); await p.$eval("#in-afigure", e => { e.value = ""; }); await p.type("#in-afigure", "57000"); await new Promise(r => setTimeout(r, 100));
+  await p.evaluate(() => document.querySelector('[data-tab="decision"]').click()); await p.$eval("#in-afigure", e => { e.value = ""; }); await p.type("#in-afigure", "30000"); await new Promise(r => setTimeout(r, 100));
   const typed = await p.evaluate(() => { const b = document.querySelector("#sum .bar3"), m = document.querySelector("#sum .mk-val"); return { lo: Number(b.dataset.lo), hi: Number(b.dataset.hi), left: parseFloat(m.style.left), big: document.getElementById("valBig").textContent }; });
-  ok(Math.abs(typed.left - (57000 - typed.lo) / (typed.hi - typed.lo) * 100) < 0.6 && typed.big.replace(/[^\d]/g, "") === "57000", "a typed figure moves the marker to its place on the bar and the big number (" + typed.left + "% of " + typed.lo + " to " + typed.hi + ")");
-  const afterKey = { r: before, a: "57000" };
+  ok(Math.abs(typed.left - (30000 - typed.lo) / (typed.hi - typed.lo) * 100) < 0.6 && typed.big.replace(/[^\d]/g, "") === "30000", "a typed figure moves the marker to its place on the bar and the big number (" + typed.left + "% of " + typed.lo + " to " + typed.hi + ")");
+  const afterKey = { r: before, a: "30000" };
   await p.focus("#sl-r"); await p.keyboard.press("ArrowLeft"); const rv = await p.evaluate(() => ({ r: document.getElementById("in-reserve").value, a: document.getElementById("in-afigure").value })); ok(rv.a === afterKey.a && rv.r !== before, "the reserve slider moves the reserve by keyboard and not the assessment (" + rv.a + ", reserve " + rv.r + ")");
   await p.click("#b-save"); await new Promise(r => setTimeout(r, 250)); const ops = posts.filter(x => x.action === "case_edit"); const A = ops.filter(x => x.op === "assessment").pop(), R = ops.find(x => x.op === "reserve");
   ok(!!A && !!R && !("reserve" in A.patch) && !("figure" in A.patch && "rationale" in A.patch) && "figure" in R.patch && !("low" in R.patch), "Save draft posts the assessment op with the assessment's own fields and the reserve op with the reserve's own (" + JSON.stringify(ops.map(o => o.op)) + ")");
@@ -76,6 +77,6 @@ for (const [n, from, to, act] of [["a drag that does not update the figure", "se
   const h = await demoHtml(), mut = h.replace(from, to); ok(mut !== h, "mutant applies: " + n); const br = await launch(), p = await openPage(br, mut, 1440, 900); await p.evaluate(() => document.querySelector('[data-tab="vehicle"]').click());
   const big0 = await p.$eval("#valBig", e => e.textContent), left0 = await p.$eval("#sum .mk-val", e => e.style.left);
   if (act === "drag") { const bx = await (await p.$("#sum .mk-val")).boundingBox(); await p.mouse.move(bx.x + bx.width / 2, bx.y + 12); await p.mouse.down(); await p.mouse.move(bx.x + bx.width / 2 + 90, bx.y + 12, { steps: 4 }); await p.mouse.up(); ok((await p.$eval("#valBig", e => e.textContent)) === big0, "mutant caught: " + n); }
-  else { await p.evaluate(() => document.querySelector('[data-tab="decision"]').click()); await p.$eval("#in-afigure", e => { e.value = ""; }); await p.type("#in-afigure", "57000"); ok((await p.$eval("#sum .mk-val", e => e.style.left)) === left0, "mutant caught: " + n); }
+  else { await p.evaluate(() => document.querySelector('[data-tab="decision"]').click()); await p.$eval("#in-afigure", e => { e.value = ""; }); await p.type("#in-afigure", "30000"); ok((await p.$eval("#sum .mk-val", e => e.style.left)) === left0, "mutant caught: " + n); }
   await br.close(); }
 done("deskV3DecisionCheck");

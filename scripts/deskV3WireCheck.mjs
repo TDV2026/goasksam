@@ -61,7 +61,7 @@ const MUT = [
   ["a typed outside the population sentence", h => h.replace(desk.outside[0].sentence, "Automatic cars sell for less.")],
   ["a comparable price the page changed", h => h.replace(M(desk.comparables[0].price), M(desk.comparables[0].price + 500))],
   ["a typed why sentence", h => h.replace(desk.comparables[0].why, "A very close match.")],
-  ["a typed listing label", h => h.replace(">Not sold<", ">Ended, reserve not met<")],
+  ["a typed listing label", h => h.replace("</section><div class=\"tabs3\"", "<p class=\"fg-s\">Ended, reserve not met</p></section><div class=\"tabs3\"")],
   ["a typed difference line", h => h.split(DEMO_CV.assessment.differenceLine).join("The assessment is a little high.")],
   ["a typed position line", h => h.split(DEMO_CV.reserve.positionLine).join("The reserve is conservative.")],
   ["a mileage the page formatted in the header", h => h.replace(/(<p class="chd-spec">)[^<]*/, "$161200 mi")],

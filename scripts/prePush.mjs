@@ -2908,6 +2908,12 @@ try {
   record("Desk v3 demonstration car (scripts/deskDemoCarCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  const out = execSync("node scripts/deskTypedCasesCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("Desk v4 stage 6 typed cases: 1965 Mustang, 1972 240Z, 1974 TR6 made from typed fields, read by the engine's recorded answer, range, three comparables with why lines, the name as typed, four page report (scripts/deskTypedCasesCheck.mjs)", "PASS", (out.match(/deskTypedCasesCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 stage 6 typed cases (scripts/deskTypedCasesCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
+}
+try {
   const out = execSync("node scripts/deskAuditLineCheck.mjs", { encoding: "utf8", timeout: 60000 });
   record("Desk v3 audit trail: every entry carries its own reasonWords sentence, no writer builds one by hand, the page prints it as carried (scripts/deskAuditLineCheck.mjs)", "PASS", (out.match(/deskAuditLineCheck: .*/) || [""])[0]);
 } catch (e) {

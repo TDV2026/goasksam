@@ -14,12 +14,14 @@ export async function openLive(b, { w = 1440, h = 900, id = V3.DEMO_ID, mutate =
   if (dark) await p.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }]);
   await p.goto("https://goasksam.com/preview/desk/case/" + id, { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 400)); return p;
 }
+// the demonstration case's comparables are the engine's recorded sales (ids from the engine, never typed): the ones with a listing address, in the engine's order
+export const compIds = async (id = V3.DEMO_ID) => (await PV.previewDeskApi({ action: "case_get", id })).case.desk.comparables.filter(c => c.url).map(c => String(c.id));
 export const idle = async (p, ms = 500) => { await new Promise(r => setTimeout(r, ms)); };
 
 // A finalized demonstration case through the REAL actions (no stub): two comparables, mileage verified, the other items waived with reasons, then case_finalize.
 export async function finalizeDemo(id = V3.DEMO_ID) {
   const e = (op, x) => PV.previewDeskApi({ action: "case_edit", id, op, ...x });
-  await e("comparables", { ids: ["s6", "s11"] }); await e("verify", { field: "mileage" });
+  const CI = await compIds(id); await e("comparables", { ids: [CI[0], CI[3]] }); await e("verify", { field: "mileage" });
   await e("need", { item: "accident_unclear", state: "waived", reason: "Seller states none and holds no records" }); await e("need", { item: "service_documents", state: "waived", reason: "Invoice will follow after the listing" });
   return PV.previewDeskApi({ action: "case_finalize", id });
 }
