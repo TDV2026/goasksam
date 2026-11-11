@@ -11,7 +11,10 @@ const MUT = [
   ["the recorded read does not carry the engine's reserve check", "lib/preview/recordedRead.js", s => s.replace("k.reserveCheck = reserveCheckOf(", "void reserveCheckOf(")],
   ["the preview door asks the recorded read even when the archive is reachable", "lib/preview/deskPreview.js", s => s.replace("((!env || !env.supabaseUrl) && (await recordedRead(input)))", "(await recordedRead(input))")],
   ["an edit the engine could not read is saved over the earlier read (the 24 month switch keeps the 12 month figures)", "lib/desk/sheetActions.js", s => s.replace("if (READ_OPS.includes(op) && s0.case", "if (false && s0.case")],
-  ["a listed preview case has no stored case (the seeding is skipped)", "lib/preview/deskPreview.js", s => s.replace("if (row.case) continue;", "continue;")],
+  ["a VIN read drops the body and trim the case holds (only the typed branch takes them)", "lib/sheetRead.js", s => s.replace("  if (input.bodyStyle && !vehicle.bodyStyle) vehicle = { ...vehicle, bodyStyle: String(input.bodyStyle) };\n  if (input.trim && !vehicle.trim)", "  if (!vin && input.bodyStyle && !vehicle.bodyStyle) vehicle = { ...vehicle, bodyStyle: String(input.bodyStyle) };\n  if (!vin && input.trim && !vehicle.trim)")],
+  ["the trim the case holds is not put on the read", "lib/desk/caseWorkflow.js", s => s.replace(' ...(f("trim") ? { trim: f("trim") } : {}),', "")],
+  ["the gearbox a VIN decode returns is not put on the case", "lib/desk/caseWorkflow.js", s => s.replace(', ["transmission", decode.transmission]]', "]")],
+  ["a decoded field is put on the case as verified", "lib/desk/caseWorkflow.js", s => s.replace('"vin_decoded", { by: "intake", now: iso(now), quiet: true }', '"analyst_verified", { by: "intake", now: iso(now), quiet: true }')],
   ["the demonstration case is stored only when a page renders (not at the first read)", "lib/preview/deskPreview.js", s => s.replace("await store.insert(PREVIEW_ORG.id, { id: DEMO_ID,", "if (false) await store.insert(PREVIEW_ORG.id, { id: DEMO_ID,")],
   ["a draft report refuses a sheet that has no stored case", "lib/desk/sheetActions.js", s => s.replace('if (!s0.case && body.draft !== true) return refuse', 'if (!s0.case) return refuse')],
   ["a new sheet is named from the read's raw label, not the shared naming", "lib/desk/sheetActions.js", s => s.replace("(carLabel(read.car.decode) || read.car.label)", "read.car.label")],
@@ -36,7 +39,7 @@ const MUT = [
   ["My reports is a flat list again", "public/js/deskvals.js", s => s.replace("S.lists.mine) +", "S.lists.mine) .replace(/Drafts/g, \"\") +").replace("reportsHtml(S.lists.mine)", "listHtml(S.lists.mine)")],
   ["the ladder is numbered again, Untiered becomes a fifth", "public/js/deskvals.js", s => s.replace('<ul class="ladder"', '<ol class="ladder"')],
   ["the proof sentence prints with no pool count", "public/js/deskvals.js", s => s.replace("m.meter && m.meter.basis === \"tier\" && rd.condition.proofLine", "m.meter")],
-  ["the preview reads any text", "lib/preview/deskPreview.js", s => s.replace("sheet_new\" && !FIXTURE_VINS", "sheet_new\" && false && !FIXTURE_VINS")]
+  ["the preview makes an older sheet from a fixture VIN (typed sales)", "lib/preview/deskPreview.js", s => s.replace('if (action === "sheet_new") return { ok: false,', 'if (false) return { ok: false,')]
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
