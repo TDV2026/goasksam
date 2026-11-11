@@ -2,7 +2,7 @@
 // BUY TIMES (Lane E, Buy speed, Oct 16 2026): where a Buy search's time goes, measured from outside through the
 // public endpoints, one search at a time, read-only, zero OldCarsData (every Buy path is archive + live_listings).
 // For each search, in this order:
-//   ping     POST {action:"converse", state:{messages:[]}}  the function round trip with no database read
+//   ping     POST {action:"parse", text:""}  the function round trip with no database read
 //   parse    POST {action:"parse"}                           the resolver alone (the page's chips + waiting line)
 //   chat     POST {action:"chat", debug:true}                the real Buy search: the model turn with its tools, then the
 //                                                            cards' enrichment; the stream's "text" event marks the end of
@@ -104,7 +104,7 @@ console.log("search | run | ping | parse | chat: headers / text / done | server 
 const rows = [];
 for (let run = 1; run <= RUNS; run++) {
   for (const q of CARS) {
-    const ping = await post({ action: "converse", state: { messages: [] } });
+    const ping = await post({ action: "parse", text: "" });   // the function round trip with no database read (the old converse ping is retired)
     const parse = await post({ action: "parse", text: q });
     const chat = await post({ action: "chat", messages: [{ role: "user", content: q }], state: { filters: {} }, turns: 0, debug: true }, true);
     const d = chat.done || {};

@@ -128,10 +128,9 @@ if (typeof sc.filtersFromText === "function") {
 // (9) A VISITOR NEVER SEES THAT THE WRITTEN ANSWER IS PAUSED. Sweep: every line a visitor can read on Find, Market Check and Sell that names written answers, the model, a pause or a limit of the model.
 { const rd = f => { try { return fs.readFileSync(path.join(root, f), "utf8"); } catch { return ""; } };
   const MODEL_WORDS = /written answers?|answers? (?:are|is) paused|(?:is|are) paused for the moment|paused for the moment|the model\b|Claude\b|Anthropic\b|model (?:is )?(?:paused|busy|limit)/i;
-  const visitor = ["api/buy.js", "api/buySearch.js", "lib/live/samChat.js", "lib/live/converse.js", "lib/live/chatHttp.js", "api/sellChat.js", "api/chat.js", "api/sellerDecision.js", "public/js/entry.js", "public/js/result.js", "public/js/result-v2.js", "public/js/onebox.js", "public/js/chat-core.js", "public/js/sell.js", "lib/_ceilings.js"];
+  const visitor = ["api/buy.js", "api/buySearch.js", "lib/live/samChat.js", "lib/live/converse.js", "lib/live/chatHttp.js", "api/sellChat.js", "api/chat.js", "api/sellerDecision.js", "public/js/entry.js", "public/js/result.js", "public/js/result-v2.js", "public/js/onebox.js", "public/js/chat-core.js", "public/js/sell.js", "lib/_ceilings.js", "lib/tasks/tasks.js"];
   for (const f of visitor) {
-    let src = rd(f); if (!src) continue;
-    if (f === "lib/_ceilings.js") src = src.split("\n").filter(l => !/^export const TASKS_MODEL_PAUSED\b/.test(l)).join("\n");   // Tasks' own sentence: Tasks is not on this sweep's list (reported to Lane C)
+    const src = rd(f); if (!src) continue;
     // a string literal a visitor may read (a quoted sentence), outside comments
     const lits = (src.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n").match(/(["'`])(?:(?!\1)[^\\\n]|\\.){12,}\1/g) || []).filter(l => MODEL_WORDS.test(l) && /[a-z]{3,} [a-z]{3,}/i.test(l) && !/^["'`](?:\s*\/\/|\s*\*)/.test(l));
     const real = lits.filter(l => !/Anthropic API error/.test(l) && !/\b(?:systemPrompt|SYSTEM|You are|never invent|Never say|do not say|Do not say|\bapi\.anthropic|content-type|model:|MODEL|model_spend|sell_model)\b/i.test(l) && !/^["'`][a-z_]+["'`]$/.test(l));
@@ -181,7 +180,6 @@ function mutants() {
     ["a mapped word is never dropped", "lib/live/samChat.js", s => s.replace("hasDrop = { ...hm, n: r2.matches.length };", "")],
     ["the dropped line does not say what was read", "lib/live/samChat.js", s => s.replace(" (read from '${hasDrop.from}')", "")],
     ["the page ignores the chip label", "api/buy.js", s => s.replace('add(hasLabel || capWord(f.has), [\\"has\\"])', 'add(capWord(f.has), [\\"has\\"])')],
-    ["the no-model search goes back to the old view (converse)", "api/buy.js", s => s.replace("return chatAsk({ __words: last });", "conv.scripted = true; conv.messages = [last]; ask();")],
     ["the engine phrase maps nowhere (no swap word)", "lib/live/samChat.js", s => s.replace('const ENGINE_HAS = "swap";', 'const ENGINE_HAS = "";')],
     ["a part-word swap ('swapped') is not mapped from its phrase", "lib/live/samChat.js", s => s.replace("if (!(ph && word === ENGINE_HAS) && new RegExp", "if (new RegExp")],
     ["a make and a generation code alone read to no car", "lib/live/samChat.js", s => s.replace("if (fam && new Set(", "if (false && fam && new Set(")],
@@ -189,6 +187,7 @@ function mutants() {
     ["the rerun action takes no words", "api/buySearch.js", s => s.replace("if (!b.filters && b.text) {", "if (false) {")],
     ["the paused sentence is sent again", "api/buySearch.js", s => s.replace("capped: mg.why });", "capped: mg.why, note: \"Sam's written answers are paused for the moment. Here are the search results on their own.\" });")],
     ["the Sell chat says the answers are paused", "lib/_ceilings.js", s => s.replace("Sam can't answer that one just now. Try again in a little while.", "Sam's written answers are paused for the moment. Try again later today.")],
+    ["Tasks says the answers are paused", "lib/tasks/tasks.js", s => s.replace("? TASKS_MODEL_BUSY :", "? \"Sam's written answers are paused for the moment. Try again later today.\" :")],
     ["a nameplate that is only a coupe says nothing", "lib/live/search.js", s => s.replace("const nb = bodyOfNameplate(title, r.make, r.year);", "const nb = null;")],
     ["a description's first sentence names no body", "lib/live/search.js", s => s.replace("const db = bodyOfDescription(desc, BODY_RE, BODIES);", "const db = null;")]
   ];
