@@ -89,7 +89,6 @@ ok("the recorded reads in the code are the ones the lane notes post as read (the
   const badStore = (() => { const x = S.memoryStore(); x.reset(); x.insert = async () => { throw new Error("disk"); }; return x; })();
   const cases = [
     ["a VIN of the wrong length", () => A.handleSheetAction("case_new", { vin: "WMWRE335" }, mkCtx(decoded))],
-    ["a VIN the engine cannot decode", () => A.handleSheetAction("case_new", mini, mkCtx(async () => null))],
     ["the market read throws", () => A.handleSheetAction("case_new", mini, mkCtx(async () => { throw new Error("boom"); }))],
     ["the case cannot be stored", () => A.handleSheetAction("case_new", mini, mkCtx(decoded, badStore))],
     ["through the handler, an action that throws", () => H.handleDeskRequest({ action: "case_edit", id: "z", op: "field" }, { ...mkCtx(decoded, { get: async () => { throw new Error("db down"); } }), crew: true, seatCaller: true, env: {} })],
@@ -100,6 +99,7 @@ ok("the recorded reads in the code are the ones the lane notes post as read (the
   ];
   for (const [name, f] of cases) { let r, threw = null; try { r = await f(); } catch (e) { threw = e; }
     ok(`refusal: ${name} is refused with a reasonWords why line and nothing is thrown at the page`, !threw && r && r.ok === false && typeof r.why === "string" && r.why.length > 8 && [...words].some(w => r.why === w) || RWids.some(id => r.why.startsWith(RW.reasonLine(id, { detail: "" }).split(" (")[0].split(":")[0])), threw ? String(threw.message) : JSON.stringify(r && (r.why || r.ok))); }
+  { const r = await A.handleSheetAction("case_new", mini, mkCtx(async () => null)); ok("a VIN the engine cannot decode keeps the case and says why in the engine-free line the page prints", r.ok === true && r.retry && r.retry.line === RW.reasonLine("case.new.refuse.vin_not_decoded"), JSON.stringify(r.retry || r.why)); }
   const d = await A.handleSheetAction("case_decode", { vin: "WMWRE33575TL13132" }, { ...mkCtx(decoded), decodeVin: async () => ({ year: 2005, make: "Mini", model: "Cooper", trim: "S", bodyStyle: "Coupe", transmission: "Manual" }) });
   ok("case_decode answers year, make, model, trim, body and gearbox for the VIN, each marked vin_decoded and unverified, and makes no case", d.ok === true && ["year", "make", "model", "trim", "body", "transmission"].every(k => d.decoded[k] && d.decoded[k].source === "vin_decoded" && d.decoded[k].verified === false) && d.decoded.year.value === 2005 && !d.id, JSON.stringify(d).slice(0, 160));
 }

@@ -76,7 +76,11 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   ok("three sales that all fall in the last 6 months: the 12 month answer says it is the same 3 sales", same3.evidence.sameLine === "Same 3 sales in the last 12 months." && same3.evidence.byWindow["6"].sameLine === "Same 3 sales in the last 6 months.", String(same3.evidence.sameLine));
   ok("a longer period with more sales prints no such line", grow.evidence.sameLine === null && grow.evidence.byWindow["6"].sameLine === null, JSON.stringify([grow.evidence.sameLine, grow.evidence.byWindow["6"].sameLine]));
   ok("the longest period never prints one", all24.evidence.sameLine === null && only.evidence.sameLine === null);
-  ok("the count in the line is the count of the window's sales list", same3.evidence.sameLine.includes(same3.sales.length + " sales")); }
+  ok("the count in the line is the count of the window's sales list", same3.evidence.sameLine.includes(same3.sales.length + " sales"));
+  // WHERE THE RECORD STARTS (Lane F's run): a window that reaches back past the first sale on record says where the record starts
+  const first = iso(90), startsAt = await blk(mk([10, 40, 90]), 24), deep = await blk(mk([10, 40, 90, 900]), 24);
+  ok("a window that reaches back past the first sale on record says where the record starts, with that sale's date", /^Sales on record start [A-Z][a-z]{2} \d{1,2}, \d{4}\.$/.test(startsAt.evidence.startLine || "") && startsAt.evidence.byWindow["12"].startLine === startsAt.evidence.startLine, String(startsAt.evidence.startLine) + " " + first);
+  ok("a car with sales older than the window prints no such line", deep.evidence.startLine === null && deep.evidence.byWindow["12"].startLine === null); }
 // ---------- A NEEDS ATTENTION LINE IS ONLY EVER THERE WHILE ITS MARK SAYS SO (Lane D, Nov 11 2026; Sam's first run: "Mileage is not confirmed (waived)" listed while the Mileage row read Verified) ----------
 // CAUSE: syncNeeds closed an OPEN item when its cause was gone but left a WAIVED one standing for ever, and the report prints waived items as limitations. OTHER CARS AND PAGES: every case, for each of the five rules (car, mileage, VIN agreement, accident history, service documents), in the workspace list, the case view's readiness blockers and the report's limitations.
 // CLASS: for every rule, every earlier state of its item (none, open, waived, done) and the cause on or off, the list the page shows (open or waived) holds the rule if and only if its source mark says the cause stands, and the report's limitations name only those.
@@ -96,4 +100,16 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
     if (!applies.includes(r.id) && lim.includes(r.label)) wrong.push(`${s}: the report still limits on it`);
   }
   ok(`a needs attention line stands exactly while its mark says so (${n} states over the five rules)`, n === 80 && !wrong.length, wrong.slice(0, 5).join(" | ")); }
+// ---------- ONE ANSWER PER RUNG (Lane D, Nov 11 2026; Lane F's run: the Excellent button said 8 sales, picking it read 5 at $36,500 to $40,500, the line under it $30,876 to $39,075; the same for Good and Fair) ----------
+// CAUSE: the rung buttons and lines were the car's sales of that condition with no mileage cut, and picking a rung reads those sales cut by the mileage band, so a rung had two populations. OTHER CARS AND PAGES: every car with a mileage and tiered sales (the demo 996, the Mustang, the 240Z, the Mini), on the workspace buttons, the rung line and the report's condition tile.
+// CLASS: in EVERY view (condition x period), every rung's count and typical range are the evidence of the view for that rung (what picking it reads): count, q1, median and q3 (or none when the engine has too few).
+{ let rungs = 0; const off = [];
+  for (const m of [6, 12, 24]) for (const t of [1, 2, 3, 4]) {
+    const here = K.setWindow(base, m, T).desk, picked = K.setWindow(K.setCondition(base, { tier: t, name: "x" }, T), m, T).desk, rg = here.rungs[t - 1], ev = picked.evidence; rungs++;
+    if (rg.count !== ev.count) off.push(`${t}:${m} button ${rg.count} vs pick ${ev.count}`);
+    const band = rg.band ? [rg.band.q1, rg.band.median, rg.band.q3].join() : "none", want = ev.insufficient ? "none" : [ev.q1, ev.median, ev.q3].join();
+    if (band !== want) off.push(`${t}:${m} line ${band} vs pick ${want}`);
+    if (picked.rungs[t - 1].count !== ev.count) off.push(`${t}:${m} the picked rung line ${picked.rungs[t - 1].count} vs header ${ev.count}`);
+  }
+  ok(`every rung's button, line and header are one answer (${rungs} rungs over every period)`, rungs === 12 && !off.length, off.slice(0, 5).join(" | ")); }
 console.log(`reportConsistencyCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

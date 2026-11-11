@@ -14,12 +14,16 @@ const MUT = [
   ["the reserve check after a switch is the old one", "deskViewsCheck", CW, rep("c.desk.reserveCheck = fig != null ? engineReserveCheck(c.desk.sales, c.desk.evidence, fig, want.months) : null;", "")],
   ["on the page, a condition click reads the engine again", "deskV4FlowCheck", CW, rep("selected.name || \"\") } : null }; return settle(adoptView(c, now), now); }", "selected.name || \"\") } : null }; return settle(c, now); }")],
   // 2. one answer, one count
-  ["the case's own condition line counts the car's sales of that condition with no mileage cut", "reportConsistencyCheck", DV, rep("months, when, desk.tier ? { tier: desk.tier, rows: pop } : null);", "months, when, null);")],
+  ["the case's own condition line counts the car's sales of that condition with no mileage cut", "reportConsistencyCheck", DV, rep("months, when, desk.tier || desk.rungPools ? {", "months, when, false ? {")],
   // 5. every refusal of a new case says why
   ["a market read that throws reaches the page with no reason", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep('} catch (e) { return refuse(reasonLine("case.new.refuse.read_failed", { detail: String(e && e.message || e).slice(0, 80) })); }', '} catch (e) { throw e; }')],
-  ["a VIN that does not decode is made into a case with no car", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep('else if (c.fields.vin.value && !(c.fields.year.value && c.fields.make.value && c.fields.model.value)) return refuse(reasonLine("case.new.refuse.vin_not_decoded"));', '')],
+  ["a VIN that does not decode says nothing about why", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep('? reasonLine("case.new.refuse.vin_not_decoded") : "The read is not', '? "no reason" : "The read is not')],
   ["a photo over 4 MB is refused in words of the code's own", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep('{ refuse: reasonLine("case.photo.refuse.size") }', '{ refuse: "too big" }')],
   ["the handler lets an action's error through", "deskTypedCasesCheck", "lib/desk/handler.js", rep('catch (e) { const { reasonLine }', 'catch (e) { throw e; const { reasonLine }')],
+  // lane F 2. one answer per rung
+  ["a rung button counts the car's sales of that condition with no mileage cut", "reportConsistencyCheck", DV, rep("byTier: desk.rungPools ? Object.fromEntries", "byTier: null && Object.fromEntries")],
+  // lane F 3. where the record starts
+  ["a window that reaches past the first sale on record says nothing", "reportConsistencyCheck", DV, rep("firstOn && firstOn > cutoffOf(caseDate, m) ?", "false ?")],
   // 4. a waived item whose cause is gone leaves the list
   ["a waived item stays when the mark that caused it is set", "reportConsistencyCheck", CW, rep('else if (!on && it && it.state === "waived") c.needs_review', 'else if (false) c.needs_review')],
   // 7. a switch with nothing to show says so
