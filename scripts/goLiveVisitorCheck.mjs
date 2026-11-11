@@ -20,17 +20,23 @@ if (process.argv.includes("--mutants")) {
     ["Home inventing an ends line the field does not carry", "lib/preview/previewPages.js", 'typeof c.endsLine === "string" && c.endsLine.trim() ? c.endsLine : ""', 'typeof c.endsLine === "string" && c.endsLine.trim() ? c.endsLine : "Ends soon"'],
     ["Find not printing the engine's timing line next to the venue", "lib/preview/fieldCompose.js", "venue: it.venue, timing: it.timing,", "venue: it.venue,"],
     ["Find not printing the engine's intelligence line", "lib/preview/fieldCompose.js", "intelligence: it.intelligence, venue: it.venue,", "venue: it.venue,"],
+    ["Find's Sam block given its fixed height again (a longer line is clipped and the button sits over it)", "api/buy.js", ".cgrid .car .tx>.sl{box-sizing:border-box;height:auto;min-height:104px;overflow:visible}", ".cgrid .car .tx>.sl{box-sizing:border-box;height:104px;min-height:104px;overflow:hidden}"],
+    ["the last bid label dropped below its photo (an overlay out of its image)", "api/buy.js", ".cgrid .car .ph .mlab{left:10px;bottom:10px;flex-wrap:wrap;row-gap:3px}", ".cgrid .car .ph .mlab{left:10px;bottom:-44px;flex-wrap:wrap;row-gap:3px}"],
+    ["the Tasks demo's heading printed twice", "lib/preview/tasksPreview.js", '<div class="em-body">${mail.html}</div>', '<div class="em-body">${mail.html}${(/<h2[^>]*>[^<]*<\\/h2>/.exec(mail.html) || [""])[0]}</div>'],
+    ["the email's dark mode left to paint the Tasks demo (a solid dark card under the photo)", "lib/preview/tasksPreview.js", "@media (prefers-color-scheme:dark){.em-body .gc-card{background:#fff!important;", "@media (prefers-color-scheme:light){.em-body .gc-card{background:#fff!important;"],
     ["the example readers not shipped with the Find function", "vercel.json", '"api/buy.js": {\n      "includeFiles"', '"api/buy.js": {\n      "maxDuration"']
   ];
+  const PHONE_MUT = new Set(MUT.filter(m => /fixed height again|dropped below its photo|printed twice|left to paint/.test(m[0])).map(m => m[0]));
   let bad = 0;
   for (const [name, file, from, to] of MUT) {
+    if (process.env.GLV_ONLY && !new RegExp(process.env.GLV_ONLY).test(name)) continue;   // a subset, by name
     const f = path.join(root, file), orig = fs.readFileSync(f, "utf8");
     if (!orig.includes(from)) { console.log("MUTANT NOT APPLICABLE (source changed): " + name); bad++; continue; }
     const isJson = file === "vercel.json"; let code = 0;
-    try { fs.writeFileSync(f, orig.replace(from, () => to)); try { execFileSync("node", [isJson ? path.join(here, "functionBundleCheck.mjs") : fileURLToPath(import.meta.url)], { stdio: "pipe" }); } catch (e) { code = e.status || 1; } } finally { fs.writeFileSync(f, orig); }
+    try { fs.writeFileSync(f, orig.replace(from, () => to)); try { execFileSync("node", [isJson ? path.join(here, "functionBundleCheck.mjs") : fileURLToPath(import.meta.url)], { stdio: "pipe", env: PHONE_MUT.has(name) ? process.env : { ...process.env, GLV_NO_PHONE: "1" } }); } catch (e) { code = e.status || 1; } } finally { fs.writeFileSync(f, orig); }
     console.log((code ? "caught   " : "MISSED   ") + "without " + name); if (!code) bad++;
   }
-  console.log(bad ? "goLiveVisitorCheck mutants: " + bad + " not caught" : "goLiveVisitorCheck mutants: all " + MUT.length + " caught"); process.exit(bad ? 1 : 0);
+  console.log(bad ? "goLiveVisitorCheck mutants: " + bad + " not caught" : "goLiveVisitorCheck mutants: all " + MUT.filter(m => !process.env.GLV_ONLY || new RegExp(process.env.GLV_ONLY).test(m[0])).length + " caught"); process.exit(bad ? 1 : 0);
 }
 process.chdir(root);
 let pass = 0, fail = 0; const ok = (name, c, d) => { if (c) pass++; else { fail++; console.log("FAIL " + name + (d ? "  " + d : "")); } };
@@ -94,4 +100,29 @@ ok("the public endpoint answers every example name as a visitor", NAMES.every(k 
   ok("PUBLIC_EXAMPLES off: every entry page stands as a visitor sees it, with no example section and no error line", out.every(Boolean), out.join(",")); process.env.PUBLIC_EXAMPLES = "1"; }
 { delete process.env.PUBLIC_EXAMPLES; delete process.env.NEW_DESIGN; const r = await page("buy", "/find?design=new", CREWCK); process.env.NEW_DESIGN = "all"; process.env.PUBLIC_EXAMPLES = "1";
   ok("PUBLIC_EXAMPLES off: the crew look shows what a visitor will see (no example section), not the crew's examples", r.h["x-design"] === "new" && !/data-find-examples/.test(r.body)); }
+// THE PHONE PASS (Lane E, Nov 12 2026, Sam's two screenshots at 390). CAUSE: (1) Find's result card gave the Sam block a fixed height (104px, overflow hidden, so every card in a row had the same slot), so a longer engine line ("No sale of a Chevrolet Corvette ZR1X 3LZ has been tracked yet.") was clipped at "tracked" and the View auction button sat over it; (2) the Tasks demo is the real email's card in a white frame, and the email's own dark mode style (written for mail apps) painted it as a solid dark block under the photo on a phone set to dark.
+// AFFECTS every card with text in a box or an overlay on its photo: Find results, Find's example cards, the Tasks demo, Home's example, Market Check's and Sell's example cards. Each is drawn at 390 and 360, as served, then with a longer line in every text block, and judged by scripts/_phoneCards.mjs:
+// no block clips its words, no words are drawn over other words (a button over a text block, a label on a label), no label is printed twice, no overlay drops out of its image, no card is dark inside the page's light frame, nothing runs past the screen.
+{ const P = await import(pathToFileURL(path.join(here, "_phoneCards.mjs")).href);
+  if (process.env.GLV_NO_PHONE) { /* a fault injection that is not about the phone: the phone pass (about two minutes) is skipped */ }
+  else if (!fs.existsSync(P.CHROME)) console.log("goLiveVisitorCheck: phone pass SKIPPED, no Chrome at " + P.CHROME);
+  else {
+    const FXT = await import(pathToFileURL(path.join(here, "tasksFixture.mjs")).href), TP = await import(pathToFileURL(path.join(root, "lib/preview/tasksPreview.js")).href);
+    const bodies = { Home: (await page("home", "/")).body, "Find examples": (await page("buy", "/find")).body, "Market Check": (await page("marketCheck", "/market-check")).body, Sell: (await page("sell", "/sell")).body, Tasks: TP.tasksPublicHtml({ max: 10, emailExample: FXT.tasksEmailFixture() }) };
+    const CARDS = [["Home", "/", "section.fh"], ["Find examples", "/find", "section.proof.fx"], ["Market Check", "/market-check", "[data-mc-card]"], ["Sell", "/sell", "[data-sell-card]"], ["Tasks", "/tasks", ".em"]];
+    const b = await P.launch(root); const LONG = "No sale of a Chevrolet Corvette ZR1X 3LZ has been tracked yet.";
+    try {
+      for (const w of [390, 360]) {
+        for (const [name, url, sel] of CARDS) for (const scheme of name === "Tasks" ? ["light", "dark"] : ["light"]) for (const stretch of [false, true]) {
+          const p = await P.openPage(b, root, url, bodies[name], { width: w, scheme }); if (stretch) await P.stretchText(p, sel); await new Promise(r => setTimeout(r, 150));
+          const pr = P.phoneProblems(await P.probeCard(p, sel), `${name} at ${w}${scheme === "dark" ? " (dark)" : ""}${stretch ? ", a longer line" : ""}`); ok(`${name} at ${w}${scheme === "dark" ? " (dark mode)" : ""}${stretch ? " with a longer line in every text block" : ""}: ${pr.length ? pr[0] : "no clipped block, nothing drawn over words, no doubled label, overlays on their image, no dark card in the light frame"}`, pr.length === 0, pr.join(" | ")); await p.close(); }
+        const p = await P.openFindResults(b, root, { width: w }), n = await p.evaluate(() => document.querySelectorAll(".cgrid > article.car").length); ok(`Find results at ${w}: the cards are on the page`, n >= 1, n + " cards");
+        for (let i = 1; i <= n; i++) { const sel = ".cgrid > article.car:nth-of-type(" + i + ")";
+          let pr = P.phoneProblems(await P.probeCard(p, sel), `Find result ${i} at ${w}`); ok(`Find result ${i} at ${w}: no clipped block, nothing drawn over words, overlay on its photo`, pr.length === 0, pr.join(" | "));
+          await p.evaluate((sel, L) => { const e = document.querySelector(sel + " .sl p"); if (e) e.textContent = L; }, sel, LONG); await P.stretchText(p, sel);
+          pr = P.phoneProblems(await P.probeCard(p, sel), `Find result ${i} at ${w}, the engine's no-sale line and longer lines`); ok(`Find result ${i} at ${w}: the Sam block grows with its text and the buttons sit below it`, pr.length === 0, pr.join(" | ")); }
+        await p.close();
+      }
+    } finally { await b.close(); }
+  } }
 console.log(`goLiveVisitorCheck: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
