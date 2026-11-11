@@ -212,54 +212,54 @@
   ],
   "functions": {
     "api/home.js": {
-      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,lib/sell/sellFacts.js,lib/sell/sellBlock.js,lib/platformPick.js,lib/specializationShare.js,lib/houseCalendar.js,lib/specPages.js,public/onebox.html,public/styles.css,public/js/onebox.js}"
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
     },
     "api/buy.js": {
-      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,lib/sell/sellFacts.js,lib/sell/sellBlock.js,lib/platformPick.js,lib/specializationShare.js,lib/houseCalendar.js,lib/specPages.js,public/onebox.html,public/styles.css,public/js/onebox.js}"
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
     },
     "api/tasksPage.js": {
-      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,lib/sell/sellFacts.js,lib/sell/sellBlock.js,lib/platformPick.js,lib/specializationShare.js,lib/houseCalendar.js,lib/specPages.js,public/onebox.html,public/styles.css,public/js/onebox.js}"
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
     },
     "api/legal.js": {
-      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,lib/sell/sellFacts.js,lib/sell/sellBlock.js,lib/platformPick.js,lib/specializationShare.js,lib/houseCalendar.js,lib/specPages.js,public/onebox.html,public/styles.css,public/js/onebox.js}"
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
     },
     "api/about.js": {
-      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,lib/sell/sellFacts.js,lib/sell/sellBlock.js,lib/platformPick.js,lib/specializationShare.js,lib/houseCalendar.js,lib/specPages.js,public/onebox.html,public/styles.css,public/js/onebox.js}"
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
     },
     "api/howSamDecides.js": {
-      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,lib/sell/sellFacts.js,lib/sell/sellBlock.js,lib/platformPick.js,lib/specializationShare.js,lib/houseCalendar.js,lib/specPages.js,public/onebox.html,public/styles.css,public/js/onebox.js}"
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
     },
     "api/feedback.js": {
-      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,lib/sell/sellFacts.js,lib/sell/sellBlock.js,lib/platformPick.js,lib/specializationShare.js,lib/houseCalendar.js,lib/specPages.js,public/onebox.html,public/styles.css,public/js/onebox.js}"
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
     },
     "api/business.js": {
-      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,lib/sell/sellFacts.js,lib/sell/sellBlock.js,lib/platformPick.js,lib/specializationShare.js,lib/houseCalendar.js,lib/specPages.js,public/onebox.html,public/styles.css,public/js/onebox.js}"
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
     },
     "api/history.js": {
-      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,lib/sell/sellFacts.js,lib/sell/sellBlock.js,lib/platformPick.js,lib/specializationShare.js,lib/houseCalendar.js,lib/specPages.js,public/onebox.html,public/styles.css,public/js/onebox.js}"
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
     },
     "api/usageDashboard.js": {
       "maxDuration": 300,
       "includeFiles": "scripts/{warm-list,warm-named}.json"
     },
     "api/whatsNew.js": {
-      "includeFiles": "{data/whatsNew.json,{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,lib/sell/sellFacts.js,lib/sell/sellBlock.js,lib/platformPick.js,lib/specializationShare.js,lib/houseCalendar.js,lib/specPages.js,public/onebox.html,public/styles.css,public/js/onebox.js}}"
+      "includeFiles": "{data/whatsNew.json,{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}}"
     },
     "api/sitemapPages.js": {
       "includeFiles": "data/whatsNew.json"
     },
     "api/crewPage.js": {
       "maxDuration": 60,
-      "includeFiles": "{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,lib/sell/sellFacts.js,lib/sell/sellBlock.js,lib/platformPick.js,lib/specializationShare.js,lib/houseCalendar.js,lib/specPages.js,public/onebox.html,public/styles.css,public/js/onebox.js}"
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
     },
     "api/publicConfig.js": {
       "includeFiles": "public/onebox.html"
     },
     "api/marketCheck.js": {
-      "includeFiles": "{public/onebox.html,{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,lib/sell/sellFacts.js,lib/sell/sellBlock.js,lib/platformPick.js,lib/specializationShare.js,lib/houseCalendar.js,lib/specPages.js,public/onebox.html,public/styles.css,public/js/onebox.js}}"
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
     },
     "api/sell.js": {
-      "includeFiles": "{public/{onebox.html,styles.css,sell-old.html},{lib/crewPages/**,lib/preview/deskAnalystFixture.json,lib/live/**,lib/sell/sellFacts.js,lib/sell/sellBlock.js,lib/platformPick.js,lib/specializationShare.js,lib/houseCalendar.js,lib/specPages.js,public/onebox.html,public/styles.css,public/js/onebox.js}}"
+      "includeFiles": "{public/sell-old.html,{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}}"
     },
     "api/sellPage.js": {
       "includeFiles": "public/sell-old.html"

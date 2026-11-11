@@ -10,9 +10,9 @@ const args = process.argv.slice(2), rootArg = args.find(a => !a.startsWith("--")
 if (args.includes("--mutants")) {
   const muts = [
     ["vercel.json", "lib/live/**,lib/sell", "lib/live/*.json,lib/sell", "(1) lib/live/** no longer copied: the readers are gone"],
-    ["vercel.json", ",lib/sell/sellFacts.js,", ",lib/sell/NOTHING.js,", "(2) the Sell example's own file is not copied"],
-    ["vercel.json", ",lib/houseCalendar.js,", ",lib/NOTHING.js,", "(3) a file the Sell example needs two imports down is not copied"],
-    ["vercel.json", ",lib/specPages.js,", ",lib/NOTHING.js,", "(3) a second file two imports down is not copied"],
+    ["vercel.json", "lib/sell/{sellFacts,sellBlock}.js,", "lib/sell/{sellBlock}.js,", "(2) the Sell example's own file is not copied"],
+    ["vercel.json", "lib/{platformPick,specializationShare,houseCalendar,specPages}.js", "lib/{platformPick,specializationShare,specPages}.js", "(3) a file the Sell example needs two imports down is not copied"],
+    ["vercel.json", "lib/{platformPick,specializationShare,houseCalendar,specPages}.js", "lib/{platformPick,specializationShare,houseCalendar}.js", "(3) a second file two imports down is not copied"],
     ["lib/live/publicAccess.js", "import { isCrewRequest } from \"../_crew.js\";", "import { isCrewRequest } from \"../_crew.js\";\nimport { nothing } from \"./notThere.js\";", "(4) a public function imports a reader whose own import is a file that does not exist"],
     ["lib/live/marketCheckExamples.js", "import { withClock } from \"./withClock.js\";", "import { withClock } from \"./withClock.js\";\nconst lazy = f => import(f);", "(4) a reader loads a module by a variable path inside the public function's closure"]
   ];

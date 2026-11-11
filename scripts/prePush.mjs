@@ -2385,6 +2385,12 @@ try {
   record("vercel.json ignoreCommand: a docs-only push is skipped, a redeploy of the commit already built (an env-only change), a code change, a config change and an unknown previous commit build (scripts/ignoreCommandCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|ignoreCommandCheck:/.test(l)).slice(0, 5).join(" | "));
 }
 try {
+  const out = execSync("node scripts/vercelConfigCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("vercel.json is accepted by Vercel: it parses and no functions includeFiles string is over 256 characters (the deploy of 976ce753 ended in Error on three) (scripts/vercelConfigCheck.mjs)", "PASS", (out.match(/vercelConfigCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("vercel.json is accepted by Vercel: it parses and no functions includeFiles string is over 256 characters (the deploy of 976ce753 ended in Error on three) (scripts/vercelConfigCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /^FAIL|vercelConfigCheck:/.test(l)).slice(0, 5).join(" | "));
+}
+try {
   const out = execSync("node scripts/goLiveGuardsCheck.mjs --base ee488ab5", { encoding: "utf8", timeout: 240000 });
   record("Go live guards: every crew preview route renders the same with the switch off and on, no render before the crew gate, every wrapper an api file had (calm, tracking, hold) is kept and calm stays outer (scripts/goLiveGuardsCheck.mjs)", "PASS", (out.match(/goLiveGuardsCheck: .*/) || [""])[0]);
 } catch (e) {
