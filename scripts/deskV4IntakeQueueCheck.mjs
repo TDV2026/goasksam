@@ -14,8 +14,8 @@ const stored = async id => (await PV.previewDeskApi({ action: "case_get", id }))
 const b = await launch();
 
 const S = {
-  async queue(p) { return p.evaluate(F2 => { const tagged = id => !!document.querySelector(`#queue .qi[data-case="${id}"] [data-forwarded]`), inNew = id => { const r = document.querySelector(`#queue .qi[data-case="${id}"]`); let e = r && r.previousElementSibling; while (e && !e.classList.contains("qg")) e = e.previousElementSibling; return e ? e.textContent.trim().startsWith("New leads") : false; };
-      const outside = [...document.querySelectorAll("#queue [data-forwarded]")].filter(t => { const r = t.closest(".qi"); let e = r.previousElementSibling; while (e && !e.classList.contains("qg")) e = e.previousElementSibling; return !(e && e.textContent.trim().startsWith("New leads")); }).length;
+  async queue(p) { return p.evaluate(F2 => { const tagged = id => !!document.querySelector(`#queue .qi[data-case="${id}"] [data-forwarded]`), inNew = id => { const r = document.querySelector(`#queue .qi[data-case="${id}"]`), e = r && r.closest(".qgrp") && r.closest(".qgrp").querySelector(".qg"); return e ? e.textContent.trim().startsWith("New leads") : false; };
+      const outside = [...document.querySelectorAll("#queue [data-forwarded]")].filter(t => { const r = t.closest(".qi"), e = r.closest(".qgrp") && r.closest(".qgrp").querySelector(".qg"); return !(e && e.textContent.trim().startsWith("New leads")); }).length;
       return { fwd: tagged(F2.fwd) && inNew(F2.fwd), nocar: tagged(F2.nocar) && inNew(F2.nocar), noref: tagged(F2.fwdnoref) && inNew(F2.fwdnoref), typed: tagged(F2.typed), typedlead: tagged(F2.typedlead), typedInNew: inNew(F2.typed) && inNew(F2.typedlead), outside }; }, F).then(q => ({ ...q, pass: q.fwd && q.nocar && q.noref && q.typedInNew && !q.typed && !q.typedlead && q.outside === 0 })); },
   async head(p, want) { const t = await p.evaluate(() => !!document.getElementById("fwdtag")); return { t, pass: t === want }; },
   async marks(p) { const m = await p.evaluate(() => [...document.querySelectorAll("[data-unverified]")].map(e => e.dataset.unverified)); const has = m.includes("vin") && m.includes("mileage");
@@ -33,10 +33,10 @@ const S = {
 };
 const MUT = [
   ["no tag on a forwarded lead", h => h.split('<em class="tag" data-forwarded="1">Forwarded lead</em>').join(""), p => S.queue(p)],
-  ["a tag on every New lead (the hand made case too)", h => { const i = h.indexOf('data-case="' + F.typed + '"'), j = h.indexOf("</b>", i); return h.slice(0, j + 4) + '<em class="tag" data-forwarded="1">Forwarded lead</em>' + h.slice(j + 4); }, p => S.queue(p)],
+  ["a tag on every New lead (the hand made case too)", h => { const i = h.indexOf('data-case="' + F.typed + '"'), j = h.indexOf('</span><span class="q2">', i); return h.slice(0, j) + '<em class="tag" data-forwarded="1">Forwarded lead</em>' + h.slice(j); }, p => S.queue(p)],
   ["an unverified fact drawn as verified", h => h.replace("if (f.verified) {", 'if (f.verified || f.source === "seller") {'), p => S.marks(p), F.fwd],
   ["Verify that verifies the wrong field", h => h.replace('edit("verify", { field: k })', 'edit("verify", { field: "colour" })'), p => S.marks(p), F.fwd],
-  ["the tag read from the lead reference instead of origin (tags the typed case that has one)", h => { const i = h.indexOf('data-case="' + F.typedlead + '"'), j = h.indexOf("</b>", i); return h.slice(0, j + 4) + '<em class="tag" data-forwarded="1">Forwarded lead</em>' + h.slice(j + 4); }, p => S.queue(p)],
+  ["the tag read from the lead reference instead of origin (tags the typed case that has one)", h => { const i = h.indexOf('data-case="' + F.typedlead + '"'), j = h.indexOf('</span><span class="q2">', i); return h.slice(0, j) + '<em class="tag" data-forwarded="1">Forwarded lead</em>' + h.slice(j); }, p => S.queue(p)],
   ["the tag read from the lead reference instead of origin (drops the forwarded case that has none)", h => { const i = h.indexOf('data-case="' + F.fwdnoref + '"'), j = h.indexOf('<em class="tag" data-forwarded="1">Forwarded lead</em>', i), k = h.indexOf("</a>", i); return j > 0 && j < k ? h.slice(0, j) + h.slice(j + '<em class="tag" data-forwarded="1">Forwarded lead</em>'.length) : h; }, p => S.queue(p)],
   ["the email tile prints the file name instead of the case's line", h => h.replace('el("span", { text: em.line || "" })', 'el("span", { text: em.name || "" })'), p => S.email(p, F.fwd), F.fwd],
   ["the seller's ask read from sellerRequested instead of sellerAskLine", h => h.replace('sa.textContent = r.sellerAskLine || ""; sa.hidden = !r.sellerAskLine;', 'sa.textContent = r.sellerRequested || ""; sa.hidden = !r.sellerRequested;'), p => S.askLine(p), F.fwd],

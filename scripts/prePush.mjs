@@ -2494,9 +2494,15 @@ try {
 }
 try {
   const out = execSync("node scripts/deskV4NewCaseCheck.mjs", { encoding: "utf8", timeout: 300000 });
-  record("Desk v4 New case form: photos accumulate with a Remove each, a VIN fills the car (marked decoded, editable), make model body gearbox colour are pickers with a typed value allowed, a refusal prints the server's why under the button, a refused photo keeps the case; mutants (scripts/deskV4NewCaseCheck.mjs)", "PASS", (out.match(/deskV4NewCaseCheck: .*/) || [""])[0]);
+  record("Desk v4 New case panel in two steps: one field then the car card (tags with a pencil, no uppercase label), step two labels above fields with units inside, a drop zone taking JPG PNG HEIC, the server's why and never a raw database error, a refused photo keeps the case; mutants (scripts/deskV4NewCaseCheck.mjs)", "PASS", (out.match(/deskV4NewCaseCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("Desk v4 New case form: photos accumulate with a Remove each, a VIN fills the car (marked decoded, editable), make model body gearbox colour are pickers with a typed value allowed, a refusal prints the server's why under the button, a refused photo keeps the case; mutants (scripts/deskV4NewCaseCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+  record("Desk v4 New case panel in two steps: one field then the car card (tags with a pencil, no uppercase label), step two labels above fields with units inside, a drop zone taking JPG PNG HEIC, the server's why and never a raw database error, a refused photo keeps the case; mutants (scripts/deskV4NewCaseCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
+}
+try {
+  const out = execSync("node scripts/deskV4SecondRunCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 second run: needs attention with the label on its own line over the statement field and buttons, the statement sent, a document added through a pill listed at once and every section matching the case, What we took into account editable; mutants (scripts/deskV4SecondRunCheck.mjs)", "PASS", (out.match(/deskV4SecondRunCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("Desk v4 second run: needs attention with the label on its own line over the statement field and buttons, the statement sent, a document added through a pill listed at once and every section matching the case, What we took into account editable; mutants (scripts/deskV4SecondRunCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
   const out = execSync("node scripts/deskV4ReserveModeCheck.mjs", { encoding: "utf8", timeout: 300000 });
