@@ -2665,3 +2665,43 @@ Porsche 911S
   !!! URGENT, FOR LANE D AND SAM: THE LIVE DEMO IS BROKEN BY THIS DEPLOY UNTIL THE SEAT EXISTS. deskpreviewseed with reset=1 answered {"ok":false,"why":"no seat row for crew in hagerty"}. MISSING, EXACTLY: a desk_seats row with org_id 'hagerty' and subject 'crew' (lib/desk/sheetStore.js seatId, DESK_PREVIEW_SEAT defaults to "crew"). I could not tell whether the 'hagerty' ORG row exists (the seat lookup fails first). docs/supabase-desk-seat.sql inserts ONLY subject 'sam' (the forwarding email), not 'crew', so running it as written does not fix this: Lane D, add a crew seat row to that file (Sam runs it). Nothing was written by the seed. EFFECT LIVE with the crew cookie: /preview/desk/case/pv_hm now returns 404 "The page could not be found" (it served the demo case before this deploy); /preview/desk returns 200 with the rail (7 new leads); New case by VIN WMWRE33575TL13132 decodes (year 2005, make MINI, model Cooper, trim S, body hatchback, all from the VIN, in about 6 s) but Create case answers "The case could not be saved (no seat row for crew in hagerty): try again", 4.3 s. So no case was made, the pool for the Mini (Convertible excluded or not) could NOT be read, and the one-edit-and-reload test could not run (no case to open). Rollback option if the seat cannot be added soon: revert ee045537 (restores the offline demo, loses Lane D's other fixes); say the word.
 - PUSHED lane-b-find-mapped 06b800ca as 420d0c09 (Lane C, Nov 12 2026, 00:10Z, deploy goasksam-jsld78k7g Ready; no vercel.json change; conflict only in lane-notes). Before: findVoiceCheck 810/0, findAlwaysCardsCheck 36, findExcludedCheck 48/0, findGenerationsCheck 1708/0, findShowMoreCheck 189, findResultsCheck 98, buyStage2Check 23, pillFenceCheck 39, bodyTrustCheck 56, buyNameBodyCheck 54, converseRetiredCheck 4, reasonWordsCheck 608, engineFieldsCheck 12, goLiveVisitorCheck 68, goLiveSignedInCheck 206, goLiveGuardsCheck 118, tasksPreviewCheck 140, goLiveSwitchCheck 164/0 (baseline 6a1637b2); countNounCheck 1 FAIL is the base red. E30 RE-READ as a visitor at 1440 ("Find me a BMW E30 convertible With an updated engine"): 1 CARD, 1989 BMW 325i Convertible (Bring a Trailer, 3 days left, last bid $15,250, Automatic, 13 sales since Dec 2024 $7,500 to $14,500, the bid is above the range). CHIPS: BMW, E30, Cabriolet (no "swap" chip any more; "E30" kept, no "3-Series"). LINE ABOVE THE CARD: "No live E30 3-Series Cabriolets are listed with an engine swap (read from 'updated engine'), so here is the one without it." with "See all 3 live BMW E30s" above and "Have Sam keep looking" below. No apology line. FOR LANE B: the line still says "engine swap" for "updated engine" (the sentence names a swap the seller did not ask for) and the card is not stated as updated either way; decide what the sentence should say.
 - database free for reads, no push lock (Lane C, Nov 12 2026, 00:20Z).
+
+- READY Desk setup SQL (Lane D, Nov 11 2026; branch lane-d-desk-v4, crew only, not pushed; Lane C pushes at once). CAUSE of the down preview: docs/supabase-desk-seat.sql added only Sam's seat and assumed the org row hagerty, the crew seat and a licence end already existed, so deskpreviewseed failed with "no seat row for crew in hagerty", pv_hm answered 404 and New case could not save. Saving a case needs four rows: the org (foreign key), the seat subject crew (lib/desk/sheetStore.js seatId), a licence end in desk_org_settings (the desk_sheets insert trigger refuses a sheet without one) and room in the seat limit. OTHER PAGES AND CARS AFFECTED: every case the preview saves (the demonstration car, the engine samples, New case by VIN), the rail, the report preview and the send dialog read that store; the intake address needs inbound_local hagerty and Sam's seat. FIX: the file is now one script that creates what is missing and does nothing on a second run (existing rows are kept). SAM: open the Supabase SQL Editor, paste everything between the lines below, change ONLY the line marked EDIT THIS LINE (replace <SAM_EMAIL> with the address you forward from, keep the quotes), run it once. It refuses to run while the placeholder is still there. Then Lane C runs deskpreviewseed. CHECK: scripts/deskSeatSqlCheck.mjs (7, in prePush) reads the file and fails when the org row, the licence end, the crew seat or Sam's seat is missing, when an insert would double on a second run, or when the placeholder guard is gone; six mutants each go red (a file without the org, the crew seat, the licence end, with a doubling insert, without the guard, with a real address). I could not run the SQL here (no database access by design), so it is checked as text only. Search check: no public page touched.
+  FULL TEXT OF docs/supabase-desk-seat.sql:
+  ---------------------------------------------------------------
+  -- DESK PREVIEW SETUP FOR THE HAGERTY ORG (Lane D, Nov 11 2026). Sam runs this ONCE in the Supabase SQL Editor.
+  -- THE ONE LINE TO EDIT: the last statement, where it says <SAM_EMAIL>. Put the address you forward leads from, between the quotes, and keep the quotes.
+  -- Safe to run twice: every statement does nothing on a repeat (an existing row is left as it is). It adds no table and no function, so there is nothing to lock down here (the desk tables already have row level security on and no grant to anon or authenticated).
+  -- Run it AFTER docs/supabase-desk-org.sql, docs/supabase-desk-storage.sql and docs/supabase-desk-intake.sql.
+  -- It does not print or read the seat list.
+
+  -- 1. The org, and the address forwards arrive at (hagerty@desk.goasksam.com).
+  insert into desk_orgs (id, name, inbound_local)
+  values ('hagerty', 'Hagerty Marketplace', 'hagerty')
+  on conflict (id) do nothing;
+  update desk_orgs set inbound_local = 'hagerty' where id = 'hagerty' and inbound_local is null;
+
+  -- 2. The org's settings with a licence end (a case cannot be saved without one) and room for the seats below. Existing values are kept.
+  insert into desk_org_settings (org_id, seat_limit, licence_starts_on, licence_ends_on)
+  values ('hagerty', 5, '2026-11-04', '2027-11-04')
+  on conflict (org_id) do nothing;
+  update desk_org_settings set licence_starts_on = coalesce(licence_starts_on, '2026-11-04'), licence_ends_on = coalesce(licence_ends_on, '2027-11-04'), seat_limit = greatest(seat_limit, 5) where org_id = 'hagerty';
+
+  -- 3. The preview's seat (subject crew): the Desk preview saves every case under it.
+  insert into desk_seats (org_id, subject, email, role, display_name, active)
+  values ('hagerty', 'crew', null, 'owner', 'Crew preview', true)
+  on conflict (org_id, subject) do nothing;
+
+  -- 4. Sam's seat. EDIT THE NEXT LINE ONLY: replace <SAM_EMAIL> with your address. It refuses to run while the placeholder is still there.
+  do $$
+  declare addr text := lower('<SAM_EMAIL>');   -- EDIT THIS LINE: replace <SAM_EMAIL> with your email address, keep the quotes
+  begin
+    if addr like '%<%' or addr not like '%_@_%' then raise exception 'Put your email address in place of <SAM_EMAIL> first'; end if;
+    insert into desk_seats (org_id, subject, email, role, display_name, active)
+    values ('hagerty', 'sam', addr, 'admin', 'Sam', true)
+    on conflict (org_id, subject) do nothing;
+  end $$;
+  -- check (shows no addresses): select o.id, o.inbound_local, (select count(*) from desk_seats where org_id = o.id and subject = 'crew') as crew_seat, (select count(*) from desk_seats where org_id = o.id and subject = 'sam') as sam_seat, s.licence_ends_on from desk_orgs o left join desk_org_settings s on s.org_id = o.id where o.id = 'hagerty';
+  ---------------------------------------------------------------
+
+- READY Desk setup SQL tip: 768a4f3df4dc90919441fd806cacc43e57594615 (Lane D, Nov 11 2026; the code and the file are at this commit, this line is the docs commit after it). Search check: no public page touched.
