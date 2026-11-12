@@ -2980,6 +2980,12 @@ try {
   record("Desk v3 demonstration car (scripts/deskDemoCarCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160));
 }
 try {
+  execSync("node scripts/deskSeatSqlCheck.mjs", { encoding: "utf8", timeout: 60000 });
+  record("Desk setup SQL leaves the preview able to save: org, licence end, crew seat, Sam's seat, safe to run twice (scripts/deskSeatSqlCheck.mjs)", "PASS", "")
+} catch (e) {
+  record("Desk setup SQL (scripts/deskSeatSqlCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 160))
+}
+try {
   execSync("node scripts/deskPersistCheck.mjs", { encoding: "utf8", timeout: 120000 });
   record("Desk v4 persistence: after each edit two fresh sessions read the case and build the PDF, and what is printed is what was saved (scripts/deskPersistCheck.mjs)", "PASS", "")
 } catch (e) {
