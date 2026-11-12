@@ -2692,3 +2692,5 @@ Porsche 911S
   end $$;
   -- check (shows no addresses): select o.id, o.inbound_local, (select count(*) from desk_seats where org_id = o.id and subject = 'crew') as crew_seat, (select count(*) from desk_seats where org_id = o.id and subject = 'sam') as sam_seat, s.licence_ends_on from desk_orgs o left join desk_org_settings s on s.org_id = o.id where o.id = 'hagerty';
   ---------------------------------------------------------------
+
+- READY Desk setup SQL tip: 768a4f3df4dc90919441fd806cacc43e57594615 (Lane D, Nov 11 2026; the code and the file are at this commit, this line is the docs commit after it). Search check: no public page touched.
