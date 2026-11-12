@@ -74,6 +74,21 @@ const MUT = [
   ["the short id pv_hm is not the uuid on the production store (404)", "deskPersistCheck", "lib/preview/deskPreview.js", rep("if (await store.get(PREVIEW_ORG.id, t)) return t; const u = previewUuid(t);", "return t; const u = previewUuid(t);")],
   ["the seed re-saves every row of the org with no case, not only its own", "deskPersistCheck", "lib/preview/deskPreview.js", rep("for (const id of mine.slice(1)) {", "for (const id of (await store.list(PREVIEW_ORG.id)).map(r => r.id)) {")],
   ["a failed seed step is not named (the error goes up bare)", "deskPersistCheck", "lib/preview/deskPreview.js", rep("} catch (e) { steps.push({ step: name, ok: false, why: String(e && e.message || e).slice(0, 160) }); return false; }", "} catch (e) { throw e; }")],
+  // Sam's second run (Nov 12 2026)
+  ["the photo row is written with a source the table's check refuses (typed)", "deskCasePhotosCheck", "lib/desk/sheetStore.js", rep('source: "upload"', 'source: "typed"')],
+  ["a case whose photo fails stays in the store without its photos", "deskCasePhotosCheck", "lib/desk/sheetActions.js", rep("try { await store.discard(org, sheet.id); } catch {} return refuse(reasonLine(\"case.new.refuse.photo\"", "return refuse(reasonLine(\"case.new.refuse.photo\"")],
+  ["a HEIC photo is not converted on the server (refused as not a photo)", "deskCasePhotosCheck", "lib/desk/sheetActions.js", rep("|| isHeic)) return { refuse", ")) return { refuse")],
+  ["the seller report prints the analyst's short line (N of M sales reached this figure)", "deskPdfCheck", "lib/desk/reportState.js", rep("out.reachedLine = ck && ck.of ? sellerReached(c, ck) : ck && ck.reachedLine ? ck.reachedLine : null;", "out.reachedLine = ck && ck.reachedLine ? ck.reachedLine : null;")],
+  ["the seller's statement cannot be saved to a fact (Mark verified on an empty field stays refused)", "deskWorkflowCheck", "lib/desk/sheetActions.js", rep('else if (op === "seller_said") {', 'else if (op === "seller_said_off") {')],
+  ["a waived accident item prints nothing in the report about the history being unverified", "deskWorkflowCheck", "lib/desk/reportState.js", rep('if (waived("accident_unclear") && !f("accident_history").verified)', 'if (false)')],
+  ["a waived mileage item prints nothing about the mileage being unverified", "deskWorkflowCheck", "lib/desk/reportState.js", rep('if (waived("mileage_unconfirmed") && !f("mileage").verified)', 'if (false)')],
+  ["the report prints the engine's items, not the case's edited list", "deskWorkflowCheck", "lib/desk/reportState.js", rep("considered: printedConsidered(c),", "considered: (d.considered || []).map(x => ({ title: x.title, text: x.line })),")],
+  ["a removed item of the considered list comes back", "deskWorkflowCheck", "lib/desk/considered.js", rep("!c.consideredRemoved.includes(s.key) &&", "")],
+  ["a document held only on the sheet's own list does not show in Documents", "deskWorkflowCheck", "lib/desk/caseView.js", rep("allDocs = [...c.documents, ...sub.filter(", "allDocs = [...c.documents, ...[].filter(")],
+  ["the Any condition rung keeps its old name", "reportConsistencyCheck", "lib/desk/rungs.js", rep('reasonLine("desk4.all_conditions_name")', '"Any condition"')],
+  ["a sent or finalized case can be deleted", "deskWorkflowCheck", "lib/desk/sheetActions.js", s => s.replace(/if \(s0\.status === "Finalised"[^\n]*case\.delete\.refuse\.final"\)\);/, "")],
+  ["a restore puts the case at the wrong stage", "deskWorkflowCheck", "lib/desk/caseView.js", rep('sheet && sheet.archived ? "archived" : sheet && sheet.status === "Sent" ? "sent" :', 'sheet && sheet.archived ? "archived" : sheet && sheet.archiveEvents ? "new" : sheet && sheet.status === "Sent" ? "sent" :')],
+  ["an archived case loses its documents", "deskWorkflowCheck", "lib/desk/caseView.js", rep("documents: allDocs.map(d =>", "documents: (sheet.archived ? [] : allDocs).map(d =>")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });

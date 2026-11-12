@@ -4,7 +4,7 @@ const root = path.resolve(process.argv[2] || "."), imp = f => import(pathToFileU
 const M = await imp("lib/desk/caseModel.js"), V = await imp("lib/desk/caseView.js"), D = await imp("lib/desk/caseDemo.js"), A = await imp("lib/desk/sheetActions.js"), { memoryStore } = await imp("lib/desk/sheetStore.js");
 let pass = 0, fail = 0; const ok = (n, c) => { if (c) pass++; else { fail++; console.log("FAIL " + n); } };
 const T = "2026-11-08T10:00:00.000Z";
-ok("the stages are exactly new, review, ready, final, sent (sent is the sheet's own state, not a case status)", M.STAGES.join() === "new,review,ready,final,sent");
+ok("the stages are exactly new, review, ready, final, sent, archived (sent is the sheet's own state, not a case status)", M.STAGES.join() === "new,review,ready,final,sent,archived");
 ok("every stored status maps to a stage, and no two share one", M.CASE_STATUS.map(s => M.STAGE_OF[s]).join() === "new,review,ready,final");
 // a mixed org: the page is told the counts, none are worked out from the list
 const mk = (id, status, extra = {}) => ({ id, created_at: T, submission: { typed: true, photos: [], documents: [] }, case: { ...M.newCase({ now: T }), status, ...extra } });
@@ -34,7 +34,7 @@ ok("case_get serves stage, queue and handling.lines with the case", g.case.stage
 // LANE E'S THREE FIELDS: photo ops through case_edit, the lines on caseView, vehicle.mileageLine
 { const { setup } = await import("./_deskCaseWorld.mjs"), world = await setup(root), K = world.K, base = await world.readyCase(), st2 = memoryStore(), cx = { org: "t", seat: "crew", store: st2, now: T, env: {} }, J = x => JSON.stringify(x);
   await st2.insert("t", { id: "p1", owner_seat: "crew", status: "In progress", created_at: T, submission: { typed: true, photos: [], documents: [] }, state: {}, case: base, version: 1 });
-  const jpg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(64, 1)]).toString("base64");
+  const jpg = (await (await import("sharp")).default({ create: { width: 64, height: 48, channels: 3, background: "#446688" } }).jpeg().toBuffer()).toString("base64");   // a real picture: the server now reads and converts every photo (a header with junk after it is refused as unreadable)
   const add = await A.handleSheetAction("case_edit", { id: "p1", op: "photo_add", name: "side.jpg", data: jpg }, cx);
   ok("case_edit photo_add adds a photo to the case, append only", add.ok && add.case.photos.items.length === base.photos.items.length + 1 && add.case.photos.items.some(p => p.name === "side.jpg") && add.case.photos.reportIds.length === base.photos.reportIds.length + 1, J(add).slice(0, 160));
   ok("the photo is also on the sheet's submission, so the old strip and the report see it", (await st2.get("t", "p1")).submission.photos.length === 1);
@@ -59,7 +59,7 @@ const page = fs.existsSync(path.join(root, "public/js/deskvals.js")) ? fs.readFi
 ok("the Desk page does not count cases itself", !/\.queue\.(new|review|ready|final)\s*[+\-]|handling\.lines\.(reduce|filter)|filter\(function\s*\(\w+\)\s*\{\s*return \w+\.stage/.test(page));
 // ---------- the shapes Lane E's walkthrough reads from case_new, photo_add and a condition change (Lane D, Nov 9 2026)
 { const FX = await imp("lib/preview/deskV3Fixture.js"), store = memoryStore(), calls = [], ctx = { now: T, env: {}, org: "s", seat: "ava", store, orgSettings: { name: "Hagerty" }, readSheet: async (e, i) => { calls.push(i); return (await imp("lib/preview/recordedRead.js")).recordedRead(i); } };
-  const run = (a, b) => A.handleSheetAction(a, b, ctx), JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(40, 1)]).toString("base64");
+  const run = (a, b) => A.handleSheetAction(a, b, ctx), JPG = Buffer.from("/9j/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAMABADASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAABf/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AJQA0If/2Q==", "base64").toString("base64");
   const nw = await run("case_new", { text: "WP0AA2995XS626785", mileage: "72,000", transmission: "Manual", body: "Coupe", colour: "Silver", seller_name: "Hal Moreau", asking_price: "58,000", seller_notes: "Garaged" });
   ok("case_new answers { ok, id, recalled, case, sheet } and the engine was asked at most twice (the start, then the check of its reserve)", nw.ok && nw.id && nw.recalled === true && nw.case && nw.sheet && calls.length >= 1 && calls.length <= 2);
   { const cv = await import(pathToFileURL(path.join(root, "lib/desk/caseView.js")).href), lead = M.newCase({ now: T, leadRef: "HM-1", submittedAt: "2026-11-04T09:00:00.000Z" }), none = M.newCase({ now: T });

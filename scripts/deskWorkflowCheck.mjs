@@ -73,7 +73,7 @@ ok("an item waived with a reason stays waived while its cause stands", (() => { 
 // CLASS: any road that creates or changes a case must leave the stored market reference current (case.desk.key is the key of the case as it now stands) and answer with the full case view in the same call, so the page never needs a second read.
 { const A = await import(pathToFileURL(path.join(root, "lib/desk/sheetActions.js")).href), SS = await import(pathToFileURL(path.join(root, "lib/desk/sheetStore.js")).href);
   const store = SS.memoryStore(), org = "w", n0 = () => calls.length, ctx = { now: T, env: {}, org, seat: "ava", store, orgSettings: { name: "Hagerty" }, readSheet: async (e, input) => read(input) };
-  const run = (a, b) => A.handleSheetAction(a, b, ctx), JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(40, 1)]).toString("base64");
+  const run = (a, b) => A.handleSheetAction(a, b, ctx), JPG = Buffer.from("/9j/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAMABADASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAABf/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AJQA0If/2Q==", "base64").toString("base64");
   const fresh = (cv) => cv.desk && cv.desk.key === K.recallKey(cv);
   const c0 = n0(), nw = await run("case_new", { text: "1999 Porsche 911 Carrera", mileage: "61,200", transmission: "Manual", body: "Coupe", colour: "Silver", seller_name: "Hal Moreau", asking_price: "58,000", seller_notes: "Garaged since 2015" });
   ok("case_new from the form creates the stored sheet and the case and calls the engine, at most twice (the start, then the check of the reserve it took)", nw.ok && n0() - c0 >= 1 && n0() - c0 <= 2 && (await store.get(org, nw.id)).case && nw.recalled === true, nw.why || ("calls " + (n0() - c0)));
@@ -117,5 +117,94 @@ ok("an item waived with a reason stays waived while its cause stands", (() => { 
   // THE CLASS: every road that moves an engine input leaves the stored reference current, in one call, with the full view
   const roads = [["mileage", { op: "field", field: "mileage", value: 70000 }], ["transmission", { op: "field", field: "transmission", value: "Tiptronic" }], ["body", { op: "field", field: "body", value: "Cabriolet" }], ["condition", { op: "condition", selected: { tier: 3, name: "Good" } }], ["a market_calc exclusion", { op: "exclude", saleId: good.case.desk.comparables.find(x => x.inPopulation).id, scope: "market_calc", reason: "Salvage title" }]];
   for (const [nm, b] of roads) { const c = n0(), r = await run("case_edit", { id: nw.id, ...b }); ok(`${nm}: one engine call at most, and the answer's market reference is current for the case it carries`, r.ok && n0() - c <= 2 && fresh(r.case) && r.case.desk.evidence && Array.isArray(r.case.desk.comparables), r.why || `calls ${n0() - c}`); }
+}
+
+// ---------- THE QUEUE OPS: case_archive, case_restore, case_delete (Lane D, Nov 12 2026, for Lane S). CLASS: whatever the stage a case is at (new, review, ready, final, sent), archive keeps everything and takes it out of the working groups, restore puts it back at the stage it had, and delete never removes a finalized, a sent or a seeded sample case.
+{ const A = await import(pathToFileURL(path.join(root, "lib/desk/sheetActions.js")).href), SS = await import(pathToFileURL(path.join(root, "lib/desk/sheetStore.js")).href), PV = await import(pathToFileURL(path.join(root, "lib/preview/deskPreview.js")).href);
+  const store = SS.memoryStore(); store.reset(); await PV.seedPreviewStore(store, { seat: "crew" });
+  const org = PV.PREVIEW_ORG.id, ctx = (o = {}) => ({ now: T, env: {}, org, seat: "crew", store, orgSettings: { name: "Hagerty" }, readSheet: async () => null, ...o }), run = (a, b, o) => A.handleSheetAction(a, b, ctx(o));
+  const PDF = Buffer.from("%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF").toString("base64");
+  const mk = await run("case_new", { year: "1999", make: "Porsche", model: "911" }); ok("a case to work with", mk.ok === true && mk.case.stage === "new", String(mk.why));
+  const doc = await run("case_edit", { id: mk.id, op: "doc_add", kind: "invoice", title: "Service invoice", name: "inv.pdf", data: PDF }); ok("a document is added to it", doc.ok === true && doc.case.documents.length === 1, String(doc.why));
+  const before = (await run("case_get", { id: mk.id })).case, qBefore = before.queue, st0 = before.stage;   // the stage it has now (the document edit moved it from new to review)
+  // archive
+  const ar = await run("case_archive", { id: mk.id });
+  ok("case_archive answers the case view at stage archived, remembering the stage it had", ar.ok === true && ar.case.stage === "archived" && ar.case.archived && ar.case.archived.from === st0 && ar.id === mk.id, String(ar.why));
+  ok("it is out of the working groups: the queue counts it as archived and not as new", ar.queue.archived === qBefore.archived + 1 && ar.queue[st0] === qBefore[st0] - 1, J([qBefore, ar.queue]));
+  ok("it keeps everything: the document, the fields, the photos and the market reference", ar.case.documents.length === 1 && ar.case.documents[0].id === doc.case.documents[0].id && J(ar.case.fields) === J(before.fields) && ar.case.photos.items.length === before.photos.items.length);
+  ok("it records a handling line, in the table's words", ar.case.handling.archiveLines.length === 1 && /^Archived by crew on /.test(ar.case.handling.archiveLines[0]) && new RegExp("from the " + st0 + " stage").test(ar.case.handling.archiveLines[0]), J(ar.case.handling.archiveLines));
+  ok("the working queue no longer lists it and the archived view does", !(await run("sheet_queue", { view: "company" })).rows.some(r => r.id === mk.id) && (await run("sheet_queue", { view: "archived" })).rows.some(r => r.id === mk.id));
+  ok("an archived case cannot be edited, and cannot be archived twice", (await run("case_edit", { id: mk.id, op: "field", field: "colour", value: "Red" })).ok === false && (await run("case_archive", { id: mk.id })).ok === false);
+  // restore
+  const rs = await run("case_restore", { id: mk.id });
+  ok("case_restore returns it to the stage it had", rs.ok === true && rs.case.stage === st0 && rs.case.archived === null && rs.queue[st0] === qBefore[st0] && rs.queue.archived === qBefore.archived, J(rs.queue) + String(rs.why));
+  ok("restored, it holds the document still and a second handling line", rs.case.documents.length === 1 && rs.case.handling.archiveLines.length === 2 && /^Restored by crew/.test(rs.case.handling.archiveLines[1]));
+  ok("restore refuses a case that is not archived", (await run("case_restore", { id: mk.id })).ok === false);
+  ok("only the owner may archive, restore or delete", ["case_archive", "case_restore", "case_delete"].every(a => run(a, { id: mk.id }, { seat: "someone else" }).then(x => x.ok === false) !== null) && (await run("case_archive", { id: mk.id }, { seat: "someone else" })).ok === false && (await run("case_delete", { id: mk.id }, { seat: "someone else" })).ok === false && !!(await store.get(org, mk.id)));
+  // every stage: a case at each stage is archived and restored to that same stage
+  const stages = []; for (const row of await store.list(org)) stages.push([row.id, (await run("case_get", { id: row.id })).case.stage]);
+  for (const [id, st] of stages) { const a = await run("case_archive", { id }), r = await run("case_restore", { id }); ok(`archive then restore of a case at stage ${st} (${id}) returns it to ${st}`, a.ok === true && a.case.stage === "archived" && a.case.archived.from === st && r.ok === true && r.case.stage === st, J([a.why, r.why, r.ok && r.case.stage])); }
+  // the finalized sample: archived and restored, never deleted; a sent case: never deleted
+  const fin0 = stages.find(x => x[1] === "final"), fin = ["fin-copy-1"]; { const f0 = await store.get(org, fin0[0]); await store.insert(org, { ...f0, id: fin[0], demo: false }); }   // the finalized sample copied as an ordinary finalized case (its own id): the finalized guard is tested on its own, the sample guard below
+  ok("a finalized case is not deleted (archive it instead), and is still there", !!fin && (await run("case_delete", { id: fin[0] })).ok === false && /archive it instead/.test((await run("case_delete", { id: fin[0] })).why) && !!(await store.get(org, fin[0])));
+  await store.markSent(org, fin[0], T, "seller@example.com");
+  const sentDel = await run("case_delete", { id: fin[0] }); ok("a sent case is not deleted either", sentDel.ok === false && !!(await store.get(org, fin[0])), String(sentDel.why));
+  const sentAr = await run("case_archive", { id: fin[0] }), sentRs = await run("case_restore", { id: fin[0] }); ok("a sent case is archived and restored to sent", sentAr.ok && sentAr.case.archived.from === "sent" && sentRs.ok && sentRs.case.stage === "sent", J([sentAr.why, sentRs.why]));
+  ok("a seeded sample case is never deleted", (await Promise.all(stages.filter(x => x[0] !== mk.id).map(x => run("case_delete", { id: x[0] })))).every(r => r.ok === false && /demonstration case|archive it instead/.test(r.why)) && (await store.list(org)).length === stages.length + 1);
+  // delete
+  const del = await run("case_delete", { id: mk.id });
+  ok("case_delete removes an ordinary case through the logged path and answers the queue and a handling line", del.ok === true && del.gone === true && (await store.get(org, mk.id)) === null && /^Deleted by crew/.test(del.handlingLine) && del.queue[st0] === qBefore[st0] - 1, J(del));
+  ok("a deleted case is gone from the lists", !(await run("sheet_queue", { view: "company" })).rows.some(r => r.id === mk.id) && (await run("case_get", { id: mk.id })).ok === false);
+}
+// ---------- THE SELLER'S STATEMENT FOR A FACT THE CASE LACKS (Lane D, Nov 12 2026; Sam's second run: Mark verified on the accident history was refused because the field was empty). CLASS: the accident history, the service history and the mileage, each taken as the seller's statement inline, saved to the fact, then verified; or waived, and the report says the fact is unverified.
+{ const A = await import(pathToFileURL(path.join(root, "lib/desk/sheetActions.js")).href), SS = await import(pathToFileURL(path.join(root, "lib/desk/sheetStore.js")).href), R = await import(pathToFileURL(path.join(root, "lib/desk/reportState.js")).href), fs = await import("node:fs");
+  const store = SS.memoryStore(); store.reset(); const org = "w", ctx = { now: T, env: {}, org, seat: "ava", store, orgSettings: { name: "Hagerty" }, readSheet: async () => null }, run = (a, b) => A.handleSheetAction(a, b, ctx);
+  const mk = await run("case_new", { year: "1999", make: "Porsche", model: "911" }), id = mk.id;
+  const need = (c, n) => c.needs_review.find(x => x.id === n);
+  for (const [needId, field, said, verifiedLine] of [["accident_unclear", "accident_history", "No accidents, one parking scrape in 2012", "accident"], ["service_documents", "service_history", "Serviced every year at Rennsport, IMS done in 2019", "service"], ["mileage_unconfirmed", "mileage", "61,400 miles", "mileage"]]) {
+    const c0 = (await run("case_get", { id })).case;
+    if (field !== "mileage") ok(`${field}: the field is empty and Mark verified is refused with a reason`, c0.fields[field].value == null && (await run("case_edit", { id, op: "verify", field })).ok === false);
+    const empty = await run("case_edit", { id, op: "seller_said", field, text: "   " }); ok(`${field}: an empty statement is refused`, empty.ok === false && /Type what the seller said/.test(empty.why), String(empty.why));
+    const sd = await run("case_edit", { id, op: "seller_said", field, text: said });
+    ok(`${field}: the seller's statement is saved to the fact, as the seller's and not verified`, sd.ok === true && sd.case.fields[field].value != null && sd.case.fields[field].source === "seller" && sd.case.fields[field].verified === false, String(sd.why));
+    const v = await run("case_edit", { id, op: "verify", field });
+    ok(`${field}: Mark verified now works and closes ${needId}`, v.ok === true && v.case.fields[field].verified === true && (needId === "service_documents" || need(v.case, needId).state === "done" || !need(v.case, needId)), String(v.why));
+  }
+  // proceed without: the item is waived and the report says the fact is not verified
+  const mk2 = await run("case_new", { year: "1999", make: "Porsche", model: "911", mileage: "50,000" }), id2 = mk2.id;
+  for (const [needId, re] of [["accident_unclear", /accident history has not been verified/], ["service_documents", /service history has not been verified/], ["mileage_unconfirmed", /mileage has not been verified/]]) {
+    const w = await run("case_edit", { id: id2, op: "need", item: needId, state: "waived", reason: "The seller could not say" });
+    const sh = await store.get(org, id2), lines = R.reportState(sh.case).noteLines.concat(R.reportState(sh.case).pleaseNote || []);
+    ok(`${needId}: proceeding without waives it and the report prints that the fact is unverified`, w.ok === true && need(w.case, needId).state === "waived" && lines.some(l => re.test(l)), J(lines) + String(w.why));
+  }
+  const sh2 = await store.get(org, id2), c2 = sh2.case; await run("case_edit", { id: id2, op: "seller_said", field: "accident_history", text: "None" }); await run("case_edit", { id: id2, op: "verify", field: "accident_history" });
+  ok("once the fact is verified the report no longer says it is unverified", !R.reportState((await store.get(org, id2)).case).noteLines.some(l => /accident history has not been verified/.test(l)));
+  const cl = fs.readFileSync(path.join(root, "lib/preview/deskV4Client.js"), "utf8");
+  ok("the needs-attention item asks What the seller said inline, saves it with seller_said, and keeps Proceed without", /placeholder: "What the seller said"/.test(cl) && /edit\("seller_said"/.test(cl) && /text: "Proceed without"/.test(cl));
+}
+// ---------- WHAT WE TOOK INTO ACCOUNT IS THE ANALYST'S LIST (Lane D, Nov 12 2026), and ONE DOCUMENT LIST. CLASS: every road that adds a document (the Documents card, the needs-attention Received pill, a forwarded email) lists it once in case.documents; the report prints the case's own considered list.
+{ const A = await import(pathToFileURL(path.join(root, "lib/desk/sheetActions.js")).href), SS = await import(pathToFileURL(path.join(root, "lib/desk/sheetStore.js")).href), R = await import(pathToFileURL(path.join(root, "lib/desk/reportState.js")).href);
+  const store = SS.memoryStore(); store.reset(); const org = "w", ctx = { now: T, env: {}, org, seat: "ava", store, orgSettings: { name: "Hagerty" }, readSheet: async () => null }, run = (a, b) => A.handleSheetAction(a, b, ctx);
+  const PDF = Buffer.from("%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF").toString("base64");
+  const mk = await run("case_new", { year: "1999", make: "Porsche", model: "911" }), id = mk.id;
+  // a document through the Received pill (kind invoice, a service invoice) and one through the Documents card (kind title): both are in the one list, once
+  const a = await run("case_edit", { id, op: "doc_add", kind: "invoice", title: "inv1", name: "inv1.pdf", data: PDF }), b = await run("case_edit", { id, op: "doc_add", kind: "title", title: "title", name: "title.pdf", data: PDF });
+  ok("a document added through the Received pill and one through the Documents card both list, once each", a.ok && b.ok && b.case.documents.length === 2 && new Set(b.case.documents.map(d => d.id)).size === 2 && b.case.documentsLine && /2 on file/.test(b.case.documentsLine), J(b.case.documents.map(d => d.name)) + String(b.case.documentsLine));
+  // a document that lives only on the sheet's own list (a forwarded email's attachment, an older road) is listed too
+  const sh = await store.get(org, id); sh.submission = { ...sh.submission, documents: [...(sh.submission.documents || []), { id: "mailed1", name: "mailed.pdf", kind: "other", bytes: 10 }] }; await store.put(org, sh);
+  const g = (await run("case_get", { id })).case; ok("a document held only on the sheet's list shows in Documents too, and the line counts it", g.documents.some(d => d.id === "mailed1" && d.status === "received") && g.documents.length === 3 && /3 on file/.test(g.documentsLine), J(g.documents.map(d => d.id)) + String(g.documentsLine));
+  // considered
+  const c0 = (await run("case_get", { id })).case; ok("the list starts as the engine's items (none here: no read), and the report prints the case's list", Array.isArray(c0.considered) && J(R.reportState((await store.get(org, id)).case).v4.considered) === J(c0.considered.map(i => ({ title: i.title, text: i.text }))));
+  const add = await run("case_edit", { id, op: "considered_add", title: "The 2012 paint repair", text: "A repaint of the left door in 2012, as the seller told us." }); ok("the analyst adds an item, and the report prints it", add.ok && add.case.considered.length === 1 && add.case.considered[0].edited === true && R.reportState((await store.get(org, id)).case).v4.considered.some(x => x.title === "The 2012 paint repair"), String(add.why));
+  const ed = await run("case_edit", { id, op: "considered_edit", item: add.case.considered[0].id, text: "A repaint of the left door in 2012." }); ok("the analyst edits it, and the edit is stored on the case and printed", ed.ok && ed.case.considered[0].text === "A repaint of the left door in 2012." && R.reportState((await store.get(org, id)).case).v4.considered[0].text === "A repaint of the left door in 2012.");
+  // an engine item is the start: edited and removed
+  const sh3 = await store.get(org, id); sh3.case.desk = { ...(sh3.case.desk || {}), considered: [{ key: "mileage", title: "Mileage", line: "Reported by the seller and outstanding until verified." }, { key: "paint", title: "Paint", line: "Taken into account, but the sales do not isolate an effect." }] }; await store.put(org, sh3);
+  const g3 = (await run("case_get", { id })).case; ok("the engine's items join the list as its start", g3.considered.length === 3 && g3.considered.filter(i => i.key && i.key.startsWith("e:")).length === 2, J(g3.considered.map(i => i.key)));
+  const mi = g3.considered.find(i => i.key === "e:mileage"), e2 = await run("case_edit", { id, op: "considered_edit", item: mi.id, text: "The seller's odometer reading, checked against the photo." }), r2 = await run("case_edit", { id, op: "considered_remove", item: g3.considered.find(i => i.key === "e:paint").id });
+  const out = R.reportState((await store.get(org, id)).case).v4.considered;
+  ok("an engine item can be edited and another removed: the report prints the edit and not the removed item", e2.ok && r2.ok && out.some(x => x.text === "The seller's odometer reading, checked against the photo.") && !out.some(x => x.title === "Paint"), J(out));
+  const sh4 = await store.get(org, id); sh4.case.desk.considered = [...sh4.case.desk.considered, { key: "paint", title: "Paint", line: "Taken into account, but the sales do not isolate an effect." }]; await store.put(org, sh4);
+  ok("a removed item is never put back, and an edited one keeps the analyst's words when the engine's line moves", !R.reportState((await store.get(org, id)).case).v4.considered.some(x => x.title === "Paint") && R.reportState((await store.get(org, id)).case).v4.considered.some(x => x.text === "The seller's odometer reading, checked against the photo."));
+  ok("an empty item is refused", (await run("case_edit", { id, op: "considered_add", title: "x", text: "  " })).ok === false);
 }
 console.log(`deskWorkflowCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

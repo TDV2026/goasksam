@@ -1,11 +1,11 @@
 // DESK V4 NEW CASE PANEL CHECK (Lane S, Nov 12 2026, the redesign). Offline: the V4 page in Chrome, its POSTs answered by the real in-process Desk reader, with case_decode, case_pickers and case_new refusals answered by the check's own stubs in the posted shape.
 //   1 TWO STEPS: opening the panel shows one large field and Start, no grid of boxes before the car is known. Mutant: the old grid (step two always open).
 //   2 A VIN (case_decode {vin} -> decoded.{field}.value): the car card shows the title in Newsreader, the VIN as the spec line, "Decoded from the VIN" small and grey (no uppercase), each decoded value a quiet tag with a pencil that edits it; body and gearbox arrive in their pickers with a small "decoded" tag on the value. Mutants: no decode; an uppercase label.
-//   3 TYPED WORDS (case_decode {text}, planned): the resolver's title appears the same way; with no answer the words as typed are the card and Create sends them as `text`.
+//   3 TYPED WORDS: case_decode takes a VIN only, so words are never sent to it; the words as typed are the card and Create sends them as `text`.
 //   4 STEP TWO: labels above fields, two columns, one field height, pickers for body, transmission and colour, units inside the mileage and asking price fields, one primary button and one quiet one.
-//   5 PHOTOS: a drop zone (a drop adds), thumbnails, a Remove each, JPG, PNG and HEIC accepted, accumulate, the same file twice is one, Create sends exactly the list. Mutant: a pick that replaces the list.
+//   5 PHOTOS: a drop zone (a drop adds), thumbnails, a Remove each, JPG, PNG, WebP and HEIC accepted, accumulate, the same file twice is one, Create sends exactly the list. Mutant: a pick that replaces the list.
 //   6 THE REFUSAL IS LANE D'S WORD AND NO OTHER: the server's `why` as sent under the button; a raw database error with no why is never printed. Mutants: the why dropped; the raw error printed.
-//   NAMES: case_decode {vin} is built; case_decode {text} and case_pickers are PLANNED (Lane D), so their answers here are the check's stubs.
+//   NAMES: case_decode {vin}, case_discard and photo types are Lane D's (on main); case_pickers is still planned, so its answer here is the check's stub.
 //   node scripts/deskV4NewCaseCheck.mjs
 import fs from "node:fs"; import os from "node:os"; import path from "node:path";
 import { launch, openLive, tally } from "./deskV4Harness.mjs";
@@ -15,10 +15,9 @@ const pic = n => { const f = path.join(dir, n); fs.writeFileSync(f, JPG); return
 const openForm = async (opts = {}) => { const p = await openLive(b, opts); await p.evaluate(() => document.getElementById("newcase-btn").click()); await wait(200); return p; };
 const VIN = "WP0AA2995XS626785", f = v => ({ value: v, source: "vin_decoded", verified: false }), opt = (v, n) => ({ value: v, label: v, count: n });
 const DECODED = { ok: true, vin: VIN, decoded: { year: f(1999), make: f("Porsche"), model: f("911"), trim: f("Carrera"), body: f("Coupe"), transmission: f("Manual") } };
-const WORDS = { ok: true, title: "1965 Ford Mustang Fastback", decoded: { year: f(1965), make: f("Ford"), model: f("Mustang"), trim: f("Fastback") } };
 const LISTS = { ok: true, body: [opt("Coupe", 9), opt("Convertible", 4)], trim: [opt("Carrera", 7), opt("Carrera 4", 3)], transmission: [opt("Manual", 8), opt("Automatic", 5)], colour: [opt("Guards Red", 2), opt("Arctic Silver", 3)] };
 const asked = [];
-const stub = async bd => { if (bd.action === "case_decode") return bd.vin ? DECODED : (/mustang/i.test(bd.text) ? WORDS : { ok: false, refused: true, why: "The words did not name a car." }); if (bd.action === "case_pickers") { asked.push(bd); return LISTS; } };
+const stub = async bd => { if (bd.action === "case_decode") return bd.vin ? DECODED : { ok: false, refused: true, why: "case_decode takes a VIN only." }; if (bd.action === "case_pickers") { asked.push(bd); return LISTS; } };
 const start = async (p, text) => { await p.type("#nc-start", text); await p.click("#nc-startbtn"); await wait(600); };
 const vis = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); return !!e && e.offsetWidth > 0 && e.offsetHeight > 0; }, sel);
 
@@ -39,14 +38,14 @@ const vis = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); r
   ok(g.edited.v === "911 Targa" && g.edited.t === "1999 Porsche 911 Targa Carrera", `the pencil edits a value and the title follows (${g.edited.t})`);
   ok(g.body === "Coupe" && g.trans === "Manual" && g.bd && g.bdText === "decoded" && g.bdCase === "none", "body and gearbox arrive filled, each with a small lowercase tag \"decoded\" on the value");
   ok(g.lists.join("  ") === "Coupe|Convertible  Carrera|Carrera 4  Manual|Automatic  Guards Red|Arctic Silver" && asked.some(x => x.vin === VIN), `the pickers are the server's case_pickers lists, asked for the decoded VIN (${g.lists[0]})`);
-  const m0 = await run(h => h.replace("function decode() {", "function decode() {").replace('post(isVin ? { action: "case_decode", vin: vin } : { action: "case_decode", text: v })', 'Promise.resolve({ ok: false })')); ok(!m0.tags.some(t => t.v === "Porsche"), "mutant caught: a panel that does not decode the VIN");
+  const m0 = await run(h => h.replace('(isVin ? post({ action: "case_decode", vin: vin }) : Promise.resolve(null))', 'Promise.resolve({ ok: false })')); ok(!m0.tags.some(t => t.v === "Porsche"), "mutant caught: a panel that does not decode the VIN");
   const m1 = await run(h => h.replace("</style>", ".nc-src{text-transform:uppercase}</style>")); ok(m1.srcCase === "uppercase", "mutant caught: an uppercase DECODED style label"); }
 
-{ // 3 typed words
-  const run = async (text, mutate) => { const p = await openForm({ intercept: stub, mutate }); await start(p, text); const r = await p.evaluate(() => ({ s2: !document.getElementById("nc-s2").hidden, title: document.getElementById("nc-title").textContent, src: document.getElementById("nc-src").textContent, tags: [...document.querySelectorAll("#nc-tags .ntag b")].map(b => b.textContent).join() }));
-    p._posts.length = 0; await p.click("#nc-go"); await wait(2500); const sent = p._posts.find(x => x.action === "case_new") || {}; await p.close(); return { ...r, sent }; };
-  const g = await run("1965 mustang fastback"); ok(g.title === "1965 Ford Mustang Fastback" && /^1965,Ford,Mustang,Fastback$/.test(g.tags) && g.sent.year === "1965" && g.sent.make === "Ford", `typed words: the resolver's title appears in the same card (${g.title}) and Create sends its year, make and model`);
-  const n = await run("some old thing"); ok(n.s2 && n.title === "some old thing" && n.src === "As you typed it" && /Add/.test(n.tags) && n.sent.text === "some old thing", `with no resolver answer the words as typed are the card and Create sends them as text (${n.src})`); }
+{ // 3 typed words: case_decode takes a VIN only (Lane D), so words are never sent to it; the words as typed are the card and Create sends them as text
+  const run = async (text, mutate) => { const p = await openForm({ intercept: stub, mutate }); await start(p, text); const dec = p._posts.filter(x => x.action === "case_decode").length; const r = await p.evaluate(() => ({ s2: !document.getElementById("nc-s2").hidden, title: document.getElementById("nc-title").textContent, src: document.getElementById("nc-src").textContent, tags: [...document.querySelectorAll("#nc-tags .ntag b")].map(b => b.textContent).join() }));
+    p._posts.length = 0; await p.click("#nc-go"); await wait(2500); const sent = p._posts.find(x => x.action === "case_new") || {}; await p.close(); return { ...r, sent, dec }; };
+  const g = await run("1965 mustang fastback"); ok(g.dec === 0 && g.s2 && g.title === "1965 mustang fastback" && g.src === "As you typed it" && g.sent.text === "1965 mustang fastback" && !g.sent.vin, `typed words: no decode is asked, the words are the card (${g.title}) and Create sends them as text`);
+  const m = await run("1965 mustang fastback", h => h.replace('(isVin ? post({ action: "case_decode", vin: vin }) : Promise.resolve(null))', 'post({ action: "case_decode", vin: vin })')); ok(m.dec > 0, "mutant caught: words sent to a decode that takes only a VIN"); }
 
 { // 4 step two
   const p = await openForm({ intercept: stub }); await start(p, VIN);
@@ -57,17 +56,17 @@ const vis = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); r
   ok(m.lists.every(l => /^dl-/.test(l)) && m.unitIn && m.preIn && m.v === "", "pickers for body, gearbox and colour; \"miles\" and \"$\" sit inside their fields and the asking field starts empty (no sign in the value)");
   ok(m.pri === 1 && (await vis(p, "#nc-x")) && /rgba\(0, 0, 0, 0\)|transparent/.test(m.quiet), "one primary button (Create case) and one quiet one (Cancel)"); await p.close(); }
 
-{ // 5 photos
-  const run = async mutate => { const p = await openForm({ mutate, intercept: stub }); await start(p, VIN); const names = () => p.evaluate(() => [...document.querySelectorAll("#nc-list .ncf span")].map(s => s.textContent)), up = async (...x) => { await (await p.$("#nc-photos")).uploadFile(...x); await wait(150); };
+{ // 5 photos (the photo answers are the check's: the 1 pixel pictures are not real photographs for the server's reader)
+  const run = async mutate => { const p = await openForm({ mutate, intercept: async bd => bd.op === "photo_add" ? { ok: true } : stub(bd) }); await start(p, VIN); const names = () => p.evaluate(() => [...document.querySelectorAll("#nc-list .ncf span")].map(s => s.textContent)), up = async (...x) => { await (await p.$("#nc-photos")).uploadFile(...x); await wait(150); };
     const acc = await p.evaluate(() => document.getElementById("nc-photos").accept); await up(A); const one = await names(p); await up(B2); const two = await names(p); await up(C, D); const four = await names(p); await up(A); const dup = await names(p);
     await p.evaluate(() => { const n = [...document.querySelectorAll("#nc-list .ncf")].find(r => /rear/.test(r.textContent)); if (n) n.querySelector("button").click(); }); const three = await names(p);
     const thumb = await p.evaluate(() => getComputedStyle(document.querySelector("#nc-list .th") || document.body).backgroundImage !== "none");
-    await p.evaluate(() => { const dt = new DataTransfer(); dt.items.add(new File(["x"], "dropped.jpg", { type: "image/jpeg" })); const z = document.getElementById("nc-drop"); z.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true })); }); const dropped = await names(p);
-    p._posts.length = 0; await p.click("#nc-go"); for (let i = 0; i < 60 && p._posts.filter(x => x.op === "photo_add").length < dropped.length; i++) await wait(250); await wait(300); const adds = p._posts.filter(x => x.op === "photo_add").map(x => x.name); await p.close(); return { acc, one, two, four, dup, three, thumb, dropped, adds }; };
+    await p.evaluate(B => { const dt = new DataTransfer(); dt.items.add(new File([Uint8Array.from(atob(B), c => c.charCodeAt(0))], "dropped.jpg", { type: "image/jpeg" })); const z = document.getElementById("nc-drop"); z.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true })); }, JPG.toString("base64")); const dropped = await names(p);
+    p._posts.length = 0; await p.click("#nc-go"); for (let i = 0; i < 60 && p._posts.filter(x => x.op === "photo_add").length < dropped.length; i++) await wait(250); await wait(300); const adds = p._posts.filter(x => x.op === "photo_add").map(x => x.name); await p.close(); const msg = await p.evaluate(() => document.getElementById('nc-msg').textContent).catch(() => ''); return { acc, one, two, four, dup, three, thumb, dropped, adds, msg }; };
   const g = await run(null);
-  ok(/jpeg/.test(g.acc) && /png/.test(g.acc) && /heic/.test(g.acc), `the photo input accepts JPG, PNG and HEIC (${g.acc})`);
+  ok(/jpeg/.test(g.acc) && /png/.test(g.acc) && /heic/.test(g.acc) && /webp/.test(g.acc), `the photo input accepts JPG, PNG, WebP and HEIC (${g.acc})`);
   ok(g.one.join() === "front.jpg" && g.two.join() === "front.jpg,rear.jpg" && g.four.length === 4 && g.dup.length === 4 && g.three.length === 3 && !g.three.includes("rear.jpg") && g.thumb, "photos accumulate, the same file twice is one, each has a thumbnail and its own Remove");
-  ok(g.dropped.includes("dropped.jpg") && g.adds.join() === g.dropped.join(), `a drop on the zone adds, and Create case sends exactly the photos listed, one photo_add each (${g.adds.length})`);
+  ok(g.dropped.includes("dropped.jpg") && g.adds.join() === g.dropped.join(), `a drop on the zone adds, and Create case sends exactly the photos listed, one photo_add each (${g.adds.length} of ${g.dropped.length}) ${g.msg}`);
   const mu = await run(h => h.replace("function addFiles(list) {", "function addFiles(list) { files.length = 0;")); ok(mu.two.length < 2, "mutant caught: a second pick that replaces the first");
   const mh = await run(h => h.replace("image/heic,image/heif,", "").replace(".heic,.heif", "")); ok(!/heic/.test(mh.acc), "mutant caught: an input that does not take HEIC"); }
 
@@ -79,11 +78,11 @@ const vis = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); r
   const w = await run({ error: RAW, message: RAW }); ok(/^The case could not be created/.test(w.t) && !/duplicate key|constraint/.test(w.t), `a raw database error with no why is never printed (${w.t})`);
   const m1 = await run({ why: WHY }, h => h.replace("msg(\"nc-msg\", (e && (e.why || e.line)) || ", "msg(\"nc-msg\", ")); ok(m1.t !== WHY, "mutant caught: the why dropped for the generic line");
   const m2 = await run({ error: RAW }, h => h.replace("(e && (e.why || e.line)) ||", "(e && (e.why || e.line || e.error)) ||")); ok(/duplicate key/.test(m2.t), "mutant caught: a raw database message printed"); }
-{ // 7 a refused photo never loses the case that was made
-  const WHY = "This session takes JPG photos only.";
-  const run = async mutate => { const p = await openForm({ mutate, intercept: async bd => bd.op === "photo_add" ? { ok: false, refused: true, why: WHY } : stub(bd) }); await start(p, VIN); await (await p.$("#nc-photos")).uploadFile(A); await wait(150); await p.click("#nc-go"); await wait(2800);
-    const r = await p.evaluate(() => ({ t: document.getElementById("nc-msg").textContent, btn: document.getElementById("nc-go").textContent, on: !document.getElementById("nc-go").disabled })); await p.close(); return r; };
-  const g = await run(null); ok(g.t.startsWith(WHY) && g.btn === "Open the case" && g.on, `a refused photo prints the server's why and the button opens the case that was made (${g.btn})`);
-  const m = await run(h => h.replace('go.textContent = "Open the case"; ', "")); ok(m.btn !== "Open the case", "mutant caught: a refused photo that leaves no way into the case"); }
+{ // 7 a refused photo takes the case out again (Lane D's case_discard), so nothing is left half made
+  const WHY = "That photo could not be read.";
+  const run = async mutate => { const p = await openForm({ mutate, intercept: async bd => bd.op === "photo_add" ? { ok: false, refused: true, why: WHY } : stub(bd) }); await start(p, VIN); await (await p.$("#nc-photos")).uploadFile(A); await wait(150); await p.click("#nc-go"); await wait(3000);
+    const r = await p.evaluate(() => ({ t: document.getElementById("nc-msg").textContent, btn: document.getElementById("nc-go").textContent, on: !document.getElementById("nc-go").disabled })); r.discards = p._posts.filter(x => x.action === "case_discard").length; await p.close(); return r; };
+  const g = await run(null); ok(g.t.startsWith("The case was not made: " + WHY) && g.discards === 1 && g.on && g.btn === "Create case", `a refused photo prints the server's why, the made case is discarded and nothing is left half made (${g.t})`);
+  const m = await run(h => h.replace('action: "case_discard"', 'action: "case_keep"')); ok(m.discards === 0, "mutant caught: a refused photo that leaves the case behind"); }
 await b.close(); fs.rmSync(dir, { recursive: true, force: true });
 done("deskV4NewCaseCheck");
