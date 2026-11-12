@@ -13,7 +13,7 @@ const imp = f => import(pathToFileURL(path.join(ROOT, f)).href);
 const A = await imp("lib/desk/sheetActions.js"), SS = await imp("lib/desk/sheetStore.js"), RP = await imp("lib/desk/reportPdf.js"), PM = await imp("lib/pdf/mini.js"), SD = await imp("lib/desk/send.js"), SR = await imp("lib/sheetRead.js"), OS = await imp("lib/desk/orgSettings.js"), RS = await imp("lib/desk/sheetRead.js"), CT = await imp("lib/conditionTier.js");
 const { seed } = await imp("scripts/deskValsRender.mjs");
 const page = fs.readFileSync("public/js/deskvals.js", "utf8"), html = fs.readFileSync("lib/crewPages/desk.html", "utf8");
-const JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(40, 1)]).toString("base64");
+const JPG = Buffer.from("/9j/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAMABADASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAABf/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AJQA0If/2Q==", "base64").toString("base64");
 const org = "demo-org", store = SS.memoryStore();
 const COLOR = "#8b1e2d", LOGO = "data:image/png;base64," + fs.readFileSync("public/icon-192.png").toString("base64");
 const ORG = { name: "Hagerty Marketplace", logo: LOGO, color: COLOR, monthlyExportCap: 99, standardMessage: "Thanks." };
