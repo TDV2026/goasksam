@@ -126,4 +126,21 @@ console.log("CASE IDS " + ids.join(" "));
   const bad = await A.handleSheetAction("case_pickers", { vin: "12" }, { now: "2026-11-11T12:00:00Z", env: {}, org: "s", seat: "a", store: empty }), none = await A.handleSheetAction("case_pickers", { vin: "WMWRE33575TL13132" }, { now: "2026-11-11T12:00:00Z", env: {}, org: "s", seat: "a", store: empty, decodeVin: async () => null }), typed = await A.handleSheetAction("case_pickers", { year: 2005, make: "Mini", model: "Cooper" }, { now: "2026-11-11T12:00:00Z", env: {}, org: "s", seat: "a", store: empty });
   ok("case_pickers refuses a bad VIN and an undecodable one with a reasonWords line, and answers empty lists for typed words", bad.ok === false && /VIN is not valid/.test(bad.why) && none.ok === false && /could not be decoded/.test(none.why) && typed.ok === true && typed.pickers.body.length === 0, JSON.stringify([bad.why, none.why, typed.ok])); }
 
+// C. A CLOSED BODY'S POOL HAS NO OPEN-BODY COMPARABLE (Lane D, Nov 12 2026; Lane C's live run: the Mini decoded as a hatchback listed three Convertible sales among five comparables).
+// CAUSE: most sales name no body in their title, so a typed hatchback left too few sales and sheetRead's last try dropped the body altogether, reading every body (the open ones too); the note said "all bodies are read". NOW the last try for a closed body is the same read with the engine's own exclusion words ("not convertible, roadster or spyder"), which removes only the sales that name an open body.
+// OTHER CARS: every case whose body is hatchback, coupe, sedan, wagon or SUV, by VIN (the decode's body) or by typed words, in any pool that holds open-body sales. Here: the older cars' world with an open-body title put on every third sale of each car; the real engine and the real sheetRead read it.
+{ const W = await U("scripts/_deskOlderWorld.mjs"), SR = await U("lib/sheetRead.js"), f0 = globalThis.fetch, open = /\b(convertible|cabriolet|roadster|spyder|spider|drophead)\b/i;
+  const CLOSED = [["Mini", "Cooper", "hatchback", 2005], ["Volkswagen", "Golf", "hatchback", 1999], ["BMW", "M3", "coupe", 1995], ["Mercedes-Benz", "E500", "sedan", 1993], ["Volvo", "V70", "wagon", 1998], ["Subaru", "Forester", "suv", 2004]];
+  try { for (const [mk, md, body, yr] of CLOSED) for (const how of ["by VIN", "typed"]) {
+    const c = { n: 1, year: yr, make: mk, model: md, typedBody: body, read: true, c12: 9, m12: 17, c24: 9, m24: 17, range12: [13000, 21000, 45800], rungCounts: [0, 0, 1, 0], comps: 17, compYears: [yr], rmodel: md, rtrim: null };
+    const w = W.install(ROOT, { cars: [c] }); let i = 0; for (const rows of w.DATA.values()) for (const r of rows) if (i++ % 3 === 0) { r.listing_title += " Convertible"; r.raw_record.title = r.listing_title; }
+    const deps = how === "by VIN" ? { ...w.deps, decodeVin: async () => ({ year: yr, make: mk, model: md, trim: null, bodyStyle: body }), archiveMatch: async () => null } : w.deps;
+    const input = { ...(how === "by VIN" ? { vin: DEMO_VIN_FOR_CHECK } : { year: yr, make: mk, model: md, bodyStyle: body }), mileage: 30000, desk: { caseDate: new Date().toISOString().slice(0, 10), transmission: "Manual", label: `${yr} ${mk} ${md}`, case: { verification: {} }, exclusions: [] } };
+    const r = await SR.sheetRead(w.env, input, deps).catch(e => ({ err: String(e) })), cp = (r && r.desk && r.desk.comparables) || [], n = `${yr} ${mk} ${md} ${body} ${how}`;
+    ok(n + ": the case is read and lists comparables", !!(r && r.desk && r.desk.evidence) && cp.length >= 3, JSON.stringify(r && r.err || cp.length));
+    ok(n + ": no comparable names an open body", cp.length > 0 && cp.every(x => !open.test(String(x.title))), JSON.stringify(cp.map(x => x.title).filter(t => open.test(String(t)))));
+    ok(n + ": the sales behind the range name none either, and the note says which bodies are left out", !((r && r.desk && r.desk.sales) || []).some(x => open.test(String(x.title || ""))) && /except convertible, roadster and spyder/.test(String(r && r.desk && r.desk.bodyNote || "")), String(r && r.desk && r.desk.bodyNote));
+  } } finally { globalThis.fetch = f0; }
+}
+
 console.log(`deskTypedCasesCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

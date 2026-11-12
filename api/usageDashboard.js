@@ -1056,9 +1056,26 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     try {
       const { seedPreviewStore, previewSeatOf, resetPreviewDemo } = await import("../lib/preview/deskPreview.js"), { supabaseStore } = await import("../lib/desk/sheetStore.js");
-      const store = supabaseStore(env), opts = { realIds: true, seat: previewSeatOf(env) }, r = await seedPreviewStore(store, opts), back = String((req.query || {}).reset || "") === "1" ? await resetPreviewDemo(store, opts) : null;   // reset=1: the demonstration case back to Any condition (one ordinary edit of that case)
+      const store = supabaseStore(env), opts = { realIds: true, seat: previewSeatOf(env) }, r = await seedPreviewStore(store, opts);
+      if (r.failed) return res.status(200).json({ ok: false, failedStep: r.failed.step, why: r.failed.why, steps: r.steps, rerun: "safe: it carries on from the failed step" });
+      let back = null;   // reset=1: the demonstration case back to Any condition (one ordinary edit of that case), reported as its own step
+      if (String((req.query || {}).reset || "") === "1") { try { back = await resetPreviewDemo(store, opts); } catch (e) { return res.status(200).json({ ok: false, failedStep: "reset the demonstration case", why: String(e && e.message || e).slice(0, 160), ...r, rerun: "safe" }); } if (!back.ok) return res.status(200).json({ ok: false, failedStep: "reset the demonstration case", why: back.why || "refused", ...r, rerun: "safe" }); }
       return res.status(200).json({ ok: true, ...r, ...(back ? { reset: back } : {}) });
     } catch (e) { return res.status(200).json({ ok: false, why: String(e && e.message || e).slice(0, 200) }); }
+  }
+  // task=deskpreviewremove: DELETES test cases from the Hagerty org by id (Lane D, Nov 12 2026; Sam's word: Lane C removes the throwaway cases its live checks made). ?view=ops&task=deskpreviewremove&ids=<uuid>,<uuid>
+  // Only the ids given, nothing found by search; each through the Desk's own delete path (lib/desk/storage.js deleteSheetEverywhere: the objects, then the rows, one log line). The demonstration case and the three samples (the fixed preview uuids) are refused by name. Answers one line per id (removed or why not).
+  if (task === "deskpreviewremove") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { deleteSheetEverywhere, UUID_RE } = await import("../lib/desk/storage.js"), { fixedPreviewIds, previewSeatOf } = await import("../lib/preview/deskPreview.js");
+    const ids = String((req.query || {}).ids || "").split(",").map(x => x.trim().toLowerCase()).filter(Boolean).slice(0, 20), keep = new Set(fixedPreviewIds()), out = [];
+    if (!ids.length) return res.status(400).json({ error: "ids is required (uuids, comma separated)." });
+    for (const id of ids) {
+      if (!UUID_RE.test(id)) { out.push({ id, removed: false, why: "not a uuid" }); continue; }
+      if (keep.has(id)) { out.push({ id, removed: false, why: "a preview demonstration or sample case, kept" }); continue; }
+      try { const r = await deleteSheetEverywhere(env, { org: "hagerty", sheetId: id, reason: "sheet", actor: "crew:lane-c-test-cleanup" }); out.push(r.ok ? { id, removed: true } : { id, removed: false, why: String(r.error || "").slice(0, 160) }); } catch (e) { out.push({ id, removed: false, why: String(e && e.message || e).slice(0, 160) }); }
+    }
+    return res.status(200).json({ ok: out.every(o => o.removed), results: out });
   }
   if (task === "deskrungs") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });

@@ -68,7 +68,12 @@ const MUT = [
   ["a shorter period with the same sales prints no line", "reportConsistencyCheck", DV, rep("e1.count > 0 && e1.count === e2.count ?", "false ?")],
   // 3. the reserve the engine proposes is a round figure
   ["the engine proposes the first quartile as it is", "deskShapesCheck", DV, rep("figure: roundReserve(evidence.q1),", "figure: evidence.q1,")],
-  ["the rounding step is $100", "deskShapesCheck", DV, rep("v < 50000 ? 500 : 1000", "v < 50000 ? 100 : 1000")]
+  ["the rounding step is $100", "deskShapesCheck", DV, rep("v < 50000 ? 500 : 1000", "v < 50000 ? 100 : 1000")],
+  // Lane C's live run (Nov 12 2026)
+  ["a closed body's last try drops the body and keeps the open bodies in (a hatchback case lists Convertible sales)", "deskTypedCasesCheck", "lib/sheetRead.js", rep("if (!alt && closed) text = text + OPEN_NOT;", "")],
+  ["the short id pv_hm is not the uuid on the production store (404)", "deskPersistCheck", "lib/preview/deskPreview.js", rep("if (await store.get(PREVIEW_ORG.id, t)) return t; const u = previewUuid(t);", "return t; const u = previewUuid(t);")],
+  ["the seed re-saves every row of the org with no case, not only its own", "deskPersistCheck", "lib/preview/deskPreview.js", rep("for (const id of mine.slice(1)) {", "for (const id of (await store.list(PREVIEW_ORG.id)).map(r => r.id)) {")],
+  ["a failed seed step is not named (the error goes up bare)", "deskPersistCheck", "lib/preview/deskPreview.js", rep("} catch (e) { steps.push({ step: name, ok: false, why: String(e && e.message || e).slice(0, 160) }); return false; }", "} catch (e) { throw e; }")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });

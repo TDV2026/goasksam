@@ -48,4 +48,35 @@ const last = await session(); ok("after all four edits a cold start still shows 
     if (!(btn && c.desk.evidence.count === (await api({ action: "case_get", id })).case.desk.anyCondition.count)) off.push(`from ${t}: the Any button says ${btn && btn.count}, the case reads ${c.desk.evidence.count}`); }
   await api({ action: "case_edit", id, op: "condition", selected: { tier: 3, name: "Good" } }); const back = await P.resetPreviewDemo(backing, { realIds: true, seat: "crew" }), c2 = (await api({ action: "case_get", id })).case;
   ok("every rung can be taken back to Any condition, the Any button's count is what the case then reads, and the demonstration case resets to it", !off.length && back.ok === true && c2.condition.selected === null && c2.desk.view.tier === 0 && c2.desk.anyCondition && c2.desk.anyCondition.count === c2.desk.evidence.count, off.concat([back.why]).join(" | ")); }
+
+// THE SEED NAMES ITS STEP, IS SAFE TO REPEAT, AND TOUCHES ONLY ITS OWN ROWS (Lane D, Nov 12 2026; Lane C's live run: the seed answered only "sheet not saved").
+// CAUSE: one function stored the samples, finalized one, stored the demonstration case and then re-saved EVERY row of the org that had no case, so a refused write on any row (a stray earlier sheet included) stopped the run with a message that named no step. OTHER CARS AND PAGES: every sample the rail lists (240Z, thin, finalized) and the demonstration case, and any case already in the org.
+// Here the database is a stand-in for PostgREST that enforces the table's constraints (scripts/lib_fakePostgrest.mjs) under the real supabaseStore.
+{ const { fakePostgrest } = await import(pathToFileURL(path.join(root, "scripts/lib_fakePostgrest.mjs")).href), f0 = globalThis.fetch, SS = S;
+  try {
+    let refuseId = null; const pg = fakePostgrest({ refusePatch: (url, body) => (refuseId && url.includes(refuseId) ? "check desk_sheets_final_has_read" : null) });
+    globalThis.fetch = pg.fetch; const store = SS.supabaseStore({ supabaseUrl: "https://x.supabase.co", supabaseKey: "k" }), opts = { realIds: true, seat: "crew" };
+    // a stray sheet of the org with no case, from an earlier run of something else: the seed must not touch it
+    pg.tables.desk_sheets.push({ id: "11111111-1111-4111-8111-111111111111", org_id: "hagerty", seat_id: 1, status: "in_progress", sheet: { id: "11111111-1111-4111-8111-111111111111", status: "In progress", owner_seat: "crew", version: 0 }, vin: null });
+    refuseId = P.previewUuid("pv_fin");
+    const first = await P.seedPreviewStore(store, opts);
+    ok("a refused write is reported with the step that failed, not a bare message", first.seeded === false && !!first.failed && /^finalize sample pv_fin/.test(first.failed.step) && /final_has_read/.test(first.failed.why || ""), JSON.stringify(first.failed));
+    ok("the steps before it are listed as done", first.steps.filter(x => x.ok).length >= 3, JSON.stringify(first.steps.map(x => [x.step, x.ok])));
+    ok("the demonstration case is stored last, so a failed run leaves no marker of a finished seed", !pg.tables.desk_sheets.some(r => r.id === P.previewUuid(D.DEMO_ID)));
+    refuseId = null; const again = await P.seedPreviewStore(store, opts);
+    ok("a rerun carries on from the failed step and finishes", again.seeded === true && !again.failed && again.steps.some(x => x.kept), JSON.stringify(again.steps.map(x => [x.step, x.ok, x.kept])));
+    ok("no sample is stored twice", pg.tables.desk_sheets.filter(r => r.id !== "11111111-1111-4111-8111-111111111111").length === P.fixedPreviewIds().length && new Set(pg.tables.desk_sheets.map(r => r.id)).size === pg.tables.desk_sheets.length);
+    ok("a run after that does nothing", (await P.seedPreviewStore(store, opts)).seeded === false);
+    ok("the stray sheet of the org was never touched", pg.tables.desk_sheets.find(r => r.id === "11111111-1111-4111-8111-111111111111").sheet.version === 0);
+    // the short id of a seeded case stands for its uuid on every route
+    P.usePreviewBacking(store);
+    const byAlias = await P.previewDeskApi({ action: "case_get", id: "pv_hm" }), byUuid = await P.previewDeskApi({ action: "case_get", id: P.previewUuid("pv_hm") });
+    ok("case_get by pv_hm answers the case stored under its uuid (the old link and checks work on the production store)", byAlias.ok === true && byUuid.ok === true && byAlias.case.desk.titleLine === byUuid.case.desk.titleLine, String(byAlias.why || ""));
+    const ed = await P.previewDeskApi({ action: "case_edit", id: "pv_hm", op: "reserve", patch: { figure: 28000 } }); ok("an edit by pv_hm is saved on the uuid's case", ed.ok === true && (await P.previewDeskApi({ action: "case_get", id: P.previewUuid("pv_hm") })).case.reserve.figure === 28000, String(ed.why || ""));
+    const V3 = await import(pathToFileURL(path.join(root, "lib/preview/deskV3.js")).href), model = await V3.deskModel({ query: { case: "pv_hm" } });
+    ok("the page for /preview/desk/case/pv_hm opens the case (no 404), under its uuid", model.activeId === P.previewUuid("pv_hm") && !!model.kase, String(model.activeId));
+    ok("an id that is not a seeded short id is left alone", (await P.aliasId(store, "pv_unknown")) === "pv_unknown" && (await P.aliasId(store, P.previewUuid("pv_hm"))) === P.previewUuid("pv_hm"));
+    ok("the ids the removal task refuses are the demonstration case and the three samples", P.fixedPreviewIds().length === 4 && P.fixedPreviewIds().includes(P.previewUuid("pv_hm")));
+  } finally { globalThis.fetch = f0; P.usePreviewBacking(backing); }
+}
 console.log(`deskPersistCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
