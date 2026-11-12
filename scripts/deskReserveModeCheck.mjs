@@ -11,7 +11,7 @@
 import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { fileURLToPath, pathToFileURL } from "node:url"; import { spawnSync } from "node:child_process";
 const here = path.dirname(fileURLToPath(import.meta.url)), args = process.argv.slice(2), ROOT = path.resolve(args.find(a => !a.startsWith("--")) || path.join(here, ".."));
 if (args.includes("--mutants")) {
-  const DV = "lib/deskV3.js", OB = "lib/onebox.js";
+  const DV = "lib/deskV3.js", OB = "lib/onebox.js", RW = "lib/reasonWords.js";
   const muts = [
     [DV, "if (thinRes || thinNo) return thin(", "if (false) return thin(", "a recommendation on thin data"],
     [DV, 'return { ...base, recommendation: lead, line: reasonLine(lead === "no_reserve" ? "desk4.rmode_lead_no_reserve" : "desk4.rmode_lead_reserve", { why: parts.join(" and ") }), thin: false, thinLine: null };', 'return { ...base, recommendation: lead, line: `Go with ${lead === "no_reserve" ? "no reserve" : "a reserve"}: ${parts.join(" and ")}.`, thin: false, thinLine: null };', "a page-worded line"],
@@ -22,6 +22,9 @@ if (args.includes("--mutants")) {
     [DV, "S[f].unsold++; }", "}", "the unsold auctions are ignored"],
     [DV, "const win = inWindow(pop, when, months).filter(r => Number(r.price) > 0);", "const win = (pop || []).filter(r => Number(r.price) > 0);", "sales outside the window counted"],
     [OB, "reserve: r.has_reserve === true || r.has_reserve === \"true\" ? true :", "reserve: null, _x: r.has_reserve === true || r.has_reserve === \"true\" ? true :", "the flag never reaches the Desk rows"],
+    [RW, "do not show a clear difference, so there is no recommendation (", "point to different sides, so the sales do not separate reserve from no reserve (", "the unclear line is in the old words"],
+    [RW, "so they are in neither count.", "so they count for neither side.", "the unflagged line is in the old words"],
+    [RW, "to say (${p.res} reserve and ${p.nores} no-reserve outcomes, and each side needs at least ${p.min}).` },\n  \"desk4.rmode_thin_reserve\"", "to say.` },\n  \"desk4.rmode_thin_reserve\"", "the thin line drops its counts"],
     [DV, "RMODE_MIN = 5,", "RMODE_MIN = 2,", "the outcome minimum is lowered"],
     [DV, 'export const RMODE_FEED_DEFAULT_VENUES = ["acc", "bonhams", "broadarrow", "mecum", "themarket"];', "export const RMODE_FEED_DEFAULT_VENUES = [];", "a venue with a one-sided feed flag is counted"],
     [DV, "return t > min && (x.reserve_true === t || x.reserve_false === t);", "return t > 0 && (x.reserve_true === t || x.reserve_false === t);", "the 500-sale floor of the one-sided rule is dropped"],
@@ -61,6 +64,14 @@ const SCEN = [
   { name: "a feed-default venue", flag: (i, s) => i % 2 === 0, mul: f => (f ? 1 : 1.2), venue: i => (i % 3 === 0 ? "All Collector Cars" : null), want: null },
   { name: "median and share disagree", flag: (i, s) => i % 2 === 0, mul: f => (f ? 1.2 : 1), unsold: 14, want: "unclear" }
 ];
+// THE ANALYST'S WORDS (Nov 11 2026), written here and not read from the table: an unclear answer says it plainly and keeps the counts beside it; a thin side says which side and the counts; the unflagged line says the venues are in neither count.
+const cnts = o => `${o.r.count} reserve and ${o.n.count} no-reserve outcomes`;
+const PLAIN = {
+  conflict: o => `Reserve and no-reserve sales of this car do not show a clear difference, so there is no recommendation (${cnts(o)}).`,
+  thin: o => `Not enough ${o.n.count < 5 && o.r.count < 5 ? "reserve or no-reserve" : o.n.count < 5 ? "no-reserve" : "reserve"} sales of this car to say (${cnts(o)}, and each side needs at least 5).`,
+  unflagged: (count, venues) => `${count} ${count === 1 ? "sale" : "sales"} from ${venues.length > 1 ? venues.slice(0, -1).join(", ") + " and " + venues[venues.length - 1] : venues[0]} have no reserve information we can rely on, so they are in neither count.`
+};
+const JARGON = /median and the share|point to different sides|separate reserve|flag we can read|count for neither side|\bunflagged\b|\bflag\b/i;
 // the oracle, written here from the window pool the engine itself returned (desk.sales) and the flags dealt
 function oracle(sales, flags, attempts, months) {
   const cut = (() => { const d = new Date(today + "T00:00:00Z"), day = d.getUTCDate(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - months); d.setUTCDate(Math.min(day, new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate())); return d.toISOString().slice(0, 10); })();
@@ -101,10 +112,12 @@ function hold(tag, x) {
   ok(`${tag} ${sc.name}: counts equal the oracle (with ${o.r.count}, none ${o.n.count})`, rm.withReserve.count === o.r.count && rm.noReserve.count === o.n.count, [rm.withReserve.count, rm.noReserve.count]);
   ok(`${tag} ${sc.name}: shares sold and medians equal the oracle`, rm.withReserve.soldShare === o.r.share && rm.noReserve.soldShare === o.n.share && (rm.withReserve.medianLine === (o.r.median == null ? null : RW.reasonLine("desk4.rmode_median", { median: o.r.median }))) && (rm.noReserve.medianLine === (o.n.median == null ? null : RW.reasonLine("desk4.rmode_median", { median: o.n.median }))), { got: [rm.withReserve.soldShare, rm.noReserve.soldShare, rm.withReserve.medianLine, rm.noReserve.medianLine], want: [o.r.share, o.n.share, o.r.median, o.n.median] });
   ok(`${tag} ${sc.name}: recommendation ${o.rec}${o.thin ? " (thin)" : o.why ? " (" + o.why + ")" : ""}`, rm.recommendation === o.rec && rm.thin === o.thin, [rm.recommendation, rm.thin, rm.line]);
-  if (o.thin) { ok(`${tag} ${sc.name}: thin data is unclear, thin true, and the thinLine says which side`, rm.recommendation === "unclear" && rm.thin === true && rm.thinLine === RW.reasonLine(o.thinKey) && rm.line === rm.thinLine, [rm.thinLine, o.thinKey]); if (o.thinKey === "desk4.rmode_thin_no_reserve") ok(`${tag} ${sc.name}: the no-reserve thinLine is "Not enough no-reserve sales of this car to say."`, rm.thinLine === "Not enough no-reserve sales of this car to say."); }
+  if (o.thin) { ok(`${tag} ${sc.name}: thin data is unclear, thin true, and the thinLine says which side`, rm.recommendation === "unclear" && rm.thin === true && rm.thinLine === PLAIN.thin(o) && rm.line === rm.thinLine, [rm.thinLine, PLAIN.thin(o)]); if (o.thinKey === "desk4.rmode_thin_no_reserve") ok(`${tag} ${sc.name}: the no-reserve thinLine opens "Not enough no-reserve sales of this car to say" and keeps the counts`, rm.thinLine.startsWith("Not enough no-reserve sales of this car to say (") && rm.thinLine.includes(cnts(o)), rm.thinLine); }
   else ok(`${tag} ${sc.name}: not thin, no thinLine`, rm.thin === false && rm.thinLine === null);
-  if (!o.thin) { const want = o.rec !== "unclear" ? RW.reasonLine(o.rec === "no_reserve" ? "desk4.rmode_lead_no_reserve" : "desk4.rmode_lead_reserve", { why: rm.line.replace(/^The sales of this car lead with (?:no reserve|a reserve): /, "").replace(/\.$/, "") }) : (o.why === "conflict" ? RW.reasonLine("desk4.rmode_conflict") : null); if (want) ok(`${tag} ${sc.name}: the line is the reason table's sentence`, rm.line === want, rm.line); }
-  ok(`${tag} ${sc.name}: unflagged ${o.unflagged} sales (${o.venues.join(", ") || "none"}), the line names them and says they count for neither side`, rm.unflagged.count === o.unflagged && (o.unflagged === 0 ? rm.unflagged.line === null : /count for neither side/.test(rm.unflagged.line || "") && o.venues.every(v => rm.unflagged.line.includes(v))), rm.unflagged);
+  if (!o.thin) { const want = o.rec !== "unclear" ? RW.reasonLine(o.rec === "no_reserve" ? "desk4.rmode_lead_no_reserve" : "desk4.rmode_lead_reserve", { why: rm.line.replace(/^The sales of this car lead with (?:no reserve|a reserve): /, "").replace(/\.$/, "") }) : (o.why === "conflict" ? PLAIN.conflict(o) : null); if (want) ok(`${tag} ${sc.name}: the line is the plain sentence of the analyst, with the counts`, rm.line === want, rm.line);
+    if (o.why === "flat") ok(`${tag} ${sc.name}: the flat line says there is no clear difference and no recommendation, with the counts`, new RegExp("^Reserve and no-reserve sales of this car do not show a clear difference, so there is no recommendation \\(" + cnts(o) + "; within \\d+ percent on the median and \\d+ points on the share sold\\)\\.$").test(rm.line), rm.line); }
+  if (rm.recommendation === "unclear") ok(`${tag} ${sc.name}: an unclear line carries both counts beside the words`, rm.line.includes(cnts(o)) && !JARGON.test(rm.line), rm.line);
+  ok(`${tag} ${sc.name}: unflagged ${o.unflagged} sales (${o.venues.join(", ") || "none"}), the line names them and says they are in neither count`, rm.unflagged.count === o.unflagged && (o.unflagged === 0 ? rm.unflagged.line === null : rm.unflagged.line === PLAIN.unflagged(o.unflagged, o.venues) && !JARGON.test(rm.unflagged.line) && o.venues.every(v => rm.unflagged.line.includes(v))), rm.unflagged);
   ok(`${tag} ${sc.name}: the line carries no word of its own (no page wording, no stray money)`, !/\bbest\b|\bworth\b|\bvaluation\b|\bwill\b/i.test(rm.line) && (rm.line.match(/\$[\d,]+/g) || []).every(m => rm.line.includes(m)), rm.line);
 }
 // ---- the 24 older cars
@@ -120,7 +133,7 @@ for (const c of cars) {
     if (!x.o.thin && x.sc.want && x.sc.want !== "unclear") { ok(`${tag} ${x.sc.name}: intended outcome ${x.sc.want}`, x.rm.recommendation === x.sc.want, x.rm.line); byScen[si].hit++; strong++; }
     if (!x.o.thin && x.sc.name === "flat" && x.o.rec === "unclear") { ok(`${tag} flat: sales within the margin are unclear and not thin`, x.rm.recommendation === "unclear" && !x.rm.thin); byScen[si].hit++; }
     if (!x.o.thin && x.sc.name === "median and share disagree") { ok(`${tag} disagree: the two measures disagreeing is unclear`, x.rm.recommendation === "unclear" && x.o.why === "conflict", [x.rm.line, x.o.why]); byScen[si].hit++; }
-    if (x.sc.name === "thin no-reserve side" && x.N >= 9) { ok(`${tag} thin side: four no-reserve sales say so, whatever the gap`, x.rm.thin === true && x.rm.thinLine === "Not enough no-reserve sales of this car to say.", x.rm.thinLine); byScen[si].hit++; }
+    if (x.sc.name === "thin no-reserve side" && x.N >= 9) { ok(`${tag} thin side: four no-reserve sales say so, whatever the gap`, x.rm.thin === true && x.rm.thinLine === PLAIN.thin(x.o), x.rm.thinLine); byScen[si].hit++; }
     if (x.sc.name === "a feed-default venue" && x.o.unflagged > 0) { ok(`${tag} feed default: All Collector Cars says reserve on every sale, so its sales are on neither side and the line names it`, x.rm.unflagged.count === x.o.unflagged && x.rm.unflagged.venues.some(v => /All ?Collector ?Cars/i.test(v)), x.rm.unflagged); byScen[si].hit++; }
     if (x.sc.name === "a venue that never says" && x.o.unflagged > 0) { ok(`${tag} venue: Cars & Bids says nothing, so its sales are on neither side`, x.rm.unflagged.count === x.o.unflagged && x.rm.unflagged.venues.includes("Cars & Bids"), x.rm.unflagged); byScen[si].hit++; }
   }
