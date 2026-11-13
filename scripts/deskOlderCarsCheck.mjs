@@ -28,6 +28,7 @@ if (args.includes("--mutants")) {
     [DV, "if (sub.body && r.body && !sameBody(r.body, sub.body)) return null;", "if (!sub.body || !r.body || !sameBody(r.body, sub.body)) return null;", "(4) a sale that states no body is not a comparable"],
     [SR, "label: (a.desk && a.desk.titleLine) || carLabel(", "label: carLabel(", "(5) car.label is a second source for the name"],
     [SR, "if (/^\\d{3}[A-Za-z]$/.test(m) && decode", "if (false && decode", "(5) the designation letter is lost (356C reads 356)"],
+    [OB, "if (!seen.has(k)) { seen.add(k); words.push(w); }", "words.push(w);", "(5) a word already in the title is said again"],
     [OB, "(/^suv$/i.test(rc.bodyStyle) ? \"SUV\" : cap(rc.bodyStyle))", "cap(rc.bodyStyle)", "(5) SUV is cased Suv"],
     [OB, "/-Class$/i.test(String(model || \"\")) && /^\\d{2,3}\\s?[A-Za-z]{1,3}\\b/.test(String(rc.trim || \"\")) ? \"\" : model", "model", "(5) a class name stays before the model number"]
   ];
@@ -113,5 +114,12 @@ ok("(5) the FJ40 reads SUV, not Suv", /FJ40 SUV$/.test(R(24).car.label) && !/\bS
 ok("(5) the C10 keeps Pickup", /Pickup$/.test(R(11).car.label), R(11).car.label);
 ok("(5) the 280SL reads 280SL, not SL-Class 280SL", /Mercedes-Benz 280SL Roadster$/.test(R(14).car.label), R(14).car.label);
 ok("(5) the spec line and the title never name two bodies", cars.every(c => { const sb = SPEC_BODY.exec(D(c.n).specLine || ""), tb = SPEC_BODY.exec(D(c.n).titleLine || ""); return !(sb && tb) || sb[1].toLowerCase() === tb[1].toLowerCase(); }));
+const dupWord = t => { const ws = String(t || "").split(/\s+/).slice(1).map(x => x.toLowerCase()); return ws.find((x, i) => ws.indexOf(x) !== i) || null; };
+ok("(5) no title says a word twice, for the 24 older cars", cars.every(c => !dupWord(D(c.n).titleLine) && !dupWord(R(c.n).car.label)), cars.map(c => dupWord(D(c.n).titleLine)).filter(Boolean).join(","));
+{ const OBM = await imp("lib/onebox.js"), T = OBM.titleLineOf;
+  const x = [{ year: 1999, make: "Porsche", model: "911", nameModel: "996", trim: "Carrera 4", bodyStyle: "coupe" }, { year: 2002, make: "Porsche", model: "996", trim: "Carrera Coupe", bodyStyle: "coupe" }, { year: 2014, make: "Nissan", model: "GT-R", trim: "GT-R Premium Coupe", bodyStyle: "coupe" }, { year: 2005, make: "Mini", model: "Cooper", trim: "S", bodyStyle: "hatchback" }, { year: 2005, make: "Mini", model: "Cooper", trim: "Cooper S", bodyStyle: "Hatchback" }].map(T);
+  ok("(5) the 996, the GT-R and the Mini never say a word twice", x.every(t => t && !dupWord(t)), JSON.stringify(x));
+  ok("(5) the GT-R reads 2014 Nissan GT-R Premium Coupe", x[2] === "2014 Nissan GT-R Premium Coupe", x[2]);
+  ok("(5) the year is kept when the model is the same number (1972 BMW 2002)", T({ year: 1972, make: "BMW", model: "2002" }) === "1972 BMW 2002"); }
 ok("(5) no label, title or note has a dash", cars.every(c => !/[–—]/.test([R(c.n).car.label, D(c.n).titleLine, D(c.n).windowNote, D(c.n).yearsNote, D(c.n).bodyNote, D(c.n).comparablesNote].join(" "))));
 console.log(`\ndeskOlderCarsCheck: ${n - failed} pass, ${failed} FAIL`); process.exit(failed ? 1 : 0);
