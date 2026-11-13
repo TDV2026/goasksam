@@ -122,6 +122,36 @@ LIVE = [liveRow()];
   ok("(6) Sell opens the VIN through api/vehicleIdentity (the identity every door shares)", /api\/vehicleIdentity/.test(rd("public/js/entry.js")));
   for (const f of ["lib/live/samChat.js", "api/buySearch.js"]) ok(`(6) ${f} opens no VIN decode of its own`, !/vinConfirm|decodeVinRich|decodeVinFacts/.test(rd(f)));
   LIVE = [liveRow()]; }
+// (9) A CHASSIS NUMBER IS FOUND IN THE LIVE POOL TOO (Nov 13 2026). Sam's forwarded 1972 Datsun 240Z lead carries chassis HLS3089426; the car was live on Bring a Trailer at $20,000 and nothing matched: findVinLiveMatch took 17 character VINs only.
+// CAUSE: `want.length !== 17 -> null`. CLASS: every pre-1981 car and every short identifier, in every door that reads the live pool (vehicleIdentity, sellerDecision, sheetRead, the Desk form). The identifier is a token of the VIN field, the title or the text, separators ignored.
+{ const LM = await import(pathToFileURL(path.join(root, "lib/vinLiveMatch.js")).href), env = { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: "k" };
+  const z = (o = {}) => liveRow({ id: 700001, source: "bringatrailer", url: "https://bringatrailer.com/listing/1972-datsun-240z-77/", listing_title: "1972 Datsun 240Z 4-Speed", year: 1972, make: "Datsun", model: "240Z", vin_norm: null, mileage: 61000, current_bid_usd: 20000, description: "The car is chassis HLS30-89426 and was repainted.", ...o });
+  const find = async id => (await LM.findVinLiveMatch(env, { vin: id }));
+  // the report: the chassis is in the text
+  LIVE = [z()]; { const m = await find("HLS3089426");
+    ok("(9) the 240Z: chassis HLS3089426 in the listing text finds the live car at $20,000", m && m.kind === "live" && m.year === 1972 && m.make === "Datsun" && m.listing.currentBidUsd === 20000 && /bringatrailer/.test(m.listing.url), m && [m.year, m.make]); }
+  // the class: the identifier in every place a listing carries it, in every spelling
+  const PLACES = [["the VIN field", { vin_norm: "HLS3089426", description: "" }], ["the title", { listing_title: "1972 Datsun 240Z, chassis HLS3089426" }], ["the title with a dash", { listing_title: "1972 Datsun 240Z HLS30-89426" }], ["the text with a space", { description: "Chassis: HLS30 89426." }], ["the text in lower case", { description: "chassis hls3089426 original" }]];
+  for (const [name, o] of PLACES) for (const typed of ["HLS3089426", "hls3089426", "HLS30-89426", " HLS30 89426 "]) { LIVE = [z(o)]; const m = await find(typed);
+    ok(`(9) ${name}: "${typed}" finds the car`, !!(m && m.year === 1972), [name, typed]); }
+  // every venue, never one
+  for (const src of ["bringatrailer", "carsandbids", "pcarmarket", "hagerty", "rmsothebys", "gooding", "bonhams", "mecum", "barrettjackson", "broadarrow", "collectingcars", "themarket", "pistonheads", "carandclassic", "acc", "hemmings"]) { LIVE = [z({ source: src })]; const m = await find("HLS3089426"); ok(`(9) a chassis live on ${src} is found`, !!(m && m.listing.venue), src); }
+  // what it must NOT find: a longer token, another car, an ended listing, a bare number (mileage), a short or long string, two cars
+  LIVE = [z({ description: "chassis HLS3089426X" })]; ok("(9) a token that only CONTAINS the identifier is no match", (await find("HLS3089426")) === null);
+  LIVE = [z({ description: "chassis HLS3089427" })]; ok("(9) another chassis is no match", (await find("HLS3089426")) === null);
+  LIVE = [z({ end_time: new Date(Date.now() - 3600e3).toISOString() })]; ok("(9) an ended listing is no match", (await find("HLS3089426")) === null);
+  LIVE = [z({ mileage: 123456, description: "123,456 miles, lot 123456" })]; ok("(9) a bare number is never read out of mileage text", (await find("123456")) === null);
+  LIVE = [z()]; ok("(9) too short to be an identifier (5 characters) is no match", (await find("HLS30")) === null && (await find("")) === null);
+  LIVE = [z(), z({ id: 700002, url: "https://bringatrailer.com/listing/other-240z/", description: "chassis HLS30-89426" })]; ok("(9) two different live cars named by one identifier is no match, never a guess", (await find("HLS3089426")) === null);
+  LIVE = [liveRow()]; ok("(9) a 17 character VIN still matches its own row", !!(await find(VIN)));
+  // the doors
+  LIVE = [z()]; { const d = await call("HLS3089426");
+    ok("(9) Sell (api/vehicleIdentity): a chassis typed alone is the 1972 Datsun 240Z from its live listing, no question", d.status === "valid" && !d.clarification && d.vehicle && d.vehicle.year === 1972 && /datsun/i.test(d.vehicle.make) && d.vinLiveMatch && d.vinLiveMatch.listing.currentBidUsd === 20000, [d.status, d.clarification && d.clarification.kind, d.vehicle && d.vehicle.make]);
+    ok("(9) Sell: the engine's line says the car is live now", d.ownLive && d.ownLive.line === "This car is live now", d.ownLive); }
+  { const SR = await import(pathToFileURL(path.join(root, "lib/sheetRead.js")).href); const sr = await SR.sheetRead({ supabaseUrl: process.env.SUPABASE_URL, supabaseKey: "k", poolColumns: false, asked: 0, noStageLog: true }, { vin: "HLS3089426", mileage: 61000 }).catch(e => ({ err: String(e.message) }));
+    ok("(9) Desk (sheetRead): a chassis on the lead carries the live listing on the sheet", sr && sr.vinLiveMatch && sr.vinLiveMatch.listing.currentBidUsd === 20000 && sr.ownLive && sr.ownLive.line === "This car is live now", sr && (sr.err || Object.keys(sr))); }
+  { const src = fs.readFileSync(path.join(root, "api/sellerDecision.js"), "utf8"); ok("(9) Market Check (api/sellerDecision) reads the live pool for a chassis too: no 17 character gate before findVinLiveMatch", !/length === 17 \? await findVinLiveMatch/.test(src)); }
+  LIVE = [liveRow()]; }
 console.log(`vinLiveMatchCheck: ${fail ? fail + " FAIL" : "all pass"} (${pass})`); process.exit(fail ? 1 : 0);
 
 function mutants() {
@@ -140,9 +170,15 @@ function mutants() {
     ["public/js/onebox.js", '(d && d.vinLiveMatch && d.vinLiveMatch.vin ? "&vin=" + encodeURIComponent(d.vinLiveMatch.vin) : "")', '""', "the Market Check page forwards the VIN"],
     ["api/vehicleIdentity.js", "if (!vinMatch && liveAny) {", "if (false) {", "(1) status valid"],
     ["lib/vinLiveMatch.js", 'String(row.status || "") !== "live" || !(Date.parse(row.end_time) > nowMs)', 'String(row.status || "") !== "live"', "(3) an ended listing"],
-    ["lib/vinLiveMatch.js", "&status=eq.live&end_time=gt.", "&status=eq.live&x=gt.", "(3) the request asks the table"],
+    ["lib/vinLiveMatch.js", "status=eq.live&end_time=gt.", "status=eq.live&x=gt.", "(3) the request asks the table"],
     ["lib/vinLiveMatch.js", "listing: { title: String(row.listing_title).trim(), venue: houseName(row.source),", "listing: { title: String(row.listing_title).trim(), venue: null,", "(1) the listing is carried"],
     ["lib/vinLiveMatch.js", 'endsLine: reasonLine("pick.ends", { endsAt: Date.parse(row.end_time), now: nowMs })', "endsLine: null", "(1) the time left"],
+    ["lib/vinLiveMatch.js", "if (!isTextIdentifier(want)) return null;", "return null;", "(9) the 240Z"],
+    ["lib/vinLiveMatch.js", "if (norm(toks[i]) === id) return true;", "if (norm(toks[i]).includes(id)) return true;", "(9) a token that only CONTAINS"],
+    ["lib/vinLiveMatch.js", "return hit.length && cars.size === 1 ? liveMatchOf(hit[0], nowMs) : null;", "return hit.length ? liveMatchOf(hit[0], nowMs) : null;", "(9) two different live cars"],
+    ["lib/vinLiveMatch.js", "id.length >= 6 && id.length <= 16 && /[A-Z]/.test(id) && /\\d/.test(id)", "id.length >= 5 && id.length <= 16", "(9) a bare number is never read"],
+    ["api/vehicleIdentity.js", "const liveChassis = await findVinLiveMatch(env,", "const liveChassis = await Promise.resolve(null) || await findVinLiveMatch(null,", "(9) Sell (api/vehicleIdentity)"],
+    ["api/sellerDecision.js", "liveMatch = vinIdLive ? await findVinLiveMatch(", "liveMatch = vinIdLive.length === 17 ? await findVinLiveMatch(", "(9) Market Check (api/sellerDecision)"],
     ["lib/vinLiveMatch.js", "if (!row || String(row.status", 'if (!row || row.source !== "bringatrailer" || String(row.status', "(2) a live VIN on"],
     ["lib/live/feed.js", "vin: vin || null, vin_norm: normVin(vin) || null,", "vin: vin || null, vin_norm: source === \"sothebysmotorsport\" ? null : (normVin(vin) || null),", "(5) sothebysmotorsport"]
   ];

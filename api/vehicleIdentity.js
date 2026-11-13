@@ -322,6 +322,15 @@ export default async function handler(req, res) {
         // the listing could not be resolved to one car: the decode question stands, with the listing beside it (result.vinLiveMatch is set above)
       }
     }
+    // A CHASSIS NUMBER AT AUCTION RIGHT NOW (Lane B, Nov 13 2026): no recorded sale carries the number, but the live pool prints it in a listing's VIN field, title or text (exact token). The listing names the car, the same step a 17 character VIN takes (lib/vinLiveMatch.js).
+    if (!vinMatch && !chassisVehicle && vinActive && !result.vehicle?.make && typeof raw === "string" && looksLikeChassisId(raw)) {
+      const liveChassis = await findVinLiveMatch(env, { vin: raw.trim().replace(/\s+/g, "") }).catch(() => null);
+      if (liveChassis) {
+        result.vinLiveMatch = liveChassis;
+        const vehicle = await liveVehicleOf(liveChassis, { vin: null }, resolveVehicle);
+        if (vehicle) return res.status(200).json({ status: "valid", vehicle: { ...vehicle, vin: null, chassis: raw.trim() }, clarification: null, corrections: [...(result.corrections || []), { type: "vin_live_match", to: liveChassis.displayName }], archiveModelCount: modelCount, vinLiveMatch: liveChassis, ownLive: ownLiveOf(liveChassis), fallback: fallbackUsed || undefined, _debug: _dbg });
+      }
+    }
     // A typed number that looks like a chassis but matched nothing (and the resolver gave it no clarification of its own) says so plainly and asks for the car.
     if (!vinMatch && !chassisVehicle && vinActive && !result.vehicle?.make && !result.clarification?.kind && typeof raw === "string" && looksLikeChassisId(raw)) {
       result.clarification = { kind: "chassis_hint", question: "I did not find that number in the sales I track. Type the year, make and model of the car instead.", answerHint: "Year, make and model", chips: ["Not sure"] };
