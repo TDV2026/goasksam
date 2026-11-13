@@ -75,7 +75,25 @@ export async function warmMarketCheck(env, list = WARM_LIST) {
   return out;
 }
 
-if (process.argv[1] && /warmMarketCheck\.js$/.test(process.argv[1])) {
+// --verify=FILE (the nightly's last warm step): reads the log the warm step wrote and fails LOUDLY unless it ended with a DONE line whose warmed plus refused is the whole list.
+// A step the runner killed at its timeout writes no DONE line, and a partial list is a stale tail: both end red here, never read as success.
+export function verifyWarmLog(text, listLength) {
+  const m = String(text || "").match(/DONE\. warmed=(\d+) refused=(\d+) failed=(\d+) of (\d+)\./);
+  if (!m) return { ok: false, why: "no DONE line: the warm step did not finish (killed at its timeout, or it died)" };
+  const warmed = +m[1], refused = +m[2], failed = +m[3], of = +m[4];
+  if (of !== listLength) return { ok: false, why: `the warm ran a list of ${of}, the built-in list is ${listLength}` };
+  if (warmed + refused < listLength) return { ok: false, why: `warmed ${warmed} plus refused ${refused} is ${warmed + refused}, below the list length ${listLength} (${failed} failed)` };
+  return { ok: true, warmed, refused, failed, of };
+}
+const verifyArg = process.argv.find(a => a.startsWith("--verify="));
+if (verifyArg && process.argv[1] && /warmMarketCheck\.js$/.test(process.argv[1])) {
+  const fsm = await import("node:fs"); let text = ""; try { text = fsm.readFileSync(verifyArg.slice(9), "utf8"); } catch {}
+  const v = verifyWarmLog(text, WARM_LIST.length);
+  if (!v.ok) { console.error(`::error::Market Check warm cache: ${v.why}. Stored rows from the head of the list are warm, the rest are not on the current stamp.`); process.exit(1); }
+  console.log(`Market Check warm cache: warmed=${v.warmed} refused=${v.refused} failed=${v.failed} of ${v.of}.`); process.exit(0);
+}
+
+if (!verifyArg && process.argv[1] && /warmMarketCheck\.js$/.test(process.argv[1])) {
   const env = supabaseEnv();
   if (!env) { console.error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required"); process.exit(1); }
   const listArg = process.argv.find(a => a.startsWith("--list="));
@@ -83,5 +101,5 @@ if (process.argv[1] && /warmMarketCheck\.js$/.test(process.argv[1])) {
   const result = await runAsCaller("warm", () => warmMarketCheck(env, list));   // caller attribution (lane-b-archiveread step e)
   for (const r of result.rows) console.log(r.error ? `FAIL  ${r.q}: ${r.error}` : r.refused ? `OK    ${r.q}  refused: ${r.refused}` : `OK    ${r.q}  tier=${r.tier}  ${r.ms}ms`);
   console.log(`\nDONE. warmed=${result.warmed} refused=${result.refused} failed=${result.failed} of ${list.length}.`);
-  process.exit(result.failed > 0 ? 1 : 0);
+  process.exit(result.failed > 0 || result.warmed + result.refused < list.length ? 1 : 0);
 }
