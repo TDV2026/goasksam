@@ -1598,6 +1598,18 @@ async function handleOps(req, res) {
   // version, tier, refusal kind and wideSpread. The trim-question candidates are the rows a trim question could reach
   // (a too-spread-out refusal or a wide result); the invariant cases are refusal kind invariant_failed. No writes.
   // task=consentcount (Oct 26 2026): READ-ONLY. How many accounts carry the old "Send me Sam's market notes" flag. A count only: no email, no id leaves this task.
+  // task=deskintakelog: READ ONLY. The Desk's inbound email log for a window (Lane D, Nov 13 2026): one row per email the webhook accepted and claimed, with its outcome. Prints NO address: the sender is its domain only, any address inside the detail is its domain only. A row means the webhook verified the signature and received the email; no row means it never arrived or was refused at the signature (a 401 shows in the runtime logs, not here).
+  if (task === "deskintakelog") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const iso = v => { const d = new Date(String(v || "")); return Number.isNaN(d.getTime()) ? null : d.toISOString(); };
+    const from = iso(req.query?.from), to = iso(req.query?.to) || new Date().toISOString();
+    if (!from) return res.status(400).json({ error: "from=<ISO time> is required (to= optional)." });
+    const rows = await supabaseSelect(env, `desk_intake_log?created_at=gte.${encodeURIComponent(from)}&created_at=lte.${encodeURIComponent(to)}&select=id,created_at,updated_at,org_id,to_address,subject,outcome,sheet_id,from_address,detail&order=created_at.asc&limit=200`);
+    if (!Array.isArray(rows)) return res.status(500).json({ error: "desk_intake_log not readable." });
+    const dom = a => { const m = /@([^\s>,;"']+)/.exec(String(a || "")); return m ? "@" + m[1].toLowerCase() : null; };
+    const clean = v => typeof v === "string" ? v.replace(/[^\s<>,;"']+@([^\s<>,;"']+)/g, "@$1") : Array.isArray(v) ? v.map(clean) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, clean(x)])) : v;
+    return res.status(200).json({ task: "deskintakelog", ocdSpend: 0, writes: 0, from, to, count: rows.length, rows: rows.map(r => ({ at: r.created_at, outcome: r.outcome, org: r.org_id || null, sheet: r.sheet_id || null, to: r.to_address, subject: r.subject, fromDomain: dom(r.from_address), detail: clean(r.detail) })) });
+  }
   if (task === "consentcount") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     let flagged = 0, total = 0, cursor = "";
