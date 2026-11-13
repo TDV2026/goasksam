@@ -2325,6 +2325,12 @@ try {
   record("VIN decode keeps the trim: 36 VINs (Porsche, Corvette Z06/ZR1, Shelby, BMW M, Mercedes-AMG) through the real decode and resolver read the trim the car's title names, or none where the VIN does not say (scripts/vinDecodeTrimCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").slice(-3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/noneRowsCheck.mjs", { encoding: "utf8", timeout: 120000 });
+  record("Ops: task=noneRows lists the stored failed-read no-figures rows read only; task=noneRowsClear deletes only them, only with confirm=1, never a row that stopped matching (scripts/noneRowsCheck.mjs)", "PASS", out.trim().split("\n").slice(-1)[0]);
+} catch (e) {
+  record("Ops: task=noneRows lists the stored failed-read no-figures rows read only; task=noneRowsClear deletes only them, only with confirm=1, never a row that stopped matching (scripts/noneRowsCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").slice(-3).join(" | "));
+}
+try {
   const out = execSync("node scripts/findAlwaysCardsCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Find: a search with live matches always draws the cars; every narrowing question (generation, body, miles, budget, kind, where, how far) is an offer above them, never the answer alone (scripts/findAlwaysCardsCheck.mjs)", "PASS", out.trim().split("\n").pop());
 } catch (e) {
