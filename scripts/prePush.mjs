@@ -2541,6 +2541,12 @@ try {
   record("Desk v4 own history: This car has sold before (each prior sale as sent, newest first, linked) above What the market paid, Listed now only when the server sent a listing, the From its last sale mark; mutants (scripts/deskV4OwnHistoryCheck.mjs)", false, String((e.stdout || e.message || "")).slice(-200));
 }
 try {
+  const out = execSync("node scripts/deskV4FourthRunCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 fourth run: the unopened lead locked until Open it, the dot hint only when marked, Condition in the market header, For sale now photo cards above Closest sales, the period switch from desk.windows, the live line and the start note as sent; mutants (scripts/deskV4FourthRunCheck.mjs)", /\b0 FAIL\b/.test(out), out.trim().split("\n").slice(-3).join(" | "));
+} catch (e) {
+  record("Desk v4 fourth run: the unopened lead locked until Open it, the dot hint only when marked, Condition in the market header, For sale now photo cards above Closest sales, the period switch from desk.windows, the live line and the start note as sent; mutants (scripts/deskV4FourthRunCheck.mjs)", false, String(e.stdout || e.message || e).trim().split("\n").slice(-4).join(" | "));
+}
+try {
   const out = execSync("node scripts/deskV4RereadCheck.mjs", { encoding: "utf8", timeout: 300000 });
   record("Desk v4 against Lane D's real handlers: Re-read the email on a forwarded case's Documents card, the check digit warning on the New case card, each prefilled field's source label; mutants (scripts/deskV4RereadCheck.mjs)", /\b0 FAIL\b/.test(out), out.trim().split("\n").slice(-3).join(" | "));
 } catch (e) {

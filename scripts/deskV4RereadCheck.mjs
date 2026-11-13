@@ -5,7 +5,7 @@
 //   Mutants: no button on a forwarded case; the button on a typed case; the server's line not printed; the check digit warning not printed; every field labelled alike.
 //   node scripts/deskV4RereadCheck.mjs
 import fs from "node:fs"; import path from "node:path";
-import { launch, openLive, tally, seedIntake, imp, ROOT, V3, PV } from "./deskV4Harness.mjs";
+import { launch, openLive, tally, seedIntake, imp, ROOT, V3, PV, claim } from "./deskV4Harness.mjs";
 const { ok, done } = tally(), wait = ms => new Promise(r => setTimeout(r, ms)), b = await launch();
 const A = await imp("lib/desk/sheetActions.js"), { reasonLine } = await imp("lib/reasonWords.js"), { simpleParser } = await import("mailparser").catch(async () => { const { createRequire } = await import("node:module"); for (const d of ["../goasksam-laneD", "../laneC-main"]) { try { return createRequire(path.join(ROOT, d, "x.js"))("mailparser"); } catch { /* next */ } } throw new Error("mailparser is not installed here or in a sibling worktree"); });   // this worktree shares the main checkout's node_modules, which has no mailparser; a worktree that has it supplies it
 const SUBJ = fs.readFileSync(path.join(ROOT, "scripts/fixtures/hagertySamResend.subject.txt"), "utf8").trim(), BODY = fs.readFileSync(path.join(ROOT, "scripts/fixtures/hagertySamResend.txt"), "utf8");
@@ -14,7 +14,7 @@ const ids = await seedIntake(), store = await PV.previewStore();
 const ctxOf = over => ({ env: {}, org: PV.PREVIEW_ORG.id, seat: PV.PREVIEW_SEAT, store, now: new Date().toISOString(), orgSettings: { name: PV.PREVIEW_ORG.name }, readSheet: PV.previewReadSheet, fetchImage: async () => null, fetchObject: async () => Buffer.from(EML), mailDeps: { simpleParser, resolveVehicle: async () => ({ status: "invalid" }), decodeVin: async () => null }, ...over });
 const sent = [];   // every answer the real handler gave the page, in order
 const real = over => async bd => { if (bd.action !== "case_reread_email" && bd.action !== "case_decode") return undefined; const r = await A.handleSheetAction(bd.action, bd, ctxOf(over)); sent.push({ action: bd.action, r }); return r; };
-const openCase = async (id, opts = {}) => openLive(b, { id, intercept: real(), ...opts });
+const openCase = async (id, opts = {}) => { const p = await openLive(b, { id, intercept: real(), ...opts }); await claim(p); return p; };
 const txt = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); return e ? e.textContent : null; }, sel);
 const has = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); return !!e && e.offsetWidth > 0; }, sel);
 
@@ -33,13 +33,13 @@ const has = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); r
   const ty = await page(ids.typed); ok(!(await has(ty, "#reread")), "a case typed by hand carries no Re-read button");
   const nc = await page(ids.nocar); ok(await has(nc, "#reread"), "a forwarded lead whose car was not identified carries it too");
   // a refusal prints as sent: a case with no email path
-  const refuse = await openLive(b, { id: ids.fwd, intercept: async bd => bd.action === "case_reread_email" ? { ok: false, why: reasonLine("case.reread.refuse_no_email") } : undefined });
+  const refuse = await openLive(b, { id: ids.fwd, intercept: async bd => bd.action === "case_reread_email" ? { ok: false, why: reasonLine("case.reread.refuse_no_email") } : undefined }); await claim(refuse);
   await refuse.click("#reread"); await refuse.waitForFunction(() => { const m = document.getElementById("rereadmsg"); return m && !m.hidden && m.textContent; }, { timeout: 8000 }).catch(() => {});
   ok((await txt(refuse, "#rereadmsg")) === reasonLine("case.reread.refuse_no_email"), "a refusal prints the server's why under the header");
   const fin = await openLive(b, { id: V3.DEMO_ID }); ok(!(await has(fin, "#reread")), "the demonstration case (not a forwarded lead) carries none");
   const m1 = await openLive(b, { id: ids.fwd, mutate: h => h.replace("D.forwarded && D.rereadWord", "false && D.rereadWord") }); ok(!(await has(m1, "#reread")), "mutant caught: no button on a forwarded lead");
   const m2 = await openLive(b, { id: ids.typed, mutate: h => h.replace("D.forwarded && D.rereadWord", "D.rereadWord") }); ok(await has(m2, "#reread"), "mutant caught: the button on a typed case");
-  const m3 = await openLive(b, { id: ids.fwd, intercept: real(), mutate: h => h.replace("m2.textContent = (r && (r.ok ? r.line : (r.why || r.line))) || ", "m2.textContent = ") }); await m3.click("#reread"); await wait(2500);
+  const m3 = await openLive(b, { id: ids.fwd, intercept: real(), mutate: h => h.replace("m2.textContent = (r && (r.ok ? r.line : (r.why || r.line))) || ", "m2.textContent = ") }); await claim(m3); await m3.click("#reread"); await wait(2500);
   ok((await txt(m3, "#rereadmsg")) !== reasonLine("case.reread.nothing") && (await txt(m3, "#rereadmsg")) !== sent[sent.length - 1].r.line, "mutant caught: the server's line not printed"); }
 
 { // 2 THE CHECK DIGIT WARNING, from the real case_decode
