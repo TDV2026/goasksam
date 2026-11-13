@@ -2535,6 +2535,12 @@ try {
   record("Desk v4 own history: This car has sold before (each prior sale as sent, newest first, linked) above What the market paid, Listed now only when the server sent a listing, the From its last sale mark; mutants (scripts/deskV4OwnHistoryCheck.mjs)", false, String((e.stdout || e.message || "")).slice(-200));
 }
 try {
+  const out = execSync("node scripts/deskV4RereadCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 against Lane D's real handlers: Re-read the email on a forwarded case's Documents card, the check digit warning on the New case card, each prefilled field's source label; mutants (scripts/deskV4RereadCheck.mjs)", /\b0 FAIL\b/.test(out), out.trim().split("\n").slice(-3).join(" | "));
+} catch (e) {
+  record("Desk v4 against Lane D's real handlers: Re-read the email on a forwarded case's Documents card, the check digit warning on the New case card, each prefilled field's source label; mutants (scripts/deskV4RereadCheck.mjs)", false, String(e.stdout || e.message || e).trim().split("\n").slice(-4).join(" | "));
+}
+try {
   const out = execSync("node scripts/deskV4ReserveModeCheck.mjs", { encoding: "utf8", timeout: 300000 });
   record("Desk v4 Reserve or no reserve: the engine's line, both counts and the thin line print as sent, the no reserve choice is disabled when thin until the why line is written and writes report.reserveMode, the seller's preference as the case words it, a forwarded lead's own words in Documents; mutants (scripts/deskV4ReserveModeCheck.mjs)", "PASS", (out.match(/deskV4ReserveModeCheck: .*/) || [""])[0]);
 } catch (e) {
