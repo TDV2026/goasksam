@@ -2505,6 +2505,12 @@ try {
   record("Desk v4 second run: needs attention with the label on its own line over the statement field and buttons, the statement sent, a document added through a pill listed at once and every section matching the case, What we took into account editable; mutants (scripts/deskV4SecondRunCheck.mjs)", "FAIL", String(e.stdout || e.message).split("\n").filter(l => /FAIL/.test(l)).join(" | ").slice(0, 400));
 }
 try {
+  const out = execSync("node scripts/deskV4ThirdRunCheck.mjs", { encoding: "utf8", timeout: 400000 });
+  record("Desk v4 third run: the reserve mode's thin line printed once and no line printed twice in the panel, a Set as cover on each thumbnail written through the case's cover and the report's first page printing it, a bottom price axis of labelled ticks from the engine's words, the right panel in tabs with the figure and checks fixed above and Preview and Finalize fixed below, one word for one state in the facts grid; mutants (scripts/deskV4ThirdRunCheck.mjs)", /\b0 FAIL/.test(out), (out.trim().split("\n").pop() || "").slice(0, 160));
+} catch (e) {
+  record("Desk v4 third run: the reserve mode's thin line printed once and no line printed twice in the panel, a Set as cover on each thumbnail written through the case's cover and the report's first page printing it, a bottom price axis of labelled ticks from the engine's words, the right panel in tabs with the figure and checks fixed above and Preview and Finalize fixed below, one word for one state in the facts grid; mutants (scripts/deskV4ThirdRunCheck.mjs)", false, String((e.stdout || e.message || "")).slice(-200));
+}
+try {
   const out = execSync("node scripts/deskV4ReserveModeCheck.mjs", { encoding: "utf8", timeout: 300000 });
   record("Desk v4 Reserve or no reserve: the engine's line, both counts and the thin line print as sent, the no reserve choice is disabled when thin until the why line is written and writes report.reserveMode, the seller's preference as the case words it, a forwarded lead's own words in Documents; mutants (scripts/deskV4ReserveModeCheck.mjs)", "PASS", (out.match(/deskV4ReserveModeCheck: .*/) || [""])[0]);
 } catch (e) {

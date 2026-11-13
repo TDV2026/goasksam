@@ -11,6 +11,9 @@ export async function openLive(b, { w = 1440, h = 900, id = V3.DEMO_ID, mutate =
     if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html });
     return r.respond({ status: 204, body: "" }); });
   p.on("pageerror", e => p._err.push(String(e).slice(0, 200)));
+  // A person clicks the tab before using what is on it: click, focus and type open the right panel's tab first when the target sits in a hidden tab (Needs attention, Reserve or no reserve, Report).
+  const openTab = sel => p.evaluate(q => { const e = document.querySelector(q), t = e && e.closest("[data-tabpanel]"); if (t && t.hidden && window.__v4tab) window.__v4tab(t.getAttribute("data-tabpanel")); }, sel);
+  for (const m of ["click", "focus", "type", "hover"]) { const o = p[m].bind(p); p[m] = async (sel, ...r) => { if (typeof sel === "string") await openTab(sel); return o(sel, ...r); }; }
   if (dark) await p.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }]);
   await p.goto("https://goasksam.com/preview/desk/case/" + id, { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 400)); return p;
 }
