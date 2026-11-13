@@ -20,7 +20,7 @@ const READ = () => { const g = s => document.querySelector(s), all = s => [...do
   const K = window.__v4.K(), strs = new Set(); const walk = o => { if (o == null) return; if (typeof o === "string") strs.add(o.trim()); else if (typeof o === "object") for (const k in o) walk(o[k]); }; walk(K);
   const card = g("#s-own"), vis = !!card && !card.hidden && card.offsetHeight > 0, mk = g("#s-market");
   const texts = vis ? [...card.querySelectorAll("h3,li,li a,.ownlive a,.ownlive .ownx")].filter(e => !e.querySelector("a,span") || e.tagName === "A").map(e => e.textContent.replace(/\s*↗$/, "").trim()).filter(Boolean) : [];
-  const marks = Object.fromEntries(all("#facts .marks[data-fact]").map(m => [m.dataset.fact, [...m.querySelectorAll(".chip")].map(c => c.textContent)]));
+  const marks = Object.fromEntries(all("#facts .marks[data-fact]").map(m => [m.dataset.fact, [...m.querySelectorAll(".chip")].map(c => c.textContent).concat(m.querySelector("[data-verify]") ? ["VERIFY"] : [])]));
   return { vis, heading: vis ? g("#own-h").textContent : "", rows: all("#ownrows .ownrow").map(r => ({ t: r.textContent.replace(/\s*↗$/, ""), href: (r.querySelector("a") || {}).href || null, kind: r.dataset.own })), live: (g("#ownlive") && !g("#ownlive").hidden) ? { chip: (g("#ownlive .ownchip") || {}).textContent, link: ((g("#ownlive a") || {}).textContent || "").replace(/\s*↗$/, ""), href: (g("#ownlive a") || {}).href, parts: all("#ownlive .ownx").map(x => x.textContent) } : null,
     above: vis && mk ? R(card).bottom <= R(mk).top + 1 : null, unsent: texts.filter(t => !strs.has(t)), page: document.body.innerText, marks }; };
 const run = async (mut, o) => { const p = await page(mut, o); const r = await p.evaluate(READ); await p.close(); return r; };
@@ -34,7 +34,8 @@ const l = await run(LIVEONLY); ok(l.vis && l.rows.length === 0 && l.heading === 
 const e = await run(ENDED); ok(e.vis && e.live === null && e.rows.length === 3 && !/Listed now/.test(e.page), "a listing that has ended is not listed now (the server sent none; the page never reads vinLiveMatch itself)");
 const n = await run(NONE); ok(!n.vis && n.rows.length === 0 && !/sold before|Listed now/.test(n.page), "a case with no own record prints no heading, no row and no Listed now");
 const dm = await run(null); ok(!dm.vis && !/sold before|Listed now/.test(dm.page), "the demonstration case (no own record) prints none of it");
-const ls = await run(LASTSALE); ok(ls.marks.body.includes("From its last sale") && ls.marks.colour.includes("From its last sale") && !ls.marks.transmission.includes("From its last sale"), `a fact prefilled from its last sale carries "From its last sale"; a seller's value does not (${Object.entries(ls.marks).filter(([k, v]) => v.includes("From its last sale")).map(([k]) => k).join(", ")})`);
+const ls = await run(LASTSALE); ok(["body", "colour"].every(k => ls.marks[k].includes("From its last sale") && ls.marks[k].includes("Unverified") && ls.marks[k].includes("VERIFY")) && !ls.marks.transmission.includes("From its last sale") && ls.marks.transmission.includes("Unverified"), `a fact prefilled from its last sale reads "From its last sale" (the source) and Unverified with Verify (the state), the same as a seller's value, which has no last sale source (${Object.entries(ls.marks).filter(([k, v]) => v.includes("From its last sale")).map(([k]) => k).join(", ")})`);
+{ const ver = c => { LASTSALE(c); c.fields.colour = { ...c.fields.colour, verified: true }; }; const v = await run(ver); ok(v.marks.colour.includes("Verified") && !v.marks.colour.includes("Unverified") && !v.marks.colour.includes("VERIFY"), "once verified a last sale fact reads Verified, with no Verify button"); }
 const SRC = fs.readFileSync("lib/preview/deskV4Client.js", "utf8");
 for (const [label, from, to, on, bad] of [
   ["rows re-ordered by the page", '((b && b.rows) || []).forEach(function (r, i) {', '((b && b.rows) || []).slice().reverse().forEach(function (r, i) {', FULL, r => r.rows.map(x => x.t).join("|") !== L.join("|")],
@@ -43,6 +44,7 @@ for (const [label, from, to, on, bad] of [
   ["a heading with no rows", '$("own-h").textContent = b && b.rows && b.rows.length ? b.heading || "" : "";', '$("own-h").textContent = "This car has sold before";', LIVEONLY, r => r.heading !== ""],
   ["a row that does not link", 'r.url ? el("a", {', 'false ? el("a", {', FULL, r => r.rows[0].href === null],
   ["a Listed now with no listing", 'var has = !!(b && b.rows && b.rows.length) || !!(lv && lv.listing);', 'var has = true; lv = lv || {}; lv.listing = lv.listing || {};', NONE, r => /Listed now/.test(r.page) || r.vis],
+  ["a last sale fact with no state (the page marks only a seller's value Unverified)", '(f.source === "seller" || f.source === "last_sale")', '(f.source === "seller")', LASTSALE, r => !r.marks.body.includes("Unverified")],
   ["the last sale mark dropped", 'var src = f.sourceLine || (f.source', 'var src = null && (f.source', LASTSALE, r => !r.marks.body.includes("From its last sale")]]) {
   ok(SRC.includes(from), "the mutant applies: " + label); const r = await run(on, { html: x => x.replace(from, to) }); ok(bad(r), "mutant caught: " + label); }
 await b.close();
