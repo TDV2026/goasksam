@@ -1,0 +1,49 @@
+// DESK V4 OWN HISTORY CHECK (Lane S, Nov 13 2026). Lane D's case carries the car's own record: case.vehicle.ownBlock { heading, rows }, ownHistory rows { kind, date, venue, price | highBid + result, miles, url, line } newest first, ownLive { line, endsLine, listing } (null once a listing has ended), and a fact taken from the car's last listing is fields[k].source "last_sale" with sourceLine "From its last sale". The page prints "This car has sold before" ABOVE "What the market paid": each prior sale or no-sale as sent, newest first as the server ordered them, its line whole and linked to its listing when it has one; a "Listed now" line with the listing when the car is listed now; the "From its last sale" mark on a fact. NOTHING is printed that the case does not carry.
+//   The shapes are made by Lane D's own ownView (lib/desk/ownCar.js) from stored figures, so the check cannot drift from the server.
+//   CLASS: every string printed in the card is a string the case carried; a case with no own record shows no heading, no row, no Listed now.
+//   MUTANTS: rows re-ordered by the page, a row line made by the page from its figures, a listing shown when the server sent none (ended), a heading with no rows, a row that does not link, a Listed now with no listing, the last-sale mark dropped.
+//   node scripts/deskV4OwnHistoryCheck.mjs
+import fs from "node:fs";
+import { launch, openLive, tally, V3, V4, imp } from "./deskV4Harness.mjs";
+const { ok, done } = tally(), b = await launch();
+const { ownView } = await imp("lib/desk/ownCar.js");
+const base = await V4.renderDeskV4({ query: { case: V3.DEMO_ID } });
+const give = (html, mut) => { const m = /window\.__V4__=([\s\S]*?);window\.__DESK_V3__/.exec(html); const o = JSON.parse(m[1]); mut(o.kase); return html.replace(m[0], "window.__V4__=" + JSON.stringify(o).replace(/</g, "\\u003c") + ";window.__DESK_V3__"); };
+const NOW = "2026-11-13T12:00:00.000Z", FUT = "2026-11-20T12:00:00.000Z", PAST = "2026-11-01T12:00:00.000Z";
+const HIST = [{ kind: "sale", date: "2026-11-02", venue: "Bring a Trailer", price: 99000, miles: 10000, url: "https://example.test/bat/1" }, { kind: "no_sale", date: "2025-06-10", venue: "Cars & Bids", highBid: 41000, result: "reserve not met", url: "https://example.test/cab/2" }, { kind: "sale", date: "2023-03-15", venue: "Mecum", price: 71000, miles: 8800, url: null }];
+const LIVE = ends => ({ kind: "live", displayName: "Hagerty Marketplace", listing: { title: "1999 Porsche 911 Carrera", venue: "Bring a Trailer", url: "https://example.test/live/9", photo: null, endsAt: ends, mileage: 12400, bidLine: "Current bid $62,000" } });
+const withOwn = (hist, live, extra) => c => { c.vehicle = { ...(c.vehicle || {}), ...ownView({ ownHistory: hist, vinLiveMatch: live }, NOW) }; if (extra) extra(c); };
+const FULL = withOwn(HIST, LIVE(FUT)), HISTONLY = withOwn(HIST, null), LIVEONLY = withOwn([], LIVE(FUT)), ENDED = withOwn(HIST, LIVE(PAST)), NONE = c => { if (c.vehicle) { delete c.vehicle.ownHistory; delete c.vehicle.ownBlock; delete c.vehicle.ownLive; delete c.vehicle.vinLiveMatch; } };
+const LASTSALE = withOwn(HIST, null, c => { c.fields.body = { ...(c.fields.body || {}), value: "Coupe", source: "last_sale", verified: false, sourceLine: "From its last sale" }; c.fields.colour = { ...(c.fields.colour || {}), value: "Guards Red", source: "last_sale", verified: false, sourceLine: "From its last sale" }; c.fields.transmission = { ...c.fields.transmission, source: "seller", verified: false }; });
+const page = (mut, o = {}) => openLive(b, { ...o, mutate: h => { const x = mut ? give(base, mut) : base; return o.html ? o.html(x) : x; } });
+const READ = () => { const g = s => document.querySelector(s), all = s => [...document.querySelectorAll(s)], R = e => e.getBoundingClientRect();
+  const K = window.__v4.K(), strs = new Set(); const walk = o => { if (o == null) return; if (typeof o === "string") strs.add(o.trim()); else if (typeof o === "object") for (const k in o) walk(o[k]); }; walk(K);
+  const card = g("#s-own"), vis = !!card && !card.hidden && card.offsetHeight > 0, mk = g("#s-market");
+  const texts = vis ? [...card.querySelectorAll("h3,li,li a,.ownlive a,.ownlive .ownx")].filter(e => !e.querySelector("a,span") || e.tagName === "A").map(e => e.textContent.replace(/\s*↗$/, "").trim()).filter(Boolean) : [];
+  const marks = Object.fromEntries(all("#facts .marks[data-fact]").map(m => [m.dataset.fact, [...m.querySelectorAll(".chip")].map(c => c.textContent)]));
+  return { vis, heading: vis ? g("#own-h").textContent : "", rows: all("#ownrows .ownrow").map(r => ({ t: r.textContent.replace(/\s*↗$/, ""), href: (r.querySelector("a") || {}).href || null, kind: r.dataset.own })), live: (g("#ownlive") && !g("#ownlive").hidden) ? { chip: (g("#ownlive .ownchip") || {}).textContent, link: ((g("#ownlive a") || {}).textContent || "").replace(/\s*↗$/, ""), href: (g("#ownlive a") || {}).href, parts: all("#ownlive .ownx").map(x => x.textContent) } : null,
+    above: vis && mk ? R(card).bottom <= R(mk).top + 1 : null, unsent: texts.filter(t => !strs.has(t)), page: document.body.innerText, marks }; };
+const run = async (mut, o) => { const p = await page(mut, o); const r = await p.evaluate(READ); await p.close(); return r; };
+const V = ownView({ ownHistory: HIST, vinLiveMatch: LIVE(FUT) }, NOW), L = V.ownBlock.rows.map(r => r.line);
+ok(V.ownBlock && V.ownBlock.heading === "This car has sold before" && L.length === 3 && V.ownLive && V.ownLive.listing.title, "Lane D's own view gives the heading, three lines and a live listing (the shapes this page is built on)");
+const goodFull = r => r.vis && r.heading === "This car has sold before" && r.rows.map(x => x.t).join("|") === L.join("|") && r.rows[0].href === "https://example.test/bat/1" && r.rows[1].href === "https://example.test/cab/2" && r.rows[2].href === null && r.rows.map(x => x.kind).join() === "sale,no_sale,sale"
+  && r.live && r.live.chip === "Listed now" && r.live.link === "1999 Porsche 911 Carrera" && r.live.href === "https://example.test/live/9" && r.live.parts.join("|") === [V.ownLive.listing.venue, V.ownLive.endsLine, "Current bid $62,000"].join("|") && r.above === true && r.unsent.length === 0;
+const g = await run(FULL); ok(goodFull(g), `a case with prior sales and a live listing prints "This car has sold before" above "What the market paid": each line as sent, newest first, linked when it has an address, then "Listed now" with the listing (${g.rows.length} rows, live: ${g.live && g.live.link})`);
+const h = await run(HISTONLY); ok(h.vis && h.rows.length === 3 && h.live === null && !/Listed now/.test(h.page) && h.unsent.length === 0, "prior sales and no live listing: the rows and no Listed now line");
+const l = await run(LIVEONLY); ok(l.vis && l.rows.length === 0 && l.heading === "" && l.live && l.live.chip === "Listed now" && !/sold before/.test(l.page), "a live listing and no history: Listed now and no heading, no row");
+const e = await run(ENDED); ok(e.vis && e.live === null && e.rows.length === 3 && !/Listed now/.test(e.page), "a listing that has ended is not listed now (the server sent none; the page never reads vinLiveMatch itself)");
+const n = await run(NONE); ok(!n.vis && n.rows.length === 0 && !/sold before|Listed now/.test(n.page), "a case with no own record prints no heading, no row and no Listed now");
+const dm = await run(null); ok(!dm.vis && !/sold before|Listed now/.test(dm.page), "the demonstration case (no own record) prints none of it");
+const ls = await run(LASTSALE); ok(ls.marks.body.includes("From its last sale") && ls.marks.colour.includes("From its last sale") && !ls.marks.transmission.includes("From its last sale"), `a fact prefilled from its last sale carries "From its last sale"; a seller's value does not (${Object.entries(ls.marks).filter(([k, v]) => v.includes("From its last sale")).map(([k]) => k).join(", ")})`);
+const SRC = fs.readFileSync("lib/preview/deskV4Client.js", "utf8");
+for (const [label, from, to, on, bad] of [
+  ["rows re-ordered by the page", '((b && b.rows) || []).forEach(function (r, i) {', '((b && b.rows) || []).slice().reverse().forEach(function (r, i) {', FULL, r => r.rows.map(x => x.t).join("|") !== L.join("|")],
+  ["a row line made by the page from its figures", 'el("span", { text: r.line }); rows.appendChild', 'el("span", { text: r.kind + " " + r.price }); rows.appendChild', HISTONLY, r => r.unsent.length > 0 || r.rows.some(x => /^(sale|no_sale) /.test(x.t))],
+  ["a listing shown from vinLiveMatch when the server sent none", 'lv = v.ownLive,', 'lv = v.ownLive || (v.vinLiveMatch && { line: "", listing: v.vinLiveMatch.listing }),', c => { ENDED(c); c.vehicle.vinLiveMatch = LIVE(PAST); }, r => r.live !== null],
+  ["a heading with no rows", '$("own-h").textContent = b && b.rows && b.rows.length ? b.heading || "" : "";', '$("own-h").textContent = "This car has sold before";', LIVEONLY, r => r.heading !== ""],
+  ["a row that does not link", 'r.url ? el("a", {', 'false ? el("a", {', FULL, r => r.rows[0].href === null],
+  ["a Listed now with no listing", 'var has = !!(b && b.rows && b.rows.length) || !!(lv && lv.listing);', 'var has = true; lv = lv || {}; lv.listing = lv.listing || {};', NONE, r => /Listed now/.test(r.page) || r.vis],
+  ["the last sale mark dropped", 'var src = f.sourceLine || (f.source', 'var src = null && (f.source', LASTSALE, r => !r.marks.body.includes("From its last sale")]]) {
+  ok(SRC.includes(from), "the mutant applies: " + label); const r = await run(on, { html: x => x.replace(from, to) }); ok(bad(r), "mutant caught: " + label); }
+await b.close();
+done("deskV4OwnHistoryCheck");

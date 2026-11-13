@@ -2529,6 +2529,12 @@ try {
   record("Desk v4 seller facts: the head's Contact and Location lines and the Title status and Mileage original rows print what the case carries and nothing else, a yes or no in the server's word, with mutants (scripts/deskV4SellerFactsCheck.mjs)", false, String((e.stdout || e.message || "")).slice(-200));
 }
 try {
+  const out = execSync("node scripts/deskV4OwnHistoryCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 own history: This car has sold before (each prior sale as sent, newest first, linked) above What the market paid, Listed now only when the server sent a listing, the From its last sale mark; mutants (scripts/deskV4OwnHistoryCheck.mjs)", /\b0 FAIL/.test(out), (out.trim().split("\n").pop() || "").slice(0, 160));
+} catch (e) {
+  record("Desk v4 own history: This car has sold before (each prior sale as sent, newest first, linked) above What the market paid, Listed now only when the server sent a listing, the From its last sale mark; mutants (scripts/deskV4OwnHistoryCheck.mjs)", false, String((e.stdout || e.message || "")).slice(-200));
+}
+try {
   const out = execSync("node scripts/deskV4ReserveModeCheck.mjs", { encoding: "utf8", timeout: 300000 });
   record("Desk v4 Reserve or no reserve: the engine's line, both counts and the thin line print as sent, the no reserve choice is disabled when thin until the why line is written and writes report.reserveMode, the seller's preference as the case words it, a forwarded lead's own words in Documents; mutants (scripts/deskV4ReserveModeCheck.mjs)", "PASS", (out.match(/deskV4ReserveModeCheck: .*/) || [""])[0]);
 } catch (e) {
