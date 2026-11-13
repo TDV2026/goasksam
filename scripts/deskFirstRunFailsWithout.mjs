@@ -121,12 +121,18 @@ const MUT = [
   ["the prefill takes the archive's gearbox column as it stands", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("transmission: cleanGearbox(archive.transmission),", "transmission: archive.transmission || null,")],
   ["the prefill takes the archive's colour text as it stands", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("colour: cleanColour(archive.colour),", "colour: archive.colour || null,")],
   ["the prefill takes the archive's body text as it stands", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("body: cleanBody(r.bodyStyle) || cleanBody(archive.bodyStyle),", "body: r.bodyStyle || archive.bodyStyle || null,")],
-  ["the resolver's trim is accepted though it is not the listing's words", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("if (t && t.trim && norm(t.trim) === norm(words)) return t;", "if (t && t.trim) return t;")],
+  ["the resolver's trim is accepted though it is not the listing's words", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("if (t && t.trim && norm(t.trim).split(\" \").every(x => have.has(x))) return t;", "if (t && t.trim) return t;")],
   ["the case's decode takes the archive's body text as it stands", "deskTypedCasesCheck", "lib/sheetRead.js", rep("cleanBody(archive && archive.bodyStyle) || null", "(archive && archive.bodyStyle) || null")],
   ["a lookup that failed is not asked again", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("if (!a && st.failed) {", "if (false) {")],
   ["a lookup that failed is remembered as no record", "deskTypedCasesCheck", "lib/sheetRead.js", rep("if (!deps && !archiveFailed && (archive || facts || liveMatch))", "if (!deps && (archive || facts || liveMatch))")],
   ["the match never says its lookup failed", "deskTypedCasesCheck", "lib/_flags.js", rep("if (status) status.failed = true; return null; }", "return null; }")],
-  ["the form's decode takes the archive without asking again", "deskTypedCasesCheck", "lib/desk/vinStep.js", rep("const { archive } = await archiveLookup(", "const { archive } = await ((m, e, v) => m(e, { vin: v }).then(a => ({ archive: a })).catch(() => ({ archive: null })))(")]
+  ["the form's decode takes the archive without asking again", "deskTypedCasesCheck", "lib/desk/vinStep.js", rep("const [{ archive }, liveMatch, facts] = await Promise.all([\n    archiveLookup(", "const [{ archive }, liveMatch, facts] = await Promise.all([\n    ((m, e, v) => m(e, { vin: v }).then(a => ({ archive: a })).catch(() => ({ archive: null })))(")],
+  ["the prefill resolves the archive's chassis code as the model", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("model = f ? f.model : nameplateOf(archive.make, archive.model);", "model = archive.model;")],
+  ["the prefill ignores the decode's model for the nameplate", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("model = f ? f.model : nameplateOf(archive.make, archive.model);", "model = nameplateOf(archive.make, archive.model); void f;")],
+  ["a chassis code is not read as the 911", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("PORSCHE_911_CODES.includes(norm(model)) ? \"911\" : model;", "false ? \"911\" : model;")],
+  ["the two phrasings of the car's own listing are asked one after the other", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("const [withWords, bare] = await Promise.all([words ? ask(base + \" \" + words) : null, ask(base)]);", "const withWords = words ? await ask(base + \" \" + words) : null, bare = await ask(base);")],
+  ["the VIN step asks its three reads one after the other", "deskTypedCasesCheck", "lib/desk/vinStep.js", rep("    (ctx.liveMatch || (async", "    await (ctx.liveMatch || (async")],
+  ["the read resolves the car's own listing after the plan, on every read", "deskTypedCasesCheck", "lib/sheetRead.js", rep("[plan, ownVeh] = await Promise.all([planP, ownP]);", "plan = await planP; ownVeh = await ownP;")]
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
