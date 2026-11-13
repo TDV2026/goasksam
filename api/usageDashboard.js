@@ -6113,6 +6113,18 @@ if (task === "optiondetail") {
   }
   // task=warmDay&day=YYYY-MM-DD (launch warm, Oct 28 2026): read-only count of the stored answers (Market Check MCWARM rows, and the Buy/Tasks core rows
   // apart) not stored on that UTC day, for the live engine version. The launch gate is offDay = 0 on the MCWARM rows (lib/warmDay.js, scripts/warmDayCheck.mjs).
+  // task=noneRows (Lane B, Nov 13 2026; READ-ONLY, zero OldCarsData, zero writes): the stored "no figures" rows a failed read left in spec_market_cache (kind none, the generic refusal line find.none, no not-tracked line, no zero-thin flag): the rows behind a Find card that reads
+  // "Not read. No figures are shown for this car yet." after the fix. Returns the count, by year, up to 25 examples. task=noneRowsClear deletes exactly those rows (a dry run unless confirm=1; each delete re-checks the filter, so a row rewritten meanwhile stays).
+  if (task === "noneRows" || task === "noneRowsClear") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { listNoneRows, clearNoneRows } = await import("../lib/ops/noneRows.js");
+    const found = await listNoneRows(env, { after: String(req.query?.after || "") });
+    if (found.readFailed) return res.status(200).json({ task, readFailed: true, ocdSpend: 0, writes: 0 });
+    if (task === "noneRows") return res.status(200).json({ task, ocdSpend: 0, writes: 0, count: found.count, byYear: found.byYear, examples: found.examples, next: found.next, pages: found.pages });
+    if (String(req.query?.confirm || "") !== "1") return res.status(200).json({ task, dryRun: true, wouldClear: found.count, byYear: found.byYear, next: found.next, ocdSpend: 0, writes: 0, note: "add confirm=1 to delete these rows" });
+    const out = await clearNoneRows(env, found.keys);
+    return res.status(200).json({ task, dryRun: false, ...out, next: found.next, ocdSpend: 0, writes: out.deleted });
+  }
   // task=refusals (Lane B, Oct 29 2026; READ-ONLY, zero OldCarsData, zero writes): every stored answer whose tier is a refusal, by the kind and the failed checks (the sentence "No figures are shown because this car could not be checked." is the invariant refusal), with the key and up to 40 examples.
   // The sweep behind "which live cards say could not be checked, and why". Pages 1,000 stored rows a call (?after= the last key); filter ?kind= (invariant_failed, not_a_car, builder_car, thin, ...).
   if (task === "refusals") {
