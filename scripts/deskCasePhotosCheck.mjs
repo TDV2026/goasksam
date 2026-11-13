@@ -38,5 +38,10 @@ try {
   const worked = await A.handleSheetAction("case_discard", { id: r.id }, ctx());
   ok("case_discard refuses a case that was worked on (edited after it was made)", worked.ok === false && sheets().some(x => x.id === r.id), String(worked.why));
   ok("the page asks case_discard when a photo is refused, and sends photos in a form that takes HEIC and PNG", /case_discard/.test(fs.readFileSync(path.join(root, "lib/preview/deskV4Client.js"), "utf8")) && /image\/heic/.test(fs.readFileSync(path.join(root, "lib/preview/deskV4.js"), "utf8")));
+  // 5. THE SAVED PHOTO ON THE CASE PAGE (Lane C's live run: url, width and height null on the saved items). The size rides on the sheet beside the path; the signed url is made when the case is served, on the answer of case_new, case_get and case_edit alike.
+  const sgn = { ...ctx(), signUrl: async (e, o, p) => "https://signed.example/" + p }, mk3 = await A.handleSheetAction("case_new", { year: "1999", make: "Porsche", model: "911", photos: [{ name: "s.jpg", data: b(jpg) }] }, sgn);
+  const it3 = x => x.case.photos.items[0], got = await A.handleSheetAction("case_get", { id: mk3.id }, sgn), ed = await A.handleSheetAction("case_edit", { id: mk3.id, op: "photo_add", name: "t.png", data: b(png) }, sgn);
+  ok("the saved photo carries its address and its size in the answer of case_new, case_get and case_edit", [mk3, got, ed].every(x => x.ok && x.case.photos.items.every(p => /^https:\/\/signed\.example\/hagerty\//.test(p.url || "") && p.width > 0 && p.height > 0)), JSON.stringify([it3(mk3), it3(got)]));
+  ok("the stored sheet keeps the size and never a signed url", (await store.get("hagerty", mk3.id)).submission.photos.every(p => p.width > 0 && p.height > 0 && p.url == null));
 } finally { globalThis.fetch = f0; }
 console.log(`deskCasePhotosCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
