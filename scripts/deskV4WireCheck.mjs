@@ -17,11 +17,10 @@ const TRACE = () => {
   walk(window.__v4.K()); walk(window.__v4.D); const arr = [...M].filter(Boolean);
   const covered = (t, depth = 0) => { t = t.replace(/\s*↗/g, "").replace(/^[\s·.]+/, "").replace(/[\s·.]+$/, ""); if (!t) return true; if (arr.some(m => m === t || m.replace(/[\s·.]+$/, "") === t)) return true; if (depth > 4) return false; return arr.some(m => m.length >= 4 && t.startsWith(m.replace(/[\s·.]+$/, "")) && covered(t.slice(m.replace(/[\s·.]+$/, "").length), depth + 1)); };
   const allowed = e => e.closest("#ccount,#pcount,#showall,#attN,#dcount,#stepAuto,.steps .num,#vtabs .bdg");   // the tab badge is a count of the case's own open items, the same count #attN prints
-  const axisOk = (e, t) => !!e.closest("#axis") && M.has(String(Number(t.replace(/[^0-9.]/g, ""))));   // a tick label on the price axis is covered when the figure it names is one the engine sent (its own axisTicks label, or the sent figure in the same money form)
   const bad = [], seen = [];
   for (const root of [document.getElementById("col"), document.getElementById("val")]) {
     const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    for (let n; (n = w.nextNode());) { const t = n.nodeValue.trim(); if (!t || !/\d/.test(t) || n.parentElement.closest("script,style,#newcase,select")) continue; if (allowed(n.parentElement)) continue; seen.push(t); if (!covered(t) && !axisOk(n.parentElement, t)) bad.push(t); }
+    for (let n; (n = w.nextNode());) { const t = n.nodeValue.trim(); if (!t || !/\d/.test(t) || n.parentElement.closest("script,style,#newcase,select")) continue; if (allowed(n.parentElement)) continue; seen.push(t); if (!covered(t)) bad.push(t); }
     for (const i of root.querySelectorAll("input,textarea")) { if (i.type === "file" || i.type === "checkbox" || i.closest("#newcase")) continue; const t = String(i.value || "").trim(); if (!t || !/\d/.test(t) || allowed(i)) continue; seen.push(t); if (!covered(t)) bad.push(t); }
   }
   return { bad, n: seen.length };
@@ -63,6 +62,16 @@ await run("a page built count (the sales listed, counted by the page, while the 
 await run("a page built range (q1 and q3 joined by the page)", h => h.replace('id: "mBand", text: e.typicalLine', 'id: "mBand", text: "$" + e.q1 + " to $" + e.q3'), true);
 await run("a blank where the engine sent a price line", h => h.replace('text: c.priceLine || ""', 'text: ""'), "blank");
 await run("arithmetic on a sent figure (a Math.round on the median line)", h => h.replace('id: "mMed", text: e.medianLine', 'id: "mMed", text: String(Math.round(e.median * 1.1))'), true);
-await run("a price axis label that is not a figure the engine sent (the typical low labelled with a typed figure)", h => h.replace('two(e.typicalLine)[0]], [e.median', '"$12,345"], [e.median'), true);
+// THE AXIS CLASS: every tick label on the page, in every window, is a string the server sent in that window's axisTicks, and the page source has no cut of an engine line into labels
+ok(!/split\(\s*" to "\s*\)/.test(SRC), "the client source never cuts an engine line at \" to \" to make a label");
+{ const p = await openLive(b); const out = [];
+  for (const m of [6, 12, 24]) { await p.evaluate(mm => { const K = window.__v4.K(); K.desk.evidence.windowMonths = mm; window.__v4.plot(); }, m);
+    out.push(await p.evaluate(() => { const e = window.__v4.K().desk.evidence, sent = ((e.byWindow[String(e.windowMonths)] || {}).axisTicks || []).map(t => t.label), got = [...document.querySelectorAll("#axis text")].map(t => t.textContent); return { got, sent, bad: got.filter(g => !sent.includes(g)) }; })); }
+  await p.close(); ok(out.every(o => o.got.length >= 2 && o.bad.length === 0), `every price axis label, in each of the three windows, is a string the server sent in axisTicks (${out.map(o => o.got.join(" ")).join(" | ")})`); }
+{ const FALL = h => h.replace(/ticks = \(win && Array\.isArray\(win\.axisTicks\) \? win\.axisTicks : \[\]\)/, 'two = function (l) { return l ? String(l).split(" to ") : []; }, ticks = [[e.low, two(e.extremesLine)[0]], [e.q1, two(e.typicalLine)[0]], [e.median, e.medianLine], [e.q3, two(e.typicalLine)[1]], [e.high, two(e.extremesLine)[1]]].filter(function (a) { return a[0] != null && a[1]; }).map(function (a) { return { value: a[0], label: a[1] }; })');
+  ok(FALL(SRC) !== SRC, "the mutant that restores the fallback applies to the source");
+  ok(/split\(\s*" to "\s*\)/.test(FALL(SRC)), "mutant caught: the fallback that cuts the engine's lines into tick labels (source scan)");
+  const p = await openLive(b, { mutate: FALL }); const r = await p.evaluate(() => { const e = window.__v4.K().desk.evidence; e.byWindow[String(e.windowMonths)].axisTicks = [{ value: 20000, label: "$20,000" }, { value: 30000, label: "$30,000" }, { value: 40000, label: "$40,000" }, { value: 50000, label: "$50,000" }, { value: 60000, label: "$60,000" }]; window.__v4.plot(); const sent = e.byWindow[String(e.windowMonths)].axisTicks.map(t => t.label); return [...document.querySelectorAll("#axis text")].map(t => t.textContent).filter(g => !sent.includes(g)); }); await p.close();
+  ok(r.length > 0, "mutant caught: with the fallback restored, a tick label appears that the server did not send"); }
 await b.close();
 done("deskV4WireCheck");
