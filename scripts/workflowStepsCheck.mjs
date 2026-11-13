@@ -45,7 +45,7 @@ const ADVISORY = {
 };
 // The longest each nightly step ran in the public run record (#138 to #140, Nov 11 to 13 2026), in minutes. The timeout must be at least this and a tenth over.
 const OBSERVED = [[/Rebuild VIN index/, 7.8], [/Refresh spec market cache/, 15.3], [/Recompute invalidated spec cache rows/, 4.2], [/Build spec_pages/, 3.4], [/Precompute VIN rollout cache/, 19.1], [/Rebuild the Desk aggregates cube/, 2.9], [/Ingest \(backfill range/, 1.8]];
-const WARMMC_SEC_PER_NAMEPLATE = 0;   // filled from the measured run (the slowest nameplate, seconds)
+const WARMMC_SEC_PER_NAMEPLATE = 24;   // one cold read under the nightly's own load: the cold p95 is about 16 s (onebox latency gate) plus the car-only Sell block; a quiet run measured 2.7 s each (29 in 94 s, Nov 13)
 
 const files = fs.readdirSync(path.join(root, ".github/workflows")).filter(f => /\.ya?ml$/.test(f));
 for (const f of files) {
