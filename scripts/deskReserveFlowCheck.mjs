@@ -19,10 +19,10 @@ const n1 = calls.length, w6 = await run("case_edit", { id: nw.id, op: "window", 
 ok("the period op takes the engine's six month view from the case and asks the engine nothing", w6.ok && w6.recalled === false && calls.length === n1 && w6.case.windowMonths === 6 && w6.case.desk.evidence.windowMonths === 6, J(w6).slice(0, 160));
 ok("the engine-sourced reserve followed the new period to the engine's new start, and the check is of that figure", w6.case.reserve.source === "engine" && w6.case.reserve.figure === w6.case.desk.reserveStart.figure && w6.reserveCheck && w6.reserveCheck.reserve === w6.case.reserve.figure);
 ok("the answer carries reserveCheck and reserveStart at the top for the page", w6.reserveCheck && w6.reserveStart && w6.reserveStart.figure === w6.case.reserve.figure);
-ok("a period that is not 6, 12 or 24 is refused, and the case is unchanged", (await run("case_edit", { id: nw.id, op: "window", months: 9 }, 2)).refused === true && (await store.get("t", nw.id)).case.windowMonths === 6);
+ok("a period that is not 3, 6, 12 or 24 is refused (24 only when the record reaches back more than a year), and the case is unchanged", (await run("case_edit", { id: nw.id, op: "window", months: 9 }, 2)).refused === true && (await store.get("t", nw.id)).case.windowMonths === 6);
 const n2 = calls.length, same = await run("case_edit", { id: nw.id, op: "window", months: 6 }, 2);
 ok("the same period again costs no read", same.ok && calls.length === n2 && same.recalled === false);
-for (const m of [24, 12]) { const w = await run("case_edit", { id: nw.id, op: "window", months: m }, 3); ok(`period ${m}: the case holds the engine's ${m} months`, w.ok && w.case.windowMonths === m && w.case.desk.evidence.windowMonths === m && w.case.reserve.figure === w.case.desk.reserveStart.figure); }
+for (const m of [3, 12]) { const w = await run("case_edit", { id: nw.id, op: "window", months: m }, 3); ok(`period ${m}: the case holds the engine's ${m} months`, w.ok && w.case.windowMonths === m && w.case.desk.evidence.windowMonths === m && w.case.reserve.figure === w.case.desk.reserveStart.figure); }
 // 3. a typed figure is the analyst's: the engine checks it, no read moves it, its lines are the engine's
 const ev = (await store.get("t", nw.id)).case.desk.evidence, typed = ev.q3 + 4000, nT = calls.length;
 const t1 = await run("case_edit", { id: nw.id, op: "reserve", patch: { figure: typed } }, 4);
@@ -32,7 +32,7 @@ ok("the position and reached lines are the engine's, character for character", t
 ok("an unsupported reserve blocks finalizing until it is marked as the seller's request", t1.readiness.blockers.some(b => b.key === "reserve_support"));
 const sr = await run("case_edit", { id: nw.id, op: "reserve", patch: { sellerRequested: true } }, 5);
 ok("marking it the seller's request lifts that blocker, costs no read, and logs one audit line", sr.ok && sr.recalled === false && !sr.readiness.blockers.some(b => b.key === "reserve_support") && sr.case.reserve.sellerRequested === true && sr.case.audit.filter(a => a.what === "reserve seller request").length === 1);
-const wA = await run("case_edit", { id: nw.id, op: "window", months: 24 }, 6);
+const wA = await run("case_edit", { id: nw.id, op: "window", months: 3 }, 6);
 ok("a later period does not move the analyst's figure, and the engine checks it again for the new period", wA.case.reserve.figure === typed && wA.case.reserve.source === "analyst" && wA.reserveCheck.reserve === typed && wA.case.reserve.sellerRequested === true);
 // 4. the why: the analyst's edit is theirs and no read reseeds it
 const wy = await run("case_edit", { id: nw.id, op: "reserve", patch: { why: "The seller asked for this figure." } }, 7);
@@ -48,7 +48,7 @@ ok("every reserve change leaves an audit line in the table's words, none typed",
   ok("an old case's figure is the analyst's, its rationale is the why, and the engine's start never replaces them", r.figure === 30000 && r.source === "analyst" && r.why === "Old note." && r.whyEdited === true && rr.case.desk.reserveCheck.reserve === 30000); }
 // 7. THE CLASS: whichever period, condition tier and reserve, the case's position is the engine's answer for that figure, never a comparison made here
 { let n = 0, bad = [];
-  for (const months of [6, 12, 24]) for (const tier of [null, 2, 3, 4]) for (const f of [null, "lo", "hi"]) {
+  for (const months of [3, 6, 12]) for (const tier of [null, 2, 3, 4]) for (const f of [null, "lo", "hi"]) {
     let c = await readyCase(); c = K.setWindow(c, months, T) || c; c = K.setCondition(c, tier ? { tier, name: "x" } : null, T); c = (await K.refreshEvidence(c, read, { caseDate: today, now: T })).case;
     const e = c.desk.evidence, fig = f === "lo" && e.q1 != null ? e.q1 - 1 : f === "hi" && e.q3 != null ? e.q3 + 1 : null; if (f && fig == null) continue;
     if (f) { c = K.setReserve(c, { figure: fig }, T); c = (await K.refreshEvidence(c, read, { caseDate: today, now: T })).case; } n++;
