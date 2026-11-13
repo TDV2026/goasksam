@@ -58,7 +58,7 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
 // CAUSE: the header's sales are the case's population (the condition and the mileage band cut), and the condition's own line (desk.rungs) counted the car's sales of that condition with no mileage cut, so one window had two counts.
 // OTHER CARS AND PAGES: every Desk case with a condition chosen, on the workspace (header, support line, condition line, reserve check), the report's market line and the PDF. CLASS: for EVERY (condition, period) of the read, every count printed for the window equals the length of the window's sales list.
 { const DV = await imp("lib/deskV3.js"); let views = 0, counts = 0; const off = [];
-  for (const t of [0, 1, 2, 3, 4]) for (const m of [6, 12, 24]) {
+  for (const t of [0, 1, 2, 3, 4]) for (const m of [3, 6, 12]) {
     const k = K.setWindow(K.setCondition(base, t ? { tier: t, name: "x" } : null, T), m, T), d = k.desk, N = d.sales.length, found = []; views++;
     const num = (what, x) => { if (x != null && x !== "") found.push([what, Number(x)]); };
     num("evidence.count", d.evidence.count); num("evidence.countLine", (String(d.evidence.countLine).match(/^(\d+) sale/) || [])[1]); num("evidence.sentence", (String(d.evidence.sentence || "").match(/(\d+) on record/) || [])[1]);
@@ -104,7 +104,7 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
 // CAUSE: the button counted desk.sales (the window's population) and the list is desk.comparables (the population and the near matches the engine adds when the pool is thin), two fields for one list; and the why line said "miles not stated" whenever the CAR's miles were missing, even for a sale whose miles the row prints.
 // OTHER CARS AND PAGES: every car, every period and condition; the workspace list, the button, and the report's comparable cards. CLASS: in every view the count the button reads (desk.comparablesCount) is the length of the list, and no row's why line says its miles are not stated while the row carries a miles line.
 { const DV = await imp("lib/deskV3.js"); let rows = 0; const off = [];
-  for (const t of [0, 1, 2, 3, 4]) for (const m of [6, 12, 24]) { const d = K.setWindow(K.setCondition(base, t ? { tier: t, name: "x" } : null, T), m, T).desk;
+  for (const t of [0, 1, 2, 3, 4]) for (const m of [3, 6, 12]) { const d = K.setWindow(K.setCondition(base, t ? { tier: t, name: "x" } : null, T), m, T).desk;
     if (d.comparablesCount !== d.comparables.length) off.push(`${t}:${m} count ${d.comparablesCount} vs list ${d.comparables.length}`);
     for (const c of d.comparables) { rows++; if (c.milesLine && /\bmiles not stated/.test(String(c.why))) off.push(`${t}:${m} ${c.id} prints miles and says not stated`); } }
   const day = 864e5, iso2 = n => new Date(Date.parse(today) - n * day).toISOString().slice(0, 10), rs = [10, 40, 90, 120].map((n, i) => ({ id: "m" + i, price: 20000 + i * 500, date: iso2(n), miles: 30000 + i * 1000, platform: "Bring a Trailer", tier: null, inPopulation: true, year: 2005, gearbox: "manual", generation: "R50" }));
@@ -140,7 +140,7 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   ok("a car with a gearbox and a body keeps the words it had", RW.deskPopulationWords({ transmission: "Manual", body: "Coupe", label: "x" }) === "manual coupes"); }
 // ---------- THE ANY CONDITION BUTTON SAYS WHAT ITS CLICK DELIVERS (Lane C's run) ----------
 // CLASS: in every view of every period, the Any condition button's count is the count of the case's evidence once it holds no condition.
-{ const J = x => JSON.stringify(x), off = []; for (const m of [6, 12, 24]) for (const t of [0, 1, 2, 3, 4]) { const here = K.setWindow(K.setCondition(base, t ? { tier: t, name: "x" } : null, T), m, T).desk, any = K.setWindow(K.setCondition(base, null, T), m, T).desk;
+{ const J = x => JSON.stringify(x), off = []; for (const m of [3, 6, 12]) for (const t of [0, 1, 2, 3, 4]) { const here = K.setWindow(K.setCondition(base, t ? { tier: t, name: "x" } : null, T), m, T).desk, any = K.setWindow(K.setCondition(base, null, T), m, T).desk;
     if (!here.anyCondition || here.anyCondition.count !== any.evidence.count || here.anyCondition.countLine !== any.evidence.countLine) off.push(`${t}:${m} button ${J(here.anyCondition)} vs ${any.evidence.count}`); }
   ok("the Any condition button's count is what no condition reads, in every view", !off.length, off.slice(0, 3).join(" | ")); }
 // ---------- NO RESERVE IN THE REPORT (Lane D, Nov 11 2026; Lane B's desk.reserveMode on the engine's answer) ----------
@@ -177,7 +177,7 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
 // CAUSE: the rung buttons and lines were the car's sales of that condition with no mileage cut, and picking a rung reads those sales cut by the mileage band, so a rung had two populations. OTHER CARS AND PAGES: every car with a mileage and tiered sales (the demo 996, the Mustang, the 240Z, the Mini), on the workspace buttons, the rung line and the report's condition tile.
 // CLASS: in EVERY view (condition x period), every rung's count and typical range are the evidence of the view for that rung (what picking it reads): count, q1, median and q3 (or none when the engine has too few).
 { let rungs = 0; const off = [];
-  for (const m of [6, 12, 24]) for (const t of [1, 2, 3, 4]) {
+  for (const m of [3, 6, 12]) for (const t of [1, 2, 3, 4]) {
     const here = K.setWindow(base, m, T).desk, picked = K.setWindow(K.setCondition(base, { tier: t, name: "x" }, T), m, T).desk, rg = here.rungs[t - 1], ev = picked.evidence; rungs++;
     if (rg.count !== ev.count) off.push(`${t}:${m} button ${rg.count} vs pick ${ev.count}`);
     const band = rg.band ? [rg.band.q1, rg.band.median, rg.band.q3].join() : "none", want = ev.insufficient ? "none" : [ev.q1, ev.median, ev.q3].join();
@@ -230,5 +230,30 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   ok("the engine stored the axis on the case (not made at serve time)", Object.values(base.desk.evidence.byWindow).every(w => Array.isArray(w.axisTicks)) && Array.isArray(base.desk.evidence.axisTicks));
   const oldCase = cl(base); for (const w of Object.values(oldCase.desk.evidence.byWindow)) { delete w.axisTicks; delete w.axisMin; delete w.axisMax; }
   for (const [k, w] of Object.entries(mk(oldCase))) good(w, "a case read before the axis existed, window " + k);
+}
+// (4) THE START FOLLOWS THE CONDITION'S RUNG, THE LIVE LINE IS THE PANEL'S ONLY (Lane D, Nov 13 2026)
+{ const DVm = await imp("lib/deskV3.js"), sheetOf = c => ({ id: "l", created_at: T, case: c, submission: { typed: true, photos: [], documents: [] } });
+  // the start of every view: all conditions = the window's low end; a rung with 5 or more sales = that rung's own low end; a rung with fewer stays at all conditions and says so
+  const bad = [], seen = { few: 0, rung: 0 };
+  for (const m of [3, 6, 12]) {
+    const all = K.setWindow(K.setCondition(base, null, T), m, T).desk, allStart = all.reserveStart;
+    for (const t of [1, 2, 3, 4]) {
+      const d = K.setWindow(K.setCondition(base, { tier: t, name: "x" }, T), m, T).desk, rung = d.rungs.find(r => r.tier === t), rs = d.reserveStart;
+      if (rung.band && rung.count >= 5) { seen.rung++; if (!rs || rs.figure !== DVm.roundReserve(rung.band.q1) || rs.note !== null || rs.tooFew) bad.push(`${t}:${m} rung start ${JSON.stringify(rs)} vs ${rung.band.q1}`); }
+      else { seen.few++; const want = allStart && allStart.figure; if (want != null && !(rs && rs.figure === want && rs.tooFew === true && rs.note === `Too few ${d.rungs.find(r => r.tier === t).name} sales to move the start, so it stays at the low end of all conditions.`)) bad.push(`${t}:${m} few ${JSON.stringify(rs)} vs ${want}`); if (want == null && rs && !rs.tooFew) bad.push(`${t}:${m} few without an all-conditions start`); }
+    }
+  }
+  ok("START 1: in every view a rung with 5 or more sales starts at its own low end, and a rung with fewer stays at the low end of all conditions with the table's note", bad.length === 0 && seen.rung > 0, bad.slice(0, 3).join(" | ") + ` (${seen.rung} rungs, ${seen.few} thin)`);
+  ok("START 2: the thin rung's note is in the table and names the condition (Too few Good sales ...)", /^Too few Good sales to move the start, so it stays at the low end of all conditions\.$/.test(DVm.reserveStartOf({ insufficient: true }, 12, { tier: 3, name: "Good", rung: { count: 3, band: null }, anyEvidence: { insufficient: false, q1: 21400 } }).note));
+  ok("START 3: the unit: 5 sales in the rung moves the start, 4 does not, no all-conditions start gives none, no condition is the window's", (() => { const ev = { insufficient: false, q1: 30000 }, a = { insufficient: false, q1: 21400 }, S = (n, any) => DVm.reserveStartOf(ev, 12, { tier: 3, name: "Good", rung: { count: n, band: { q1: 26200 } }, anyEvidence: any }); return S(5, a).figure === 26000 && S(4, a).figure === 21500 && S(4, a).tooFew === true && S(4, { insufficient: true }) === null && DVm.reserveStartOf(ev, 12).figure === 30000; })());
+  // the live line: this car is live now with a bid; the panel says where it stands against the recommended figure; the report never prints it
+  const live = (bid, days) => { const c = cl(base); c.vehicle = { ...(c.vehicle || {}), vinLiveMatch: { listing: { title: "x", endsAt: new Date(Date.parse(T) + days * 864e5).toISOString(), currentBidUsd: bid } } }; return K.setReserve(c, { figure: 17000 }, T); };
+  const line = (bid, days) => V.caseView(sheetOf(live(bid, days)), [], T).reserve.liveLine;
+  ok("LIVE LINE 1: above, below and at the recommended figure, with the days left, in the table's words", line(20000, 3) === "This car is at $20,000 now with 3 days left, above the recommended figure of $17,000." && line(15000, 1) === "This car is at $15,000 now with 1 day left, below the recommended figure of $17,000." && line(17000, 2) === "This car is at $17,000 now with 2 days left, at the recommended figure of $17,000.", [line(20000, 3), line(15000, 1), line(17000, 2)].join(" | "));
+  ok("LIVE LINE 2: no line when the car is not live now (the listing has ended), has no bid, or the case holds no figure", line(20000, -1) === null && line(0, 3) === null && V.caseView(sheetOf((() => { const c = live(20000, 3); c.reserve = { ...c.reserve, figure: null }; return c; })()), [], T).reserve.liveLine === null);
+  { const c = live(20000, 3), RSm = R.reportState(c), txt = JSON.stringify(RSm), pdf = JSON.stringify(R.reportState(K.setReserve(c, { figure: 18000 }, T)));
+    ok("LIVE LINE 3: the report never prints it (the report state holds neither the sentence nor its words)", !/This car is at|now with \d+ days? left|recommended figure of/.test(txt + pdf), ""); }
+  const { readFileSync } = await import("node:fs"), src = ["reportState.js", "reportPdf.js", "reportPdfV3.js"].map(f => readFileSync(path.join(root, "lib/desk", f), "utf8")).join("\n");
+  ok("LIVE LINE 4: the source: the report's module never reads the live line or its words", !/liveLineOf|case\.reserve\.live_vs|reserve\.liveLine/.test(src));
 }
 console.log(`reportConsistencyCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
