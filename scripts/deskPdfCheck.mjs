@@ -95,6 +95,11 @@ ok("only https addresses become links", mini.pdfPages && !Buffer.from((await bui
   ok("case_pdf is one of the case actions and the check sees every one of them", acts.includes("case_pdf") && acts.length >= 6, acts.join()); }
 
 // DESK V4 SELLER REPORT (docs/desk-mockups/desk-v4.html "Report rules"): read back from the file. Every sentence is reportState's v4 object; the PDF only places it.
+// THE CAR'S OWN LAST SALE, PAGE TWO (Lane D, Nov 13 2026): a case whose VIN has sold before prints the car's own last sale as its own line, from the table; a case with no sale of its own prints none
+{ const cO = cl(demo); cO.vehicle = { ownHistory: [{ kind: "no_sale", date: "2026-12-01", venue: "Cars & Bids", highBid: 40000, result: "reserve_not_met", url: null }, { kind: "sale", date: "2026-11-04", venue: "Bring a Trailer", price: 99000, miles: 10000, url: null }] };
+  const pO = pagesOf(await build(cO));
+  ok("OWN SALE: page two prints \"This car last sold in Nov 2026 for $99,000 at 10,000 miles.\" (the last SALE, not a later no-sale)", /This car last sold in Nov 2026 for \$99,000 at 10,000 miles\./.test(pO[1]) && !/This car last sold/.test(pO[0] + pO[2] + pO[3]), pO[1].slice(0, 200));
+  ok("OWN SALE: a case with no sale of its own prints no such line", !/This car last sold/.test(pg.join(" ")) && R.reportState(demo).v4.ownSaleLine === null); }
 const rs = R.reportState(demo), v4 = rs.v4, text = pg.join(" "), ops = mini.pdfTextOps(fin.bytes), at = (page, re) => ops[page].filter(o => re.test(o.text)), money = n => "$" + Math.round(n).toLocaleString("en-US");
 ok("the four pages are headed Reserve recommendation, Why this reserve, The sales behind it and What happens next", ["Reserve recommendation", "Why this reserve", "The sales behind it", "What happens next"].every((h, i) => pg[i].includes(h)));
 ok("page 1 is the engine's title of the car, never the typed label, with the engine's spec line", demo.desk.titleLine && at(0, new RegExp("^" + demo.desk.titleLine.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))).length > 0 && (!demo.desk.specLine || pg[0].includes(demo.desk.specLine.slice(0, 20))), String(demo.desk.titleLine));

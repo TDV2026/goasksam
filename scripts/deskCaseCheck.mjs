@@ -9,7 +9,7 @@ const blank = M.newCase({ now: T });
 ok("a case with no lead data exists", blank.status === "new" && blank.version === 1 && blank.lead_ref === null && blank.seller === null);
 ok("every field starts missing", M.FIELD_KEYS.every(k => blank.fields[k].source === "missing" && blank.fields[k].value === null));
 ok("the record carries every part of the shape", ["org", "lead_ref", "seller", "submitted_at", "opened_at", "status", "fields", "photos", "documents", "needs_review", "condition", "assessment", "reserve", "factors", "exclusions", "audit", "version"].every(k => k in blank) && "suggested" in blank.condition && "selected" in blank.condition && ["figure", "low", "high", "explanation"].every(k => k in blank.assessment) && ["figure", "rationale", "seller_agreed"].every(k => k in blank.reserve));
-ok("the sources are exactly the six", M.SOURCES.join() === "seller,vin_decoded,records,analyst_verified,missing,conflicting");
+ok("the sources are exactly the seven (last_sale, the VIN's own last listing, is the newest)", M.SOURCES.join() === "seller,vin_decoded,last_sale,records,analyst_verified,missing,conflicting");
 // one source per field, conflicts
 let c = M.setField(blank, "year", 2008, "seller", { by: "intake", now: T });
 ok("a value carries its source", c.fields.year.value === 2008 && c.fields.year.source === "seller" && !c.fields.year.verified);
