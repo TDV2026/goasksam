@@ -4,7 +4,7 @@ export { launch, imp, tally, ROOT, V3 };
 const V4 = await imp("lib/preview/deskV4.js"), PV = await imp("lib/preview/deskPreview.js");
 export { V4, PV };
 export async function openLive(b, { w = 1440, h = 900, id = V3.DEMO_ID, mutate = null, dark = false, stub = null, intercept = null, delay = 0 } = {}) {
-  let html = await V4.renderDeskV4({ query: { case: id } }); if (mutate) html = mutate(html);
+  let html = await V4.renderDeskV4({ query: id ? { case: id } : {} }); if (mutate) html = mutate(html);
   const p = await b.newPage(); await p.setViewport({ width: w, height: h }); await p.setRequestInterception(true); p._posts = []; p._err = [];
   p.on("request", async r => { const u = new URL(r.url());
     if (u.host === "goasksam.com" && r.method() === "POST" && u.pathname === "/preview/desk/api") { let bd = {}; try { bd = JSON.parse(r.postData() || "{}"); } catch {} p._posts.push(bd); let out; if (delay && bd.action === "case_edit") await new Promise(z => setTimeout(z, delay)); const own = intercept ? await intercept(bd) : undefined; if (own !== undefined) out = own; else if (bd.action === "case_decode") out = { ok: false, refused: true, why: "A check never decodes a VIN over the network." }; else if (/send/i.test(String(bd.action))) { p._sendCalls = (p._sendCalls || 0) + 1; out = stub ? await stub(bd) : { ok: false, why: "no stub: a check never sends" }; } else out = await PV.previewDeskApi(bd); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(out) }); }   // NEVER a real send: any send action is answered by the check's own stub and never reaches the reader
@@ -15,7 +15,7 @@ export async function openLive(b, { w = 1440, h = 900, id = V3.DEMO_ID, mutate =
   const openTab = sel => p.evaluate(q => { const e = document.querySelector(q), t = e && e.closest("[data-tabpanel]"); if (t && t.hidden && window.__v4tab) window.__v4tab(t.getAttribute("data-tabpanel")); }, sel);
   for (const m of ["click", "focus", "type", "hover"]) { const o = p[m].bind(p); p[m] = async (sel, ...r) => { if (typeof sel === "string") await openTab(sel); return o(sel, ...r); }; }
   if (dark) await p.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }]);
-  await p.goto("https://goasksam.com/preview/desk/case/" + id, { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 400)); return p;
+  await p.goto("https://goasksam.com/preview/desk" + (id ? "/case/" + id : ""), { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 400)); return p;
 }
 // the demonstration case's comparables are the engine's recorded sales (ids from the engine, never typed): the ones with a listing address, in the engine's order
 export const compIds = async (id = V3.DEMO_ID) => (await PV.previewDeskApi({ action: "case_get", id })).case.desk.comparables.filter(c => c.url).map(c => String(c.id));
