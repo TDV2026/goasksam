@@ -191,6 +191,12 @@ console.log("CASE IDS " + ids.join(" "));
     const doors = { "the New case (case_new)": sv("lib/desk/sheetActions.js"), "the forwarded lead and the emailed VIN (the case reader)": sv("lib/desk/intake/toCase.js") };
     ok("CLASS: every door that opens a case on the engine goes through openCaseRead, which takes the own record (fillFromLastSale)", Object.values(doors).every(t => /openCaseRead\(/.test(t)) && /fillFromLastSale\(c0, rd\.own/.test(sv("lib/desk/caseWorkflow.js")), Object.entries(doors).filter(([, t]) => !/openCaseRead\(/.test(t)).map(([k]) => k).join());
     ok("CLASS: no form door asks the decode alone (case_decode and case_pickers use the one step)", !/decodeVinFacts\)\(vin\)/.test(doors["the New case (case_new)"]) && (doors["the New case (case_new)"].match(/vinStep\(ctx, vin\)/g) || []).length === 2);
+    // NEAR-VINS (Lane S's run): the length reason and the check digit reason, in the table's words; a real VIN passes
+    const LEN = n => `That looks like a VIN but it is ${n} characters; a VIN has 17. Check it, or add the year, make and model.`, CD = "That looks like a VIN but its check digit does not match. Check it, or add the year, make and model.";
+    const near = [["WP0AA2995XS62678", LEN(16)], ["WP0-AA2995XS62678", LEN(16)], ["WP0AA2995XS6267855", LEN(18)], ["WP0AA2995XS626786", CD], ["JN1AR5EF1EM271254", CD]];
+    const got = []; for (const [t] of near) { got.push([(await A.handleSheetAction("case_decode", { vin: t }, a.ctx)).why, (await A.handleSheetAction("case_pickers", { vin: t }, a.ctx)).why]); }
+    ok("NEAR-VIN: case_decode and case_pickers refuse a 16 or 18 character near-VIN with its length and a 17 character VIN with a wrong check digit with the check digit reason", near.every(([, want], i) => got[i][0] === want && got[i][1] === want), JSON.stringify(got));
+    ok("NEAR-VIN: a real VIN with a correct check digit is not refused", dec.ok === true && pk.ok === true);
   } finally { globalThis.fetch = f0; }
 }
 

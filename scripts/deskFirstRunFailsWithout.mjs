@@ -113,6 +113,8 @@ const MUT = [
   ["a listing that is live now is not carried on the case", "deskTypedCasesCheck", CW, rep("vinLiveMatch: sheet.own.vinLiveMatch || null }", "vinLiveMatch: null }")],
   ["the New case form's decode ignores the car's own sale", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("decoded = decodedOf(step);   // the one VIN", "decoded = decodedOf({ facts: step.facts });   // the one VIN")],
   ["the car's own listing overwrites what the seller wrote", "deskTypedCasesCheck", "lib/desk/caseModel.js", rep("if (f0.value != null && f0.source !== \"vin_decoded\" &&", "if (false &&")],
+  ["a VIN with a wrong check digit is decoded (no check digit reason)", "deskTypedCasesCheck", "lib/desk/vinStep.js", rep("return vinCheckDigitOk(v) ? null : reasonLine(\"case.decode.refuse_check\");", "return null;")],
+  ["a near-VIN is refused with the generic reason, not its length", "deskTypedCasesCheck", "lib/desk/vinStep.js", rep("v.length >= 11 ? reasonLine(\"case.decode.refuse_length\", { n: v.length })", "false ? reasonLine(\"case.decode.refuse_length\", { n: v.length })")],
   ["a case with no sale of its own still prints an own block", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("ownBlock: rows.length ? {", "ownBlock: !!rows ? {")],
 ];
 function copyTree(dst) {
