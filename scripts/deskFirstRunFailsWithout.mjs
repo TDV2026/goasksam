@@ -88,6 +88,8 @@ const MUT = [
   ["the Any condition rung keeps its old name", "reportConsistencyCheck", "lib/desk/rungs.js", rep('reasonLine("desk4.all_conditions_name")', '"Any condition"')],
   ["a sent or finalized case can be deleted", "deskWorkflowCheck", "lib/desk/sheetActions.js", s => s.replace(/if \(s0\.status === "Finalised"[^\n]*case\.delete\.refuse\.final"\)\);/, "")],
   ["a restore puts the case at the wrong stage", "deskWorkflowCheck", "lib/desk/caseView.js", rep('sheet && sheet.archived ? "archived" : sheet && sheet.status === "Sent" ? "sent" :', 'sheet && sheet.archived ? "archived" : sheet && sheet.archiveEvents ? "new" : sheet && sheet.status === "Sent" ? "sent" :')],
+  ["a saved photo has no size", "deskCasePhotosCheck", "lib/desk/sheetStore.js", rep("url: null, width: width || null, height: height || null, inReport: false }", "url: null, inReport: false }")],
+  ["a stored reserve line is served as stored", "deskWorkflowCheck", "lib/desk/reserveModeLines.js", rep("if (!rm || typeof rm !== \"object\" || !rm.withReserve || !rm.noReserve) return rm;", "return rm;")],
   ["an archived case loses its documents", "deskWorkflowCheck", "lib/desk/caseView.js", rep("documents: allDocs.map(d =>", "documents: (sheet.archived ? [] : allDocs).map(d =>")],
 ];
 function copyTree(dst) {

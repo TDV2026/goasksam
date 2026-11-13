@@ -179,8 +179,14 @@ ok("an item waived with a reason stays waived while its cause stands", (() => { 
   }
   const sh2 = await store.get(org, id2), c2 = sh2.case; await run("case_edit", { id: id2, op: "seller_said", field: "accident_history", text: "None" }); await run("case_edit", { id: id2, op: "verify", field: "accident_history" });
   ok("once the fact is verified the report no longer says it is unverified", !R.reportState((await store.get(org, id2)).case).noteLines.some(l => /accident history has not been verified/.test(l)));
-  const cl = fs.readFileSync(path.join(root, "lib/preview/deskV4Client.js"), "utf8");
-  ok("the needs-attention item asks What the seller said inline, saves it with seller_said, and keeps Proceed without", /placeholder: "What the seller said"/.test(cl) && /edit\("seller_said"/.test(cl) && /text: "Proceed without"/.test(cl));
+  // the page's two buttons by behaviour, not by its wording: Save sends seller_said (saved as the seller's, unverified), Proceed without sends need waived with the reason; both leave the other road open
+  const mk3 = await run("case_new", { year: "1999", make: "Porsche", model: "911", mileage: "50,000" }), id3 = mk3.id;
+  const sv = await run("case_edit", { id: id3, op: "seller_said", field: "service_history", text: "Dealer stamped book" }), f = sv.case && sv.case.fields.service_history;
+  ok("Save: the seller's words are kept on the fact as the seller's, unverified", sv.ok === true && f.value === "Dealer stamped book" && f.source === "seller" && f.verified !== true, J(f) + String(sv.why));
+  const pw = await run("case_edit", { id: id3, op: "need", item: "accident_unclear", state: "waived", reason: "The seller could not say" });
+  ok("Proceed without: the item is waived with the reason and the saved statement is untouched", pw.ok === true && need(pw.case, "accident_unclear").state === "waived" && pw.case.fields.service_history.value === "Dealer stamped book", String(pw.why));
+  const em = await run("case_edit", { id: id3, op: "seller_said", field: "accident_history", text: "  " });
+  ok("an empty statement is refused, nothing is saved", em.ok === false);
 }
 // ---------- WHAT WE TOOK INTO ACCOUNT IS THE ANALYST'S LIST (Lane D, Nov 12 2026), and ONE DOCUMENT LIST. CLASS: every road that adds a document (the Documents card, the needs-attention Received pill, a forwarded email) lists it once in case.documents; the report prints the case's own considered list.
 { const A = await import(pathToFileURL(path.join(root, "lib/desk/sheetActions.js")).href), SS = await import(pathToFileURL(path.join(root, "lib/desk/sheetStore.js")).href), R = await import(pathToFileURL(path.join(root, "lib/desk/reportState.js")).href);
@@ -206,5 +212,19 @@ ok("an item waived with a reason stays waived while its cause stands", (() => { 
   const sh4 = await store.get(org, id); sh4.case.desk.considered = [...sh4.case.desk.considered, { key: "paint", title: "Paint", line: "Taken into account, but the sales do not isolate an effect." }]; await store.put(org, sh4);
   ok("a removed item is never put back, and an edited one keeps the analyst's words when the engine's line moves", !R.reportState((await store.get(org, id)).case).v4.considered.some(x => x.title === "Paint") && R.reportState((await store.get(org, id)).case).v4.considered.some(x => x.text === "The seller's odometer reading, checked against the photo."));
   ok("an empty item is refused", (await run("case_edit", { id, op: "considered_add", title: "x", text: "  " })).ok === false);
+}
+// ---------- SENTENCES ARE MADE WHEN A CASE IS SERVED (Lane D, Nov 12 2026; Sam's live run: the demo case printed an old "Reserve or no reserve" line because the engine's sentence was stored on the case). CLASS: any case seeded or stored under older wording speaks the table's current words on the panel and in the report; the stored case is not changed.
+{ const A = await import(pathToFileURL(path.join(root, "lib/desk/sheetActions.js")).href), SS = await import(pathToFileURL(path.join(root, "lib/desk/sheetStore.js")).href), R = await import(pathToFileURL(path.join(root, "lib/desk/reportState.js")).href), RW = await import(pathToFileURL(path.join(root, "lib/reasonWords.js")).href);
+  const store = SS.memoryStore(); store.reset(); const org = "w", ctx = { now: T, env: {}, org, seat: "ava", store, orgSettings: { name: "Hagerty" }, readSheet: async () => null }, run = (a, b) => A.handleSheetAction(a, b, ctx);
+  const mk = await run("case_new", { year: "1999", make: "Porsche", model: "911" }), id = mk.id, sh = await store.get(org, id);
+  const side = (count, sold, median, soldShare) => ({ count, sold, unsold: count - sold, soldShare, soldShareLine: "old " + soldShare, median, medianLine: "old $" + median });
+  sh.case = { ...sh.case, desk: { ...(sh.case.desk || {}), reserveMode: { windowMonths: 24, withReserve: side(52, 28, 32625, 54), noReserve: side(11, 11, 29250, 100), unflagged: { count: 0, venues: [], line: null }, margin: { minOutcomes: 5, medianPercent: 10, sharePoints: 10 }, recommendation: "unclear", thin: false, thinLine: null, line: "OLD WORDING stored when the case was seeded" } } }; await store.put(org, sh);
+  const want = RW.reasonLine("desk4.rmode_conflict", { res: 52, nores: 11, min: 5 }), g = (await run("case_get", { id })).case;
+  ok("a stored reserve line in old wording is served in the table's current words on the panel", g.desk.reserveMode.line === want && !/OLD WORDING/.test(JSON.stringify(g.desk.reserveMode)), String(g.desk.reserveMode.line));
+  const held = (await store.get(org, id)).case.desk.reserveMode.line; ok("the stored case is not changed by serving it", /OLD WORDING/.test(held));
+  const thin = (await store.get(org, id)); thin.case = { ...thin.case, desk: { ...thin.case.desk, reserveMode: { ...thin.case.desk.reserveMode, thin: true, recommendation: "unclear", withReserve: side(3, 3, null, null), thinLine: "OLD THIN" } } }; await store.put(org, thin);
+  ok("a thin line is made from the stored counts too", /\(3 reserve and 11 no-reserve outcomes/.test((await run("case_get", { id })).case.desk.reserveMode.thinLine));
+  const rs = await store.get(org, id); rs.case = { ...rs.case, report: { ...rs.case.report, reserveMode: { mode: "no_reserve", why: "the seller wants it" } }, desk: { ...rs.case.desk, reserveMode: { ...rs.case.desk.reserveMode, thin: false, recommendation: "no_reserve", withReserve: side(52, 28, 25000, 54), noReserve: side(11, 11, 29250, 100), line: "OLD LEAD" } } }; await store.put(org, rs);
+  const ro = R.reportState((await store.get(org, id)).case).v4.noReserve; ok("the report prints the made line for a case that recommends no reserve", ro && /^The sales of this car lead with no reserve: a median of \$29,250 against \$25,000/.test(ro.line) && !/OLD LEAD/.test(ro.line), String(ro && ro.line));
 }
 console.log(`deskWorkflowCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
