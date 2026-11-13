@@ -71,7 +71,7 @@ const cardsOf = w => (w.matches || []).length + [...(w.groups || []), ...(w.mayb
   rows.splice(0, rows.length, ...Array.from({ length: 24 }, (_, i) => { const y = 1965 + i * 2; return { ...rows0[0], id: 300 + i, source_listing_id: "m" + i, url: "https://auction.test/m/" + i, listing_title: `${y} Ford Mustang ${T9[i]}`, make: "Ford", model: "Mustang", year: y, mileage: 30000 + i * 1500, body: "coupe" }; }));
   const ids = rows.map(r => r.id);
   const ask = async () => (await post({ action: "enrich", ids })).cards || [];
-  const { stillReadingMarket, COLD_WAIT_MS, readFailedMarket } = await imp("lib/live/search.js");
+  const { stillReadingMarket, COLD_WAIT_MS, readFailedMarket, markReadFailed, readFailedRecently } = await imp("lib/live/search.js");
   FAIL.archive = true; FAIL.hits = 0; let failed = await ask();
   const stateOf = c => { const m = c.market; return !m || (m.kind === "pending" && !m.couldNot) ? "pending" : m.couldNot ? "failed" : m.kind; };
   ok("(9) a failed pool read ends every card in the engine's failed-read line on the first ask (the first batch clock), not pending for good and never the refusal \"Not read. No figures are shown for this car yet.\"", failed.length === 24 && failed.every(c => stateOf(c) === "failed" && c.market.readFailed === true && c.market.line === reasonLine("cold.card_missed") && c.market.retry === false), failed.map(stateOf).slice(0, 6));
@@ -81,6 +81,8 @@ const cardsOf = w => (w.matches || []).length + [...(w.groups || []), ...(w.mayb
   FAIL.archive = false; await new Promise(r => setTimeout(r, 2800)); let filled = [], tries = 0;
   for (; tries < 6; tries++) { filled = await ask(); if (filled.every(c => stateOf(c) !== "pending" && stateOf(c) !== "failed")) break; }
   ok("(9) when the read comes back (try again), the same cards fill: nothing latched the failure", filled.length === 24 && filled.every(c => stateOf(c) !== "pending" && stateOf(c) !== "failed"), { tries, states: filled.map(stateOf).slice(0, 8) });
+  markReadFailed("k9"); const now9 = readFailedRecently("k9"); await new Promise(r => setTimeout(r, 2800));
+  ok("(9) a failed read is remembered only for the short while (a later ask reads again, never held as failed for good)", now9 === true && readFailedRecently("k9") === false, [now9, readFailedRecently("k9")]);
   ok("(9) a filled card is never the generic refusal (no 'No figures are shown for this car yet.')", !filled.some(c => c.market && c.market.refusalLine === reasonLine("find.none")), null);
   const sr = stillReadingMarket();
   ok("(9) a card whose read is still running is the engine's being-read line (never Not read), with the engine's own retry and wait", sr.kind === "pending" && sr.line === reasonLine("cold.reading") && !/Not read/.test(sr.line) && sr.retry === true && sr.retryAfterMs > 0 && sr.waitMaxMs === COLD_WAIT_MS && readFailedMarket().retry === false, sr);
@@ -112,7 +114,7 @@ function mutants() {
     ["api/buy.js", "Date.now() - chatT0 < 10000", "true", "(6) the Find client draws the scripted answer at once"],
     ["lib/live/search.js", "if (readDidNotFinish(d)) { if (spec && spec.key) failedReadMem.set(spec.key, Date.now()); return undefined; }", "", "(9) a failed pool read ends every card"],
     ["lib/live/search.js", "return readFailedRecently(spec.key) ? readFailedMarket() : stillReadingMarket();", "return stillReadingMarket();", "(9) a failed pool read ends every card"],
-    ["lib/live/search.js", "failedReadMem.set(spec.key, Date.now()); return undefined; }", "failedReadMem.set(spec.key, Date.now() + 1e12); return undefined; }", "(9) when the read comes back"],
+    ["lib/live/search.js", "if (Date.now() - at < FAILED_READ_MS()) return true;", "return true;", "(9) a failed read is remembered only for the short while"],
     ["api/buy.js", "first.forEach(function(l){ enrichThen([l], function(){ if (block.isConnected && !isPend(l)) redrawCards(block, [l], false); nextAsk(); }); });", "", "(9) the page asks for each of the first six"],
     ["api/buy.js", "enrichThen(still, function(){ redrawCards(block, still, false); nextAsk(); });", "", "(9) the page asks for each of the first six"],
     ["api/buy.js", "l.market = { kind: \\\"pending\\\", couldNot: true, line: CARD_NOT_READ }", "l.market = { kind: \\\"pending\\\", couldNot: true, line: \\\"Not read.\\\" }", "(9) the page gives up on the engine's wait"],
