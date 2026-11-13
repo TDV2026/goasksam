@@ -23,6 +23,11 @@ export function fakePostgrest({ seats = [{ id: 1, org_id: "hagerty", subject: "c
   const fake = async (url, init = {}) => {
     const u = new URL(String(url)), method0 = init.method || "GET", ok0 = (code, body) => ({ ok: code < 300, status: code, json: async () => body, text: async () => JSON.stringify(body) });
     if (u.pathname.includes("/storage/v1/object/list/")) return ok0(200, []);
+    // THE REAL SIGN ROAD (live-shaped): POST /object/sign/<bucket>/<path> answers { signedURL: "/object/sign/<bucket>/<path>?token=..." } only for an object that exists (else 400, as the storage service does); a GET of that address answers the bytes only with the token.
+    if (u.pathname.includes("/storage/v1/object/sign/")) { const key = decodeURIComponent(u.pathname.split("/storage/v1/object/sign/")[1]);
+      if (method0 === "POST") { if (!objects.has(key)) return ok0(400, { error: "not_found", message: "Object not found" }); log.push("SIGN"); return ok0(200, { signedURL: "/object/sign/" + u.pathname.split("/storage/v1/object/sign/")[1] + "?token=tok" }); }
+      if (!objects.has(key) || u.searchParams.get("token") !== "tok") return ok0(400, { error: "InvalidJWT" });
+      const body = Buffer.from(objects.get(key)); return { ok: true, status: 200, headers: { get: h => (/content-type/i.test(h) ? "image/jpeg" : null) }, arrayBuffer: async () => body, text: async () => body.toString("latin1") }; }
     if (u.pathname.includes("/storage/v1/object/")) { const key = decodeURIComponent(u.pathname.split("/storage/v1/object/")[1]); if (method0 === "POST") { objects.set(key, init.body); log.push("OBJECT put"); } else if (method0 === "DELETE") { for (const k of JSON.parse(init.body).prefixes) objects.delete(decodeURIComponent(u.pathname.split("/storage/v1/object/")[1]) + "/" + k); log.push("OBJECT remove"); } return ok0(200, {}); }
     if (u.pathname.endsWith("/rpc/desk_delete_sheet")) { const id = JSON.parse(init.body).p_sheet; for (const t of ["desk_case_versions", "desk_case_exports", "desk_sheet_photos", "desk_sheet_documents"]) tables[t] = tables[t].filter(r => r.sheet_id !== id); tables.desk_sheets = tables.desk_sheets.filter(r => r.id !== id); log.push("RPC delete sheet"); return ok0(200, 1); }
     const table = u.pathname.split("/rest/v1/")[1], rows = tables[table], method = init.method || "GET";

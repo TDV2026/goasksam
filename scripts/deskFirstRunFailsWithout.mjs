@@ -90,6 +90,15 @@ const MUT = [
   ["a restore puts the case at the wrong stage", "deskWorkflowCheck", "lib/desk/caseView.js", rep('sheet && sheet.archived ? "archived" : sheet && sheet.status === "Sent" ? "sent" :', 'sheet && sheet.archived ? "archived" : sheet && sheet.archiveEvents ? "new" : sheet && sheet.status === "Sent" ? "sent" :')],
   ["a saved photo has no size", "deskCasePhotosCheck", "lib/desk/sheetStore.js", rep("url: null, width: width || null, height: height || null, inReport: false }", "url: null, inReport: false }")],
   ["a stored reserve line is served as stored", "deskWorkflowCheck", "lib/desk/reserveModeLines.js", rep("if (!rm || typeof rm !== \"object\" || !rm.withReserve || !rm.noReserve) return rm;", "return rm;")],
+  ["the page's own load reads the stored rows without minting addresses", "deskCasePhotosCheck", "lib/preview/deskV3.js", rep("rows = await mintedRows(listed, openId, (await previewEnv()) || {});", "rows = listed;")],
+  ["the rail's cover photo is not minted", "deskCasePhotosCheck", "lib/preview/deskV3.js", rep("if (!cover || !cover.path) return s;", "return s;")],
+  ["the finalize answer is not minted", "deskCasePhotosCheck", "lib/desk/sheetActions.js", rep("case: caseView(await minted(ctx, org, fresh), await store.list(org), now, seat) };", "case: caseView(fresh, await store.list(org), now, seat) };")],
+  ["a sentence is read back from the stored case", "reportConsistencyCheck", "lib/desk/reserveModeLines.js", rep("const d1 = speakDesk(c.desk),", "const d1 = c.desk,")],
+  ["a switch of period drops the case's ledger of sentences", "reportConsistencyCheck", "lib/desk/caseWorkflow.js", rep("pool: d.pool, ...(d.words ? { words: d.words } : {}) };", "pool: d.pool };")],
+  ["the reserve check's sentences are not recorded in the ledger", "reportConsistencyCheck", "lib/desk/caseWorkflow.js", rep("d.words = compactWords(refs, d, desk.words); return d; };", "d.words = desk.words; return d; };")],
+  ["the engine's read stores no ledger", "reportConsistencyCheck", "lib/onebox.js", rep("if (w.length) dk.words = w; }", "}")],
+  ["the engine's window carries no axis", "reportConsistencyCheck", "lib/deskV3.js", rep("...(e.insufficient ? { axisMin: null, axisMax: null, axisTicks: [] } : axisOf(e.low, e.high, [e.q1, e.q3, e.median])),", "")],
+  ["a case read before the axis existed is served without one", "reportConsistencyCheck", "lib/desk/caseView.js", rep("w && !Array.isArray(w.axisTicks) ? {", "false ? {")],
   ["an archived case loses its documents", "deskWorkflowCheck", "lib/desk/caseView.js", rep("documents: allDocs.map(d =>", "documents: (sheet.archived ? [] : allDocs).map(d =>")],
 ];
 function copyTree(dst) {
