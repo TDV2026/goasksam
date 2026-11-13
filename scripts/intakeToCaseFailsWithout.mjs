@@ -2,7 +2,7 @@
 //   node scripts/intakeToCaseFailsWithout.mjs [only-a-number-to-run-one]
 import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { execFileSync } from "node:child_process"; import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
-const RUN = "lib/desk/intake/run.js", TCm = "lib/desk/intake/toCase.js";
+const RUN = "lib/desk/intake/run.js", TCm = "lib/desk/intake/toCase.js", HF_ = "lib/desk/intake/hagertyForm.js";
 const MUT = [
   ["a forwarded lead makes no case (the bare row it was)", RUN, s => s.replace("if (created) caseMade = (await attachCase(", "if (false) caseMade = (await attachCase(")],
   ["the seller's fields are marked verified", TCm, s => s.replace('source: "seller", origin: "forwarded" });', 'source: "analyst_verified", origin: "forwarded" });')],
@@ -25,6 +25,14 @@ const MUT = [
   ["HAGERTY VERIFIED: the form's answers are marked verified", TCm, s => s.replace('f = (value) => ({ value, source: "seller", verified: false });', 'f = (value) => ({ value, source: "seller", verified: true });')],
   ["HAGERTY FORM TAKEN FOR EVERY EMAIL: a plain email gets a lead block", "lib/desk/intake/hagertyForm.js", s => s.replace("if (keys.length < 5 ||", "if (false &&")],
   ["HAGERTY ONE LINE: a form run together on one line is read as one line, so no form", "lib/desk/intake/hagertyForm.js", s => s.replace(".flatMap(splitInline)", "")],
+  ["SAM'S RESEND 1: the form's Seller name, email and phone are not read onto the case", TCm, s => s.replace("const fsel = (read && read.form && read.form.seller) || {};", "const fsel = {};")],
+  ["SAM'S RESEND 1: a label that sits after other text in a line is not a boundary", HF_, s => s.replace(".filter(i => i > 0); if (!at.length)", ".filter(i => i > 0); if (at.length < 2)")],
+  ["SAM'S RESEND 2: the label's own tail (a full stop, \", if anything.\") opens the answer", HF_, s => s.replace("const TAIL = /^\\s*(?:,\\s*if anything\\b)?\\s*[?:.!\\-]*\\s*/i;", "const TAIL = /^\\s*[?:\\-]*\\s*/;")],
+  ["SAM'S RESEND 2: an attachment marker left in the body is read into the last answer", HF_, s => s.replace(/\.replace\(\/\\\[\[\^\\\]\\n\]\{1,160\}[^\n]*?\/gi, ""\)/, "")],
+  ["SAM'S RESEND 3: the chassis number has no line on the case view", "lib/desk/caseView.js", s => s.replace('if (v("chassis")) lines.chassisLine', 'if (false) lines.chassisLine')],
+  ["SAM'S RESEND 4: the location has no line on the case view", "lib/desk/caseView.js", s => s.replace('if (v("city") || v("state") || v("zip")) lines.locationLine', 'if (false) lines.locationLine')],
+  ["SAM'S RESEND 4: the title has no line on the case view", "lib/desk/caseView.js", s => s.replace('if (v("titleInOwnName") != null || v("titleStatus")) lines.titleLine', 'if (false) lines.titleLine')],
+  ["SAM'S RESEND 5: settling a case nobody has opened moves it out of New leads", "lib/desk/caseWorkflow.js", s => s.replace('if (c.status === "finalized" || c.status === "new") return c;', 'if (c.status === "finalized") return c;')],
   ["a later email is not merged into the case", RUN, s => s.replace("else if (addedTo) await mergeIntoCase(", "else if (false) await mergeIntoCase(")],
   ["a later email rebuilds the case from scratch (the analyst's edits are lost)", TCm, s => s.replace("let c = row.case, nP = 0, nD = 0;", "let c = caseFromLead({ orgId, sheet: row, read, car: null, receivedAt }), nP = 0, nD = 0;")],
   ["the engine is read once and a case edited meanwhile is given up on", TCm, s => s.replace("attempt < 2", "attempt < 1")],

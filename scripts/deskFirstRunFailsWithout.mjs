@@ -103,6 +103,19 @@ const MUT = [
   ["the page's own load serves the stored original email address (none is signed)", "deskV4IntakeQueueCheck", "lib/preview/deskV3.js", rep("rows = await mintedRows(listed, openId, (await previewEnv()) || {});", "rows = listed;")],
   ["desk.evidence carries no axis of its own", "reportConsistencyCheck", "lib/deskV3.js", rep("axisMin: byWindow[String(months)].axisMin, axisMax: byWindow[String(months)].axisMax, axisTicks: byWindow[String(months)].axisTicks, ", "")],
   ["an archived case loses its documents", "deskWorkflowCheck", "lib/desk/caseView.js", rep("documents: allDocs.map(d =>", "documents: (sheet.archived ? [] : allDocs).map(d =>")],
+  // THE CAR'S OWN HISTORY (Nov 13 2026)
+  ["the car's own history is dropped (a case carries no vehicle.ownHistory)", "deskTypedCasesCheck", CW, rep("if (sheet.own) c.vehicle =", "if (false) c.vehicle =")],
+  ["the fields are prefilled from the decode when the car has a last sale of its own", "deskTypedCasesCheck", CW, rep("fillFromDecode(fillFromLastSale(c0, rd.own, now, { fromForm }), rd.car", "fillFromDecode(c0, rd.car")],
+  ["the forwarded lead takes the decode over the car's own last listing", "intakeToCaseCheck", CW, rep("fillFromDecode(fillFromLastSale(c0, rd.own, now, { fromForm }), rd.car", "fillFromDecode(c0, rd.car")],
+  ["the report's page two has no line for the car's own last sale", "deskPdfCheck", "lib/desk/reportState.js", rep("ownSaleLine: out.ownSaleLine || null,", "ownSaleLine: null,")],
+  ["the report state has no line for the car's own last sale", "deskTypedCasesCheck", "lib/desk/reportState.js", rep("out.ownSaleLine = lastSoldLine(lastSaleOf(c.vehicle && c.vehicle.ownHistory));", "out.ownSaleLine = null;")],
+  ["the reserve why does not start from the own-sale line", "deskTypedCasesCheck", DV, rep("if (ownLine) out.unshift(ownLine);", "")],
+  ["a listing that is live now is not carried on the case", "deskTypedCasesCheck", CW, rep("vinLiveMatch: sheet.own.vinLiveMatch || null }", "vinLiveMatch: null }")],
+  ["the New case form's decode ignores the car's own sale", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("decoded = decodedOf(step);   // the one VIN", "decoded = decodedOf({ facts: step.facts });   // the one VIN")],
+  ["the car's own listing overwrites what the seller wrote", "deskTypedCasesCheck", "lib/desk/caseModel.js", rep("if (f0.value != null && f0.source !== \"vin_decoded\" &&", "if (false &&")],
+  ["a VIN with a wrong check digit is decoded (no check digit reason)", "deskTypedCasesCheck", "lib/desk/vinStep.js", rep("return vinCheckDigitOk(v) ? null : reasonLine(\"case.decode.refuse_check\");", "return null;")],
+  ["a near-VIN is refused with the generic reason, not its length", "deskTypedCasesCheck", "lib/desk/vinStep.js", rep("v.length >= 11 ? reasonLine(\"case.decode.refuse_length\", { n: v.length })", "false ? reasonLine(\"case.decode.refuse_length\", { n: v.length })")],
+  ["a case with no sale of its own still prints an own block", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("ownBlock: rows.length ? {", "ownBlock: !!rows ? {")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
