@@ -192,6 +192,23 @@ function datesOf(recent) { return (recent || []).map(r => r.date).filter(Boolean
 // every existing caller in this file (checkOneSpec below) needs no changes.
 export const checkOutputInvariants = runOutputInvariants;
 
+// NOT READ (Lane B, Nov 12 2026, from Lane F's nightly finding): a read that FAILED is not a result. An answer with tier read_failed
+// (lib/onebox.js: "the archive read did not finish"; oneEngineAnswer, the entry the lanes read, answers it as tier unavailable with readFailed and stillReading), a not_tracked answer carrying dedup.queryError, or a lane that threw a database
+// or timeout fault says nothing about whether the products agree, so the spec is listed as NOT READ: one warning line naming it, never
+// a mismatch, never an error, and the exit status is the same as with that spec left out. CAUSE: the script had no read_failed handling,
+// so a failed read on a compared lane was compared as if it were a read (a zero count against a real one is a disagreement). The same
+// class: every per-spec reader below that compares lanes (checkOneSpec is the spec reader; the case checks catch a throw as row.error).
+export const readFailedOf = a => !!a && typeof a === "object" && (a.tier === "read_failed" || a.readFailed === true || (a.tier === "unavailable" && a.stillReading === true) || (a.tier === "not_tracked" && !!(a.dedup && a.dedup.queryError)));
+export const DB_FAULT_RE = /read_failed|archive read|did not finish|did not answer|timed? ?out|timeout|fetch failed|ECONN|ETIMEDOUT|HTTP 5\d\d|\b5\d\d\b (?:from|error)|statement timeout/i;
+export const laneFault = e => { const m = String(e && e.message || e); return DB_FAULT_RE.test(m) ? { ok: false, notRead: true, reason: "not read: " + m.slice(0, 160) } : { ok: false, reason: m }; };
+export function notReadOf(lanes) { const bad = Object.entries(lanes || {}).filter(([, l]) => l && l.notRead).map(([n]) => n); return bad.length ? bad : null; }
+
+// the spec is NOT READ when any lane's read failed: no comparison at all, so no mismatch (exported so the check can feed it lanes of every shape)
+export function markNotRead(row, lanes) {
+  const notRead = notReadOf(lanes); if (!notRead) return false;
+  row.notRead = true; row.notReadLanes = notRead; row.notReadWhy = Object.values(lanes).filter(l => l && l.notRead).map(l => l.reason)[0]; row.lanes = lanes; row.compare = []; row.countsCompare = []; row.anyMismatch = false;
+  return true;
+}
 // ---- Lane 1: Market Check (runOneBox direct) ----
 // asked:2 (Oct 2026, one-engine-entry-point job): this lane used to call with asked:0 (a fresh
 // query's FIRST read), which correctly surfaces a generation_choice/body_choice/variant_choice
@@ -205,11 +222,12 @@ export const checkOutputInvariants = runOutputInvariants;
 // product can actually reach, which is what "one engine, one answer" means here. The *_choice
 // question itself is Market Check's frontend's own concern (already live, confirmed elsewhere in
 // this session) and is intentionally NOT what this harness is checking.
-async function marketCheckLane(vehicle, generation, searchText, env) {
+export async function marketCheckLane(vehicle, generation, searchText, env) {
   // THE PUBLIC PATH (Oct 15 2026, the e53 Camaro split): read through oneEngineAnswer, the shared entry the public API,
   // Buy, Sell and Tasks all use, which applies the output gate; runOneBox alone had hidden a gate refusal from this lane.
   const d = (await oneEngineAnswer(vehicle, generation, searchText, { ...env, exactSale: null, asked: 2 }, null)).raw;
   if (!d || !d.tier) return { ok: false, reason: "no tier" };
+  if (readFailedOf(d)) return { ok: false, notRead: true, reason: "not read: the engine answered " + d.tier };
   // Part 4, the five output checks: run against the raw answer before anything below reduces it.
   const outputInvariants = checkOutputInvariants(d, vehicle);
   const tier = d.tier;
@@ -477,7 +495,12 @@ export async function checkOneSpec(q, env) {
   const row = { q };
   const rv = await resolveVehicle(q, {}).catch(e => ({ error: e }));
   const vehicle = rv && rv.vehicle;
-  if (!vehicle || !vehicle.make) { row.error = "unresolved: " + (rv && (rv.status || rv.error?.message) || "?"); return row; }
+  if (!vehicle || !vehicle.make) {
+    // the resolver's own "Sam is still reading" (status lookup_timeout, or a thrown database fault) is a read that failed: NOT READ, never an error
+    const why = rv && (rv.status || rv.error?.message) || "?";
+    if ((rv && rv.status === "lookup_timeout") || DB_FAULT_RE.test(String(why))) { row.notRead = true; row.notReadLanes = ["resolver"]; row.notReadWhy = "resolver: " + why; row.anyMismatch = false; return row; }
+    row.error = "unresolved: " + why; return row;
+  }
   row.resolved = `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim();
   const generation = await findGeneration(vehicle, env).catch(() => null);
   // searchText is the TYPED words, exactly as the pages pass them (Sam, Oct 14 2026): building it from
@@ -500,13 +523,15 @@ export async function checkOneSpec(q, env) {
   const buyVehicle = await resolveForBuy(q, env).catch(() => null) || vehicle;
 
   const [marketCheck, buy, sell] = await Promise.all([
-    marketCheckLane(vehicle, generation, searchText, env).catch(e => ({ ok: false, reason: String(e && e.message || e) })),
-    buyLane(env, buyVehicle, f).catch(e => ({ ok: false, reason: String(e && e.message || e) })),
-    sellLane(vehicle, generation, env).catch(e => ({ ok: false, reason: String(e && e.message || e) }))
+    marketCheckLane(vehicle, generation, searchText, env).catch(laneFault),
+    buyLane(env, buyVehicle, f).catch(laneFault),
+    sellLane(vehicle, generation, env).catch(laneFault)
   ]);
   // Tasks: the same empty-state fallback Buy uses (see header note) - a second, independent call
   // (not reusing buy's object) so a future divergence between the two call SITES still shows up.
-  const tasks = await buyLane(env, buyVehicle, f).catch(e => ({ ok: false, reason: String(e && e.message || e) }));
+  const tasks = await buyLane(env, buyVehicle, f).catch(laneFault);
+  // a lane whose read failed makes the whole spec NOT READ: no comparison, no mismatch (see readFailedOf above)
+  if (markNotRead(row, { marketCheck, buy, sell, tasks })) return row;
 
   const sellFacts = await sellFactsLane(q, vehicle, env, marketCheck.ok ? marketCheck.count : null).catch(e => ({ ok: false, reason: String(e && e.message || e).slice(0, 120) }));
   row.lanes = { marketCheck, buy, sell, tasks, sellFacts };
@@ -1330,7 +1355,8 @@ export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const skippedSpecs = [], skippedChecks = [];
   const rows = [];
   for (const q of specs) { if (over()) { skippedSpecs.push(q); continue; } rows.push(await checkOneSpec(q, env)); }
-  const totalMismatches = rows.filter(r => r.anyMismatch).length;
+  const notRead = rows.filter(r => r.notRead).map(r => r.q);
+  const totalMismatches = rows.filter(r => r.anyMismatch && !r.notRead).length;
   const singlePick = opts.singlePick === false ? null : over() ? (skippedChecks.push("singlePick"), null) : await checkSinglePick(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const buyPaths = opts.buyPaths === false ? null : over() ? (skippedChecks.push("buyPaths"), null) : await checkBuyPaths(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const liveFences = opts.liveFences === false ? null : over() ? (skippedChecks.push("liveFences"), null) : await checkLiveComparableFences(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
@@ -1345,14 +1371,15 @@ export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
   const refineIsolation = opts.refineIsolation === false ? null : over() ? (skippedChecks.push("refineIsolation"), null) : await checkRefineIsolation(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const formPairs = opts.formPairs === false ? null : over() ? (skippedChecks.push("formPairs"), null) : await checkFormPairs(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const identityCounts = opts.identityCounts === false ? null : over() ? (skippedChecks.push("identityCounts"), null) : await checkIdentityCounts(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  return { task: "crossproductcheck", capHit: skippedSpecs.length + skippedChecks.length > 0, checked: rows.length, skippedSpecs, skippedChecks, ms: Date.now() - t0, formPairs, identityCounts, total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, cacheConsistency, refineKeyIsolation, refineIsolation, specKeyYearIsolation, rows };
+  return { task: "crossproductcheck", capHit: skippedSpecs.length + skippedChecks.length > 0, checked: rows.length, skippedSpecs, skippedChecks, ms: Date.now() - t0, formPairs, identityCounts, total: rows.length, notRead, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, cacheConsistency, refineKeyIsolation, refineIsolation, specKeyYearIsolation, rows };
 }
 
 // ---- CLI ----
-function printTable(result) {
+export function printTable(result) {
   for (const row of result.rows) {
     console.log(`\n=== ${row.q}` + (row.resolved ? `  (resolved: ${row.resolved})` : ""));
     if (row.error) { console.log("  ERROR:", row.error); continue; }
+    if (row.notRead) { console.log(`::warning::not read, the database did not answer: ${row.q} (${row.notReadWhy || "read failed"})`); continue; }
     for (const [name, lane] of Object.entries(row.lanes)) {
       if (!lane.ok) console.log(`  ${name.padEnd(12)} NO READ - ${lane.reason}`);
     }
@@ -1367,7 +1394,7 @@ function printTable(result) {
     if (row.abroad) console.log(`  abroad   live matches=${row.abroad.liveMatches ?? "?"} (${row.abroad.note || row.abroad.error})`);
     for (const r of (row.reasons || [])) console.log(`  reason:  ${r}`);
   }
-  console.log(`\nTOTAL: ${result.mismatchSpecs}/${result.total} specs had at least one field mismatch`);
+  console.log(`\nTOTAL: ${result.mismatchSpecs}/${result.total} specs had at least one field mismatch` + ((result.notRead || []).length ? `, ${result.notRead.length} not read` : ""));
   if (result.singlePick) console.log(`ONE PICK: ${result.singlePick.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.singlePick)}`);
   if (result.buyPaths) console.log(`BUY PATHS: ${result.buyPaths.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.buyPaths)}`);
   if (result.liveFences) console.log(`LIVE FENCES: ${result.liveFences.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.liveFences)}`);

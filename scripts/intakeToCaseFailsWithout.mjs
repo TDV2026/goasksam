@@ -24,6 +24,7 @@ const MUT = [
   ["HAGERTY FREE TEXT: the three answers are not kept as documents", TCm, s => s.replace("if (text && /\\S/.test(text)) out = addDocument(", "if (false) out = addDocument(")],
   ["HAGERTY VERIFIED: the form's answers are marked verified", TCm, s => s.replace('f = (value) => ({ value, source: "seller", verified: false });', 'f = (value) => ({ value, source: "seller", verified: true });')],
   ["HAGERTY FORM TAKEN FOR EVERY EMAIL: a plain email gets a lead block", "lib/desk/intake/hagertyForm.js", s => s.replace("if (keys.length < 5 ||", "if (false &&")],
+  ["HAGERTY ONE LINE: a form run together on one line is read as one line, so no form", "lib/desk/intake/hagertyForm.js", s => s.replace(".flatMap(splitInline)", "")],
   ["a later email is not merged into the case", RUN, s => s.replace("else if (addedTo) await mergeIntoCase(", "else if (false) await mergeIntoCase(")],
   ["a later email rebuilds the case from scratch (the analyst's edits are lost)", TCm, s => s.replace("let c = row.case, nP = 0, nD = 0;", "let c = caseFromLead({ orgId, sheet: row, read, car: null, receivedAt }), nP = 0, nD = 0;")],
   ["the engine is read once and a case edited meanwhile is given up on", TCm, s => s.replace("attempt < 2", "attempt < 1")],

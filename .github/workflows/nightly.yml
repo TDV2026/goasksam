@@ -233,14 +233,14 @@ jobs:
   warm:
     runs-on: ubuntu-24.04
     needs: ingest
-    timeout-minutes: 15
+    timeout-minutes: 25   # the steps below add up to 24 (2 + 2 + 8 + 12): no one step can run the job into the cancel
     # Only the nightly schedule warms; a manual backfill dispatch runs ingest only,
-    # so a large historical pull never also spends warm budget. continue-on-error
-    # keeps a best-effort warm blip from marking the whole run failed.
+    # so a large historical pull never also spends warm budget. There is NO job-level
+    # continue-on-error (Nov 13 2026): it hid the Market Check warm failing every night at its
+    # old 3 minute timeout (#134 to #139 read green). A failed warm step now ends the run red.
     # OCD_SKIP_WARM=1 (repo variable) cleanly SKIPS this job (shows skipped, not failed) to
     # conserve the OCD quota; unset/0 keeps warming.
     if: github.event_name == 'schedule' && vars.OCD_SKIP_WARM != '1'
-    continue-on-error: true
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -260,17 +260,23 @@ jobs:
           test -f scripts/warm.js || { echo "::error::scripts/warm.js not found in checkout"; exit 1; }
           node scripts/warm.js --count=30
       - name: Market Check bare-nameplate warm cache (Round 5 Job 3, archive-only, zero OldCarsData)
-        timeout-minutes: 3
+        id: warmmc
+        # 12 minutes (Nov 13 2026): the list is 29 nameplates, one whole engine read each; the old 3 minute cap killed it partway
+        # every night (3 min 13 s, #134 to #139), so the head was warmed and the tail never was.
+        timeout-minutes: 12
+        # runs even when the rolling warm above failed: each warm step stands on its own
+        if: ${{ !cancelled() }}
         run: |
           set -euo pipefail
           test -f scripts/warmMarketCheck.js || { echo "::error::scripts/warmMarketCheck.js not found in checkout"; exit 1; }
-          node scripts/warmMarketCheck.js
-        # NOTE: this step costs zero OldCarsData (runOneBox reads sales_archive only) and is
-        # deliberately placed in this same job for simplicity - it currently inherits the job-level
-        # OCD_SKIP_WARM gate above even though it has no OCD cost of its own, so a day OCD warming
-        # is paused also skips this free refresh. Accepted for now; split into its own job if that
-        # coupling ever matters in practice. readWarmAnswer's own 24h backstop means a few skipped
-        # nights degrade gracefully to a cache miss (falls through to the live, always-fresh path),
+          node scripts/warmMarketCheck.js | tee warmmc.log
+      - name: Fail loudly when warmed plus refused is below the list length
+        timeout-minutes: 1
+        if: ${{ !cancelled() }}
+        run: node scripts/warmMarketCheck.js --verify=warmmc.log
+        # NOTE: the warm step costs zero OldCarsData (runOneBox reads sales_archive only). It sits in this job and
+        # inherits the job-level OCD_SKIP_WARM gate above, so a day OCD warming is paused also skips this free refresh.
+        # readWarmAnswer's own 24h backstop degrades a few skipped nights to a cache miss (the live, always-fresh path),
         # never a stale answer.
 
   attempts:

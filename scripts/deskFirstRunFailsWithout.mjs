@@ -99,6 +99,9 @@ const MUT = [
   ["the engine's read stores no ledger", "reportConsistencyCheck", "lib/onebox.js", rep("if (w.length) dk.words = w; }", "}")],
   ["the engine's window carries no axis", "reportConsistencyCheck", "lib/deskV3.js", rep("...(e.insufficient ? { axisMin: null, axisMax: null, axisTicks: [] } : axisOf(e.low, e.high, [e.q1, e.q3, e.median])),", "")],
   ["a case read before the axis existed is served without one", "reportConsistencyCheck", "lib/desk/caseView.js", rep("w && !Array.isArray(w.axisTicks) ? {", "false ? {")],
+  ["the panel's reached line is the report's sentence", "reportConsistencyCheck", "lib/desk/caseView.js", rep("reachedLine: rs.reachedShortLine,", "reachedLine: rs.reachedLine,")],
+  ["the page's own load serves the stored original email address (none is signed)", "deskV4IntakeQueueCheck", "lib/preview/deskV3.js", rep("rows = await mintedRows(listed, openId, (await previewEnv()) || {});", "rows = listed;")],
+  ["desk.evidence carries no axis of its own", "reportConsistencyCheck", "lib/deskV3.js", rep("axisMin: byWindow[String(months)].axisMin, axisMax: byWindow[String(months)].axisMax, axisTicks: byWindow[String(months)].axisTicks, ", "")],
   ["an archived case loses its documents", "deskWorkflowCheck", "lib/desk/caseView.js", rep("documents: allDocs.map(d =>", "documents: (sheet.archived ? [] : allDocs).map(d =>")],
 ];
 function copyTree(dst) {
