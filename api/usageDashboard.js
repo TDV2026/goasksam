@@ -6119,7 +6119,7 @@ if (task === "optiondetail") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const { listNoneRows, clearNoneRows } = await import("../lib/ops/noneRows.js");
     const found = await listNoneRows(env, { after: String(req.query?.after || "") });
-    if (found.readFailed) return res.status(200).json({ task, readFailed: true, ocdSpend: 0, writes: 0 });
+    if (found.readFailed) return res.status(200).json({ task, readFailed: true, why: found.why, after: found.after, pages: found.pages, ocdSpend: 0, writes: 0 });
     if (task === "noneRows") return res.status(200).json({ task, ocdSpend: 0, writes: 0, count: found.count, byYear: found.byYear, examples: found.examples, next: found.next, pages: found.pages });
     if (String(req.query?.confirm || "") !== "1") return res.status(200).json({ task, dryRun: true, wouldClear: found.count, byYear: found.byYear, next: found.next, ocdSpend: 0, writes: 0, note: "add confirm=1 to delete these rows" });
     const out = await clearNoneRows(env, found.keys);
