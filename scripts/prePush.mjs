@@ -2331,6 +2331,12 @@ try {
   record("Find: a search with live matches always draws the cars; every narrowing question (generation, body, miles, budget, kind, where, how far) is an offer above them, never the answer alone (scripts/findAlwaysCardsCheck.mjs)", "FAIL", String(e.stdout || "").trim().split("\n").filter(l => l.startsWith("FAIL")).slice(0, 3).join(" | "));
 }
 try {
+  const out = execSync("node scripts/crossProductNotReadCheck.mjs", { encoding: "utf8", timeout: 240000 });
+  record("a read that failed is not read: listed with one warning, no mismatch, no error, exit unchanged, no key still exits 2 (scripts/crossProductNotReadCheck.mjs)", "PASS", out.trim().split("\n").pop());
+} catch (e) {
+  record("a read that failed is not read: listed with one warning, no mismatch, no error, exit unchanged, no key still exits 2 (scripts/crossProductNotReadCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /FAIL/.test(l)).slice(0, 3).join(" | ") || String(e.message).slice(0, 200));
+}
+try {
   const out = execSync("node scripts/findVoiceCheck.mjs", { encoding: "utf8", timeout: 240000 });
   record("Find says one thing: 20 recorded searches through the real search turn and the page's own chip and count code; no count twice, no unused word that a chip used, no card line on a page with no card, the count line agrees with the offer (scripts/findVoiceCheck.mjs)", "PASS", out.trim().split("\n").pop());
 } catch (e) {
