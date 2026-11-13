@@ -8,14 +8,15 @@ import fs from "node:fs"; import path from "node:path"; import os from "node:os"
 const args = process.argv.slice(2), here = path.dirname(fileURLToPath(import.meta.url)), root = path.resolve(args.find(a => !a.startsWith("--")) || path.join(here, ".."));
 if (args.includes("--mutants")) process.exit(mutants());
 process.chdir(root);
-process.env.SUPABASE_URL = "https://fake.supabase.test"; process.env.SUPABASE_SERVICE_ROLE_KEY = "k"; process.env.LAUNCH_STAGE = "2"; process.env.OLDCARSDATA_API_KEY = "unused"; process.env.ANTHROPIC_API_KEY = "unused";
+process.env.SUPABASE_URL = "https://fake.supabase.test"; process.env.SUPABASE_SERVICE_ROLE_KEY = "k"; process.env.LAUNCH_STAGE = "2"; process.env.OLDCARSDATA_API_KEY = "unused"; process.env.ANTHROPIC_API_KEY = "unused"; process.env.FAILED_READ_MS = "2500";
 let pass = 0, fail = 0; const ok = (n, c, d) => { if (c) pass++; else { fail++; console.log("FAIL " + n + (d !== undefined ? " " + JSON.stringify(d) : "")); } };
 const NOW = Date.now(), DAY = 864e5, STATES = ["TX", "CA", "NY", "FL", "WA", "IL"], CITY = { TX: "Austin", CA: "Los Angeles", NY: "Albany", FL: "Miami", WA: "Seattle", IL: "Chicago" };
 const YEARS = [1987, 1995, 2001, 2003, 2008, 2010, 2014, 2016, 2017, 2020, 2022, 2023], TRIMS = ["Carrera", "Carrera", "Carrera 4S", "Carrera", "Carrera S", "Turbo", "Carrera S", "GT3 RS", "Carrera GTS", "Carrera S", "Turbo S", "GT3"], BODY = ["coupe", "coupe", "coupe", "cabriolet", "coupe", "coupe", "coupe", "coupe", "cabriolet", "coupe", "coupe", "coupe"];
 const rows = Array.from({ length: 48 }, (_, i) => { const k = i % 12, st = STATES[i % 6]; return { id: 100 + i, source: i % 3 ? "bringatrailer" : "carsandbids", source_listing_id: "s" + i, url: "https://auction.test/l/" + i, listing_title: `${YEARS[k]} Porsche 911 ${TRIMS[k]}`, make: "Porsche", model: "911", year: YEARS[k], vin_norm: null, mileage: 8000 + i * 2500, mileage_unit: "mi", body: BODY[k], transmission: i % 2 ? "Manual" : "Automatic", location: `${CITY[st]}, ${st}`, country: "US", currency: "USD", current_bid: 30000 + i * 6000, current_bid_usd: 30000 + i * 6000, end_time: new Date(NOW + (1 + i) * 3600e3 * 7).toISOString(), photo_url: "https://img.test/p" + i + ".jpg", status: "live", exterior_color: ["Red", "Black", "White", "Silver"][i % 4], description: "", bid_at: new Date(NOW - 3600e3).toISOString(), last_seen: new Date(NOW).toISOString(), first_seen: new Date(NOW - 5 * DAY).toISOString() }; });
+const rows0 = rows.slice(0, 1);
 // the reads behind a card (the stored markets, the archive, the VIN history) can be slow: DELAY.card is how slow, in ms (the timing section sets it)
-const DELAY = { card: 0, pool: 0 }, MODEL = { calls: 0 };   // MODEL.calls counts the requests that reach the model (api.anthropic.com), which answer 500 here
-globalThis.fetch = async (url) => { const u = String(url); if (/api\.anthropic\.com/.test(u)) { MODEL.calls++; return new Response("{}", { status: 500 }); } if (/\/rest\/v1\/(spec_market_cache|sales_archive|vin_index|auction_attempts|vin_summary)/.test(u) && DELAY.card) await new Promise(r => setTimeout(r, DELAY.card)); if (/\/rest\/v1\/live_listings/.test(u) && DELAY.pool) await new Promise(r => setTimeout(r, DELAY.pool)); return new Response(JSON.stringify(/\/rest\/v1\/live_listings/.test(u) ? rows : []), { status: 200 }); };
+const DELAY = { card: 0, pool: 0 }, MODEL = { calls: 0 }, FAIL = { archive: false };   // FAIL.archive: the archive and the stored markets answer 500 (a pool read that failed)   // MODEL.calls counts the requests that reach the model (api.anthropic.com), which answer 500 here
+globalThis.fetch = async (url) => { const u = String(url); if (/api\.anthropic\.com/.test(u)) { MODEL.calls++; return new Response("{}", { status: 500 }); } if (FAIL.archive && /\/rest\/v1\/(sales_archive|vehicle_market_records)/.test(u)) { FAIL.hits++; return new Response("upstream timeout", { status: 500 }); } if (/\/rest\/v1\/(spec_market_cache|sales_archive|vin_index|auction_attempts|vin_summary)/.test(u) && DELAY.card) await new Promise(r => setTimeout(r, DELAY.card)); if (/\/rest\/v1\/live_listings/.test(u) && DELAY.pool) await new Promise(r => setTimeout(r, DELAY.pool)); return new Response(JSON.stringify(/\/rest\/v1\/live_listings/.test(u) ? rows : []), { status: 200 }); };
 const imp = f => import(pathToFileURL(path.join(root, f)).href);
 const { converse } = await imp("lib/live/converse.js"), { default: bs } = await imp("api/buySearch.js");
 const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
@@ -60,6 +61,34 @@ const cardsOf = w => (w.matches || []).length + [...(w.groups || []), ...(w.mayb
   for (const q of NEEDS) { const r = await turn(q); ok(`(8) not plain "${q}": the model is called`, r.calls >= 1 && !r.direct, r); }
   const f = await turn("Porsche 911 manual", { filters: { make: "Porsche", model: "911" } });
   ok("(8) a follow-up turn (a search already on screen) calls the model", f.calls >= 1 && !f.direct, f); }
+// (9) A PENDING CARD FILLS, OR SAYS WHY (Lane B, Nov 13 2026, Sam's live "Porsche 911": 24 cards read "Not read. No figures are shown for this car yet." and none filled in). CAUSE: a pool read that failed (the archive answered 500: the engine's tier read_failed) was taken by the
+// Find ladder walk (lib/live/search.js walkLadder) for a ladder that ended with no core, stored as a none row with the generic refusal line and remembered, so the card printed "Not read" for good and the page had nothing left to ask for.
+// CLASS: every card of every search, drawn pending, ends in exactly one of two states within the engine's own wait (market.waitMaxMs, asked again every market.retryAfterMs): FILLED (a figure or the engine's own line for a car it read) or, when the read failed, the
+// engine's could-not line that says what to do. A failed read is never a stored refusal, so the read that works a moment later fills the very same card.
+{ const { reasonLine } = await imp("lib/reasonWords.js");
+  // cars no earlier section has read (a spec read once is remembered), so every card here starts cold
+  const T9 = ["GT", "GT", "Mach 1", "Boss 302", "GT", "Shelby GT350", "GT", "Cobra", "GT", "GT", "Mach 1", "GT", "GT", "GT", "GT", "GT", "GT", "GT", "GT", "GT", "GT", "GT", "GT", "GT"];
+  rows.splice(0, rows.length, ...Array.from({ length: 24 }, (_, i) => { const y = 1965 + i * 2; return { ...rows0[0], id: 300 + i, source_listing_id: "m" + i, url: "https://auction.test/m/" + i, listing_title: `${y} Ford Mustang ${T9[i]}`, make: "Ford", model: "Mustang", year: y, mileage: 30000 + i * 1500, body: "coupe" }; }));
+  const ids = rows.map(r => r.id);
+  const ask = async () => (await post({ action: "enrich", ids })).cards || [];
+  const { stillReadingMarket, COLD_WAIT_MS, readFailedMarket } = await imp("lib/live/search.js");
+  FAIL.archive = true; FAIL.hits = 0; let failed = await ask();
+  const stateOf = c => { const m = c.market; return !m || (m.kind === "pending" && !m.couldNot) ? "pending" : m.couldNot ? "failed" : m.kind; };
+  ok("(9) a failed pool read ends every card in the engine's failed-read line on the first ask (the first batch clock), not pending for good and never the refusal \"Not read. No figures are shown for this car yet.\"", failed.length === 24 && failed.every(c => stateOf(c) === "failed" && c.market.readFailed === true && c.market.line === reasonLine("cold.card_missed") && c.market.retry === false), failed.map(stateOf).slice(0, 6));
+  ok("(9) a failed read stores no refusal: no card of it carries a refusal line or the headline Not read", !failed.some(c => /No figures are shown/.test(JSON.stringify(c.market || {}) + (c.cardLine || "")) || c.cardHeadline === "Not read" || (c.market && c.market.kind === "refused")), failed.find(c => c.market && c.market.kind === "refused"));
+  failed = await ask();
+  ok("(9) asked again straight away, every card still says so (the card is not left to be asked for again for the engine's whole wait)", failed.every(c => stateOf(c) === "failed"), failed.map(stateOf).slice(0, 4));
+  FAIL.archive = false; await new Promise(r => setTimeout(r, 2800)); let filled = [], tries = 0;
+  for (; tries < 6; tries++) { filled = await ask(); if (filled.every(c => stateOf(c) !== "pending" && stateOf(c) !== "failed")) break; }
+  ok("(9) when the read comes back (try again), the same cards fill: nothing latched the failure", filled.length === 24 && filled.every(c => stateOf(c) !== "pending" && stateOf(c) !== "failed"), { tries, states: filled.map(stateOf).slice(0, 8) });
+  ok("(9) a filled card is never the generic refusal (no 'No figures are shown for this car yet.')", !filled.some(c => c.market && c.market.refusalLine === reasonLine("find.none")), null);
+  const sr = stillReadingMarket();
+  ok("(9) a card whose read is still running is the engine's being-read line (never Not read), with the engine's own retry and wait", sr.kind === "pending" && sr.line === reasonLine("cold.reading") && !/Not read/.test(sr.line) && sr.retry === true && sr.retryAfterMs > 0 && sr.waitMaxMs === COLD_WAIT_MS && readFailedMarket().retry === false, sr);
+  // the page: it asks for every pending card (the first six each on their own, the rest on the engine's retry) and gives up, on the engine's wait, with the engine's could-not line
+  const buy = fs.readFileSync(path.join(root, "api/buy.js"), "utf8"), m = /^const CLIENT = (".*");$/m.exec(buy), code = eval(m[1]);
+  ok("(9) the page asks for each of the first six pending cards on its own and the rest in turn (first.forEach enrichThen, nextAsk)", /first\.forEach\(function\(l\)\{ enrichThen\(\[l\], function\(\)\{ if \(block\.isConnected && !isPend\(l\)\) redrawCards\(block, \[l\], false\); nextAsk\(\); \}\); \}\);/.test(code) && /enrichThen\(still, function\(\)\{ redrawCards\(block, still, false\); nextAsk\(\); \}\);/.test(code), null);
+  ok("(9) the page gives up on the engine's wait (market.waitMaxMs), never on a number of its own, and the card says so with the could-not line", /var max = \(m && Number\(m\.waitMaxMs\) > 0\) \? Number\(m\.waitMaxMs\) : STILL_WAIT;/.test(code) && /l\.market = \{ kind: "pending", couldNot: true, line: CARD_NOT_READ \}/.test(code) && code.includes("CARD_NOT_READ = " + JSON.stringify(reasonLine("cold.card_missed"))) === false && buy.includes('.replace("__CARD_NOT_READ__", () => JSON.stringify(reasonLine("cold.card_missed")))'), null);
+  ok("(9) the could-not line says what to do (open the listing, or try again) and a pending card never prints 'Not read'", /open the listing/.test(reasonLine("cold.card_missed")) && /try again/.test(reasonLine("cold.card_missed")) && !/Not read/.test(reasonLine("cold.reading")) && /var reading = !l\.swap && \(l\.market === undefined/.test(code), reasonLine("cold.card_missed")); }
 // (6) the page prints the offer above the cards, from the server's own fields, and the client parses
 { const buy = fs.readFileSync(path.join(root, "api/buy.js"), "utf8"), m = /^const CLIENT = (".*");$/m.exec(buy); let parses = false, code = ""; try { code = eval(m[1]); new Function(code); parses = true; } catch (e) { parses = false; }
   ok("(6) the Find client draws the scripted answer at once (no wait on every first card's line) and does not ask a timed-out written answer again", parses && /THE CARDS ARE DRAWN AT ONCE/.test(code) && !/enrichThen\(pend, function\(\)\{ th\.done\(\); draw\(\); \}\)/.test(code) && /Date\.now\(\) - chatT0 < 10000/.test(code), parses);
@@ -80,7 +109,14 @@ function mutants() {
     ["lib/live/samChat.js", ["if (!ctx.speculative || (ctx.prevFilters && Object.keys(ctx.prevFilters).length)) return null;", "speculative: !Object.keys(prevFilters).length && lastUser ? speculativeSearch(env, lastUser, resolved) : null"], ["if (!ctx.speculative) return null;", "speculative: lastUser ? speculativeSearch(env, lastUser, resolved) : null"], "(8) a follow-up turn"],
     ["lib/live/converse.js", "matches.length > 5 && !offer) {", "matches.length > 5) {", "(5) near me with no zip"],
     ["api/buy.js", "return draw();", "var th = thinking(); return enrichThen(pend, function(){ th.done(); draw(); });", "(6) the Find client draws the scripted answer at once"],
-    ["api/buy.js", "Date.now() - chatT0 < 10000", "true", "(6) the Find client draws the scripted answer at once"]
+    ["api/buy.js", "Date.now() - chatT0 < 10000", "true", "(6) the Find client draws the scripted answer at once"],
+    ["lib/live/search.js", "if (readDidNotFinish(d)) { if (spec && spec.key) failedReadMem.set(spec.key, Date.now()); return undefined; }", "", "(9) a failed pool read ends every card"],
+    ["lib/live/search.js", "return readFailedRecently(spec.key) ? readFailedMarket() : stillReadingMarket();", "return stillReadingMarket();", "(9) a failed pool read ends every card"],
+    ["lib/live/search.js", "failedReadMem.set(spec.key, Date.now()); return undefined; }", "failedReadMem.set(spec.key, Date.now() + 1e12); return undefined; }", "(9) when the read comes back"],
+    ["api/buy.js", "first.forEach(function(l){ enrichThen([l], function(){ if (block.isConnected && !isPend(l)) redrawCards(block, [l], false); nextAsk(); }); });", "", "(9) the page asks for each of the first six"],
+    ["api/buy.js", "enrichThen(still, function(){ redrawCards(block, still, false); nextAsk(); });", "", "(9) the page asks for each of the first six"],
+    ["api/buy.js", "l.market = { kind: \\\"pending\\\", couldNot: true, line: CARD_NOT_READ }", "l.market = { kind: \\\"pending\\\", couldNot: true, line: \\\"Not read.\\\" }", "(9) the page gives up on the engine's wait"],
+    ["lib/reasonWords.js", "This one was not read, so open the listing or try again.", "Not read.", "(9) the could-not line says what to do"]
   ];
   let bad = 0;
   for (const [file, from, to, name] of M) {
