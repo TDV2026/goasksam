@@ -39,7 +39,19 @@ const MUT = [
   ["the background read never asks the engine", TCm, s => s.replace("await openCaseRead(c, readSheet, { caseDate: at.slice(0, 10), now: at });", "{ recalled: false };")],
   ["an unknown sender is let through", RUN, s => s.replace('if (!seat) return finish("dropped_not_seat"', 'if (false) return finish("dropped_not_seat"')],
   ["the same email twice is not claimed", RUN, s => s.replace("if (!claim.claimed) return", "if (false) return")],
-  ["a car nobody named is sent to the engine", TCm, s => s.replace('if (!(f("vin") || (f("year") && f("make") && f("model")))) return', "if (false) return")]
+  ["a car nobody named is sent to the engine", TCm, s => s.replace('if (!(f("vin") || (f("year") && f("make") && f("model")))) return', "if (false) return")],
+  // RE-READ THE EMAIL (Nov 13 2026)
+  ["RE-READ: a held field is replaced by the email's value", "lib/desk/intake/reread.js", s => s.replace("if (blank(had) && f && !blank(f.value))", "if (f && !blank(f.value))")],
+  ["RE-READ: the seller's details are not filled", "lib/desk/intake/reread.js", s => s.replace("const fs = fresh.seller; if (fs)", "const fs = null; if (fs)")],
+  ["RE-READ: the lead's facts are not filled", "lib/desk/intake/reread.js", s => s.replace("const fl = fresh.lead; if (fl && fl.facts)", "const fl = null; if (fl && fl.facts)")],
+  ["RE-READ: a fact the case holds is replaced by the email's", "lib/desk/intake/reread.js", s => s.replace("if (!(lead.facts[k] && !blank(lead.facts[k].value)) && v && !blank(v.value))", "if (v && !blank(v.value))")],
+  ["RE-READ: the email is not read again (the stored case stands)", "lib/desk/intake/reread.js", s => s.replace("const { read } = await submissionOf(mail, deps, internal)", "const read = {}")],
+  ["RE-READ: a finalized case is read again", "lib/desk/sheetActions.js", s => s.replace('if (s0.case.status === "finalized" || s0.status === "Finalised" || s0.status === "Sent") return refuse(reasonLine("case.reread.refuse_finalized"));', "")],
+  ["RE-READ: a typed case is read again", "lib/desk/sheetActions.js", s => s.replace('if (s0.case.origin !== "forwarded") return refuse(reasonLine("case.reread.refuse_origin"));', "")],
+  ["RE-READ: a read of the email moves a New case out of New leads", "lib/desk/sheetActions.js", s => s.replace("const fresh = { ...s0, case: out.case, version: (s0.version || 0) + 1 };", "out.case.status = \"in_review\"; const fresh = { ...s0, case: out.case, version: (s0.version || 0) + 1 };")],
+  ["MERGE: the case view's lead drops the lines (leadOf alone)", "lib/desk/caseView.js", s => s.replace("lead: leadOf(leadView(c.lead)),", "lead: leadOf(c.lead),")],
+  ["MERGE: the case view's lead drops the yes or no words (leadView alone)", "lib/desk/caseView.js", s => s.replace("lead: leadOf(leadView(c.lead)),", "lead: leadView(c.lead),")],
+  ["RE-READ: the webhook reads with its own copy of the parser", RUN, s => s.replace("const { text, attachments, read } = await submissionOf(mail, deps, internal);", "const { text, attachments } = await submissionOf(mail, deps, internal); const read = readSubmission({ subject: mail.subject, body: text, internalEmails: internal, extraText: \"\" });")]
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });

@@ -11,7 +11,7 @@ const MUT = [
   ["a condition switch does not take the stored view", "deskViewsCheck", CW, rep("selected.name || \"\") } : null }; return settle(adoptView(c, now), now); }", "selected.name || \"\") } : null }; return settle(c, now); }")],
   ["the views are built with every condition read as all conditions", "deskViewsCheck", OB, rep("const useT = t && !noData ? t : null,", "const useT = null,")],
   ["the views are built at the chosen period only", "deskViewsCheck", OB, rep("windowMonths: m }), env);", "windowMonths: 12 }), env);")],
-  ["the reserve check after a switch is the old one", "deskViewsCheck", CW, rep("c.desk.reserveCheck = fig != null ? engineReserveCheck(c.desk.sales, c.desk.evidence, fig, want.months) : null;", "")],
+  ["the reserve check after a switch is the old one", "deskViewsCheck", CW, rep("c.desk = setReserveCheck(c.desk, () => (fig != null ? engineReserveCheck(c.desk.sales, c.desk.evidence, fig, want.months) : null));", "")],
   ["on the page, a condition click reads the engine again", "deskV4FlowCheck", CW, rep("selected.name || \"\") } : null }; return settle(adoptView(c, now), now); }", "selected.name || \"\") } : null }; return settle(c, now); }")],
   // 2. one answer, one count
   ["the case's own condition line counts the car's sales of that condition with no mileage cut", "reportConsistencyCheck", DV, rep("months, when, desk.tier || desk.rungPools ? {", "months, when, false ? {")],
@@ -34,7 +34,7 @@ const MUT = [
   ["the queue names the car by the label the sheet was made with", "reportConsistencyCheck", "lib/desk/sheetStore.js", rep("car: (s.case && s.case.desk && s.case.desk.titleLine) || s.car_label ||", "car: s.car_label ||")],
   ["the engine's generation is not put on the case", "reportConsistencyCheck", CW, rep('const withGen = gen && g && g.value == null ?', 'const withGen = false ?')],
   // lane F 7. one document state
-  ["the documents tile counts every document as on file", "reportConsistencyCheck", "lib/desk/caseView.js", rep('received: c.documents.filter(d => d.status === \"received\").length,', 'received: c.documents.length,')],
+  ["the documents tile counts every document as on file", "reportConsistencyCheck", "lib/desk/caseView.js", rep('received: allDocs.filter(d => d.status === "received").length,', 'received: allDocs.length,')],
   // lane F 8. the rail lists what the counts count
   ["the rail lists every sheet, including a finalized version a revision replaced", "deskPersistCheck", "lib/preview/deskV3.js", rep("cases = all.filter(c => liveIds.has(c.id) || c.id === id);", "cases = all;")],
   // lane F 9. the Desk's own word
@@ -52,7 +52,7 @@ const MUT = [
   ["the rung the read was made with is cut by the mileage band and the others are not", "deskViewsCheck", DV, rep("byTier: desk.rungPools ? Object.fromEntries", "byTier: false ? Object.fromEntries")],
   // lane C 2. Any condition
   ["the demonstration case's reset puts it on Good", "deskPersistCheck", "lib/preview/deskPreview.js", rep('op: "condition", selected: null }, ctxOf(store, {}, seat));', 'op: "condition", selected: { tier: 3, name: "Good" } }, ctxOf(store, {}, seat));')],
-  ["the Any button counts one sale too many", "reportConsistencyCheck", DV, rep("return { count: n, countLine: countNoun(n, \"sale\", { words: false }) };", "return { count: n + 1, countLine: countNoun(n + 1, \"sale\", { words: false }) };")],
+  ["the Any button counts one sale too many", "reportConsistencyCheck", DV, rep("count: n, countLine: countNoun(n, \"sale\", { words: false }) };", "count: n + 1, countLine: countNoun(n + 1, \"sale\", { words: false }) };")],
   ["the page has no Any condition button", "deskV4FlowCheck", "lib/preview/deskV4Client.js", rep("if (any) box.appendChild(", "if (false) box.appendChild(")],
   // no reserve in the report
   ["a thin engine answer lets no reserve be chosen with no why", "reportConsistencyCheck", CW, rep("if (rm.thin === true && !text) return { refuse: \"case.reserve_mode.refuse_thin\" };", "")],
@@ -113,9 +113,20 @@ const MUT = [
   ["a listing that is live now is not carried on the case", "deskTypedCasesCheck", CW, rep("vinLiveMatch: sheet.own.vinLiveMatch || null }", "vinLiveMatch: null }")],
   ["the New case form's decode ignores the car's own sale", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("decoded = decodedOf(step);   // the one VIN", "decoded = decodedOf({ facts: step.facts });   // the one VIN")],
   ["the car's own listing overwrites what the seller wrote", "deskTypedCasesCheck", "lib/desk/caseModel.js", rep("if (f0.value != null && f0.source !== \"vin_decoded\" &&", "if (false &&")],
-  ["a VIN with a wrong check digit is decoded (no check digit reason)", "deskTypedCasesCheck", "lib/desk/vinStep.js", rep("return vinCheckDigitOk(v) ? null : reasonLine(\"case.decode.refuse_check\");", "return null;")],
+  ["a wrong check digit carries no warning", "deskTypedCasesCheck", "lib/desk/vinStep.js", rep("&& !vinCheckDigitOk(v) ? reasonLine(\"case.decode.warn_check\") : null;", "&& false ? reasonLine(\"case.decode.warn_check\") : null;")],
   ["a near-VIN is refused with the generic reason, not its length", "deskTypedCasesCheck", "lib/desk/vinStep.js", rep("v.length >= 11 ? reasonLine(\"case.decode.refuse_length\", { n: v.length })", "false ? reasonLine(\"case.decode.refuse_length\", { n: v.length })")],
   ["a case with no sale of its own still prints an own block", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("ownBlock: rows.length ? {", "ownBlock: !!rows ? {")],
+  // THE LISTING'S WORDS ARE NOT THE CAR'S FACTS, AND A FAILED LOOKUP IS NOT "NO RECORD" (Nov 13 2026)
+  ["the prefill takes the archive's title words as the trim", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("trim: r.trim || null, body:", "trim: r.trim || archive.trim || null, body:")],
+  ["the prefill takes the archive's gearbox column as it stands", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("transmission: cleanGearbox(archive.transmission),", "transmission: archive.transmission || null,")],
+  ["the prefill takes the archive's colour text as it stands", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("colour: cleanColour(archive.colour),", "colour: archive.colour || null,")],
+  ["the prefill takes the archive's body text as it stands", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("body: cleanBody(r.bodyStyle) || cleanBody(archive.bodyStyle),", "body: r.bodyStyle || archive.bodyStyle || null,")],
+  ["the resolver's trim is accepted though it is not the listing's words", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("if (t && t.trim && norm(t.trim) === norm(words)) return t;", "if (t && t.trim) return t;")],
+  ["the case's decode takes the archive's body text as it stands", "deskTypedCasesCheck", "lib/sheetRead.js", rep("cleanBody(archive && archive.bodyStyle) || null", "(archive && archive.bodyStyle) || null")],
+  ["a lookup that failed is not asked again", "deskTypedCasesCheck", "lib/desk/ownCar.js", rep("if (!a && st.failed) {", "if (false) {")],
+  ["a lookup that failed is remembered as no record", "deskTypedCasesCheck", "lib/sheetRead.js", rep("if (!deps && !archiveFailed && (archive || facts || liveMatch))", "if (!deps && (archive || facts || liveMatch))")],
+  ["the match never says its lookup failed", "deskTypedCasesCheck", "lib/_flags.js", rep("if (status) status.failed = true; return null; }", "return null; }")],
+  ["the form's decode takes the archive without asking again", "deskTypedCasesCheck", "lib/desk/vinStep.js", rep("const { archive } = await archiveLookup(", "const { archive } = await ((m, e, v) => m(e, { vin: v }).then(a => ({ archive: a })).catch(() => ({ archive: null })))(")]
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
