@@ -3396,7 +3396,7 @@ async function handler(req, res) {
       // THE VIN'S OWN LIVE LISTING, read the way every door reads it (lib/vinLiveMatch.js): the car it names is the car (the same step api/vehicleIdentity takes: this door is reached with the VIN as typed), its title words and mileage are the typed search's facts,
       // and the listing itself rides on the answer (vinLiveMatch, ownLive) so a page says "This car is live now" and never counts it as a comparable car
       const vinIdLive = String(vehicle.vin || vehicle.chassis || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-      let liveMatch = null; try { liveMatch = vinIdLive.length === 17 ? await findVinLiveMatch({ supabaseUrl, supabaseKey }, { vin: vinIdLive }) : null; } catch { liveMatch = null; }
+      let liveMatch = null; try { liveMatch = vinIdLive ? await findVinLiveMatch({ supabaseUrl, supabaseKey }, { vin: vinIdLive }) : null; } catch { liveMatch = null; }   // a chassis number or short identifier is read too (lib/vinLiveMatch.js): the function itself says which identifiers it takes
       const vinLive = liveFactsOf(liveMatch);
       if (liveMatch && !vinArchive) { const lv = await liveVehicleOf(liveMatch, vehicle, resolveVehicle).catch(() => null); if (lv) vehicle = { ...vehicle, ...lv, trim: lv.trim || null }; }
       const plan = await vinSearchPlan(vehicle, { resolveVehicle, archive: vinArchive, live: vinLive, liveMatch, rerunWords: req.body.vinTrimRun ? req.body.vinRerunWords : null });
