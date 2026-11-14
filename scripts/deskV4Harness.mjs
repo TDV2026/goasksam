@@ -17,6 +17,8 @@ export async function openLive(b, { w = 1440, h = 900, id = V3.DEMO_ID, mutate =
   if (dark) await p.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "dark" }]);
   await p.goto("https://goasksam.com/preview/desk" + (id ? "/case/" + id : ""), { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 400)); return p;
 }
+// A forwarded lead this seat has not opened is locked until the analyst presses the button the server sent (case.claim): a check that edits one presses it first, the way a person does.
+export async function claim(p) { if (!(await p.$("#openbtn"))) return false; await p.click("#openbtn"); await p.waitForFunction(() => !document.getElementById("openbar"), { timeout: 15000 }).catch(() => {}); await new Promise(r => setTimeout(r, 200)); return true; }
 // the demonstration case's comparables are the engine's recorded sales (ids from the engine, never typed): the ones with a listing address, in the engine's order
 export const compIds = async (id = V3.DEMO_ID) => (await PV.previewDeskApi({ action: "case_get", id })).case.desk.comparables.filter(c => c.url).map(c => String(c.id));
 export const idle = async (p, ms = 500) => { await new Promise(r => setTimeout(r, ms)); };

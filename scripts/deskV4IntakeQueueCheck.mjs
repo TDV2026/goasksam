@@ -7,7 +7,7 @@
 //   MUTANTS (each run through the same assertion, each must fail): no tag, a tag on every New lead, an unverified fact drawn as verified, Verify that verifies the wrong field, no email link, an email that opens in the same tab, no unidentified path, Identify that saves nothing.
 //   CLASS: a lead that looks verified, identified or tagged without the case saying so. Every word is the case's or a fixed interface label; the saved case is compared after every edit.
 //   node scripts/deskV4IntakeQueueCheck.mjs
-import { launch, openLive, tally, PV, seedIntake } from "./deskV4Harness.mjs";
+import { launch, openLive, tally, PV, seedIntake, claim } from "./deskV4Harness.mjs";
 const { ok, done } = tally(), wait = (ms = 900) => new Promise(r => setTimeout(r, ms));
 const F = await seedIntake(); ok(F.typedOk, "the fixtures are stored (two forwarded leads with an original email, two with no car, one made by hand)");
 const stored = async id => (await PV.previewDeskApi({ action: "case_get", id })).case;
@@ -19,7 +19,7 @@ const S = {
       return { fwd: tagged(F2.fwd) && inNew(F2.fwd), nocar: tagged(F2.nocar) && inNew(F2.nocar), noref: tagged(F2.fwdnoref) && inNew(F2.fwdnoref), typed: tagged(F2.typed), typedlead: tagged(F2.typedlead), typedInNew: inNew(F2.typed) && inNew(F2.typedlead), outside }; }, F).then(q => ({ ...q, pass: q.fwd && q.nocar && q.noref && q.typedInNew && !q.typed && !q.typedlead && q.outside === 0 })); },
   async head(p, want) { const t = await p.evaluate(() => !!document.getElementById("fwdtag")); return { t, pass: t === want }; },
   async marks(p) { const m = await p.evaluate(() => [...document.querySelectorAll("[data-unverified]")].map(e => e.dataset.unverified)); const has = m.includes("vin") && m.includes("mileage");
-    if (!has) return { m, pass: false }; await p.click('[data-verify="mileage"]'); await wait(1300); const after = await p.evaluate(() => ({ unv: [...document.querySelectorAll("[data-unverified]")].map(e => e.dataset.unverified), chip: [...document.querySelectorAll("#facts .v")].map(v => v.nextElementSibling && v.nextElementSibling.textContent) })); const sv = (await stored(F.fwd)).fields;
+    if (!has) return { m, pass: false }; await claim(p); await p.click('[data-verify="mileage"]'); await wait(1300); const after = await p.evaluate(() => ({ unv: [...document.querySelectorAll("[data-unverified]")].map(e => e.dataset.unverified), chip: [...document.querySelectorAll("#facts .v")].map(v => v.nextElementSibling && v.nextElementSibling.textContent) })); const sv = (await stored(F.fwd)).fields;
     return { m, after, pass: sv.mileage.verified === true && sv.mileage.source === "analyst_verified" && !after.unv.includes("mileage") && after.unv.includes("vin") && sv.vin.verified === false && /Verified/.test(after.chip.join("|")) }; },
   async typedMarks(p) { const m = await p.evaluate(() => document.querySelectorAll("[data-unverified]").length); return { m, pass: m === 0 }; },
   async email(p, want) { const r = await p.evaluate(() => { const a = document.getElementById("origmail"), se = window.__v4.K().sourceEmail; return a ? { href: a.href, target: a.target, inDocs: !!a.closest("#s-docs"), tile: a.textContent, name: se && se.name, line: se && se.line } : null; });
