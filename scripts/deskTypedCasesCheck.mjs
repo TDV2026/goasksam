@@ -299,4 +299,46 @@ console.log("CASE IDS " + ids.join(" "));
   const c3 = JSON.parse(JSON.stringify(base)); c3.desk.reserveCheck = null; const l3 = view(c3).desk.likely;
   ok("LIKELY 7: with no reserve check the analyst's line is the range alone, never a made-up floor", l3.line === `The closest cars made ${m(lk.low)} to ${m(lk.high)}, median ${m(lk.figure)}.`, l3.line);
   ok("LIKELY 8: no engine talk reaches a served string (signals counted)", !/signals? counted/.test(JSON.stringify(v)), ""); }
+
+// ---------- THE MARKET STRIP, THE CLOSING LINE AND THE LIKELY FIGURE LINE (order 2318, Nov 14 2026) ----------
+// CLASS: every view of every car. desk.evidence.strip (four cells: Typical range, Median, Sales with its date span, Lowest to highest; a thin view has the Sales cell alone), desk.evidence.closingLine ("Eleven 1972 Datsun 240Zs sold between May and November 2026. Latest sale $27,000 on Nov 12 at Cars & Bids.", the count in words up to twelve, then digits)
+// and desk.likely.figureLine (the figure as a money string). Two cases (the case world's 1999 911 and an older car), every view of each, and a thin case. The page formats nothing.
+{ const { setup } = await import(pathToFileURL(path.join(ROOT, "scripts/_deskCaseWorld.mjs")).href), W = await setup(ROOT), V = await U("lib/desk/caseView.js"), DV = await U("lib/deskV3.js");
+  const base = await W.readyCase(), mk = c => ({ id: "x", org_id: "t", owner_seat: "Jane Park", created_at: W.T, submission: { typed: true, photos: [], documents: [] }, state: {}, case: c, version: 0 });
+  const WLD = await U("scripts/_deskOlderWorld.mjs"), S = await U("lib/sheetRead.js"), head = async () => ({ status: 200, bytes: 50000, type: "image/jpeg" }), today = new Date().toISOString().slice(0, 10), w = WLD.install(ROOT), old = WLD.loadCars(ROOT).find(c => c.n === 4);
+  const r4 = await S.sheetRead(w.env, { year: old.year, make: old.make, model: old.model, mileage: 60000, bodyStyle: old.typedBody || undefined, desk: { caseDate: today, transmission: "Manual", label: "x", case: { verification: {} }, exclusions: [], head, views: true } }, w.deps);
+  const cases = [{ name: "1999 Porsche 911", desk: base.desk, car: { year: 1999, make: "Porsche", model: "911" } }, { name: `${old.year} ${old.make} ${old.model}`, desk: r4 && r4.desk, car: { year: old.year, make: old.make, model: old.model } }];
+  const W12 = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"], MON = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], mon = iso => MON[Number(iso.slice(5, 7)) - 1], my = iso => mon(iso) + " " + iso.slice(0, 4), short = iso => mon(iso).slice(0, 3) + " " + Number(iso.slice(8, 10)), mny = n => "$" + Math.round(n).toLocaleString("en-US");
+  const plural = (nm, n) => (n === 1 ? nm : /(s|x|ch|sh)$/i.test(nm) ? nm + "es" : nm + "s");
+  const expectClosing = (e, car) => { if (!e || !(e.count >= 1)) return null; const f = e.period.from, t = e.period.to, when = f.slice(0, 7) === t.slice(0, 7) ? "in " + my(t) : "between " + (f.slice(0, 4) === t.slice(0, 4) ? mon(f) : my(f)) + " and " + my(t), cw = e.count <= 12 ? W12[e.count] : e.count.toLocaleString("en-US"); return `${cw} ${plural([car.year, car.make, car.model].join(" "), e.count)} sold ${when}.` + (e.latestSale ? ` Latest sale ${mny(e.latestSale.price)} on ${short(e.latestSale.date)}${e.latestSale.platform ? " at " + e.latestSale.platform : ""}.` : ""); };
+  const L = { typical: ["Typical range", "where most sales landed"], median: ["Median", "half sold above"], extremes: ["Lowest to highest", "every sale in the window"] };
+  let views = 0, thin = 0;
+  const judge = (label, e, car) => {
+    views++; const sc = (e && e.strip) || [], keys = sc.map(x => x.key).join();
+    if (e.insufficient) { thin++; ok(`STRIP ${label}: a thin view has the Sales cell alone`, keys === "count" && sc[0].label === "Sales" && sc[0].value === e.countLine, keys); }
+    else ok(`STRIP ${label}: four cells in order, labels and notes the table's, values the evidence's own strings, the Sales note the date span`, keys === "typical,median,count,extremes" && sc.every(x => ["key", "label", "value", "note", "emphasis"].every(k => k in x)) && sc[0].label === L.typical[0] && sc[0].note === L.typical[1] && sc[0].value === e.typicalLine && sc[1].label === L.median[0] && sc[1].note === L.median[1] && sc[1].value === e.medianLine && sc[2].label === "Sales" && sc[2].value === e.countLine && sc[2].note === e.periodLine && sc[3].label === L.extremes[0] && sc[3].note === L.extremes[1] && sc[3].value === e.extremesLine && sc[0].emphasis === true, keys);
+    ok(`CLOSING ${label}: one sentence for the sales and one for the latest, count in words up to twelve then digits`, e.closingLine === expectClosing(e, car) && (e.count >= 1) === !!e.closingLine, `${e.closingLine} | ${expectClosing(e, car)}`);
+  };
+  for (const c of cases) {
+    const d = c.desk; ok(`${c.name}: the engine read carries views`, !!d && DV.hasViews(d) && Object.keys(d.views).length >= 3);
+    judge(`${c.name}, top`, d.evidence, c.car);
+    for (const key of Object.keys(d.views)) judge(`${c.name}, view ${key}`, DV.viewOf(d, key).evidence, c.car);
+  }
+  const wordsSeen = new Set(); for (const c of cases) for (const key of Object.keys(c.desk.views)) { const e = DV.viewOf(c.desk, key).evidence; if (e.count >= 1) wordsSeen.add(/^\d/.test(e.closingLine) ? "digits" : "words"); }
+  ok("CLOSING: both spellings are met across the views (words up to twelve, digits after)", wordsSeen.has("words") && wordsSeen.has("digits"), [...wordsSeen].join());
+  // the thin case: two sales, in one month, and one sale; and the singular
+  const car = { year: 1972, make: "Datsun", model: "240Z" }, rows = [{ price: 27000, date: "2026-11-12", platform: "Cars & Bids" }, { price: 24500, date: "2026-11-03", platform: "Bring a Trailer" }], t2 = DV.evidenceOf(rows, rows, { windowMonths: 12, caseDate: "2026-11-14", subjectFacts: car });
+  ok("CLOSING THIN: two sales in one month read in that month, the 240Zs plural, the latest sale", t2.closingLine === "Two 1972 Datsun 240Zs sold in November 2026. Latest sale $27,000 on Nov 12 at Cars & Bids." && t2.insufficient === true && t2.strip.map(x => x.key).join() === "count", t2.closingLine);
+  const t1 = DV.evidenceOf(rows.slice(0, 1), rows.slice(0, 1), { windowMonths: 12, caseDate: "2026-11-14", subjectFacts: car });
+  ok("CLOSING THIN: one sale reads in the singular", t1.closingLine === "One 1972 Datsun 240Z sold in November 2026. Latest sale $27,000 on Nov 12 at Cars & Bids.", t1.closingLine);
+  const t0 = DV.evidenceOf([], [], { windowMonths: 12, caseDate: "2026-11-14", subjectFacts: car });
+  ok("CLOSING THIN: no sale has no closing line and the Sales cell alone", t0.closingLine === null && t0.strip.map(x => x.key).join() === "count", String(t0.closingLine));
+  // the likely figure line, on the case view of each car and on a thin case
+  for (const c of cases) { const cs = JSON.parse(JSON.stringify(base)); cs.desk = c.desk; const v = V.caseView(mk(cs), [mk(cs)], W.T), lk = v.desk.likely;
+    ok(`FIGURE LINE ${c.name}: the likely figure as a money string, nothing for the page to format`, lk.figure == null ? lk.figureLine === null : lk.figureLine === mny(lk.figure), JSON.stringify([lk.figure, lk.figureLine])); }
+  { const c2 = JSON.parse(JSON.stringify(base)); c2.desk.comparables = c2.desk.comparables.slice(0, 2); c2.desk.likelyBasis = DV.likelyBasisOf(c2.desk.comparables); const l2 = V.caseView(mk(c2), [mk(c2)], W.T).desk.likely;
+    ok("FIGURE LINE thin: fewer than three closest sales, no figure line", l2.figure === null && l2.figureLine === null, JSON.stringify(l2.figureLine)); }
+  { const v = V.caseView(mk(base), [mk(base)], W.T), k = JSON.parse(JSON.stringify(base)); delete k.desk.evidence.strip; delete k.desk.evidence.closingLine; const v0 = V.caseView(mk(k), [mk(k)], W.T);
+    ok("STRIP stored: a case stored before the engine made one serves the same four cells from its stored strings, and no closing line", JSON.stringify(v0.desk.evidence.strip) === JSON.stringify(v.desk.evidence.strip) && v0.desk.evidence.closingLine === null, ""); }
+  ok("STRIP and CLOSING: at least 20 views and a thin one were judged", views >= 20 && thin >= 0, String(views)); }
 console.log(`deskTypedCasesCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

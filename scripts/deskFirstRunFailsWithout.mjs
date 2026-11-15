@@ -182,6 +182,12 @@ const MUT = [
   ["the report prints no likely result", "reportConsistencyCheck", "lib/desk/reportState.js", rep("likelyLine: likely.sellerLine,", "likelyLine: null,")],
   ["the report prints the reserve before the likely result", "reportConsistencyCheck", "lib/desk/reportPdfV3.js", s => s.replace("if (v.likelyLine) { y = para(", "if (false) { y = para(").replace("  y = Math.max(y + 62, yr2) + 12;", "  y = Math.max(y + 62, yr2) + 12; if (v.likelyLine) y = para(v.likelyLine, M, y, W - 2 * M, { size: 11 }) + 4;")],
   ["the floor sentence names a figure with no reserve check", "deskTypedCasesCheck", "lib/desk/likely.js", s => s.replace(": null;\n  const list", ": null;\n  const list") && s.replace("reached: ck.reached, of: ck.of }) : null;", "reached: ck.reached, of: ck.of }) : reasonLine(\"case.likely.floor\", { reserve: 0, reached: 0, of: 0 });")],
+  ["the strip leaves a cell out", "deskTypedCasesCheck", "lib/deskV3.js", rep("if (ok && e.extremesLine) cells.push(", "if (false) cells.push(")],
+  ["the closing line says the count in digits under thirteen", "deskTypedCasesCheck", "lib/reasonWords.js", rep("x >= 0 && x <= 12 ? COUNT_WORDS[x]", "x >= 0 && x <= 5 ? COUNT_WORDS[x]")],
+  ["the closing line leaves the latest sale out", "deskTypedCasesCheck", "lib/deskV3.js", rep("return l && l.date && l.price ? sold +", "return false ? sold +")],
+  ["the closing line pluralises a single sale", "deskTypedCasesCheck", "lib/reasonWords.js", rep("Math.round(Number(count)) === 1 || !t ? t", "!t ? t")],
+  ["a view carries no closing line", "deskTypedCasesCheck", "lib/deskV3.js", rep("closingLine: closingLineOf(e, desk.subjectFacts)", "closingLine: null")],
+  ["the likely figure line is left to the page", "deskTypedCasesCheck", "lib/desk/likely.js", rep("figureLine: reasonLine(\"case.likely.figure\", { figure: b.median }),", "figureLine: null,")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
