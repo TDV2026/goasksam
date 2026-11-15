@@ -9,6 +9,11 @@ if (args.includes("--mutants")) {
   const DV = "lib/deskV3.js", muts = [
     [DV, "reserveLadderOf({ sales, evidence, reserveStart, reserveMode, tierName", "reserveLadderOf({ sales: rows, evidence, reserveStart, reserveMode, tierName", "a rung is counted over the whole population, not the view's sales"],
     [DV, "  if (reserveLadder.thin) {\n    const fbSpec", "  if (false) {\n    const fbSpec", "a thin view prices on its own rows (no fallback)"],
+    [DV, "servedFrom = fbKey; salesOut = fb.sales; evidenceOut", "servedFrom = fbKey; evidenceOut", "a thin view swaps the figures but not the list"],
+    [DV, " comparablesOut = fb.comparables;", "", "a thin view keeps its own comparables"],
+    [DV, " hagertyOut = mark(fb.hagerty);", "", "a thin view keeps its own Hagerty count"],
+    [DV, "note: thinLine, tooFew: true", "note: null, tooFew: true", "the start figure carries no thin note"],
+    [DV, "} else { reserveStartOut = null;", "} else { ", "no fallback, and a reserve start is still served"],
     [DV, "const clearedAt = f => prices.filter(x => x >= f).length;", "const clearedAt = f => prices.filter(x => x >= f).length + 1;", "the cleared counts are off by one"],
     [DV, "if (noRes.available && noRes.noReserveMedian >= noRes.reserveMedian)", "if (noRes.noReserveMedian >= noRes.reserveMedian)", "no reserve is recommended while unavailable"],
     [DV, "recommended = \"balanced\"; reason = reasonLine(\"desk4.ladder_why_balanced\"", "recommended = \"balanced\"; reason = reasonLine(\"desk4.ladder_why_safe_few\"", "the reason text does not match the chosen rung"],
@@ -18,7 +23,7 @@ if (args.includes("--mutants")) {
     [DV, "share >= LADDER.odds.likely ? \"desk4.ladder_odds_likely\"", "share >= 0.9 ? \"desk4.ladder_odds_likely\"", "the odds word ignores its threshold"],
     [DV, "if (!(figs[k] > prev)) {", "if (false) {", "the rungs are not kept in order"],
     [DV, "const thin = of < LADDER.minSales ||", "const thin = of < 2 ||", "a view under the minimum is not thin"],
-    [DV, "fallbackView: fbKey,", "fallbackView: `0:${months + 6}`,", "the fallback names the wrong view"]
+    [DV, "thinLine, fallbackView: fbKey, servedFrom: fbKey }", "thinLine, fallbackView: `0:${months + 6}`, servedFrom: fbKey }", "the fallback names the wrong view"]
   ];
   let survivors = 0;
   for (const [file, from, to, want] of muts) {
@@ -51,19 +56,25 @@ function judgeView(label, v, all, months) {
   views++; const L = v.reserveLadder; if (!L) return ok(`${label}: carries desk.reserveLadder`, false);
   ok(`${label}: the shape`, J(Object.keys(L).filter(k => ["rungs", "recommended", "reason", "thin", "thinLine", "fallbackView"].includes(k))) === J(["rungs", "recommended", "reason", "thin", "thinLine", "fallbackView"]) || ["rungs", "recommended", "reason", "thin", "thinLine", "fallbackView"].every(k => k in L), J(Object.keys(L)));
   ok(`${label}: four rungs in the order safe, balanced, ambitious, noReserve`, J(L.rungs.map(r => r.key)) === J(KEYS), J(L.rungs.map(r => r.key)));
-  const prices = v.sales.map(s => Number(s.price)), own = v.sales.length, thinWant = own < LADDER.minSales || !v.reserveStart && !L.fallbackView;
+  const prices = v.sales.map(s => Number(s.price)), own = v.sales.length;
+  const N = v.sales.length, KEY0 = `0:${months}`, fb0 = all[KEY0], fbOk = !!(fb0 && fb0.reserveLadder && !fb0.reserveLadder.thin && fb0.sales.length >= LADDER.minSales);
+  // THE CLASS (Lane C's hold, Nov 15 2026): every count a view prints equals the list it sits over, thin or not
+  ok(`${label}: evidence.count (${v.evidence.count}) equals the sales list (${N})`, v.evidence.count === N, `${v.evidence.count} vs ${N}`);
+  ok(`${label}: the Hagerty share, the reserve check and the comparables count sit over that same list`, (!v.hagerty || !v.hagerty.share || v.hagerty.share.all === N) && (!v.reserveCheck || v.reserveCheck.of === N) && v.comparablesCount === v.comparables.length, "");
   if (L.thin) {
-    thinViews++; ok(`${label}: thin, every rung unavailable and none recommended`, L.rungs.every(r => r.available === false) && L.recommended === null && L.reason === null);
-    ok(`${label}: thin because its own sales (${own}) are under ${LADDER.minSales}`, own < LADDER.minSales, String(own));
-    const fbKey = `0:${months}`, fb = all[fbKey], fbThin = !fb || fb.sales.length < LADDER.minSales;
-    if (!fbThin && L.fallbackView) { served++; ok(`${label}: names ${fbKey} (same period, all conditions) as the fallback`, L.fallbackView === fbKey, String(L.fallbackView));
-      ok(`${label}: the reserve start, likely basis and evidence are the fallback's, marked`, v.evidence.servedFrom === fbKey && v.likelyBasis.servedFrom === fbKey && J(strip(v.evidence)) === J(strip(fb.evidence)) && J(strip(v.likelyBasis)) === J(strip(fb.likelyBasis)) && J(strip(v.reserveStart)) === J(strip(fb.reserveStart)), "");
-      ok(`${label}: the ladder served is the fallback's`, J(L.fallback) === J({ rungs: fb.reserveLadder.rungs, recommended: fb.reserveLadder.recommended, reason: fb.reserveLadder.reason }), "");
-      ok(`${label}: the thin line says the condition and the fallback's count`, L.thinLine === RW.reasonLine("desk4.ladder_thin", { name: String((v.reserveLadder.thinLine.match(/^Too few (\w+) sales/) || [])[1]), count: fb.sales.length }) && /^Too few \w+ sales to price on their own\. Figures use all \d+ sales in this period\.$/.test(L.thinLine) && L.thinLine.includes(`all ${fb.sales.length} sales`), L.thinLine); }
-    else ok(`${label}: nothing to fall back to, so no fallback is named and nothing is substituted`, L.fallbackView === null && !(v.evidence && v.evidence.servedFrom) && L.thinLine === RW.reasonLine("desk4.ladder_thin_all"), J([L.fallbackView, L.thinLine]));
+    thinViews++; const sameAs = (a, b) => J(strip(a)) === J(strip(b));
+    if (v.servedFrom) { served++;
+      ok(`${label}: served whole from ${KEY0}, the same period over all conditions, which has enough sales`, v.servedFrom === KEY0 && fbOk && L.fallbackView === KEY0 && L.servedFrom === KEY0, J([v.servedFrom, L.fallbackView, L.servedFrom, fbOk]));
+      ok(`${label}: the sales list, the comparables (and their marks) and the quarters are the fallback's`, J(v.sales) === J(fb0.sales) && J(v.comparables) === J(fb0.comparables) && J(v.quarters) === J(fb0.quarters), "");
+      ok(`${label}: evidence, Hagerty, reserve read and check, likely basis are the fallback's, each marked servedFrom ${KEY0}`, [v.evidence, v.hagerty, v.reserveMode, v.likelyBasis].every(o => o && o.servedFrom === KEY0) && sameAs(v.evidence, fb0.evidence) && sameAs(v.hagerty, fb0.hagerty) && sameAs(v.reserveMode, fb0.reserveMode) && sameAs(v.likelyBasis, fb0.likelyBasis) && (!fb0.reserveCheck || (v.reserveCheck.servedFrom === KEY0 && sameAs(v.reserveCheck, fb0.reserveCheck))), "");
+      ok(`${label}: the reserve start is the fallback's and its note is the thin line`, v.reserveStart && v.reserveStart.servedFrom === KEY0 && v.reserveStart.figure === fb0.reserveStart.figure && v.reserveStart.note === L.thinLine, J(v.reserveStart));
+      ok(`${label}: the ladder is the fallback's (its rungs and its recommendation), thin, naming the fallback`, J(L.rungs) === J(fb0.reserveLadder.rungs) && L.recommended === fb0.reserveLadder.recommended && L.reason === fb0.reserveLadder.reason && L.thin === true, "");
+      ok(`${label}: the thin line says the condition and the fallback's count`, /^Too few \w+ sales to price on their own\. Figures use all \d+ sales in this period\.$/.test(L.thinLine) && L.thinLine.includes(`all ${fb0.sales.length} sales`), L.thinLine); }
+    else { ok(`${label}: no fallback with enough sales: its own list, no reserve start at all, no priced rung, the table's line`, !fbOk && L.fallbackView === null && v.reserveStart === null && L.rungs.every(r => r.available === false) && L.recommended === null && L.thinLine === RW.reasonLine("desk4.ladder_thin_all") && !(v.evidence && v.evidence.servedFrom), J([L.fallbackView, v.reserveStart, L.thinLine]));
+      ok(`${label}: thin because its own sales (${N}) are under ${LADDER.minSales}`, N < LADDER.minSales || v.evidence.insufficient, String(N)); }
     return;
   }
-  liveViews++; ok(`${label}: not thin, no fallback and no marker`, L.thinLine === null && L.fallbackView === null && !v.evidence.servedFrom && own >= LADDER.minSales);
+  liveViews++; ok(`${label}: not thin, no fallback and no marker`, L.thinLine === null && L.fallbackView === null && !v.evidence.servedFrom && v.servedFrom === null && N >= LADDER.minSales);
   const [s, b, a, n] = L.rungs; ok(`${label}: safe below balanced below ambitious`, s.figure < b.figure && b.figure < a.figure, J([s.figure, b.figure, a.figure]));
   ok(`${label}: safe is the engine's reserve start, unchanged`, s.figure === v.reserveStart.figure, `${s.figure} vs ${v.reserveStart.figure}`);
   for (const r of [s, b, a]) { const cl = prices.filter(x => x >= r.figure).length;
@@ -82,6 +93,11 @@ for (const c of cases) {
   const cur = d.view && all[DV.viewKey(d.view.tier, d.view.months)]; ok(`${c.name}: the top of desk carries the current view's ladder`, !!d.reserveLadder && (!cur || J(d.reserveLadder) === J(cur.reserveLadder)));
 }
 ok("views were judged across both cars, with thin and not-thin among them", views >= 20 && thinViews >= 1 && liveViews >= 1 && served >= 1, J({ views, thinViews, liveViews, served }));
+// no fallback at the engine: four near sales, no condition chosen (nothing wider to serve): its own list, no reserve start at all, the table's line, no priced rung
+{ const DV2 = DV, when = "2026-11-14", at = m => DV2.cutoffOf(when, m), r = (i, m, price) => ({ id: "n" + i, price, date: at(m), year: 1999, generation: "996", body: "Coupe", gearbox: "manual", gearboxWord: "Manual", miles: 60000 + i * 500, platform: "Bring a Trailer", title: "1999 Porsche 911 Carrera", inPopulation: true, tier: null });
+  const b = await DV.deskBlock([r(0, 2, 30000), r(1, 3, 31000), r(2, 4, 32000), r(3, 5, 33000)], { caseDate: when, windowMonths: 12, subjectFacts: { generation: "996", year: 1999, body: "Coupe", gearbox: "manual", miles: 60000 } }, null);
+  ok("engine, no fallback: four sales are thin, the view keeps its own four, serves no reserve start, and says the table's line", b.reserveLadder.thin === true && b.sales.length === 4 && b.evidence.count === 4 && b.reserveStart === null && b.servedFrom === null && b.reserveLadder.fallbackView === null && b.reserveLadder.thinLine === "Too few sales of this car in this period to set a reserve." && b.reserveLadder.rungs.every(x => x.available === false && x.figure === null), J([b.reserveLadder.thin, b.sales.length, b.reserveStart, b.reserveLadder.thinLine]));
+  ok("every priced rung carries figureLine (Lane S's word), the money words of its figure", (await (async () => { const d = await DV.deskBlock(Array.from({ length: 12 }, (_, i) => r(i, 2 + (i % 9), 30000 + i * 1000)), { caseDate: when, windowMonths: 12, subjectFacts: { generation: "996", year: 1999, body: "Coupe", gearbox: "manual", miles: 60000 } }, null); return d.reserveLadder.rungs.filter(x => x.key !== "noReserve").every(x => x.available && x.figureLine === RW.moneyWords(x.figure)); })())); }
 // B. FIXTURES THAT TRIGGER EACH RULE (the unit, so each recommendation is asserted with its reason)
 const mk = ps => ps.map((p, i) => ({ id: "s" + i, price: p })), ev = ps => { const s = ps.slice().sort((a, b) => a - b); return { insufficient: false, median: DV.quant(s, .5), q1: DV.quant(s, .25), q3: DV.quant(s, .75) }; };
 const rmode = (nrSold, nrMed, wrSold, wrMed) => ({ noReserve: { sold: nrSold, median: nrMed }, withReserve: { sold: wrSold, median: wrMed } });
