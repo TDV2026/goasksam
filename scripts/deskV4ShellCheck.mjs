@@ -494,4 +494,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     const pm = await open(h => h.replace(">Closest sales<", ">Comparable sales<")); const tm = await pm.evaluate(() => document.body.textContent); ok(/comparable/i.test(tm), "mutant caught: a heading that says Comparable sales is seen by the sweep"); }
 }
 await b.close();
+// ---------- 20 DESK2 (Lane S, Nov 15 2026): /preview/desk2, the queue's list, geometry and mutants live in scripts/deskV2Check.mjs and run here as one section ----------
+{ const { spawnSync } = await import("node:child_process"), r = spawnSync(process.execPath, [...process.execArgv, path.join(ROOT, "scripts/deskV2Check.mjs")], { encoding: "utf8", env: process.env }), line = String(r.stdout || "").trim().split("\n").pop();
+  ok(r.status === 0 && /0 FAIL/.test(line), "20 desk2: " + line + (r.status === 0 ? "" : " " + String(r.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 5).join(" | "))); }
 done("deskV4ShellCheck");
