@@ -282,4 +282,21 @@ console.log("CASE IDS " + ids.join(" "));
   } finally { globalThis.fetch = f0; }
 }
 
+
+// ---------- LIKELY (order 2318, Nov 14 2026): desk.likely and reserve.roleLine, from the engine's desk.likelyBasis only ----------
+// CLASS: every case view of every car. A case with three or more closest sales carries the figure (the median of exactly those sales, from the engine), low, high, count, ids and the two lines; one with fewer carries none of them and no role line.
+{ const { setup } = await import(pathToFileURL(path.join(ROOT, "scripts/_deskCaseWorld.mjs")).href), W = await setup(ROOT), V = await U("lib/desk/caseView.js"), DV = await U("lib/deskV3.js");
+  const base = await W.readyCase(), mk = c => ({ id: "x", org_id: "t", owner_seat: "Jane Park", created_at: W.T, submission: { typed: true, photos: [], documents: [] }, state: {}, case: c, version: 0 });
+  const view = c => V.caseView(mk(c), [mk(c)], W.T), m = n => "$" + Math.round(n).toLocaleString("en-US"), med = a => { const q = a.slice().sort((x, y) => x - y), n = q.length; return n % 2 ? q[(n - 1) / 2] : Math.round((q[n / 2 - 1] + q[n / 2]) / 2); };
+  const v = view(base), lk = v.desk.likely, byId = new Map(base.desk.comparables.map(x => [x.id, x])), closest = base.desk.likelyBasis.ids.map(i => byId.get(i).price), ck = base.desk.reserveCheck;
+  ok("LIKELY 1: three or more closest sales: the figure is the median of exactly those sales (the engine's), with low, high, count and ids", lk.figure === base.desk.likelyBasis.median && lk.figure === med(closest) && lk.low === Math.min(...closest) && lk.high === Math.max(...closest) && lk.count === closest.length && JSON.stringify(lk.closestIds) === JSON.stringify(base.desk.likelyBasis.ids), JSON.stringify(lk).slice(0, 200));
+  ok("LIKELY 2: the figure is not the whole pool's median", lk.figure !== base.desk.evidence.median, m(lk.figure));
+  ok("LIKELY 3: the analyst's line, from the table: the range and median, then the floor and how many sales cleared it", lk.line === `The closest cars made ${m(lk.low)} to ${m(lk.high)}, median ${m(lk.figure)}. ${m(ck.reserve)} is the floor ${ck.reached} of ${ck.of} sales cleared.`, lk.line);
+  ok("LIKELY 4: the seller's line, from the table: around the figure, then the three closest sales", /^Cars like yours have been selling for around \$[\d,]+\. The three closest sales made \$[\d,]+, \$[\d,]+ and \$[\d,]+\.$/.test(lk.sellerLine) && lk.sellerLine.startsWith(RW.reasonLine("case.likely.seller", { median: lk.figure })), lk.sellerLine);
+  ok("LIKELY 5: the reserve's role line", v.reserve.roleLine === "The reserve protects the sale. Bidding decides the price.", String(v.reserve.roleLine));
+  const c2 = JSON.parse(JSON.stringify(base)); c2.desk.comparables = c2.desk.comparables.slice(0, 2); c2.desk.likelyBasis = DV.likelyBasisOf(c2.desk.comparables); const v2 = view(c2), l2 = v2.desk.likely;
+  ok("LIKELY 6: fewer than three closest sales: no figure, no range, no lines, no role line, the count stated", l2.figure === null && l2.low === null && l2.high === null && l2.line === null && l2.sellerLine === null && l2.count === 2 && v2.reserve.roleLine === null, JSON.stringify(l2));
+  const c3 = JSON.parse(JSON.stringify(base)); c3.desk.reserveCheck = null; const l3 = view(c3).desk.likely;
+  ok("LIKELY 7: with no reserve check the analyst's line is the range alone, never a made-up floor", l3.line === `The closest cars made ${m(lk.low)} to ${m(lk.high)}, median ${m(lk.figure)}.`, l3.line);
+  ok("LIKELY 8: no engine talk reaches a served string (signals counted)", !/signals? counted/.test(JSON.stringify(v)), ""); }
 console.log(`deskTypedCasesCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
