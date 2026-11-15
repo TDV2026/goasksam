@@ -8,6 +8,8 @@
 //     the attention badge at the card's top right corner, outside the thumb (photo or monogram tile) and clear of Claim, Claim hidden until hover on a wide screen and always shown on a narrow one, the selected card pale green; no case chosen reads Choose a case. A tile (year, initial) stands for a missing photo.
 //   7 STAGE 2, THE OPEN CASE: the compact header (title, status pill, seller, received line, analyst, the Original enquiry link), the vehicle summary (cover at 460px, a thumbnail strip with +N, every field with its tag Verified, Seller supplied or Needs confirmation, edited in place and sent as case_edit field), the market summary (the server's strip cells, the lens, the thin line only when served, a chart at half the old height with one dot per sale),
 //     Closest sales (the first four as compact cards, View all N sales for the rest, In report, Exclude that asks for a reason and sends nothing without one, Hagerty first), no dash, nothing drawn that the model did not serve, no likely or analyst range.
+//   8 STAGE 3, THE RIGHT RAIL: in order the condition panel (unset until the analyst sets it: Not yet set, four buttons none pressed, a note, Save only with a pick and a note, the effect line only when served), the market range labelled Market range with its count, the reserve large with its reason, the four rungs (Use sends reserve_use, a tick sends report_rungs_set), the why box labelled Printed in the report, the outstanding checks with their actions (words go with the action), then Preview report, Save draft, Finalize and send;
+//     Finalize is disabled until the model says ready; it finalizes and then asks for the recipient: nothing is sent until Send is pressed in that step.
 //   Mutants (each must fail): a stage band, a Search tab, an attention mark at 0, a Claim button on an owned card, a tall card, a pill on every card, the badge outside the thumb, Claim always shown, an inner scroll box on the statuses, a 232px rail.
 //   node scripts/deskV2Check.mjs
 import { launch, imp, tally } from "./deskV3Harness.mjs";
@@ -59,8 +61,8 @@ ok(!/cd-s|cd-e|att"|claim/.test(blank), "a card with no seller, no elapsed line,
 ok(/data-claim/.test(V2.cardHtml({ id: "y", title: "t", statusKey: "new_enquiries", statusLabel: "New enquiries", analyst: null, needsAttention: 2 })) && /class="att"/.test(V2.cardHtml({ id: "y", title: "t", statusKey: "new_enquiries", statusLabel: "New enquiries", analyst: null, needsAttention: 2 })), "an unassigned card with attention above 0 carries Claim and the mark");
 // in Chrome: the filter switches the cards, the search narrows, geometry holds
 const b = await launch();
-async function open(h, w = 1440) { const p = await b.newPage(); await p.setViewport({ width: w, height: 900 }); await p.setRequestInterception(true);
-  p.on("request", r => { const u = new URL(r.url()); if (u.host === "goasksam.com" && r.method() === "POST") { let bd = {}; try { bd = JSON.parse(r.postData() || "{}"); } catch {} (p._posts = p._posts || []).push(bd); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(bd.action === "case_list" ? { ok: true, rows: [{ id: m.cards[0].id }] } : { ok: true }) }); } if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: h }); return r.respond({ status: 204, body: "" }); });
+async function open(h, w = 1440, respond = null) { const p = await b.newPage(); await p.setViewport({ width: w, height: 900 }); await p.setRequestInterception(true);
+  p.on("request", r => { const u = new URL(r.url()); if (u.host === "goasksam.com" && r.method() === "POST") { let bd = {}; try { bd = JSON.parse(r.postData() || "{}"); } catch {} (p._posts = p._posts || []).push(bd); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(respond && respond(bd) || (bd.action === "case_list" ? { ok: true, rows: [{ id: m.cards[0].id }] } : { ok: true })) }); } if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: h }); return r.respond({ status: 204, body: "" }); });
   p._err = []; p.on("pageerror", e => p._err.push(String(e).slice(0, 160))); await p.goto("https://goasksam.com/preview/desk2", { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 200)); return p; }
 const p = await open(html);
 for (const [k] of V2.STATUSES) { await p.click(`[data-f="${k}"]`); const r = await p.evaluate(k => { const v = [...document.querySelectorAll(".cd")].filter(c => !c.hidden); return { only: v.every(c => c.dataset.status === k), n: v.length, none: !document.getElementById("none").hidden }; }, k); ok(r.only && (r.n > 0) === !r.none, `filter ${k} shows only its cards`); }
@@ -155,5 +157,50 @@ for (const [name, f] of Object.entries(CASE_MUT)) { const base = name === "drawN
   if (name === "drawNoSales") cnt(!(await q.evaluate(() => !!document.getElementById("plot"))));
   if (name === "fiveCards") cnt((await q.evaluate(() => document.querySelectorAll(".sc").length)) === 4);
   if (name === "noTag") cnt((await q.evaluate(() => document.querySelectorAll(".fr .tg").length)) > 0);
+  await q.close(); ok(bad > 0, `mutant ${name} is caught`); }
+
+// ---------- 8 stage 3, the right rail ----------
+const LADDER = { recommended: "good", reason: "Four of the nine sales in this condition reached it.", rungs: [{ key: "concours", figureLine: "$45,000", line: "Concours" }, { key: "excellent", figureLine: "$36,000", line: "Excellent" }, { key: "good", figureLine: "$30,000", line: "Good" }, { key: "noReserve", figureLine: null, line: "No reserve" }] };
+const rm = await V3.deskModel({ query: { case: "pv_hm" } }); rm.kase = { ...rm.kase, condition: { ...rm.kase.condition, chosen: null, effectLine: "Fair moved the range down." }, desk: { ...rm.kase.desk, reserveLadder: LADDER } };
+const rhtml = V2.pageHtml(rm), ready = bd => (bd.action === "case_edit" || bd.action === "condition_set" ? { ok: true, readiness: { ready: true, blockers: [] } } : bd.action === "case_finalize" ? { ok: true } : bd.action === "case_send_preview" ? { ok: true, to: "hal@example.com", subject: "Your report", message: "Hello", from: "desk@example.com", fromName: "Expert", attachmentName: "report.pdf", version: 1 } : bd.action === "case_send" ? { ok: true } : null);
+{ const q = await open(rhtml, 1440, ready);
+  const r = await q.evaluate(() => ({ order: [...document.querySelectorAll("#val section")].filter(x => x.firstChild).map(x => x.id), cfig: document.getElementById("cfig").textContent, unset: document.getElementById("cfig").classList.contains("unset"), pressed: document.querySelectorAll("#cbtns [aria-pressed=true]").length, btns: [...document.querySelectorAll("#cbtns button")].map(b => b.textContent), save: document.getElementById("csave").disabled, effect: (document.getElementById("ceffect") || {}).textContent || null,
+    range: document.getElementById("rrange").innerText, rfig: parseFloat(getComputedStyle(document.getElementById("rfig")).fontSize), rfigT: document.getElementById("rfig").textContent, reason: (document.getElementById("lreason") || {}).textContent || "", whyLab: document.querySelector("#rwhy label").textContent, rows: document.querySelectorAll(".lrow").length, buttons: [...document.querySelectorAll("#rfoot .btns button")].map(b => b.textContent), fin: document.getElementById("bFin").disabled, needs: [...document.querySelectorAll(".nd.need")].map(n => [n.dataset.need, [...n.querySelectorAll("button")].map(b => b.textContent)]) }));
+  ok(JSON.stringify(r.order) === JSON.stringify(["rcond", "rrange", "rres", "rlad", "rwhy", "rneeds", "rfoot"]), "the rail runs condition, market range, reserve, ladder, why, outstanding checks, buttons");
+  ok(r.cfig === "Not yet set" && r.unset && r.pressed === 0 && JSON.stringify(r.btns) === JSON.stringify(["Concours", "Excellent", "Good", "Fair"]) && r.save, "the condition is unset: Not yet set, four buttons, none pressed, Save disabled");
+  ok(r.effect === "Fair moved the range down.", "the effect line prints as sent");
+  ok(r.range === ("MARKET RANGE, " + ev2.countLine.toUpperCase() + "\n" + ev2.typicalLine) || (/Market range/i.test(r.range) && r.range.includes(ev2.typicalLine) && r.range.includes(ev2.countLine)), "the market range is labelled Market range with its sale count");
+  ok(r.rfigT === "$30,000", "with a rung in use the reserve figure is that rung's line as sent"); ok(r.rfig >= 36 && r.reason.length > 0, "the reserve is large and carries its reason");
+  ok(r.whyLab === "Printed in the report", "the why box is labelled Printed in the report"); ok(r.rows === 4, "the ladder has four rungs");
+  ok(JSON.stringify(r.buttons) === JSON.stringify(["Preview report", "Save draft", "Finalize and send"]), "the buttons are Preview report, Save draft, Finalize and send"); ok(r.fin === true, "Finalize is disabled until the model says the gates pass");
+  ok(r.needs.length === K.needs_review.filter(n => n.state === "open").length && r.needs.every(([, b]) => b.includes("Proceed without")), "every open check has its actions");
+  ok(await q.evaluate(() => { const f = document.getElementById("bFin").getBoundingClientRect(), v = document.getElementById("val").getBoundingClientRect(); return f.bottom <= innerHeight && f.top >= v.top; }), "the three buttons are in view at 1440 by 900, never under the checks");
+  // condition: a pick plus a note enables Save and sends condition_set
+  await q.click('[data-cond="Good"]'); ok(await q.evaluate(() => document.querySelectorAll("#cbtns .pick").length === 1 && document.getElementById("csave").disabled), "a pick alone does not enable Save"); await q.type("#cnoteIn", "from photos"); await q.click("#csave"); await wait(200);
+  ok((q._posts || []).some(b => b.action === "condition_set" && b.condition === 3 && b.note === "from photos"), "Save sends condition_set with the tier and the note");
+  await q.click('[data-use="excellent"]'); await wait(350); ok((q._posts || []).some(b => b.action === "reserve_use" && b.key === "excellent"), "Use sends reserve_use");
+  await q.click('[data-tick="concours"]'); await wait(350); ok((q._posts || []).some(b => b.action === "report_rungs_set" && b.keys.includes("concours")), "a tick sends report_rungs_set");
+  const nid = r.needs[0][0]; await q.type(`[data-statement="${nid}"]`, "seen on the dash"); await q.click(`[data-need="${nid}"] [data-act="waive"]`); await wait(150); ok((q._posts || []).some(b => b.action === "proceed_without" && b.item === nid && b.words === "seen on the dash"), "Proceed without sends its words");
+  await q.type("#why", " Edited."); await wait(900); ok((q._posts || []).some(b => b.op === "reserve" && b.patch && /Edited\./.test(b.patch.why)), "the why box saves what is typed");
+  ok(await q.evaluate(() => !document.getElementById("bFin").disabled), "Finalize enables when the model says ready");
+  const n0 = (q._posts || []).length; await q.click("#bFin"); await wait(300);
+  const sent = () => (q._posts || []).filter(b => b.action === "case_send");
+  ok((q._posts || []).slice(n0).some(b => b.action === "case_finalize") && (await q.evaluate(() => !!document.getElementById("sendDlg") && document.getElementById("sendTo").value === "hal@example.com")) && sent().length === 0, "Finalize and send finalizes, then asks for the recipient and sends nothing yet");
+  await q.click("#sendGo"); await wait(200); ok(sent().length === 1 && sent()[0].to === "hal@example.com", "Send in the confirmation step sends to the confirmed recipient");
+  ok(!q._err.length, "no page error in the rail"); await q.close(); }
+const RAIL_MUT = {
+  preSelected: h => h.replace("var on=same(n,cur);var bt", "var on=same(n,\"Good\");var bt"),
+  likelyRange: h => h.replace('text:"Market range"+', 'text:"Likely selling range"+'),
+  enabledAlways: h => h.replace("fz.disabled=!R.ready&&!fin;", "fz.disabled=false;"),
+  sendNoConfirm: h => h.replace("redraw();openSend()}else", "redraw();post({action:\"case_send\",id:D.active,version:K.version,to:\"x\"})}else"),
+  smallReserve: h => h.replace(".rfig{display:block;font-family:var(--serif);font-size:42px", ".rfig{display:block;font-family:var(--serif);font-size:16px"),
+  wordsDropped: h => h.replace("var body={item:n.id,words:st.value.trim()}", "var body={item:n.id,words:\"\"}"),
+};
+for (const [name, f] of Object.entries(RAIL_MUT)) { const mh = f(rhtml); if (mh === rhtml) { ok(false, "mutant target missing: " + name); continue; }
+  const q = await open(mh, 1440, ready); let bad = 0; const cnt = c => { if (!c) bad++; };
+  const rr = await q.evaluate(() => ({ pressed: document.querySelectorAll("#cbtns [aria-pressed=true]").length, lab: document.querySelector("#rrange .rl").textContent, fin: document.getElementById("bFin").disabled, rfig: parseFloat(getComputedStyle(document.getElementById("rfig")).fontSize), nid: (document.querySelector(".nd.need") || {}).dataset ? document.querySelector(".nd.need").dataset.need : null }));
+  cnt(rr.pressed === 0); cnt(/Market range/.test(rr.lab)); cnt(rr.fin === true); cnt(rr.rfig >= 36);
+  if (name === "sendNoConfirm") { await q.evaluate(() => { document.getElementById("bFin").disabled = false; }); await q.type("#why", " x"); await wait(900); await q.click("#bFin"); await wait(300); cnt(!(q._posts || []).some(b => b.action === "case_send")); }
+  if (name === "wordsDropped") { await q.type(`[data-statement="${rr.nid}"]`, "words here"); await q.click(`[data-need="${rr.nid}"] [data-act="waive"]`); await wait(150); cnt((q._posts || []).some(b => b.action === "proceed_without" && b.words === "words here")); }
   await q.close(); ok(bad > 0, `mutant ${name} is caught`); }
 await b.close(); done("deskV2Check");
