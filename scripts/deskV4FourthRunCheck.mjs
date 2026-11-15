@@ -47,7 +47,7 @@ const SRC = fs.readFileSync(path.join(ROOT, "lib/preview/deskV4Client.js"), "utf
   const a = await demo(sug), c = await demo(none);
   ok((await shown(a, "#condhint")) && (await txt(a, "#condhint")) === "Dot marks the suggestion" && (await a.evaluate(() => !!document.querySelector("#cond button.sug"))), "the engine marked a condition: the hint prints and the dot is on that button");
   ok(!(await shown(c, "#condhint")) && (await c.evaluate(() => !document.querySelector("#cond button.sug"))), "no condition marked: the hint is absent and there is no dot");
-  const m = await demo(none, { html: h => h.replace('(hint) hint.hidden = sug == null;', "(hint) hint.hidden = false;") }); const m0 = await demo(none, { html: h => h.replace("hint.hidden = sug == null", "hint.hidden = false") }); ok(await shown(m0, "#condhint"), "mutant caught: the hint always printed"); }
+  const m = await demo(none, { html: h => h.replace('(hint) hint.hidden = sug == null;', "(hint) hint.hidden = false;") }); const m0 = await demo(none, { html: h => h.replace("hint.hidden = sugN == null", "hint.hidden = false") }); ok(await shown(m0, "#condhint"), "mutant caught: the hint always printed"); }
 
 { // 3 CONDITION IN THE MARKET HEADER
   const p = await demo(null);
