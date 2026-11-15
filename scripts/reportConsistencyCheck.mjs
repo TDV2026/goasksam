@@ -323,4 +323,29 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   const c2 = K.setReserve(c, { why: "Held at the lower quartile; nothing else to add." }, T);
   ok("PRINTED 5: an edited why prints as edited and the earlier words are gone", (await pages(c2))[0].includes("held at the lower quartile; nothing else to add.") && !(await pages(c2))[0].includes("clutch"), "");
 }
+
+// ---------- THE SALES THE REPORT PRINTS (order 2318, Nov 15 2026, item 2) ----------
+// CAUSE (found live): page three printed four sales that were not ticked "In report", and page one named the car's own sale ($536,000) among the closest. The pages read different lists. FIX: one function (lib/desk/reportSales.js) for page three, the finalized row and the screen's count; the engine marks the car's own sale (ownSale).
+// RULE: page three prints exactly the sales ticked, in the case's order; none ticked: the top three by rank, never the car's own sale; the heading is "Closest sales", on the screen and in the report, and no word "comparable" reaches a reader.
+// CLASS: every case on every report (ticked in another order than the engine's, none ticked, own sale first in the list, a ticked sale the analyst excluded).
+{ const fs = await import("node:fs"), P = await imp("lib/desk/reportPdfV3.js"), mini = await imp("lib/pdf/mini.js"), PNG = fs.readFileSync(path.join(root, "public/icon-512.png")), money = n => "$" + Math.round(n).toLocaleString("en-US");
+  const sheetOf = c => ({ id: "x", owner_seat: "Jane Park", forwarded_by: "Jane Park", created_at: T, submission: { typed: false, photos: [{ id: c.photos.items[0].id, url: "https://real.example/cover.jpg" }] }, state: {}, case: c, final: { reportNumber: "DV-2026-0007", org: { name: "Acme Auctions" }, finalisedAt: T } });
+  const build = async c => mini.pdfTextOps((await (await imp("lib/desk/reportPdfV3.js")).buildReportV3(sheetOf(c), { name: "Acme Auctions", contactEmail: "desk@acme.example", sendingAddress: "noreply@acme.example" }, { fetchImage: async () => PNG, draft: false })).bytes);
+  const prices = ops => ops.filter(o => /^\$[\d,]+$/.test(o.text) && o.y > 90).sort((a, b) => a.y - b.y || a.x - b.x).map(o => o.text);
+  const L = base.desk.comparables.filter(x => x.price > 0 && x.inPopulation !== false), mk = (ids, own = false) => { const c = cl(base); c.selectedComparables = ids; c.exclusions = []; if (own) { c.desk.comparables = c.desk.comparables.map((x, i) => (i === 0 ? { ...x, ownSale: true } : x)); } return c; };
+  const pick = [L[4], L[1], L[3]].map(x => x.id), c1 = mk(pick), pg1 = (await build(c1))[2];
+  ok("PAGE THREE 1: exactly the ticked sales print, in the case's order (not the engine's), and no unticked sale's price is on the page", JSON.stringify(prices(pg1)) === JSON.stringify([L[4], L[1], L[3]].map(x => money(x.price))) && L.filter(x => !pick.includes(x.id) && ![L[4], L[1], L[3]].some(y => y.price === x.price)).every(x => !prices(pg1).includes(money(x.price))), JSON.stringify(prices(pg1)));
+  ok("PAGE THREE 2: the served case says which sales print: ids in the case's order and the line", JSON.stringify(V.caseView(sheetOf(c1), [sheetOf(c1)], T).reportSales.ids) === JSON.stringify(pick.map(String)) && V.caseView(sheetOf(c1), [sheetOf(c1)], T).reportSales.line === "3 in the report", JSON.stringify(V.caseView(sheetOf(c1), [sheetOf(c1)], T).reportSales));
+  const c0 = mk([], true), rows0 = L.filter(x => !c0.desk.comparables.find(y => y.id === x.id).ownSale).slice(0, 3), pg0 = (await build(c0))[2];
+  ok("PAGE THREE 3: none ticked: the top three by rank print, and the car's own sale is not one of them though it ranks first", c0.desk.comparables[0].ownSale === true && JSON.stringify(prices(pg0)) === JSON.stringify(rows0.map(x => money(x.price))) && V.caseView(sheetOf(c0), [sheetOf(c0)], T).reportSales.source === "top", JSON.stringify(prices(pg0)));
+  const cx = mk(pick); cx.exclusions = [{ saleId: String(pick[0]), scope: "report_comps", reason: "x", at: T }]; const pgx = (await build(cx))[2];
+  ok("PAGE THREE 4: a ticked sale the analyst excluded does not print", !prices(pgx).includes(money(L[4].price)) || L.filter(x => x.price === L[4].price).length > 1, JSON.stringify(prices(pgx)));
+  const all = await build(c1), text = all.flat().map(o => o.text).join("\n");
+  ok("HEADING: page three is headed Closest sales, and no page of the report says comparable", all[2].some(o => /^Closest sales$/.test(o.text)) && !/comparable/i.test(text), (text.match(/[^\n]*comparable[^\n]*/i) || [""])[0]);
+  const strings = o => { const out = []; (function w(x, k) { if (typeof x === "string") out.push(k + ": " + x); else if (Array.isArray(x)) x.forEach(v => w(v, k)); else if (x && typeof x === "object") for (const [kk, v] of Object.entries(x)) w(v, kk); })(o, ""); return out; };
+  const v = V.caseView(sheetOf(c1), [sheetOf(c1)], T), hit = [...strings({ ...v, desk: { ...v.desk, comparables: undefined, sales: undefined, views: undefined } }), ...strings(R.reportState(c1).v4)].map(x => x.split(": ").slice(1).join(": ")).filter(t => /comparable/i.test(t) && /\s/.test(t));
+  ok("HEADING: no served string of the case or of the report's lines says comparable (the screen's label and the words table say Closest sales)", hit.length === 0, hit.slice(0, 2).join(" | "));
+  const src = fs.readFileSync(path.join(root, "lib/preview/deskV4.js"), "utf8"), words = fs.readFileSync(path.join(root, "lib/reasonWords.js"), "utf8").split("\n").filter(l => /^\s+"[\w.]+":/.test(l) && /text:/.test(l)).map(l => l.slice(l.indexOf("text:"))).filter(t => /comparable/i.test(t));
+  ok("HEADING: the screen's section is Closest sales and the words table has no reader-facing 'comparable'", /secH\("Closest sales"/.test(src) && !/>Comparables?</.test(src) && words.length === 0, words.slice(0, 2).join(" | "));
+}
 console.log(`reportConsistencyCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
