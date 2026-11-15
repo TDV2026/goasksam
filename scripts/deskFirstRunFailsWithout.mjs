@@ -202,6 +202,15 @@ const MUT = [
   ["the served view ignores the chosen condition", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("export const viewOfCase = c => ({ tier: c.condition && c.condition.selected &&", "export const viewOfCase = c => ({ tier: false && c.condition && c.condition.selected &&")],
   ["a different condition is set with no note", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("if (t !== (sug ? sug.tier : null) && !why) return", "if (false) return")],
   ["a condition change writes no audit entry", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("logAudit(c, { at: iso(now), by: \"analyst\", what: \"condition set\"", "void ({ at: iso(now), by: \"analyst\", what: \"condition set\"")],
+  ["the default view ignores the suggested condition", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("if (sg && c.desk && hasViews(c.desk) && viewOf(c.desk, viewKey(sg.tier, months))) tier = sg.tier;", "")],
+  ["the report prints a rung the analyst did not tick", "reportConsistencyCheck", "lib/desk/reportState.js", rep("{ keys, inUse } = reportRungsOf(c); return !l", "{ inUse } = reportRungsOf(c), keys = [\"safe\", \"balanced\", \"ambitious\", \"noReserve\"]; return !l")],
+  ["the reserve figure is not the chosen rung's", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("const fig = k === \"noReserve\" ? was.figure : rg.figure;", "const fig = was.figure;")],
+  ["the role line is back in the served case", "deskTypedCasesCheck", "lib/desk/caseView.js", rep("noReserve: reportReserveModeOf(c).mode === \"no_reserve\",", "roleLine: \"The reserve protects the sale. Bidding decides the price.\", noReserve: reportReserveModeOf(c).mode === \"no_reserve\",")],
+  ["the role line is back on the report", "reportConsistencyCheck", "lib/desk/reportState.js", rep("reserveReason: noRes &&", "roleLine: \"The reserve protects the sale. Bidding decides the price.\", reserveReason: noRes &&")],
+  ["the three closest are the three lowest prices", "reportConsistencyCheck", "lib/desk/likely.js", rep(".map(x => Number(x.price));", ".map(x => Number(x.price)).sort((x, y) => x - y);")],
+  ["the engine default ignores the ladder's recommended rung", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("start = ladderFigure(c0) != null ? ladderFigure(c0) :", "start = false ? 0 :")],
+  ["a rung that is not available can be used", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("if (!rg || rg.available === false) return { refuse", "if (!rg) return { refuse")],
+  ["the in-use rung can be unticked from the report", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("const keys = RUNG_KEYS.filter(k => k === inUse || (ticked", "const keys = RUNG_KEYS.filter(k => (ticked")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });

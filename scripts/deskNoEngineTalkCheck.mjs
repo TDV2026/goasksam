@@ -63,6 +63,12 @@ const bad = (label, list) => { const hit = [...new Set(list.filter(t => BAN.test
   bad("TALK 12: the report's state carries no banned word", sentencesOf(st));
   const pdf = await P.buildReportV3({ ...sheet, final: { reportNumber: "DV-1", org: { name: "A" }, finalisedAt: W.T }, submission: { typed: false, photos: [{ id: base.photos.items[0].id, url: "https://real.example/c.jpg" }] } }, { name: "A", contactEmail: "a@b.example", sendingAddress: "n@b.example" }, { fetchImage: async () => PNG, draft: false });
   bad("TALK 13: the report's pages, as printed, carry no banned word", mini.pdfPages(pdf.bytes).flat());
+  // (b2) THE DECISION LINES (order 2318): the condition line, the reserve choice line, the audit entries and the report's extra rung lines, with the analyst's own choices made
+  { const K = W.K, step1 = K.setConditionChoice(base, 3, "the photos", W.T).case, step2 = K.reserveUse(K.setReserve(step1, { restart: true }, W.T), "safe", W.T).case, X = K.reportRungsSet(step2, ["ambitious"], W.T).case, sx = { ...sheet, case: X }, vx = V.caseView(sx, [sx], W.T), rsx = R.reportState(X);
+    ok("TALK 16: the decision lines were made (condition line, reserve choice line, an extra rung line, three audit entries)", !!vx.condition.line && !!vx.reserveChoice.line && rsx.v4.extraRungs.length === 1 && vx.audit.filter(e => ["condition set", "reserve choice", "report rungs"].includes(e.what)).length === 3, JSON.stringify([vx.condition.line, vx.reserveChoice.line]));
+    bad("TALK 17: the condition, reserve choice and rung lines, as served and as printed on the report, carry no banned word", [...sentencesOf(vx), ...sentencesOf(rsx.v4), ...vx.audit.map(e => e.line)]);
+    const pdfX = await P.buildReportV3({ ...sx, final: { reportNumber: "DV-1", org: { name: "A" }, finalisedAt: W.T }, submission: { typed: false, photos: [{ id: X.photos.items[0].id, url: "https://real.example/c.jpg" }] } }, { name: "A", contactEmail: "a@b.example", sendingAddress: "n@b.example" }, { fetchImage: async () => PNG, draft: false });
+    bad("TALK 18: page one of that report, as printed, carries no banned word", mini.pdfPages(pdfX.bytes)[0]); }
   // (d) the page's own text
   const html = DVv4.deskV4Shell().replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, "\n").split("\n").map(t => t.replace(/&amp;/g, "&").trim()).filter(Boolean);
   ok("TALK 14: the page's text was read", html.length > 20, String(html.length));
