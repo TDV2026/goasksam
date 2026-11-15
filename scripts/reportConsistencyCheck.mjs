@@ -393,4 +393,13 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   ok("COVER 4: a case with no photo draws no cover picture (and no placeholder)", fixed(r0).length === 0, JSON.stringify(r0.clips));
   const rt = await build(mk(["pa"], "pa", []), [ph[0]]);
   ok("COVER 5: the picture is the same fixed size whatever the report's other settings (a case with its own photos)", fixed(rt).length === 1 && fixed(rt)[0].w === 190 && fixed(rt)[0].h === 126, JSON.stringify(rt.clips)); }
+
+// ---------- DOCUMENTS RECEIVED ON PAGE FOUR (order 2318, Nov 15 2026, item 6) ----------
+{ const fs = await import("node:fs"), P = await imp("lib/desk/reportPdfV3.js"), mini = await imp("lib/pdf/mini.js"), PNG = fs.readFileSync(path.join(root, "public/icon-512.png"));
+  const sheetOf = c => ({ id: "x", owner_seat: "Jane Park", forwarded_by: "Jane Park", created_at: T, submission: { typed: false, photos: [{ id: c.photos.items[0].id, url: "https://real.example/cover.jpg" }] }, state: {}, case: c, final: { reportNumber: "DV-2026-0007", org: { name: "Acme Auctions" }, finalisedAt: T } });
+  const pg4 = async c => mini.pdfTextOps((await P.buildReportV3(sheetOf(c), { name: "Acme Auctions", contactEmail: "desk@acme.example", sendingAddress: "noreply@acme.example" }, { fetchImage: async () => PNG, draft: false })).bytes).slice(3).flat().map(o => o.text);
+  const c = cl(base); c.documents = [{ id: "d1", name: "service.pdf", title: "Service invoice", kind: "invoice", status: "received", contentType: "application/pdf" }, { id: "d2", name: "history.docx", kind: "other", status: "received", contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }, { id: "d3", name: "title.heic", kind: "title", status: "received", contentType: "image/heic" }, { id: "d4", name: "wanted.pdf", kind: "inspection", status: "outstanding" }];
+  const t4 = await pg4(c), rs = R.reportState(c).v4;
+  ok("DOCS PAGE: page four is headed Documents received and lists each received document by name and type, in the case's order; an outstanding one is not listed", t4.includes("Documents received") && ["Service invoice · PDF", "history.docx · Word document", "title.heic · HEIC image"].every(l => t4.includes(l)) && !t4.some(x => /wanted/.test(x)) && rs.documents.length === 3, JSON.stringify(t4.filter(x => /Documents|PDF|Word|HEIC/.test(x)).slice(0, 6)));
+  const none = cl(base); none.documents = []; ok("DOCS PAGE: no document received, no heading", !(await pg4(none)).includes("Documents received") && R.reportState(none).v4.documents.length === 0, ""); }
 console.log(`reportConsistencyCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
