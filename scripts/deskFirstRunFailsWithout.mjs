@@ -168,7 +168,9 @@ const MUT = [
   ["the Hagerty last line is made with no date", "deskHagertySalesCheck", "lib/deskV3.js", rep("date: deskDateShort(last.date) })", "date: last.date })")],
   ["case_list does not match a seller name", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("s.car_label, aliasOf(s), s.id, sellerNameOf(s), fv(c, \"vin\"), s.vin]", "s.car_label, aliasOf(s), s.id]")],
   ["a prior case's reserve is left as a bare number", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("reserveLine: reserve != null ? reasonLine(", "reserveLine: reserve != null ? String(reserve) || reasonLine(")],
-  ["a prior case's opened line is the stored timestamp", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("openedLine: /^\\d{4}-\\d{2}-\\d{2}$/.test(day) ? reasonLine(", "openedLine: /^\\d{4}-\\d{2}-\\d{2}$/.test(day) ? String(openedAt) || reasonLine(")]
+  ["a prior case's opened line is the stored timestamp", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("openedLine: /^\\d{4}-\\d{2}-\\d{2}$/.test(day) ? reasonLine(", "openedLine: /^\\d{4}-\\d{2}-\\d{2}$/.test(day) ? String(openedAt) || reasonLine(")],
+  ["the sale rows carry no venue slug", "deskHagertySalesCheck", "lib/deskV3.js", rep("platform: r.platform || null, venue: venueSlugOf(r), url: r.url || null", "platform: r.platform || null, url: r.url || null")],
+  ["the comparable rows carry no venue slug", "deskHagertySalesCheck", "lib/deskV3.js", s => s.split("platform: o.r.platform || null, venue: venueSlugOf(o.r),").join("platform: o.r.platform || null,")]
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
