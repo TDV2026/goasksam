@@ -224,6 +224,8 @@ const MUT = [
   ["the report's type floor is gone", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep("const MINPT = 9,", "const MINPT = 6,")],
   ["a page that runs out shrinks its text instead of continuing", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep("const room = async (h, title) => { if (y + h > FOOT - 8) await cont(title); };", "const room = async () => {};")],
   ["the footers say page x of 4", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep("right(`Page ${n} of ${total}`,", "right(`Page ${n} of 4`,")],
+  ["a thin view served from its fallback has no usable rungs", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("return l.thin && !l.servedFrom ? null :", "return l.thin ? null :")],
+  ["with nothing to price the engine's line is not the reserve reason", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("if (rl && rl.thin && !rl.servedFrom && r.figure == null) return", "if (false) return")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });

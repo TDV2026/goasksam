@@ -60,12 +60,12 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
 { const DV = await imp("lib/deskV3.js"); let views = 0, counts = 0; const off = [];
   for (const t of [0, 1, 2, 3, 4]) for (const m of [3, 6, 12]) {
     const k = K.setWindow(K.setCondition(base, t ? { tier: t, name: "x" } : null, T), m, T), d = k.desk, N = d.sales.length, found = []; views++;
-    // A THIN VIEW IS SERVED FROM THE ALL-CONDITIONS VIEW OF THE PERIOD (Lane B, Nov 14 2026; evidence.servedFrom): its evidence counts are that view's sales, its rung counts and the reserve check are its own
-    const NF = d.evidence.servedFrom ? DV.viewOf(base.desk, d.evidence.servedFrom).sales.length : N;
+    // A THIN VIEW IS SERVED WHOLE FROM THE ALL-CONDITIONS VIEW OF THE PERIOD (Lane B, Nov 15 2026; desk.servedFrom): the header, strip, sales list, Hagerty and reserve check all count the served list, so they equal it on every view. A condition tier's own button and chip (rung.count, countLine, sentence) show that tier's own count always: equal to the list only when desk.servedFrom is null; on a served view they may differ and the thin line must be present.
+    const NF = N, served = !!d.servedFrom, ownN = t ? K.setWindow(base, m, T).desk.rungs[t - 1].count : N;
     const num = (what, x, n = N) => { if (x != null && x !== "") found.push([what, Number(x), n]); };
     num("evidence.count", d.evidence.count, NF); num("evidence.countLine", (String(d.evidence.countLine).match(/^(\d+) sale/) || [])[1], NF); num("evidence.sentence", (String(d.evidence.sentence || "").match(/(\d+) on record/) || [])[1], NF);
     num("byWindow.count", d.evidence.byWindow && d.evidence.byWindow[m] && d.evidence.byWindow[m].count, NF); num("byWindow.populationLine", (String(d.evidence.byWindow && d.evidence.byWindow[m] && d.evidence.byWindow[m].populationLine || "").match(/^(\d+) of/) || [])[1], NF);
-    if (t) { const rg = d.rungs[t - 1]; num("rung.count", rg.count); num("rung.countLine", (String(rg.countLine).match(/^(\d+) sale/) || [])[1]); num("rung.sentence", (String(rg.sentence).match(/(?::|,) (\d+) in the last/) || String(rg.sentence).match(/^[A-Za-z]+: (\d+) sale/) || [])[1]); }
+    if (t) { const rg = d.rungs[t - 1], nn = served ? ownN : N; num("rung.count", rg.count, nn); num("rung.countLine", (String(rg.countLine).match(/^(\d+) sale/) || [])[1], nn); num("rung.sentence", (String(rg.sentence).match(/(?::|,) (\d+) in the last/) || String(rg.sentence).match(/^[A-Za-z]+: (\d+) sale/) || [])[1], nn); if (served && !(d.reserveLadder && d.reserveLadder.thinLine)) off.push(`${t}:${m} served view with no thin line`); if (!served && d.reserveLadder && d.reserveLadder.thin) off.push(`${t}:${m} a thin view with servedFrom null is only the no-fallback case`); }
     if (d.reserveCheck) num("reserveCheck.of", d.reserveCheck.of);
     for (const [what, v, n] of found) { counts++; if (v !== n) off.push(`${t}:${m} ${what} ${v} vs ${n} sales`); }
   }
@@ -182,7 +182,7 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   for (const m of [3, 6, 12]) for (const t of [1, 2, 3, 4]) {
     const here = K.setWindow(base, m, T).desk, picked = K.setWindow(K.setCondition(base, { tier: t, name: "x" }, T), m, T).desk, rg = here.rungs[t - 1], ev = picked.evidence; rungs++;
     // A THIN RUNG, PICKED, IS SERVED FROM THE ALL-CONDITIONS VIEW (Lane B, Nov 14 2026, evidence.servedFrom): the header and the range are that view's; the button and the rung line keep the rung's own count
-    if (ev.servedFrom) { if (ev.servedFrom !== "0:" + m || picked.rungs[t - 1].count !== rg.count || !(rg.count < 5)) off.push(`${t}:${m} thin pick served from ${ev.servedFrom}, rung ${picked.rungs[t - 1].count} vs button ${rg.count}`); continue; }
+    if (ev.servedFrom) { if (ev.servedFrom !== "0:" + m || picked.servedFrom !== "0:" + m || ev.count !== picked.sales.length || !picked.reserveLadder.thinLine || picked.rungs[t - 1].count !== rg.count || !(rg.count < 5)) off.push(`${t}:${m} thin pick served from ${ev.servedFrom}, rung ${picked.rungs[t - 1].count} vs button ${rg.count}`); continue; }
     if (rg.count !== ev.count) off.push(`${t}:${m} button ${rg.count} vs pick ${ev.count}`);
     const band = rg.band ? [rg.band.q1, rg.band.median, rg.band.q3].join() : "none", want = ev.insufficient ? "none" : [ev.q1, ev.median, ev.q3].join();
     if (band !== want) off.push(`${t}:${m} line ${band} vs pick ${want}`);
@@ -244,7 +244,7 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
     for (const t of [1, 2, 3, 4]) {
       const d = K.setWindow(K.setCondition(base, { tier: t, name: "x" }, T), m, T).desk, rung = d.rungs.find(r => r.tier === t), rs = d.reserveStart;
       if (rung.band && rung.count >= 5) { seen.rung++; if (!rs || rs.figure !== DVm.roundReserve(rung.band.q1) || rs.note !== null || rs.tooFew) bad.push(`${t}:${m} rung start ${JSON.stringify(rs)} vs ${rung.band.q1}`); }
-      else { seen.few++; const want = allStart && allStart.figure; if (want != null && !(rs && rs.figure === want && rs.servedFrom === `0:${m}`)) bad.push(`${t}:${m} few ${JSON.stringify(rs)} vs ${want}`); if (want == null && rs && !rs.servedFrom) bad.push(`${t}:${m} few without an all-conditions start`); }
+      else { seen.few++; const want = allStart && allStart.figure; if (want != null && !(rs && rs.figure === want && rs.servedFrom === `0:${m}` && rs.note === d.reserveLadder.thinLine && d.servedFrom === `0:${m}`)) bad.push(`${t}:${m} few ${JSON.stringify(rs)} vs ${want}`); if (want == null && rs && !rs.servedFrom) bad.push(`${t}:${m} few without an all-conditions start`); }
     }
   }
   ok("START 1: in every view a rung with 5 or more sales starts at its own low end, and a rung with fewer stays at the low end of all conditions with the table's note", bad.length === 0 && seen.rung > 0, bad.slice(0, 3).join(" | ") + ` (${seen.rung} rungs, ${seen.few} thin)`);
@@ -292,6 +292,9 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   const D = K.reportRungsSet(D0, ["safe", "noReserve", "ambitious"], T).case, rs = k => rg(D, k);
   const vD = await judge("D (two extras ticked, balanced in use)", D, { cond: false, figureText: money(rs("balanced").figure), reason: lad(D).reason, extras: [`If you would rather set the reserve at ${money(rs("safe").figure)}, ${rs("safe").cleared} of the last ${rs("safe").of} sales cleared it.`, `If you would rather set the reserve at ${money(rs("ambitious").figure)}, ${rs("ambitious").cleared} of the last ${rs("ambitious").of} sales cleared it.`, `If you would rather sell without a reserve, cars sold that way made a median $29,500 against $26,000 with one.`] });
   ok("PAGE ONE D: an extra rung the analyst did not tick is never printed (balanced and noReserve unticked: only safe and ambitious here)", (() => { const E = K.reportRungsSet(D0, ["safe", "ambitious"], T).case, lines = norm(R.reportState(E).v4.extraRungs.map(x => x.line).join(" ")); return !/without a reserve/.test(lines) && R.reportState(E).v4.extraRungs.length === 2; })(), "");
+  // F. nothing can be priced (no fallback): no figure, the engine's line is the reason
+  { const F = eng(cl(base)), rl = F.desk.reserveLadder; F.desk.reserveLadder = { ...rl, rungs: rl.rungs.map(r => ({ ...r, available: false, figure: null })), recommended: null, reason: null, thin: true, servedFrom: null, thinLine: "Too few sales of this car in this period to set a reserve." }; F.desk.reserveStart = null; F.reserve = { ...F.reserve, figure: null, source: null };
+    await judge("F (nothing can be priced)", F, { figureText: "Not set", reason: "Too few sales of this car in this period to set a reserve.", extras: [], cond: false }); }
   // E. fewer than three closest sales: no likely line; no condition: no condition line
   const E = cl(base); E.desk.comparables = E.desk.comparables.slice(0, 2); E.desk.likelyBasis = DV.likelyBasisOf(E.desk.comparables);
   await judge("E (fewer than three closest sales, no condition line)", eng(E), { figureText: money(rg(E, "balanced").figure), reason: lad(E).reason, extras: [], cond: false, likely: false });
