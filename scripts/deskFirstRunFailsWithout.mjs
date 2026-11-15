@@ -219,6 +219,8 @@ const MUT = [
   ["a screen field labelled Printed in the report has no print check", "reportConsistencyCheck", "lib/preview/deskV4.js", rep("<label for=\"why\"><span>Printed in the report</span>", "<label for=\"why\"><span>Printed in the report</span></label><label for=\"extra\"><span>Printed in the report</span>")],
   ["the report cuts the things we took into account to five", "reportConsistencyCheck", "lib/desk/reportPdfV3.js", rep("for (const it of v.considered) yb2 = item(", "for (const it of v.considered.slice(0, 5)) yb2 = item(")],
   ["the report cuts a next step at four lines", "reportConsistencyCheck", "lib/desk/reportPdfV3.js", rep("{ size: 13, lh: 18, max: 12 }", "{ size: 13, lh: 18, max: 2 }")],
+  ["the served reserve figure line is not the chosen rung's", "deskTypedCasesCheck", "lib/desk/caseView.js", rep("export const reserveFigureLine = c => { const f = reserveOf(c).figure;", "export const reserveFigureLine = c => { const f = null;")],
+  ["an answer that carries the case lacks case.reserveChoice", "deskTypedCasesCheck", "lib/desk/caseView.js", rep("condition: conditionOut(c), reserveChoice: reserveChoiceOf(c),", "condition: conditionOut(c),")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
