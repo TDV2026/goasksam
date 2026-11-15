@@ -163,7 +163,12 @@ const MUT = [
   ["the same car is matched on the title text, not the model key", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("return year + \"|\" + norm(make) + \"|\" + norm(fam);", "return norm(titleOf(sheet));")],
   ["the year is not part of the car", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("return year + \"|\" + norm(make) + \"|\" + norm(fam);", "return norm(make) + \"|\" + norm(fam);")],
   ["a q leaves the archived cases out", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("withArch = includeArchived === true || words.length > 0;", "withArch = includeArchived === true;")],
-  ["the archived cases are left out of the prior cases", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("(all || []).filter(s => s && s.id !== sheet.id && carKeyOf(s) === key)", "(all || []).filter(s => s && !s.archived && s.id !== sheet.id && carKeyOf(s) === key)")]
+  ["the archived cases are left out of the prior cases", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("(all || []).filter(s => s && s.id !== sheet.id && carKeyOf(s) === key)", "(all || []).filter(s => s && !s.archived && s.id !== sheet.id && carKeyOf(s) === key)")],
+  ["a lone number is left for the page to format (the Hagerty median line is dropped)", "deskHagertySalesCheck", "lib/deskV3.js", rep("medianLine: reasonLine(\"desk4.hagerty_median_line\", { median })", "medianLine: null")],
+  ["the Hagerty last line is made with no date", "deskHagertySalesCheck", "lib/deskV3.js", rep("date: deskDateShort(last.date) })", "date: last.date })")],
+  ["case_list does not match a seller name", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("s.car_label, aliasOf(s), s.id, sellerNameOf(s), fv(c, \"vin\"), s.vin]", "s.car_label, aliasOf(s), s.id]")],
+  ["a prior case's reserve is left as a bare number", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("reserveLine: reserve != null ? reasonLine(", "reserveLine: reserve != null ? String(reserve) || reasonLine(")],
+  ["a prior case's opened line is the stored timestamp", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("openedLine: /^\\d{4}-\\d{2}-\\d{2}$/.test(day) ? reasonLine(", "openedLine: /^\\d{4}-\\d{2}-\\d{2}$/.test(day) ? String(openedAt) || reasonLine(")]
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });

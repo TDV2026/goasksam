@@ -9,7 +9,7 @@ const A = await U("lib/desk/sheetActions.js"), S = await U("lib/desk/sheetStore.
 const NOW = "2026-11-14T12:00:00Z", store = S.memoryStore(); store.reset();
 const ctx = (seat = "Jane Park") => ({ now: NOW, env: {}, org: "hm", seat, seatName: seat, store, orgSettings: { name: "H" }, readSheet: async () => null });
 let n = 0;
-const make = async (v, o = {}) => { const id = "aa" + String(++n).padStart(6, "0") + "-0000-4000-8000-000000000000", c = M.newCase({ org: "hm", now: NOW, vehicle: v, source: "seller" });
+const make = async (v, o = {}) => { const id = "aa" + String(++n).padStart(6, "0") + "-0000-4000-8000-000000000000", c = M.newCase({ org: "hm", now: NOW, vehicle: v, source: "seller", ...(o.seller ? { seller: { name: o.seller } } : {}) });
   const sh = { id, org_id: "hm", created_at: o.at || NOW, owner_seat: o.owner || "Jane Park", status: o.status || "In progress", submission: { typed: true, photos: [], documents: [] }, state: {}, case: { ...c, ...(o.reserve ? { reserve: { ...c.reserve, figure: o.reserve } } : {}), status: o.stage || c.status }, car_label: [v.year, v.make, v.model].join(" "), version: 0, ...(o.final ? { final: o.final } : {}), ...(o.sent ? { sent: o.sent } : {}) };
   await store.insert("hm", sh); return sh; };
 const P1 = await make({ year: 1999, make: "Porsche", model: "911", trim: "Carrera" }, { reserve: 31000, at: "2026-11-01T10:00:00Z" });
@@ -19,6 +19,7 @@ const PX = await make({ year: 2001, make: "Porsche", model: "911", trim: "Carrer
 const PA = await make({ year: 1999, make: "Porsche", model: "911", trim: "Carrera" }, { at: "2026-10-01T10:00:00Z", reserve: 29500 });
 const PS = await make({ year: 1999, make: "Porsche", model: "911", trim: "Carrera" }, { at: "2026-10-10T10:00:00Z", status: "Sent", final: { decision: { reserve: 30500 } }, sent: { at: "2026-10-12T00:00:00Z" } });
 const Z1 = await make({ year: 1972, make: "Datsun", model: "240Z" }); const Z2 = await make({ year: 1972, make: "Datsun", model: "240Z" });
+const ZS = await make({ year: 1969, make: "Chevrolet", model: "Camaro", vin: "WP0AA2995XS626785" }, { seller: "Hal Pemberton" });
 const arch = await A.handleSheetAction("case_archive", { id: PA.id }, ctx("Jane Park"));
 ok("setup: the archive op archived one case", arch.ok === true, J(arch).slice(0, 120));
 const get = async (id, seat) => (await A.handleSheetAction("case_get", { id }, ctx(seat))).case;
@@ -39,6 +40,11 @@ const byWord = await L({ q: "porsche" }), byModel = await L({ q: "911" }), byAli
 ok("LIST 1: q finds by make and by model word, and the archived come with it, marked", byWord.ok && byWord.rows.some(r => r.id === PA.id && r.archived === true && r.status === "archived") && byWord.rows.length === 6 && byModel.rows.some(r => r.id === P1.id) && !byModel.rows.some(r => r.id === Z1.id), J(byWord.rows.map(r => r.archived)));
 ok("LIST 2: q finds by alias, and by year", byAlias.rows.length === 1 && byAlias.rows[0].id === P3.id && (await L({ q: "1972" })).rows.length === 2 && none.rows.length === 0, J(byAlias.rows.map(r => r.alias)));
 ok("LIST 3: with no q the archived are left out unless includeArchived is asked", !noQ.rows.some(r => r.id === PA.id) && withArch.rows.some(r => r.id === PA.id && r.archived === true) && noQ.rows.length === withArch.rows.length - 1);
+// 6. the queue's old narrowing (title, seller, VIN) is all in case_list's q: nothing is lost
+{ const sel = await L({ q: "pemberton" }), vin = await L({ q: "xs626785" }), both = await L({ q: "hal camaro" }), title = await L({ q: "datsun 240z" });
+  ok("LIST 4: q finds a case by a seller word and by a VIN fragment (and by title words together)", sel.rows.length === 1 && sel.rows[0].id === ZS.id && vin.rows.length === 1 && vin.rows[0].id === ZS.id && both.rows.length === 1 && title.rows.length === 2, J([sel.rows.length, vin.rows.length, both.rows.length, title.rows.length])); }
+// 7. the worded lines of an item: nothing for the page to format
+ok("PRIOR 8: each item carries openedLine and reserveLine as the table's words (sent says so), null when there is nothing to say", byId[P2.id].openedLine === "Opened Nov 5, 2026 by Lee Ames" && byId[P2.id].reserveLine === "Reserve $33,000" && byId[PS.id].reserveLine === "Reserve $30,500 as sent" && byId[P3.id].reserveLine === null && byId[PA.id].reserveLine === "Reserve $29,500" && pc.items.every(i => typeof i.openedLine === "string" && !/\d{4}-\d{2}-\d{2}/.test(i.openedLine)), J(pc.items.map(i => [i.openedLine, i.reserveLine])));
 // 5. the class: the key is the model family, not the title text
 { const k = PC.carKeyOf; const same = k({ case: M.newCase({ org: "x", now: NOW, vehicle: { year: 1999, make: "Porsche", model: "996" }, source: "seller" }) }) === k({ case: M.newCase({ org: "x", now: NOW, vehicle: { year: 1999, make: "Porsche", model: "911" }, source: "seller" }) });
   const withTitle = M.newCase({ org: "x", now: NOW, vehicle: { year: 1999, make: "Porsche", model: "911" }, source: "seller" }); withTitle.desk = { titleLine: "1999 Ferrari 355" };
