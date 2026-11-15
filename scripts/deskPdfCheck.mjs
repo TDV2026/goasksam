@@ -180,4 +180,24 @@ const logo = await build(demo, { logo: "https://real.example/logo.png" }); ok("t
   ok("the table line is the one word, with no dash", RW.reasonLine("report.name") === "Market report" && RW.reasonLine("report.title_final", { number: "DV-1" }) === "Market report DV-1");
   const srcs = ["lib/desk/reportPdf.js", "lib/desk/reportPdfV3.js", "lib/desk/sheetActions.js", "lib/desk/send.js", "lib/desk/caseSend.js", "lib/preview/deskPreview.js", "lib/pdf/mini.js"], bad = srcs.filter(f => /["'`][^"'`\n]*valuation report/i.test(fs.readFileSync(path.join(root, f), "utf8").split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n")));
   ok("no source that prints a title, a subject or a default message writes valuation report in its own words", !bad.length, bad.join(",")); }
+// ---------- THE BUILD IS FAST (order 2318, Nov 14 2026): the draft report on pv_hm took 8.5 s ----------
+// CAUSE: not the re-read on open and not the new fields (the same build took the same time on origin/main 68e7f722, and with the pictures stubbed it takes 70 to 240 ms): the time was the pictures, fetched in three stages in a row (the cover, then the comparables', then the report photos), a picture used twice fetched twice, and again on every preview.
+// FIX: every picture starts at once and once (reportPdfV3 get), a fetched picture is kept ten minutes (lib/desk/imageCache.js), and an image waits at most 3 seconds. CLASS: every report build on every case; this check fails a slow build.
+{ const clock = async f => { const t = Date.now(); const r = await f(); return [Date.now() - t, r]; };
+  const delay = 300, calls = [], slowFetch = async u => { calls.push(String(u)); await new Promise(r => setTimeout(r, delay)); return PNG; };
+  const cs = cl(demo); cs.desk.comparables = cs.desk.comparables.map((x, i) => (x.id === pool[0].id ? { ...x, photo: "https://real.example/shared.jpg" } : x));
+  const shotId = (cs.photos.items[1] || cs.photos.items[0]).id; cs.photos.reportIds = [cs.photos.items[0].id, shotId];
+  const sheetX = { ...sheetOf(cs), submission: { typed: false, photos: cs.photos.items.map((p, i) => ({ id: p.id, url: i === 0 ? "https://real.example/cover.jpg" : "https://real.example/shared.jpg" })) } };
+  const [ms, rep] = await clock(() => P.buildReportV3(sheetX, { name: "Acme Auctions", contactEmail: "desk@acme.example", sendingAddress: "noreply@acme.example" }, { fetchImage: slowFetch, draft: true }));
+  const distinct = new Set(calls).size;
+  ok(`BUILD 1: a report with a cover, comparables' photos and report photos, each picture 300 ms away, builds in about one picture's time (${ms} ms), not three stages' (900 ms and more)`, rep.pages === 4 && ms < 700, `${ms} ms, ${calls.length} fetches`);
+  ok("BUILD 2: a picture used in two places is fetched once", calls.length === distinct && distinct >= 3, `${calls.length} fetches of ${distinct} distinct`);
+  const [msFast] = await clock(() => build(demo, { draft: true }));
+  ok(`BUILD 3: the whole draft build, pictures instant, is fast (${msFast} ms, under 2000)`, msFast < 2000, String(msFast));
+  // the real fetch path: a picture is kept, so a second preview of the same report fetches none
+  { const IC = await imp("lib/desk/imageCache.js"), f0 = globalThis.fetch; IC.clearImageCache(); let n = 0; globalThis.fetch = async () => { n++; return new Response(PNG, { status: 200, headers: { "content-type": "image/png" } }); };
+    try { const cc = cl(demo); const sh = { ...sheetOf(cc), submission: { typed: false, photos: [{ id: cc.photos.items[0].id, url: "https://img.example/cover.png" }] } };
+      const o = { name: "Acme Auctions", contactEmail: "desk@acme.example", sendingAddress: "noreply@acme.example" };
+      await P.buildReportV3(sh, o, { draft: true }); const n1 = n; await P.buildReportV3(sh, o, { draft: true });
+      ok("BUILD 4: a picture fetched for one preview is kept: the second build of the same report fetches nothing", n1 >= 1 && n === n1, `${n1} then ${n - n1}`); } finally { globalThis.fetch = f0; IC.clearImageCache(); } } }
 console.log(`deskPdfCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

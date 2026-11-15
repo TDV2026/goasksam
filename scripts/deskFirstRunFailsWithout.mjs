@@ -211,6 +211,9 @@ const MUT = [
   ["the engine default ignores the ladder's recommended rung", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("start = ladderFigure(c0) != null ? ladderFigure(c0) :", "start = false ? 0 :")],
   ["a rung that is not available can be used", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("if (!rg || rg.available === false) return { refuse", "if (!rg) return { refuse")],
   ["the in-use rung can be unticked from the report", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("const keys = RUNG_KEYS.filter(k => k === inUse || (ticked", "const keys = RUNG_KEYS.filter(k => (ticked")],
+  ["the pictures are fetched in stages again, not all at once", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep("for (const u of [logo, urlOf(coverId), ...rs.comparables.map(cm => cm.photo), ...rs.v4.photoIds.map(urlOf)]) get(u);", "")],
+  ["a picture used twice is fetched twice", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep("if (!imgs.has(url)) imgs.set(url, loadImage(url, fetchImage)); return imgs.get(url);", "return loadImage(url, fetchImage);")],
+  ["a fetched picture is not kept", "deskPdfCheck", "lib/desk/imageCache.js", rep("if (b && /^https:\\/\\//.test(String(url || \"\"))) { CACHE.set(url, { b, at: Date.now() });", "if (false) { CACHE.set(url, { b, at: Date.now() });")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
