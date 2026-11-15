@@ -60,7 +60,7 @@ for (const k of ["pooledApart", "pooledSplit", "trendHeld"]) ok(CARD_FIELDS.incl
 // 6. desk.likelyBasis (Lane B, Nov 14 2026): the Desk answer carries { median, low, high, count, ids } over the rows of desk.comparables, at the top of desk and in every desk.views entry, from the engine only.
 //    The top of desk and every view are built by the SAME deskBlock return, so one field there is in all of them; the values are asserted per view over two cars in scripts/deskLikelyBasisCheck.mjs.
 { const dv = read("lib/deskV3.js"), block = dv.slice(dv.indexOf("export async function deskBlock"), dv.indexOf("export const viewKey"));
-  ok(/likelyBasis = likelyBasisOf\(comparables\)[^;]*;[\s\S]*comparables, likelyBasis, comparablesNote/.test(block), "desk.likelyBasis is set in deskBlock from the very comparables list it returns (top of desk and every view are built there)");
+  ok(/likelyBasis = likelyBasisOf\(comparables[,)][^;]*;[\s\S]*comparables, likelyBasis, comparablesNote/.test(block), "desk.likelyBasis is set in deskBlock from the very comparables list it returns (top of desk and every view are built there)");
   ok(/blocks\[viewKey\(t, m\)\] = await deskBlock\(/.test(read("lib/onebox.js")) && /const \{ sales, comparables, \.\.\.rest \} = b;/.test(dv), "every desk.views entry is a deskBlock result whose rest (including likelyBasis) is stored with it");
   for (const f of ["public/js/desk.js", "public/desk.html", "lib/desk/caseView.js", "lib/desk/reportState.js", "lib/desk/caseWorkflow.js"]) { let s = ""; try { s = read(f); } catch { continue; }
     ok(!/likelyBasis\s*=\s*\{|likelyBasis\.(median|low|high)\s*=[^=]/.test(s), `${f} does not compute likelyBasis (the engine is its one source)`); } }
@@ -70,5 +70,23 @@ for (const k of ["pooledApart", "pooledSplit", "trendHeld"]) ok(CARD_FIELDS.incl
   ok(/fallback: t && !nested \? \(\) =>/.test(ob), "every tier view of the engine read is given its all-conditions fallback (a thin view prices from it)");
   for (const f of ["public/js/desk.js", "public/desk.html", "lib/desk/caseView.js", "lib/desk/reportState.js", "lib/desk/caseWorkflow.js"]) { let s = ""; try { s = read(f); } catch { continue; }
     ok(!/reserveLadder\s*=\s*\{|\.rungs\s*=\s*\[/.test(s), `${f} does not build the reserve ladder (the engine is its one source)`); } }
+// 8. THE DESK FIELD SET IS TIED TO DESK_SHAPE (Lane B, Nov 14 2026). CAUSE: a stored Desk case keeps the answer it was read with and is read again on open only when its shape is below DESK_SHAPE (lib/deskV3.js), so a field the engine gains (desk.reserveLadder) or a changed one (desk.likelyBasis)
+// reaches no stored case unless the number rises. A person has to remember; this fails instead. The engine's real answer (a car read with views) gives the set: the desk keys, the keys of each object field one level down and of one view entry. It is recorded with the shape in
+// scripts/fixtures/deskShape.json. A changed set with the same shape FAILS (bump DESK_SHAPE); a bumped shape with the old record FAILS (refresh the record: node scripts/engineFieldsCheck.mjs --write-shape). A change in what a field MEANS is not a key change: bump by hand and say so beside DESK_SHAPE.
+{ const path = await import("node:path"), { fileURLToPath, pathToFileURL } = await import("node:url"), root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+  const WLD = await import(pathToFileURL(path.join(root, "scripts/_deskOlderWorld.mjs")).href), SR = await import(pathToFileURL(path.join(root, "lib/sheetRead.js")).href), DV = await import(pathToFileURL(path.join(root, "lib/deskV3.js")).href);
+  const err = console.error; console.error = () => {};
+  const car = WLD.loadCars(root).find(c => c.n === 4), w = WLD.install(root), head = async () => ({ status: 200, bytes: 50000, type: "image/jpeg" }), today = new Date().toISOString().slice(0, 10);
+  const r = await SR.sheetRead(w.env, { year: car.year, make: car.make, model: car.model, mileage: 60000, bodyStyle: car.typedBody || undefined, desk: { caseDate: today, transmission: "Manual", label: "x", case: { verification: {} }, exclusions: [], head, views: true } }, w.deps); console.error = err;
+  const d = r && r.desk, plain = v => v && typeof v === "object" && !Array.isArray(v), sig = o => ({ top: Object.keys(o).sort(), nested: Object.fromEntries(Object.keys(o).filter(k => plain(o[k]) && !["views", "pool"].includes(k)).sort().map(k => [k, Object.keys(o[k]).sort()])) });
+  const now = d ? { ...sig(d), view: sig(DV.viewOf(d, Object.keys(d.views)[0]) || {}).top } : null, file = path.join(root, "scripts/fixtures/deskShape.json");
+  if (process.argv.includes("--write-shape") && now) fs.writeFileSync(file, JSON.stringify({ shape: DV.DESK_SHAPE, ...now }, null, 1) + "\n");
+  let rec = null; try { rec = JSON.parse(fs.readFileSync(file, "utf8")); } catch {}
+  const same = !!(rec && now && JSON.stringify({ top: rec.top, nested: rec.nested, view: rec.view }) === JSON.stringify(now));
+  ok(!!now && !!rec, "the desk field record (scripts/fixtures/deskShape.json) exists and the engine answered a desk");
+  ok(!rec || !now || same || DV.DESK_SHAPE !== rec.shape, `the set of desk fields changed and DESK_SHAPE (${DV.DESK_SHAPE}) was not bumped: bump it in lib/deskV3.js, then refresh the record with --write-shape` + (rec && now && !same ? ` (now: ${[...now.top.filter(k => !rec.top.includes(k)).map(k => "+" + k), ...rec.top.filter(k => !now.top.includes(k)).map(k => "-" + k)].join(" ")})` : ""));
+  ok(!rec || !now || same || DV.DESK_SHAPE === rec.shape, `DESK_SHAPE is ${DV.DESK_SHAPE} but the desk field record is still at shape ${rec && rec.shape}: refresh it with node scripts/engineFieldsCheck.mjs --write-shape`);
+  ok(!rec || rec.shape === DV.DESK_SHAPE, `the record's shape (${rec && rec.shape}) is the engine's DESK_SHAPE (${DV.DESK_SHAPE})`);
+  ok(!now || (now.top.includes("reserveLadder") && now.top.includes("likelyBasis") && now.top.includes("shape")), "the record holds the ladder, the likely basis and the shape (the fields this bump is for)"); }
 console.log(`engineFieldsCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);
