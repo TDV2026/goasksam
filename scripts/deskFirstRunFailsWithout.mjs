@@ -135,7 +135,7 @@ const MUT = [
   ["the read resolves the car's own listing after the plan, on every read", "deskTypedCasesCheck", "lib/sheetRead.js", rep("[plan, ownVeh] = await Promise.all([planP, ownP]);", "plan = await planP; ownVeh = await ownP;")],
   // THE WINDOWS, THE START, THE LIVE LINE, THE CLAIM AND THE CHASSIS (Nov 13 2026)
   ["the 3 month window is not offered", "deskViewsCheck", "lib/deskV3.js", rep("export const WINDOWS = [3, 6, 12, 24]", "export const WINDOWS = [6, 12, 24]")],
-  ["24 months is offered whatever the record reaches back", "deskViewsCheck", "lib/deskV3.js", rep("WINDOWS.filter(m => m !== 24 || (first && first < cutoffOf(caseDate, 12)))", "WINDOWS.filter(m => true)")],
+  ["24 months is offered whatever the record reaches back", "deskViewsCheck", "lib/deskV3.js", rep("WINDOWS.filter(m => m !== 24 || reachesPast12(matching, caseDate))", "WINDOWS.filter(m => true)")],
   ["24 months is offered to a record that begins exactly a year back", "deskViewsCheck", "lib/deskV3.js", rep("first < cutoffOf(caseDate, 12)", "first <= cutoffOf(caseDate, 12)")],
   ["a period the record cannot honour is taken", "deskViewsCheck", "lib/desk/caseWorkflow.js", rep("&& !c0.desk.windows.some(w => Number(w.months) === m)) return null;", "&& false) return null;")],
   ["the views are built for every window, honoured or not", "deskViewsCheck", "lib/onebox.js", rep("for (const m of (Array.isArray(desk.windows) && desk.windows.length ? desk.windows.map(w => w.months) : DESK_WINDOWS))", "for (const m of DESK_WINDOWS)")],
@@ -153,7 +153,22 @@ const MUT = [
   ["a chassis no record holds is refused as a VIN", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("return isChassis(vin) ? { ok: true, vin, decoded: {}, chassis: true, ask: reasonLine(\"case.decode.ask_ymm\") } : warning", "return warning")],
   ["the form's pickers refuse a chassis no record holds", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("if (isChassis(vin)) return { ok: true, vin, decoded: {}, chassis: true, ask:", "if (false) return { ok: true, vin, decoded: {}, chassis: true, ask:")],
   ["a VIN decode is asked for a chassis", "deskTypedCasesCheck", "lib/desk/vinStep.js", rep("isChassis(vin) ? null : (ctx.decodeVin", "false ? null : (ctx.decodeVin")],
-  ["the live match reads a VIN only", "deskTypedCasesCheck", "lib/vinLiveMatch.js", rep("want.length >= 6 && want.length <= 16", "want.length >= 99 && want.length <= 16")]
+  ["the live match reads a VIN only", "deskTypedCasesCheck", "lib/vinLiveMatch.js", rep("want.length >= 6 && want.length <= 16", "want.length >= 99 && want.length <= 16")],
+  // SOLD ON HAGERTY (Nov 14 2026)
+  ["the Hagerty count takes every venue's sales", "deskHagertySalesCheck", "lib/deskV3.js", rep("mine = inV.filter(isHagertyRow)", "mine = inV.filter(() => true)")],
+  ["the Hagerty median is the all venue median", "deskHagertySalesCheck", "lib/deskV3.js", rep("const prices = mine.map(r => Number(r.price)).sort((a, b) => a - b), median = quant(prices, 0.5),", "const prices = inV.map(r => Number(r.price)).sort((a, b) => a - b), median = quant(prices, 0.5),")],
+  ["a view with no Hagerty sale carries the wider window's figures", "deskHagertySalesCheck", "lib/deskV3.js", rep("if (!mine.length) return { ...base, line:", "if (!mine.length) return { ...base, count: 1, line:")],
+  ["the report does not carry the Hagerty sentence", "deskHagertySalesCheck", "lib/desk/reportPdfV3.js", rep("if (v.hagertyLine) {", "if (false) {")],
+  // PRIOR CASES AND THE CASE LIST (Nov 14 2026)
+  ["the same car is matched on the title text, not the model key", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("return year + \"|\" + norm(make) + \"|\" + norm(fam);", "return norm(titleOf(sheet));")],
+  ["the year is not part of the car", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("return year + \"|\" + norm(make) + \"|\" + norm(fam);", "return norm(make) + \"|\" + norm(fam);")],
+  ["a q leaves the archived cases out", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("withArch = includeArchived === true || words.length > 0;", "withArch = includeArchived === true;")],
+  ["the archived cases are left out of the prior cases", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("(all || []).filter(s => s && s.id !== sheet.id && carKeyOf(s) === key)", "(all || []).filter(s => s && !s.archived && s.id !== sheet.id && carKeyOf(s) === key)")],
+  ["a lone number is left for the page to format (the Hagerty median line is dropped)", "deskHagertySalesCheck", "lib/deskV3.js", rep("medianLine: reasonLine(\"desk4.hagerty_median_line\", { median })", "medianLine: null")],
+  ["the Hagerty last line is made with no date", "deskHagertySalesCheck", "lib/deskV3.js", rep("date: deskDateShort(last.date) })", "date: last.date })")],
+  ["case_list does not match a seller name", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("s.car_label, aliasOf(s), s.id, sellerNameOf(s), fv(c, \"vin\"), s.vin]", "s.car_label, aliasOf(s), s.id]")],
+  ["a prior case's reserve is left as a bare number", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("reserveLine: reserve != null ? reasonLine(", "reserveLine: reserve != null ? String(reserve) || reasonLine(")],
+  ["a prior case's opened line is the stored timestamp", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("openedLine: /^\\d{4}-\\d{2}-\\d{2}$/.test(day) ? reasonLine(", "openedLine: /^\\d{4}-\\d{2}-\\d{2}$/.test(day) ? String(openedAt) || reasonLine(")]
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
