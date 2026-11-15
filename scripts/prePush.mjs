@@ -2548,9 +2548,9 @@ try {
 }
 try {
   const out = execSync("node scripts/deskV4HagertyCheck.mjs", { encoding: "utf8", timeout: 300000 });
-  record("Desk v4 Sold on Hagerty: the block renders desk.hagerty as sent (count, median, last sale linked, line), words alone for a count of 0, follows the period and condition switches, the page formats nothing; mutants (scripts/deskV4HagertyCheck.mjs)", /\b0 FAIL\b/.test(out), out.trim().split("\n").slice(-3).join(" | "));
+  record("Desk v4 Hagerty highlighting: Hagerty sales as second colour dots with a legend entry only when present, Hagerty rows first in Closest sales with a mark, the Hagerty chip with desk.hagerty.count as sent, selecting it filters the chart and the list and shows the line, nothing at all on a view with none; mutants (scripts/deskV4HagertyCheck.mjs)", /\b0 FAIL\b/.test(out), out.trim().split("\n").slice(-3).join(" | "));
 } catch (e) {
-  record("Desk v4 Sold on Hagerty: the block renders desk.hagerty as sent (count, median, last sale linked, line), words alone for a count of 0, follows the period and condition switches, the page formats nothing; mutants (scripts/deskV4HagertyCheck.mjs)", false, String(e.stdout || e.message || e).trim().split("\n").slice(-4).join(" | "));
+  record("Desk v4 Hagerty highlighting: Hagerty sales as second colour dots with a legend entry only when present, Hagerty rows first in Closest sales with a mark, the Hagerty chip with desk.hagerty.count as sent, selecting it filters the chart and the list and shows the line, nothing at all on a view with none; mutants (scripts/deskV4HagertyCheck.mjs)", false, String(e.stdout || e.message || e).trim().split("\n").slice(-4).join(" | "));
 }
 try {
   const out = execSync("node scripts/deskV4FourthRunCheck.mjs", { encoding: "utf8", timeout: 300000 });
