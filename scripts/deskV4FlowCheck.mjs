@@ -31,7 +31,7 @@ const S = {
 const MUT = [
   ["a list that vanishes after a tick", h => h.replace('paintRow(rows.filter(function (r) { return String(r.id) === String(id); })[0]); cc2();', 'rows = rows.filter(function (r) { return String(r.id) === String(id); }); clear($("comps")); rows.forEach(function (c) { $("comps").appendChild(rowEl(c)); }); rows.forEach(paintRow); cc2();'), "tick"],
   ["a condition that is not clickable", h => h.replace("onclick: function () { pickTier(r); }", "onclick: null"), "condition"],
-  ["an attention action that answers with no item", h => h.replace('{ item: n.id, state: "waived", reason: t }', '{ state: "waived", reason: t }'), "attention"],
+  ["an attention action that answers with no item", h => h.replace('var body = { item: n.id, words: inp ? inp.value.trim() : "" };', 'var body = { words: inp ? inp.value.trim() : "" };'), "attention"],
   ["no way to add a document", h => h.replace('el("input", { type: "file", id: "docfile"', 'el("i", { id: "docfile_gone"'), "document"],
   ["the reserve write sent unwrapped (server answers ok, saves nothing)", h => h.replace('edit("reserve", { patch: { figure: fig } })', 'edit("reserve", { figure: fig })'), "reserve"]
 ];
@@ -51,7 +51,9 @@ const PB = await PV.previewDeskApi({ action: "case_new", vin: DEMO_VIN, mileage:
   const m2 = await PANEL(h => h.replace('$("bFin").disabled = !R.ready || fin;', '$("bFin").disabled = fin;')); ok(m2.fin === false, "mutant caught: Finalize enabled on a case that fails a check"); }
 
 // the mutants first: each leaves the case as it found it (a failed edit changes nothing; a tick is unticked; the reserve mutant saves nothing)
-for (const [label, mutate, step] of MUT) { const p = await openLive(b, { mutate }); let r; try { r = await S[step](p); } catch (e) { r = { pass: false, why: String(e.message).slice(0, 80) }; } await p.close(); ok(r.pass === false, `mutant caught: ${label}`); }
+// CAUSE of a polluted run (Nov 15 2026): a mutant whose target text had moved did nothing, so its "mutant" ran the real action and left the case changed for every later step. CLASS: a mutant that does not change the page is a failure, and it never runs.
+const SAMPLE = await (await imp("lib/preview/deskV4.js")).renderDeskV4({ query: { case: V3.DEMO_ID } });
+for (const [label, mutate, step] of MUT) { if (mutate(SAMPLE) === SAMPLE) { ok(false, `mutant does not apply (its target text has moved): ${label}`); continue; } const p = await openLive(b, { mutate }); let r; try { r = await S[step](p); } catch (e) { r = { pass: false, why: String(e.message).slice(0, 80) }; } await p.close(); ok(r.pass === false, `mutant caught: ${label}`); }
 
 // ---------- the flow on the unmutated page ----------
 const p = await openLive(b, { w: 1440, h: 1000 });
