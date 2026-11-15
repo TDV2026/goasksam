@@ -246,6 +246,14 @@ const MUT = [
   ["the footers say page x of 4", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep("right(`Page ${n} of ${total}`,", "right(`Page ${n} of 4`,")],
   ["a thin view served from its fallback has no usable rungs", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("return l.thin && !l.servedFrom ? null :", "return l.thin ? null :")],
   ["with nothing to price the engine's line is not the reserve reason", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("if (rl && rl.thin && !rl.servedFrom && r.figure == null) return", "if (false) return")],
+  // LARGE DOCUMENTS (order 2318, Nov 15 2026): each part of the direct road, each red alone
+  ["large documents: the start does not check the size", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("if (!Number.isFinite(size) || size < 1 || size > MAX_DOC_BYTES) return refuse(reasonLine(\"case.doc.size\"));", "")],
+  ["large documents: the start does not check the type by name", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("if (!ext) return refuse(reasonLine(\"case.doc.type\"));\n        if (!Number.isFinite(size)", "if (false) return refuse(reasonLine(\"case.doc.type\"));\n        if (!Number.isFinite(size)")],
+  ["large documents: the commit does not read the bytes (a program named .pdf is filed)", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("const ft = got.bytes >= 1 && got.bytes <= MAX_DOC_BYTES ? docFileOf(got.head, body.name || \"\") : null;", "const ft = { type: \"pdf\", contentType: \"application/pdf\" };")],
+  ["large documents: a refused upload is left in storage", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("if (!ft) { await store.uploadAbort(org, s0, { id: uid, ext }).catch(() => {});", "if (!ft) {")],
+  ["large documents: a second commit of one upload files it twice", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("if ((c.documents || []).some(d => String(d.id) === uid)) return refuse(reasonLine(\"case.doc.not_arrived\"));", "")],
+  ["large documents: the page sends every file inside the edit again", "deskTypedCasesCheck", "lib/preview/deskV4Client.js", rep("if (f.size <= 3 * 1024 * 1024) return", "if (true) return")],
+  ["large documents: the older v3 page sends every file inside the edit again", "deskTypedCasesCheck", "lib/preview/deskV3.js", rep("if(f.size<=3145728){", "if(true){")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
