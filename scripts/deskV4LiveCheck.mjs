@@ -16,6 +16,9 @@ const cookieVal = process.env.GAS_CREW_COOKIE.replace(/^gas_crew=/, "");
 let pass = 0, fail = 0; const out = []; const ok = (c, m) => { if (c) pass++; else { fail++; out.push("FAIL " + m); } };
 const byp = process.env.GAS_BYPASS ? { "x-vercel-protection-bypass": process.env.GAS_BYPASS } : {};
 const wait = ms => new Promise(r => setTimeout(r, ms));
+// poll a read until it satisfies the test; return the last read at the timeout (the caller judges it), never a verdict on a fixed wait
+// the report build takes as long as it takes: pollUntil waits up to 20 s and the check fails only on timeout
+const pollUntil = async (read, test, ms = 20000, every = 250) => { const t0 = Date.now(); let v = await read().catch(() => null); while (!(v && test(v)) && Date.now() - t0 < ms) { await wait(every); v = await read().catch(() => null); } return v || {}; };
 // without the cookie: the platform 404
 { const r = await fetch(`${BASE}/preview/desk/case/${ID}`, { headers: { ...byp, "user-agent": "Mozilla/5.0" }, redirect: "manual" }); ok(r.status === 404, `no cookie gets the platform 404 (${r.status})`); }
 
@@ -53,7 +56,7 @@ for (const w of [1440, 1280, 1024, 390]) {
   if (r.wantReach && !r.diff.includes(r.wantReach)) bad.push("the engine's reachedLine is not on the panel"); if (r.wantPos && !r.diff.includes(r.wantPos)) bad.push("the engine's positionLine is not on the panel");
   if (r.wantClock && r.clock !== r.wantClock) bad.push(`clock ${r.clock}`); if (r.hs) bad.push("scrolls sideways"); if (r.bad.length) bad.push("not from the server: " + r.bad.slice(0, 4).join(" / "));
   ok(!bad.length, `@${w}: ${r.rows} closest sales, ${r.steps} steps, market ${r.band}${bad.length ? " | " + bad.join("; ") : ""}`); ok(err.length === 0, `@${w}: no page error (${err.join(" | ")})`);
-  if (w === 1440) { await p.click("#n-report").catch(() => {}); await wait(5000); const f = await p.evaluate(() => ({ frame: !!document.getElementById("pdfframe"), msg: (document.getElementById("pdfmsg") || {}).textContent || "" })); ok(f.frame && /Draft/.test(f.msg), `@1440: the Seller report tab builds the draft report and frames it (${f.msg.slice(0, 80)})`); }
+  if (w === 1440) { await p.click("#n-report").catch(() => {}); const f = await pollUntil(() => p.evaluate(() => ({ frame: !!document.getElementById("pdfframe"), msg: (document.getElementById("pdfmsg") || {}).textContent || "" })), x => x.frame && /Draft/.test(x.msg), 20000); ok(f.frame && /Draft/.test(f.msg), `@1440: the Seller report tab builds the draft report and frames it (${f.msg.slice(0, 80)})`); }
   await p.close();
 }
 await b.close();
