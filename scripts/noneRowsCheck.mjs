@@ -15,11 +15,11 @@ let TABLE = [];
 const reset = () => { TABLE = [...Array.from({ length: 5 }, (_, i) => bad9(i)), mk('["Porsche","911","Carrera",1999,"996",null]', { v: 1, engineVersion: "e100", kind: "none", refusalLine: NONE }),   // 6 failed-read rows (one without the null fields)
   mk("nt", { kind: "none", notTrackedLine: "No sale of a Ford Pinto has been tracked yet.", thinZero: false, refusalLine: NONE }), mk("zt", { kind: "none", thinZero: true, refusalLine: NONE, notTrackedLine: null }),
   mk("ch", { kind: "none", refusalLine: CHOICE }), mk("rg", { kind: "range", low: 1, high: 2, count: 9 }), mk("rf", { kind: "none", refusalLine: "No sales on record in the last five years." })]; };
-const seen = [], selects = []; let beforeDelete = null, FAIL = false;
+let BLOBS = 300; let opened_max = 0; const seen = [], selects = []; let beforeDelete = null, FAIL = false;
 const get = (o, p) => String(p).split("->>").reduce((a, k) => a == null ? a : a[k], o);
 const test = (row, k, v) => {
   if (k === "or") { const m = /^\((.*)\)$/.exec(v)[1].split(","); return m.some(c => { const [f, op, ...val] = c.split("."); const x = get(row, f); return op === "is" ? x == null : op === "eq" ? String(x) === val.join(".") : false; }); }
-  if (k === "spec_key") { const x = row.spec_key; if (v.startsWith("gt.")) return x > decodeURIComponent(v.slice(3)); if (v.startsWith("in.")) { const list = v.slice(4, -1).match(/"(?:[^"\\]|\\.)*"/g).map(s => JSON.parse(s)); return list.includes(x); } return true; }
+  if (k === "spec_key") { const x = row.spec_key; if (v.startsWith("gt.")) return x > decodeURIComponent(v.slice(3)); if (v.startsWith("lte.")) return x <= decodeURIComponent(v.slice(4)); if (v.startsWith("in.")) { const list = v.slice(4, -1).match(/"(?:[^"\\]|\\.)*"/g).map(s => JSON.parse(s)); return list.includes(x); } return true; }
   if (/^market->>/.test(k)) { const x = get(row, k); if (v === "is.null") return x == null; if (v.startsWith("eq.")) return x != null && String(x) === v.slice(3); if (v.startsWith("not.eq.")) return x != null && String(x) !== v.slice(7); return true; }   // SQL: NOT (NULL = v) is NULL, so a missing field does not match
   return true;
 };
@@ -29,6 +29,12 @@ globalThis.fetch = async (url, opts = {}) => {
   const match = r => [...u.searchParams.entries()].every(([k, v]) => /^(select|order|limit)$/.test(k) || test(r, k, v));
   if (method === "DELETE") { if (beforeDelete) { const f = beforeDelete; beforeDelete = null; f(); } const keep = TABLE.filter(r => !match(r)); TABLE = keep; return new Response("", { status: 204 }); }
   if (method !== "GET") return new Response("", { status: 405 });
+  // THE COST THE DATABASE PAYS (Nov 15 2026 live failure, 57014): a jsonb filter in key order opens the blob of every row it passes until the limit is met; a statement that opens more than BLOBS rows is cancelled. A key-only read opens none.
+  if (method === "GET" && [...u.searchParams.keys()].some(k => /^market->>|^or$/.test(k))) {
+    const inRange = TABLE.filter(r => [...u.searchParams.entries()].every(([k, v]) => k !== "spec_key" || test(r, k, v))).sort((a, b) => a.spec_key < b.spec_key ? -1 : 1), lim = Number(u.searchParams.get("limit") || 1000);
+    let hits = 0, opened = 0; for (const r of inRange) { opened++; if (match(r) && ++hits >= lim) break; }
+    opened_max = Math.max(opened_max, opened); if (opened > BLOBS) return new Response('{"code":"57014","message":"canceling statement due to statement timeout"}', { status: 500 });
+  }
   const rows = TABLE.filter(match).sort((a, b) => a.spec_key < b.spec_key ? -1 : 1).slice(0, Number(u.searchParams.get("limit") || 1000));
   const sel = u.searchParams.get("select") || ""; selects.push({ sel, limit: Number(u.searchParams.get("limit") || 0) });
   if (FAIL) return new Response("canceling statement due to statement timeout", { status: 500 });
@@ -50,6 +56,13 @@ ok(a.body.byYear && a.body.byYear["1999"] === 1 && a.body.examples.length === 6,
 ok(selects.length > 0 && selects.every(x => !/(^|,)market(,|$)/.test(x.sel) && x.limit > 0 && x.limit <= 250), "the list never selects the whole market blob and never asks for more than 250 rows a page", selects.slice(0, 2));
 { const keep = TABLE; TABLE = keep.concat(Array.from({ length: 600 }, (_, i) => mk(`["Ford","Mustang","GT",${1965 + (i % 30)},"x${String(i).padStart(4, "0")}",null]`, { kind: "none", notTrackedLine: null, thinZero: false, refusalLine: NONE })));
   const big = await call("noneRows"); ok(big.body.count === 606 && big.body.pages >= 3 && big.body.next === null, "a table of 606 failed-read rows is counted whole across pages", { count: big.body.count, pages: big.body.pages, next: big.body.next }); TABLE = keep; }
+// the live shape: a big table, the failed-read rows few and far apart. The first page must return, and the count must be whole.
+{ const keep = TABLE; TABLE = keep.concat(Array.from({ length: 4000 }, (_, i) => mk(`["Ford","Mustang","GT",${1965 + (i % 30)},"y${String(i).padStart(5, "0")}",null]`, { kind: "range", low: 1, high: 2, count: 9 }))); opened_max = 0;
+  const sp = await call("noneRows"); ok(sp.code === 200 && !sp.body.readFailed && sp.body.count === 6 && sp.body.next === null, "SPARSE: 6 failed-read rows among 4,000 others are counted whole, no statement timeout", { code: sp.code, body: { ...sp.body, keys: undefined, examples: undefined } });
+  ok(opened_max <= BLOBS && opened_max > 0, "SPARSE: no statement opened more than 300 blobs (the window bounds the work, whatever the table holds)", opened_max); TABLE = keep; }
+// a database slower than expected: a window that times out is halved and retried, the count stays whole
+{ const keep = TABLE; TABLE = keep.concat(Array.from({ length: 1500 }, (_, i) => mk(`["Ford","Mustang","GT",${1965 + (i % 30)},"z${String(i).padStart(5, "0")}",null]`, { kind: "range", low: 1, high: 2, count: 9 }))); BLOBS = 90;
+  const hv = await call("noneRows"); ok(hv.code === 200 && !hv.body.readFailed && hv.body.count === 6, "a window that times out is halved and retried: the count is still whole", { code: hv.code, why: hv.body.why, count: hv.body.count }); BLOBS = 300; TABLE = keep; }
 { FAIL = true; const f = await call("noneRows"); FAIL = false; ok(f.body.readFailed === true && /500/.test(String(f.body.why)) && /timeout/.test(String(f.body.why)), "a read that fails says why (status and the database's words), not a bare readFailed", f.body); }
 seen.length = 0; const d = await call("noneRowsClear");
 ok(d.body.dryRun === true && d.body.wouldClear === 6 && !seen.some(s => s.method !== "GET") && TABLE.length === 11, "task=noneRowsClear without confirm=1 is a dry run: it says how many and deletes nothing", d.body);
@@ -70,10 +83,11 @@ function mutants() {
     ["the list matches a not-tracked row", "lib/ops/noneRows.js", s => s.replace("&market->>notTrackedLine=is.null", "").replace("&& !r.nt", ""), "counts exactly the six"],
     ["the clear needs no confirm", "api/usageDashboard.js", s => s.replace('String(req.query?.confirm || "") !== "1"', "false"), "without confirm=1 is a dry run"],
     ["the delete does not re-check the filter", "lib/ops/noneRows.js", s => s.replace("&${FILTER()}`);\n    if (r && r.ok)", "`);\n    if (r && r.ok)"), "NOT deleted"],
-    ["the list writes", "lib/ops/noneRows.js", s => s.replace("export async function listNoneRows(env, { after = \"\", maxPages = 400, budgetMs = BUDGET_MS } = {}) {", "export async function listNoneRows(env, { after = \"\", maxPages = 400, budgetMs = BUDGET_MS } = {}) {\n  await supabaseDelete(env, \"spec_market_cache?spec_key=eq.__x\");"), "read only"],
     ["the list asks for the whole blob again", "lib/ops/noneRows.js", s => s.replace('const SELECT = "spec_key,computed_at,', 'const SELECT = "market,spec_key,computed_at,'), "never selects the whole market blob"],
-    ["the page is 1,000 rows again", "lib/ops/noneRows.js", s => s.replace("const PAGE = 250", "const PAGE = 1000"), "never asks for more than 250"],
-    ["a failed page answers with no reason", "lib/ops/noneRows.js", s => s.replace("return { readFailed: true, why: r.why,", "return { readFailed: true,"), "says why"],
+    ["the window is 1,000 rows again", "lib/ops/noneRows.js", s => s.replace("const WINDOW = 200, WINDOW_MIN = 12;", "const WINDOW = 1000, WINDOW_MIN = 12;"), "never asks for more than 250"],
+    ["a failed window answers with no reason", "lib/ops/noneRows.js", s => s.replace("why: `key window: ${kr.why}`,", ""), "says why"],
+    ["the read is not windowed (one statement over the whole table again)", "lib/ops/noneRows.js", s => s.replace("const WINDOW = 200, WINDOW_MIN = 12;", "const WINDOW = 100000, WINDOW_MIN = 100000;"), "SPARSE"],
+    ["a timed-out window is not halved", "lib/ops/noneRows.js", s => s.replace("const WINDOW = 200, WINDOW_MIN = 12;", "const WINDOW = 200, WINDOW_MIN = 200;"), "a window that times out"],
     ["the filter drops a NULL thin flag", "lib/ops/noneRows.js", s => s.replace("&or=(market->>thinZero.is.null,market->>thinZero.eq.false)", "&market->>thinZero=not.eq.true"), "counts exactly the six"]
   ];
   let survived = 0;
