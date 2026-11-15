@@ -62,7 +62,7 @@ const MUT = [
   ["deskIndependenceCheck", "writing the reserve also writes the assessment", WF, s => s.replace("c.reserve = { ...next, rationale: next.why };", "c.reserve = { ...next, rationale: next.why }; if (\"figure\" in p) c.assessment = { ...c.assessment, figure: c.reserve.figure };")],
   ["deskIndependenceCheck", "seller_agreed is set by any truthy value", WF, s => s.replace("next.seller_agreed = p.seller_agreed === true;", "next.seller_agreed = !!p.seller_agreed;")],
   ["deskReadinessCheck", "a missing photo does not block", WF, s => s.replace('if (!c.photos.items.length) add("photo", "No photo.");', "")],
-  ["deskReadinessCheck", "fewer than two comparables does not block", WF, s => s.replace('add("comparable", "Fewer than two comparables are selected.");', "void 0;")],
+  ["deskReadinessCheck", "fewer than two comparables does not block", WF, s => s.replace('add("comparable", "Fewer than two closest sales are selected.");', "void 0;")],
   ["deskReadinessCheck", "an open item does not block", WF, s => s.replace('for (const n of open) add("need:" + n.id, n.label + ".");', "")],
   ["deskReadinessCheck", "a reserve the engine says is unsupported does not block", WF, s => s.replace('add("reserve_support",', "void (")],
   ["deskReadinessCheck", "no reserve figure does not block", WF, s => s.replace('if (r.figure == null) { add("reserve",', "if (r.figure == null) { void (")],
