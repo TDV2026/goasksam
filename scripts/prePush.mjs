@@ -2541,6 +2541,12 @@ try {
   record("Desk v4 own history: This car has sold before (each prior sale as sent, newest first, linked) above What the market paid, Listed now only when the server sent a listing, the From its last sale mark; mutants (scripts/deskV4OwnHistoryCheck.mjs)", false, String((e.stdout || e.message || "")).slice(-200));
 }
 try {
+  const out = execSync("node scripts/deskV4SearchCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 prior cases and queue search: the prior cases line and linked list under the title, the Search cases box asking case_list with archived included, the Archived mark, an alias, clearing back to the queue; mutants (scripts/deskV4SearchCheck.mjs)", /\b0 FAIL\b/.test(out), out.trim().split("\n").slice(-3).join(" | "));
+} catch (e) {
+  record("Desk v4 prior cases and queue search: the prior cases line and linked list under the title, the Search cases box asking case_list with archived included, the Archived mark, an alias, clearing back to the queue; mutants (scripts/deskV4SearchCheck.mjs)", false, String(e.stdout || e.message || e).trim().split("\n").slice(-4).join(" | "));
+}
+try {
   const out = execSync("node scripts/deskV4HagertyCheck.mjs", { encoding: "utf8", timeout: 300000 });
   record("Desk v4 Sold on Hagerty: the block renders desk.hagerty as sent (count, median, last sale linked, line), words alone for a count of 0, follows the period and condition switches, the page formats nothing; mutants (scripts/deskV4HagertyCheck.mjs)", /\b0 FAIL\b/.test(out), out.trim().split("\n").slice(-3).join(" | "));
 } catch (e) {
