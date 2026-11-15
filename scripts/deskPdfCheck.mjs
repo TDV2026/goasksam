@@ -200,4 +200,22 @@ const logo = await build(demo, { logo: "https://real.example/logo.png" }); ok("t
       const o = { name: "Acme Auctions", contactEmail: "desk@acme.example", sendingAddress: "noreply@acme.example" };
       await P.buildReportV3(sh, o, { draft: true }); const n1 = n; await P.buildReportV3(sh, o, { draft: true });
       ok("BUILD 4: a picture fetched for one preview is kept: the second build of the same report fetches nothing", n1 >= 1 && n === n1, `${n1} then ${n - n1}`); } finally { globalThis.fetch = f0; IC.clearImageCache(); } } }
+// ---------- NOTHING ON THE REPORT PRINTS BELOW 9 PT; WHAT DOES NOT FIT CONTINUES (order 2318, Nov 15 2026) ----------
+// CAUSE: small type was how the report made room (7.5 pt labels, captions and footers; a why, the things we took into account and the steps stepped down to fit). NOW: one floor of 9 pt at the source (reportPdfV3), and a page that runs out continues on the next page under the same running head, with "Page x of y".
+// CLASS: every text run of every report build. Fixture: a long why, ten things we took into account, long steps.
+{ const sizesOf = r => [...Buffer.from(r.bytes).toString("latin1").matchAll(/BT \/\w+ ([\d.]+) Tf/g)].map(m => Number(m[1])), long = cl(demo);
+  long.reserve.why = "Seller reports a recent clutch, the paint is original and the service book is complete. ".repeat(14).trim();
+  for (let i = 1; i <= 10; i++) long.considered = (long.considered || []).concat([{ id: "k" + i, key: null, title: "Considered " + i, text: "Sentinel consideration number " + i + " weighed the car's history against what the sales support, at length, so that it takes several lines on the page.", edited: true }]);
+  long.considered = long.considered.slice(-10);
+  const steps = []; for (let i = 1; i <= 9; i++) steps.push("Sentinel step " + i + ": we will walk the seller through every document the buyer may ask for and keep them informed at each stage of the sale, by email and by phone. ".repeat(2).trim().slice(0, 290));
+  let lc = long; for (const t of steps) lc = K.addNextStep(lc, t, T);
+  const norm = t => t.replace(/\s+/g, " ").trim().toLowerCase(), rep = await build(lc, { draft: false }), pgs = pagesOf(rep).map(norm), sz = sizesOf(rep), small = [...new Set(sz.filter(n => n < 9))];
+  ok(`SIZE 1: no text run in the long report is under 9 pt (the smallest is ${Math.min(...sz)} pt over ${sz.length} runs)`, small.length === 0, "sizes under 9: " + small.join());
+  const plain = sizesOf(await build(demo)), plainDraft = sizesOf(await build(demo, { draft: true }));
+  ok("SIZE 2: nor in the ordinary final report or its draft", plain.every(n => n >= 9) && plainDraft.every(n => n >= 9), [...new Set([...plain, ...plainDraft].filter(n => n < 9))].join());
+  ok(`SIZE 3: what does not fit continues on following pages, not smaller: the long report runs to ${rep.pages} pages, "Page x of y" follows on every one`, rep.pages > 4 && pgs.length === rep.pages && pgs.every((p, i) => p.includes(`page ${i + 1} of ${rep.pages}`)), pgs.map(p => (/page \d+ of \d+/.exec(p) || ["none"])[0]).join(" | "));
+  const head = (rs0 => rs0.v4.head)(R.reportState(lc));
+  ok("SIZE 4: every page carries a running head, and a continuation page carries its section's", pgs.every(p => p.length > 0) && pgs.filter(p => p.includes(norm(head.why))).length >= 2 && pgs.filter(p => p.includes(norm(head.next))).length >= 2, "");
+  ok("SIZE 5: the whole why, every one of the ten things we took into account and every step print, across the pages", pgs.join(" ").includes(norm(long.reserve.why.slice(0, 60))) && norm(pgs.join(" ")).includes(norm(long.reserve.why.slice(-60))) && [...Array(10).keys()].every(i => pgs.join(" ").includes("sentinel consideration number " + (i + 1) + " weighed")) && steps.every((t, i) => pgs.join(" ").includes("sentinel step " + (i + 1) + ":")), "");
+}
 console.log(`deskPdfCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

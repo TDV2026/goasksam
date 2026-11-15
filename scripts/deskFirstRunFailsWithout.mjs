@@ -221,6 +221,9 @@ const MUT = [
   ["the report cuts a next step at four lines", "reportConsistencyCheck", "lib/desk/reportPdfV3.js", rep("{ size: 13, lh: 18, max: 12 }", "{ size: 13, lh: 18, max: 2 }")],
   ["the served reserve figure line is not the chosen rung's", "deskTypedCasesCheck", "lib/desk/caseView.js", rep("export const reserveFigureLine = c => { const f = reserveOf(c).figure;", "export const reserveFigureLine = c => { const f = null;")],
   ["an answer that carries the case lacks case.reserveChoice", "deskTypedCasesCheck", "lib/desk/caseView.js", rep("condition: conditionOut(c), reserveChoice: reserveChoiceOf(c),", "condition: conditionOut(c),")],
+  ["the report's type floor is gone", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep("const MINPT = 9,", "const MINPT = 6,")],
+  ["a page that runs out shrinks its text instead of continuing", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep("const room = async (h, title) => { if (y + h > FOOT - 8) await cont(title); };", "const room = async () => {};")],
+  ["the footers say page x of 4", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep("right(`Page ${n} of ${total}`,", "right(`Page ${n} of 4`,")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
