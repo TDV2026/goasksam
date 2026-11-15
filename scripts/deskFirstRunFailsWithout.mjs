@@ -158,7 +158,12 @@ const MUT = [
   ["the Hagerty count takes every venue's sales", "deskHagertySalesCheck", "lib/deskV3.js", rep("mine = inV.filter(isHagertyRow)", "mine = inV.filter(() => true)")],
   ["the Hagerty median is the all venue median", "deskHagertySalesCheck", "lib/deskV3.js", rep("const prices = mine.map(r => Number(r.price)).sort((a, b) => a - b), median = quant(prices, 0.5),", "const prices = inV.map(r => Number(r.price)).sort((a, b) => a - b), median = quant(prices, 0.5),")],
   ["a view with no Hagerty sale carries the wider window's figures", "deskHagertySalesCheck", "lib/deskV3.js", rep("if (!mine.length) return { ...base, line:", "if (!mine.length) return { ...base, count: 1, line:")],
-  ["the report does not carry the Hagerty sentence", "deskHagertySalesCheck", "lib/desk/reportPdfV3.js", rep("if (v.hagertyLine) {", "if (false) {")]
+  ["the report does not carry the Hagerty sentence", "deskHagertySalesCheck", "lib/desk/reportPdfV3.js", rep("if (v.hagertyLine) {", "if (false) {")],
+  // PRIOR CASES AND THE CASE LIST (Nov 14 2026)
+  ["the same car is matched on the title text, not the model key", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("return year + \"|\" + norm(make) + \"|\" + norm(fam);", "return norm(titleOf(sheet));")],
+  ["the year is not part of the car", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("return year + \"|\" + norm(make) + \"|\" + norm(fam);", "return norm(make) + \"|\" + norm(fam);")],
+  ["a q leaves the archived cases out", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("withArch = includeArchived === true || words.length > 0;", "withArch = includeArchived === true;")],
+  ["the archived cases are left out of the prior cases", "deskPriorCasesCheck", "lib/desk/priorCases.js", rep("(all || []).filter(s => s && s.id !== sheet.id && carKeyOf(s) === key)", "(all || []).filter(s => s && !s.archived && s.id !== sheet.id && carKeyOf(s) === key)")]
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
