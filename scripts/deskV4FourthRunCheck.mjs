@@ -81,7 +81,7 @@ const SRC = fs.readFileSync(path.join(ROOT, "lib/preview/deskV4Client.js"), "utf
   ok(three.join() === "3 months=3,6 months=6,12 months=12", "the switch prints the windows the case offers (3, 6, 12) and no 24 months button", three.join());
   ok(four.join() === "3 months=3,6 months=6,12 months=12,24 months=24", "24 months prints when the server sent it", four.join());
   ok(none.length === 0, "a case that offers no window prints no switch", none.join());
-  const old = await btns(null); ok(old.join() === "6 months=6,12 months=12,24 months=24", "a case stored before desk.windows existed still offers the windows its stored answer holds (the switch does not vanish)", old.join());
+  const old = await btns(null, { windows: false }); ok(old.join() === "6 months=6,12 months=12", "a case stored with no desk.windows shows what Lane D's case view builds for it: 6 and 12 for a record inside 12 months, no 24 (its stored answer holds a 24 month view)", old.join());
   ok(!/\[6, "6 months"\]|\[24, "24 months"\]/.test(SRC), "the page carries no list of its own periods");
   const m = await btns(W(3, 6, 12), { html: h => h.replace(/"windows":\[[^\]]*\]\]/, '"windows":[]') }); const m2 = await demo(W(3, 6, 12), { html: h => h.replace('(desk().windows || [])', '[{ months: 24, label: "24 months" }].concat(desk().windows || [])') }); ok((await m2.evaluate(() => [...document.querySelectorAll("#period button")].map(x => x.dataset.m))).includes("24"), "mutant caught: a 24 months button the server did not send"); }
 

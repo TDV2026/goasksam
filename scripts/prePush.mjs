@@ -2541,6 +2541,18 @@ try {
   record("Desk v4 own history: This car has sold before (each prior sale as sent, newest first, linked) above What the market paid, Listed now only when the server sent a listing, the From its last sale mark; mutants (scripts/deskV4OwnHistoryCheck.mjs)", false, String((e.stdout || e.message || "")).slice(-200));
 }
 try {
+  const out = execSync("node scripts/deskV4SearchCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 prior cases and queue search: the prior cases line and linked list under the title, the Search cases box asking case_list with archived included, the Archived mark, an alias, clearing back to the queue; mutants (scripts/deskV4SearchCheck.mjs)", /\b0 FAIL\b/.test(out), out.trim().split("\n").slice(-3).join(" | "));
+} catch (e) {
+  record("Desk v4 prior cases and queue search: the prior cases line and linked list under the title, the Search cases box asking case_list with archived included, the Archived mark, an alias, clearing back to the queue; mutants (scripts/deskV4SearchCheck.mjs)", false, String(e.stdout || e.message || e).trim().split("\n").slice(-4).join(" | "));
+}
+try {
+  const out = execSync("node scripts/deskV4HagertyCheck.mjs", { encoding: "utf8", timeout: 300000 });
+  record("Desk v4 Hagerty highlighting: Hagerty sales as second colour dots with a legend entry only when present, Hagerty rows first in Closest sales with a mark, the Hagerty chip with desk.hagerty.count as sent, selecting it filters the chart and the list and shows the line, nothing at all on a view with none; mutants (scripts/deskV4HagertyCheck.mjs)", /\b0 FAIL\b/.test(out), out.trim().split("\n").slice(-3).join(" | "));
+} catch (e) {
+  record("Desk v4 Hagerty highlighting: Hagerty sales as second colour dots with a legend entry only when present, Hagerty rows first in Closest sales with a mark, the Hagerty chip with desk.hagerty.count as sent, selecting it filters the chart and the list and shows the line, nothing at all on a view with none; mutants (scripts/deskV4HagertyCheck.mjs)", false, String(e.stdout || e.message || e).trim().split("\n").slice(-4).join(" | "));
+}
+try {
   const out = execSync("node scripts/deskV4FourthRunCheck.mjs", { encoding: "utf8", timeout: 300000 });
   record("Desk v4 fourth run: the unopened lead locked until Open it, the dot hint only when marked, Condition in the market header, For sale now photo cards above Closest sales, the period switch from desk.windows, the live line and the start note as sent; mutants (scripts/deskV4FourthRunCheck.mjs)", /\b0 FAIL\b/.test(out), out.trim().split("\n").slice(-3).join(" | "));
 } catch (e) {
