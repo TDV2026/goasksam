@@ -17,6 +17,9 @@ const M = [
   ["the sentence does not count the trim", "lib/onebox.js", "trimThinSentence(spec.trim, trimCarsIn(solid, spec.trim), solid.length)) || chosen.widening", "null) || chosen.widening"],
   ["the count ignores the titles", "lib/onebox.js", "return (rows || []).filter(r => { const t = String((r && (r.raw_title || r.rtitle || r.title)) || \"\").toLowerCase();", "return (rows || []).filter(r => { const t = \"autobiography\";"],
   ["no Narrow by pill", "lib/onebox.js", "export function pooledApartGuard(d, refine) { return withTrimPill(pooledApartGuardRead(d, refine)); }", "export function pooledApartGuard(d, refine) { return pooledApartGuardRead(d, refine); }"],
+  ["the code word stays in the trim (450SL R107 is one fence)", "lib/onebox.js", "if (spec.genCode && spec.trim) { const rest = stripCodeWord(spec.trim, spec.genCode); if (rest !== null) spec.trim = rest; }", ""],
+  ["the strip takes the model word too", "lib/genCodeTrim.js", 'const rest = words.filter(w => squash(w) !== squash(code)).join(" ");', 'const rest = words.filter(w => squash(w) === squash(code)).join(" ");'],
+  ["the strip drops the last word, not the car's own code", "lib/genCodeTrim.js", 'const rest = words.filter(w => squash(w) !== squash(code)).join(" ");', 'const rest = words.slice(0, -1).join(" ");'],
   ["the pill claims a trim with no sale in the pool", "lib/onebox.js", "if (!(n > 0)) return d;", ""]
 ];
 let survived = 0;
