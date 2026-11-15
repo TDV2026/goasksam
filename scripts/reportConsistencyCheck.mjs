@@ -10,7 +10,7 @@ import path from "node:path"; import { pathToFileURL } from "node:url"; import {
 const root = path.resolve(process.argv[2] || "."), { M, K, read, readyCase, T, today } = await setup(root), imp = f => import(pathToFileURL(path.join(root, f)).href);
 const R = await imp("lib/desk/reportState.js"), V = await imp("lib/desk/caseView.js");
 let pass = 0, fail = 0; const ok = (n, c, d) => { if (c) pass++; else { fail++; console.log("FAIL " + n + (d ? "  " + d : "")); } }; const cl = x => structuredClone(x);
-const base = await readyCase(), ev = base.desk.evidence;
+const base = await readyCase(), ev = base.desk.evidence, mkSheet = c => ({ id: "x", owner_seat: "Jane Park", created_at: T, submission: { typed: true, photos: [], documents: [] }, state: {}, case: c });
 const at = async f => (await K.refreshEvidence(K.setReserve(base, { figure: f }, T), read, { caseDate: today, now: T })).case;
 const reserves = { inside: await at(Math.round((ev.q1 + ev.q3) / 2)), below: await at(ev.q1 - 1), above: await at(ev.q3 + 1) };
 const pop = base.desk.comparables.filter(x => x.inPopulation && x.url).map(x => x.id);
@@ -402,4 +402,11 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   const t4 = await pg4(c), rs = R.reportState(c).v4;
   ok("DOCS PAGE: page four is headed Documents received and lists each received document by name and type, in the case's order; an outstanding one is not listed", t4.includes("Documents received") && ["Service invoice · PDF", "history.docx · Word document", "title.heic · HEIC image"].every(l => t4.includes(l)) && !t4.some(x => /wanted/.test(x)) && rs.documents.length === 3, JSON.stringify(t4.filter(x => /Documents|PDF|Word|HEIC/.test(x)).slice(0, 6)));
   const none = cl(base); none.documents = []; ok("DOCS PAGE: no document received, no heading", !(await pg4(none)).includes("Documents received") && R.reportState(none).v4.documents.length === 0, ""); }
+
+// ---------- THE CONDITION'S EFFECT LINE (order 2318, Nov 15 2026, item 7) ----------
+// CAUSE (found live): Concours chosen, nothing changed, nothing said. RULE: whenever a condition is chosen, case.condition.effectLine says what it did to the figures, from the engine's counts: a tier that prices on its own says how many of its sales the figures use; one that falls back says how few it had, that the figures use all, and what to do. CLASS: every tier on every case (checked on all four), and the count it names is the one the evidence, the list and the report's market sentence carry.
+{ const K2 = K; for (const tier of [1, 2, 3, 4]) { const c = K2.setConditionChoice(cl(base), tier, "the photos", T).case, cd = V.caseView(mkSheet(c), [mkSheet(c)], T).condition, d = c.desk;
+    ok(`EFFECT line, tier ${tier}: present, and the count it names is the evidence's (${d.evidence.count}) and the list's (${d.sales.length})`, typeof cd.effectLine === "string" && cd.effectLine.length > 20 && cd.effectLine.includes(String(d.evidence.count)) && d.evidence.count === d.sales.length && (d.servedFrom ? /so figures use all \d+\./.test(cd.effectLine) && /choose a higher rung and say why\.$/.test(cd.effectLine) : /^Figures use the \d+ \w+ sales?\.$/.test(cd.effectLine)), cd.effectLine); }
+  const c0 = cl(base), cd0 = V.caseView(mkSheet(c0), [mkSheet(c0)], T).condition;
+  ok("EFFECT line: with no condition chosen there is none, and the report does not print it", !cd0.chosen ? cd0.effectLine === null : typeof cd0.effectLine === "string", String(cd0.effectLine)); }
 console.log(`reportConsistencyCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
