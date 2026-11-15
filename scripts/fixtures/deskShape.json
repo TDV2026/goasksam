@@ -1,5 +1,5 @@
 {
- "shape": 3,
+ "shape": 4,
  "top": [
   "anyCondition",
   "comparables",
@@ -96,7 +96,8 @@
    "high",
    "ids",
    "low",
-   "median"
+   "median",
+   "months"
   ],
   "original": [
    "asOf",

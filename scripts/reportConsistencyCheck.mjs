@@ -272,14 +272,14 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   const lad = c => c.desk.reserveLadder, rg = (c, k) => lad(c).rungs.find(r => r.key === k);
   const judge = async (name, c, { figureText, reason, extras, cond = true, likely = true }) => {
     const v = view(c), ops = await page1(c), body = ops.filter(o => o.y > 470 && o.y < 735), lines = norm(body.map(o => o.text).join(" "));
-    const want = ["Recommended reserve", figureText, reason, R.reportState(c).v4.note, likely ? v.desk.likely.sellerLine : null, cond ? v.condition.line : null, R.reportState(c).v4.why, ...extras, R.reportState(c).v4.reachedLine].filter(Boolean);
+    const want = ["Recommended reserve", figureText, reason, R.reportState(c).v4.note, likely ? v.desk.likely.nearestLine : null, cond ? v.condition.line : null, R.reportState(c).v4.why, ...extras, R.reportState(c).v4.reachedLine].filter(Boolean);
     ok(`PAGE ONE ${name}: the lines are the reserve with its reason, the likely result, the condition, the analyst's why, the extra rungs, the market sentence, in that order`, lines === norm(want.join(" ")), lines.slice(0, 260) + " || " + norm(want.join(" ")).slice(0, 260));
     ok(`PAGE ONE ${name}: no role line and no sentence about what the reserve does, on the page or in the served case and report state (the notes page keeps its own disclaimer)`, !/protects the sale|does not limit|lowest price the car can sell/i.test(JSON.stringify(v.reserve) + JSON.stringify(v.reserveChoice) + JSON.stringify(R.reportState(c).v4)) && !/protects the sale|does not limit|lowest price the car can sell|guarantee/i.test(lines), "");
     return v; };
   // A. the engine's recommended rung (balanced, all conditions), no condition set: no condition line
   const eng = c => K.seedReserve(K.setReserve(c, { restart: true }, T), T);
   const A = eng(cl(base)), vA = await judge("A (engine's balanced)", A, { figureText: money(rg(A, "balanced").figure), reason: lad(A).reason, extras: [], cond: false });
-  ok("PAGE ONE A: the figure is the engine's recommended rung's, the reason is the ladder's, the three nearest sales are by rank, not by price", lad(A).recommended === "balanced" && vA.reserve.figure === rg(A, "balanced").figure && vA.reserveChoice.source === "engine" && vA.reserveChoice.line === lad(A).reason && (() => { const byId = new Map(A.desk.comparables.map(x => [x.id, x])), top = A.desk.likelyBasis.ids.slice(0, 3).map(i => money(byId.get(i).price)); return vA.desk.likely.sellerLine.endsWith(`The three closest sales made ${top[0]}, ${top[1]} and ${top[2]}.`); })(), vA.desk.likely.sellerLine);
+  ok("PAGE ONE A: the figure is the engine's recommended rung's, the reason is the ladder's, and the nearest line names its count and period and prints no likely figure", lad(A).recommended === "balanced" && vA.reserve.figure === rg(A, "balanced").figure && vA.reserveChoice.source === "engine" && vA.reserveChoice.line === lad(A).reason && /^The \d+ nearest cars sold in the last \d+ months made \$[\d,]+ to \$[\d,]+\.$/.test(vA.desk.likely.nearestLine) && R.reportState(A).v4.nearestLine === vA.desk.likely.nearestLine && !("likelyLine" in R.reportState(A).v4) && !/likely result|likely selling/i.test(JSON.stringify(R.reportState(A).v4)), vA.desk.likely.nearestLine);
   { const A2 = eng(withCond(cl(base))), k2 = lad(A2).recommended, r2 = rg(A2, k2); await judge("A2 (condition set by the analyst; that view's own recommended rung)", A2, { figureText: money(r2.figure), reason: lad(A2).reason, extras: [] }); }
   // B. the analyst chose the safe rung
   const B = K.reserveUse(A, "safe", T).case, rB = rg(B, "safe");
@@ -296,7 +296,7 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   { const F = eng(cl(base)), rl = F.desk.reserveLadder; F.desk.reserveLadder = { ...rl, rungs: rl.rungs.map(r => ({ ...r, available: false, figure: null })), recommended: null, reason: null, thin: true, servedFrom: null, thinLine: "Too few sales of this car in this period to set a reserve." }; F.desk.reserveStart = null; F.reserve = { ...F.reserve, figure: null, source: null };
     await judge("F (nothing can be priced)", F, { figureText: "Not set", reason: "Too few sales of this car in this period to set a reserve.", extras: [], cond: false }); }
   // E. fewer than three closest sales: no likely line; no condition: no condition line
-  const E = cl(base); E.desk.comparables = E.desk.comparables.slice(0, 2); E.desk.likelyBasis = DV.likelyBasisOf(E.desk.comparables);
+  const E = cl(base); E.desk.comparables = E.desk.comparables.slice(0, 2); E.desk.likelyBasis = DV.likelyBasisOf(E.desk.comparables, { when: "2026-11-14", months: 12 });
   await judge("E (fewer than three closest sales, no condition line)", eng(E), { figureText: money(rg(E, "balanced").figure), reason: lad(E).reason, extras: [], cond: false, likely: false });
 }
 // ---------- EVERY FIELD THE CASE SCREEN LABELS "PRINTED IN THE REPORT" PRINTS (order 2318, Nov 15 2026) ----------

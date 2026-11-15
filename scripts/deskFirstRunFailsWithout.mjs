@@ -176,12 +176,10 @@ const MUT = [
   ["the report prints a note with no suggestion", "deskNoEngineTalkCheck", "lib/desk/reportState.js", rep("d.condition && d.condition.suggested && d.condition.basis ? d.condition.basis : null", "d.condition && d.condition.basis ? d.condition.basis : null")],
   ["a suggestion counts its signals aloud again", "deskNoEngineTalkCheck", "lib/reasonWords.js", rep("text: p => `Suggested ${p.name}, from ${p.what}.`", "text: p => `Suggested ${p.name} from ${p.what}, 3 signals counted.`")],
   ["a stored counted note is served as it was stored", "deskNoEngineTalkCheck", "lib/desk/conditionNote.js", rep("&& !OLD_TALK.test(String(c.basis))", "")],
-  ["the likely figure is the whole pool's median, not the closest sales'", "deskTypedCasesCheck", "lib/desk/likely.js", s => s.split("b.median").join("desk.evidence.median")],
-  ["the likely figure is the whole pool's median, not the closest sales' (page one)", "reportConsistencyCheck", "lib/desk/likely.js", s => s.split("b.median").join("desk.evidence.median")],
-  ["the reserve role line shows with fewer than three closest sales", "deskTypedCasesCheck", "lib/desk/likely.js", rep("likely && likely.figure != null ? reasonLine", "likely ? reasonLine")],
-  ["the report prints no likely result", "reportConsistencyCheck", "lib/desk/reportState.js", rep("likelyLine: likely.sellerLine,", "likelyLine: null,")],
-  ["the report prints the reserve before the likely result", "reportConsistencyCheck", "lib/desk/reportPdfV3.js", s => s.replace("if (v.likelyLine) { y = para(", "if (false) { y = para(").replace("  y = Math.max(y + 62, yr2) + 12;", "  y = Math.max(y + 62, yr2) + 12; if (v.likelyLine) y = para(v.likelyLine, M, y, W - 2 * M, { size: 11 }) + 4;")],
-  ["the floor sentence names a figure with no reserve check", "deskTypedCasesCheck", "lib/desk/likely.js", s => s.replace(": null;\n  const list", ": null;\n  const list") && s.replace("reached: ck.reached, of: ck.of }) : null;", "reached: ck.reached, of: ck.of }) : reasonLine(\"case.likely.floor\", { reserve: 0, reached: 0, of: 0 });")],
+  ["a likely figure is served again (figure, median)", "deskTypedCasesCheck", "lib/desk/likely.js", rep("return { low, high, count: b.count,", "return { figure: b.median, low, high, count: b.count,")],
+  ["the nearest range is the whole pool's, not the nearest cars'", "deskTypedCasesCheck", "lib/desk/likely.js", rep("roundReserve(b.low)", "roundReserve(desk.evidence.q1)")],
+  ["the nearest cars include the car's own previous sale", "deskLikelyBasisCheck", "lib/deskV3.js", rep("c && !isOwnSale(c, own) && (!cut", "c && (!cut")],
+  ["the report prints no nearest line", "reportConsistencyCheck", "lib/desk/reportState.js", rep("nearestLine: likely.nearestLine,", "nearestLine: null,")],
   ["the strip leaves a cell out", "deskTypedCasesCheck", "lib/deskV3.js", rep("if (ok && e.extremesLine) cells.push(", "if (false) cells.push(")],
   ["the closing line says the count in digits under thirteen", "deskTypedCasesCheck", "lib/reasonWords.js", rep("x >= 0 && x <= 12 ? COUNT_WORDS[x]", "x >= 0 && x <= 5 ? COUNT_WORDS[x]")],
   ["the closing line leaves the latest sale out", "deskTypedCasesCheck", "lib/deskV3.js", rep("return l && l.date && l.price ? sold +", "return false ? sold +")],
@@ -233,9 +231,10 @@ function copyTree(dst) {
   fs.symlinkSync(path.join(ROOT, "node_modules"), path.join(dst, "node_modules"));
 }
 const run = (dir, check) => { try { const o = execFileSync("node", ["scripts/" + check + ".mjs", dir], { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 280000 }); return { red: false, out: o }; } catch (e) { return { red: true, out: String(e.stdout || "") + String(e.stderr || "") }; } };
-let bad = 0; const only = process.argv[2] && /^\d+$/.test(process.argv[2]) ? Number(process.argv[2]) : null;
+let bad = 0; const only = process.argv[2] && /^\d+$/.test(process.argv[2]) ? Number(process.argv[2]) : null, nameArg = (process.argv.find(a => a.startsWith("--name=")) || "").slice(7).toLowerCase();   // one mutant by index, or every mutant whose name holds the text (--name=docx)
 for (const [i, [name, check, file, fn]] of MUT.entries()) {
   if (only != null && only !== i) continue;
+  if (nameArg && !name.toLowerCase().includes(nameArg)) continue;
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fr-")); copyTree(dir);
   const p = path.join(dir, file), before = fs.readFileSync(p, "utf8"), after = fn(before);
   if (after === before) { console.log("FAIL  mutation did not apply: " + name); bad++; fs.rmSync(dir, { recursive: true, force: true }); continue; }

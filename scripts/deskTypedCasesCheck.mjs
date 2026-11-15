@@ -283,22 +283,23 @@ console.log("CASE IDS " + ids.join(" "));
 }
 
 
-// ---------- LIKELY (order 2318, Nov 14 2026): desk.likely and reserve.roleLine, from the engine's desk.likelyBasis only ----------
-// CLASS: every case view of every car. A case with three or more closest sales carries the figure (the median of exactly those sales, from the engine), low, high, count, ids and the two lines; one with fewer carries none of them and no role line.
+// ---------- THE NEAREST CARS (order 2318, Nov 15 2026, replacing the Likely result): desk.likely = { closestIds, count, low, high, nearestLine } from the engine's desk.likelyBasis only; no likely figure anywhere ----------
+// CLASS: every case view of every car. A case with three or more nearest cars carries the count, the rounded low and high, the ids and the one line; one with fewer carries the count and ids and no line. No figure, figureLine, median, sellerLine or "Likely result" is served.
 { const { setup } = await import(pathToFileURL(path.join(ROOT, "scripts/_deskCaseWorld.mjs")).href), W = await setup(ROOT), V = await U("lib/desk/caseView.js"), DV = await U("lib/deskV3.js");
   const base = await W.readyCase(), mk = c => ({ id: "x", org_id: "t", owner_seat: "Jane Park", created_at: W.T, submission: { typed: true, photos: [], documents: [] }, state: {}, case: c, version: 0 });
-  const view = c => V.caseView(mk(c), [mk(c)], W.T), m = n => "$" + Math.round(n).toLocaleString("en-US"), med = a => { const q = a.slice().sort((x, y) => x - y), n = q.length; return n % 2 ? q[(n - 1) / 2] : Math.round((q[n / 2 - 1] + q[n / 2]) / 2); };
-  const v = view(base), lk = v.desk.likely, byId = new Map(base.desk.comparables.map(x => [x.id, x])), closest = base.desk.likelyBasis.ids.map(i => byId.get(i).price), ck = base.desk.reserveCheck;
-  ok("LIKELY 1: three or more closest sales: the figure is the median of exactly those sales (the engine's), with low, high, count and ids", lk.figure === base.desk.likelyBasis.median && lk.figure === med(closest) && lk.low === Math.min(...closest) && lk.high === Math.max(...closest) && lk.count === closest.length && JSON.stringify(lk.closestIds) === JSON.stringify(base.desk.likelyBasis.ids), JSON.stringify(lk).slice(0, 200));
-  ok("LIKELY 2: the figure is not the whole pool's median", lk.figure !== base.desk.evidence.median, m(lk.figure));
-  ok("LIKELY 3: the analyst's line, from the table: the range and median, then the floor and how many sales cleared it", lk.line === `The closest cars made ${m(lk.low)} to ${m(lk.high)}, median ${m(lk.figure)}. ${m(ck.reserve)} is the floor ${ck.reached} of ${ck.of} sales cleared.`, lk.line);
-  ok("LIKELY 4: the seller's line, from the table: around the figure, then the three closest sales", /^Cars like yours have been selling for around \$[\d,]+\. The three closest sales made \$[\d,]+, \$[\d,]+ and \$[\d,]+\.$/.test(lk.sellerLine) && lk.sellerLine.startsWith(RW.reasonLine("case.likely.seller", { median: lk.figure })), lk.sellerLine);
+  const view = c => V.caseView(mk(c), [mk(c)], W.T), m = n => "$" + Math.round(n).toLocaleString("en-US");
+  const v = view(base), lk = v.desk.likely, lb = base.desk.likelyBasis;
+  ok("LIKELY 1: three or more nearest cars: the count, the ids and the low and high are the engine's, rounded the way the reserve is", lk.count === lb.count && JSON.stringify(lk.closestIds) === JSON.stringify(lb.ids) && lk.low === DV.roundReserve(lb.low) && lk.high === DV.roundReserve(lb.high), JSON.stringify(lk).slice(0, 200));
+  ok("LIKELY 2: no likely figure is served: no figure, figureLine, median, line or sellerLine, and no 'Likely result' anywhere on the case", ["figure", "figureLine", "median", "line", "sellerLine"].every(k => !(k in lk)) && !/Likely result|likely figure/i.test(JSON.stringify(v)), Object.keys(lk).join());
+  ok("LIKELY 3: the nearest line is the table's, with the count, the months the engine names and the rounded range", lk.nearestLine === `The ${lb.count} nearest cars sold in the last ${lb.months} months made ${m(lk.low)} to ${m(lk.high)}.` && lb.months > 0, lk.nearestLine);
+  ok("LIKELY 4: the count in the sentence is the number of ids it counts, and the engine named the period", lk.closestIds.length === lb.count && /^The \d+ nearest cars sold in the last \d+ months made \$[\d,]+( to \$[\d,]+)?\.$/.test(lk.nearestLine), lk.nearestLine);
   ok("LIKELY 5: no role line is served (order 2318: the report and the case no longer say what the reserve does)", v.reserve.roleLine === undefined && !/protects the sale|does not limit the price/i.test(JSON.stringify(v)), String(v.reserve.roleLine));
-  const c2 = JSON.parse(JSON.stringify(base)); c2.desk.comparables = c2.desk.comparables.slice(0, 2); c2.desk.likelyBasis = DV.likelyBasisOf(c2.desk.comparables); const v2 = view(c2), l2 = v2.desk.likely;
-  ok("LIKELY 6: fewer than three closest sales: no figure, no range, no lines, no role line, the count stated", l2.figure === null && l2.low === null && l2.high === null && l2.line === null && l2.sellerLine === null && l2.count === 2, JSON.stringify(l2));
-  const c3 = JSON.parse(JSON.stringify(base)); c3.desk.reserveCheck = null; const l3 = view(c3).desk.likely;
-  ok("LIKELY 7: with no reserve check the analyst's line is the range alone, never a made-up floor", l3.line === `The closest cars made ${m(lk.low)} to ${m(lk.high)}, median ${m(lk.figure)}.`, l3.line);
-  ok("LIKELY 8: no engine talk reaches a served string (signals counted)", !/signals? counted/.test(JSON.stringify(v)), ""); }
+  const c2 = JSON.parse(JSON.stringify(base)); c2.desk.comparables = c2.desk.comparables.slice(0, 2); c2.desk.likelyBasis = DV.likelyBasisOf(c2.desk.comparables, { when: "2026-11-14", months: 12 }); const v2 = view(c2), l2 = v2.desk.likely;
+  ok("LIKELY 6: fewer than three nearest cars: no range, no line, the count stated", l2.low === null && l2.high === null && l2.nearestLine === null && l2.count === 2, JSON.stringify(l2));
+  const c3 = JSON.parse(JSON.stringify(base)); c3.desk.likelyBasis = { ...lb, low: 400000, high: 400100 }; const l3 = view(c3).desk.likely;
+  ok("LIKELY 7: low and high are rounded as the reserve is, and a range that rounds to one figure reads as one figure", l3.low === 400000 && l3.high === 400000 && l3.nearestLine === `The ${lb.count} nearest cars sold in the last ${lb.months} months made $400,000.`, l3.nearestLine);
+  ok("LIKELY 8: no engine talk reaches a served string (signals counted)", !/signals? counted/.test(JSON.stringify(v)), "");
+  const c4 = JSON.parse(JSON.stringify(base)); delete c4.desk.likelyBasis.months; ok("LIKELY 9: a stored basis without its months says nothing rather than guess a period", view(c4).desk.likely.nearestLine === null, ""); }
 
 // ---------- THE MARKET STRIP, THE CLOSING LINE AND THE LIKELY FIGURE LINE (order 2318, Nov 14 2026) ----------
 // CLASS: every view of every car. desk.evidence.strip (four cells: Typical range, Median, Sales with its date span, Lowest to highest; a thin view has the Sales cell alone), desk.evidence.closingLine ("Eleven 1972 Datsun 240Zs sold between May and November 2026. Latest sale $27,000 on Nov 12 at Cars & Bids.", the count in words up to twelve, then digits)
@@ -333,11 +334,9 @@ console.log("CASE IDS " + ids.join(" "));
   ok("CLOSING THIN: one sale reads in the singular", t1.closingLine === "One 1972 Datsun 240Z sold in November 2026. Latest sale $27,000 on Nov 12 at Cars & Bids.", t1.closingLine);
   const t0 = DV.evidenceOf([], [], { windowMonths: 12, caseDate: "2026-11-14", subjectFacts: car });
   ok("CLOSING THIN: no sale has no closing line and the Sales cell alone", t0.closingLine === null && t0.strip.map(x => x.key).join() === "count", String(t0.closingLine));
-  // the likely figure line, on the case view of each car and on a thin case
+  // no likely figure line on any car (order 2318, Nov 15 2026)
   for (const c of cases) { const cs = JSON.parse(JSON.stringify(base)); cs.desk = c.desk; const v = V.caseView(mk(cs), [mk(cs)], W.T), lk = v.desk.likely;
-    ok(`FIGURE LINE ${c.name}: the likely figure as a money string, nothing for the page to format`, lk.figure == null ? lk.figureLine === null : lk.figureLine === mny(lk.figure), JSON.stringify([lk.figure, lk.figureLine])); }
-  { const c2 = JSON.parse(JSON.stringify(base)); c2.desk.comparables = c2.desk.comparables.slice(0, 2); c2.desk.likelyBasis = DV.likelyBasisOf(c2.desk.comparables); const l2 = V.caseView(mk(c2), [mk(c2)], W.T).desk.likely;
-    ok("FIGURE LINE thin: fewer than three closest sales, no figure line", l2.figure === null && l2.figureLine === null, JSON.stringify(l2.figureLine)); }
+    ok(`NO FIGURE ${c.name}: the nearest cars carry no figure and no figureLine`, !("figure" in lk) && !("figureLine" in lk), Object.keys(lk).join()); }
   { const v = V.caseView(mk(base), [mk(base)], W.T), k = JSON.parse(JSON.stringify(base)); delete k.desk.evidence.strip; delete k.desk.evidence.closingLine; const v0 = V.caseView(mk(k), [mk(k)], W.T);
     ok("STRIP stored: a case stored before the engine made one serves the same four cells from its stored strings, and no closing line", JSON.stringify(v0.desk.evidence.strip) === JSON.stringify(v.desk.evidence.strip) && v0.desk.evidence.closingLine === null, ""); }
   ok("STRIP and CLOSING: at least 20 views and a thin one were judged", views >= 20 && thin >= 0, String(views)); }
