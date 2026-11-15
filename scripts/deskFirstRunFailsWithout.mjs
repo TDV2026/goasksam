@@ -254,6 +254,22 @@ const MUT = [
   ["large documents: a second commit of one upload files it twice", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("if ((c.documents || []).some(d => String(d.id) === uid)) return refuse(reasonLine(\"case.doc.not_arrived\"));", "")],
   ["large documents: the page sends every file inside the edit again", "deskTypedCasesCheck", "lib/preview/deskV4Client.js", rep("if (f.size <= 3 * 1024 * 1024) return", "if (true) return")],
   ["large documents: the older v3 page sends every file inside the edit again", "deskTypedCasesCheck", "lib/preview/deskV3.js", rep("if(f.size<=3145728){", "if(true){")],
+  // THE CASE LIFECYCLE (redesign order 2318 item 1)
+  ["lifecycle: any move is allowed (no moves table)", "deskTypedCasesCheck", "lib/desk/lifecycle.js", rep("if (!MOVES[cur].includes(want)) return", "if (false) return")],
+  ["lifecycle: waiting needs no reason", "deskTypedCasesCheck", "lib/desk/lifecycle.js", rep("if (want === \"waiting\" && !words) return", "if (false) return")],
+  ["lifecycle: a case is converted before its report was sent", "deskTypedCasesCheck", "lib/desk/lifecycle.js", rep("if (want === \"converted\" && cur !== \"sent\") return", "if (false) return")],
+  ["lifecycle: a case is closed with no reason", "deskTypedCasesCheck", "lib/desk/lifecycle.js", rep("return words ? { event: { kind: \"outcome\", outcome: \"closed\", note: words } } : { refuse: \"case.life.refuse.closed_note\" };", "return { event: { kind: \"outcome\", outcome: \"closed\", note: words } };")],
+  ["lifecycle: the list ignores the status filter", "deskTypedCasesCheck", "lib/desk/priorCases.js", rep(".filter(x => !status || status.has(x.lc.status))", ".filter(x => true)")],
+  ["lifecycle: yesterday is two days back", "deskTypedCasesCheck", "lib/desk/lifecycle.js", rep("if (d === 1) return", "if (d === 2) return")],
+  ["lifecycle: reopening a closed case keeps its outcome", "deskTypedCasesCheck", "lib/desk/lifecycle.js", rep("if (last && last.kind === \"outcome\" && OUTCOMES.includes(last.outcome)) return last.outcome;", "const anyOut = [...ev].reverse().find(e => e.kind === \"outcome\"); if (anyOut && OUTCOMES.includes(anyOut.outcome)) return anyOut.outcome;")],
+  ["lifecycle: a sent case is not told from its sheet", "deskTypedCasesCheck", "lib/desk/lifecycle.js", rep("if (sheet && sheet.status === \"Sent\") return \"sent\";", "")],
+  ["lifecycle: the queue card shows the first photo, not the cover", "deskTypedCasesCheck", "lib/desk/priorCases.js", rep("id = coverIdOf(s.case, ph), p = id == null ? null", "id = ph[0] ? String(ph[0].id) : null, p = id == null ? null")],
+  ["lifecycle: needs attention counts every item, resolved or not", "deskTypedCasesCheck", "lib/desk/priorCases.js", rep(".filter(n => n && n.state === \"open\").length", ".filter(n => n).length")],
+  ["lifecycle: the queue's status counts leave a status out", "deskTypedCasesCheck", "lib/desk/priorCases.js", rep("count: keys.filter(x => x === k).length", "count: k === \"waiting\" ? 0 : keys.filter(x => x === k).length")],
+  ["lifecycle: claiming a case does not start the handling clock", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("const c1 = ensureCase(s0, now), c2 = recordOpen(c1, seat, now);\n    if (c2 !== c1 || !s0.case) { const f = { ...s0, case: c2, opened_at: s0.opened_at || now, version: (s0.version || 0) + 1 }; if (!(await store.putIf(org, f, s0.version || 0))) return stale(); }", "")],
+  ["enquiry: the email's text is not kept on the sheet", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("submission: { ...s0.submission, enquiry: enq }", "submission: { ...s0.submission }")],
+  ["enquiry: the header has no enquiry address", "deskTypedCasesCheck", "lib/desk/caseView.js", rep("enquiryUrl: (sourceEmailOf(sheet) || {}).url || null", "enquiryUrl: null")],
+  ["enquiry: an attachment is listed without its type", "deskTypedCasesCheck", "lib/desk/enquiry.js", rep("typeLine: t ? reasonLine(\"case.doc_type\", { type: t }) : null", "typeLine: null")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
