@@ -4,7 +4,7 @@
 //   3 RAIL ORDER: New case, a search box, then the eight statuses with the server's counts, then the cards of the chosen filter.
 //   4 CARDS: thumb, title, seller, elapsed line, status pill, analyst, an attention mark only above 0, a Claim button only on an unassigned card.
 //   5 NO DASH in any rendered text. NOTHING DRAWN THAT THE MODEL DID NOT SERVE: a card with no seller has no seller element.
-//   6 GEOMETRY (Sam's first look, Nov 15): the rail is a 300px column at the left edge, full height, with no inner scroll box and all eight status rows in view; a card is 72px with a 48px thumb, the title on one line, seller dot elapsed under it, a pill only when the card's status is not the chosen filter,
+//   6 GEOMETRY (Sam's first look, Nov 15): the rail is a 300px column at the left edge, full height, with no inner scroll box and all eight status rows in view; a card is 68px with a 44px thumb, the title on one line, seller dot elapsed under it, a pill only when the card's status is not the chosen filter,
 //     the attention badge at the card's top right corner, outside the thumb (photo or monogram tile) and clear of Claim, Claim hidden until hover on a wide screen and always shown on a narrow one, the selected card pale green; no case chosen reads Choose a case. A tile (year, initial) stands for a missing photo.
 //   7 STAGE 2, THE OPEN CASE: the compact header (title, status pill, seller, received line, analyst, the Original enquiry link), the vehicle summary (cover at 460px, a thumbnail strip with +N, every field with its tag Verified, Seller supplied or Needs confirmation, edited in place and sent as case_edit field), the market summary (the server's strip cells, the lens, the thin line only when served, a chart at half the old height with one dot per sale),
 //     Closest sales (the first four as compact cards, View all N sales for the rest, In report, Exclude that asks for a reason and sends nothing without one, Hagerty first), no dash, nothing drawn that the model did not serve, no likely or analyst range.
@@ -30,12 +30,18 @@ export const MUTANTS = {
 };
 // Style mutants: applied to the page's CSS, judged by the Chrome measurements.
 export const STYLE_MUTANTS = {
-  tallCard: h => h.replace(".cd{position:relative;height:72px", ".cd{position:relative;height:104px"),
+  rowShort: h => h.replace("padding:0 10px;height:40px", "padding:0 10px;height:34px"),
+  countBubble: h => h.replace(".fl b{font-weight:400;color:var(--mute);font-variant-numeric:tabular-nums;font-size:13px;background:none", ".fl b{font-weight:400;color:var(--mute);font-variant-numeric:tabular-nums;font-size:13px;background:#ddd"),
+  cardBorder: h => h.replace("height:68px;border:0;", "height:68px;border:1px solid #ccc;"),
+  titleThin: h => h.replace(".cd-t{font-size:15px;font-weight:600", ".cd-t{font-size:15px;font-weight:400"),
+  noIcon: h => h.replace(".fl .ic{flex:0 0 16px;", ".fl .ic{display:none;flex:0 0 16px;"),
+  orgSmall: h => h.replace(".top .org{font-size:15px", ".top .org{font-size:12px"),
+  tallCard: h => h.replace(".cd{position:relative;height:68px", ".cd{position:relative;height:104px"),
   pillAlways: h => h.replace(".pill[hidden]{display:none}", ".pill[hidden]{display:inline-block}"),
   badgeOnThumb: h => h.replace(".att{position:absolute;top:4px;right:6px", ".att{position:absolute;top:4px;right:236px"),
   badgeBelow: h => h.replace(".att{position:absolute;top:4px;right:6px", ".att{position:absolute;top:50px;right:6px"),
   claimAlways: h => h.replace("opacity:0}\n.cd:hover .claim", "opacity:1}\n.cd:hover .claim"),
-  innerScroll: h => h.replace(".fls{display:flex;flex-direction:column;gap:2px;overflow:visible}", ".fls{display:flex;flex-direction:column;gap:2px;max-height:150px;overflow:auto}"),
+  innerScroll: h => h.replace(".fls{display:flex;flex-direction:column;gap:0;overflow:visible}", ".fls{display:flex;flex-direction:column;gap:0;max-height:150px;overflow:auto}"),
   narrowRail: h => h.replace("grid-template-columns:300px", "grid-template-columns:232px").replace(".rail{width:300px", ".rail{width:232px"),
 };
 export function assertPage(html, tag, ok) {
@@ -59,6 +65,7 @@ ok(m.cards.every(c => !c.seller || html.includes(`>${c.seller}<`)), "each card p
 const blank = V2.cardHtml({ id: "z", title: "1960 Test", seller: null, thumb: null, elapsedLine: null, statusKey: "in_review", statusLabel: "In review", analyst: "E1", needsAttention: 0 });
 ok(!/cd-s|cd-e|att"|claim/.test(blank), "a card with no seller, no elapsed line, no attention and an analyst draws none of them");
 ok(/data-claim/.test(V2.cardHtml({ id: "y", title: "t", statusKey: "new_enquiries", statusLabel: "New enquiries", analyst: null, needsAttention: 2 })) && /class="att"/.test(V2.cardHtml({ id: "y", title: "t", statusKey: "new_enquiries", statusLabel: "New enquiries", analyst: null, needsAttention: 2 })), "an unassigned card with attention above 0 carries Claim and the mark");
+ok(/id="who"[^>]*>Lee Park</.test(V2.topHtml({ displayName: "Lee Park" })) && /class="who"[^>]*>E1</.test(V2.topHtml(null)), "the seat shows the analyst's name when the model serves seat.displayName, the initials otherwise");
 // in Chrome: the filter switches the cards, the search narrows, geometry holds
 const b = await launch();
 async function open(h, w = 1440, respond = null) { const p = await b.newPage(); await p.setViewport({ width: w, height: 900 }); await p.setRequestInterception(true);
@@ -75,19 +82,29 @@ const MEASURE = () => {
   const R = e => { const r = e.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; }, rail = document.getElementById("rail"), fls = document.getElementById("fls"), cs = [...document.querySelectorAll(".cd")].filter(c => !c.hidden);
   const inter = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t, sel = document.querySelector(".cd.on");
   const scroller = e => { for (let n = e; n && n !== document.body; n = n.parentElement) { const o = getComputedStyle(n).overflowY; if ((o === "auto" || o === "scroll") && n.scrollHeight > n.clientHeight) return true; if ((o === "auto" || o === "scroll") && n !== document.documentElement) return true; } return false; };
-  return { rail: R(rail), vh: innerHeight, topbar: R(document.getElementById("top")), fl: [...fls.children].map(R), flsScroll: scroller(fls) || scroller(rail), cards: cs.map(c => { const t = c.querySelector(".th"), a = c.querySelector(".att"), cl = c.querySelector(".claim"), ti = c.querySelector(".cd-t"), pl = c.querySelector(".pill"); return { card: R(c), th: R(t), att: a ? R(a) : null, claim: cl ? R(cl) : null, claimOp: cl ? Number(getComputedStyle(cl).opacity) : null, titleH: R(ti).h, titleWrap: getComputedStyle(ti).whiteSpace, pill: pl ? { shown: getComputedStyle(pl).display !== "none", st: pl.dataset.st } : null, st: c.dataset.status, tile: t.classList.contains("none") ? t.textContent : null }; }), selBg: sel ? getComputedStyle(sel).backgroundColor : null, choose: (document.getElementById("choose") || {}).textContent || null, filter: document.querySelector(".fl.on").dataset.f };
+  return { rail: R(rail), vh: innerHeight, topbar: R(document.getElementById("top")), fl: [...fls.children].map(R), flsScroll: scroller(fls) || scroller(rail), cards: cs.map(c => { const t = c.querySelector(".th"), a = c.querySelector(".att"), cl = c.querySelector(".claim"), ti = c.querySelector(".cd-t"), pl = c.querySelector(".pill"); return { card: R(c), th: R(t), att: a ? R(a) : null, claim: cl ? R(cl) : null, claimOp: cl ? Number(getComputedStyle(cl).opacity) : null, titleH: R(ti).h, titleWrap: getComputedStyle(ti).whiteSpace, pill: pl ? { shown: getComputedStyle(pl).display !== "none", st: pl.dataset.st } : null, st: c.dataset.status, tile: t.classList.contains("none") ? t.textContent : null }; }), selBg: sel ? getComputedStyle(sel).backgroundColor : null, X: (() => { const cs0 = [...document.querySelectorAll(".cd")].filter(c => !c.hidden), fl = [...document.querySelectorAll(".fl")], on = document.querySelector(".fl.on"), lab = document.getElementById("clab"), gs = getComputedStyle, num = v => parseFloat(v);
+    return { rows: fl.map(f => ({ h: f.getBoundingClientRect().height, fs: num(gs(f).fontSize), fw: gs(f.querySelector("span")).fontWeight, on: f === on, svg: (() => { const v = f.querySelector("svg.ic"); if (!v) return null; const r = v.getBoundingClientRect(), st = gs(v); return { w: r.width, h: r.height, stroke: st.stroke, fill: st.fill, left: r.left - f.getBoundingClientRect().left }; })(), cfs: num(gs(f.querySelector("b")).fontSize), cbg: gs(f.querySelector("b")).backgroundColor, cal: gs(f.querySelector("b")).textAlign, bright: f.getBoundingClientRect().right - f.querySelector("b").getBoundingClientRect().right })), onBg: on ? gs(on).backgroundColor : null, lab: lab ? { t: lab.textContent, fs: num(gs(lab).fontSize), tt: gs(lab).textTransform } : null, gaps: cs0.slice(1).map((c, i) => c.getBoundingClientRect().top - cs0[i].getBoundingClientRect().bottom), cd: cs0.map(c => ({ bw: num(gs(c).borderTopWidth), pl: num(gs(c.querySelector(".cd-a")).paddingLeft), tfs: num(gs(c.querySelector(".cd-t")).fontSize), tfw: gs(c.querySelector(".cd-t")).fontWeight, mfs: num(gs(c.querySelector(".cd-m")).fontSize), pfs: c.querySelector(".pill") ? num(gs(c.querySelector(".pill")).fontSize) : null, rad: num(gs(c.querySelector(".th")).borderRadius), meta: c.querySelector(".cd-m").textContent })), brand: num(gs(document.querySelector(".top .brand")).fontSize), org: num(gs(document.getElementById("org")).fontSize), who: document.getElementById("who").textContent }; })(), choose: (document.getElementById("choose") || {}).textContent || null, filter: document.querySelector(".fl.on").dataset.f };
 };
 export function judge(m, ok, tag, wide = true) {
   const inter = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
   ok(Math.abs(m.rail.w - 300) <= 1 && m.rail.l <= 1, `${tag}: the rail is 300px at the left edge`); ok(m.rail.b >= m.vh - 1 && m.rail.t <= m.topbar.b + 1, `${tag}: the rail is full height under the bar`);
   ok(m.fl.length === 8 && m.fl.every(r => r.b <= m.rail.b && r.h > 0) && !m.flsScroll, `${tag}: all eight status rows are in view with no inner scroll box`);
-  ok(m.cards.length > 0 && m.cards.every(c => Math.abs(c.card.h - 72) <= 1), `${tag}: every card is 72px tall`);
-  ok(m.cards.every(c => Math.abs(c.th.w - 48) <= 1 && Math.abs(c.th.h - 48) <= 1), `${tag}: every thumb is 48px`);
+  ok(m.cards.length > 0 && m.cards.every(c => Math.abs(c.card.h - 68) <= 1), `${tag}: every card is 68px tall`);
+  ok(m.cards.every(c => Math.abs(c.th.w - 44) <= 1 && Math.abs(c.th.h - 44) <= 1), `${tag}: every thumb is 44px`);
   ok(m.cards.every(c => c.titleWrap === "nowrap" && c.titleH < 22), `${tag}: the title is on one line`);
   ok(m.cards.every(c => c.pill && c.pill.shown === (c.st !== m.filter)), `${tag}: a pill shows only when the card's status is not the filter`);
   ok(m.cards.filter(c => c.att).every(c => c.card.r - c.att.r <= 12 && c.att.t - c.card.t <= 10 && !inter(c.att, c.th) && (!c.claim || !inter(c.att, c.claim))), `${tag}: the badge sits at the top right corner of the card, outside the thumb and clear of Claim`);
   ok(m.cards.filter(c => c.claim).every(c => wide ? c.claimOp === 0 : c.claimOp === 1), `${tag}: Claim is ${wide ? "hidden until hover" : "always shown"}`);
   ok(m.cards.filter(c => c.tile).every(c => /^\d{4}\D/.test(c.tile) || c.tile.length > 0), `${tag}: a card with no photo has a tile`);
+  const X = m.X;
+  ok(X.rows.length === 8 && X.rows.every(r => Math.abs(r.h - 40) <= 1 && r.fs === 15 && (r.on ? Number(r.fw) === 600 : Number(r.fw) === 400)), `${tag}: status rows are 40px, 15px text, regular, the selected one 600`);
+  ok(X.rows.every(r => r.svg && Math.abs(r.svg.w - 16) <= 0.5 && Math.abs(r.svg.h - 16) <= 0.5 && r.svg.fill === "none" && r.svg.stroke !== "none" && r.svg.left < 20), `${tag}: each row has a 16px line icon at the left, drawn as a stroke`);
+  ok(X.rows.every(r => r.cfs === 13 && r.cbg === "rgba(0, 0, 0, 0)" && r.cal === "right" && r.bright <= 12), `${tag}: the count is plain 13px text at the right with no bubble`);
+  ok(X.onBg && X.onBg !== "rgba(0, 0, 0, 0)", `${tag}: the selected row has the pale green background`);
+  ok(X.lab && /^cases\s*\d+$/i.test(X.lab.t.trim()) && X.lab.fs === 12 && X.lab.tt === "uppercase", `${tag}: a 12px uppercase Cases label carries the count`);
+  ok(X.gaps.every(g => Math.abs(g - 8) <= 0.5), `${tag}: 8px between cards`);
+  ok(X.cd.every(c => c.bw === 0 && c.pl === 12 && c.tfs === 15 && Number(c.tfw) === 600 && c.mfs === 13 && (c.pfs == null || c.pfs === 11) && c.rad === 8), `${tag}: cards are flat, 12px padding, a 15px 600 title, a 13px second line, an 11px pill, an 8px thumb radius`);
+  ok(X.brand === 17 && X.org === 15, `${tag}: the top bar is 17px with the org at 15px`);
   if (m.selBg) { const [r, g, b] = m.selBg.match(/\d+/g).map(Number); ok(g > r && g >= b, `${tag}: the selected card is pale green`); }
 }
 // the geometry page: one unassigned lead with attention marks and a long title and seller (so Claim, the badge, the truncation and the pill rule are all on screen), the rest as the model has them
