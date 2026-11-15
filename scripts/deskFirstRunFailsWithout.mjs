@@ -174,6 +174,20 @@ const MUT = [
   ["the engine counts aloud again when no condition is suggested", "deskNoEngineTalkCheck", "lib/deskV3.js", rep("return { suggested: null, basis: null };", "return { suggested: null, basis: \"No condition is suggested, no signals counted and three are needed.\" };")],
   ["a stored case serves the old counting line", "deskNoEngineTalkCheck", "lib/desk/caseView.js", rep("if (desk && desk.condition && !desk.condition.suggested && desk.condition.basis)", "if (false)")],
   ["the report prints a note with no suggestion", "deskNoEngineTalkCheck", "lib/desk/reportState.js", rep("d.condition && d.condition.suggested && d.condition.basis ? d.condition.basis : null", "d.condition && d.condition.basis ? d.condition.basis : null")],
+  ["a suggestion counts its signals aloud again", "deskNoEngineTalkCheck", "lib/reasonWords.js", rep("text: p => `Suggested ${p.name}, from ${p.what}.`", "text: p => `Suggested ${p.name} from ${p.what}, 3 signals counted.`")],
+  ["a stored counted note is served as it was stored", "deskNoEngineTalkCheck", "lib/desk/conditionNote.js", rep("&& !OLD_TALK.test(String(c.basis))", "")],
+  ["the likely figure is the whole pool's median, not the closest sales'", "deskTypedCasesCheck", "lib/desk/likely.js", s => s.split("b.median").join("desk.evidence.median")],
+  ["the likely figure is the whole pool's median, not the closest sales' (page one)", "reportConsistencyCheck", "lib/desk/likely.js", s => s.split("b.median").join("desk.evidence.median")],
+  ["the reserve role line shows with fewer than three closest sales", "deskTypedCasesCheck", "lib/desk/likely.js", rep("likely && likely.figure != null ? reasonLine", "likely ? reasonLine")],
+  ["the report prints no likely result", "reportConsistencyCheck", "lib/desk/reportState.js", rep("likelyLine: likely.sellerLine,", "likelyLine: null,")],
+  ["the report prints the reserve before the likely result", "reportConsistencyCheck", "lib/desk/reportPdfV3.js", s => s.replace("if (v.likelyLine) { y = para(", "if (false) { y = para(").replace("  y = Math.max(y + 62, yr2) + 12;", "  y = Math.max(y + 62, yr2) + 12; if (v.likelyLine) y = para(v.likelyLine, M, y, W - 2 * M, { size: 11 }) + 4;")],
+  ["the floor sentence names a figure with no reserve check", "deskTypedCasesCheck", "lib/desk/likely.js", s => s.replace(": null;\n  const list", ": null;\n  const list") && s.replace("reached: ck.reached, of: ck.of }) : null;", "reached: ck.reached, of: ck.of }) : reasonLine(\"case.likely.floor\", { reserve: 0, reached: 0, of: 0 });")],
+  ["the strip leaves a cell out", "deskTypedCasesCheck", "lib/deskV3.js", rep("if (ok && e.extremesLine) cells.push(", "if (false) cells.push(")],
+  ["the closing line says the count in digits under thirteen", "deskTypedCasesCheck", "lib/reasonWords.js", rep("x >= 0 && x <= 12 ? COUNT_WORDS[x]", "x >= 0 && x <= 5 ? COUNT_WORDS[x]")],
+  ["the closing line leaves the latest sale out", "deskTypedCasesCheck", "lib/deskV3.js", rep("return l && l.date && l.price ? sold +", "return false ? sold +")],
+  ["the closing line pluralises a single sale", "deskTypedCasesCheck", "lib/reasonWords.js", rep("Math.round(Number(count)) === 1 || !t ? t", "!t ? t")],
+  ["a view carries no closing line", "deskTypedCasesCheck", "lib/deskV3.js", rep("closingLine: closingLineOf(e, desk.subjectFacts)", "closingLine: null")],
+  ["the likely figure line is left to the page", "deskTypedCasesCheck", "lib/desk/likely.js", rep("figureLine: reasonLine(\"case.likely.figure\", { figure: b.median }),", "figureLine: null,")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
