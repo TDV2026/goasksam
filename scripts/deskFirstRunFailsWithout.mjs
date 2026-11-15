@@ -199,6 +199,9 @@ const MUT = [
   ["the engine's answer carries no shape", "deskViewsCheck", "lib/deskV3.js", rep("return { version: 1, shape: DESK_SHAPE, windows:", "return { version: 1, windows:")],
   ["a case at the current shape is read on every open", "deskViewsCheck", "lib/desk/caseWorkflow.js", rep("export const staleShape = c => !!(c && c.desk && c.desk.evidence && (Number(c.desk.shape) || 0) < DESK_SHAPE);", "export const staleShape = c => !!(c && c.desk && c.desk.evidence);")],
   ["the open path no longer re-reads a stale case", "deskViewsCheck", "lib/desk/sheetActions.js", rep("W.needsReread(s0.case)) { try {", "false) { try {")],
+  ["the served view ignores the chosen condition", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("export const viewOfCase = c => ({ tier: c.condition && c.condition.selected &&", "export const viewOfCase = c => ({ tier: false && c.condition && c.condition.selected &&")],
+  ["a different condition is set with no note", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("if (t !== (sug ? sug.tier : null) && !why) return", "if (false) return")],
+  ["a condition change writes no audit entry", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("logAudit(c, { at: iso(now), by: \"analyst\", what: \"condition set\"", "void ({ at: iso(now), by: \"analyst\", what: \"condition set\"")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });

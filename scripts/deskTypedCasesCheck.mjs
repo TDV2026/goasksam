@@ -341,4 +341,31 @@ console.log("CASE IDS " + ids.join(" "));
   { const v = V.caseView(mk(base), [mk(base)], W.T), k = JSON.parse(JSON.stringify(base)); delete k.desk.evidence.strip; delete k.desk.evidence.closingLine; const v0 = V.caseView(mk(k), [mk(k)], W.T);
     ok("STRIP stored: a case stored before the engine made one serves the same four cells from its stored strings, and no closing line", JSON.stringify(v0.desk.evidence.strip) === JSON.stringify(v.desk.evidence.strip) && v0.desk.evidence.closingLine === null, ""); }
   ok("STRIP and CLOSING: at least 20 views and a thin one were judged", views >= 20 && thin >= 0, String(views)); }
+
+// ---------- THE CONDITION DECISION (order 2318, Nov 14 2026, item 1): case.condition { suggested, chosen, source, note, line }; the action condition_set { condition, note } ----------
+// CLASS: every case on every page: the suggestion is the engine's; the choice is the analyst's, with a note unless it is the suggestion; the served view (desk.evidence, desk.likely, desk.hagerty, the strip, the closing line) is the view of the chosen condition and period; every change is audited in table words.
+{ const { setup } = await import(pathToFileURL(path.join(ROOT, "scripts/_deskCaseWorld.mjs")).href), W = await setup(ROOT), A = await U("lib/desk/sheetActions.js"), ST = await U("lib/desk/sheetStore.js"), DV = await U("lib/deskV3.js"), store = ST.memoryStore(); store.reset();
+  const J = x => JSON.stringify(x), base = await W.readyCase(); for (const k of Object.keys(base.desk.views)) if (/^0:/.test(k)) base.desk.views[k].condition = { suggested: { tier: 3, name: "Good" }, basis: "Suggested Good, from the mileage and the seller's description.", from: "the mileage and the seller's description" };
+  base.desk.condition = base.desk.views["0:12"].condition;
+  const ID = "dd000001-0000-4000-8000-000000000000", put = c => store.insert("hm", { id: ID, org_id: "hm", created_at: W.T, owner_seat: "Jane Park", status: "In progress", submission: { typed: true, photos: [], documents: [] }, state: {}, case: c, car_label: "1999 Porsche 911", version: 0 });
+  await put(base); const ctx = { now: W.T, env: {}, org: "hm", seat: "Jane Park", seatName: "Jane Park", store, orgSettings: { name: "H" }, readSheet: async (env, input) => W.read(input) };
+  const act = (action, b) => A.handleSheetAction(action, { id: ID, ...b }, ctx), get = async () => (await act("case_get", {})).case;
+  const c0 = await get(), v1 = (k, m) => base.desk.views[k + ":" + m];
+  ok("CONDITION 1: suggested is the engine's; chosen starts as suggested with source suggested; the line says where it came from", c0.condition.suggested.tier === 3 && c0.condition.chosen.tier === 3 && c0.condition.source === "suggested" && c0.condition.note === "" && c0.condition.line === "Good, suggested from the mileage and the seller's description.", J(c0.condition));
+  const verBefore = (await store.get("hm", ID)).version, refused = await act("condition_set", { condition: 2 }), refusedBlank = await act("condition_set", { condition: 1, note: "   " });
+  ok("CONDITION 2: a condition other than the suggested one with no note is refused with a reason, and nothing is stored", refused.ok === false && refused.refused === true && /Say why/.test(refused.why) && refusedBlank.ok === false && (await store.get("hm", ID)).version === verBefore, String(refused.why));
+  const bad = await act("condition_set", { condition: 9, note: "x" });
+  ok("CONDITION 3: a condition that is not one of the four, or none, is refused with the table's line", bad.ok === false && /Concours, Excellent, Good or Fair/.test(bad.why), String(bad.why));
+  const set = await act("condition_set", { condition: 2, note: "the photos" }), c1 = set.case;
+  ok("CONDITION 4: with a note it is set: chosen, source analyst, the note, and the line built with the note", set.ok === true && c1.condition.chosen.tier === 2 && c1.condition.source === "analyst" && c1.condition.note === "the photos" && c1.condition.line === "Excellent, set by the analyst from the photos." && c1.condition.suggested.tier === 3, J(c1.condition));
+  const k2 = "2:" + c1.desk.view.months, want2 = base.desk.views[k2];
+  ok("CONDITION 5: the served view is the chosen condition by the chosen period: evidence, strip, closing line, Hagerty and likely are that view's", c1.desk.view.tier === 2 && J(c1.desk.evidence.count) === J(want2.evidence.count) && c1.desk.evidence.closingLine === want2.evidence.closingLine && J(c1.desk.evidence.strip) === J(want2.evidence.strip) && J(c1.desk.hagerty) === J(want2.hagerty) && J(c1.desk.likely.closestIds) === J(want2.likelyBasis.ids), `${c1.desk.view.tier} ${c1.desk.evidence.count} vs ${want2.evidence.count}`);
+  ok("CONDITION 6: every condition_set wrote an audit entry in table words (no banned word), served with the line", (() => { const a = c1.audit.filter(e => e.what === "condition set"); return a.length === 1 && a[0].line === "The condition was set to Excellent by the analyst, from the photos." && !/\b(signals?|counted|engine|population|basis|oneEngineAnswer|null)\b/i.test(a[0].line) && a[0].by === "analyst"; })(), J(c1.audit.slice(-1)));
+  const same = (await act("condition_set", { condition: 3 })).case;
+  ok("CONDITION 7: the suggested condition needs no note; the line is then the analyst's, bare", same.condition.chosen.tier === 3 && same.condition.source === "analyst" && same.condition.line === "Good, set by the analyst." && same.desk.view.tier === 3, J(same.condition));
+  const all = await act("condition_set", { condition: 0 }), all2 = await act("condition_set", { condition: null, note: "too few sales of one condition" });
+  ok("CONDITION 8: none (all conditions) differs from the suggestion, so it needs a note too; with one the view is the untiered view", all.ok === false && all2.ok === true && all2.case.condition.chosen === null && all2.case.condition.line === "All conditions, set by the analyst from too few sales of one condition." && all2.case.desk.view.tier === 0, all2.ok ? J(all2.case.condition) : all.why);
+  const a8 = all2.case.audit.filter(e => e.what === "condition set");
+  ok("CONDITION 9: three changes, three audit entries", a8.length === 3, String(a8.length));
+}
 console.log(`deskTypedCasesCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
