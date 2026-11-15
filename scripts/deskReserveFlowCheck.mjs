@@ -6,23 +6,25 @@ const A = await imp("lib/desk/sheetActions.js"), { memoryStore } = await imp("li
 let pass = 0, fail = 0; const ok = (n, c, d) => { if (c) pass++; else { fail++; console.log("FAIL " + n + (d ? "  " + d : "")); } }; const J = x => JSON.stringify(x);
 const store = memoryStore(), ctx = (m = 0) => ({ org: "t", seat: "7", store, now: new Date(Date.parse(T) + m * 60000).toISOString(), env: {}, readSheet: async (e, input) => read(input), fetchImage: async () => null });
 const run = (a, b, m) => A.handleSheetAction(a, b, ctx(m));
+// THE ENGINE-SOURCED RESERVE IS THE LADDER'S RECOMMENDED RUNG (order 2318, Nov 14 2026): its figure; with no reserve recommended or no ladder, the engine's start
+const want = d => { const l = d.reserveLadder && !d.reserveLadder.thin ? d.reserveLadder : d.reserveLadder && d.reserveLadder.fallback ? d.reserveLadder.fallback : null, rg = l && l.rungs.find(r => r.key === l.recommended); return rg && rg.available && rg.figure != null ? rg.figure : d.reserveStart.figure; };
 // 1. a new case takes the engine's start and its why, and the engine has checked that very figure
 const nw = await run("case_new", { text: "1999 Porsche 911 Carrera", mileage: "61,200", transmission: "Manual", body: "Coupe" });
 const d0 = nw.case.desk, r0 = nw.case.reserve;
-ok("a new case's reserve is the engine's start, from the engine", nw.ok && d0.reserveStart && r0.figure === d0.reserveStart.figure && r0.source === "engine", J(r0).slice(0, 160));
+ok("a new case's reserve is the engine's start, from the engine", nw.ok && d0.reserveStart && r0.figure === want(d0) && r0.source === "engine", J(r0).slice(0, 160));
 ok("its why is the engine's draft, and it is not the analyst's", r0.whyEdited === false && r0.why === (d0.whyDraft || ""), J([r0.why, d0.whyDraft]));
 ok("the engine has checked that very figure: reserveCheck.reserve is the reserve, and the lines ride on the reserve", d0.reserveCheck && d0.reserveCheck.reserve === r0.figure && r0.positionLine === d0.reserveCheck.positionLine && r0.reachedLine === d0.reserveCheck.reachedLine && r0.check.reserve === r0.figure);
 ok("the stored key is the key of the case as it stands (no third read is owed)", !K.needsRecall(await (async () => (await store.get("t", nw.id)).case)()));
-ok("the start line rides on the reserve for the page", r0.start && r0.start.figure === r0.figure && typeof r0.start.sentence === "string");
+ok("the start line rides on the reserve for the page", r0.start && r0.start.figure === d0.reserveStart.figure && typeof r0.start.sentence === "string");
 // 2. the period is an engine input: the read carries it, the evidence is the engine's window, the engine's own figure follows
 const n1 = calls.length, w6 = await run("case_edit", { id: nw.id, op: "window", months: 6 }, 1);
 ok("the period op takes the engine's six month view from the case and asks the engine nothing", w6.ok && w6.recalled === false && calls.length === n1 && w6.case.windowMonths === 6 && w6.case.desk.evidence.windowMonths === 6, J(w6).slice(0, 160));
-ok("the engine-sourced reserve followed the new period to the engine's new start, and the check is of that figure", w6.case.reserve.source === "engine" && w6.case.reserve.figure === w6.case.desk.reserveStart.figure && w6.reserveCheck && w6.reserveCheck.reserve === w6.case.reserve.figure);
-ok("the answer carries reserveCheck and reserveStart at the top for the page", w6.reserveCheck && w6.reserveStart && w6.reserveStart.figure === w6.case.reserve.figure);
+ok("the engine-sourced reserve followed the new period to the engine's new start, and the check is of that figure", w6.case.reserve.source === "engine" && w6.case.reserve.figure === want(w6.case.desk) && w6.reserveCheck && w6.reserveCheck.reserve === w6.case.reserve.figure);
+ok("the answer carries reserveCheck and reserveStart at the top for the page", w6.reserveCheck && w6.reserveStart && w6.reserveStart.figure === w6.case.desk.reserveStart.figure);
 ok("a period that is not 3, 6, 12 or 24 is refused (24 only when the record reaches back more than a year), and the case is unchanged", (await run("case_edit", { id: nw.id, op: "window", months: 9 }, 2)).refused === true && (await store.get("t", nw.id)).case.windowMonths === 6);
 const n2 = calls.length, same = await run("case_edit", { id: nw.id, op: "window", months: 6 }, 2);
 ok("the same period again costs no read", same.ok && calls.length === n2 && same.recalled === false);
-for (const m of [3, 12]) { const w = await run("case_edit", { id: nw.id, op: "window", months: m }, 3); ok(`period ${m}: the case holds the engine's ${m} months`, w.ok && w.case.windowMonths === m && w.case.desk.evidence.windowMonths === m && w.case.reserve.figure === w.case.desk.reserveStart.figure); }
+for (const m of [3, 12]) { const w = await run("case_edit", { id: nw.id, op: "window", months: m }, 3); ok(`period ${m}: the case holds the engine's ${m} months`, w.ok && w.case.windowMonths === m && w.case.desk.evidence.windowMonths === m && w.case.reserve.figure === want(w.case.desk)); }
 // 3. a typed figure is the analyst's: the engine checks it, no read moves it, its lines are the engine's
 const ev = (await store.get("t", nw.id)).case.desk.evidence, typed = ev.q3 + 4000, nT = calls.length;
 const t1 = await run("case_edit", { id: nw.id, op: "reserve", patch: { figure: typed } }, 4);
@@ -40,7 +42,7 @@ const wB = await run("case_edit", { id: nw.id, op: "window", months: 12 }, 8);
 ok("an edited why is the analyst's: it costs no read and a later period leaves it", wy.recalled === false && wy.case.reserve.whyEdited === true && wB.case.reserve.why === "The seller asked for this figure." && wB.case.reserve.rationale === wB.case.reserve.why);
 // 5. back to the engine's start
 const bk = await run("case_edit", { id: nw.id, op: "reserve", patch: { restart: true } }, 9);
-ok("restart puts the engine's start and its why back, the figure is the engine's again and checked", bk.ok && bk.case.reserve.source === "engine" && bk.case.reserve.figure === bk.case.desk.reserveStart.figure && bk.case.reserve.whyEdited === false && bk.case.reserve.why === (bk.case.desk.whyDraft || "") && bk.case.reserve.sellerRequested === false && bk.reserveCheck.reserve === bk.case.reserve.figure);
+ok("restart puts the engine's start and its why back, the figure is the engine's again and checked", bk.ok && bk.case.reserve.source === "engine" && bk.case.reserve.figure === want(bk.case.desk) && bk.case.reserve.whyEdited === false && bk.case.reserve.why === (bk.case.desk.whyDraft || "") && bk.case.reserve.sellerRequested === false && bk.reserveCheck.reserve === bk.case.reserve.figure);
 ok("every reserve change leaves an audit line in the table's words, none typed", bk.case.audit.filter(a => /^reserve /.test(a.what)).length >= 3 && bk.case.audit.filter(a => /^reserve /.test(a.what)).every(a => a.line && !/^Something/.test(a.line)) && /recommended reserve/.test(bk.case.audit.filter(a => /^reserve /.test(a.what)).map(a => a.line).join(" ")));
 // 6. a case stored before V4 (figure and rationale only) keeps its figure as the analyst's and is never reseeded
 { const old = await readyCase(); old.reserve = { figure: 30000, rationale: "Old note.", seller_agreed: false }; delete old.windowMonths; old.desk = { ...old.desk, key: "stale" };

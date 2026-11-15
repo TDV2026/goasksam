@@ -60,12 +60,14 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
 { const DV = await imp("lib/deskV3.js"); let views = 0, counts = 0; const off = [];
   for (const t of [0, 1, 2, 3, 4]) for (const m of [3, 6, 12]) {
     const k = K.setWindow(K.setCondition(base, t ? { tier: t, name: "x" } : null, T), m, T), d = k.desk, N = d.sales.length, found = []; views++;
-    const num = (what, x) => { if (x != null && x !== "") found.push([what, Number(x)]); };
-    num("evidence.count", d.evidence.count); num("evidence.countLine", (String(d.evidence.countLine).match(/^(\d+) sale/) || [])[1]); num("evidence.sentence", (String(d.evidence.sentence || "").match(/(\d+) on record/) || [])[1]);
-    num("byWindow.count", d.evidence.byWindow && d.evidence.byWindow[m] && d.evidence.byWindow[m].count); num("byWindow.populationLine", (String(d.evidence.byWindow && d.evidence.byWindow[m] && d.evidence.byWindow[m].populationLine || "").match(/^(\d+) of/) || [])[1]);
-    if (t) { const rg = d.rungs[t - 1]; num("rung.count", rg.count); num("rung.countLine", (String(rg.countLine).match(/^(\d+) sale/) || [])[1]); num("rung.sentence", (String(rg.sentence).match(/(?::|,) (\d+) in the last/) || String(rg.sentence).match(/^[A-Za-z]+: (\d+) sale/) || [])[1]); }
+    // A THIN VIEW IS SERVED WHOLE FROM THE ALL-CONDITIONS VIEW OF THE PERIOD (Lane B, Nov 15 2026; desk.servedFrom): the header, strip, sales list, Hagerty and reserve check all count the served list, so they equal it on every view. A condition tier's own button and chip (rung.count, countLine, sentence) show that tier's own count always: equal to the list only when desk.servedFrom is null; on a served view they may differ and the thin line must be present.
+    const NF = N, served = !!d.servedFrom, ownN = t ? K.setWindow(base, m, T).desk.rungs[t - 1].count : N;
+    const num = (what, x, n = N) => { if (x != null && x !== "") found.push([what, Number(x), n]); };
+    num("evidence.count", d.evidence.count, NF); num("evidence.countLine", (String(d.evidence.countLine).match(/^(\d+) sale/) || [])[1], NF); num("evidence.sentence", (String(d.evidence.sentence || "").match(/(\d+) on record/) || [])[1], NF);
+    num("byWindow.count", d.evidence.byWindow && d.evidence.byWindow[m] && d.evidence.byWindow[m].count, NF); num("byWindow.populationLine", (String(d.evidence.byWindow && d.evidence.byWindow[m] && d.evidence.byWindow[m].populationLine || "").match(/^(\d+) of/) || [])[1], NF);
+    if (t) { const rg = d.rungs[t - 1], nn = served ? ownN : N; num("rung.count", rg.count, nn); num("rung.countLine", (String(rg.countLine).match(/^(\d+) sale/) || [])[1], nn); num("rung.sentence", (String(rg.sentence).match(/(?::|,) (\d+) in the last/) || String(rg.sentence).match(/^[A-Za-z]+: (\d+) sale/) || [])[1], nn); if (served && !(d.reserveLadder && d.reserveLadder.thinLine)) off.push(`${t}:${m} served view with no thin line`); if (!served && d.reserveLadder && d.reserveLadder.thin) off.push(`${t}:${m} a thin view with servedFrom null is only the no-fallback case`); }
     if (d.reserveCheck) num("reserveCheck.of", d.reserveCheck.of);
-    for (const [what, v] of found) { counts++; if (v !== N) off.push(`${t}:${m} ${what} ${v} vs ${N} sales`); }
+    for (const [what, v, n] of found) { counts++; if (v !== n) off.push(`${t}:${m} ${what} ${v} vs ${n} sales`); }
   }
   ok(`every count printed for a window equals the window's sales list (${counts} counts over ${views} views)`, views === 15 && counts >= 60 && !off.length, off.slice(0, 6).join(" | ")); }
 // A SHORTER PERIOD WITH THE SAME SALES SAYS SO (Lane D, Nov 11 2026): the line is the engine's (desk.evidence.sameLine), present exactly when the shorter period holds as many sales as the next longer one, so a switch that changes nothing is printed, not silent.
@@ -179,6 +181,8 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
 { let rungs = 0; const off = [];
   for (const m of [3, 6, 12]) for (const t of [1, 2, 3, 4]) {
     const here = K.setWindow(base, m, T).desk, picked = K.setWindow(K.setCondition(base, { tier: t, name: "x" }, T), m, T).desk, rg = here.rungs[t - 1], ev = picked.evidence; rungs++;
+    // A THIN RUNG, PICKED, IS SERVED FROM THE ALL-CONDITIONS VIEW (Lane B, Nov 14 2026, evidence.servedFrom): the header and the range are that view's; the button and the rung line keep the rung's own count
+    if (ev.servedFrom) { if (ev.servedFrom !== "0:" + m || picked.servedFrom !== "0:" + m || ev.count !== picked.sales.length || !picked.reserveLadder.thinLine || picked.rungs[t - 1].count !== rg.count || !(rg.count < 5)) off.push(`${t}:${m} thin pick served from ${ev.servedFrom}, rung ${picked.rungs[t - 1].count} vs button ${rg.count}`); continue; }
     if (rg.count !== ev.count) off.push(`${t}:${m} button ${rg.count} vs pick ${ev.count}`);
     const band = rg.band ? [rg.band.q1, rg.band.median, rg.band.q3].join() : "none", want = ev.insufficient ? "none" : [ev.q1, ev.median, ev.q3].join();
     if (band !== want) off.push(`${t}:${m} line ${band} vs pick ${want}`);
@@ -240,7 +244,7 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
     for (const t of [1, 2, 3, 4]) {
       const d = K.setWindow(K.setCondition(base, { tier: t, name: "x" }, T), m, T).desk, rung = d.rungs.find(r => r.tier === t), rs = d.reserveStart;
       if (rung.band && rung.count >= 5) { seen.rung++; if (!rs || rs.figure !== DVm.roundReserve(rung.band.q1) || rs.note !== null || rs.tooFew) bad.push(`${t}:${m} rung start ${JSON.stringify(rs)} vs ${rung.band.q1}`); }
-      else { seen.few++; const want = allStart && allStart.figure; if (want != null && !(rs && rs.figure === want && rs.tooFew === true && rs.note === `Too few ${d.rungs.find(r => r.tier === t).name} sales to move the start, so it stays at the low end of all conditions.`)) bad.push(`${t}:${m} few ${JSON.stringify(rs)} vs ${want}`); if (want == null && rs && !rs.tooFew) bad.push(`${t}:${m} few without an all-conditions start`); }
+      else { seen.few++; const want = allStart && allStart.figure; if (want != null && !(rs && rs.figure === want && rs.servedFrom === `0:${m}` && rs.note === d.reserveLadder.thinLine && d.servedFrom === `0:${m}`)) bad.push(`${t}:${m} few ${JSON.stringify(rs)} vs ${want}`); if (want == null && rs && !rs.servedFrom) bad.push(`${t}:${m} few without an all-conditions start`); }
     }
   }
   ok("START 1: in every view a rung with 5 or more sales starts at its own low end, and a rung with fewer stays at the low end of all conditions with the table's note", bad.length === 0 && seen.rung > 0, bad.slice(0, 3).join(" | ") + ` (${seen.rung} rungs, ${seen.few} thin)`);
@@ -256,21 +260,67 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   const { readFileSync } = await import("node:fs"), src = ["reportState.js", "reportPdf.js", "reportPdfV3.js"].map(f => readFileSync(path.join(root, "lib/desk", f), "utf8")).join("\n");
   ok("LIVE LINE 4: the source: the report's module never reads the live line or its words", !/liveLineOf|case\.reserve\.live_vs|reserve\.liveLine/.test(src));
 }
-// ---------- THE LIKELY RESULT LEADS PAGE ONE (order 2318, Nov 14 2026) ----------
-// CLASS: every case whose engine read carries desk.likelyBasis (three or more Closest sales): page one prints the likely result, then the reserve with its role line, then the market sentence, and both figures are the model's (the engine's likelyBasis median and the reserve); with fewer than three the report prints the market sentence alone.
+// ---------- REPORT PAGE ONE (order 2318, Nov 14 2026, item 4): IN THIS ORDER AND NOTHING ELSE ----------
+// The recommended reserve (the figure, or No reserve) with its one-line reason; the likely result with the three nearest sales; the condition line; the analyst's why as written; one line per extra ticked rung; the market sentence. No role line, no "does not limit the price".
+// CLASS: every case on every report: the engine's recommended rung (balanced), a rung the analyst chose (safe), no reserve recommended, two extra rungs ticked; and a case with fewer than three closest sales (no likely line) or no condition line.
 { const fs = await import("node:fs"), P = await imp("lib/desk/reportPdfV3.js"), mini = await imp("lib/pdf/mini.js"), DV = await imp("lib/deskV3.js"), PNG = fs.readFileSync(path.join(root, "public/icon-512.png")), money = n => "$" + Math.round(n).toLocaleString("en-US");
   const sheetOf = c => ({ id: "x", owner_seat: "Jane Park", forwarded_by: "Jane Park", created_at: T, submission: { typed: false, photos: [{ id: c.photos.items[0].id, url: "https://real.example/cover.jpg" }] }, state: {}, case: c, final: { reportNumber: "DV-2026-0007", org: { name: "Acme Auctions" }, finalisedAt: T } });
   const page1 = async c => mini.pdfTextOps((await P.buildReportV3(sheetOf(c), { name: "Acme Auctions", contactEmail: "desk@acme.example", sendingAddress: "noreply@acme.example" }, { fetchImage: async () => PNG, draft: false })).bytes)[0];
-  const yOf = (ops, re) => { const o = ops.find(x => re.test(x.text)); return o ? o.y : null; };
   const med = a => { const q = a.slice().sort((x, y) => x - y), m = q.length; return m % 2 ? q[(m - 1) / 2] : Math.round((q[m / 2 - 1] + q[m / 2]) / 2); };
-  const c3 = cl(base), v3 = V.caseView(sheetOfC(c3), [sheetOfC(c3)], T), lk = v3.desk.likely, ops3 = await page1(c3), txt3 = ops3.map(o => o.text).join(" ");
-  function sheetOfC(c) { return sheetOf(c); }
-  const byId = new Map(c3.desk.comparables.map(x => [x.id, x])), closest = c3.desk.likelyBasis.ids.map(i => byId.get(i).price);
-  ok("LIKELY 1: page one prints the likely result, then the reserve, then its role line, then the market sentence", (() => { const a = yOf(ops3, /^Cars like yours have been selling for around/), b = yOf(ops3, /RECOMMENDED RESERVE/), r = yOf(ops3, /^The reserve protects the sale/), m = yOf(ops3, /^Over the last \d+ months/); return a != null && b != null && r != null && m != null && a < b && b < r && r < m; })(), JSON.stringify(ops3.map(o => [o.text.slice(0, 20), o.y]).slice(4, 14)));
-  ok("LIKELY 2: both figures on page one are the model's: the likely figure is the median of the closest sales (not the whole pool's), the reserve is the case's", lk.figure === med(closest) && lk.figure !== base.desk.evidence.median && txt3.includes(money(lk.figure)) && txt3.includes(money(base.reserve.figure)) && R.reportState(c3).v4.likelyLine === lk.sellerLine, JSON.stringify({ fig: lk.figure, want: med(closest), whole: base.desk.evidence.median }));
-  ok("LIKELY 3: the three closest sales named are the first three of the list, in dollars", [...closest.slice(0, 3)].every(p => lk.sellerLine.includes(money(p))) && v3.reserve.roleLine === "The reserve protects the sale. Bidding decides the price.", lk.sellerLine);
-  const c2 = cl(base); c2.desk.comparables = c2.desk.comparables.slice(0, 2); c2.desk.likelyBasis = DV.likelyBasisOf(c2.desk.comparables);
-  const v2 = V.caseView(sheetOfC(c2), [sheetOfC(c2)], T), ops2 = await page1(c2), txt2 = ops2.map(o => o.text).join(" ");
-  ok("LIKELY 4: with fewer than three closest sales there is no likely result, no role line, and page one keeps the reserve and the market sentence", v2.desk.likely.figure === null && v2.desk.likely.sellerLine === null && v2.reserve.roleLine === null && !/selling for around|protects the sale/.test(txt2) && /RECOMMENDED RESERVE/.test(txt2) && /Over the last \d+ months/.test(txt2), txt2.slice(0, 120));
-  ok("LIKELY 5: a case stored before the engine gave the basis serves none either", (() => { const c0 = cl(base); delete c0.desk.likelyBasis; const v0 = V.caseView(sheetOfC(c0), [sheetOfC(c0)], T); return v0.desk.likely.figure === null && v0.reserve.roleLine === null; })()); }
+  const norm = t => t.replace(/\s+/g, " ").trim().toLowerCase(), view = c => V.caseView(sheetOf(c), [sheetOf(c)], T);
+  const withCond = c0 => { const o = K.setConditionChoice(c0, 3, "the photos", T); return o.case; };
+  const lad = c => c.desk.reserveLadder, rg = (c, k) => lad(c).rungs.find(r => r.key === k);
+  const judge = async (name, c, { figureText, reason, extras, cond = true, likely = true }) => {
+    const v = view(c), ops = await page1(c), body = ops.filter(o => o.y > 470 && o.y < 735), lines = norm(body.map(o => o.text).join(" "));
+    const want = ["Recommended reserve", figureText, reason, R.reportState(c).v4.note, likely ? v.desk.likely.sellerLine : null, cond ? v.condition.line : null, R.reportState(c).v4.why, ...extras, R.reportState(c).v4.reachedLine].filter(Boolean);
+    ok(`PAGE ONE ${name}: the lines are the reserve with its reason, the likely result, the condition, the analyst's why, the extra rungs, the market sentence, in that order`, lines === norm(want.join(" ")), lines.slice(0, 260) + " || " + norm(want.join(" ")).slice(0, 260));
+    ok(`PAGE ONE ${name}: no role line and no sentence about what the reserve does, on the page or in the served case and report state (the notes page keeps its own disclaimer)`, !/protects the sale|does not limit|lowest price the car can sell/i.test(JSON.stringify(v.reserve) + JSON.stringify(v.reserveChoice) + JSON.stringify(R.reportState(c).v4)) && !/protects the sale|does not limit|lowest price the car can sell|guarantee/i.test(lines), "");
+    return v; };
+  // A. the engine's recommended rung (balanced, all conditions), no condition set: no condition line
+  const eng = c => K.seedReserve(K.setReserve(c, { restart: true }, T), T);
+  const A = eng(cl(base)), vA = await judge("A (engine's balanced)", A, { figureText: money(rg(A, "balanced").figure), reason: lad(A).reason, extras: [], cond: false });
+  ok("PAGE ONE A: the figure is the engine's recommended rung's, the reason is the ladder's, the three nearest sales are by rank, not by price", lad(A).recommended === "balanced" && vA.reserve.figure === rg(A, "balanced").figure && vA.reserveChoice.source === "engine" && vA.reserveChoice.line === lad(A).reason && (() => { const byId = new Map(A.desk.comparables.map(x => [x.id, x])), top = A.desk.likelyBasis.ids.slice(0, 3).map(i => money(byId.get(i).price)); return vA.desk.likely.sellerLine.endsWith(`The three closest sales made ${top[0]}, ${top[1]} and ${top[2]}.`); })(), vA.desk.likely.sellerLine);
+  { const A2 = eng(withCond(cl(base))), k2 = lad(A2).recommended, r2 = rg(A2, k2); await judge("A2 (condition set by the analyst; that view's own recommended rung)", A2, { figureText: money(r2.figure), reason: lad(A2).reason, extras: [] }); }
+  // B. the analyst chose the safe rung
+  const B = K.reserveUse(A, "safe", T).case, rB = rg(B, "safe");
+  await judge("B (analyst's safe)", B, { cond: false, figureText: money(rB.figure), reason: `Set by the analyst: ${money(rB.figure)}, ${rB.cleared} of ${rB.of} cleared it.`, extras: [] });
+  // C. no reserve recommended by the engine
+  const C0 = cl(base); { const l = C0.desk.reserveLadder, nr = l.rungs.find(r => r.key === "noReserve"); Object.assign(nr, { available: true, figure: null, noReserveMedian: 29500, reserveMedian: 26000, noReserveCount: 8, reserveCount: 10 }); l.recommended = "noReserve"; l.reason = "No reserve: cars sold without one made more, 8 of 18."; C0.reserve = { ...C0.reserve, source: "engine" }; }
+  await judge("C (no reserve recommended)", C0, { cond: false, figureText: "No reserve", reason: "No reserve: cars sold without one made more, 8 of 18.", extras: [] });
+  // D. two extra rungs ticked beside the engine's balanced; one of them is no reserve
+  const D0 = eng(cl(base)); { const nr = D0.desk.reserveLadder.rungs.find(r => r.key === "noReserve"); Object.assign(nr, { available: true, noReserveMedian: 29500, reserveMedian: 26000, noReserveCount: 8, reserveCount: 10 }); }
+  const D = K.reportRungsSet(D0, ["safe", "noReserve", "ambitious"], T).case, rs = k => rg(D, k);
+  const vD = await judge("D (two extras ticked, balanced in use)", D, { cond: false, figureText: money(rs("balanced").figure), reason: lad(D).reason, extras: [`If you would rather set the reserve at ${money(rs("safe").figure)}, ${rs("safe").cleared} of the last ${rs("safe").of} sales cleared it.`, `If you would rather set the reserve at ${money(rs("ambitious").figure)}, ${rs("ambitious").cleared} of the last ${rs("ambitious").of} sales cleared it.`, `If you would rather sell without a reserve, cars sold that way made a median $29,500 against $26,000 with one.`] });
+  ok("PAGE ONE D: an extra rung the analyst did not tick is never printed (balanced and noReserve unticked: only safe and ambitious here)", (() => { const E = K.reportRungsSet(D0, ["safe", "ambitious"], T).case, lines = norm(R.reportState(E).v4.extraRungs.map(x => x.line).join(" ")); return !/without a reserve/.test(lines) && R.reportState(E).v4.extraRungs.length === 2; })(), "");
+  // F. nothing can be priced (no fallback): no figure, the engine's line is the reason
+  { const F = eng(cl(base)), rl = F.desk.reserveLadder; F.desk.reserveLadder = { ...rl, rungs: rl.rungs.map(r => ({ ...r, available: false, figure: null })), recommended: null, reason: null, thin: true, servedFrom: null, thinLine: "Too few sales of this car in this period to set a reserve." }; F.desk.reserveStart = null; F.reserve = { ...F.reserve, figure: null, source: null };
+    await judge("F (nothing can be priced)", F, { figureText: "Not set", reason: "Too few sales of this car in this period to set a reserve.", extras: [], cond: false }); }
+  // E. fewer than three closest sales: no likely line; no condition: no condition line
+  const E = cl(base); E.desk.comparables = E.desk.comparables.slice(0, 2); E.desk.likelyBasis = DV.likelyBasisOf(E.desk.comparables);
+  await judge("E (fewer than three closest sales, no condition line)", eng(E), { figureText: money(rg(E, "balanced").figure), reason: lad(E).reason, extras: [], cond: false, likely: false });
+}
+// ---------- EVERY FIELD THE CASE SCREEN LABELS "PRINTED IN THE REPORT" PRINTS (order 2318, Nov 15 2026) ----------
+// CAUSE: an order's "nothing else" removed the analyst's why from page one, a feature Sam had decided on, and the only check that would have noticed (deskPersistCheck) was edited to match. NOW the screen itself is the list: every place lib/preview/deskV4.js says "Printed in the report" must have a print check here (an unknown one fails, so a new field cannot be added unchecked) and each one is
+// checked in the PDF, with the analyst's own words. CLASS: every case, every report build. The three today: the Why box (the analyst's why, page one, whole), What we took into account (page two), Next steps for the seller (page four).
+{ const fs = await import("node:fs"), P = await imp("lib/desk/reportPdfV3.js"), mini = await imp("lib/pdf/mini.js"), PNG = fs.readFileSync(path.join(root, "public/icon-512.png")), src = fs.readFileSync(path.join(root, "lib/preview/deskV4.js"), "utf8");
+  const anchors = []; for (const m of src.matchAll(/Printed in the report/g)) { const before = src.slice(Math.max(0, m.index - 500), m.index), card = [...before.matchAll(/card\("(s-[a-z]+)"/g)].pop(), lab = [...before.matchAll(/<label for="(\w+)"/g)].pop(); anchors.push(lab && (!card || lab.index > card.index) ? lab[1] : card ? card[1] : "?"); }
+  const norm = t => t.replace(/\s+/g, " ").trim().toLowerCase(), known = ["why", "s-considered", "s-steps"];
+  ok("PRINTED 1: the screen labels exactly the fields this check knows (a new 'Printed in the report' field has no print check until it is added here)", anchors.length >= 3 && anchors.every(a => known.includes(a)) && known.every(k => anchors.includes(k)), anchors.join());
+  const sheetOf = c => ({ id: "x", owner_seat: "Jane Park", forwarded_by: "Jane Park", created_at: T, submission: { typed: false, photos: [{ id: c.photos.items[0].id, url: "https://real.example/cover.jpg" }] }, state: {}, case: c, final: { reportNumber: "DV-2026-0007", org: { name: "Acme Auctions" }, finalisedAt: T } });
+  const pages = async c => mini.pdfPages((await P.buildReportV3(sheetOf(c), { name: "Acme Auctions", contactEmail: "desk@acme.example", sendingAddress: "noreply@acme.example" }, { fetchImage: async () => PNG, draft: true })).bytes).map(p => norm(p.join(" ")));
+  let c = cl(base); const WHY = "Seller reports a recent clutch and the paint is original, so the lower quartile stands as the floor.", ITEM = "Sentinel item: the car has been stored dry for six years.", STEP = "Sentinel step: we will email the seller the reserve form.";
+  c = K.setReserve(c, { why: WHY }, T); c = K.addCasedItem(c, { title: "Sentinel item", text: ITEM }, T); c = K.addNextStep(c, STEP, T);
+  const pg = await pages(c), whole = pg.join(" ");
+  ok("PRINTED 2: the Why box prints on page one, exactly as written, whole", pg[0].includes(norm(WHY)), pg[0].slice(0, 200));
+  ok("PRINTED 3: What we took into account prints every item the analyst sees (the added one included), on page two", (c.considered || []).length > 0 && R.reportState(c).v4.considered.length === c.considered.filter(x => !x.removed).length && pg[1].includes(norm("Sentinel item")) && pg[1].includes(norm(ITEM.slice(0, 30))), `${(c.considered || []).length} items; ${R.reportState(c).v4.considered.length} in the state`);
+  ok("PRINTED 4: Next steps for the seller prints every step the analyst sees (the added one included), on page four", pg[3].includes(norm(STEP)) && R.reportState(c).nextSteps.length === (c.nextSteps || []).length, `${(c.nextSteps || []).length} steps`);
+  { let m = cl(base); const LONG = "Sentinel long step: " + "we will walk the seller through every document the buyer may ask for and keep them informed at each stage. ".repeat(2).trim();
+    for (let i = 1; i <= 7; i++) m = K.addCasedItem(m, { title: "Extra " + i, text: "Sentinel text number " + i + " is a longer sentence about what was weighed and why it was weighed." }, T);
+    m = K.addNextStep(m, LONG, T); for (let i = 1; i <= 5; i++) m = K.addNextStep(m, "Step " + i + " sentinel text.", T);
+    const pm = await pages(m), cons = R.reportState(m).v4.considered.length;
+    ok("PRINTED 6: with many items every one prints, whole: all the things we took into account (page two, continued where it runs out) and every next step, a long one included", cons >= 10 && [1, 2, 3, 4, 5, 6, 7].every(i => pm.join(" ").includes("sentinel text number " + i + " is a longer sentence about what was weighed and why it was weighed.")) && pm.join(" ").includes(norm(LONG)) && [1, 2, 3, 4, 5].every(i => pm.join(" ").includes("step " + i + " sentinel text.")), `${cons} considered; items ${[1,2,3,4,5,6,7].filter(i => !pm.join(" ").includes("sentinel text number " + i + " is a longer sentence about what was weighed and why it was weighed.")).join()} missing on page two; long ${pm.join(" ").includes(norm(LONG))}; steps ${[1,2,3,4,5].filter(i => !pm.join(" ").includes("step " + i + " sentinel text.")).join()}`); }
+  // an edit is printed as edited, a removal is gone
+  const c2 = K.setReserve(c, { why: "Held at the lower quartile; nothing else to add." }, T);
+  ok("PRINTED 5: an edited why prints as edited and the earlier words are gone", (await pages(c2))[0].includes("held at the lower quartile; nothing else to add.") && !(await pages(c2))[0].includes("clutch"), "");
+}
 console.log(`reportConsistencyCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
