@@ -18,20 +18,19 @@ const CSSMUT = (h, css) => h.replace("</style>", css + "</style>");
   for (const w of [1440, 1280, 390]) { const r = await run(w); ok(good(r) && r.some(x => x.btns === 3), `@${w}: ${r.length} open items, the label on its own line, the statement field under it, the buttons under that (${r.map(x => x.btns).join(",")} buttons), nothing wrapped against them`); }
   const m = await run(1280, h => CSSMUT(h, ".att .i.need{flex-wrap:nowrap!important;align-items:center!important}.att .i .nl{flex:1 1 auto!important}.att .i.need .x{flex:0 0 auto!important;margin-left:auto!important;flex-wrap:nowrap!important}.att .i .nstate{flex:0 0 160px!important}")); ok(!good(m), "mutant caught: the old row with the label beside the buttons"); }
 
-{ // 2 the statement
+{ // 2 the statement (Nov 15 2026: every button sends the words in its row's input with its own action, Lane D's seller_said, proceed_without and mark_verified; the server decides and a refusal prints under the row)
   const run = async (mutate, stub) => { PV.resetPreviewStore(); const p = await openLive(b, { mutate, intercept: stub }); p._posts.length = 0;
-    await p.click('[data-need="mileage_unconfirmed"] [data-act="waive"]'); await wait(150); const empty = p._posts.filter(x => x.op === "need").length;
-    await p.click('[data-need="accident_unclear"] [data-act="state"]'); await wait(300); const noStmt = p._posts.filter(x => x.op === "seller_said").length;
+    await p.click('[data-need="mileage_unconfirmed"] [data-act="waive"]'); await wait(300); const empty = p._posts.filter(x => x.action === "proceed_without");
     await p.type('[data-statement="accident_unclear"]', "Seller states none and holds no records"); await p.click('[data-need="accident_unclear"] [data-act="state"]'); await wait(400);
-    const st = p._posts.find(x => x.op === "seller_said"); const msg = await p.evaluate(() => { const m = document.querySelector('[data-nmsg="accident_unclear"]'); return m ? { t: m.textContent, vis: !m.hidden } : null; });
-    await p.type('[data-statement="mileage_unconfirmed"]', "Odometer photo not in the pack"); await p.click('[data-need="mileage_unconfirmed"] [data-act="waive"]'); await wait(900); const wv = p._posts.find(x => x.op === "need" && x.state === "waived"); await p.close(); return { empty, noStmt, st, msg, wv }; };
-  const REF = async bd => bd.op === "seller_said" ? { ok: false, refused: true, why: "That could not be saved." } : undefined;
+    const st = p._posts.find(x => x.action === "seller_said"); const msg = await p.evaluate(() => { const m = document.querySelector('[data-nmsg="accident_unclear"]'); return m ? { t: m.textContent, vis: !m.hidden } : null; });
+    await p.type('[data-statement="mileage_unconfirmed"]', "Odometer photo not in the pack"); await p.click('[data-need="mileage_unconfirmed"] [data-act="waive"]'); await wait(900); const wv = p._posts.filter(x => x.action === "proceed_without").pop(); await p.close(); return { empty, st, msg, wv }; };
+  const REF = async bd => ["seller_said", "proceed_without", "mark_verified"].includes(bd.action) ? { ok: false, refused: true, why: "That could not be saved." } : undefined;
   const g = await run(null, REF);
-  ok(g.empty === 0 && g.noStmt === 0, "nothing is sent while the statement field is empty");
-  ok(g.st && g.st.field === "accident_history" && g.st.text === "Seller states none and holds no records", "Seller states sends the typed words to seller_said for that item's fact");
+  ok(g.empty.length === 1 && g.empty[0].item === "mileage_unconfirmed" && g.empty[0].words === "", "Proceed without sends proceed_without even with an empty field; the server decides");
+  ok(g.st && g.st.item === "accident_unclear" && g.st.words === "Seller states none and holds no records", "Seller states sends the typed words with seller_said for that item");
   ok(g.msg && g.msg.vis && g.msg.t === "That could not be saved.", `a refusal prints the server's why under that item's row (${g.msg && g.msg.t})`);
-  ok(g.wv && g.wv.item === "mileage_unconfirmed" && g.wv.reason === "Odometer photo not in the pack", "Proceed without sends the same field as its reason");
-  const m = await run(h => h.replace("{ field: SAID[n.id], text: t }", "{ field: SAID[n.id] }"), REF); ok(!(m.st && m.st.text), "mutant caught: a statement that is dropped"); }
+  ok(g.wv && g.wv.item === "mileage_unconfirmed" && g.wv.words === "Odometer photo not in the pack", "Proceed without sends the typed words as its words");
+  const m = await run(h => h.replace("var body = { item: n.id, words: inp ? inp.value.trim() : \"\" };", "var body = { item: n.id, words: \"\" };"), REF); ok(!(m.st && m.st.words), "mutant caught: a statement that is dropped"); }
 
 { // 3 documents show at once; the class: every section is the case the server last sent
   const SYNC = () => { const K = window.__v4.K(), ids = [...document.querySelectorAll("#docs [data-doc]")].map(e => e.getAttribute("data-doc")).sort().join(), want = (K.documents || []).filter(x => !x.sellerWords).map(x => x.id).sort().join(), openN = [...document.querySelectorAll("#att .i:not(.done)")].length, openK = (K.needs_review || []).filter(n => n.state === "open").length + (((window.__v4.D.readiness || {}).blockers || []).some(x => x.key === "vehicle") ? 1 : 0), steps = [...document.querySelectorAll("#steps [data-step]")].map(e => e.getAttribute("data-step")).join(), wantS = (K.nextSteps || []).map(s => s.id).join(); return { docs: ids === want, needs: openN === openK, steps: steps === wantS, ids, want, openN, openK }; };

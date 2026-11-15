@@ -97,6 +97,8 @@
     { "source": "/preview/desk", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-desk" },
     { "source": "/preview/desk-valuations", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-desk-valuations" },
     { "source": "/preview/desk/case/:id", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-desk&case=:id" },
+    { "source": "/preview/desk2", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-desk2" },
+    { "source": "/preview/desk2/case/:id", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-desk2&case=:id" },
     { "source": "/preview/desk/api", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-desk-api" },
     { "source": "/onebox-preview", "has": [{ "type": "cookie", "key": "gas_tester", "value": "t1\\..*" }], "destination": "/api/crewPage?page=onebox-preview" },
     { "source": "/privacy", "destination": "/api/legal?page=privacy" },

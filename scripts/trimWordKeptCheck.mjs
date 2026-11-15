@@ -69,5 +69,43 @@ ok("(5) each scoped word is a trim on its own make (14 words)", misses.length ==
 ok("(5) no scoped word becomes a trim on another make or as a hyphen tail (Mustang, M3, 911, Corvette; word, 5-word, word first)", leaks.length === 0, leaks.slice(0, 3).join("; "));
 const TK = await imp("lib/tasks/tasks.js");
 ok("(5) Tasks keeps a scoped trim for its own make and drops it for another (knownTrim)", TK.knownTrim("Autobiography", { make: "Land Rover", model: "Range Rover" }) === "Autobiography" && TK.knownTrim("Autobiography", { make: "Ford", model: "Mustang" }) === null && TK.knownTrim("Speed", { make: "Bentley", model: "Continental" }) === "Speed");
+// (6) A TYPED MODEL WORD BESIDE A GENERATION CODE KEEPS BOTH (Lane B, Nov 13 2026). LIVE: Market Check for "1978 Mercedes 450SL R107" answered "1978 Mercedes-Benz SL-Class", dropped the typed 450SL and pooled other SLs among its sales.
+// CAUSE: the resolver keeps a generation code in the trim slot (its convention); buildSpec cleared the slot only when the trim WAS the code. "450SL R107" is the model word AND the code in one string: the title fence "450SL R107" matched no listing ("1978 Mercedes-Benz 450SL"),
+// the pool came back empty, the ladder dropped the trim and read the family. FIX: buildSpec takes the code word out of a trim that carries it and keeps the model word as the trim and the fence; the code is the generation. Every door builds its spec there
+// (Market Check, Sell's price band and sales, the Desk read, Find's card read, spec pages). CLASS TABLE: [typed search, the trim words that must stay in the spec's trim, the generation code the spec must carry] across SL-Class, Corvette, Mustang, 911 and M3 (C-Class and E-Class carry no curated generation rows by Sam's decision, c63GenCheck, so their codes are not read here).
+const TYPED = [["1978 Mercedes 450SL R107", "450SL", "r107"], ["1978 Mercedes R107 450SL", "450SL", "r107"], ["1978 Mercedes 450SL R107 Roadster", "450SL Roadster", "r107"], ["1969 Chevrolet Corvette L88 C3 Coupe", "L88", "C3"], ["1995 Porsche 911 993 Carrera S", "Carrera S", "993"], ["1975 Mercedes-Benz 380SL R107", "380SL", "r107"], ["1986 Mercedes 560SL R107", "560SL", "r107"], ["1968 Mercedes 280SL W113", "280SL", "w113"], ["1966 Mercedes 230SL W113", "230SL", "w113"], ["1965 Mercedes 250SL W113", "250SL", "w113"],
+  ["2001 Chevrolet Corvette Z06 C5", "Z06", "C5"], ["2009 Chevrolet Corvette ZR1 C6", "ZR1", "C6"], ["1968 Chevrolet Corvette L88 C3", "L88", "C3"], ["1980 Chevrolet Corvette L82 C3", "L82", "C3"],
+  ["2003 Ford Mustang Mach 1 SN95", "Mach 1", "SN95"], ["2007 Ford Mustang GT500 S197", "GT500", "S197"], ["1989 Ford Mustang LX 5.0 Fox-body", "LX", "Fox-body"],
+  ["1995 Porsche 911 Carrera 4 993", "Carrera 4", "993"], ["1995 Porsche 911 Carrera S 993", "Carrera S", "993"], ["1990 Porsche 911 Carrera 2 964", "Carrera", "964"], ["2008 BMW M3 Competition E92", "Competition", "e92"]];
+const sqz = x => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, ""), typedBad = [];
+for (const [q, trimWords, code] of TYPED) {
+  const r = await V.resolveVehicle(q, {}), v = r.vehicle || {}; if (!v.make) { typedBad.push(`${q}: no car`); continue; }
+  const sp = E.buildSpec(v, null, q), trimOk = sqz(sp.trim) === sqz(trimWords), codeOk = sqz(sp.genCode) === sqz(code), fence = sqz(sp.titleContains);
+  if (!trimOk || !codeOk || (fence && fence.includes(sqz(code)) && sqz(code) !== fence)) typedBad.push(`${q}: trim ${JSON.stringify(sp.trim)} (want ${JSON.stringify(trimWords)}), generation ${JSON.stringify(sp.genCode)} (want ${code}), fence ${JSON.stringify(sp.titleContains)}`);
+}
+ok(`(6) ${TYPED.length} typed model-plus-generation searches keep BOTH: the model word is the spec's trim and fence, the code is the generation and is in no fence`, typedBad.length === 0, typedBad.slice(0, 3).join("; "));
+// (6b) end to end on a fake archive: the 450SL pool holds 450SLs only (the answer on main read the SL-Class and pooled a 380SL), and Sell's sales list agrees
+{ const rows = []; let n = 0; const day = i => new Date(Date.now() - i * 864e5).toISOString().slice(0, 10);
+  const ev = (row, it) => { const ci = it.indexOf(":"); const alias = ci > 0 && it[ci + 1] !== ":" ? it.slice(0, ci) : null; const expr = alias ? it.slice(ci + 1) : it; if (expr.startsWith("raw_record->>")) { const k = expr.slice(13), val = row.raw_record[k]; return [alias || k, val == null ? null : String(val)]; } return [alias || expr, row[expr] === undefined ? null : row[expr]]; };
+  const likeRe = x => new RegExp("^" + String(x).replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$", "i");
+  const sale = (title, yr, price, ago) => { n++; rows.push({ id: "00000000-0000-4000-8000-" + String(n).padStart(12, "0"), source_id: "sl" + n, sale_price: price, sale_date: day(ago), platform: "Bring a Trailer", source_slug: "bringatrailer", make: "Mercedes-Benz", model: "SL-Class", year: yr, listing_title: title, vin_norm: "V" + n, stated_mileage: null, project_flag: null, desc_facts: null, has_reserve: null, vehicle_type: "car", sale_price_usd: price,
+    raw_record: { featured_image_url: "https://x/i.jpg", mileage: String(60000 + n * 900), body_style: "Convertible", modifications: null, title, currency: "USD", transmission: null, exterior_color: null, title_status: null, url: "https://u/" + n, source_url: null, city: "Costa Mesa", state: "CA", country_code: "US", auction_end_precision: null } }); };
+  for (let i = 0; i < 12; i++) sale(`${1973 + i % 8} Mercedes-Benz 450SL`, 1973 + i % 8, 15000 + i * 900, 20 + i * 40);
+  for (let i = 0; i < 6; i++) sale(`${1981 + i % 4} Mercedes-Benz 380SL`, 1981 + i % 4, 18000 + i * 900, 30 + i * 50);
+  for (let i = 0; i < 5; i++) sale(`${1968 + i % 4} Mercedes-Benz 280SL`, 1968 + i % 4, 70000 + i * 5000, 25 + i * 45);
+  globalThis.fetch = async (url) => { const u = new URL(String(url));
+    if (u.pathname.endsWith("/sales_archive")) { const sp = u.searchParams, sel = sp.get("select"), sd = sp.getAll("sale_date"), ge = sd.filter(x => x.startsWith("gte.")).map(x => x.slice(4)), lt = sd.filter(x => x.startsWith("lt.")).map(x => x.slice(3)), ys = sp.getAll("year"), ymin = Number((ys.find(x => x.startsWith("gte.")) || "gte.0").slice(4)), ymax = Number((ys.find(x => x.startsWith("lte.")) || "lte.9999").slice(4));
+      const mk = sp.get("make") && likeRe(sp.get("make").replace(/^ilike\./, "")), md = sp.get("model") && likeRe(sp.get("model").replace(/^ilike\./, "")), ti = sp.get("listing_title") && likeRe(sp.get("listing_title").replace(/^ilike\./, ""));
+      const keep = rows.filter(r => (!ge.length || r.sale_date >= ge[0]) && (!lt.length || r.sale_date < lt[0]) && r.year >= ymin && r.year <= ymax && (!mk || mk.test(r.make)) && (!md || md.test(r.model)) && (!ti || ti.test(r.listing_title)));
+      return new Response(JSON.stringify(keep.map(r => Object.fromEntries(sel.split(",").map(it => ev(r, it))))), { status: 200 }); }
+    if (u.hostname.includes("fake.supabase")) return new Response("[]", { status: 200 }); throw new Error("offline"); };
+  const env6 = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
+  for (const q of ["1978 Mercedes 450SL R107", "1978 Mercedes 450SL"]) {
+    const v = (await V.resolveVehicle(q, {})).vehicle, a = (await E.oneEngineAnswer(v, null, q, env6, null)).raw, titles = (a.cards || []).map(c => String(c.title || c.listing_title || ""));
+    ok(`(6) Market Check "${q}": the pool holds 450SLs only, the car keeps its 450SL, the line names it`, a.tier === "result" && titles.length > 0 && titles.every(t => /450SL/.test(t)) && a.resolvedCar && a.resolvedCar.trim === "450SL" && /450SL/.test(String(a.scopeLabel || "")), JSON.stringify([a.tier, a.resolvedCar && a.resolvedCar.trim, a.scopeLabel, titles.slice(0, 3)]));
+  }
+  const vs = (await V.resolveVehicle("1978 Mercedes 450SL R107", {})).vehicle, sold = await E.listSalesForVehicle(vs, null, env6, 3650).catch(e => ({ err: String(e.message) })), list = Array.isArray(sold) ? sold : ((sold && (sold.sales || sold.rows)) || []);
+  ok("(6) Sell (listSalesForVehicle): the sales listed for the typed 450SL R107 are 450SLs only", list.length > 0 && list.every(r => /450SL/.test(String(r.listing_title || r.title || r.raw_title || ""))), JSON.stringify([list.length, (list[0] && Object.keys(list[0]).slice(0, 6)) || sold]));
+}
 console.log(failed ? `\n${failed} FAILED` : "\ntrimWordKeptCheck: all passed");
 process.exit(failed ? 1 : 0);

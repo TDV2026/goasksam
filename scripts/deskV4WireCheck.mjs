@@ -1,7 +1,7 @@
 // DESK V4 WIRE CHECK (Lane S, Nov 10 2026). The screen computes nothing: every figure and sentence in the centre column and the Reserve panel is a string the server sent (Lane B's desk.*, Lane D's case view) or a fixed interface label.
 //   1 TRACE: in Chrome on the real reader, every text node and input value that carries a digit equals a string the page was given (the case view as it now stands, or the model words), or is two or more of them joined by a space or a dot (the reach and position lines are two sent sentences).
 //     The only exceptions are the list lengths the screen draws as labels (#ccount, #pcount, #showall, #attN, #dcount, the step numbers); none of them is an evidence figure.
-//   2 THE ONE ARITHMETIC: the client source may use Math, parseFloat, toFixed, toLocaleString, Intl, reduce or a multiplication ONLY inside scaleOf, figureAt, domain and plot (the plot's own axis: price to x, pointer back to a figure).
+//   2 THE ONE ARITHMETIC: the client source may use Math, parseFloat, toFixed, toLocaleString, Intl, reduce or a multiplication ONLY inside scaleOf, figureAt, domain, plot and rungAt (the plot's own axis: price to x, pointer back to a figure, the pointer's pixel to the nearest drawn rung).
 //     And the axis is exactly invertible: figureAt(scaleOf(v)) returns v within a dollar for the sent q1, median and q3 (the pointer position becomes a figure on the plot's own axis and nothing else).
 //   2b PRINTED AS SENT: where the engine sent a line the screen has a place for (the median, each closest sale's price, miles and date), the line is on the screen as sent, never blank (a blank is how a page ends up building its own).
 //   3 MUTANTS, each run through the same assertions, must be caught: a typed sentence, a page built count, a page built range, a Math.round on a sent figure.
@@ -29,7 +29,7 @@ const TRACE = () => {
 // the arithmetic scan: every use is inside one of the plot's own axis functions
 function arithmeticOutsideAxis(src) {
   const code = src.replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map(l => l.replace(/^\s*\/\/.*$/, "").replace(/("(?:[^"\\]|\\.)*")|('(?:[^'\\]|\\.)*')/g, '""')).join("\n");
-  const OK = new Set(["scaleOf", "figureAt", "domain", "plot"]), hits = []; let fn = "";
+  const OK = new Set(["scaleOf", "figureAt", "domain", "plot", "rungAt"]), hits = []; let fn = "";
   for (const line of code.split("\n")) {
     const m = line.match(/^  function (\w+)\(/) || line.match(/^  window\.(\w+) = function/); if (m) fn = m[1]; else if (/^export function/.test(line)) fn = "";
     if (/\bMath\.\w+|\bparseFloat\b|\bparseInt\b|\.toFixed\(|\.toLocaleString\(|\bIntl\.|\.reduce\(|[\w)\]]\s\*\s[\w(]/.test(line) && !OK.has(fn)) hits.push(`${fn || "(top)"}: ${line.trim().slice(0, 90)}`);
