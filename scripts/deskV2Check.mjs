@@ -5,7 +5,7 @@
 //   4 CARDS: thumb, title, seller, elapsed line, status pill, analyst, an attention mark only above 0, a Claim button only on an unassigned card.
 //   5 NO DASH in any rendered text. NOTHING DRAWN THAT THE MODEL DID NOT SERVE: a card with no seller has no seller element.
 //   6 GEOMETRY (Sam's first look, Nov 15): the rail is a 300px column at the left edge, full height, with no inner scroll box and all eight status rows in view; a card is 72px with a 48px thumb, the title on one line, seller dot elapsed under it, a pill only when the card's status is not the chosen filter,
-//     the attention badge on the thumb's corner and clear of Claim, Claim hidden until hover on a wide screen and always shown on a narrow one, the selected card pale green; no case chosen reads Choose a case. A tile (year, initial) stands for a missing photo.
+//     the attention badge at the card's top right corner, outside the thumb (photo or monogram tile) and clear of Claim, Claim hidden until hover on a wide screen and always shown on a narrow one, the selected card pale green; no case chosen reads Choose a case. A tile (year, initial) stands for a missing photo.
 //   7 STAGE 2, THE OPEN CASE: the compact header (title, status pill, seller, received line, analyst, the Original enquiry link), the vehicle summary (cover at 460px, a thumbnail strip with +N, every field with its tag Verified, Seller supplied or Needs confirmation, edited in place and sent as case_edit field), the market summary (the server's strip cells, the lens, the thin line only when served, a chart at half the old height with one dot per sale),
 //     Closest sales (the first four as compact cards, View all N sales for the rest, In report, Exclude that asks for a reason and sends nothing without one, Hagerty first), no dash, nothing drawn that the model did not serve, no likely or analyst range.
 //   Mutants (each must fail): a stage band, a Search tab, an attention mark at 0, a Claim button on an owned card, a tall card, a pill on every card, the badge outside the thumb, Claim always shown, an inner scroll box on the statuses, a 232px rail.
@@ -30,7 +30,8 @@ export const MUTANTS = {
 export const STYLE_MUTANTS = {
   tallCard: h => h.replace(".cd{position:relative;height:72px", ".cd{position:relative;height:104px"),
   pillAlways: h => h.replace(".pill[hidden]{display:none}", ".pill[hidden]{display:inline-block}"),
-  badgeOutside: h => h.replace(".att{position:absolute;top:-8px;right:-8px", ".att{position:absolute;top:-5px;right:-60px"),
+  badgeOnThumb: h => h.replace(".att{position:absolute;top:4px;right:6px", ".att{position:absolute;top:4px;right:236px"),
+  badgeBelow: h => h.replace(".att{position:absolute;top:4px;right:6px", ".att{position:absolute;top:50px;right:6px"),
   claimAlways: h => h.replace("opacity:0}\n.cd:hover .claim", "opacity:1}\n.cd:hover .claim"),
   innerScroll: h => h.replace(".fls{display:flex;flex-direction:column;gap:2px;overflow:visible}", ".fls{display:flex;flex-direction:column;gap:2px;max-height:150px;overflow:auto}"),
   narrowRail: h => h.replace("grid-template-columns:300px", "grid-template-columns:232px").replace(".rail{width:300px", ".rail{width:232px"),
@@ -82,7 +83,7 @@ export function judge(m, ok, tag, wide = true) {
   ok(m.cards.every(c => Math.abs(c.th.w - 48) <= 1 && Math.abs(c.th.h - 48) <= 1), `${tag}: every thumb is 48px`);
   ok(m.cards.every(c => c.titleWrap === "nowrap" && c.titleH < 22), `${tag}: the title is on one line`);
   ok(m.cards.every(c => c.pill && c.pill.shown === (c.st !== m.filter)), `${tag}: a pill shows only when the card's status is not the filter`);
-  ok(m.cards.filter(c => c.att).every(c => Math.abs(c.att.r - c.th.r) <= 8 && Math.abs(c.att.t - c.th.t) <= 8 && (!c.claim || !inter(c.att, c.claim))), `${tag}: the badge sits on the thumb's corner, clear of Claim`);
+  ok(m.cards.filter(c => c.att).every(c => c.card.r - c.att.r <= 12 && c.att.t - c.card.t <= 10 && !inter(c.att, c.th) && (!c.claim || !inter(c.att, c.claim))), `${tag}: the badge sits at the top right corner of the card, outside the thumb and clear of Claim`);
   ok(m.cards.filter(c => c.claim).every(c => wide ? c.claimOp === 0 : c.claimOp === 1), `${tag}: Claim is ${wide ? "hidden until hover" : "always shown"}`);
   ok(m.cards.filter(c => c.tile).every(c => /^\d{4}\D/.test(c.tile) || c.tile.length > 0), `${tag}: a card with no photo has a tile`);
   if (m.selBg) { const [r, g, b] = m.selBg.match(/\d+/g).map(Number); ok(g > r && g >= b, `${tag}: the selected card is pale green`); }
