@@ -261,7 +261,7 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   ok("LIVE LINE 4: the source: the report's module never reads the live line or its words", !/liveLineOf|case\.reserve\.live_vs|reserve\.liveLine/.test(src));
 }
 // ---------- REPORT PAGE ONE (order 2318, Nov 14 2026, item 4): IN THIS ORDER AND NOTHING ELSE ----------
-// The recommended reserve (the figure, or No reserve) with its one-line reason; the likely result with the three nearest sales; the condition line; one line per extra ticked rung; the market sentence. No role line, no "does not limit the price".
+// The recommended reserve (the figure, or No reserve) with its one-line reason; the likely result with the three nearest sales; the condition line; the analyst's why as written; one line per extra ticked rung; the market sentence. No role line, no "does not limit the price".
 // CLASS: every case on every report: the engine's recommended rung (balanced), a rung the analyst chose (safe), no reserve recommended, two extra rungs ticked; and a case with fewer than three closest sales (no likely line) or no condition line.
 { const fs = await import("node:fs"), P = await imp("lib/desk/reportPdfV3.js"), mini = await imp("lib/pdf/mini.js"), DV = await imp("lib/deskV3.js"), PNG = fs.readFileSync(path.join(root, "public/icon-512.png")), money = n => "$" + Math.round(n).toLocaleString("en-US");
   const sheetOf = c => ({ id: "x", owner_seat: "Jane Park", forwarded_by: "Jane Park", created_at: T, submission: { typed: false, photos: [{ id: c.photos.items[0].id, url: "https://real.example/cover.jpg" }] }, state: {}, case: c, final: { reportNumber: "DV-2026-0007", org: { name: "Acme Auctions" }, finalisedAt: T } });
@@ -272,8 +272,8 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   const lad = c => c.desk.reserveLadder, rg = (c, k) => lad(c).rungs.find(r => r.key === k);
   const judge = async (name, c, { figureText, reason, extras, cond = true, likely = true }) => {
     const v = view(c), ops = await page1(c), body = ops.filter(o => o.y > 470 && o.y < 735), lines = norm(body.map(o => o.text).join(" "));
-    const want = ["Recommended reserve", figureText, reason, R.reportState(c).v4.note, likely ? v.desk.likely.sellerLine : null, cond ? v.condition.line : null, ...extras, R.reportState(c).v4.reachedLine].filter(Boolean);
-    ok(`PAGE ONE ${name}: the lines are the reserve with its reason, the likely result, the condition, the extra rungs, the market sentence, in that order and nothing else`, lines === norm(want.join(" ")), lines.slice(0, 260) + " || " + norm(want.join(" ")).slice(0, 260));
+    const want = ["Recommended reserve", figureText, reason, R.reportState(c).v4.note, likely ? v.desk.likely.sellerLine : null, cond ? v.condition.line : null, R.reportState(c).v4.why, ...extras, R.reportState(c).v4.reachedLine].filter(Boolean);
+    ok(`PAGE ONE ${name}: the lines are the reserve with its reason, the likely result, the condition, the analyst's why, the extra rungs, the market sentence, in that order`, lines === norm(want.join(" ")), lines.slice(0, 260) + " || " + norm(want.join(" ")).slice(0, 260));
     ok(`PAGE ONE ${name}: no role line and no sentence about what the reserve does, on the page or in the served case and report state (the notes page keeps its own disclaimer)`, !/protects the sale|does not limit|lowest price the car can sell/i.test(JSON.stringify(v.reserve) + JSON.stringify(v.reserveChoice) + JSON.stringify(R.reportState(c).v4)) && !/protects the sale|does not limit|lowest price the car can sell|guarantee/i.test(lines), "");
     return v; };
   // A. the engine's recommended rung (balanced, all conditions), no condition set: no condition line
@@ -295,5 +295,29 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   // E. fewer than three closest sales: no likely line; no condition: no condition line
   const E = cl(base); E.desk.comparables = E.desk.comparables.slice(0, 2); E.desk.likelyBasis = DV.likelyBasisOf(E.desk.comparables);
   await judge("E (fewer than three closest sales, no condition line)", eng(E), { figureText: money(rg(E, "balanced").figure), reason: lad(E).reason, extras: [], cond: false, likely: false });
+}
+// ---------- EVERY FIELD THE CASE SCREEN LABELS "PRINTED IN THE REPORT" PRINTS (order 2318, Nov 15 2026) ----------
+// CAUSE: an order's "nothing else" removed the analyst's why from page one, a feature Sam had decided on, and the only check that would have noticed (deskPersistCheck) was edited to match. NOW the screen itself is the list: every place lib/preview/deskV4.js says "Printed in the report" must have a print check here (an unknown one fails, so a new field cannot be added unchecked) and each one is
+// checked in the PDF, with the analyst's own words. CLASS: every case, every report build. The three today: the Why box (the analyst's why, page one, whole), What we took into account (page two), Next steps for the seller (page four).
+{ const fs = await import("node:fs"), P = await imp("lib/desk/reportPdfV3.js"), mini = await imp("lib/pdf/mini.js"), PNG = fs.readFileSync(path.join(root, "public/icon-512.png")), src = fs.readFileSync(path.join(root, "lib/preview/deskV4.js"), "utf8");
+  const anchors = []; for (const m of src.matchAll(/Printed in the report/g)) { const before = src.slice(Math.max(0, m.index - 500), m.index), card = [...before.matchAll(/card\("(s-[a-z]+)"/g)].pop(), lab = [...before.matchAll(/<label for="(\w+)"/g)].pop(); anchors.push(lab && (!card || lab.index > card.index) ? lab[1] : card ? card[1] : "?"); }
+  const norm = t => t.replace(/\s+/g, " ").trim().toLowerCase(), known = ["why", "s-considered", "s-steps"];
+  ok("PRINTED 1: the screen labels exactly the fields this check knows (a new 'Printed in the report' field has no print check until it is added here)", anchors.length >= 3 && anchors.every(a => known.includes(a)) && known.every(k => anchors.includes(k)), anchors.join());
+  const sheetOf = c => ({ id: "x", owner_seat: "Jane Park", forwarded_by: "Jane Park", created_at: T, submission: { typed: false, photos: [{ id: c.photos.items[0].id, url: "https://real.example/cover.jpg" }] }, state: {}, case: c, final: { reportNumber: "DV-2026-0007", org: { name: "Acme Auctions" }, finalisedAt: T } });
+  const pages = async c => mini.pdfPages((await P.buildReportV3(sheetOf(c), { name: "Acme Auctions", contactEmail: "desk@acme.example", sendingAddress: "noreply@acme.example" }, { fetchImage: async () => PNG, draft: true })).bytes).map(p => norm(p.join(" ")));
+  let c = cl(base); const WHY = "Seller reports a recent clutch and the paint is original, so the lower quartile stands as the floor.", ITEM = "Sentinel item: the car has been stored dry for six years.", STEP = "Sentinel step: we will email the seller the reserve form.";
+  c = K.setReserve(c, { why: WHY }, T); c = K.addCasedItem(c, { title: "Sentinel item", text: ITEM }, T); c = K.addNextStep(c, STEP, T);
+  const pg = await pages(c), whole = pg.join(" ");
+  ok("PRINTED 2: the Why box prints on page one, exactly as written, whole", pg[0].includes(norm(WHY)), pg[0].slice(0, 200));
+  ok("PRINTED 3: What we took into account prints every item the analyst sees (the added one included), on page two", (c.considered || []).length > 0 && R.reportState(c).v4.considered.length === c.considered.filter(x => !x.removed).length && pg[1].includes(norm("Sentinel item")) && pg[1].includes(norm(ITEM.slice(0, 30))), `${(c.considered || []).length} items; ${R.reportState(c).v4.considered.length} in the state`);
+  ok("PRINTED 4: Next steps for the seller prints every step the analyst sees (the added one included), on page four", pg[3].includes(norm(STEP)) && R.reportState(c).nextSteps.length === (c.nextSteps || []).length, `${(c.nextSteps || []).length} steps`);
+  { let m = cl(base); const LONG = "Sentinel long step: " + "we will walk the seller through every document the buyer may ask for and keep them informed at each stage. ".repeat(2).trim();
+    for (let i = 1; i <= 7; i++) m = K.addCasedItem(m, { title: "Extra " + i, text: "Sentinel text number " + i + " is a longer sentence about what was weighed and why it was weighed." }, T);
+    m = K.addNextStep(m, LONG, T); for (let i = 1; i <= 5; i++) m = K.addNextStep(m, "Step " + i + " sentinel text.", T);
+    const pm = await pages(m), cons = R.reportState(m).v4.considered.length;
+    ok("PRINTED 6: with many items every one prints, whole: all the things we took into account (page two) and every next step, a long one included (page four)", cons >= 10 && [1, 2, 3, 4, 5, 6, 7].every(i => pm[1].includes("sentinel text number " + i + " is a longer sentence about what was weighed and why it was weighed.")) && pm[3].includes(norm(LONG)) && [1, 2, 3, 4, 5].every(i => pm[3].includes("step " + i + " sentinel text.")), `${cons} considered; items ${[1,2,3,4,5,6,7].filter(i => !pm[1].includes("sentinel text number " + i + " is a longer sentence about what was weighed and why it was weighed.")).join()} missing on page two; long ${pm[3].includes(norm(LONG))}; steps ${[1,2,3,4,5].filter(i => !pm[3].includes("step " + i + " sentinel text.")).join()}`); }
+  // an edit is printed as edited, a removal is gone
+  const c2 = K.setReserve(c, { why: "Held at the lower quartile; nothing else to add." }, T);
+  ok("PRINTED 5: an edited why prints as edited and the earlier words are gone", (await pages(c2))[0].includes("held at the lower quartile; nothing else to add.") && !(await pages(c2))[0].includes("clutch"), "");
 }
 console.log(`reportConsistencyCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

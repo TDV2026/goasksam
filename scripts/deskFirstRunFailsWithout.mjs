@@ -214,6 +214,11 @@ const MUT = [
   ["the pictures are fetched in stages again, not all at once", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep("for (const u of [logo, urlOf(coverId), ...rs.comparables.map(cm => cm.photo), ...rs.v4.photoIds.map(urlOf)]) get(u);", "")],
   ["a picture used twice is fetched twice", "deskPdfCheck", "lib/desk/reportPdfV3.js", rep("if (!imgs.has(url)) imgs.set(url, loadImage(url, fetchImage)); return imgs.get(url);", "return loadImage(url, fetchImage);")],
   ["a fetched picture is not kept", "deskPdfCheck", "lib/desk/imageCache.js", rep("if (b && /^https:\\/\\//.test(String(url || \"\"))) { CACHE.set(url, { b, at: Date.now() });", "if (false) { CACHE.set(url, { b, at: Date.now() });")],
+  ["the report drops the analyst's why", "reportConsistencyCheck", "lib/desk/reportPdfV3.js", rep("  if (v.why) {   // the analyst's why, exactly", "  if (false) {   // the analyst's why, exactly")],
+  ["the report prints only one of the things we took into account", "reportConsistencyCheck", "lib/desk/reportPdfV3.js", rep("for (const it of v.considered.slice(0, 5)) yb2", "for (const it of v.considered.slice(0, 1)) yb2")],
+  ["a screen field labelled Printed in the report has no print check", "reportConsistencyCheck", "lib/preview/deskV4.js", rep("<label for=\"why\"><span>Printed in the report</span>", "<label for=\"why\"><span>Printed in the report</span></label><label for=\"extra\"><span>Printed in the report</span>")],
+  ["the report cuts the things we took into account to five", "reportConsistencyCheck", "lib/desk/reportPdfV3.js", rep("for (const it of v.considered) yb2 = item(", "for (const it of v.considered.slice(0, 5)) yb2 = item(")],
+  ["the report cuts a next step at four lines", "reportConsistencyCheck", "lib/desk/reportPdfV3.js", rep("{ size: 13, lh: 18, max: 12 }", "{ size: 13, lh: 18, max: 2 }")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
