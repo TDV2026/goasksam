@@ -13,10 +13,10 @@ if (args.includes("--mutants")) {
     [DV, "ok = list.length >= LIKELY_MIN && prices.length >= LIKELY_MIN", "ok = list.length >= 1", "the null floor is gone"],
     [DV, "low: ok ? prices[0] : null", "low: ok ? prices[1] : null", "low is not the lowest"],
     [DV, "high: ok ? prices[prices.length - 1] : null", "high: ok ? prices[prices.length - 2] : null", "high is not the highest"],
-    [DV, "comparables, likelyBasis: likelyBasisOf(comparables), comparablesNote", "comparables, likelyBasis: likelyBasisOf(comparables.slice(0, 2)), comparablesNote", "the basis covers only part of the list"],
-    [DV, "comparables, likelyBasis: likelyBasisOf(comparables), comparablesNote", "comparables, likelyBasis: { ...likelyBasisOf(comparables), median: evidence.median, low: evidence.low != null ? evidence.low : evidence.q1, high: evidence.q3 }, comparablesNote", "the median and range are taken from the whole population"],
-    [DV, "comparables, likelyBasis: likelyBasisOf(comparables), comparablesNote", "comparables, likelyBasis: likelyBasisOf(sales), comparablesNote", "the basis is read over the sales, not the comparables"],
-    [DV, "comparables, likelyBasis: likelyBasisOf(comparables), comparablesNote", "comparables, comparablesNote", "no basis at all"]
+    [DV, "likelyBasis = likelyBasisOf(comparables), evidenceOut", "likelyBasis = likelyBasisOf(comparables.slice(0, 2)), evidenceOut", "the basis covers only part of the list"],
+    [DV, "likelyBasis = likelyBasisOf(comparables), evidenceOut", "likelyBasis = { ...likelyBasisOf(comparables), median: evidence.median, low: evidence.q1, high: evidence.q3 }, evidenceOut", "the median and range are taken from the whole population"],
+    [DV, "likelyBasis = likelyBasisOf(comparables), evidenceOut", "likelyBasis = likelyBasisOf(sales), evidenceOut", "the basis is read over the sales, not the comparables"],
+    [DV, "likelyBasis = likelyBasisOf(comparables), evidenceOut", "likelyBasis = null, evidenceOut", "no basis at all"]
   ];
   let survivors = 0;
   for (const [file, from, to, want] of muts) { if (!want) continue;
@@ -47,7 +47,7 @@ const r4 = await S.sheetRead(w.env, { year: old.year, make: old.make, model: old
 cases.push({ name: `${old.year} ${old.make} ${old.model} (an older car)`, desk: r4 && r4.desk });
 // independent median: the middle of the sorted prices, the mean of the two middles rounded
 const med = a => { const s = a.slice().sort((x, y) => x - y), n = s.length; return n % 2 ? s[(n - 1) / 2] : Math.round((s[n / 2 - 1] + s[n / 2]) / 2); };
-let views = 0, thin = 0, differs = 0;
+let views = 0, thin = 0, differs = 0, served = 0;
 function judge(label, lb, comps, wholeMedian) {
   views++;
   if (!lb || typeof lb !== "object") return ok(`${label}: desk.likelyBasis is an object`, false, J(lb));
@@ -62,7 +62,8 @@ for (const c of cases) {
   const d = c.desk; ok(`${c.name}: the engine read carries views`, !!d && DV.hasViews(d) && Object.keys(d.views).length >= 3, Object.keys((d && d.views) || {}).length + " views");
   if (!d) continue;
   judge(`${c.name}, top of desk`, d.likelyBasis, d.comparables || [], d.evidence && d.evidence.median);
-  for (const key of Object.keys(d.views || {})) { const v = DV.viewOf(d, key); judge(`${c.name}, view ${key}`, v && v.likelyBasis, (v && v.comparables) || [], v && v.evidence && v.evidence.median); }
+  for (const key of Object.keys(d.views || {})) { const v = DV.viewOf(d, key), from = v && v.likelyBasis && v.likelyBasis.servedFrom, src = from ? DV.viewOf(d, from) : v;   // a thin view is priced from its fallback view (desk.reserveLadder.fallbackView): its basis is that view's comparables
+    if (from) served++; judge(`${c.name}, view ${key}${from ? " (served from " + from + ")" : ""}`, v && v.likelyBasis && (({ servedFrom, ...r }) => r)(v.likelyBasis), (src && src.comparables) || [], src && src.evidence && src.evidence.median); }
   const cur = d.view && d.views && d.views[DV.viewKey(d.view.tier, d.view.months)]; if (cur) ok(`${c.name}: the top of desk equals the current view's basis`, J(cur.likelyBasis) === J(d.likelyBasis));
 }
 // the floor, at the unit: no engine view here is thin, so the rule is shown on the function itself (0, 1, 2 rows: count only; 3 rows: figures; ids keep the order)
