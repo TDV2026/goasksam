@@ -271,7 +271,7 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   const withCond = c0 => { const o = K.setConditionChoice(c0, 3, "the photos", T); return o.case; };
   const lad = c => c.desk.reserveLadder, rg = (c, k) => lad(c).rungs.find(r => r.key === k);
   const judge = async (name, c, { figureText, reason, extras, cond = true, likely = true }) => {
-    const v = view(c), ops = await page1(c), body = ops.filter(o => o.y > 470 && o.y < 735), lines = norm(body.map(o => o.text).join(" "));
+    const v = view(c), ops = await page1(c), body = ops.filter(o => o.y > 228 && o.y < 735), lines = norm(body.map(o => o.text).join(" "));
     const want = ["Recommended reserve", figureText, reason, R.reportState(c).v4.note, likely ? v.desk.likely.nearestLine : null, cond ? v.condition.line : null, R.reportState(c).v4.why, ...extras, R.reportState(c).v4.reachedLine].filter(Boolean);
     ok(`PAGE ONE ${name}: the lines are the reserve with its reason, the likely result, the condition, the analyst's why, the extra rungs, the market sentence, in that order`, lines === norm(want.join(" ")), lines.slice(0, 260) + " || " + norm(want.join(" ")).slice(0, 260));
     ok(`PAGE ONE ${name}: no role line and no sentence about what the reserve does, on the page or in the served case and report state (the notes page keeps its own disclaimer)`, !/protects the sale|does not limit|lowest price the car can sell/i.test(JSON.stringify(v.reserve) + JSON.stringify(v.reserveChoice) + JSON.stringify(R.reportState(c).v4)) && !/protects the sale|does not limit|lowest price the car can sell|guarantee/i.test(lines), "");
@@ -374,4 +374,23 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   const noCk = cl(emptyS); noCk.desk = { ...noCk.desk, reserveCheck: null }; noCk.reserve = { ...noCk.reserve, figure: null };
   ok("SUPPORTS 2: with neither, the column is removed: no 'What supports it' heading on the page", R.reportState(noCk).v4.supports.length === 0 && !(await page2(noCk)).some(o => /supports/i.test(o.text)), "");
   ok("SUPPORTS 3: with engine supports they print as they were, not replaced", sup.length === 0 || sup.every(x => x.title), JSON.stringify(sup).slice(0, 120)); }
+
+// ---------- THE COVER PHOTO ON PAGE ONE (order 2318, Nov 15 2026, item 5) ----------
+// RULE: page one carries the photo marked Cover, else the first photo in the report, at a fixed size (190 by 126 pt) at the top right, whatever the photo's own shape; no photo, no picture. One function (lib/desk/coverPhoto.js) names it.
+// CLASS: every case on every report. The check builds the report with the cover marked, with none marked (the first in the report), with no photo, and with a tall photo, and reads the clip box the picture is drawn in and the address fetched.
+{ const fs = await import("node:fs"), P = await imp("lib/desk/reportPdfV3.js"), CP = await imp("lib/desk/coverPhoto.js"), PNG = fs.readFileSync(path.join(root, "public/icon-512.png"));
+  const mk = (items, coverId, reportIds) => { const c = cl(base); c.photos = { items: items.map(i => ({ id: i, name: i })), coverId, reportIds }; return c; };
+  const build = async (c, photos) => { const urls = [], sheet = { id: "x", owner_seat: "Jane Park", forwarded_by: "Jane Park", created_at: T, submission: { typed: false, photos }, state: {}, case: c, final: { reportNumber: "DV-2026-0007", org: { name: "Acme Auctions" }, finalisedAt: T } };
+    const r = await P.buildReportV3(sheet, { name: "Acme Auctions", contactEmail: "desk@acme.example", sendingAddress: "noreply@acme.example" }, { fetchImage: async u => { urls.push(String(u)); return PNG; }, draft: false }), raw = Buffer.from(r.bytes).toString("latin1"), st = [...raw.matchAll(/stream\n([\s\S]*?)\nendstream/g)].map(m => m[1]).filter(x => /BT /.test(x))[0] || "";
+    return { urls, clips: [...st.matchAll(/([\d.-]+) ([\d.-]+) ([\d.]+) ([\d.]+) re W n/g)].map(m => ({ x: Number(m[1]), w: Number(m[3]), h: Number(m[4]) })) }; };
+  const ph = [{ id: "pa", url: "https://real.example/a.jpg" }, { id: "pb", url: "https://real.example/b.jpg" }], fixed = r => r.clips.filter(k => k.w === 190 && k.h === 126);
+  const r1 = await build(mk(["pa", "pb"], "pb", []), ph);
+  ok("COVER 1: the photo marked Cover is on page one, 190 by 126, its right edge at the right margin (letter: x 378)", fixed(r1).length === 1 && Math.abs(fixed(r1)[0].x - (612 - 44 - 190)) < 1 && r1.urls.includes("https://real.example/b.jpg") && !r1.urls.includes("https://real.example/a.jpg"), JSON.stringify([r1.clips, r1.urls.filter(u => /real\.example\/[ab]/.test(u))]));
+  const r2 = await build(mk(["pa", "pb"], null, ["pb", "pa"]), ph);
+  ok("COVER 2: with none marked, the first photo in the report is the cover", fixed(r2).length === 1 && r2.urls.includes("https://real.example/b.jpg") && CP.coverIdOf(mk(["pa", "pb"], null, ["pb", "pa"]), ph) === "pb", JSON.stringify(r2.urls.filter(u => /real\.example\/[ab]/.test(u))));
+  ok("COVER 3: the rule at the unit: marked, else first in the report, else the sheet's first photo, else none", CP.coverIdOf(mk(["pa", "pb"], "pa", ["pb"]), ph) === "pa" && CP.coverIdOf(mk(["pa", "pb"], null, ["pb"]), ph) === "pb" && CP.coverIdOf(mk([], null, []), ph) === "pa" && CP.coverIdOf(mk([], null, []), []) === null && CP.coverIdOf(mk(["pa"], "gone", []), ph) === "pa", "");
+  const r0 = await build(mk([], null, []), []);
+  ok("COVER 4: a case with no photo draws no cover picture (and no placeholder)", fixed(r0).length === 0, JSON.stringify(r0.clips));
+  const rt = await build(mk(["pa"], "pa", []), [ph[0]]);
+  ok("COVER 5: the picture is the same fixed size whatever the report's other settings (a case with its own photos)", fixed(rt).length === 1 && fixed(rt)[0].w === 190 && fixed(rt)[0].h === 126, JSON.stringify(rt.clips)); }
 console.log(`reportConsistencyCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
