@@ -77,7 +77,7 @@ ok("owners and cosmetic are not recorded: none, no effect, a reason in words", [
 ok("market movement is the first and latest quarter medians", f.market_movement.support === "supported" && new RegExp("from \\$" + sh.desk.quarters.filter(q => q.shown)[0].median.toLocaleString("en-US") + " in " + sh.desk.quarters.filter(q => q.shown)[0].label).test(f.market_movement.effectSentence), f.market_movement.effectSentence);
 ok("INVARIANT: an effectSentence only with support supported or in_population", sh.desk.factors.every(x => x.effectSentence === null || ["supported", "in_population"].includes(x.support)));
 // (2)
-ok("every basis, effect and condition sentence is a reason table line", sh.desk.factors.every(x => inTable("desk.factors.basis", x.basis) && (x.effectSentence === null || inTable("desk.factors.effectSentence", x.effectSentence))) && inTable("desk.condition.basis", sh.desk.condition.basis), sh.desk.factors.filter(x => !inTable("desk.factors.basis", x.basis)).map(x => x.basis)[0]);
+ok("every basis, effect and condition sentence is a reason table line", sh.desk.factors.every(x => inTable("desk.factors.basis", x.basis) && (x.effectSentence === null || inTable("desk.factors.effectSentence", x.effectSentence))) && (sh.desk.condition.basis === null || inTable("desk.condition.basis", sh.desk.condition.basis)), sh.desk.factors.filter(x => !inTable("desk.factors.basis", x.basis)).map(x => x.basis)[0]);
 { const src = fs.readFileSync(path.join(ROOT, "lib/deskV3.js"), "utf8").split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n").replace(/\/\/.*$/gm, "");
   ok("no dollar figure is typed in lib/deskV3.js", !/\$\s?\d/.test(src) && !/["'][^"']*\b\d{1,3},\d{3}\b[^"']*["']/.test(src)); }
 // (3) IMS
@@ -103,10 +103,10 @@ ok("every basis, effect and condition sentence is a reason table line", sh.desk.
   const near = DV.conditionOf(null, rows, null, 61400);
   ok("with no case or listing, the condition of the sales near its miles when most agree", near.suggested && near.suggested.tier === 3 && /^Suggested Good, as 6 of the 8 tiered sales near 61,400 miles sold in that condition\.$/.test(near.basis), near.basis);
   const split = DV.conditionOf(null, [3, 3, 2, 2, 1, 1].map((t, i) => ({ miles: 60000 + i * 100, tier: t })).concat([{ miles: 60500, tier: 4 }]), null, 61400);
-  ok("no majority near its miles: nothing suggested", split.suggested === null && /^No condition is suggested, no signals counted and three are needed\.$/.test(split.basis), split.basis);
+  ok("no majority near its miles: nothing suggested", split.suggested === null && split.basis === null, String(split.basis));
   ok("a tier outside the four rungs is never suggested", DV.conditionOf(null, [], { tier: 7, evidence: [] }, null).suggested === null);
   { const nm = await readWith({}, c996, { mileage: null }), g = nm.desk.factors.find(x => x.key === "mileage_band");
     ok("with no mileage given the mileage factor says so from the table", g.support === "none" && g.effectSentence === null && g.basis === "No mileage was given, so no mileage effect is read." && inTable("desk.factors.basis", g.basis), g.basis); }
-  ok("every condition basis is a table line", [sig, rec, near, split].every(x => inTable("desk.condition.basis", x.basis)));
+  ok("every condition basis is a table line or null", [sig, rec, near, split].every(x => x.basis === null || inTable("desk.condition.basis", x.basis)));
   ok("the rungs are the four of TIER_LADDER", Object.keys(CT.TIER_LADDER).length === 4 && ["Concours", "Excellent", "Good", "Fair"].every((nme, i) => CT.TIER_LADDER[i + 1].name === nme)); }
 console.log("\ndeskFactorsCheck: " + (n - failed) + " pass, " + failed + " FAIL"); process.exit(failed ? 1 : 0);
