@@ -97,7 +97,7 @@ ok("the Desk page does not count cases itself", !/\.queue\.(new|review|ready|fin
     ok("with a tier picked the market line is the tier pool's, not the any condition pool's: it is the stored tier read and its count differs from the untiered one", t3.case.marketLine.includes(st3.desk.evidence.count + " sales") && st3.desk.evidence.count !== nw.case.desk.evidence.count && st3.desk.key === K2.recallKey(st3) && calls[calls.length - 1].tier === 3); }
   // the assessment starts at the engine's median and the market line says where it came from
   const ev0 = nw.case.desk.evidence, asm = nw.case.assessment;
-  ok("a new case's assessment starts at the engine's median, range q1 to q3, source engine, with one audit line", asm.figure === ev0.median && asm.low === ev0.q1 && asm.high === ev0.q3 && asm.source === "engine" && nw.case.audit.filter(a => a.field === "assessment" && a.by === "engine").length === 1);
+  ok("a new case's assessment starts at the engine's median, range q1 to q3, source engine, with one audit line", asm.figure === ev0.median && asm.low === ev0.q1 && asm.high === ev0.q3 && asm.source === "engine" && nw.case.audit.filter(a => a.field === "assessment" && a.by === "market").length === 1);
   ok("caseView.marketLine reads Market: low to high, N sales, evidence as of D Mon YYYY: " + nw.case.marketLine, /^Market: \$[\d,]+ to \$[\d,]+, \d+ sales, evidence as of \d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}$/.test(nw.case.marketLine) && nw.case.marketLine.includes("$" + ev0.q1.toLocaleString("en-US")) && nw.case.marketLine.includes(ev0.count + " sales"));
   { const RSm = await imp("lib/desk/reportState.js"), c2 = structuredClone(nw.case); c2.desk.evidence.stale = { days: 400, threshold: 180, flag: true, sentence: "The newest sale is 400 days old." };
     ok("a stale flag adds the engine's stale sentence to the market line", RSm.reportState(c2).marketLine.endsWith("The newest sale is 400 days old.") && !nw.case.marketLine.includes("days old")); }
@@ -107,7 +107,7 @@ ok("the Desk page does not count cases itself", !/\.queue\.(new|review|ready|fin
   ok("a read with too few sales clears an engine figure rather than leaving the old pool's", ex2.case.assessment.figure === null && ex2.case.assessment.source === null);
   await run("case_edit", { id: nw.id, op: "condition", selected: { tier: 3, name: "Good" } });
   const an = await run("case_edit", { id: nw.id, op: "assessment", patch: { figure: 61000 } });
-  ok("the analyst's first change makes the source analyst, logged", an.case.assessment.source === "analyst" && an.case.assessment.figure === 61000 && an.case.audit.some(a => a.what === "assessment taken over from the engine"));
+  ok("the analyst's first change makes the source analyst, logged", an.case.assessment.source === "analyst" && an.case.assessment.figure === 61000 && an.case.audit.some(a => a.what === "assessment taken over from the market"));
   const after = await run("case_edit", { id: nw.id, op: "condition", selected: { tier: 2, name: "Excellent" } });
   ok("after that no read touches the analyst's figure", after.case.assessment.figure === 61000 && after.case.assessment.source === "analyst");
 }

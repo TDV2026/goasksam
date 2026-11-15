@@ -188,6 +188,10 @@ const MUT = [
   ["the closing line pluralises a single sale", "deskTypedCasesCheck", "lib/reasonWords.js", rep("Math.round(Number(count)) === 1 || !t ? t", "!t ? t")],
   ["a view carries no closing line", "deskTypedCasesCheck", "lib/deskV3.js", rep("closingLine: closingLineOf(e, desk.subjectFacts)", "closingLine: null")],
   ["the likely figure line is left to the page", "deskTypedCasesCheck", "lib/desk/likely.js", rep("figureLine: reasonLine(\"case.likely.figure\", { figure: b.median }),", "figureLine: null,")],
+  ["an audit line says the engine again", "deskNoEngineTalkCheck", "lib/reasonWords.js", rep("The assessment was set to the market median of", "The assessment was set to the engine's median of")],
+  ["a stored audit entry is served as it was stored", "deskNoEngineTalkCheck", "lib/desk/caseView.js", rep("audit: (c.audit || []).map(plainAudit),", "")],
+  ["the audit author is the engine again", "deskNoEngineTalkCheck", "lib/desk/caseModel.js", rep("(b === \"engine\" ? \"market\" : b)", "b")],
+  ["an engine line returns in a refusal", "deskNoEngineTalkCheck", "lib/reasonWords.js", rep("There is no reserve from the market for this case yet", "The engine gave no answer on a reserve for this case yet")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
