@@ -235,9 +235,16 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
   const three = await BUTTONS(await openLive(b, { mutate: WIN(3, 6, 12) })), four = await BUTTONS(await openLive(b, { mutate: WIN(3, 6, 12, 24) }));
   ok(three.join() === "3 months=3,6 months=6,12 months=12", "a model returning [3, 6, 12] renders three buttons, 3 months first, and no 24", three.join());
   ok(four.join() === "3 months=3,6 months=6,12 months=12,24 months=24", "24 months renders only when the model includes it", four.join());
-  const stale = await openLive(b, { windows: false }), sk = await stale.evaluate(() => ({ w: window.__v4.K().desk.windows, bw: Object.keys(window.__v4.K().desk.evidence.byWindow || {}) }));
-  ok(!Array.isArray(sk.w) && sk.bw.includes("24") && (await BUTTONS(stale)).length === 0, "a stored case with no desk.windows (its answer holds 6, 12, 24) prints no switch, never a list made from another field", JSON.stringify([sk, await BUTTONS(stale)]));
-  const SRC = fs.readFileSync(path.join(ROOT, "lib/preview/deskV4Client.js"), "utf8") + fs.readFileSync(path.join(ROOT, "lib/preview/deskV4.js"), "utf8") + fs.readFileSync(path.join(ROOT, "lib/desk/caseView.js"), "utf8");
+  // A STORED CASE WITH NO desk.windows GETS THEM FROM LANE D'S RULE in the case view (3, 6, 12 and 24 only when the record reaches past 12 months, lib/deskV3.js reachesPast12): the switch prints exactly what the view serves, so it always prints when the stored answer holds views
+  const SERVED = async p => p.evaluate(() => ({ w: (window.__v4.K().desk.windows || []).map(x => x.months), bw: Object.keys(window.__v4.K().desk.evidence.byWindow || {}) })), EXACT = (btn, w) => JSON.stringify(btn) === JSON.stringify(w.map(m => m + " months=" + m));
+  const stale = await openLive(b, { windows: false }), sk = await SERVED(stale), sb = await BUTTONS(stale);
+  ok(sk.w.length >= 2 && sk.bw.includes("24") && !sk.w.includes(24) && EXACT(sb, sk.w), "a stored case whose record starts inside 12 months shows 6 and 12 and no 24, exactly desk.windows, though its stored answer holds a 24 month view", JSON.stringify([sk, sb]));
+  { const store = await PV.previewStore(), id = "pv_hm", sh = await store.get(PV.PREVIEW_ORG.id, id), keep = JSON.stringify(sh.case.desk.pool);
+    sh.case.desk.pool = sh.case.desk.pool.map((r, i) => (i === 0 ? { ...r, date: "2024-02-01" } : r)); await store.put(PV.PREVIEW_ORG.id, sh);
+    const back = await openLive(b, { id, windows: false }), bk = await SERVED(back), bb = await BUTTONS(back);
+    ok(bk.w.includes(24) && EXACT(bb, bk.w), "one whose record reaches back past 12 months shows 24 as well, exactly desk.windows", JSON.stringify([bk.w, bb]));
+    const sh2 = await store.get(PV.PREVIEW_ORG.id, id); sh2.case.desk.pool = JSON.parse(keep); await store.put(PV.PREVIEW_ORG.id, sh2); }
+  const SRC = fs.readFileSync(path.join(ROOT, "lib/preview/deskV4Client.js"), "utf8") + fs.readFileSync(path.join(ROOT, "lib/preview/deskV4.js"), "utf8");   // the page carries no list and makes no windows (the case view is Lane D's)
   ok(!/\[\s*6\s*,\s*["']6 months["']\s*\]|desk\.windows\s*=[^=]|windows\s*=\s*Object\.(keys|entries)\([^)]*byWindow/.test(SRC), "no source carries a list of periods or makes windows from byWindow");
   const mk1 = await BUTTONS(await openLive(b, { mutate: h => WIN(3, 6, 12)(h).replace("(desk().windows || [])", '[{ months: 24, label: "24 months" }].concat(desk().windows || [])') })); ok(mk1.join().includes("24"), "mutant caught: a 24 months button the model did not send");
   const mk2 = await BUTTONS(await openLive(b, { mutate: h => WIN(3, 6, 12)(h).replace("(desk().windows || [])", "[[6, 6], [12, 12], [24, 24]].map(function (x) { return { months: x[0], label: x[1] + ' months' }; })") })); ok(mk2.join() !== three.join(), "mutant caught: the page's own list of periods"); }
