@@ -57,5 +57,12 @@ for (const k of ["pooledApart", "pooledSplit", "trendHeld"]) ok(CARD_FIELDS.incl
   for (const [name, a] of Object.entries(kinds)) { const d = a && a.tier && /^(result|thin)$/.test(a.tier) ? E.withReadFields(a, "x", { year: 1986 }) : E.freshenStoredText(a); for (const k of Object.keys(d || {})) if (!(k in a) && !known(k)) bad.push(`${k} (${name})`); }
   ok(bad.length === 0, `every top level key the read-time path ADDS to an answer is on a list (${bad.length} not: ${bad.join(", ")})`);
 }
+// 6. desk.likelyBasis (Lane B, Nov 14 2026): the Desk answer carries { median, low, high, count, ids } over the rows of desk.comparables, at the top of desk and in every desk.views entry, from the engine only.
+//    The top of desk and every view are built by the SAME deskBlock return, so one field there is in all of them; the values are asserted per view over two cars in scripts/deskLikelyBasisCheck.mjs.
+{ const dv = read("lib/deskV3.js"), block = dv.slice(dv.indexOf("export async function deskBlock"), dv.indexOf("export const viewKey"));
+  ok(/comparables, likelyBasis: likelyBasisOf\(comparables\)/.test(block), "desk.likelyBasis is set in deskBlock from the very comparables list it returns (top of desk and every view are built there)");
+  ok(/blocks\[viewKey\(t, m\)\] = await deskBlock\(/.test(read("lib/onebox.js")) && /const \{ sales, comparables, \.\.\.rest \} = b;/.test(dv), "every desk.views entry is a deskBlock result whose rest (including likelyBasis) is stored with it");
+  for (const f of ["public/js/desk.js", "public/desk.html", "lib/desk/caseView.js", "lib/desk/reportState.js", "lib/desk/caseWorkflow.js"]) { let s = ""; try { s = read(f); } catch { continue; }
+    ok(!/likelyBasis\s*=\s*\{|likelyBasis\.(median|low|high)\s*=[^=]/.test(s), `${f} does not compute likelyBasis (the engine is its one source)`); } }
 console.log(`engineFieldsCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);
