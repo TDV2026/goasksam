@@ -97,9 +97,9 @@ ok("every basis, effect and condition sentence is a reason table line", sh.desk.
 // (4) condition
 { const rows = Array.from({ length: 8 }, (_, i) => ({ miles: 60000 + i * 500, tier: i < 6 ? 3 : 2, price: 40000 }));
   const sig = DV.conditionOf({ notes: "one owner, service records, no accidents, original paint", titleStatus: "Clean" }, rows, null, 61400);
-  ok("case signals give a rung, named from the ladder, with the count in words", sig.suggested && [1, 2, 3, 4].includes(sig.suggested.tier) && sig.suggested.name === CT.TIER_NAMES[sig.suggested.tier] && /^Suggested \w+ from one owner, service records, no accidents, original paint and 61,400 miles, \d+ signals counted\.$/.test(sig.basis), sig.basis);
+  ok("case signals give a rung, named from the ladder, named by what it used", sig.suggested && [1, 2, 3, 4].includes(sig.suggested.tier) && sig.suggested.name === CT.TIER_NAMES[sig.suggested.tier] && /^Suggested \w+, from the seller's description and the title status\.$/.test(sig.basis), sig.basis);
   const rec = DV.conditionOf(null, rows, { tier: 2, evidence: [1, 2, 3, 4] }, 61400);
-  ok("the car's own listing gives its rung", rec.suggested.tier === 2 && rec.suggested.name === "Excellent" && /last listing of this car, 4 signals counted/.test(rec.basis));
+  ok("the car's own listing gives its rung", rec.suggested.tier === 2 && rec.suggested.name === "Excellent" && /^Suggested Excellent, from the last listing of this car\.$/.test(rec.basis));
   const near = DV.conditionOf(null, rows, null, 61400);
   ok("with no case or listing, the condition of the sales near its miles when most agree", near.suggested && near.suggested.tier === 3 && /^Suggested Good, as 6 of the 8 tiered sales near 61,400 miles sold in that condition\.$/.test(near.basis), near.basis);
   const split = DV.conditionOf(null, [3, 3, 2, 2, 1, 1].map((t, i) => ({ miles: 60000 + i * 100, tier: t })).concat([{ miles: 60500, tier: 4 }]), null, 61400);

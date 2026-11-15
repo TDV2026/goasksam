@@ -174,6 +174,8 @@ const MUT = [
   ["the engine counts aloud again when no condition is suggested", "deskNoEngineTalkCheck", "lib/deskV3.js", rep("return { suggested: null, basis: null };", "return { suggested: null, basis: \"No condition is suggested, no signals counted and three are needed.\" };")],
   ["a stored case serves the old counting line", "deskNoEngineTalkCheck", "lib/desk/caseView.js", rep("if (desk && desk.condition && !desk.condition.suggested && desk.condition.basis)", "if (false)")],
   ["the report prints a note with no suggestion", "deskNoEngineTalkCheck", "lib/desk/reportState.js", rep("d.condition && d.condition.suggested && d.condition.basis ? d.condition.basis : null", "d.condition && d.condition.basis ? d.condition.basis : null")],
+  ["a suggestion counts its signals aloud again", "deskNoEngineTalkCheck", "lib/reasonWords.js", rep("text: p => `Suggested ${p.name}, from ${p.what}.`", "text: p => `Suggested ${p.name} from ${p.what}, 3 signals counted.`")],
+  ["a stored counted note is served as it was stored", "deskNoEngineTalkCheck", "lib/desk/conditionNote.js", rep("&& !OLD_TALK.test(String(c.basis))", "")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
