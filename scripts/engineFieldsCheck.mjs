@@ -60,9 +60,15 @@ for (const k of ["pooledApart", "pooledSplit", "trendHeld"]) ok(CARD_FIELDS.incl
 // 6. desk.likelyBasis (Lane B, Nov 14 2026): the Desk answer carries { median, low, high, count, ids } over the rows of desk.comparables, at the top of desk and in every desk.views entry, from the engine only.
 //    The top of desk and every view are built by the SAME deskBlock return, so one field there is in all of them; the values are asserted per view over two cars in scripts/deskLikelyBasisCheck.mjs.
 { const dv = read("lib/deskV3.js"), block = dv.slice(dv.indexOf("export async function deskBlock"), dv.indexOf("export const viewKey"));
-  ok(/comparables, likelyBasis: likelyBasisOf\(comparables\)/.test(block), "desk.likelyBasis is set in deskBlock from the very comparables list it returns (top of desk and every view are built there)");
+  ok(/likelyBasis = likelyBasisOf\(comparables\)[^;]*;[\s\S]*comparables, likelyBasis, comparablesNote/.test(block), "desk.likelyBasis is set in deskBlock from the very comparables list it returns (top of desk and every view are built there)");
   ok(/blocks\[viewKey\(t, m\)\] = await deskBlock\(/.test(read("lib/onebox.js")) && /const \{ sales, comparables, \.\.\.rest \} = b;/.test(dv), "every desk.views entry is a deskBlock result whose rest (including likelyBasis) is stored with it");
   for (const f of ["public/js/desk.js", "public/desk.html", "lib/desk/caseView.js", "lib/desk/reportState.js", "lib/desk/caseWorkflow.js"]) { let s = ""; try { s = read(f); } catch { continue; }
     ok(!/likelyBasis\s*=\s*\{|likelyBasis\.(median|low|high)\s*=[^=]/.test(s), `${f} does not compute likelyBasis (the engine is its one source)`); } }
+// 7. desk.reserveLadder (Lane B, Nov 14 2026): { rungs, recommended, reason, thin, thinLine, fallbackView } at the top of desk and in every view, built in deskBlock by reserveLadderOf over the view's own sales; a thin view takes its figures from the same period over all conditions (cfgFor's fallback). Values per view: scripts/deskLadderCheck.mjs.
+{ const dv = read("lib/deskV3.js"), ob = read("lib/onebox.js"), block = dv.slice(dv.indexOf("export async function deskBlock"), dv.indexOf("export const viewKey"));
+  ok(/reserveLadder = reserveLadderOf\(\{ sales, evidence, reserveStart, reserveMode/.test(block) && /reserveCheck, reserveStart: reserveStartOut, reserveLadder, reserveMode/.test(block), "desk.reserveLadder is set in deskBlock from the view's own sales, start and reserve read (top of desk and every view are built there)");
+  ok(/fallback: t && !nested \? \(\) =>/.test(ob), "every tier view of the engine read is given its all-conditions fallback (a thin view prices from it)");
+  for (const f of ["public/js/desk.js", "public/desk.html", "lib/desk/caseView.js", "lib/desk/reportState.js", "lib/desk/caseWorkflow.js"]) { let s = ""; try { s = read(f); } catch { continue; }
+    ok(!/reserveLadder\s*=\s*\{|\.rungs\s*=\s*\[/.test(s), `${f} does not build the reserve ladder (the engine is its one source)`); } }
 console.log(`engineFieldsCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

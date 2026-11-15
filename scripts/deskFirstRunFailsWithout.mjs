@@ -188,6 +188,20 @@ const MUT = [
   ["the closing line pluralises a single sale", "deskTypedCasesCheck", "lib/reasonWords.js", rep("Math.round(Number(count)) === 1 || !t ? t", "!t ? t")],
   ["a view carries no closing line", "deskTypedCasesCheck", "lib/deskV3.js", rep("closingLine: closingLineOf(e, desk.subjectFacts)", "closingLine: null")],
   ["the likely figure line is left to the page", "deskTypedCasesCheck", "lib/desk/likely.js", rep("figureLine: reasonLine(\"case.likely.figure\", { figure: b.median }),", "figureLine: null,")],
+  ["an audit line says the engine again", "deskNoEngineTalkCheck", "lib/reasonWords.js", rep("The assessment was set to the market median of", "The assessment was set to the engine's median of")],
+  ["a stored audit entry is served as it was stored", "deskNoEngineTalkCheck", "lib/desk/caseView.js", rep("audit: (c.audit || []).map(plainAudit),", "")],
+  ["the audit author is the engine again", "deskNoEngineTalkCheck", "lib/desk/caseModel.js", rep("(b === \"engine\" ? \"market\" : b)", "b")],
+  ["an engine line returns in a refusal", "deskNoEngineTalkCheck", "lib/reasonWords.js", rep("There is no reserve from the market for this case yet", "The engine gave no answer on a reserve for this case yet")],
+  ["the report prints the engine's short reached line again", "deskStateCheck", "lib/desk/reportState.js", rep("out.reachedLine = ck && ck.of ? sellerReached(c, ck) : ck && ck.reachedLine ? ck.reachedLine : null;", "out.reachedLine = ck && ck.reachedLine ? ck.reachedLine : null;")],
+  ["the analyst's short line is lost from the report state", "deskStateCheck", "lib/desk/reportState.js", rep("out.reachedShortLine = ck && ck.reachedLine ? ck.reachedLine : null;", "out.reachedShortLine = null;")],
+  ["the seller sentence counts the wrong sales", "deskStateCheck", "lib/desk/reportState.js", rep("reasonLine(\"report.reserve_reached\", { of: ck.of, reached: ck.reached,", "reasonLine(\"report.reserve_reached\", { of: ck.of, reached: ck.of,")],
+  ["an older shape is not read again on open", "deskViewsCheck", "lib/desk/caseWorkflow.js", rep("export const staleShape = c => !!(c && c.desk && c.desk.evidence && (Number(c.desk.shape) || 0) < DESK_SHAPE);", "export const staleShape = c => false;")],
+  ["the engine's answer carries no shape", "deskViewsCheck", "lib/deskV3.js", rep("return { version: 1, shape: DESK_SHAPE, windows:", "return { version: 1, windows:")],
+  ["a case at the current shape is read on every open", "deskViewsCheck", "lib/desk/caseWorkflow.js", rep("export const staleShape = c => !!(c && c.desk && c.desk.evidence && (Number(c.desk.shape) || 0) < DESK_SHAPE);", "export const staleShape = c => !!(c && c.desk && c.desk.evidence);")],
+  ["the open path no longer re-reads a stale case", "deskViewsCheck", "lib/desk/sheetActions.js", rep("W.needsReread(s0.case)) { try {", "false) { try {")],
+  ["the served view ignores the chosen condition", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("export const viewOfCase = c => ({ tier: c.condition && c.condition.selected &&", "export const viewOfCase = c => ({ tier: false && c.condition && c.condition.selected &&")],
+  ["a different condition is set with no note", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("if (t !== (sug ? sug.tier : null) && !why) return", "if (false) return")],
+  ["a condition change writes no audit entry", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("logAudit(c, { at: iso(now), by: \"analyst\", what: \"condition set\"", "void ({ at: iso(now), by: \"analyst\", what: \"condition set\"")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
