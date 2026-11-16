@@ -314,6 +314,11 @@ const MUT = [
   ["send safeguards: a different address than the confirmed one is sent to", "caseSendCheck", "lib/desk/sheetActions.js", rep("if (String(cf.to || \"\").trim().toLowerCase() !== to.toLowerCase() || String(cf.subject || \"\") !== subject) return refuse(reasonLine(\"send.refuse.confirm_mismatch\"));", "")],
   ["send safeguards: the send does not record who confirmed", "caseSendCheck", "lib/desk/sheetActions.js", rep("confirmedBy: String(seat), confirmedTo: to, ", "")],
   ["send safeguards: the preview serves nothing to confirm", "caseSendCheck", "lib/desk/sheetActions.js", rep("confirm: { to, subject }, subject, message,", "subject, message,")],
+  ["assigned to me: the list is every assigned case, not the calling seat's", "deskTypedCasesCheck", "lib/desk/priorCases.js", rep("filter(x => !mine || (seatLabel != null && x.lc.assignedTo === String(seatLabel)))", "filter(x => true)")],
+  ["assigned to me: the flag is wrong", "deskTypedCasesCheck", "lib/desk/priorCases.js", rep("assignedToMe: seatLabel != null && lc.assignedTo === String(seatLabel),", "assignedToMe: true,")],
+  ["upload cut: the model does not serve it", "deskTypedCasesCheck", "lib/desk/caseView.js", rep("uploadCutBytes: JSON_DOC_BYTES, ", "")],
+  ["upload cut: the page does its own arithmetic again", "deskTypedCasesCheck", "lib/preview/deskV4Client.js", rep("f.size <= ((K && K.uploadCutBytes) || 0)", "f.size <= 3 * 1024 * 1024")],
+  ["fixtures: the shared ready case has no condition", "deskReadinessCheck", "scripts/_deskCaseWorld.mjs", rep("c.condition = { ...c.condition, selected: { tier: 3, name: \"Good\" } };", "")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
