@@ -1,7 +1,8 @@
 {
- "shape": 6,
+ "shape": 7,
  "top": [
   "anyCondition",
+  "bandNote",
   "comparables",
   "comparablesCount",
   "comparablesNote",
@@ -159,6 +160,7 @@
  },
  "view": [
   "anyCondition",
+  "bandNote",
   "comparables",
   "comparablesCount",
   "comparablesNote",
