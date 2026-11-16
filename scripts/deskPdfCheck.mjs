@@ -90,6 +90,7 @@ ok("only https addresses become links", mini.pdfPages && !Buffer.from((await bui
   // THE DOOR IS CREW ONLY: a seat runs sheet_* actions only (api/desk.js), and the handler routes every case_* action through the same door as the others
   const gate = fs.readFileSync(path.join(root, "api/desk.js"), "utf8"), handler = fs.readFileSync(path.join(root, "lib/desk/handler.js"), "utf8");
   ok("api/desk.js refuses a seat anything that is not a sheet_ action, so case_pdf and every case_* action are crew only", /!act\.startsWith\("sheet_"\)/.test(gate) && !/startsWith\("case_"\)/.test(gate));
+  ok("the seat door has exactly one exception to sheet_ actions: seat_name (a seat renames itself), and no case_ action, archiveDiag or any other name gets past it", /\(!act\.startsWith\("sheet_"\) && act !== "seat_name"\)/.test(gate) && (gate.match(/&& act !== "/g) || []).length === 1 && !/act === "case_/.test(gate));
   ok("the handler routes case_ actions to the sheet actions, the one door", /startsWith\("case_"\)/.test(handler));
   const acts = [...fs.readFileSync(path.join(root, "lib/desk/sheetActions.js"), "utf8").matchAll(/action === "(case_\w+)"/g)].map(m => m[1]);
   ok("case_pdf is one of the case actions and the check sees every one of them", acts.includes("case_pdf") && acts.length >= 6, acts.join()); }

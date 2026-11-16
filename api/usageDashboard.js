@@ -1063,6 +1063,25 @@ async function handleOps(req, res) {
       return res.status(200).json({ ok: true, ...r, ...(back ? { reset: back } : {}) });
     } catch (e) { return res.status(200).json({ ok: false, why: String(e && e.message || e).slice(0, 200) }); }
   }
+  // task=deskpreviewmove: THE MOVE OF THE THREE SAMPLE CASES OUT OF HAGERTY (Lane D, Nov 15 2026; Sam's decision). WRITES to the production Desk store, once, ONE HEAVY STEP (Lane C runs it, HEAVY STEP START and DONE in lane-notes, nothing else heavy beside it).
+  // It seeds pv_240z, pv_thin and pv_fin into the preview org (hagerty-preview, new sheet ids) through the same seed as deskpreviewseed, and ONLY WHEN those three are stored does it remove their old Hagerty rows (the legacy ids, each through the Desk's own delete path). pv_hm stays in Hagerty and is never touched. Needs docs/supabase-desk-preview-org.sql run first (it says so if the org or its crew seat is missing and removes nothing). Safe to run twice: a second run seeds nothing and finds nothing to remove.
+  //   ?view=ops&task=deskpreviewmove
+  if (task === "deskpreviewmove") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    try {
+      const { seedPreviewStore, previewSeatOf, legacySampleIds, sampleUuid, SAMPLE_ORG, PREVIEW_ORG } = await import("../lib/preview/deskPreview.js"), { supabaseStore } = await import("../lib/desk/sheetStore.js"), { deleteSheetEverywhere } = await import("../lib/desk/storage.js");
+      const { SAMPLE_CASES } = await import("../lib/preview/deskV3Fixture.js"), store = supabaseStore(env), r = await seedPreviewStore(store, { realIds: true, seat: previewSeatOf(env) });
+      if (r.failed) return res.status(200).json({ ok: false, failedStep: r.failed.step, why: r.failed.why, steps: r.steps, removed: [], rerun: "safe: nothing was removed; run docs/supabase-desk-preview-org.sql first if the org or its crew seat is missing" });
+      const stored = await Promise.all(SAMPLE_CASES.map(o => store.get(SAMPLE_ORG.id, sampleUuid(o.id))));
+      if (!stored.every(Boolean)) return res.status(200).json({ ok: false, failedStep: "the three samples are not all in the preview org", steps: r.steps, removed: [] });
+      const removed = [];
+      for (const id of legacySampleIds()) {
+        const old = await store.get(PREVIEW_ORG.id, id); if (!old) { removed.push({ id, removed: false, why: "not in Hagerty (already moved)" }); continue; }
+        try { const d = await deleteSheetEverywhere(env, { org: PREVIEW_ORG.id, sheetId: id, reason: "sheet", actor: "crew:lane-d-preview-move" }); removed.push(d.ok ? { id, removed: true } : { id, removed: false, why: String(d.error || "").slice(0, 160) }); } catch (e) { removed.push({ id, removed: false, why: String(e && e.message || e).slice(0, 160) }); }
+      }
+      return res.status(200).json({ ok: removed.every(x => x.removed || /already moved/.test(x.why || "")), seeded: r.seeded, steps: r.steps, removed });
+    } catch (e) { return res.status(200).json({ ok: false, why: String(e && e.message || e).slice(0, 200) }); }
+  }
   // task=deskpreviewremove: DELETES test cases from the Hagerty org by id (Lane D, Nov 12 2026; Sam's word: Lane C removes the throwaway cases its live checks made). ?view=ops&task=deskpreviewremove&ids=<uuid>,<uuid>
   // Only the ids given, nothing found by search; each through the Desk's own delete path (lib/desk/storage.js deleteSheetEverywhere: the objects, then the rows, one log line). The demonstration case and the three samples (the fixed preview uuids) are refused by name. Answers one line per id (removed or why not).
   if (task === "deskpreviewremove") {

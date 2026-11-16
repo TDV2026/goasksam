@@ -35,7 +35,7 @@ ok("three cases were made, each with its own id", ids.length === 3 && new Set(id
 ok("the recorded reads in the code are the ones the lane notes post as read (the date of the read)", notes.includes("HEAVY STEP DONE (Lane D, Nov 11 2026") && R.RECORDED_ON === "2026-11-11");
 
 // ---------- THE PREVIEW STORE HOLDS NO TYPED FIGURE (Nov 11 2026): every sample sheet on the rail is a car the engine read ----------
-{ const st = await P.previewStore(), rows = (await st.list(P.PREVIEW_ORG.id)).filter(r => /^pv_/.test(r.id)), ev = r => r.case && r.case.desk && r.case.desk.evidence, same = (a, b) => a && b && ["count", "q1", "median", "q3", "insufficient"].every(k => (a[k] ?? null) === (b[k] ?? null));
+{ const st = await P.previewStore(), rows = (await st.list(P.PREVIEW_ORG.id)).concat(await st.list(P.SAMPLE_ORG.id)).filter(r => /^pv_/.test(r.id)), ev = r => r.case && r.case.desk && r.case.desk.evidence, same = (a, b) => a && b && ["count", "q1", "median", "q3", "insufficient"].every(k => (a[k] ?? null) === (b[k] ?? null));
   const recorded = R.RECORDED.map(x => x.answer.desk.evidence), names = rows.map(r => r.id).sort().join();
   ok("the rail holds the demonstration case and three sample cases the engine read (no older sheet with typed sales)", names === "pv_240z,pv_fin,pv_hm,pv_thin", names);
   ok("every sheet in the preview store is a stored case whose market evidence is one of the engine's recorded answers, figure for figure", rows.every(r => recorded.some(x => same(ev(r), x))), rows.filter(r => !recorded.some(x => same(ev(r), x))).map(r => r.id).join());
@@ -652,4 +652,27 @@ console.log("CASE IDS " + ids.join(" "));
   ok("NONE 3: choosing none clears an analyst's choice: the suggestion is back, the source says suggested, the audit says cleared", cc.source === "suggested" && cc.chosen.tier === 3 && cleared.audit.some(e => e.what === "condition cleared"), JSON.stringify(cc.source));
   const rsNone = (await U("lib/desk/reportState.js")).reportState(none).v4;
   ok("NONE 4: the report prints no condition line when the condition is not set", rsNone.conditionLine === null, String(rsNone.conditionLine)); }
+// ---------- THE SAMPLE CASES HAVE AN ORG OF THEIR OWN (Sam, Nov 15 2026) ----------
+// CAUSE: pv_240z, pv_thin and pv_fin sat in the Hagerty org beside the real cases, so the Hagerty queue listed sample cars. FIX: they live in the preview org (hagerty-preview, sheet ids of their own); pv_hm stays in Hagerty as the demonstration 911; the seed, the door (by case id, or org: "hagerty-preview" for the queue) and the page model follow.
+// CLASS: every route that lists or opens a case (case_list, case_get, case_edit, the page model, the seed, the move's list of old ids) agrees on which org holds which case; the Hagerty queue lists real and demonstration cases and nothing else.
+{ const ST = await U("lib/desk/sheetStore.js"), V3 = await U("lib/preview/deskV3.js"), st = ST.memoryStore(); st.reset(); st.persistent = true; P.usePreviewBacking(st);
+  const seeded = await P.seedPreviewStore(st, { realIds: true, seat: "crew" }), H = P.PREVIEW_ORG.id, SO = P.SAMPLE_ORG.id, ids = async o => (await st.list(o)).map(r => r.id).sort().join();
+  const samples = ["pv_240z", "pv_fin", "pv_thin"].map(P.sampleUuid).sort().join();
+  ok("ORG 1: the seed stores the demonstration 911 in Hagerty and the three samples in the preview org, under sheet ids of their own", seeded.seeded === true && (await ids(H)) === P.previewUuid("pv_hm") && (await ids(SO)) === samples, (await ids(H)) + " | " + (await ids(SO)));
+  const lH = JSON.stringify(await P.previewDeskApi({ action: "case_list" })), lS = JSON.stringify(await P.previewDeskApi({ action: "case_list", org: SO }));
+  ok("ORG 2: case_list lists the Hagerty queue without a sample; with org hagerty-preview it lists the three samples and not the demonstration case", P.fixedPreviewIds().slice(1).every(i => !lH.includes(i)) && lH.includes(P.previewUuid("pv_hm")) && P.fixedPreviewIds().slice(1).every(i => lS.includes(i)) && !lS.includes(P.previewUuid("pv_hm")), "");
+  const g = await P.previewDeskApi({ action: "case_get", id: "pv_thin" }), e = await P.previewDeskApi({ action: "case_edit", id: "pv_thin", op: "field", field: "colour", value: "Silver" });
+  ok("ORG 3: a sample is opened and edited by its short id in the preview org, and Hagerty never holds a copy", g.ok === true && e.ok === true && (await st.get(SO, P.sampleUuid("pv_thin"))).case.fields.colour.value === "Silver" && !(await st.get(H, P.sampleUuid("pv_thin"))) && !(await st.get(H, P.previewUuid("pv_thin"))), String(g.why || e.why || ""));
+  const mH = await V3.deskModel({ query: {} }), mS = await V3.deskModel({ query: { case: "pv_thin" } }), mQ = await V3.deskModel({ query: { org: SO } });
+  ok("ORG 4: the page model lists the Hagerty queue with no sample; a sample opened by its link, or ?org=hagerty-preview, lists the preview org's queue", mH.cases.length >= 1 && mH.cases.every(c => c.id === P.previewUuid("pv_hm")) && mS.cases.length === 3 && mS.activeId === P.sampleUuid("pv_thin") && mQ.cases.length === 3, mH.cases.map(c => c.id).join());
+  // the production day before the move: the demonstration case and the three old samples are all in Hagerty, nothing in the preview org
+  const rowsSO = await st.list(SO), demoRow = await st.get(H, P.previewUuid("pv_hm")), st2 = ST.memoryStore(); st2.reset(); st2.persistent = true; P.usePreviewBacking(st2);   // the memory store keeps its sheets in the module: the rows are taken first
+  for (const r of rowsSO) { const old = P.legacySampleIds()[["pv_240z", "pv_fin", "pv_thin"].findIndex(x => P.sampleUuid(x) === r.id)]; await st2.insert(H, { ...r, id: old }); } await st2.insert(H, demoRow);
+  const r2 = await P.seedPreviewStore(st2, { realIds: true, seat: "crew" }), ids2 = async o => (await st2.list(o)).map(r => r.id).sort().join();
+  ok("ORG 5: with the old samples still in Hagerty, the seed puts the three into the preview org and touches nothing in Hagerty (the move removes the old ones, after)", r2.seeded === true && (await ids2(SO)) === samples && (await ids2(H)).split(",").length === 4, (await ids2(H)) + " | " + (await ids2(SO)));
+  ok("ORG 6: the ids the move removes are the three old sample ids, never the demonstration case and never a new sample", P.legacySampleIds().length === 3 && !P.legacySampleIds().includes(P.previewUuid("pv_hm")) && P.legacySampleIds().every(i => !P.fixedPreviewIds().includes(i)), "");
+  ok("ORG 7: the demonstration case is stored last and a second seed does nothing", (await P.seedPreviewStore(st2, { realIds: true, seat: "crew" })).seeded === false);
+  const api = fs.readFileSync(path.join(ROOT, "api/usageDashboard.js"), "utf8"), mv = api.slice(api.indexOf('task === "deskpreviewmove"'), api.indexOf('task === "deskpreviewremove"'));
+  ok("ORG 8: the move seeds first and removes only when all three are stored, removes the legacy ids only, and never names the demonstration case", /seedPreviewStore/.test(mv) && /stored\.every\(Boolean\)/.test(mv) && /legacySampleIds\(\)/.test(mv) && !/DEMO_ID|pv_hm/.test(mv) && mv.indexOf("seedPreviewStore(store") > 0 && mv.indexOf("seedPreviewStore(store") < mv.indexOf("deleteSheetEverywhere(env"), "");
+  P.usePreviewBacking(null); }
 console.log(`deskTypedCasesCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
