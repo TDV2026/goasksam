@@ -7,6 +7,10 @@ import fs from "node:fs"; import path from "node:path"; import os from "node:os"
 const here = path.dirname(fileURLToPath(import.meta.url)), args = process.argv.slice(2), ROOT = path.resolve(args.find(a => !a.startsWith("--")) || path.join(here, ".."));
 if (args.includes("--mutants")) {
   const DV = "lib/deskV3.js", muts = [
+    [DV, "original = bandify(evidenceWindowed(popAll0.filter(inB), rows.filter(inB), desk, env), fullOriginal);", "", "original stays the whole population while the figures are the band's"],
+    [DV, "bandOn = all0.length > 0 && all0.filter(inB).length >= BAND_MIN;", "bandOn = all0.length > 0 && inWindow(pop, when0, months0).filter(priced).filter(inB).length >= BAND_MIN;", "the band is decided on what the exclusions left"],
+    [DV, "if (inWin(desk.anyPool).filter(inB).length >= BAND_MIN) win = win.filter(inB);", "", "the Any condition count ignores the band"],
+    [DV, "evidence = calc.size ? bandify(evidenceWindowed(pop.filter(inB), rowsCalc.filter(inB), desk, env), fullEvidence) : original;", "evidence = calc.size ? bandify(evidenceWindowed(pop, rowsCalc, desk, env), fullEvidence) : original;", "an exclusion is counted over the whole population, not the band's"],
     [DV, "export const CONDITION_RUNG = { 1: \"ambitious\",", "export const CONDITION_RUNG = { 1: \"safe\",", "Concours maps to safe"],
     [DV, "2: \"balanced\", 3: \"balanced\", 4: \"safe\" };", "2: \"balanced\", 3: \"balanced\", 4: \"ambitious\" };", "Fair maps to ambitious"],
     [DV, "2: \"balanced\", 3: \"balanced\", 4: \"safe\" };", "2: \"safe\", 3: \"balanced\", 4: \"safe\" };", "Excellent maps to safe"],
@@ -26,10 +30,10 @@ if (args.includes("--mutants")) {
     [DV, "fb.sales.length >= DESK_EVIDENCE_MIN && fb.evidence && !fb.evidence.insufficient);", "fb.sales.length >= 0 && fb.evidence);", "an all-conditions view under the Desk minimum is served too"],
     ["lib/sheetRead.js", "if (input.desk && hasDesk(a) && !(vehicle && vehicle.bodyStyle) && !a.desk.bodyNote)", "if (false)", "a car with no body does not say what it was priced on"],
     ["lib/reasonWords.js", "text: p => `Priced on ${p.gen ? p.gen + \" \" : \"\"}${p.gearbox ? p.gearbox + \"s\" : \"cars\"}, body not stated.` }", "text: p => `Priced on ${p.gen}, body not stated.` }", "the note leaves out the gearbox"],
-    [DV, "if (all.length && inBand.length >= BAND_MIN) {", "if (false) {", "the figures count the whole population (the SL500 at $10,500)"],
-    [DV, "inBand.length >= BAND_MIN", "inBand.length >= 1", "a band of fewer than 5 sales is priced on"],
+    [DV, "      if (bandOn) {", "      if (false) {", "the figures count the whole population (the SL500 at $10,500)"],
+    [DV, "all0.filter(inB).length >= BAND_MIN;", "all0.filter(inB).length >= 1;", "a band of fewer than 5 sales is priced on"],
     [DV, "low: full.low, high: full.high, extremesLine: full.extremesLine,", "extremesLine: full.extremesLine,", "the lowest to highest is the band's, not the whole population's"],
-    [DV, "pop = popB; rowsCalc = rowsCalc.filter(inB);", "rowsCalc = rowsCalc.filter(inB);", "the ladder counts the whole population's sales"],
+    [DV, "pop = pop.filter(inB); rowsCalc = rowsCalc.filter(inB);", "rowsCalc = rowsCalc.filter(inB);", "the ladder counts the whole population's sales"],
     [DV, "} else if (all.length) bandNote = reasonLine(\"desk4.band_thin\", { of: all.length });", "}", "a thin band says nothing"],
     [DV, "Number(r.miles) >= mb.miMin && Number(r.miles) <= mb.miMax;", "Number(r.miles) >= mb.miMin;", "the band has no upper end"],
     [DV, "  reserveLadder = { ...reserveLadder, byCondition: byConditionOf(reserveLadder) };\n", "", "the ladder carries no byCondition"],
@@ -215,6 +219,23 @@ const TIGHT = [30000, 31000, 32000, 33000, 34000, 35000, 36000, 37000, 38000, 39
   ok("BAND: a car with no mileage, and a condition view (already cut by its band), carry no band note and read the whole population", nm.bandNote === null && nm.evidence.count === 42 && !tr.bandNote, J([nm.bandNote, nm.evidence.count, tr.bandNote]));
   const wb = await run2(sl, { windowMonths: 3 });
   ok("BAND: the rule is per view: a period whose band holds under 5 says so and reads that period's whole population", wb.bandNote === null || /^(Priced on \d+ sales within|Too few sales in this car's mileage band)/.test(wb.bandNote), wb.bandNote); }
+// EXCLUSIONS AND THE BAND (Lane C's red deskWorkflowCheck on eb96b7da, Nov 17 2026): desk.original was the whole population and desk.evidence the band, so the two disagreed and an excluded sale changed the wrong count. CAUSE: the band was applied to evidence only, after the exclusion recount, and decided on what the exclusions left.
+// THE CLASS: whenever the figures are counted on the band, original, evidence, the Any condition count, the exclusions and "out of N" are counted on THAT population: the band is decided before any exclusion, an exclusion acts inside it (outside the band it leaves the band's count as it was and lowers N).
+{ const when = "2026-11-14", at = m => DV.cutoffOf(when, m), BAND = { miMin: 23400, miMax: 53400 }, sf = { generation: "R230", year: 2003, body: "Convertible", gearbox: "automatic", miles: 38400 };
+  const mk3 = (id, price, miles, i) => ({ id, price, date: at(1 + (i % 10)), year: 2003, generation: "R230", body: "Convertible", gearbox: "automatic", gearboxWord: "Automatic", miles, platform: "Bring a Trailer", title: "2003 Mercedes-Benz SL500", inPopulation: true, tier: null });
+  const inP = [15400, 15900, 16200, 16500, 16800, 17000, 15600, 16000], far = Array.from({ length: 34 }, (_, i) => 6500 + i * 190), sl = [...inP.map((p, i) => mk3("b" + i, p, 37000 + i * 200, i)), ...far.map((p, i) => mk3("f" + i, p, 70000 + i * 1800, i))];
+  const rd = (ex = []) => DV.deskBlock(sl, { caseDate: when, windowMonths: 12, mileBand: BAND, subjectFacts: sf, subject: { transmission: "Automatic", miles: 38400 }, anyPool: sl, exclusions: ex.map(id => ({ saleId: id, scope: "market_calc", reason: "x", at: when })) }, null);
+  const st = ({ servedFrom, ...r } = {}) => r, b0 = await rd();
+  ok("BAND + EXCLUSIONS: with nothing excluded, original is evidence (the same population, the band's), 8 of 42", J(st(b0.original)) === J(st(b0.evidence)) && b0.original.count === 8 && /out of 42\.$/.test(b0.bandNote), J([b0.original.count, b0.evidence.count, b0.bandNote]));
+  const bIn = await rd(["b0", "b1"]);
+  ok("BAND + EXCLUSIONS: two sales inside the band excluded: evidence 6, original stays 8, the note says 6 out of 40, the ladder counts 6", bIn.evidence.count === 6 && bIn.original.count === 8 && /^Priced on 6 sales within .*out of 40\.$/.test(bIn.bandNote) && bIn.sales.length === 6 && bIn.reserveLadder.rungs[0].of === 6, J([bIn.evidence.count, bIn.original.count, bIn.bandNote, bIn.sales.length]));
+  const bOut = await rd(["f0", "f1", "f2"]);
+  ok("BAND + EXCLUSIONS: three sales outside the band excluded: the band's count stays 8 (original 8), only 'out of' falls to 39", bOut.evidence.count === 8 && bOut.original.count === 8 && /^Priced on 8 sales within .*out of 39\.$/.test(bOut.bandNote), J([bOut.evidence.count, bOut.original.count, bOut.bandNote]));
+  const bFew = await rd(["b0", "b1", "b2", "b3", "b4"]);
+  ok("BAND + EXCLUSIONS: the band is decided before the exclusions (5 excluded leaves 3: still the band's population, original 8, never a switch to all 37)", bFew.original.count === 8 && bFew.evidence.count === 3 && /^Priced on 3 sales within/.test(bFew.bandNote) && bFew.sales.length === 3, J([bFew.evidence.count, bFew.original.count, bFew.bandNote, bFew.sales.length]));
+  ok("BAND + EXCLUSIONS: the Any condition count is what no condition reads (the band's, exclusions inside it) in each case", [b0, bIn, bOut].every(x => x.anyCondition && x.anyCondition.count === x.evidence.count), J([b0, bIn, bOut].map(x => [x.anyCondition && x.anyCondition.count, x.evidence.count])));
+  const cleared = (x, f) => x.sales.filter(y => Number(y.price) >= f).length, rc = DV.reserveCheckOf(bIn.sales, bIn.evidence, 16000, 12);
+  ok("BAND + EXCLUSIONS: a custom figure's recount runs on the band's sales (the list the figures are counted on)", rc && rc.of === 6 && rc.reached === cleared(bIn, 16000), J(rc)); }
 // the pages and the model compute none of it
 { const bad = []; for (const f of ["public/js/desk.js", "public/desk.html", "lib/desk/caseView.js", "lib/desk/reportState.js", "lib/desk/caseWorkflow.js", "lib/desk/reportPdfV3.js"]) { let s = ""; try { s = fs.readFileSync(path.join(ROOT, f), "utf8"); } catch { continue; } if (/reserveLadder\s*=\s*\{|\.rungs\s*=\s*\[|ambitious\s*[:=]\s*[\d(]|byCondition\s*=\s*\{|CONDITION_RUNG|byConditionOf/.test(s)) bad.push(f); }
   ok("no page file or workflow builds the ladder (the engine is its one source)", !bad.length, bad.join(" ")); }
