@@ -417,14 +417,16 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
   const popS = base.desk.comparables.filter(x => x.inPopulation && x.price > 0).slice(0, 4).map((x, i) => ({ ...x, photo: i % 2 ? null : "https://real.example/" + i + ".jpg", url: "https://example.com/s/" + i }));
   for (const [rname, rc] of Object.entries(reserves)) for (const comps of [2, 3, 4]) for (const cover of [true, false]) for (const noRes of [false, true]) {
     let c = cl(rc); c.condition = { ...c.condition, selected: { tier: 3, name: "Good" } }; c.desk = { ...c.desk, comparables: [...popS, ...c.desk.comparables.filter(x => !popS.some(p => p.id === x.id))] };
-    c = K.selectComparables(c, popS.slice(0, comps).map(x => x.id), T); if (noRes) c.report = { ...(c.report || {}), reserveMode: { mode: "no_reserve", why: "Too few sales to hold a reserve." } };
+    c = K.selectComparables(c, popS.slice(0, comps).map(x => x.id), T); c = K.setConditionChoice(c, 3, "the photos", T).case; if (noRes) c.report = { ...(c.report || {}), reserveMode: { mode: "no_reserve", why: "Too few sales to hold a reserve." } };
     const sheet = { id: "x", owner_seat: "Jane", created_at: T, submission: { typed: false, photos: cover ? [{ id: c.photos.items[0].id, url: "https://real.example/cover.jpg" }] : [] }, state: {}, case: c, final: { reportNumber: "HM-0001", finalisedAt: T } };
     const rep = await P4.buildReportV4(sheet, { name: "Acme" }, { fetchImage }), pg = mini.pdfPages(rep.bytes).map(p => p.join(" ")), all = pg.join(" "), s = `${rname}/c${comps}/cover${cover}/nores${noRes}`; n4++;
     if (rep.pages !== 3) bad4.push(s + ": " + rep.pages + " pages");
     if (!(/Your car\. Our recommendation\./.test(pg[0]) && /The evidence behind our recommendation/.test(pg[1]) && /Your selling strategy/.test(pg[2]))) bad4.push(s + ": page order");
-    if (popS.slice(0, comps).some(x => !pg[1].includes(money(x.price))) || (pg[1].match(/Price paid by the buyer/g) || []).length !== comps) bad4.push(s + ": the ticked sales are not exactly the sales printed");
-    if (popS.slice(comps).some(x => new RegExp("\\" + money(x.price) + " Price paid").test(pg[1]))) bad4.push(s + ": an unticked sale is printed");
+    if (popS.slice(0, comps).some(x => !pg[1].includes(money(x.price))) || (pg[1].match(/View the original listing/g) || []).length !== comps || (pg[1].match(/Every price shown is what the buyer paid\./g) || []).length !== 1) bad4.push(s + ": the ticked sales are not exactly the sales printed, or the price note is not once");
+    if (popS.slice(comps).some(x => x.title && pg[1].includes(money(x.price) + " " + x.title.slice(0, 10)))) bad4.push(s + ": an unticked sale is printed");
     if (/likely|assessed range|analyst range|[\u2013\u2014]/i.test(all)) bad4.push(s + ": a likely result, range or dash");
+    if (/set by the analyst|the analyst|\bengine\b/i.test(all)) bad4.push(s + ": desk wording reaches the seller");
+    if (/WHAT CARS LIKE THIS SOLD FOR/.test(pg[0])) bad4.push(s + ": a market range is on page one");
     if (!noRes && c.reserve.figure != null && !pg[0].includes(money(c.reserve.figure))) bad4.push(s + ": the reserve is not on page one");
     if (noRes && !/No reserve/.test(pg[0])) bad4.push(s + ": no reserve not stated on page one");
     const pics = (Buffer.from(rep.bytes).toString("latin1").match(/\/Subtype\s*\/Image/g) || []).length; (globalThis.__pics ||= {})[s] = pics;
