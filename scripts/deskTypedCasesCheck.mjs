@@ -675,4 +675,29 @@ console.log("CASE IDS " + ids.join(" "));
   const api = fs.readFileSync(path.join(ROOT, "api/usageDashboard.js"), "utf8"), mv = api.slice(api.indexOf('task === "deskpreviewmove"'), api.indexOf('task === "deskpreviewremove"'));
   ok("ORG 8: the move seeds first and removes only when all three are stored, removes the legacy ids only, and never names the demonstration case", /seedPreviewStore/.test(mv) && /stored\.every\(Boolean\)/.test(mv) && /legacySampleIds\(\)/.test(mv) && !/DEMO_ID|pv_hm/.test(mv) && mv.indexOf("seedPreviewStore(store") > 0 && mv.indexOf("seedPreviewStore(store") < mv.indexOf("deleteSheetEverywhere(env"), "");
   P.usePreviewBacking(null); }
+// ---------- ACTIVE TIME (Lane S's desk2, Nov 15 2026): case_active { id, seconds } in 30 second batches ----------
+// CAUSE: the Desk kept only the wall clock from first open to finalize, so a case left open overnight read as a day of handling. FIX: the page sends the seconds the case was really open; they are added to the case's activeSeconds (and the seat's), served on the case and on the card, and kept in the finalized version beside the wall clock.
+// CLASS: every batch adds exactly its seconds; a bad number, a case the caller cannot work on, a finished or archived case and a crew view as a seat record nothing; two seats add to the same case; the card and the case agree.
+{ const A = await U("lib/desk/sheetActions.js"), ST = await U("lib/desk/sheetStore.js"), { setup } = await import(pathToFileURL(path.join(ROOT, "scripts/_deskCaseWorld.mjs")).href), W = await setup(ROOT), store = ST.memoryStore(); store.reset();
+  const mk = (seat, extra) => ({ now: W.T, env: {}, org: "hm", seat, seatName: null, store, orgSettings: { name: "H" }, readSheet: async (env, input) => W.read(input), ...(extra || {}) }), run = (a, b, ctx) => A.handleSheetAction(a, b, ctx || mk("7"));
+  const b0 = await W.readyCase(), ID = "dd000004-0000-4000-8000-000000000000"; await store.insert("hm", { id: ID, org_id: "hm", created_at: W.T, owner_seat: "7", status: "In progress", submission: { typed: true, photos: [], documents: [] }, state: {}, case: b0, car_label: "1999 Porsche 911", version: 0 });
+  const g0 = await run("case_get", { id: ID }), a1 = await run("case_active", { id: ID, seconds: 30 }), a2 = await run("case_active", { id: ID, seconds: 30 }), a3 = await run("case_active", { id: ID, seconds: 17 });
+  ok("ACT 1: a case starts at zero active seconds, and each batch adds exactly its seconds", g0.case.activeSeconds === 0 && a1.ok && a1.activeSeconds === 30 && a2.activeSeconds === 60 && a3.activeSeconds === 77, JSON.stringify([g0.case.activeSeconds, a1.activeSeconds, a2.activeSeconds, a3.activeSeconds]));
+  const got = await run("case_get", { id: ID }), lst = await run("case_list", {}), row = (lst.rows || lst.cases || []).find(r => r.id === ID);
+  ok("ACT 2: the case and its card both serve activeSeconds, and they agree", got.case.activeSeconds === 77 && row && row.activeSeconds === 77, JSON.stringify(row && row.activeSeconds));
+  const bad = []; for (const sec of [0, -5, 1.5, 121, "abc", null, undefined]) { const r = await run("case_active", { id: ID, seconds: sec }); if (r.ok || !r.why) bad.push(String(sec)); }
+  ok("ACT 3: zero, negative, fractional, over 120, text and missing seconds are refused with a sentence and add nothing", !bad.length && (await run("case_get", { id: ID })).case.activeSeconds === 77, bad.join());
+  ok("ACT 4: an unknown case is refused", (await run("case_active", { id: "nope", seconds: 30 })).ok === false);
+  const view = await run("case_active", { id: ID, seconds: 30 }, mk("crew", { viewAs: "9" }));
+  ok("ACT 5: the crew viewing as a seat records nothing and says so", view.ok === true && view.recorded === false && (await run("case_get", { id: ID })).case.activeSeconds === 77, JSON.stringify(view));
+  const other = await run("case_active", { id: ID, seconds: 30 }, mk("9"));
+  ok("ACT 6: a seat that cannot work on the case records nothing", other.ok === false && (await run("case_get", { id: ID })).case.activeSeconds === 77, JSON.stringify(other).slice(0, 120));
+  const st1 = await store.get("hm", ID); ok("ACT 7: the seconds are kept per seat, beside the total", st1.case.activeBySeat && st1.case.activeBySeat["7"] === 77, JSON.stringify(st1.case.activeBySeat));
+  const done = await run("case_finalize", { id: ID }), after = await run("case_active", { id: ID, seconds: 30 });
+  const fin = await store.get("hm", ID);
+  ok("ACT 8: finalizing keeps the active seconds beside the handling time, and a finished case takes no more", (done.ok ? fin.case.handling_active_seconds === 77 : true) && after.ok === false, JSON.stringify([done.ok, fin.case && fin.case.handling_active_seconds, after.ok]));
+  const arch = "dd000005-0000-4000-8000-000000000000"; await store.insert("hm", { id: arch, org_id: "hm", created_at: W.T, owner_seat: "7", status: "In progress", archived: true, submission: { typed: true, photos: [], documents: [] }, state: {}, case: await W.readyCase(), car_label: "x", version: 0 });
+  { const old = await W.readyCase(); delete old.activeSeconds; delete old.activeBySeat; const oid = "dd000006-0000-4000-8000-000000000000"; await store.insert("hm", { id: oid, org_id: "hm", created_at: W.T, owner_seat: "7", status: "In progress", submission: { typed: true, photos: [], documents: [] }, state: {}, case: old, car_label: "x", version: 0 });
+    const og = await run("case_get", { id: oid }), oa = await run("case_active", { id: oid, seconds: 30 }); ok("ACT 10: a case stored before active time existed serves zero, and takes its first batch", og.case.activeSeconds === 0 && oa.ok === true && oa.activeSeconds === 30, JSON.stringify([og.case.activeSeconds, oa.activeSeconds])); }
+  ok("ACT 9: an archived case takes no active time", (await run("case_active", { id: arch, seconds: 30 })).ok === false); }
 console.log(`deskTypedCasesCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

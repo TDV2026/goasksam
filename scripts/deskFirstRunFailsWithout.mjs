@@ -291,6 +291,22 @@ const MUT = [
   ["preview org: the move removes before it has seeded", "deskTypedCasesCheck", "api/usageDashboard.js", rep("const { SAMPLE_CASES } = await import(\"../lib/preview/deskV3Fixture.js\"), store = supabaseStore(env), r = await seedPreviewStore(store, { realIds: true, seat: previewSeatOf(env) });", "const { SAMPLE_CASES } = await import(\"../lib/preview/deskV3Fixture.js\"), store = supabaseStore(env), r = { steps: [] }; await deleteSheetEverywhere(env, { org: PREVIEW_ORG.id, sheetId: legacySampleIds()[0], reason: \"sheet\", actor: \"x\" }); await seedPreviewStore(store, { realIds: true, seat: previewSeatOf(env) });")],
   ["seat door: a Valuations seat cannot rename itself", "deskPdfCheck", "api/desk.js", rep("(!act.startsWith(\"sheet_\") && act !== \"seat_name\")", "!act.startsWith(\"sheet_\")")],
   ["seat door: a seat may also run a case action", "deskPdfCheck", "api/desk.js", rep("act !== \"seat_name\") ||", "act !== \"seat_name\" && !act.startsWith(\"case_\")) ||")],
+  ["active time: a batch adds the wrong seconds", "deskTypedCasesCheck", "lib/desk/caseModel.js", rep("(Number(c.activeSeconds) || 0) + n;", "(Number(c.activeSeconds) || 0) + 1;")],
+  ["active time: seconds over 120 are taken", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("|| n < 1 || n > 120)", "|| n < 1)")],
+  ["active time: the card serves no active seconds", "deskTypedCasesCheck", "lib/desk/lifecycle.js", rep("activeSeconds: Number(c.activeSeconds) || 0, handlingSeconds", "activeSeconds: 0, handlingSeconds")],
+  ["active time: the case serves no active seconds", "deskTypedCasesCheck", "lib/desk/caseView.js", rep("activeSeconds: Number(c.activeSeconds) || 0, lifecycle: lcv", "lifecycle: lcv")],
+  ["active time: a finished case takes more time", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("|| s0.archived || done)", "|| s0.archived)")],
+  ["active time: the crew viewing as a seat records time", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("if (ctx.viewAs) return { ok: true, id: s0.id, recorded: false,", "if (false) return { ok: true, id: s0.id, recorded: false,")],
+  ["active time: the finalized version drops the active seconds", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("c.handling_active_seconds = Number(c.activeSeconds) || 0;", "")],
+  ["report v4: a sale that was not ticked is printed", "reportV4Check", "lib/desk/reportState.js", rep("sales: out.comparables.map(x => ({ id: x.id, title: x.title, price: x.price, paidLine", "sales: (d.comparables || []).filter(x => x.price > 0).slice(0, 6).map(x => ({ id: x.id, title: x.title, price: x.price, paidLine")],
+  ["report v4: the market range is worded as a prediction", "reportV4Check", "lib/reasonWords.js", rep("text: () => \"What cars like this sold for\" }", "text: () => \"Likely selling price\" }")],
+  ["report v4: a sale's price is not said to be what the buyer paid", "reportV4Check", "lib/reasonWords.js", rep("text: p => `Price paid by the buyer, ${p.venue}` }", "text: p => `${p.venue}` }")],
+  ["report v4: the cover photo is left off page one", "reportV4Check", "lib/desk/reportPdfV4.js", rep("if (hb) { const ph", "if (false) { const ph")],
+  ["report v4: the car's own earlier sale is dropped", "reportV4Check", "lib/desk/reportPdfV4.js", rep("if (p.own) { await room(54);", "if (false) { await room(54);")],
+  ["report v4: the default report flips to 4 before Sam switches", "reportV4Check", "lib/desk/reportBuild.js", rep("REPORT_DEFAULT_VERSION = 3;", "REPORT_DEFAULT_VERSION = 4;")],
+  ["report v4: a request changes the layout of a final report", "reportV4Check", "lib/desk/reportBuild.js", rep("(draft ? asVersion(ask) : null)", "asVersion(ask)")],
+  ["report v4: the contact line is left off page three", "reportV4Check", "lib/desk/reportPdfV4.js", rep("T(reasonLine(\"ed.contact\", { org: orgName }), M, y + 10,", "T(\"\", M, y + 10,")],
+  ["report v4: a dash in a heading", "reportV4Check", "lib/reasonWords.js", rep("text: () => \"Your selling strategy\" }", "text: () => \"Your selling \\u2014 strategy\" }")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
