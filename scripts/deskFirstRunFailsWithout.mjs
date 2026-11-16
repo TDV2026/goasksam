@@ -385,6 +385,14 @@ const MUT = [
   ["chassis: the VIN row ignores the seller's chassis (Not given)", "deskTypedCasesCheck", "lib/desk/title.js", rep("const ch = (c && c.lead && c.lead.facts && c.lead.facts.chassis && c.lead.facts.chassis.value) || (sheet && sheet.chassis) || null;", "const ch = null;")],
   ["chassis: the chassis is tagged Verified", "deskTypedCasesCheck", "lib/desk/title.js", rep("source: \"seller\", verified: false } : null;", "source: \"seller\", verified: true } : null;")],
   ["chassis: the report does not print the chassis", "reportV4Check", "lib/desk/reportPdfV4.js", rep("if (p.identifier) y = para(", "if (false) y = para(")],
+  ["failed read: an edit's partial read replaces the good answer", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("const why = incompleteWhy(sheet); if (!sheet || sheet.retry || !sheet.desk || why) {", "const why = null; if (!sheet || sheet.retry || !sheet.desk || why) {")],
+  ["failed read: a create stores the partial answer it was fed", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("if (!rd || rd.retry === true || why) return { case: markReadRetry(", "if (!rd || rd.retry === true) return { case: markReadRetry(")],
+  ["failed read: the shape re-read stores a partial answer", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("|| !sheet.desk || incompleteWhy(sheet)) return { case: c0, filled: false };", "|| !sheet.desk) return { case: c0, filled: false };")],
+  ["failed read: the case never says the read did not complete", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("return why ? { complete: false, why, line: reasonLine(\"case.read.incomplete\")", "return false ? { complete: false, why, line: reasonLine(\"case.read.incomplete\")")],
+  ["failed read: the Retry does not store the complete answer", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("stamp(W.settle(W.syncNeeds(o.case), now), \"case.read.audit.retry_taken\")", "stamp(s0.case, \"case.read.audit.retry_taken\")")],
+  ["failed read: the forwarded lead's read leaves no marker", "deskTypedCasesCheck", "lib/desk/intake/toCase.js", rep("if (o.case !== c) await putCase(sheets, orgId, row, o.case); ", "")],
+  ["failed read: a marked-partial answer is taken as complete", "deskTypedCasesCheck", "lib/desk/answerHealth.js", rep("if (d.partial === true || d.incomplete === true", "if (false && d.partial === true || d.incomplete === true")],
+  ["failed read: comparables with no period view are taken as complete", "deskTypedCasesCheck", "lib/desk/answerHealth.js", rep("if (!views && comps > 0 && Number(d.shape) >= VIEWS_FROM_SHAPE) return \"no_views\";", "")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
