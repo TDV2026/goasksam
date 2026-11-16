@@ -1,0 +1,13 @@
+{
+  "_about": "Sales of a Mercedes-Benz SL500 for the report's photo check (the SL500 draft printed 'Listing photograph not available' for sales the screen showed with photos). Photo addresses are stand-ins answered by the check's own fetch. main: one photo served, one refused by the host with a second stored image to fall back on, one with no photo. formats: a palette PNG (fetched fine, unreadable by the PDF writer until converted), a photo the host serves only to a browser (browser user agent and the sale page as referer), and one that never answers and has no other image.",
+  "main": [
+    { "title": "2003 Mercedes-Benz SL500", "price": 16500, "miles": 41000, "platform": "Hagerty", "soldDate": "2026-03-16", "photo": "https://cdn.sl500.example/ok/1.jpg", "url": "https://sl500.example/listing/1" },
+    { "title": "2003 Mercedes-Benz SL500", "price": 15400, "miles": 46000, "platform": "Bring a Trailer", "soldDate": "2026-02-22", "photo": "https://cdn.sl500.example/refused/2.jpg", "photos": ["https://cdn.sl500.example/ok/2b.jpg"], "url": "https://sl500.example/listing/2" },
+    { "title": "2003 Mercedes-Benz SL500", "price": 15500, "miles": 52000, "platform": "Bring a Trailer", "soldDate": "2026-01-26", "photo": null, "url": "https://sl500.example/listing/3" }
+  ],
+  "formats": [
+    { "title": "2003 Mercedes-Benz SL500", "price": 17250, "miles": 44000, "platform": "Bring a Trailer", "soldDate": "2026-04-02", "photo": "https://cdn.sl500.example/palette/4.png", "url": "https://sl500.example/listing/4" },
+    { "title": "2002 Mercedes-Benz SL500", "price": 16900, "miles": 48000, "platform": "Hagerty", "soldDate": "2026-03-30", "photo": "https://cdn.sl500.example/browser-only/5.jpg", "url": "https://sl500.example/listing/5" },
+    { "title": "2003 Mercedes-Benz SL500 Silver Arrow", "price": 24100, "miles": 31000, "platform": "Bring a Trailer", "soldDate": "2026-03-01", "photo": "https://cdn.sl500.example/dead/6.jpg", "url": "https://sl500.example/listing/6" }
+  ]
+}
