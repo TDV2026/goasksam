@@ -1,5 +1,5 @@
 {
- "shape": 5,
+ "shape": 6,
  "top": [
   "anyCondition",
   "comparables",
@@ -131,6 +131,7 @@
    "windowMonths"
   ],
   "reserveLadder": [
+   "byCondition",
    "fallbackView",
    "reason",
    "recommended",
