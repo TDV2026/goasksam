@@ -276,6 +276,14 @@ const MUT = [
   ["closest sales: an excluded sale is still printed when ticked", "deskTypedCasesCheck", "lib/desk/reportSales.js", rep(".filter(id => byId.has(id) && !out.has(id))", ".filter(id => byId.has(id))")],
   ["closest sales: the gearbox difference is not named", "deskTypedCasesCheck", "lib/desk/whyLine.js", rep("if (d.gearbox === \"other\") {", "if (false) {")],
   ["closest sales: the report's sale carries no why line", "deskTypedCasesCheck", "lib/desk/reportState.js", rep("whyLine: whyLineOf(x, f(\"transmission\").value), ", "")],
+  ["seat names: an email address is served as the seat's name", "deskTypedCasesCheck", "lib/desk/seatName.js", rep("own.name && !/@/.test(own.name)", "own.name")],
+  ["seat names: the crew seat is not Sam", "deskTypedCasesCheck", "lib/desk/seatName.js", rep("CREW_NAME = \"Sam\"", "CREW_NAME = \"Crew\"")],
+  ["seat names: a name change leaves no audit event", "deskTypedCasesCheck", "lib/desk/sheetStore.js", rep("SEATEV.push({ org_id: org, seat: String(label)", "[].push({ org_id: org, seat: String(label)")],
+  ["seat names: an email address is taken as a name", "deskTypedCasesCheck", "lib/desk/seatName.js", rep("if (/@/.test(t)) return { refuse: \"case.seat.refuse_address\" };", "")],
+  ["seat names: case_list names the analyst by seat id", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("analyst: nameOf(r.analyst, nm, own), ", "")],
+  ["seat names: the case header names the analyst by seat id", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("namesOnView(await caseViewRaw(sh), await namesOf(), own)", "await caseViewRaw(sh)")],
+  ["seat names: a seat viewed as can be renamed", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("if (ctx.viewAs) return refuse(reasonLine(\"case.seat.refuse_viewas\"));", "")],
+  ["seat names: case_list serves no seat name", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("q: String(body.q || \"\"), seat: await seatOut() }", "q: String(body.q || \"\"), seat }")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
