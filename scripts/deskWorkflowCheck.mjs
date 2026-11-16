@@ -100,7 +100,7 @@ ok("an item waived with a reason stays waived while its cause stands", (() => { 
   // a form with nothing to read makes an empty case with no engine call
   { const c = n0(), e = await run("case_new", {}); ok("an empty form makes an empty case and asks the engine nothing", e.ok && n0() === c && !e.case.desk && e.case.fields.vin.value == null); }
   // photos
-  const ph1 = await run("case_edit", { id: nw.id, op: "photo_add", name: "front.jpg", data: JPG }), ph2 = await run("case_edit", { id: nw.id, op: "photo_add", name: "rear.jpg", data: JPG });
+  const ph1 = await run("case_edit", { id: nw.id, op: "photo_add", name: "front.jpg", data: JPG }), ph2 = await run("case_edit", { id: nw.id, op: "photo_add", name: "rear.jpg", data: Buffer.concat([Buffer.from(JPG, "base64"), Buffer.from([0])]).toString("base64") });
   const stored = await store.get(org, nw.id);
   ok("photo_add on a fresh case stores the real image through the photo table and the sheet", ph1.ok && stored.submission.photos.length === 2 && stored.submission.photos.every(p => p.id && p.url));
   ok("the case view serves each picture to the page (an address per photo item) and the first photo is the cover", ph2.case.photos.items.length === 2 && ph2.case.photos.items.every(p => p.url) && ph2.case.photos.coverId === ph1.case.photos.items[0].id && ph2.case.photos.coverId !== ph2.case.photos.items[1].id);
