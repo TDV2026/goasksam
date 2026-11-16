@@ -1,5 +1,5 @@
 // A SMALL STAND-IN FOR PostgREST OVER THE DESK TABLES (Lane D, Nov 12 2026), for checks only: it answers the calls lib/desk/sheetStore.js supabaseStore makes (insert, select with eq / in / or filters, patch with return=representation) and ENFORCES the table's own constraints (the status values, a finalised or sent row needs its read, decision, time, seat and report number, the unique report number), so a write the real database would refuse is refused here too. It reads no network.
-export function fakePostgrest({ seats = [{ id: 1, org_id: "hagerty", subject: "crew" }], refusePatch = null } = {}) {   // refusePatch(url, body): a reason string makes that PATCH answer 409 (a check's own way of making the database refuse one write)
+export function fakePostgrest({ seats = [{ id: 1, org_id: "hagerty", subject: "crew" }, { id: 2, org_id: "hagerty-preview", subject: "crew" }], refusePatch = null } = {}) {   // refusePatch(url, body): a reason string makes that PATCH answer 409 (a check's own way of making the database refuse one write)
   const tables = { desk_sheets: [], desk_case_versions: [], desk_case_exports: [], desk_sheet_photos: [], desk_sheet_documents: [], desk_seats: seats.map(s => ({ ...s })) }, log = [], objects = new Map();
   const STATUS = ["new", "in_progress", "finalised", "sent", "needs_car"];
   const refuse = (row, rows, isNew) => {

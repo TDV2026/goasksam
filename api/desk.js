@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   // stranger this endpoint is even here. Desk is crew-only ALWAYS (never public, unlike the
   // storefront) - a non-crew, non-tester caller gets the exact same plain 404 regardless of HTTP
   // method, with no JSON, no CORS headers, and no mention of Desk anywhere in the response.
-  // A SEAT (Lane C, Nov 4 2026): a signed gas_seat cookie whose seat row is still active (re-read on every call, so a removed seat is out on the next one). It runs Valuations (sheet_) actions only.
+  // A SEAT (Lane C, Nov 4 2026): a signed gas_seat cookie whose seat row is still active (re-read on every call, so a removed seat is out on the next one). It runs Valuations (sheet_) actions only, plus seat_name (its own display name, Sam Nov 15 2026): that one exception, nothing else.
   const e1 = { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY };
   // WHICH DOOR (lib/desk/door.js): crew, crew viewing as ONE seat (explicit switch), tester, or a seat cookie. Nothing else gets past the disguised 404.
   const door = await deskDoor(req, { env: e1.supabaseUrl ? e1 : null });
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
   if (seat) {
     const lim = await routeLimit({ supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY }, req, "desk_seat", { route: "/api/desk" }); if (!lim.ok) return sendTooMany(res, lim.retryAfter);
     const act = req.body && req.body.action;
-    if (typeof act !== "string" || !act.startsWith("sheet_") || req.body.archiveDiag) return res.status(403).json({ ok: false, error: "A seat runs the Valuations actions only." });
+    if (typeof act !== "string" || (!act.startsWith("sheet_") && act !== "seat_name") || req.body.archiveDiag) return res.status(403).json({ ok: false, error: "A seat runs the Valuations actions only." });
   }
 
   const supabaseUrl = process.env.SUPABASE_URL;

@@ -37,7 +37,7 @@ const last = await session(); ok("after all four edits a cold start still shows 
 // CAUSE: the counts are of the live sheets (a finalized sheet that a revision corrects is replaced by the revision) and the rail listed every row, so a superseded finalized version was listed in a group that did not count it. OTHER PAGES: every group of the rail in every state (new, review, ready, final, sent). CLASS: in every state of the store, each group's count equals the cases listed under it.
 { const V = await imp("lib/preview/deskV3.js"), states = []; const check = async tag => { const m = await V.deskModel({ query: {} }); for (const k of ["new", "review", "ready", "final", "sent"]) { const n = m.cases.filter(c => c.group === k).length; if (m.queue[k] !== n) states.push(`${tag}: ${k} counts ${m.queue[k]} lists ${n}`); } return m; };
   await check("seeded");
-  const fin = P.previewUuid("pv_fin"), rev = await api({ action: "case_edit", id: fin, op: "reserve", patch: { figure: 29000 } });
+  const fin = P.sampleUuid("pv_fin"), rev = await api({ action: "case_edit", id: fin, op: "reserve", patch: { figure: 29000 } });
   ok("an edit of the finalized sample makes a revision (the finalized version is superseded)", rev.ok === true && !!rev.revisedFrom, String(rev.why || ""));
   const m = await check("after a revision"); ok("every group's count equals the cases listed under it, before and after a revision", !states.length && m.cases.some(c => c.group === "review"), states.join(" | ")); }
 // ---------- ANY CONDITION (Lane C's run: the demonstration case sat on Good and no button took it back) ----------
@@ -58,7 +58,7 @@ const last = await session(); ok("after all four edits a cold start still shows 
     globalThis.fetch = pg.fetch; const store = SS.supabaseStore({ supabaseUrl: "https://x.supabase.co", supabaseKey: "k" }), opts = { realIds: true, seat: "crew" };
     // a stray sheet of the org with no case, from an earlier run of something else: the seed must not touch it
     pg.tables.desk_sheets.push({ id: "11111111-1111-4111-8111-111111111111", org_id: "hagerty", seat_id: 1, status: "in_progress", sheet: { id: "11111111-1111-4111-8111-111111111111", status: "In progress", owner_seat: "crew", version: 0 }, vin: null });
-    refuseId = P.previewUuid("pv_fin");
+    refuseId = P.sampleUuid("pv_fin");
     const first = await P.seedPreviewStore(store, opts);
     ok("a refused write is reported with the step that failed, not a bare message", first.seeded === false && !!first.failed && /^finalize sample pv_fin/.test(first.failed.step) && /final_has_read/.test(first.failed.why || ""), JSON.stringify(first.failed));
     ok("the steps before it are listed as done", first.steps.filter(x => x.ok).length >= 3, JSON.stringify(first.steps.map(x => [x.step, x.ok])));

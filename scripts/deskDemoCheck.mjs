@@ -106,10 +106,10 @@ RS.useSheetEngine(null);
 // ---------- F. every case the preview lists is a real stored sheet with a case (the Preview report said "This sheet has no case" on the pv_* fixtures)
 { const P = await imp("lib/preview/deskPreview.js"), first = await P.previewDeskApi({ action: "case_get", id: "pv_hm" });   // the very first read of the crew door, no page rendered before it
   ok(first.ok && first.case && first.case.lead_ref === "HM-24117", "the demonstration case HM-24117 answers case_get at the first read: " + (first.why || ""));
-  const st = await P.previewStore(), rows = await st.list(P.PREVIEW_ORG.id); ok(rows.length >= 4 && rows.some(r => r.id === "pv_hm"), "the preview lists the demonstration case and the other pv_ sheets: " + rows.map(r => r.id).join(","));
+  const st = await P.previewStore(), hag = await st.list(P.PREVIEW_ORG.id), smp = await st.list(P.SAMPLE_ORG.id), rows = hag.concat(smp); ok(hag.filter(r => /^pv_/.test(r.id)).map(r => r.id).join() === "pv_hm" && smp.map(r => r.id).sort().join() === "pv_240z,pv_fin,pv_thin", "the Hagerty queue holds the demonstration case and the preview org holds the three samples: " + hag.map(r => r.id).join(",") + " | " + smp.map(r => r.id).join(","));
   for (const r of rows.filter(r => /^pv_/.test(r.id))) {
     const g = await P.previewDeskApi({ action: "case_get", id: r.id }), e = await P.previewDeskApi({ action: "case_edit", id: r.id, op: "field", field: "colour", value: "Guards Red" }), d = await P.previewDeskApi({ action: "case_pdf", id: r.id, draft: true });
-    const again = await st.get(P.PREVIEW_ORG.id, r.id);
+    const again = await st.get(P.orgOfCaseId(r.id).id, r.id);
     ok(again.case && again.demo === true, "a listed case is a stored sheet with a case, marked demo: " + r.id);
     ok(g.ok && (e.ok !== false || r.status === "Finalised" && /locked/.test(e.why)) && d.ok && d.draft === true && d.pdf_b64 && Buffer.from(d.pdf_b64, "base64").slice(0, 4).toString() === "%PDF", "case_get, case_edit and case_pdf all work on " + r.id + ": " + [g.why, e.why, d.why].filter(Boolean).join(" | "));
   }

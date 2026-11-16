@@ -10,7 +10,8 @@ import path from "node:path"; import { pathToFileURL } from "node:url"; import {
 const root = path.resolve(process.argv[2] || "."), { M, K, read, readyCase, T, today } = await setup(root), imp = f => import(pathToFileURL(path.join(root, f)).href);
 const R = await imp("lib/desk/reportState.js"), V = await imp("lib/desk/caseView.js");
 let pass = 0, fail = 0; const ok = (n, c, d) => { if (c) pass++; else { fail++; console.log("FAIL " + n + (d ? "  " + d : "")); } }; const cl = x => structuredClone(x);
-const base = await readyCase(), ev = base.desk.evidence, mkSheet = c => ({ id: "x", owner_seat: "Jane Park", created_at: T, submission: { typed: true, photos: [], documents: [] }, state: {}, case: c });
+const base = await readyCase(); base.condition = { ...base.condition, selected: { tier: 3, name: "Good" } };   // finalize needs a condition set (item 5): every state of the sweep has one
+const ev = base.desk.evidence, mkSheet = c => ({ id: "x", owner_seat: "Jane Park", created_at: T, submission: { typed: true, photos: [], documents: [] }, state: {}, case: c });
 const at = async f => (await K.refreshEvidence(K.setReserve(base, { figure: f }, T), read, { caseDate: today, now: T })).case;
 const reserves = { inside: await at(Math.round((ev.q1 + ev.q3) / 2)), below: await at(ev.q1 - 1), above: await at(ev.q3 + 1) };
 const pop = base.desk.comparables.filter(x => x.inPopulation && x.url).map(x => x.id);
@@ -409,4 +410,25 @@ ok(`${n} case states: Finalize, the four checks, the reserve's wording, the sell
     ok(`EFFECT line, tier ${tier}: present, and the count it names is the evidence's (${d.evidence.count}) and the list's (${d.sales.length})`, typeof cd.effectLine === "string" && cd.effectLine.length > 20 && cd.effectLine.includes(String(d.evidence.count)) && d.evidence.count === d.sales.length && (d.servedFrom ? /so figures use all \d+\./.test(cd.effectLine) && /choose a higher rung and say why\.$/.test(cd.effectLine) : /^Figures use the \d+ \w+ sales?\.$/.test(cd.effectLine)), cd.effectLine); }
   const c0 = cl(base), cd0 = V.caseView(mkSheet(c0), [mkSheet(c0)], T).condition;
   ok("EFFECT line: with no condition chosen there is none, and the report does not print it", !cd0.chosen ? cd0.effectLine === null : typeof cd0.effectLine === "string", String(cd0.effectLine)); }
+// ---------- THE THREE PAGE REPORT (edition 4, order 2318 items 4 and 6): the same case states, the same facts ----------
+// CLASS: for every state of the sweep (reserve inside, below or above the sales, no reserve, two to four ticked sales, with and without a cover photo) the three page report is three pages in one order, prints exactly the ticked sales each with its price paid, carries the cover photo on page one only when there is one, prints the reserve as the case holds it, and has no likely result, assessed range or dash.
+{ const P4 = await imp("lib/desk/reportPdfV4.js"), mini = await imp("lib/pdf/mini.js"), fs = (await import("node:fs")).default; const PNG = fs.readFileSync(path.join(root, "public/icon-512.png")), PNG2 = fs.readFileSync(path.join(root, "public/icon-192.png"));
+  const fetchImage = async u => (/cover/.test(String(u)) ? PNG2 : /real\.example/.test(String(u)) ? PNG : null), money = n => "$" + Number(n).toLocaleString("en-US"), bad4 = []; let n4 = 0;
+  const popS = base.desk.comparables.filter(x => x.inPopulation && x.price > 0).slice(0, 4).map((x, i) => ({ ...x, photo: i % 2 ? null : "https://real.example/" + i + ".jpg", url: "https://example.com/s/" + i }));
+  for (const [rname, rc] of Object.entries(reserves)) for (const comps of [2, 3, 4]) for (const cover of [true, false]) for (const noRes of [false, true]) {
+    let c = cl(rc); c.condition = { ...c.condition, selected: { tier: 3, name: "Good" } }; c.desk = { ...c.desk, comparables: [...popS, ...c.desk.comparables.filter(x => !popS.some(p => p.id === x.id))] };
+    c = K.selectComparables(c, popS.slice(0, comps).map(x => x.id), T); if (noRes) c.report = { ...(c.report || {}), reserveMode: { mode: "no_reserve", why: "Too few sales to hold a reserve." } };
+    const sheet = { id: "x", owner_seat: "Jane", created_at: T, submission: { typed: false, photos: cover ? [{ id: c.photos.items[0].id, url: "https://real.example/cover.jpg" }] : [] }, state: {}, case: c, final: { reportNumber: "HM-0001", finalisedAt: T } };
+    const rep = await P4.buildReportV4(sheet, { name: "Acme" }, { fetchImage }), pg = mini.pdfPages(rep.bytes).map(p => p.join(" ")), all = pg.join(" "), s = `${rname}/c${comps}/cover${cover}/nores${noRes}`; n4++;
+    if (rep.pages !== 3) bad4.push(s + ": " + rep.pages + " pages");
+    if (!(/Your car\. Our recommendation\./.test(pg[0]) && /The evidence behind our recommendation/.test(pg[1]) && /Your selling strategy/.test(pg[2]))) bad4.push(s + ": page order");
+    if (popS.slice(0, comps).some(x => !pg[1].includes(money(x.price))) || (pg[1].match(/Price paid by the buyer/g) || []).length !== comps) bad4.push(s + ": the ticked sales are not exactly the sales printed");
+    if (popS.slice(comps).some(x => new RegExp("\\" + money(x.price) + " Price paid").test(pg[1]))) bad4.push(s + ": an unticked sale is printed");
+    if (/likely|assessed range|analyst range|[\u2013\u2014]/i.test(all)) bad4.push(s + ": a likely result, range or dash");
+    if (!noRes && c.reserve.figure != null && !pg[0].includes(money(c.reserve.figure))) bad4.push(s + ": the reserve is not on page one");
+    if (noRes && !/No reserve/.test(pg[0])) bad4.push(s + ": no reserve not stated on page one");
+    const pics = (Buffer.from(rep.bytes).toString("latin1").match(/\/Subtype\s*\/Image/g) || []).length; (globalThis.__pics ||= {})[s] = pics;
+  }
+  ok(`THE THREE PAGE REPORT: ${n4} states agree (three pages in order, exactly the ticked sales with their price paid, the reserve or no reserve on page one, no likely result, range or dash)`, !bad4.length, bad4.slice(0, 5).join(" | "));
+  const pics = globalThis.__pics; ok("THE THREE PAGE REPORT: the cover photo is drawn when the case has one and never a placeholder when it has none", Object.keys(pics).filter(k => k.includes("cover" + "true")).every(k => pics[k] > pics[k.replace("covertrue", "coverfalse")]), ""); }
 console.log(`reportConsistencyCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

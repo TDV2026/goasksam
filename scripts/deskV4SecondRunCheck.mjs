@@ -40,7 +40,7 @@ const CSSMUT = (h, css) => h.replace("</style>", css + "</style>");
   const pill = await run(null, "pill"); ok(pill.n1 === pill.n0 + 1 && pill.named && pill.docs && pill.needs, `a document added through the needs-attention pill is on the Documents list at once (${pill.n0} to ${pill.n1}), and the lists match the case (needs ${pill.openN}/${pill.openK})`);
   ok(pill.closed, "the pill's own item closes when its document arrives");
   const tile = await run(null, "tile"); ok(tile.n1 === tile.n0 + 1 && tile.docs && tile.needs && tile.steps, "a document added through the Add a document tile is listed at once and every section matches the case");
-  const m = await run(h => h.replace("}).then(function (r) { everything(r, nm); }); }; pk.click(); }", "}).then(function () {}); }; pk.click(); }"), "pill"); ok(!(m.docs && m.needs && m.closed), "mutant caught: a pill that leaves the page on the earlier case"); }
+  const m = await run(h => h.replace("sendDoc(f, \"invoice\").then(function (r) { everything(r, nm); }); }; pk.click(); }", "sendDoc(f, \"invoice\").then(function () {}); }; pk.click(); }"), "pill"); ok(!(m.docs && m.needs && m.closed), "mutant caught: a pill that leaves the page on the earlier case"); }
 
 { // 4 what we took into account (Lane D's case.considered [{id, key, title, text, edited}], considered_edit / considered_remove / considered_add)
   const run = async () => { PV.resetPreviewStore(); const p = await openLive(b, {});
