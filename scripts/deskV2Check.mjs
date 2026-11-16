@@ -220,4 +220,13 @@ for (const [name, f] of Object.entries(RAIL_MUT)) { const mh = f(rhtml); if (mh 
   if (name === "sendNoConfirm") { await q.evaluate(() => { document.getElementById("bFin").disabled = false; }); await q.type("#why", " x"); await wait(900); await q.click("#bFin"); await wait(300); cnt(!(q._posts || []).some(b => b.action === "case_send")); }
   if (name === "wordsDropped") { await q.type(`[data-statement="${rr.nid}"]`, "words here"); await q.click(`[data-need="${rr.nid}"] [data-act="waive"]`); await wait(150); cnt((q._posts || []).some(b => b.action === "proceed_without" && b.words === "words here")); }
   await q.close(); ok(bad > 0, `mutant ${name} is caught`); }
+// ---------- stage 4: active time ----------
+{ const am = await V3.deskModel({ query: { case: "pv_hm" } }); am.kase = { ...am.kase, activeSeconds: 134 }; const ahtml = V2.pageHtml(am);
+  const words = q => q.evaluate(() => (document.getElementById("active") || {}).textContent || null);
+  const hide = (q, on) => q.evaluate(v => { Object.defineProperty(document, "visibilityState", { configurable: true, get: () => v ? "hidden" : "visible" }); document.dispatchEvent(new Event("visibilitychange")); }, on);
+  const run = async (h, tag, cnt) => { const q = await open(h); const w0 = await words(q); cnt(w0 === "Active 2m 14s" || /^Active 2m 1[4-5]s$/.test(w0 || "")); await hide(q, true); const a = await words(q); await wait(2300); const b2 = await words(q); cnt(a === b2); await hide(q, false); await wait(2300); const c2 = await words(q); cnt(c2 !== b2 && /^Active 2m \d+s$/.test(c2)); await hide(q, true); await wait(400); cnt((q._posts || []).some(x => x.action === "case_active" && x.seconds >= 1)); const txt = await q.evaluate(() => document.getElementById("ct").parentNode.textContent); assertCase(txt, tag, cnt); await q.close(); };
+  let n = 0; await run(ahtml, "active time", c => { n++; ok(c, "active time: assertion " + n + " holds (shows the model's seconds, still while hidden, ticks when shown, posts case_active, no dash)"); });
+  const AM = { alwaysTick: h => h.replace('if(document.visibilityState==="hidden"||D.active!==clock.id)return;', 'if(D.active!==clock.id)return;'), noLabel: h => h.replace('id:"active",text:activeWords(clock.id===D.active?clock.base+clock.run:(Number(C.activeSeconds)||0))', 'id:"actv",text:""'), noFlush: h => h.replace('post({action:"case_active"', 'void({action:"case_active"') };
+  for (const [name, f] of Object.entries(AM)) { const mh = f(ahtml); if (mh === ahtml) { ok(false, "mutant target missing: " + name); continue; } let bad = 0; try { await run(mh, "mutant " + name, c => { if (!c) bad++; }); } catch { bad++; } ok(bad > 0, `mutant ${name} is caught`); } }
+
 await b.close(); done("deskV2Check");
