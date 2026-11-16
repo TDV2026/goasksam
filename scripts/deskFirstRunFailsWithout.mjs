@@ -355,6 +355,10 @@ const MUT = [
   ["one read: a re-read that is still short of the shape is asked again (no stamp)", "deskV4FlowCheck", "lib/desk/sheetActions.js", rep("return W.needsReread(nc) ? { ...nc, shapeRead: W.CURRENT_SHAPE } : nc; }", "return nc; }")],
   // RETIRED (Nov 15 2026): "an adopted view drops the answer's shape" cannot be seen: the engine's view blocks carry their own shape, so the case keeps it either way; adoptView keeps desk.shape as a guard only.
   ["one read: going back to no condition reads", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("&& !((op === \"condition_set\" && (body.condition == null || body.condition === \"\" || Number(body.condition) === 0)) || (op === \"condition\" && !(body.selected && body.selected.tier)))", "")],
+  ["lead labels: the synonym table is dropped (only the first name of each label)", "intakeToCaseCheck", "lib/desk/intake/hagertyForm.js", rep("[key, key === \"model\" ? /^model\\b(?!\\s*year)/i : reOf(words)]", "[key, key === \"model\" ? /^model\\b(?!\\s*year)/i : reOf(words.slice(0, 1))]")],
+  ["lead labels: the year, make and model lines do not build the title when no VIN decodes", "intakeToCaseCheck", "lib/desk/intake/run.js", rep("if (!car && f && f.year && f.make && f.model) car =", "if (false && f && f.year && f.make && f.model) car =")],
+  ["lead labels: a VIN or chassis line does not name the car", "intakeToCaseCheck", "lib/desk/intake/run.js", rep("|| (read.form && (read.form.hasVinLine || read.form.year || read.form.make || read.form.model)));", ");")],
+  ["lead labels: the form's gearbox, colour and ask are ignored for the plain finders", "intakeToCaseCheck", "lib/desk/intake/parse.js", rep("colour: (form && form.exteriorColour) || findColour(text),", "colour: findColour(text) && null,")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
