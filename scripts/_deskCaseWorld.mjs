@@ -20,6 +20,7 @@ export async function setup(root, wopts) {
     c = K.setAssessment(c, { figure: ev.median, low: ev.q1, high: ev.q3, explanation: "Manual 996 coupes in the record, near the median." }, T);
     c = K.setReserve(c, { figure: ev.q1, rationale: "Held at the lower quartile of the record." }, T);
     c = (await K.refreshEvidence(c, read, { caseDate: today, now: T })).case;   // the reserve is an input to the engine (reserveCheck), so the case is read once more for it
+    c.condition = { ...c.condition, selected: { tier: 3, name: "Good" } };   // a READY case has its condition set (order 2318 item 5: finalize needs it); a check that wants it unset clears it on its own copy
     return K.settle(c, T);
   }
   return { M, K, read, calls, readyCase, T, today, W, w };
