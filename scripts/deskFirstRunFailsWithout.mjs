@@ -307,6 +307,13 @@ const MUT = [
   ["report v4: a request changes the layout of a final report", "reportV4Check", "lib/desk/reportBuild.js", rep("(draft ? asVersion(ask) : null)", "asVersion(ask)")],
   ["report v4: the contact line is left off page three", "reportV4Check", "lib/desk/reportPdfV4.js", rep("T(reasonLine(\"ed.contact\", { org: orgName }), M, y + 10,", "T(\"\", M, y + 10,")],
   ["report v4: a dash in a heading", "reportV4Check", "lib/reasonWords.js", rep("text: () => \"Your selling strategy\" }", "text: () => \"Your selling \\u2014 strategy\" }")],
+  ["finalize safeguards: a case with no condition finalizes", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("if (!(c.condition && c.condition.selected && Number(c.condition.selected.tier))) add(\"condition\", \"No condition is set.\");", "")],
+  ["finalize safeguards: an item waived with no note finalizes", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("n.state === \"waived\" && !String(n.reason || \"\").trim())", "n.state === \"waived\" && false)")],
+  ["finalize safeguards: one ticked sale is enough", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("if (picked.length < 2) { add(\"comparable\"", "if (picked.length < 1) { add(\"comparable\"")],
+  ["send safeguards: a send needs no confirmation", "caseSendCheck", "lib/desk/sheetActions.js", rep("if (!cf || typeof cf !== \"object\") return refuse(reasonLine(\"send.refuse.confirm_missing\"));", "if (!cf || typeof cf !== \"object\") { body.confirm = { to, subject }; }")],
+  ["send safeguards: a different address than the confirmed one is sent to", "caseSendCheck", "lib/desk/sheetActions.js", rep("if (String(cf.to || \"\").trim().toLowerCase() !== to.toLowerCase() || String(cf.subject || \"\") !== subject) return refuse(reasonLine(\"send.refuse.confirm_mismatch\"));", "")],
+  ["send safeguards: the send does not record who confirmed", "caseSendCheck", "lib/desk/sheetActions.js", rep("confirmedBy: String(seat), confirmedTo: to, ", "")],
+  ["send safeguards: the preview serves nothing to confirm", "caseSendCheck", "lib/desk/sheetActions.js", rep("confirm: { to, subject }, subject, message,", "subject, message,")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
