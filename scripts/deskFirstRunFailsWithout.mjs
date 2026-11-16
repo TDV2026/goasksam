@@ -321,6 +321,11 @@ const MUT = [
   ["fixtures: the shared ready case has no condition", "deskReadinessCheck", "scripts/_deskCaseWorld.mjs", rep("c.condition = { ...c.condition, selected: { tier: 3, name: \"Good\" } };", "")],
   ["one state per fact: the verification is not in the recall key", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep(", ...(Object.keys(verificationOf(c)).length ? [verificationOf(c)] : [])]);", "]);")],
   ["one state per fact: the attention item ignores the field's verification", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("applies: c => c.fields.mileage.value == null || !c.fields.mileage.verified }", "applies: c => c.fields.mileage.value == null }")],
+  ["condition moves the reserve: the rung ignores byCondition", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("return bc && bc.key ? { key: bc.key, reason: bc.reason || l.reason || null, byCondition: true } :", "return false ? { key: bc.key, reason: bc.reason || l.reason || null, byCondition: true } :")],
+  ["condition moves the reserve: the figure stays on the recommended rung", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("const ladderFigure = c => { const l = ladderOf(c), er = engineRungOf(c), k = er && er.key,", "const ladderFigure = c => { const l = ladderOf(c), er = engineRungOf(c), k = l && l.recommended,")],
+  ["condition moves the reserve: Concours lands on the safe rung", "deskTypedCasesCheck", "lib/deskV3.js", rep("export const CONDITION_RUNG = { 1: \"ambitious\",", "export const CONDITION_RUNG = { 1: \"safe\",")],
+  ["condition moves the reserve: the effect line never says where the condition points", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("st.key !== er.key ? reasonLine(\"case.condition.would_point\"", "st.key !== er.key && false ? reasonLine(\"case.condition.would_point\"")],
+  ["condition moves the reserve: the analyst's own rung is overwritten by the condition", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("if (st && st.source === \"analyst\" && st.key) {", "if (false && st && st.source === \"analyst\" && st.key) {")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
