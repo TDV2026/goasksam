@@ -71,7 +71,7 @@ ok(/id="whoname">Lee Park</.test(V2.topHtml({ displayName: "Lee Park", initials:
 // in Chrome: the filter switches the cards, the search narrows, geometry holds
 const b = await launch();
 async function open(h, w = 1440, respond = null) { const p = await b.newPage(); await p.setViewport({ width: w, height: 900 }); await p.setRequestInterception(true);
-  p.on("request", r => { const u = new URL(r.url()); if (u.host === "goasksam.com" && r.method() === "POST") { let bd = {}; try { bd = JSON.parse(r.postData() || "{}"); } catch {} (p._posts = p._posts || []).push(bd); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(respond && respond(bd) || (bd.action === "case_list" ? { ok: true, rows: [{ id: m.cards[0].id }] } : { ok: true })) }); } if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: h }); return r.respond({ status: 204, body: "" }); });
+  p.on("request", r => { const u = new URL(r.url()); const CORS = { "access-control-allow-origin": "*", "access-control-allow-methods": "PUT, POST, OPTIONS", "access-control-allow-headers": "*" }; if (r.method() === "OPTIONS") return r.respond({ status: 204, headers: CORS, body: "" }); if (r.method() === "PUT") { (p._puts = p._puts || []).push({ url: r.url(), len: Number(r.headers()["content-length"] || 0) }); return r.respond({ status: 200, headers: CORS, body: "" }); } if (u.host === "goasksam.com" && r.method() === "POST") { const raw = r.postData() || "", clen = Number(r.headers()["content-length"] || 0); if (raw.length > 4718592 || clen > 4718592) { (p._413 = p._413 || []).push(Math.max(raw.length, clen)); return r.respond({ status: 413, contentType: "text/plain", body: "Request Entity Too Large" }); } let bd = {}; try { bd = JSON.parse(raw || "{}"); } catch {} (p._posts = p._posts || []).push(bd); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(respond && respond(bd) || (bd.action === "case_list" ? { ok: true, rows: [{ id: m.cards[0].id }] } : { ok: true })) }); } if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: h }); return r.respond({ status: 204, body: "" }); });
   p._err = []; p.on("pageerror", e => p._err.push(String(e).slice(0, 160))); await p.goto("https://goasksam.com/preview/desk2", { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 200)); return p; }
 const p = await open(html);
 for (const [k] of V2.STATUSES) { await p.click(`[data-f="${k}"]`); const r = await p.evaluate(k => { const v = [...document.querySelectorAll(".cd")].filter(c => !c.hidden); return { only: v.every(c => c.dataset.status === k), n: v.length, none: !document.getElementById("none").hidden }; }, k); ok(r.only && (r.n > 0) === !r.none, `filter ${k} shows only its cards`); }
@@ -395,4 +395,89 @@ for (const [name, f] of Object.entries(REF_MUT)) { const css = ["cardShadow", "c
   const DX = { noView: h => h.replace('if(u)li.appendChild(el("a",{class:"btn ob sm dv"', 'if(false)li.appendChild(el("a",{class:"btn ob sm dv"'), noDrop: h => h.replace("take(e.dataTransfer.files[0])", "0"), noKind: h => h.replace('li.appendChild(sel);', ''), noRemove: h => h.replace('li.appendChild(rm);ul.appendChild(li)', 'ul.appendChild(li)') };
   for (const [name, f] of Object.entries(DX)) { const mh = f(dhtml); if (mh === dhtml) { ok(false, "mutant target missing: " + name); continue; } let bad = 0; try { await docRun(mh, c => { if (!c) bad++; }); } catch { bad++; } ok(bad > 0, `mutant ${name} is caught`); }
   ok(!/[–—]/.test(await (async () => { const q = await open(dhtml); const t = await q.evaluate(() => document.body.innerText); await q.close(); return t; })()), "no dash in the page text"); }
+// ---------- PHOTOS NEVER RIDE IN A REQUEST BODY (order 2331, Nov 15 2026) ----------
+// CAUSE: New case made the case, then sent each photo as base64 inside a case_edit photo_add body, and the case page's photo input did the same; the host refuses a request body over 4.5 MB, so a photo over about 3.3 MB (and, for the first form, any pick whose first photo was that large) came back as a page of text, not JSON, and the form printed "the server sent no reason".
+// AFFECTED: every place a photo is sent: the New case form (the one form /preview/desk and /preview/desk2 share), the V4 case page's Add photos, and desk2's case page (it had no Add photos at all; it has one now, by the same road). /preview/desk's older V3 form (lib/preview/deskV3.js) still posts photo_add and is Lane D's to retire (not touched, as /preview/desk stays untouched).
+// THE CLASS: no page sends file bytes inside a JSON body. The check's Chrome refuses any POST over 4.5 MB the way the host does (a 413 of plain text), so a body that carries bytes fails here as it would live; a mutant that puts bytes back is caught.
+{ const fs = await import("node:fs"), os = await import("node:os"), pth = await import("node:path"), wait2 = ms => new Promise(r => setTimeout(r, ms));
+  const dir = fs.mkdtempSync(pth.join(os.tmpdir(), "d2ph-")), FILES = [1, 2, 3].map(i => { const f = pth.join(dir, "car" + i + ".jpg"), buf = Buffer.alloc(2 * 1024 * 1024, i * 37); buf[0] = 0xff; buf[1] = 0xd8; buf[2] = 0xff; fs.writeFileSync(f, buf); return f; });
+  const WHY = "That photo is not a picture the desk can read.";
+  const resp = (refuseAt) => { let n = 0, started = 0; return bd => { if (bd.action === "case_new") return { ok: true, id: "pv_made" };
+    if (bd.op === "photo_upload_start") { started++; n++; if (started === refuseAt) return { ok: false, refused: true, why: WHY }; return { ok: true, upload: { id: "u" + n, url: "https://store.example/put/" + n, method: "PUT" } }; }
+    if (bd.op === "photo_upload_commit") return { ok: true, case: rm.kase, readiness: { ready: false, blockers: [] } };
+    return null; }; };
+  const created = async (h, refuseAt, cnt) => { const q = await open(h, 1440, resp(refuseAt)), navs = []; q.on("request", r => { if (r.isNavigationRequest()) navs.push(new URL(r.url()).pathname); });
+    await q.click("#newcase-btn"); await wait2(150); await q.type("#nc-start", "1970 Datsun 240Z"); await q.click("#nc-startbtn"); await wait2(250); await (await q.$("#nc-photos")).uploadFile(...FILES); await wait2(200); await q.evaluate(() => { const l = document.getElementById("nc-list"); new MutationObserver(() => { try { sessionStorage.setItem("pm", JSON.stringify([...l.querySelectorAll(".pm")].map(m => m.textContent))); } catch {} }).observe(l, { subtree: true, childList: true, characterData: true }); }); await q.click("#nc-go"); await wait2(refuseAt ? 1500 : 1800);
+    const P = q._posts || [], cn = P.filter(b => b.action === "case_new"), ops = P.filter(b => /^photo_/.test(b.op || "")).map(b => b.op);
+    const ui = await q.evaluate(() => ({ marks: (() => { const live = [...document.querySelectorAll("#nc-list .ncf .pm")].map(m => m.textContent); if (live.length) return live; try { return JSON.parse(sessionStorage.getItem("pm") || "[]"); } catch { return []; } })(), msg: document.getElementById("nc-msg").textContent, on: !document.getElementById("nc-go").disabled }));
+    if (process.env.DBG) console.log("DBG", JSON.stringify({ ops, ui, navs, puts: (q._puts || []).map(x => x.len), big: q._413, acts: P.map(b => b.action + ":" + (b.op || "")), err: q._err }));
+    return { q, P, cn, ops, ui, navs, puts: q._puts || [], big: q._413 || [] }; };
+  const okRun = async (h, cnt) => { const r = await created(h, 0, cnt);
+    cnt(r.cn.length === 1 && JSON.stringify(r.cn[0]).length < 1500 && !("photos" in r.cn[0]) && !("data" in r.cn[0]));   // the create body is the car and what is known, no bytes
+    cnt(r.big.length === 0 && !r.ops.includes("photo_add") && !r.P.some(b => b.op === "photo_add"));   // nothing over the limit, no inline photo
+    cnt(r.ops.join() === "photo_upload_start,photo_upload_commit,photo_upload_start,photo_upload_commit,photo_upload_start,photo_upload_commit");   // one road per photo, one photo at a time
+    cnt(r.puts.length === 3 && r.puts.every(x => x.len >= 2097152 || x.len === 0) && r.puts.every((x, i) => x.url.endsWith("/put/" + (i + 1))));   // each 2 MB file goes straight to the address the server made
+    cnt(r.ui.marks.length === 3 && r.ui.marks.every(m => m === "Added"));   // a mark per photo
+    cnt(r.navs.includes("/preview/desk2/case/pv_made")); await r.q.close(); };
+  const refuseRun = async (h, cnt) => { const r = await created(h, 2, cnt);
+    cnt(r.ui.marks[0] === "Added" && r.ui.marks[1] === WHY);   // the second photo's own mark is the server's sentence
+    cnt(r.ui.msg.indexOf(WHY) >= 0 && !/no reason/i.test(r.ui.msg) && r.ui.on);   // the form prints the server's sentence, never "no reason"
+    cnt(r.P.filter(b => b.action === "case_discard").length === 1 && !r.navs.includes("/preview/desk2/case/pv_made")); await r.q.close(); };
+  let k1 = 0; await okRun(rhtml, c => { k1++; ok(c, `PHOTOS (New case): a 3 by 2 MB create posts the car with no bytes, then each photo by photo_upload_start, a PUT and photo_upload_commit with its own mark, then opens the case; nothing is refused for size (check ${k1})`); });
+  let k2 = 0; await refuseRun(rhtml, c => { k2++; ok(c, `PHOTOS (New case): a refused photo shows its own mark and the server's sentence, never "no reason", and takes the half made case out again (check ${k2})`); });
+  const caseRun = async (h, refuseAt, cnt) => { const q = await open(h, 1440, resp(refuseAt)); await (await q.$("#photofile")).uploadFile(...FILES); await wait2(1500);
+    const P = q._posts || [], ops = P.filter(b => /^photo_/.test(b.op || "")).map(b => b.op), ui = await q.evaluate(() => ({ marks: [...document.querySelectorAll("#pprog .pm")].map(m => m.textContent), msg: document.getElementById("msg") ? document.getElementById("msg").textContent : "" }));
+    if (!refuseAt) { cnt(ui.marks.length === 3 && ui.marks.every(m => m === "Added")); cnt((q._413 || []).length === 0 && !ops.includes("photo_add") && !P.some(b => b.op === "photo_add") && ops.join() === "photo_upload_start,photo_upload_commit,photo_upload_start,photo_upload_commit,photo_upload_start,photo_upload_commit" && (q._puts || []).length === 3); }
+    else { cnt(ops.filter(o => o === "photo_upload_start").length === 2 && ui.marks[1] === WHY && ui.msg.indexOf(WHY) >= 0 && !/no reason/i.test(ui.msg)); }
+    await q.close(); };
+  let k3 = 0; await caseRun(rhtml, 0, c => { k3++; ok(c, `PHOTOS (case page): Add photos with 3 by 2 MB sends each by its own road, no photo_add and no oversize body (check ${k3})`); });
+  let k4 = 0; await caseRun(rhtml, 2, c => { k4++; ok(c, `PHOTOS (case page): a refused photo prints the server's sentence in its own mark and in the message line (check ${k4})`); });
+  const PX = {
+    bytesInCreate: h => h.replace("post(req).then(function (r) {", "Promise.all(list.map(b64)).then(function (ds) { req.photos = ds; return post(req); }).then(function (r) {"),
+    inlineAdd: h => h.replace("return sendPhoto(made, f).then(function (q) {", "return b64(f).then(function (d) { return post({ action: \"case_edit\", id: made, op: \"photo_add\", name: f.name, data: d }); }).then(function (q) {"),
+    noMarkNew: h => h.replace('mark(f, "Added"); return q;', "return q;"),
+    noReasonNew: h => h.replace('var w = (r && (r.why || r.line)) || "That photo did not send. Try again.";', 'var w = "the server sent no reason";'),
+  };
+  const PC = {
+    inlineCase: h => h.replace('post({action:"case_edit",id:D.active,op:"photo_upload_start",name:f.name,size:f.size,type:f.type||""})', 'readFile(f).then(function(d){return post({action:"case_edit",id:D.active,op:"photo_add",name:f.name,data:d+d+d})})'),
+    noMarkCase: h => h.replace('up.rows[i].mark="Added";', ''),
+    noReasonCase: h => h.replace('up.rows[i].mark=bad.why||bad.line||"That photo did not send. Try again."', 'up.rows[i].mark="The server sent no reason"'),
+  };
+  for (const [name, f] of Object.entries(PX)) { const mh = f(rhtml); if (mh === rhtml) { ok(false, "mutant target missing: " + name); continue; } let bad = 0; try { await okRun(mh, c => { if (!c) bad++; }); await refuseRun(mh, c => { if (!c) bad++; }); } catch { bad++; } ok(bad > 0, `mutant ${name} is caught`); }
+  for (const [name, f] of Object.entries(PC)) { const mh = f(rhtml); if (mh === rhtml) { ok(false, "mutant target missing: " + name); continue; } let bad = 0; try { await caseRun(mh, 0, c => { if (!c) bad++; }); await caseRun(mh, 2, c => { if (!c) bad++; }); } catch { bad++; } ok(bad > 0, `mutant ${name} is caught`); }
+  // ---- the photo controls (Nov 15 2026): the empty box, the plus tile, Set as cover and Remove on hover, the cover as soon as the first photo is in ----
+  const IMG = n => ({ id: "np" + n, name: "n" + n + ".jpg", url: "data:image/gif;base64,R0lGODlhAQABAAAAACw=#" + n }), KP = (items, coverId) => ({ ...rm.kase, photos: { ...(rm.kase.photos || {}), items, coverId } });
+  const EMPTYH = V2.pageHtml({ ...rm, kase: KP([], null) }), PH = (rm.kase.photos && rm.kase.photos.items) || [];
+  const ui = async (h, name, cnt) => { let got = [];
+    const rs = bd => { if (bd.op === "photo_upload_start") return { ok: true, upload: { id: "u" + (++rs.n), url: "https://store.example/put/" + rs.n, method: "PUT" } };
+      if (bd.op === "photo_upload_commit") { got.push(IMG(got.length + 1)); return { ok: true, case: KP(got.slice(), got[0].id), readiness: { ready: false, blockers: [] } }; }
+      if (bd.op === "cover") return { ok: true, case: KP(PH, bd.photoId), readiness: { ready: false, blockers: [] } };
+      if (bd.op === "photo_remove") return { ok: true, case: KP(PH.filter(p => String(p.id) !== String(bd.item)), PH.find(p => String(p.id) !== String(bd.item)).id), readiness: { ready: false, blockers: [] } };
+      return null; }; rs.n = 0;
+    const q = await open(h, 1440, rs);
+    if (name === "empty") {
+      const e = await q.evaluate(() => { const b = document.getElementById("padd"), c = document.getElementById("cover"), i = document.getElementById("photofile"), r = b && b.getBoundingClientRect(); return { box: !!b && r.width > 150 && r.height > 40 && c.classList.contains("none") && c.contains(b), words: b ? b.textContent : "", ctl: b && b.control === i, accept: i ? i.accept : "", multi: i ? i.multiple : false, strip: !!document.getElementById("pstrip") }; });
+      cnt(e.box && /Add photos/.test(e.words) && /JPG, PNG, WebP or HEIC/.test(e.words) && e.ctl && /webp/.test(e.accept) && /heic/.test(e.accept) && /jpeg/.test(e.accept) && /png/.test(e.accept) && e.multi && !e.strip);   // the box, the words, its chooser, every type, as many as you like
+      await q.evaluate(() => { const dt = new DataTransfer(); dt.items.add(new File([new Uint8Array(10)], "a.jpg", { type: "image/jpeg" })); document.getElementById("cover").dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true })); }); await wait2(700);
+      const a = await q.evaluate(() => { const c = document.getElementById("cover"); return { tag: c.tagName, src: c.getAttribute("src"), none: c.classList.contains("none"), chip: (document.getElementById("pchip") || {}).textContent }; });
+      cnt(a.tag === "IMG" && /#1$/.test(a.src) && !a.none && a.chip === "1 photo");   // the drop sent the photo and the cover shows as soon as the first is in
+    } else {
+      const p = await q.evaluate(() => { const s = document.getElementById("pstrip"), pl = document.getElementById("pplus"), w = [...s.querySelectorAll(".ptw")], act = w[1] && w[1].querySelector(".pact"); return { last: s.lastElementChild === pl, tag: pl && pl.tagName, ctl: pl && pl.control && pl.control.id, n: w.length, hid: act ? getComputedStyle(act).display : "", both: w.every(x => x.querySelector("[data-cover]") && x.querySelector("[data-photoremove]")), ids: w.map(x => x.getAttribute("data-photo")) }; });
+      cnt(p.last && p.tag === "LABEL" && p.ctl === "photofile" && p.n >= 2 && p.both);   // the strip ends with a plus tile that opens the same chooser; every thumbnail has both actions
+      cnt(p.hid === "none"); await q.hover(".ptw:nth-child(2)"); await wait2(100); cnt((await q.evaluate(() => getComputedStyle(document.querySelector(".ptw:nth-child(2) .pact")).display)) === "flex");   // hidden until hover, shown on hover
+      const id2 = p.ids[1]; await q.click(`.ptw[data-photo="${id2}"] [data-cover]`); await wait2(300);
+      const cv = await q.evaluate(() => document.getElementById("cover").getAttribute("src")), want = (PH.find(x => String(x.id) === String(id2)) || {}).url;
+      cnt((q._posts || []).some(b => b.op === "cover" && String(b.photoId) === String(id2)) && cv === want);   // Set as cover sends cover and shows the new cover
+      await q.hover(".ptw:nth-child(1)"); await q.click(`.ptw[data-photo="${p.ids[0]}"] [data-photoremove]`); await wait2(300);
+      cnt((q._posts || []).some(b => b.op === "photo_remove" && String(b.item) === String(p.ids[0])) && (await q.evaluate(i => !document.querySelector(`.ptw[data-photo="${i}"]`), p.ids[0])));   // Remove sends photo_remove and the thumbnail goes
+    }
+    await q.close(); };
+  let k5 = 0; await ui(EMPTYH, "empty", c => { k5++; ok(c, `PHOTOS (empty case): the photo area is an Add photos box that takes a click or a drop of JPG, PNG, WebP or HEIC, and the cover shows as soon as the first photo is in (check ${k5})`); });
+  let k6 = 0; await ui(rhtml, "strip", c => { k6++; ok(c, `PHOTOS (case with photos): the strip ends with a plus tile that opens the chooser, each thumbnail shows Set as cover and Remove on hover, and both send their ops (check ${k6})`); });
+  const PU = { noBox: [EMPTYH, "empty", h => h.replace('"label",{class:"padd-box"', '"span",{class:"padd-box"')], noDrop: [EMPTYH, "empty", h => h.replace("takePhotos(e.dataTransfer.files)", "0")], noCoverNow: [EMPTYH, "empty", h => h.replace('up.rows[i].mark="Added";if(q.case){K=q.case;C.kase=K}redraw()', 'up.rows[i].mark="Added";if(q.case){K=q.case;C.kase=K}')],
+    noPlus: [rhtml, "strip", h => h.replace('st.appendChild(el("label",{class:"pplus"', '0&&st.appendChild(el("label",{class:"pplus"')], noCoverBtn: [rhtml, "strip", h => h.replace('edit("cover",{photoId:p.id})', 'edit("cover_x",{photoId:p.id})')], noRemoveBtn: [rhtml, "strip", h => h.replace('edit("photo_remove"', 'edit("photo_gone"')] };
+  for (const [name, [base, mode, f]] of Object.entries(PU)) { const mh = f(base); if (mh === base) { ok(false, "mutant target missing: " + name); continue; } let bad = 0; try { await ui(mh, mode, c => { if (!c) bad++; }); } catch { bad++; } ok(bad > 0, `mutant ${name} is caught`); }
+  // THE CLASS, by source: no client script in lib/preview that the desk2 page loads sends file bytes inside a case_edit or case_new body
+  const src = fs.readFileSync(new URL("../lib/preview/deskV4Client.js", import.meta.url), "utf8") + fs.readFileSync(new URL("../lib/preview/deskV2Case.js", import.meta.url), "utf8");
+  ok(!/op:\s*"photo_add"|edit\("photo_add"/.test(src) && !/the server sent no reason/.test(src), "CLASS: no desk2 or V4 client script posts photo_add, and none says \"the server sent no reason\""); }
 await b.close(); done("deskV2Check");
