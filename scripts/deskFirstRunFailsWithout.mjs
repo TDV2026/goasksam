@@ -270,6 +270,12 @@ const MUT = [
   ["enquiry: the email's text is not kept on the sheet", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("submission: { ...s0.submission, enquiry: enq }", "submission: { ...s0.submission }")],
   ["enquiry: the header has no enquiry address", "deskTypedCasesCheck", "lib/desk/caseView.js", rep("enquiryUrl: (sourceEmailOf(sheet) || {}).url || null", "enquiryUrl: null")],
   ["enquiry: an attachment is listed without its type", "deskTypedCasesCheck", "lib/desk/enquiry.js", rep("typeLine: t ? reasonLine(\"case.doc_type\", { type: t }) : null", "typeLine: null")],
+  ["closest sales: the miles difference has the wrong sign", "deskTypedCasesCheck", "lib/desk/whyLine.js", rep("parts.push(lower(deskMilesWords(d.miles)))", "parts.push(lower(deskMilesWords(-d.miles)))")],
+  ["closest sales: a sale is served without its why line", "deskTypedCasesCheck", "lib/desk/caseView.js", rep("whyLine: whyLineOf(x, carBoxOf(c))", "whyLine: null")],
+  ["closest sales: an exclusion needs no reason", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("if (!String(body.reason == null ? \"\" : body.reason).trim()) return refuse(reasonLine(\"case.exclude.refuse_reason\"));", "")],
+  ["closest sales: an excluded sale is still printed when ticked", "deskTypedCasesCheck", "lib/desk/reportSales.js", rep(".filter(id => byId.has(id) && !out.has(id))", ".filter(id => byId.has(id))")],
+  ["closest sales: the gearbox difference is not named", "deskTypedCasesCheck", "lib/desk/whyLine.js", rep("if (d.gearbox === \"other\") {", "if (false) {")],
+  ["closest sales: the report's sale carries no why line", "deskTypedCasesCheck", "lib/desk/reportState.js", rep("whyLine: whyLineOf(x, f(\"transmission\").value), ", "")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
