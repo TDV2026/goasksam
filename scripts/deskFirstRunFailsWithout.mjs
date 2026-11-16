@@ -334,6 +334,11 @@ const MUT = [
   ["report 3 and 4: the seller's sentence for the reserve is dropped", "reportV4Check", "lib/desk/reportState.js", rep("clearedLine: noRes ? (d.reserveMode && d.reserveMode.line) || null : ck && ck.of ?", "clearedLine: noRes ? (d.reserveMode && d.reserveMode.line) || null : false ?")],
   ["report sweep: a market range is on page one in some state", "reportConsistencyCheck", "lib/desk/reportPdfV4.js", rep("T(p.heading, M, y + 15, { font: \"serifb\", size: 15, color: ACC });", "T(\"What cars like this sold for\".toUpperCase(), M, y + 8, { font: \"sans\", size: 9, color: SLATE }); T(p.heading, M, y + 15, { font: \"serifb\", size: 15, color: ACC });")],
   ["report sweep: desk wording reaches the seller in some state", "reportConsistencyCheck", "lib/reasonWords.js", rep("text: p => `Assessed as ${p.name}${p.basis ? \" from \" + p.basis : \"\"}.` }", "text: p => `Set by the analyst: ${p.name}${p.basis ? \" from \" + p.basis : \"\"}.` }")],
+  ["documents: the view address lives an hour, not ten minutes", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("export const DOC_URL_SECONDS = 600;", "export const DOC_URL_SECONDS = 3600;")],
+  ["documents: an address is signed for another sheet's file", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("&& String(path).startsWith(`${org}/${s0.id}/`);", ";")],
+  ["documents: any kind is taken", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("if (!DOC_KINDS.includes(kind)) return refuse(reasonLine(\"case.doc.kind_bad\"", "if (false) return refuse(reasonLine(\"case.doc.kind_bad\"")],
+  ["documents: the sheet's own list keeps the old kind", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("(String(d.id) === id ? { ...d, kind } : d)", "d")],
+  ["documents: a kind change is not audited", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("logAudit(c, { at: iso(now), by: \"analyst\", what: \"document kind changed\"", "(() => {})({ at: iso(now), by: \"analyst\", what: \"document kind changed\"")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
