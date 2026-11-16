@@ -350,6 +350,11 @@ const MUT = [
   ["stale shape: the draft report reads the stale answer", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("{ ...s0, case: await shapeCurrent(ctx, s0.case, now) }", "s0")],
   ["stale shape: a missing byCondition falls back silently", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("&& !c.desk.reserveLadder.byCondition) return refuse(reasonLine(\"case.condition.refuse_shape\"));", "&& false) return refuse(reasonLine(\"case.condition.refuse_shape\"));")],
   ["condition note: a note is demanded when the engine suggested nothing", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("if (t !== null && sug && t !== sug.tier && !why)", "if (t !== null && t !== (sug ? sug.tier : null) && !why)")],
+  ["one read: the shape re-read is not stored with the case", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("c = await shapeCurrent(ctx, c, now);   // the answer this edit reads", "await shapeCurrent(ctx, c, now);   // the answer this edit reads")],
+  ["one read: an answer with nothing newer is asked again by every action (no stamp)", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("return bf.answered ? { ...c, shapeRead: W.CURRENT_SHAPE } : c; }", "return c; }")],
+  ["one read: a re-read that is still short of the shape is asked again (no stamp)", "deskV4FlowCheck", "lib/desk/sheetActions.js", rep("return W.needsReread(nc) ? { ...nc, shapeRead: W.CURRENT_SHAPE } : nc; }", "return nc; }")],
+  // RETIRED (Nov 15 2026): "an adopted view drops the answer's shape" cannot be seen: the engine's view blocks carry their own shape, so the case keeps it either way; adoptView keeps desk.shape as a guard only.
+  ["one read: going back to no condition reads", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("&& !((op === \"condition_set\" && (body.condition == null || body.condition === \"\" || Number(body.condition) === 0)) || (op === \"condition\" && !(body.selected && body.selected.tier)))", "")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
