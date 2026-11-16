@@ -30,7 +30,7 @@ export const idle = async (p, ms = 500) => { await new Promise(r => setTimeout(r
 // A finalized demonstration case through the REAL actions (no stub): two comparables, mileage verified, the other items waived with reasons, then case_finalize.
 export async function finalizeDemo(id = V3.DEMO_ID) {
   const e = (op, x) => PV.previewDeskApi({ action: "case_edit", id, op, ...x });
-  const CI = await compIds(id); await e("comparables", { ids: [CI[0], CI[3]] }); await e("verify", { field: "mileage" });
+  const CI = await compIds(id); await e("comparables", { ids: [CI[0], CI[3]] }); await e("condition", { selected: { tier: 3, name: "Good" } }); await e("verify", { field: "mileage" });   // finalize needs a condition set (order 2318 item 5)
   await e("need", { item: "accident_unclear", state: "waived", reason: "Seller states none and holds no records" }); await e("need", { item: "service_documents", state: "waived", reason: "Invoice will follow after the listing" });
   return PV.previewDeskApi({ action: "case_finalize", id });
 }

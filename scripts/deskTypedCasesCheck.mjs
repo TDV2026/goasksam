@@ -680,7 +680,7 @@ console.log("CASE IDS " + ids.join(" "));
 // CLASS: every batch adds exactly its seconds; a bad number, a case the caller cannot work on, a finished or archived case and a crew view as a seat record nothing; two seats add to the same case; the card and the case agree.
 { const A = await U("lib/desk/sheetActions.js"), ST = await U("lib/desk/sheetStore.js"), { setup } = await import(pathToFileURL(path.join(ROOT, "scripts/_deskCaseWorld.mjs")).href), W = await setup(ROOT), store = ST.memoryStore(); store.reset();
   const mk = (seat, extra) => ({ now: W.T, env: {}, org: "hm", seat, seatName: null, store, orgSettings: { name: "H" }, readSheet: async (env, input) => W.read(input), ...(extra || {}) }), run = (a, b, ctx) => A.handleSheetAction(a, b, ctx || mk("7"));
-  const b0 = await W.readyCase(), ID = "dd000004-0000-4000-8000-000000000000"; await store.insert("hm", { id: ID, org_id: "hm", created_at: W.T, owner_seat: "7", status: "In progress", submission: { typed: true, photos: [], documents: [] }, state: {}, case: b0, car_label: "1999 Porsche 911", version: 0 });
+  const b0 = await W.readyCase(); b0.condition = { ...b0.condition, selected: { tier: 3, name: "Good" } }; const ID = "dd000004-0000-4000-8000-000000000000"; await store.insert("hm", { id: ID, org_id: "hm", created_at: W.T, owner_seat: "7", status: "In progress", submission: { typed: true, photos: [], documents: [] }, state: {}, case: b0, car_label: "1999 Porsche 911", version: 0 });
   const g0 = await run("case_get", { id: ID }), a1 = await run("case_active", { id: ID, seconds: 30 }), a2 = await run("case_active", { id: ID, seconds: 30 }), a3 = await run("case_active", { id: ID, seconds: 17 });
   ok("ACT 1: a case starts at zero active seconds, and each batch adds exactly its seconds", g0.case.activeSeconds === 0 && a1.ok && a1.activeSeconds === 30 && a2.activeSeconds === 60 && a3.activeSeconds === 77, JSON.stringify([g0.case.activeSeconds, a1.activeSeconds, a2.activeSeconds, a3.activeSeconds]));
   const got = await run("case_get", { id: ID }), lst = await run("case_list", {}), row = (lst.rows || lst.cases || []).find(r => r.id === ID);
@@ -695,9 +695,26 @@ console.log("CASE IDS " + ids.join(" "));
   const st1 = await store.get("hm", ID); ok("ACT 7: the seconds are kept per seat, beside the total", st1.case.activeBySeat && st1.case.activeBySeat["7"] === 77, JSON.stringify(st1.case.activeBySeat));
   const done = await run("case_finalize", { id: ID }), after = await run("case_active", { id: ID, seconds: 30 });
   const fin = await store.get("hm", ID);
-  ok("ACT 8: finalizing keeps the active seconds beside the handling time, and a finished case takes no more", (done.ok ? fin.case.handling_active_seconds === 77 : true) && after.ok === false, JSON.stringify([done.ok, fin.case && fin.case.handling_active_seconds, after.ok]));
+  ok("ACT 8: finalizing keeps the active seconds beside the handling time, and a finished case takes no more", done.ok === true && fin.case.handling_active_seconds === 77 && after.ok === false, JSON.stringify([done.ok, fin.case && fin.case.handling_active_seconds, after.ok]));
   const arch = "dd000005-0000-4000-8000-000000000000"; await store.insert("hm", { id: arch, org_id: "hm", created_at: W.T, owner_seat: "7", status: "In progress", archived: true, submission: { typed: true, photos: [], documents: [] }, state: {}, case: await W.readyCase(), car_label: "x", version: 0 });
   { const old = await W.readyCase(); delete old.activeSeconds; delete old.activeBySeat; const oid = "dd000006-0000-4000-8000-000000000000"; await store.insert("hm", { id: oid, org_id: "hm", created_at: W.T, owner_seat: "7", status: "In progress", submission: { typed: true, photos: [], documents: [] }, state: {}, case: old, car_label: "x", version: 0 });
     const og = await run("case_get", { id: oid }), oa = await run("case_active", { id: oid, seconds: 30 }); ok("ACT 10: a case stored before active time existed serves zero, and takes its first batch", og.case.activeSeconds === 0 && oa.ok === true && oa.activeSeconds === 30, JSON.stringify([og.case.activeSeconds, oa.activeSeconds])); }
   ok("ACT 9: an archived case takes no active time", (await run("case_active", { id: arch, seconds: 30 })).ok === false); }
+// ---------- FINALIZE SAFEGUARDS (order 2318 item 5, Nov 15 2026) ----------
+// CAUSE: a case could be finalized with no condition set, and an attention item could be waived with no note. FIX: finalize needs the condition set (it starts unset), at least two ticked sales (unchanged), and every attention item resolved or waived WITH a note.
+// CLASS: every blocker keeps the case from finalizing, each is named in the readiness list, and the real finalize refuses with the same list.
+{ const { setup } = await import(pathToFileURL(path.join(ROOT, "scripts/_deskCaseWorld.mjs")).href), W = await setup(ROOT), Kw = await U("lib/desk/caseWorkflow.js");
+  const good = await W.readyCase(); good.condition = { ...good.condition, selected: { tier: 3, name: "Good" } }; good.needs_review = good.needs_review.map(n => ({ ...n, state: n.state === "open" ? "done" : n.state }));
+  const keys = c => Kw.readinessOf(c).blockers.map(b => b.key);
+  ok("FIN 1: a case with its condition set, two ticked sales and nothing open is ready", Kw.readinessOf(good).ready === true, keys(good).join());
+  const nc = structuredClone(good); nc.condition = { ...nc.condition, selected: null };
+  ok("FIN 2: no condition: not ready, the blocker is named, and the real finalize refuses with it", keys(nc).includes("condition") && Kw.finalize(nc, { now: W.T }).ok === false, keys(nc).join());
+  const wv = structuredClone(good); wv.needs_review = [{ id: "w1", label: "The title", material: false, state: "waived", reason: "" }, ...wv.needs_review];
+  ok("FIN 3: an attention item waived with no note (or only spaces) keeps the case from finalizing, and the open check counts it", keys(wv).includes("need_note:w1") && Kw.readinessOf(wv).checks.find(x => x.key === "open").ok === false && Kw.finalize(wv, { now: W.T }).ok === false, keys(wv).join());
+  const wv2 = structuredClone(wv); wv2.needs_review[0].reason = "   "; const wn = structuredClone(wv); wn.needs_review[0].reason = "Seller will send it with the car";
+  ok("FIN 4: a note of spaces is no note; a real note lets the case finalize", keys(wv2).includes("need_note:w1") && !keys(wn).includes("need_note:w1") && Kw.readinessOf(wn).ready === true, keys(wn).join());
+  const op = structuredClone(good); op.needs_review = [{ id: "o1", label: "Mileage", material: true, state: "open", reason: "" }, ...op.needs_review];
+  ok("FIN 5: an open attention item still blocks", keys(op).includes("need:o1"), keys(op).join());
+  const one = structuredClone(good); one.selectedComparables = (one.selectedComparables || []).slice(0, 1);
+  ok("FIN 6: fewer than two ticked sales still blocks (the rule stays)", keys(one).includes("comparable"), keys(one).join()); }
 console.log(`deskTypedCasesCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
