@@ -11,7 +11,7 @@ ok("a reset verification opens the material mileage item again and the case is n
 ok("verifying logs its own line and closes the item", (() => { const v = K.verify(corr, "mileage", { now: T }); return v.fields.mileage.verified && v.audit.some(a => a.what === "verified" && a.field === "mileage") && v.needs_review.find(n => n.id === "mileage_unconfirmed").state === "done"; })());
 ok("setting the same value again is not a correction (no line, verification kept)", (() => { const same = K.correctField(base, "mileage", 61400, { now: T }); return same.fields.mileage.verified === true && J(same.audit) === J(base.audit); })());
 // the re-call
-ok("the case was read once for evidence and stored: desk.original and desk.evidence", base.desk.original && base.desk.evidence && base.desk.evidence.count > 0 && J(base.desk.original) === J(base.desk.evidence));
+ok("the case was read once for evidence and stored: desk.original and desk.evidence", base.desk.original && base.desk.evidence && base.desk.evidence.count > 0 && (base.desk.bandNote ? base.desk.original.count >= base.desk.evidence.count : J(base.desk.original) === J(base.desk.evidence)));   // the figures are counted over the car's mileage band when it holds 5 or more sales (Lane B, desk.bandNote): the original is then the whole population, the evidence the band; with no band they are the same read
 const recall = async (name, c, want) => { const n0 = calls.length, r = await K.refreshEvidence(c, read, { caseDate: today, now: T }); ok(name + (want ? ": re-calls the engine" : ": does not re-call the engine"), r.recalled === want && (want ? (calls.length - n0) >= 1 && (calls.length - n0) <= 2 : (calls.length - n0) === 0), `calls ${calls.length - n0}`); return r.case; };
 await recall("nothing changed", base, false);
 { const rv = await recall("a reserve figure moved (the engine checks it: reserveCheck)", K.setReserve(base, { figure: 1 }, T), true); ok("the read carried the reserve and the case holds the engine's check of that very figure", calls[calls.length - 1].desk.reserve === 1 && rv.desk.reserveCheck && rv.desk.reserveCheck.reserve === 1 && K.reservePosition(rv) === "below", JSON.stringify(rv.desk.reserveCheck)); }
@@ -32,7 +32,7 @@ ok("a different gearbox reads a different population", tr.desk.evidence.populati
 const pick = base.desk.comparables.filter(c => c.inPopulation).slice(0, 3).map(c => c.id);
 let ex = base; for (const id of pick) ex = M.excludeSale(ex, { saleId: id, scope: "market_calc", reason: "Salvage title", now: T });
 const exr = await recall("a market_calc exclusion", ex, true);
-ok("the evidence count drops by the excluded sales and the original stays", exr.desk.evidence.count === base.desk.evidence.count - 3 && J(exr.desk.original) === J(base.desk.original) && exr.desk.original.count === base.desk.evidence.count);
+ok("the evidence count drops by the excluded sales and the original stays", exr.desk.evidence.count === base.desk.evidence.count - 3 && J(exr.desk.original) === J(base.desk.original) && exr.desk.original.count === base.desk.original.count);
 ok("the exclusions ride on the case with scope, reason and time", exr.exclusions.length === 3 && exr.exclusions.every(e => e.scope === "market_calc" && e.reason && e.at));
 // the three scopes are the engine's own, spelled the engine's way (a made up name reads as note_only there and would silently do nothing)
 { const DV = await import(pathToFileURL(path.join(root, "lib/deskV3.js")).href);
