@@ -200,7 +200,7 @@ const rhtml = V2.pageHtml(rm), ready = bd => (bd.action === "case_edit" || bd.ac
   const nid = r.needs[0][0]; await q.type(`[data-statement="${nid}"]`, "seen on the dash"); await q.click(`[data-need="${nid}"] [data-act="waive"]`); await wait(150); ok((q._posts || []).some(b => b.action === "proceed_without" && b.item === nid && b.words === "seen on the dash"), "Proceed without sends its words");
   await q.type("#why", " Edited."); await wait(900); ok((q._posts || []).some(b => b.op === "reserve" && b.patch && /Edited\./.test(b.patch.why)), "the why box saves what is typed");
   ok(await q.evaluate(() => !document.getElementById("bFin").disabled), "Finalize enables when the model says ready");
-  const n0 = (q._posts || []).length; await q.click("#bFin"); await wait(300);
+  const n0 = (q._posts || []).length; await q.click("#bFin"); await q.waitForSelector("#sendDlg", { timeout: 20000 }).catch(() => {}); await wait(100);
   const sent = () => (q._posts || []).filter(b => b.action === "case_send");
   ok((q._posts || []).slice(n0).some(b => b.action === "case_finalize") && (await q.evaluate(() => !!document.getElementById("sendDlg") && document.getElementById("sendTo").value === "hal@example.com")) && sent().length === 0, "Finalize and send finalizes, then asks for the recipient and sends nothing yet");
   await q.click("#sendGo"); await wait(200); ok(sent().length === 1 && sent()[0].to === "hal@example.com", "Send in the confirmation step sends to the confirmed recipient");
