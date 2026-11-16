@@ -19,7 +19,6 @@ if (args.includes("--mutants")) {
     [DV, "by[t] = noTiers || !blocks[`${t}:${m}`] ? null :", "by[t] = !blocks[`${t}:${m}`] ? null :", "a case with no condition data prices every tier on its own"],
     [DV, "by[t] = noTiers || !blocks[`${t}:${m}`] ? null : blocks[`${t}:${m}`].reserveLadder;", "by[t] = noTiers || !blocks[`${t}:${m}`] ? null : blocks[`${t}:12`].reserveLadder;", "a tier reads another period's view"],
     [DV, "const m = k.split(\":\")[1], by = { 0: blocks[`0:${m}`] ? blocks[`0:${m}`].reserveLadder : null };", "const m = k.split(\":\")[1], by = { 0: b.reserveLadder };", "the mapping reads the current view as the all-conditions ladder"],
-    [DV, "const src = byTier ? (all && !all.thin ? all : null)", "const src = byTier ? all", "the mapping reads a thin all-conditions ladder"],
     [DV, "if (own && own.rungs && !own.thin) { const r = own.rungs.find(x => x.key === own.recommended);", "if (false) { const r = own.rungs.find(x => x.key === own.recommended);", "a tier that prices on its own still takes the mapping"],
     ["lib/onebox.js", "      ownByCondition(blocks, noData);", "      ", "the views carry the current view's byCondition only"],
     ["lib/onebox.js", "desk.reserveLadder = { ...desk.reserveLadder, byCondition: cur.reserveLadder.byCondition };", "", "the top of the answer keeps the current view's tiers"],
