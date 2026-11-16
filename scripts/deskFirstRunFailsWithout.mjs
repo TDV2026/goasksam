@@ -319,6 +319,8 @@ const MUT = [
   ["upload cut: the model does not serve it", "deskTypedCasesCheck", "lib/desk/caseView.js", rep("uploadCutBytes: JSON_DOC_BYTES, ", "")],
   ["upload cut: the page does its own arithmetic again", "deskTypedCasesCheck", "lib/preview/deskV4Client.js", rep("f.size <= ((K && K.uploadCutBytes) || 0)", "f.size <= 3 * 1024 * 1024")],
   ["fixtures: the shared ready case has no condition", "deskReadinessCheck", "scripts/_deskCaseWorld.mjs", rep("c.condition = { ...c.condition, selected: { tier: 3, name: \"Good\" } };", "")],
+  ["one state per fact: the verification is not in the recall key", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep(", ...(Object.keys(verificationOf(c)).length ? [verificationOf(c)] : [])]);", "]);")],
+  ["one state per fact: the attention item ignores the field's verification", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("applies: c => c.fields.mileage.value == null || !c.fields.mileage.verified }", "applies: c => c.fields.mileage.value == null }")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
