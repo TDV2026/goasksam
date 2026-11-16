@@ -1066,6 +1066,11 @@ async function handleOps(req, res) {
   // task=deskpreviewmove: THE MOVE OF THE THREE SAMPLE CASES OUT OF HAGERTY (Lane D, Nov 15 2026; Sam's decision). WRITES to the production Desk store, once, ONE HEAVY STEP (Lane C runs it, HEAVY STEP START and DONE in lane-notes, nothing else heavy beside it).
   // It seeds pv_240z, pv_thin and pv_fin into the preview org (hagerty-preview, new sheet ids) through the same seed as deskpreviewseed, and ONLY WHEN those three are stored does it remove their old Hagerty rows (the legacy ids, each through the Desk's own delete path). pv_hm stays in Hagerty and is never touched. Needs docs/supabase-desk-preview-org.sql run first (it says so if the org or its crew seat is missing and removes nothing). Safe to run twice: a second run seeds nothing and finds nothing to remove.
   //   ?view=ops&task=deskpreviewmove
+  // task=docorphans: READ ONLY (Lane D, Nov 15 2026; Lane C's live run: a document removed from a case left its file in storage). Lists the document files under an org's case folders (<org>/<case>/doc/) that no desk_sheet_documents row owns, by case alias, file, size and date, with the totals. It deletes nothing. ?view=ops&task=docorphans&org=hagerty
+  if (task === "docorphans") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    try { const { orphanDocs } = await import("../lib/desk/storage.js"), r = await orphanDocs(env, String((req.query || {}).org || "hagerty")); return res.status(200).json({ task: "docorphans", readOnly: true, ...r }); } catch (e) { return res.status(200).json({ ok: false, why: String(e && e.message || e).slice(0, 200) }); }
+  }
   if (task === "deskpreviewmove") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     try {
