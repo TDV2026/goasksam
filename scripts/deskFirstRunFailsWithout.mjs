@@ -400,6 +400,12 @@ const MUT = [
   ["owner: the door does not pass the seat's role to the actions", "deskTypedCasesCheck", "lib/desk/door.js", rep(" seatRole: seat ? (seat.role || null) : null,", "")],
   ["answer health: the 911's stored shape (count 0, comparables, no period views) is passed as complete", "deskTypedCasesCheck", "lib/desk/answerHealth.js", rep("const current = Number(d.shape) >= VIEWS_FROM_SHAPE;", "const current = false;")],
   ["answer health: a count of 0 with comparables is passed as complete (the views rule alone is not enough: an answer with views and count 0)", "deskTypedCasesCheck", "lib/desk/answerHealth.js", rep("if (current && count === 0 && comps > 0) return \"empty_pool\";", "")],
+  ["photo dedupe: every road stores the same file again (the helper never finds a hash)", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("const hasPhotoHash = (sheet, c, hash) => !!hash && (", "const hasPhotoHash = (sheet, c, hash) => false && (")],
+  ["photo dedupe: the direct route stores a file already on the case", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("if (hasPhotoHash(s0, c, photoHashOf(raw))) {", "if (false) {")],
+  ["photo dedupe: photo_add stores a file already on the case", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("if (hasPhotoHash(s0, c, acc.hash)) return", "if (false) return")],
+  ["photo dedupe: the old sheet photo action stores a file already on the sheet", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("if (hasPhotoHash(s0, s0.case, acc.hash)) return", "if (false) return")],
+  ["photo dedupe: the case model keeps two photos with the same hash (intake, a later email)", "deskTypedCasesCheck", "lib/desk/caseModel.js", rep("if (photo.hash && c.photos.items.some(p => p.hash === photo.hash)) return c;", "")],
+  ["photo dedupe: the emailed photo's hash does not reach the sheet photo", "deskTypedCasesCheck", "lib/desk/intake/toSheet.js", rep(", ...(p.sha256 ? { hash: p.sha256 } : {})", "")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
