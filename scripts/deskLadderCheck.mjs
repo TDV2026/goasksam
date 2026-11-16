@@ -7,6 +7,14 @@ import fs from "node:fs"; import path from "node:path"; import os from "node:os"
 const here = path.dirname(fileURLToPath(import.meta.url)), args = process.argv.slice(2), ROOT = path.resolve(args.find(a => !a.startsWith("--")) || path.join(here, ".."));
 if (args.includes("--mutants")) {
   const DV = "lib/deskV3.js", muts = [
+    [DV, "export const CONDITION_RUNG = { 1: \"ambitious\",", "export const CONDITION_RUNG = { 1: \"safe\",", "Concours maps to safe"],
+    [DV, "2: \"balanced\", 3: \"balanced\", 4: \"safe\" };", "2: \"balanced\", 3: \"balanced\", 4: \"ambitious\" };", "Fair maps to ambitious"],
+    [DV, "2: \"balanced\", 3: \"balanced\", 4: \"safe\" };", "2: \"safe\", 3: \"balanced\", 4: \"safe\" };", "Excellent maps to safe"],
+    [DV, "out[t] = { ...base, key: ladder.recommended || null,", "out[t] = { ...base, key: \"balanced\",", "a priced view points every tier at balanced, not its own recommendation"],
+    [DV, "reason: ladder.reason || null, cleared: r ?", "reason: null, cleared: r ?", "a priced view gives no reason"],
+    [DV, "of: r.of, cleared: r.cleared }), cleared: r.cleared, of: r.of } : base;", "of: r.of, cleared: r.of - r.cleared }), cleared: r.cleared, of: r.of } : base;", "the reason counts the sales that did not clear"],
+    [DV, "const key = CONDITION_RUNG[t], r = ladder.fallbackView ? ladder.rungs.find(x => x.key === key && x.available) : null;", "const key = CONDITION_RUNG[t], r = ladder.rungs.find(x => x.key === key);", "a view with no priced ladder names a rung"],
+    [DV, "  reserveLadder = { ...reserveLadder, byCondition: byConditionOf(reserveLadder) };\n", "", "the ladder carries no byCondition"],
     [DV, "reserveLadderOf({ sales, evidence, reserveStart, reserveMode, tierName", "reserveLadderOf({ sales: rows, evidence, reserveStart, reserveMode, tierName", "a rung is counted over the whole population, not the view's sales"],
     [DV, "  if (reserveLadder.thin) {\n    const fbSpec", "  if (false) {\n    const fbSpec", "a thin view prices on its own rows (no fallback)"],
     [DV, "servedFrom = fbKey; salesOut = fb.sales; evidenceOut", "servedFrom = fbKey; evidenceOut", "a thin view swaps the figures but not the list"],
@@ -56,6 +64,14 @@ function judgeView(label, v, all, months) {
   views++; const L = v.reserveLadder; if (!L) return ok(`${label}: carries desk.reserveLadder`, false);
   ok(`${label}: the shape`, J(Object.keys(L).filter(k => ["rungs", "recommended", "reason", "thin", "thinLine", "fallbackView"].includes(k))) === J(["rungs", "recommended", "reason", "thin", "thinLine", "fallbackView"]) || ["rungs", "recommended", "reason", "thin", "thinLine", "fallbackView"].every(k => k in L), J(Object.keys(L)));
   ok(`${label}: four rungs in the order safe, balanced, ambitious, noReserve`, J(L.rungs.map(r => r.key)) === J(KEYS), J(L.rungs.map(r => r.key)));
+  // BY CONDITION (order bc85): the four tiers, each held to the rule from the view's own state, not from the engine's code
+  { const BC = L.byCondition, WORD = { ambitious: "higher", balanced: "middle", safe: "lower" }, FIX = { 1: "ambitious", 2: "balanced", 3: "balanced", 4: "safe" }, NAME = { 1: "Concours", 2: "Excellent", 3: "Good", 4: "Fair" };
+    ok(`${label}: byCondition has the tiers 1 to 4, each with tier, name, key, reason, cleared, of`, !!BC && J(Object.keys(BC)) === J(["1", "2", "3", "4"]) && [1, 2, 3, 4].every(t => BC[t] && BC[t].tier === t && BC[t].name === NAME[t] && ["key", "reason", "cleared", "of"].every(k => k in BC[t])), J(BC));
+    if (BC) for (const t of [1, 2, 3, 4]) { const e = BC[t]; if (!e) continue;
+      if (!L.thin) ok(`${label}: tier ${t} prices on its own: the ladder's recommended rung (${L.recommended}) with the ladder's reason`, e.key === L.recommended && e.reason === L.reason && e.of === v.sales.length, J(e));
+      else if (v.servedFrom) { const fr = L.rungs.find(r => r.key === FIX[t]), cl = v.sales.filter(x => Number(x.price) >= fr.figure).length;
+        ok(`${label}: tier ${t} (${NAME[t]}) served from ${v.servedFrom}: rung ${FIX[t]}, the sentence names all ${v.sales.length} sales and ${cl} that cleared it`, e.key === FIX[t] && e.cleared === cl && e.of === v.sales.length && e.reason === `${NAME[t]}: too few ${NAME[t]} sales to price on their own, so the reserve takes the ${WORD[FIX[t]]} rung of all ${v.sales.length} sales, ${cl} of ${v.sales.length} cleared it.`, J(e)); }
+      else ok(`${label}: tier ${t}: no priced ladder, no rung and no reason`, e.key === null && e.reason === null, J(e)); } }
   const prices = v.sales.map(s => Number(s.price)), own = v.sales.length;
   const N = v.sales.length, KEY0 = `0:${months}`, fb0 = all[KEY0], fbOk = !!(fb0 && fb0.reserveLadder && !fb0.reserveLadder.thin && fb0.sales.length >= LADDER.minSales);
   // THE CLASS (Lane C's hold, Nov 15 2026): every count a view prints equals the list it sits over, thin or not
@@ -114,8 +130,17 @@ const TIGHT = [30000, 31000, 32000, 33000, 34000, 35000, 36000, 37000, 38000, 39
 { const L = run(FEW.slice(0, 4)); ok("FIXTURE thin: four sales is under the minimum: thin, every rung unavailable, nothing recommended", L.thin === true && L.rungs.every(r => r.available === false) && L.recommended === null && L.reason === null && L.rungs.length === 4); }
 { const e = ev(TIGHT), L = DV.reserveLadderOf({ sales: mk(TIGHT), evidence: { ...e, insufficient: true }, reserveStart: null, reserveMode: null }); ok("FIXTURE thin: no typical range (insufficient evidence) is thin too", L.thin === true && L.recommended === null); }
 { const e = ev([30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000]), L = run([30000, 30000, 30000, 30000, 30000, 30000, 30000, 30000]); ok("FIXTURE equal prices: the rungs still rise in order and every figure is a price the sales can be counted against", L.rungs[0].figure < L.rungs[1].figure && L.rungs[1].figure < L.rungs[2].figure); }
+// BY CONDITION, the unit (order bc85): a priced ladder and a thin one served from a fallback, the four tiers each, with the sentence of the order ("3 of 8 cleared it")
+{ const EIGHT = [30000, 31000, 33000, 34000, 36000, 38000, 40000, 44000], L8 = run(EIGHT), thinL = { ...L8, thin: true, fallbackView: "0:12" }, FIX = { 1: "ambitious", 2: "balanced", 3: "balanced", 4: "safe" }, WORD = { ambitious: "higher", balanced: "middle", safe: "lower" }, NM = { 1: "Concours", 2: "Excellent", 3: "Good", 4: "Fair" };
+  const P = DV.byConditionOf(L8), T = DV.byConditionOf(thinL), amb = L8.rungs[2], N = DV.byConditionOf({ ...L8, thin: true, fallbackView: null }), NONE = DV.byConditionOf(null);
+  ok("BYCONDITION priced: every tier points at the ladder's recommended rung and reason", [1, 2, 3, 4].every(t => P[t].key === L8.recommended && P[t].reason === L8.reason && P[t].of === 8), J(P[1]));
+  ok("BYCONDITION thin, served: Concours ambitious, Excellent balanced, Good balanced, Fair safe", [1, 2, 3, 4].every(t => T[t].key === FIX[t]), J([1, 2, 3, 4].map(t => T[t].key)));
+  ok("BYCONDITION thin, served: Concours reads 'too few Concours sales ... the higher rung of all 8 sales, N of 8 cleared it.'", T[1].reason === `Concours: too few Concours sales to price on their own, so the reserve takes the higher rung of all 8 sales, ${amb.cleared} of 8 cleared it.` && T[1].cleared === amb.cleared && T[1].of === 8, T[1].reason);
+  ok("BYCONDITION thin, served: each tier's count is its own rung's", [1, 2, 3, 4].every(t => { const r = L8.rungs.find(x => x.key === FIX[t]); return T[t].cleared === r.cleared && T[t].reason === `${NM[t]}: too few ${NM[t]} sales to price on their own, so the reserve takes the ${WORD[FIX[t]]} rung of all 8 sales, ${r.cleared} of 8 cleared it.`; }));
+  ok("BYCONDITION thin with no fallback, or no ladder: no rung, no reason", [1, 2, 3, 4].every(t => N[t].key === null && N[t].reason === null && NONE[t].key === null && NONE[t].reason === null));
+  ok("BYCONDITION thin tiers: every sentence is the table's and carries no dash", [1, 2, 3, 4].every(t => RW.reasonPatterns().some(p => p.id === "desk4.ladder_cond_thin" && p.re.test(T[t].reason)) && !/[\u2013\u2014]/.test(T[t].reason))); }
 // the pages and the model compute none of it
-{ const bad = []; for (const f of ["public/js/desk.js", "public/desk.html", "lib/desk/caseView.js", "lib/desk/reportState.js", "lib/desk/caseWorkflow.js", "lib/desk/reportPdfV3.js"]) { let s = ""; try { s = fs.readFileSync(path.join(ROOT, f), "utf8"); } catch { continue; } if (/reserveLadder\s*=\s*\{|\.rungs\s*=\s*\[|ambitious\s*[:=]\s*[\d(]/.test(s)) bad.push(f); }
+{ const bad = []; for (const f of ["public/js/desk.js", "public/desk.html", "lib/desk/caseView.js", "lib/desk/reportState.js", "lib/desk/caseWorkflow.js", "lib/desk/reportPdfV3.js"]) { let s = ""; try { s = fs.readFileSync(path.join(ROOT, f), "utf8"); } catch { continue; } if (/reserveLadder\s*=\s*\{|\.rungs\s*=\s*\[|ambitious\s*[:=]\s*[\d(]|byCondition\s*=\s*\{|CONDITION_RUNG|byConditionOf/.test(s)) bad.push(f); }
   ok("no page file or workflow builds the ladder (the engine is its one source)", !bad.length, bad.join(" ")); }
 console.log(`deskLadderCheck: ${pass} passed, ${fail} failed (${views} views: ${liveViews} priced, ${thinViews} thin, ${served} served from a fallback)`);
 process.exit(fail ? 1 : 0);
