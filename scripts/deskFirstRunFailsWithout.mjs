@@ -375,6 +375,16 @@ const MUT = [
   ["vin verified: the transmission the decode named is not verified", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("for (const k of [\"year\", \"make\", \"model\", \"body\", \"transmission\"]) if (c.fields[k].source === \"vin_decoded\") tag(k);", "for (const k of [\"year\", \"make\", \"model\", \"body\"]) if (c.fields[k].source === \"vin_decoded\") tag(k);")],
   ["vin verified: a field the seller typed is upgraded by the decode", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("if (c.fields[k].source === \"vin_decoded\") tag(k);", "if (c.fields[k].value != null) tag(k);")],
   ["vin verified: a VIN that decoded stays seller supplied", "deskTypedCasesCheck", "lib/desk/caseWorkflow.js", rep("if (named && mine) tag(\"vin\");", "")],
+  ["re-read: the engine is not read when the car becomes identified", "intakeToCaseCheck", "lib/desk/sheetActions.js", rep("else if (!c.desk || W.needsRecall(c)) {", "else if (false) {")],
+  ["re-read: a re-read that changes nothing writes nothing", "intakeToCaseCheck", "lib/desk/sheetActions.js", rep("const note = (c, key, args) => { const c1 = structuredClone(c);", "const note = (c, key, args) => { if (key === \"none\") return c; const c1 = structuredClone(c);")],
+  ["re-read: a failed engine read writes nothing", "intakeToCaseCheck", "lib/desk/sheetActions.js", rep("const note = (c, key, args) => { const c1 = structuredClone(c);", "const note = (c, key, args) => { if (key === \"engine_failed\") return c; const c1 = structuredClone(c);")],
+  ["re-read: the stored email missing writes nothing", "intakeToCaseCheck", "lib/desk/sheetActions.js", rep("if (!(se && se.path)) { await save(note(s0.case, \"no_email\"));", "if (!(se && se.path)) {")],
+  ["title: the queue card reads the sheet's label first", "intakeToCaseCheck", "lib/desk/sheetStore.js", rep("car: titleOfSheet(s),", "car: s.car_label || titleOfSheet(s),")],
+  ["title: the title function reads the label before the fields", "intakeToCaseCheck", "lib/desk/title.js", rep("export const titleOfSheet = s => titleOfCase(s && s.case)", "export const titleOfSheet = s => (s && s.car_label) || titleOfCase(s && s.case)")],
+  ["title: the email subject reads the label", "intakeToCaseCheck", "lib/desk/sheetActions.js", rep("const car = titleOfSheet(s0);", "const car = s0.car_label || \"\";")],
+  ["chassis: the VIN row ignores the seller's chassis (Not given)", "deskTypedCasesCheck", "lib/desk/title.js", rep("const ch = (c && c.lead && c.lead.facts && c.lead.facts.chassis && c.lead.facts.chassis.value) || (sheet && sheet.chassis) || null;", "const ch = null;")],
+  ["chassis: the chassis is tagged Verified", "deskTypedCasesCheck", "lib/desk/title.js", rep("source: \"seller\", verified: false } : null;", "source: \"seller\", verified: true } : null;")],
+  ["chassis: the report does not print the chassis", "reportV4Check", "lib/desk/reportPdfV4.js", rep("if (p.identifier) y = para(", "if (false) y = para(")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
