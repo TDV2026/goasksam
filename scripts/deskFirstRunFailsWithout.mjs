@@ -393,6 +393,13 @@ const MUT = [
   ["failed read: the forwarded lead's read leaves no marker", "deskTypedCasesCheck", "lib/desk/intake/toCase.js", rep("if (o.case !== c) await putCase(sheets, orgId, row, o.case); ", "")],
   ["failed read: a marked-partial answer is taken as complete", "deskTypedCasesCheck", "lib/desk/answerHealth.js", rep("if (d.partial === true || d.incomplete === true", "if (false && d.partial === true || d.incomplete === true")],
   ["failed read: comparables with no period view are taken as complete", "deskTypedCasesCheck", "lib/desk/answerHealth.js", rep("if (!views && comps > 0 && Number(d.shape) >= VIEWS_FROM_SHAPE) return \"no_views\";", "")],
+  ["owner: the crew and the org owner are locked out of a held case again", "deskTypedCasesCheck", "lib/desk/sheetStore.js", rep("export const isDeskOwner = ctx => !!ctx && (", "export const isDeskOwner = ctx => false && (")],
+  ["owner: every seat is taken for the owner (the lock between analyst seats is gone)", "deskTypedCasesCheck", "lib/desk/sheetStore.js", rep("export const isDeskOwner = ctx => !!ctx && (", "export const isDeskOwner = ctx => true || (")],
+  ["owner: an action on a held case writes no audit entry naming who", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("if (!priv || !idIn || OWNER_READS.has(action) || body.draft === true)", "if (true)")],
+  ["owner: an admin seat is taken for the owner", "deskTypedCasesCheck", "lib/desk/sheetStore.js", rep('ctx.seatRole === "owner"', 'ctx.seatRole === "owner" || ctx.seatRole === "admin"')],
+  ["owner: the door does not pass the seat's role to the actions", "deskTypedCasesCheck", "lib/desk/door.js", rep(" seatRole: seat ? (seat.role || null) : null,", "")],
+  ["answer health: the 911's stored shape (count 0, comparables, no period views) is passed as complete", "deskTypedCasesCheck", "lib/desk/answerHealth.js", rep("const current = Number(d.shape) >= VIEWS_FROM_SHAPE;", "const current = false;")],
+  ["answer health: a count of 0 with comparables is passed as complete (the views rule alone is not enough: an answer with views and count 0)", "deskTypedCasesCheck", "lib/desk/answerHealth.js", rep("if (current && count === 0 && comps > 0) return \"empty_pool\";", "")],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
