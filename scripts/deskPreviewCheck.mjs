@@ -34,7 +34,7 @@ async function crewAssertions(handler, tag) {
   const getApi = await callWith(handler, "/api/crewPage?page=preview-desk-api", { cookie: crew }); if (getApi.code !== 404) bad.push("the API door answered a GET");
   const good = await callWith(handler, "/api/crewPage?page=preview-desk-valuations", { cookie: crew }); if (good.code !== 200 || !/class="topbar"/.test(good.body)) bad.push("the crew cookie did not get the page");
   if (!/noindex/.test(good.h["x-robots-tag"] || "")) bad.push("the page carries no noindex header");
-  const q = await callWith(handler, "/api/crewPage?page=preview-desk-api", { cookie: crew, method: "POST", body: { action: "sheet_queue", view: "queue" } }); let j = null; try { j = JSON.parse(q.body); } catch {} if (!(j && j.ok && j.rows && j.rows.length >= 4)) bad.push("the crew cookie did not get the sample queue from the API door");
+  const q = await callWith(handler, "/api/crewPage?page=preview-desk-api", { cookie: crew, method: "POST", body: { action: "sheet_queue", view: "queue", org: "hagerty-preview" } }); let j = null; try { j = JSON.parse(q.body); } catch {} if (!(j && j.ok && j.rows && j.rows.length >= 3)) bad.push("the crew cookie did not get the sample queue from the API door");
   return bad;
 }
 const bad1 = await crewAssertions(crewPage); ok(bad1.length === 0, `1 crew only: ${bad1.join("; ") || "ok"}`);
@@ -45,8 +45,8 @@ const bad1 = await crewAssertions(crewPage); ok(bad1.length === 0, `1 crew only:
 
 // THE SAMPLE QUEUE DOES NOT DEPEND ON THE TIME OF DAY (Nov 6 2026): the sample sheets are aged from the clock, and today's queue lists only today's sheets, so a preview opened just after UTC midnight lost the sheet that was a few hours old. CLASS: any sample sheet whose date follows the clock.
 { const real = Date.now; const rows = async at => { Date.now = () => at; resetPreviewStore(); try { const q = await previewDeskApi({ action: "sheet_queue", view: "queue" }); return q.rows.map(r => r.id).sort().join(); } finally { Date.now = real; resetPreviewStore(); } };
-  /* the day the check runs, not a pinned Nov 6: the samples are dated from the clock */ const TODAY = new Date(real()); const want = "pv_240z,pv_fin,pv_hm,pv_thin"; const got = []; for (const [h, m] of [[0, 5], [1, 40], [12, 0], [23, 55]]) got.push(await rows(Date.UTC(TODAY.getUTCFullYear(), TODAY.getUTCMonth(), TODAY.getUTCDate(), h, m)));
-  ok(got.every(g => g === want), "1 the sample queue holds all four sample sheets (the demonstration case is stored at the first read) at 00:05, 01:40, 12:00 and 23:55 UTC (" + got.map(g => g.split(",").length).join(", ") + " sheets)"); }
+  /* the day the check runs, not a pinned Nov 6: the samples are dated from the clock */ const TODAY = new Date(real()); const want = "pv_hm"; const got = []; for (const [h, m] of [[0, 5], [1, 40], [12, 0], [23, 55]]) got.push(await rows(Date.UTC(TODAY.getUTCFullYear(), TODAY.getUTCMonth(), TODAY.getUTCDate(), h, m)));
+  ok(got.every(g => g === want), "1 the Hagerty queue holds the demonstration case only, the three samples being in the preview org (the demonstration case is stored at the first read), at 00:05, 01:40, 12:00 and 23:55 UTC (" + got.join(" | ") + ")"); }
 // ---------- the browser: every screen at both ends ----------
 async function open(b, width, mode, { html, js }) {
   const page = await b.newPage(); await page.setViewport({ width, height: 900 }); const errs = []; page.on("pageerror", e => errs.push(e.message));
@@ -56,7 +56,7 @@ async function open(b, width, mode, { html, js }) {
     const m = /^\/dsk\.[^/]+\/([\w.-]+\.js)$/.exec(u.pathname); if (u.host === "goasksam.com" && m) return r.respond({ status: 200, contentType: "application/javascript", body: m[1] === "deskvals.js" ? js : fs.readFileSync(path.join(ROOT, "public/js", m[1]), "utf8") });
     if (u.host === "goasksam.com" && u.pathname === "/preview/desk/api" && r.method() === "POST") { let bd = {}; try { bd = JSON.parse(r.postData() || "{}"); } catch {} return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(await previewDeskApi(bd)) }); }
     return r.respond({ status: 204, body: "" }); });
-  await page.goto("https://goasksam.com/preview/desk-valuations", { waitUntil: "networkidle2" }).catch(() => {}); await wait(450); page._errs = errs; return page;
+  await page.goto("https://goasksam.com/preview/desk-valuations?org=hagerty-preview", { waitUntil: "networkidle2" }).catch(() => {}); await wait(450); page._errs = errs; return page;
 }
 const click = (p, sel) => p.evaluate(s => { const e = document.querySelector(s); if (e) e.click(); }, sel);
 const SCREENS = [["queue", "vals", async () => {}], ["sheet", "vals", async p => { await click(p, '[data-open="pv_thin"]'); await wait(700); await click(p, '[data-tier="3"]'); await wait(700); }], ["thin pool", "vals", async p => { await click(p, '[data-open="pv_thin"]'); await wait(700); await click(p, '[data-tier="1"]'); await wait(700); }],

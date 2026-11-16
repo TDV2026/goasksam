@@ -36,4 +36,17 @@ const mutants = [
   ["a real address left in", s => s.replace("lower('<SAM_EMAIL>')", "lower('someone@example.com')")]
 ];
 for (const [name, f] of mutants) { const b = checkSql(f(sql), seatDefault); ok(`fails without the fix: ${name}`, b.length > 0); }
+// THE PREVIEW ORG FOR THE SAMPLE CASES (Nov 15 2026): docs/supabase-desk-preview-org.sql gives hagerty-preview the rows saving a case needs: the org, a licence end and the crew seat the preview saves under. Safe to run twice, no placeholder, no table.
+export function checkPreviewOrgSql(q) {
+  const bad = [], need = (n, c) => { if (!c) bad.push(n); }, code = q.split("\n").filter(l => !l.trim().startsWith("--")).join("\n"), flat = code.replace(/\s+/g, " ");
+  need("the org row hagerty-preview", /insert into desk_orgs \(id, name\) values \('hagerty-preview', '[^']+'\) on conflict \(id\) do nothing/i.test(flat));
+  need("a licence end for the org", /insert into desk_org_settings \(org_id, seat_limit, licence_starts_on, licence_ends_on\) values \('hagerty-preview', \d+, '\d{4}-\d\d-\d\d', '\d{4}-\d\d-\d\d'\) on conflict \(org_id\) do nothing/i.test(flat));
+  need("the crew seat of the org", new RegExp(`insert into desk_seats \\([^)]*\\) values \\('hagerty-preview', '${seatDefault}'[^;]*on conflict \\(org_id, subject\\) do nothing`, "i").test(flat));
+  need("nothing touches Hagerty", !/'hagerty'/.test(flat));
+  need("no table, function or delete", !/create (table|function)|delete from|drop /i.test(flat));
+  need("no email address, no em or en dash", !/[a-z0-9._-]+@[a-z0-9-]+\.[a-z]{2,}/i.test(code) && !/[–—]/.test(q));
+  return bad;
+}
+{ const q = read("docs/supabase-desk-preview-org.sql"); ok("the preview org file leaves the sample cases able to save", checkPreviewOrgSql(q).length === 0, checkPreviewOrgSql(q).join("; "));
+  for (const [name, f] of [["no org row", t => t.replace(/insert into desk_orgs[\s\S]*?do nothing;/i, "")], ["no crew seat", t => t.replace(/insert into desk_seats[\s\S]*?do nothing;/i, "")], ["no licence end", t => t.replace(/insert into desk_org_settings[\s\S]*?do nothing;/i, "")], ["an insert that would double", t => t.replace(/on conflict \(id\) do nothing/i, "")], ["the file touches the Hagerty org", t => t + "\nupdate desk_orgs set name = 'x' where id = 'hagerty';"]]) ok(`preview org file fails without the fix: ${name}`, checkPreviewOrgSql(f(q)).length > 0); }
 console.log(`deskSeatSqlCheck: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

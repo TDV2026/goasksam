@@ -9,21 +9,22 @@ const here = path.dirname(fileURLToPath(import.meta.url)), args = process.argv.s
 if (args.includes("--mutants")) {
   const DV = "lib/deskV3.js", muts = [
     [DV, "(!cut || (iso(c.soldDate) && iso(c.soldDate) >= cut))", "(true)", "an old top-tier sale is let into the set (no window)"],
-    [DV, "months: likelyWindowOf(windowsOf(rowsCalc, when)) }", "months: 3 }", "the window is the shortest, not the longest the case offers"],
+    [DV, "months: likelyWindowOf(windowsOf(rowsCalc, when)),", "months: 3,", "the window is the shortest, not the longest the case offers"],
     [DV, "const list = nearestComparables(comparables, win), prices", "const list = (Array.isArray(comparables) ? comparables : []), prices", "every comparable is taken, not the nearest"],
+    [DV, "c && !isOwnSale(c, own) && (!cut", "c && (!cut", "the car's own previous sale is let into the nearest set"],
     [DV, ".slice(0, LIKELY_CAP);", ".slice(0, 99);", "the cap of 8 is gone"],
     [DV, "if (set.length < LIKELY_MIN) for", "if (false) for", "a short top tier is not extended"],
     [DV, " && c.inPopulation !== false) set.push(c);", ") set.push(c);", "the extension takes a sale of another gearbox"],
     [DV, "list.filter(c => c.relevance === \"close\")", "list.filter(c => c)", "the top relevance tier is ignored (the first rows of the list)"],
-    [DV, "ids: list.map(c => c.id) };", "ids: list.map(c => c.id).reverse() };", "the ids are in another order than desk.comparables"],
+    [DV, "ids: list.map(c => c.id), months", "ids: list.map(c => c.id).reverse(), months", "the ids are in another order than desk.comparables"],
     [DV, "count: list.length, ids", "count: list.length + 1, ids", "the count is not the comparables'"],
     [DV, "ok = list.length >= LIKELY_MIN && prices.length >= LIKELY_MIN", "ok = list.length >= 1", "the null floor is gone"],
     [DV, "low: ok ? prices[0] : null", "low: ok ? prices[1] : null", "low is not the lowest"],
     [DV, "high: ok ? prices[prices.length - 1] : null", "high: ok ? prices[prices.length - 2] : null", "high is not the highest"],
-    [DV, "likelyBasis = likelyBasisOf(comparables, { when, months: likelyWindowOf(windowsOf(rowsCalc, when)) }), evidenceOut", "likelyBasis = likelyBasisOf(comparables.slice(0, 2)), evidenceOut", "the basis covers only part of the list"],
-    [DV, "likelyBasis = likelyBasisOf(comparables, { when, months: likelyWindowOf(windowsOf(rowsCalc, when)) }), evidenceOut", "likelyBasis = { ...likelyBasisOf(comparables), median: evidence.median, low: evidence.q1, high: evidence.q3 }, evidenceOut", "the median and range are taken from the whole population"],
-    [DV, "likelyBasis = likelyBasisOf(comparables, { when, months: likelyWindowOf(windowsOf(rowsCalc, when)) }), evidenceOut", "likelyBasis = likelyBasisOf(sales), evidenceOut", "the basis is read over the sales, not the comparables"],
-    [DV, "likelyBasis = likelyBasisOf(comparables, { when, months: likelyWindowOf(windowsOf(rowsCalc, when)) }), evidenceOut", "likelyBasis = null, evidenceOut", "no basis at all"]
+    [DV, "likelyBasis = likelyBasisOf(comparables, { when, months: likelyWindowOf(windowsOf(rowsCalc, when)), own: kase && kase.own || null }), evidenceOut", "likelyBasis = likelyBasisOf(comparables.slice(0, 2)), evidenceOut", "the basis covers only part of the list"],
+    [DV, "likelyBasis = likelyBasisOf(comparables, { when, months: likelyWindowOf(windowsOf(rowsCalc, when)), own: kase && kase.own || null }), evidenceOut", "likelyBasis = { ...likelyBasisOf(comparables), median: evidence.median, low: evidence.q1, high: evidence.q3 }, evidenceOut", "the median and range are taken from the whole population"],
+    [DV, "likelyBasis = likelyBasisOf(comparables, { when, months: likelyWindowOf(windowsOf(rowsCalc, when)), own: kase && kase.own || null }), evidenceOut", "likelyBasis = likelyBasisOf(sales), evidenceOut", "the basis is read over the sales, not the comparables"],
+    [DV, "likelyBasis = likelyBasisOf(comparables, { when, months: likelyWindowOf(windowsOf(rowsCalc, when)), own: kase && kase.own || null }), evidenceOut", "likelyBasis = null, evidenceOut", "no basis at all"]
   ];
   let survivors = 0;
   for (const [file, from, to, want] of muts) { if (!want) continue;
@@ -101,6 +102,15 @@ function mk3() { return [50000, 20000, 30000].map((p, i) => ({ id: "s" + i, rele
   ok("engine: the old top-tier sale is in desk.comparables and offers the 24 month window, and the likely basis leaves it out", b.comparables.some(c => c.id === "r0" && c.relevance === "close") && b.windows.some(w => w.months === 24) && J(b.likelyBasis.ids) === J(["r1", "r2", "r3", "r4"]) && b.likelyBasis.high === 33000 && b.likelyBasis.median === 31500, J(b.likelyBasis));
   const b2 = await DV.deskBlock([r(0, at(25), 99000), r(1, at(26), 98000), r(2, at(2), 30000)], { caseDate: when, windowMonths: 12, subjectFacts: { generation: "996", year: 1999, body: "Coupe", gearbox: "manual", miles: 60000 } }, null);
   ok("engine: two old and one new top-tier sale: fewer than three inside the window, the null rule, count 1", b2.likelyBasis.count === 1 && b2.likelyBasis.median === null && b2.likelyBasis.high === null, J(b2.likelyBasis)); leftOut += 2; }
+// THE CAR'S OWN PREVIOUS SALE (order 2318, Nov 15 2026; found live: page one named $536,000, the car's own sale, among the closest). The sale with the case's own price on the own date is never in the nearest set, whatever its rank; the same price on another date is another car.
+{ const when = "2026-11-14", d1 = DV.cutoffOf(when, 2), d2 = DV.cutoffOf(when, 3), mkc = (i, price, date) => ({ id: "o" + i, relevance: "close", price, soldDate: date, inPopulation: true }), own = { date: d1, price: 536000 };
+  const list = [mkc(0, 536000, d1), mkc(1, 420000, d2), mkc(2, 500000, d2), mkc(3, 640000, d2), mkc(4, 536000, d2)];
+  const b = DV.likelyBasisOf(list, { when, months: 12, own });
+  ok("own sale unit: the car's own sale (its price on its date) is not in the nearest set; the same price on another date is", J(b.ids) === J(["o1", "o2", "o3", "o4"]) && b.count === 4 && b.high === 640000 && b.months === 12, J(b));
+  ok("own sale unit: with no own sale every close sale is in the set", DV.likelyBasisOf(list, { when, months: 12 }).count === 5 && DV.isOwnSale(list[0], own) && !DV.isOwnSale(list[4], own) && !DV.isOwnSale(list[0], null));
+  const rr = i => ({ id: "q" + i, price: i === 0 ? 536000 : 30000 + i * 1000, date: i === 0 ? DV.cutoffOf(when, 2) : DV.cutoffOf(when, 3 + i), year: 1999, generation: "996", body: "Coupe", gearbox: "manual", gearboxWord: "Manual", miles: 60000 + i * 500, platform: "Bring a Trailer", title: "1999 Porsche 911" });
+  const e = await DV.deskBlock([0, 1, 2, 3, 4].map(rr), { caseDate: when, windowMonths: 12, case: { own: { date: DV.cutoffOf(when, 2), price: 536000, miles: 60000 } }, subjectFacts: { generation: "996", year: 1999, body: "Coupe", gearbox: "manual", miles: 60000 } }, null);
+  ok("own sale engine: with the case's own last sale in the archive rows, desk.likelyBasis leaves it out (the sale stays in desk.comparables)", e.comparables.some(c => c.price === 536000) && !e.likelyBasis.ids.some(i => (e.comparables.find(c => c.id === i) || {}).price === 536000) && e.likelyBasis.count === 4 && e.likelyBasis.months === 12, J(e.likelyBasis)); }
 ok("at least 20 views were compared across the two cars, some with more than 8 comparables and an old top-tier sale left out", views >= 20 && bigger >= 1 && leftOut >= 1, J({ views, bigger, leftOut }));
 ok("the likely median is not simply the whole population's median in every view (the basis is the Closest sales set)", differs >= 1, String(differs));
 console.log(`deskLikelyBasisCheck: ${pass} passed, ${fail} failed (${views} views, ${thin} under three rows, ${differs} differ from the whole population's median)`);
