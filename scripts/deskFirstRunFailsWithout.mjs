@@ -406,6 +406,11 @@ const MUT = [
   ["photo dedupe: the old sheet photo action stores a file already on the sheet", "deskTypedCasesCheck", "lib/desk/sheetActions.js", rep("if (hasPhotoHash(s0, s0.case, acc.hash)) return", "if (false) return")],
   ["photo dedupe: the case model keeps two photos with the same hash (intake, a later email)", "deskTypedCasesCheck", "lib/desk/caseModel.js", rep("if (photo.hash && c.photos.items.some(p => p.hash === photo.hash)) return c;", "")],
   ["photo dedupe: the emailed photo's hash does not reach the sheet photo", "deskTypedCasesCheck", "lib/desk/intake/toSheet.js", rep(", ...(p.sha256 ? { hash: p.sha256 } : {})", "")],
+  ["seller words: intake files the text answers as document rows", "intakeToCaseCheck", "lib/desk/intake/toCase.js", rep("if (text && /\\S/.test(text)) out = setSellerWords(out, k, text);", "if (text && /\\S/.test(text)) out = addDocument(out, { id: \"form-\" + k, name: k, kind: \"other\", status: \"received\", receivedAt: at, title: k, sellerWords: true, field: k, text });")],
+  ["seller words: an old case keeps the words as document rows when it loads", "intakeToCaseCheck", "lib/desk/caseModel.js", rep("if (sheet.case && sheet.case.fields) return migrateSellerWords(sheet.case);", "if (sheet.case && sheet.case.fields) return sheet.case;")],
+  ["seller words: the next open does not save the move", "intakeToCaseCheck", "lib/desk/sheetActions.js", rep("const f = { ...s0, case: migrateSellerWords(s0.case), version:", "const f = { ...s0, case: s0.case, version:")],
+  ["seller words: the words are not considered items", "intakeToCaseCheck", "lib/desk/considered.js", rep("...(d.considered || []).map(x => ({ key: \"e:\" + x.key, title: x.title, text: x.line })), ...said,", "...(d.considered || []).map(x => ({ key: \"e:\" + x.key, title: x.title, text: x.line })),")],
+  ["seller words: the report's documents list prints the seller's answers", "intakeToCaseCheck", "lib/desk/reportState.js", rep(' && d.sellerWords !== true)', ')')],
 ];
 function copyTree(dst) {
   for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
