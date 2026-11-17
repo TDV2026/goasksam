@@ -134,6 +134,23 @@ for (const stored of [false, true]) {
       const row = st._state.sheets[st._state.sheets.length - 1], L = `Desk new case, ${sp}, "${form}"`;
       ok(`${L}: a sheet was made for the stated car`, !!(out && out.ok && row && row.make && [row.make, row.model, row.trim || null].join("|") === EXPECT[car.name]), out && [out.ok, out.reason, row && [row.make, row.model, row.trim]]);
       ok(`${L}: the sheet's mileage is the typed mileage (${mi == null ? "none" : mi})`, mi == null ? !(row && Number(row.mileage) > 0) : !!row && Number(row.mileage) === mi, row && row.mileage); } } }
+// BOTH SIDES OF THE MERGE AT ONCE (lane-b-variants-merged): a typed mileage AND a typed variant on one car, read by the real handler. "1987 Pontiac Firebird Trans Am 42,500 miles" is priced on Trans Am sales, the GTA is set aside, the range is narrowed to the mileage band,
+// and the car token carries the Trans Am and the mileage. Drop the typed words or the typed mileage (typed-through) or the variant context (variants) from the engine and this goes red.
+{ const FIRE = [{ make: "Pontiac", model: "Firebird", title: "Firebird Trans Am", year: 1987, price: 16000, n: 30, lowMiles: 30000, spanMiles: 30000 }, { make: "Pontiac", model: "Firebird", title: "Firebird Trans Am GTA", year: 1987, price: 24000, n: 14, lowMiles: 30000, spanMiles: 30000 }, { make: "Pontiac", model: "Firebird", title: "Firebird Formula", year: 1987, price: 13000, n: 12, lowMiles: 30000, spanMiles: 30000 }];
+  // the page hands the handler the car the resolver read (car.vehicle: this fake archive has no taxonomy tables, so the resolver cannot read "Pontiac Firebird Trans Am" here; resolverMileageCheck pins what it reads in prod's tables)
+  for (const [sp, text] of [["the car as the page sends it", "1987 Pontiac Firebird Trans Am 42,500 miles"]]) {
+    const veh = { raw: text, year: 1987, make: "Pontiac", model: "Firebird", trim: "Trans AM", mileage: 42500, confidence: "high" };
+    W.install(FIRE); const o = await mc(text, { car: { raw: text, vehicle: veh } }), plain = (W.install(FIRE), await mc("1987 Pontiac Firebird Trans Am", { car: { raw: "1987 Pontiac Firebird Trans Am", vehicle: { ...veh, raw: "1987 Pontiac Firebird Trans Am", mileage: null } } })), L = `Trans Am with 42,500 miles (${sp})`;
+    const titlesOf = d => (d.rawPool || []).map(r => String(r.raw_title || r.title || "")), v = o.variants, gta = v && v.items && v.items.find(i => i.name === "GTA");
+    ok(`${L}: an answer, a range`, o && o.tier === "result", o && [o.tier, o.error]);
+    ok(`${L}: priced on Trans Am sales (the variants block says it was asked for and applied)`, !!v && v.applied === true && v.stated.join() === "Trans Am", v && [v.applied, v.stated, v.line]);
+    ok(`${L}: no GTA sale is in the pool and the GTA is counted and set aside`, titlesOf(o).length > 0 && titlesOf(o).every(x => /trans am/i.test(x) && !/\bgta\b/i.test(x)) && !!gta && gta.count > 0 && gta.inPool === false, [titlesOf(o).slice(0, 3), gta]);
+    ok(`${L}: narrowed to the mileage band (the box holds 42,500, the engine's band names it)`, o.queryMileage === 42500 && !!o.mileageBand && o.mileageBand.target === 42500 && o.rangeMileage && o.rangeMileage.miles === 42500, [o.queryMileage, o.mileageBand]);
+    ok(`${L}: the sales in the pool are the Trans Am sales within the band (every one between 27,500 and 57,500 miles)`, (o.rawPool || []).length > 0 && (o.rawPool || []).every(r => { const m = Number(String(r.mileage || r.mi || "").replace(/[^\d]/g, "")); return !m || (m >= 27500 && m <= 57500); }), (o.rawPool || []).length);
+    const d = decode(o.car);
+    ok(`${L}: car.token carries the Trans Am and the mileage, car.line and car.short say so`, !!d && /trans/i.test(String(d.trim || d.variant || "")) && d.mileage === 42500 && /Trans/i.test(o.car.line) && o.car.line.includes("42,500 miles") && !!o.car.short, d && [d.trim, d.variant, d.mileage, o.car && o.car.line]);
+    ok(`${L}: the same car without the mileage keeps the variant and has no band`, plain.variants && plain.variants.applied && plain.variants.stated.join() === "Trans Am" && !bandNames(plain) && !(decode(plain.car) && decode(plain.car).mileage), [plain.variants && plain.variants.stated, plain.mileageLine]);
+  } }
 // THE SERVED CAR: the one function every surface calls, and the one entry for the box's mileage
 { const OB = await imp("lib/onebox.js");
   ok("the engine reads typed words without their number phrases (typedWordsOf): the mileage is not a model word, a typed 110 stays", typeof OB.typedWordsOf === "function" && OB.typedWordsOf("1999 Porsche Boxster 45,911 miles") === "1999 Porsche Boxster" && OB.typedWordsOf("1990 Land Rover Defender 110 62,110 miles") === "1990 Land Rover Defender 110" && OB.typedWordsOf("1999 Porsche 911 Carrera") === "1999 Porsche 911 Carrera");
@@ -161,15 +178,18 @@ function mutants() {
     ["Sell answers a typed mileage from the stored mileage-free row", "&& !typedRefine) { timings.answer = \"stored\"", ") { timings.answer = \"stored\"", "lib/sell/sellBlock.js"],
     ["the Tasks composer carries no car", "let o = withServedCar(out, v, env);", "let o = out;", "lib/tasks/tasks.js"],
     ["the Tasks composer reads no banded mileage", "const refine = withTypedMileage(v, null);\n  if (refine && !out.error) {", "const refine = null;\n  if (refine && !out.error) {", "lib/tasks/tasks.js"],
+    ["the merge drops the variant context", "const run = box => variantCtx.run(box, () => readScoped(() => runOneBoxCore(vehicle, generation, searchText, env, refine)));", "const run = box => readScoped(() => runOneBoxCore(vehicle, generation, searchText, env, refine));", "lib/onebox.js"],
+    ["the merge drops the typed words at the engine's entries", "  searchText = typedWordsOf(searchText);\n", "", "lib/onebox.js", true],
+    ["the merge drops the variant accumulator", "const res0 = await variantAnswerCtx.run(acc, () => oneEngineAnswerCore(vehicle, generation, searchText, env, refine));", "const res0 = await oneEngineAnswerCore(vehicle, generation, searchText, env, refine);", "lib/onebox.js"],
     ["the Desk new case drops the typed mileage", "...(Number(v.mileage) > 0 ? { mileage: Math.round(Number(v.mileage)) } : {}) };", "};", "lib/desk/intake/run.js"],
     ["the engine reads number phrases as model words", "  try { const r = setAsideNumbers(t); return r && r.changed && typeof r.text === \"string\" ? r.text.replace(/\\s{2,}/g, \" \").trim() : searchText; } catch { return searchText; }", "  return searchText;", "lib/onebox.js"],
     ["the Desk sheet takes no mileage", ", ...(car && car.mileage > 0 ? { mileage: car.mileage, mileage_basis: \"miles\" } : {}) });", " });", "lib/desk/intake/run.js"]
   ];
   let bad = 0;
-  for (const [name, from, to, file] of M) {
+  for (const [name, from, to, file, all] of M) {
     const P = path.join(ROOT, file), orig = fs.readFileSync(P, "utf8");
     if (!orig.includes(from)) { console.log("MUTANT NOT APPLICABLE (source changed): " + name); bad++; continue; }
-    let code = 0; try { fs.writeFileSync(P, orig.replace(from, () => to)); const r = spawnSync("node", [fileURLToPath(import.meta.url), ROOT], { stdio: "pipe", timeout: 600000 }); code = r.status === 0 ? 0 : 1; } finally { fs.writeFileSync(P, orig); }
+    let code = 0; try { fs.writeFileSync(P, all ? orig.split(from).join(to) : orig.replace(from, () => to)); const r = spawnSync("node", [fileURLToPath(import.meta.url), ROOT], { stdio: "pipe", timeout: 600000 }); code = r.status === 0 ? 0 : 1; } finally { fs.writeFileSync(P, orig); }
     console.log((code ? "killed   " : "SURVIVED ") + name); if (!code) bad++;
   }
   console.log(bad ? "typedThroughCheck mutants: " + bad + " not killed" : "all mutants killed"); return bad ? 1 : 0;
