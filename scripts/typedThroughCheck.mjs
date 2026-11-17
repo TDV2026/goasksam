@@ -115,6 +115,17 @@ for (const stored of [false, true]) {
   ok("Sell result: the market card is the banded read", !!(r1 && r1.marketAnswer && r1.marketAnswer.mileageBand && r1.marketAnswer.mileageBand.target === 38400), r1 && r1.marketAnswer && r1.marketAnswer.mileageBand);
   const r2 = await SFLOW.buildResult(senv, { carText: c.name, state: "Texas", how: "self", rush: null }).catch(e => ({ error: String(e && e.message) }));
   ok("Sell result: a plain ask after a typed one carries no mileage and the all mileages card (nothing left on the stored block)", !!(r2 && r2.car && !(decode(r2.car) && decode(r2.car).mileage)) && !(r2.marketAnswer && r2.marketAnswer.mileageBand && r2.marketAnswer.mileageBand.target), r2 && r2.car && r2.car.line); }
+// THE CAR BAR'S ADDRESS CARRIES THE TYPED MILEAGE (lane-b-variants-merged): the words a tool is opened with from the car bar (carInfo(token).label, what the door writes into ?car= for Sell and ?q= for Find, Market Check and the Tasks box) hold the mileage,
+// so Sell opened from the Sell pill reads the same car with the same mileage from its address, and does not lose it on a reload or a later call that sends words. For every form, on every tool that reads words.
+{ const CB = await imp("lib/carBar.js"), SF = await imp("lib/sell/sellFacts.js"), SE = await imp("lib/live/search.js"); world();
+  for (const [form, mi] of FORMS) { const car = carOfForm(form); if (!car) continue;
+    const o = await mc(form), info = o && o.car && o.car.token ? CB.carInfo(o.car.token) : null, L = `car bar address, "${form}"`;
+    ok(`${L}: the words the pills open a tool with ${mi == null ? "carry no mileage" : "end with the typed mileage (" + nf(mi) + " miles)"}`, !!info && (mi == null ? !/ miles$/.test(info.label) : info.label.endsWith(" " + nf(mi) + " miles")), info && info.label);
+    if (!info) continue;
+    const sc = await SF.resolveSellCar(info.label, {}), sv = sc && sc.car && sc.car.v, fv = (await SE.parseQueryResolved(info.label, {})).vehicle;
+    ok(`${L}: Sell opened with those words reads the same car and the same mileage (no mileage to ask for again)`, !!sv && [sv.make, sv.model, sv.trim || null].join("|") === EXPECT[car.name] && (mi == null ? !(sv.mileage > 0) : sv.mileage === mi), sv && [sv.model, sv.mileage]);
+    ok(`${L}: Find, Market Check and the Tasks box opened with those words read the same car and mileage`, !!fv && [fv.make, fv.model, fv.trim || null].join("|") === EXPECT[car.name] && (mi == null ? !(fv.mileage > 0) : fv.mileage === mi), fv && [fv.model, fv.mileage]);
+  } }
 // THE TASKS COMPOSER: the preview carries the car and, for a typed mileage, the engine's banded read
 { world(); for (const [form, mi] of FORMS) { const car = carOfForm(form); if (!car) continue; for (const [sp, text] of spellings(form)) {
   let o = null; try { o = await TK.emailPreview(env, text); } catch (e) { o = { error: String(e && e.message) }; }
@@ -151,6 +162,12 @@ for (const stored of [false, true]) {
     ok(`${L}: car.token carries the Trans Am and the mileage, car.line and car.short say so`, !!d && /trans/i.test(String(d.trim || d.variant || "")) && d.mileage === 42500 && /Trans/i.test(o.car.line) && o.car.line.includes("42,500 miles") && !!o.car.short, d && [d.trim, d.variant, d.mileage, o.car && o.car.line]);
     ok(`${L}: the same car without the mileage keeps the variant and has no band`, plain.variants && plain.variants.applied && plain.variants.stated.join() === "Trans Am" && !bandNames(plain) && !(decode(plain.car) && decode(plain.car).mileage), [plain.variants && plain.variants.stated, plain.mileageLine]);
   } }
+// THE ENGINE'S OWN READERS OF THE TYPED WORDS (typedWordsOf at oneEngineAnswer and runOneBox): "62,110" is a mileage, not the 110 wheelbase. Land Rover Defender 90 and 110 are separate pools; a typed 110 narrows, the 110 inside a mileage does not.
+{ W.install([{ make: "Land Rover", model: "Defender", title: "Defender 90", year: 1990, price: 40000, n: 20, body: "SUV" }, { make: "Land Rover", model: "Defender", title: "Defender 110", year: 1990, price: 60000, n: 20, body: "SUV" }]);
+  const OBd = await imp("lib/onebox.js"), veh = { year: 1990, make: "Land Rover", model: "Defender" }, read = async t => (await OBd.oneEngineAnswer(veh, null, t, { ...env, asked: 2 }, null)).raw, kinds = d => [...new Set((d.rawPool || []).map(r => /110/.test(String(r.raw_title || r.title)) ? "110" : "90"))].sort().join();
+  const plain = await read("1990 Land Rover Defender"), miles = await read("1990 Land Rover Defender 62,110 miles"), stated = await read("1990 Land Rover Defender 110");
+  ok("a mileage that ends in 110 (62,110 miles) does not narrow a Defender to the 110: both wheelbases are read, as with no mileage", kinds(plain) === "110,90" && kinds(miles) === "110,90", [kinds(plain), kinds(miles)]);
+  ok("a typed 110 still narrows to the 110", kinds(stated) === "110", kinds(stated)); }
 // THE SERVED CAR: the one function every surface calls, and the one entry for the box's mileage
 { const OB = await imp("lib/onebox.js");
   ok("the engine reads typed words without their number phrases (typedWordsOf): the mileage is not a model word, a typed 110 stays", typeof OB.typedWordsOf === "function" && OB.typedWordsOf("1999 Porsche Boxster 45,911 miles") === "1999 Porsche Boxster" && OB.typedWordsOf("1990 Land Rover Defender 110 62,110 miles") === "1990 Land Rover Defender 110" && OB.typedWordsOf("1999 Porsche 911 Carrera") === "1999 Porsche 911 Carrera");
@@ -176,11 +193,11 @@ function mutants() {
     ["Sell stores the banded answer as the plain car's row", "&& !env.noStore && !typedRefine && !timings.escalated", "&& !env.noStore && !timings.escalated", "lib/sell/sellBlock.js"],
     ["Sell's plain read keeps the typed mileage on the stored row", "const vE = typedRefine ? vE0 : (vE0 && vE0.mileage != null ? { ...vE0, mileage: null } : vE0);", "const vE = vE0;", "lib/sell/sellBlock.js"],
     ["Sell answers a typed mileage from the stored mileage-free row", "&& !typedRefine) { timings.answer = \"stored\"", ") { timings.answer = \"stored\"", "lib/sell/sellBlock.js"],
+    ["the car bar's words drop the typed mileage", "const words = Number(car.mileage) > 0 ? `${label} ${nf(car.mileage)} miles` : label;", "const words = label;", "lib/carToken.js"],
     ["the Tasks composer carries no car", "let o = withServedCar(out, v, env);", "let o = out;", "lib/tasks/tasks.js"],
     ["the Tasks composer reads no banded mileage", "const refine = withTypedMileage(v, null);\n  if (refine && !out.error) {", "const refine = null;\n  if (refine && !out.error) {", "lib/tasks/tasks.js"],
     ["the merge drops the variant context", "const run = box => variantCtx.run(box, () => readScoped(() => runOneBoxCore(vehicle, generation, searchText, env, refine)));", "const run = box => readScoped(() => runOneBoxCore(vehicle, generation, searchText, env, refine));", "lib/onebox.js"],
     ["the merge drops the typed words at the engine's entries", "  searchText = typedWordsOf(searchText);\n", "", "lib/onebox.js", true],
-    ["the merge drops the variant accumulator", "const res0 = await variantAnswerCtx.run(acc, () => oneEngineAnswerCore(vehicle, generation, searchText, env, refine));", "const res0 = await oneEngineAnswerCore(vehicle, generation, searchText, env, refine);", "lib/onebox.js"],
     ["the Desk new case drops the typed mileage", "...(Number(v.mileage) > 0 ? { mileage: Math.round(Number(v.mileage)) } : {}) };", "};", "lib/desk/intake/run.js"],
     ["the engine reads number phrases as model words", "  try { const r = setAsideNumbers(t); return r && r.changed && typeof r.text === \"string\" ? r.text.replace(/\\s{2,}/g, \" \").trim() : searchText; } catch { return searchText; }", "  return searchText;", "lib/onebox.js"],
     ["the Desk sheet takes no mileage", ", ...(car && car.mileage > 0 ? { mileage: car.mileage, mileage_basis: \"miles\" } : {}) });", " });", "lib/desk/intake/run.js"]
