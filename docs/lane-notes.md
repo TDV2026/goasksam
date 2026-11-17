@@ -3405,3 +3405,67 @@ scripts/variantSplitCheck.mjs, 87 checks (53 before), one more section for each 
   (d) copyLint, three assertions updated, all with mutants: hero line is now "Sam will recommend where to sell your vehicle and show you exactly why." (third person since d3179ea2) and stays dash free and free of I/my (mutants: first person, an em dash, both FAIL); the placeholder is a sentence, "e.g. 2004 Porsche 911 Carrera, or paste a VIN.", the car inside it must be year plus make (mutant: no year FAILS); the Home body's only Daily Vroom mention is the credit "from The Daily Vroom" (legal line and free line, since cb8e2ab9 Oct 25), a section or any other mention FAILS (mutants: "visit The Daily Vroom" in the legal line, an <h2>The Daily Vroom</h2> after the start block, both FAIL). copyLint now has one FAIL.
   FOR SAM, NOT CHANGED, the removed-house callout. scripts/copyLint.mjs:104-106: `check("1d lint: the stronger-non-routable callout never renders a removed house name", lintText(`One thing to know up front: ${platformDisplayName("rmsothebys")} actually shows the strongest comparable results, and ${platformDisplayName("gooding")} too.`).length === 0, ...)`. It FAILS because platformDisplayName("rmsothebys") returns "RM Sotheby's" and ("gooding") returns "Gooding", which the removed-house lint (copyLint.mjs:14-19, "RM Sotheby's and Gooding stay banned from user-facing copy ... render as 'a leading auction house'") bans. The two rules disagree: public/js/result-copy.js:654-660 (platformDisplayName) carries a decided rule (Sep 2026, "house-naming-as-evidence": houses are NAMED plainly when they surface as evidence in the stronger-non-routable callout) and maps rmsothebys and gooding to their names; the page prints it at public/js/result.js:386-402 as `${houseName} has had the strongest recent ${model} results of any auction house.` (the sentence the check tests is its own wording, not that line). Both exist on main today, so a seller on /sell whose strongest house is RM Sotheby's or Gooding is shown the name. Sam decides: keep naming (change the check to expect the names) or bring back "a leading auction house" (change platformDisplayName). I changed neither.
 - READY C (Lane C, lane-c-live-smoke at the commit carrying this line; NOT pushed). Checks on the branch: copyCheck 808/0, epochMatchCheck 7/0, deskCaseCheck 32/0, liveWaitsCheck 28/0, copyLint 1 FAIL (the callout above, left for Sam), liveSmoke 31/0 on the live site. The branch is lane-c-live-smoke in /Users/davidzysblat/Documents/GitHub/laneC-smoke. Class: stale checks are checks that pin a past decision (a copy line, a removed feature, a fixture the store now refuses); the sweep of the five checks Lane B named found these four causes, plus the callout; liveSmoke is the check that covers the class of "a page says something different from the engine's answer live".
+
+## FACT MINING, STAGE 1: THE TABLES (Lane B, lane-b-factmine off main 7aa57033; order bc85) FOR SAM TO RUN; nothing depends on them until they exist
+Run the file docs/supabase-factmine.sql (below, the same text) once in the Supabase SQL Editor. Lane B runs no DDL. Every task refuses cleanly ("tables not created") until they exist. No listing text and no seller name in any table.
+```sql
+-- VALUE DRIVER MINING (Lane B, Nov 17 2026, branch lane-b-factmine; order bc85). RUN ONCE in the Supabase SQL Editor (prod otkmxyrglikdoychnmvy). Lane B runs no DDL.
+-- Three tables. NO listing text and NO seller name in any of them: a mention is a topic in a few plain words written by the miner, a category and a type from fixed lists,
+-- two flags, and the character span it came from (numbers into text the miner read and the database does not hold).
+-- listing_id is source_slug || ':' || the source's own listing id (sales_archive.source_id, auction_attempts.source_record_id).
+
+create table if not exists listing_mining_runs (
+  listing_id      text        not null,
+  miner_version   text        not null,
+  source          text        not null,
+  family          text        not null,
+  sold_or_attempt text        not null check (sold_or_attempt in ('sold','attempt')),
+  status          text        not null check (status in ('done','failed','skipped_no_text')),
+  characters_read integer     not null default 0,
+  items_found     integer     not null default 0,
+  tokens_input    integer     not null default 0,
+  tokens_output   integer     not null default 0,
+  error           text,
+  created_at      timestamptz not null default now(),
+  primary key (listing_id, miner_version)
+);
+create index if not exists listing_mining_runs_family_idx on listing_mining_runs (family, miner_version, status);
+
+create table if not exists listing_mentions (
+  id              bigint generated always as identity primary key,
+  listing_id      text        not null,
+  source          text        not null,
+  family          text        not null,
+  sold_or_attempt text        not null check (sold_or_attempt in ('sold','attempt')),
+  miner_version   text        not null,
+  topic           text        not null,   -- as written by the miner, a few plain words
+  category        text        not null,
+  statement_type  text        not null check (statement_type in ('work_done','condition_present','absence_stated','claim')),
+  polarity        text        not null check (polarity in ('positive','negative','neutral')),
+  has_date        boolean     not null default false,
+  has_mileage     boolean     not null default false,
+  span_start      integer     not null,
+  span_end        integer     not null,
+  created_at      timestamptz not null default now(),
+  check (span_end > span_start and span_start >= 0)
+);
+create index if not exists listing_mentions_listing_idx on listing_mentions (listing_id, miner_version);
+create index if not exists listing_mentions_family_idx  on listing_mentions (family, miner_version, topic);
+
+create table if not exists topic_map (
+  raw_topic       text        not null,
+  canonical_topic text        not null,
+  family          text        not null,
+  map_version     text        not null,
+  created_at      timestamptz not null default now(),
+  primary key (family, map_version, raw_topic)
+);
+
+-- STANDING RULE (CLAUDE.md, Database security): locked down from creation.
+alter table listing_mining_runs enable row level security;
+alter table listing_mentions    enable row level security;
+alter table topic_map           enable row level security;
+revoke all on listing_mining_runs from anon, authenticated;
+revoke all on listing_mentions    from anon, authenticated;
+revoke all on topic_map           from anon, authenticated;
+```
