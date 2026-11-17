@@ -21,14 +21,18 @@ const fails = [];
 const check = (name, ok, detail) => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? "  " + detail : ""}`); if (!ok) fails.push(name); };
 
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
+// The start control on the new /tasks page is the request box: the textarea #pq and its submit button (#pq-form .go), which opens the sign-in card (the header's Account button, #acct, opens the same card when signed out; the old strip's .hp-signin is zero size and not a control).
+// The old "Give Sam a Task" buttons (#tkcta, #tkcta2) belonged to the page NEW_DESIGN replaced (Nov 11); scripts/tasksStartControlCheck.mjs keeps these selectors honest against the served page.
+const START_BOX = "#pq", START_GO = "#pq-form .go", HEADER_SIGNIN = "#acct";
+const startFromBox = async p => { const there = await p.evaluate((a, g) => !!(document.querySelector(a) && document.querySelector(g)), START_BOX, START_GO); if (!there) return false; await p.type(START_BOX, "a red manual Porsche 911"); await p.click(START_GO); return true; };
 const fresh = async (w, h) => { const ctx = await b.createBrowserContext(); const p = await ctx.newPage(); await p.setViewport({ width: w, height: h, deviceScaleFactor: w < 500 ? 2 : 1 }); return p; };
 try {
   // 1. signed out
   for (const [w, h] of [[1440, 900], [1024, 768], [390, 844]]) {
     const p = await fresh(w, h);
     await p.goto(`${SITE}/tasks?chk=${Date.now()}`, { waitUntil: "networkidle2" });
-    await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await p.click("#tkcta2");
+    const started = await startFromBox(p);
+    check(`signed out ${w}px: the request box and its submit button are on the page`, started);
     await p.waitForSelector("#auth-modal .auth-dialog", { timeout: 10000 }).catch(() => {});
     await new Promise(r => setTimeout(r, 300));
     const o = await p.evaluate(() => {
@@ -42,10 +46,19 @@ try {
     if (shots) await p.screenshot({ path: `${shots}/tasks-signin-${w}.png` });
     await p.browserContext().close();
   }
+  // 1b. the header's Sign in opens the same card
+  for (const w of [1440, 390]) {
+    const p = await fresh(w, 844);
+    await p.goto(`${SITE}/tasks?chk=${Date.now()}`, { waitUntil: "networkidle2" });
+    const has = await p.$(HEADER_SIGNIN); if (has) await has.click();
+    const card = has ? await p.waitForSelector("#auth-modal .auth-dialog", { timeout: 10000 }).then(() => true).catch(() => false) : false;
+    check(`signed out ${w}px: the header's Account button opens the sign-in card`, !!has && card);
+    await p.browserContext().close();
+  }
   // 2. the email-code sign-in
   const p = await fresh(1440, 900);
   await p.goto(`${SITE}/tasks?chk=${Date.now()}`, { waitUntil: "networkidle2" });
-  await p.click("#tkcta");
+  if (!(await startFromBox(p))) check("the request box is on /tasks for the sign-in path", false);
   await p.waitForSelector("#auth-email", { timeout: 10000 });
   await p.type("#auth-email", "feedback+taskstest@goasksam.com"); await p.click(".auth-email-btn");
   const codeScreen = await p.waitForSelector("#auth-code", { timeout: 20000 }).then(() => true).catch(() => false);
