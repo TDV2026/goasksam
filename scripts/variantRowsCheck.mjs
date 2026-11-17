@@ -65,7 +65,7 @@ for (const f of FAMS) {
     if (want < 5) { ok(`${L}: ${want === 0 ? "a variant with no sale" : "a variant under five sales (" + want + ")"}: its label and its own count (${CN.countNoun(want, "sale")}), no range, not priced`, !row.rangeText && row.priced === false && row.salesText === CN.countNoun(want, "sale"), row); continue; }
     const h = row.car ? await asked(f, plan, row.car.words) : null;
     if (!h) { ok(`${L}: the row's own car answers`, false, row.car); continue; }
-    const thin = !!(h.variants && h.variants.thin), hr = thin ? null : VR.rangeTextOf(h), hn = thin && h.variants.pooled != null ? h.variants.pooled : VR.salesCountOf(h);
+    const thin = !!(h.variants && h.variants.thin), hr = thin || !(h.tier === "result" && Array.isArray(h.cluster) && h.cluster.length === 2 && Number(h.cluster[0]) > 0) ? null : money(h.cluster[0]) + " to " + money(h.cluster[1]), hn = thin && h.variants.pooled != null ? h.variants.pooled : VR.salesCountOf(h);
     ok(`${L}: the row's rangeText is the range of the answer for its own car (${hr || "none"})`, (row.rangeText || null) === (hr || null), [row.rangeText, hr, h.tier]);
     ok(`${L}: the row's salesText is the sales count of the answer for its own car (${CN.countNoun(hn, "sale")})`, row.salesText === CN.countNoun(hn, "sale"), [row.salesText, hn]);
     ok(`${L}: priced is exactly 'a range is shown'`, row.priced === !!row.rangeText);
@@ -79,7 +79,7 @@ for (const f of FAMS) {
     ok(`${L}: the row's car carries the typed mileage (token, words, address)`, !!dec && dec.mileage === miles && row.car.words.endsWith(`${miles.toLocaleString("en-US")} miles`) && row.car.address.includes(encodeURIComponent("40,000 miles")), row.car);
     if ((plan.counts[i] || 0) < 5) { ok(`${L}: an unpriced variant stays unpriced with the mileage (no range, its own count)`, !row.rangeText && row.priced === false, row); continue; }
     const h = row.car ? await asked(f, plan, row.car.words.replace(/ 40,000 miles$/, ""), miles) : null; if (!h) continue;
-    const thin = !!(h.variants && h.variants.thin), hr = thin ? null : VR.rangeTextOf(h), hn = thin && h.variants.pooled != null ? h.variants.pooled : VR.salesCountOf(h);
+    const thin = !!(h.variants && h.variants.thin), hr = thin || !(h.tier === "result" && Array.isArray(h.cluster) && h.cluster.length === 2 && Number(h.cluster[0]) > 0) ? null : money(h.cluster[0]) + " to " + money(h.cluster[1]), hn = thin && h.variants.pooled != null ? h.variants.pooled : VR.salesCountOf(h);
     ok(`${L}: the row equals the banded answer of its own car (range ${hr || "none"}, ${CN.countNoun(hn, "sale")})`, (row.rangeText || null) === (hr || null) && row.salesText === CN.countNoun(hn, "sale"), [row.rangeText, hr, row.salesText, hn]);
   }
   // 5 show false
@@ -106,11 +106,11 @@ function mutants() {
     ["a row's car does not carry the typed mileage", "lib/variantRows.js", "...(typedMiles ? { mileage: typedMiles } : {}) }, gen", "}, gen"],
     ["a row is read without the typed mileage band", "lib/variantRows.js", "{ ...env, asked: 0 }, withTypedMileage(rv, null))", "{ ...env, asked: 0 }, null)"],
     ["a thin variant gets the blended range", "lib/variantRows.js", "raw && raw.variants && raw.variants.thin ? null : rangeTextOf(raw)", "rangeTextOf(raw)"],
-    ["a thin variant counts the blended sales", "lib/variantRows.js", "raw && raw.variants && raw.variants.thin && Number.isFinite(Number(raw.variants.pooled)) ? Number(raw.variants.pooled) : salesCountOf(raw)", "salesCountOf(raw)"],
+    ["a thin variant counts the blended sales", "lib/variantRows.js", "(raw && raw.variants && raw.variants.thin && Number.isFinite(Number(raw.variants.pooled)) ? Number(raw.variants.pooled) : (groups.get(v.name) || []).length)", "salesCountOf(raw)"],
     ["a row's range is built another way (the rounded middle)", "lib/variantRows.js", "`${moneyOf(d.cluster[0])} to ${moneyOf(d.cluster[1])}`", "`${moneyOf(Number(d.cluster[0]) + 100)} to ${moneyOf(d.cluster[1])}`"],
     ["a row counts the wrong pool", "lib/variantRows.js", "const n = Number(d && (d.poolN != null ? d.poolN : d.soldCount));", "const n = Number(d && d.soldCount) + 1;"],
     ["the line is not the engine's", "lib/reasonWords.js", "A ${p.model}'s price depends on which one it is.", "Prices vary."],
-    ["a row has no address", "lib/variantRows.js", "address: \"/market-check?q=\" + encodeURIComponent(w ? w.label : text),", "address: \"\","],
+    ["a row has no address", "lib/variantRows.js", "address: \"/market-check?q=\" + encodeURIComponent(text),", "address: \"\","],
     ["a row has no token", "lib/variantRows.js", "car: st ? { token: st.token,", "car: st ? { token: null,"],
     ["a row for the sales that name no variant", "lib/variantRows.js", "fam.variants.map(async v =>", "[...fam.variants, { name: \"Unstated\" }].map(async v =>"],
     ["a refined answer gets rows", "lib/variantRows.js", "if (!onlyMiles || Number(ctx && ctx.asked) > 0", "if (Number(ctx && ctx.asked) > 0"]
