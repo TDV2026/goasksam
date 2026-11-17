@@ -3463,3 +3463,80 @@ STAGE 4, THE CHECK. scripts/carBarCheck.mjs section 7 serves each of those throu
 SAID PLAINLY: (1) the mutant run for this branch is STILL TO COME (it runs in a separate copy from now on); (2) a first, killed run reported one survivor, "the Tasks page patched for a visitor", to be killed in a follow up; (3) existing, not mine: the sign in card does not open by itself on /tasks?signin=1 (the page's inline script asks for openSignInCard before the deferred auth.js has defined it), so the app's sign in redirect lands on the landing without the card; the car and the bar are kept there, the person presses Account; (4) a reload in the middle of Sell's flow loses the bar (the step address carries the car's words, not the token); (5) all engine answers and the Tasks API are fixtures, nothing deployed, the real sign in (Google, the emailed code) not run.
 - READY S lane-s-car-bar-3 be2ba8a1 (code and check; mutant run still to come; NOT pushed)
 Search check: no public page's output changes (every change is behind isCrewRequest; a visitor's /tasks?car= and /tasks/mine?app=1&car= are asserted byte for byte).
+
+## FACT MINING, STAGE 1: THE TABLES (Lane B, lane-b-factmine off main 7aa57033; order bc85) FOR SAM TO RUN; nothing depends on them until they exist
+Run the file docs/supabase-factmine.sql (below, the same text) once in the Supabase SQL Editor. Lane B runs no DDL. Every task refuses cleanly ("tables not created") until they exist. No listing text and no seller name in any table.
+```sql
+-- VALUE DRIVER MINING (Lane B, Nov 17 2026, branch lane-b-factmine; order bc85). RUN ONCE in the Supabase SQL Editor (prod otkmxyrglikdoychnmvy). Lane B runs no DDL.
+-- Three tables. NO listing text and NO seller name in any of them: a mention is a topic in a few plain words written by the miner, a category and a type from fixed lists,
+-- two flags, and the character span it came from (numbers into text the miner read and the database does not hold).
+-- listing_id is source_slug || ':' || the source's own listing id (sales_archive.source_id, auction_attempts.source_record_id).
+
+create table if not exists listing_mining_runs (
+  listing_id      text        not null,
+  miner_version   text        not null,
+  source          text        not null,
+  family          text        not null,
+  sold_or_attempt text        not null check (sold_or_attempt in ('sold','attempt')),
+  status          text        not null check (status in ('done','failed','skipped_no_text')),
+  characters_read integer     not null default 0,
+  items_found     integer     not null default 0,
+  tokens_input    integer     not null default 0,
+  tokens_output   integer     not null default 0,
+  error           text,
+  created_at      timestamptz not null default now(),
+  primary key (listing_id, miner_version)
+);
+create index if not exists listing_mining_runs_family_idx on listing_mining_runs (family, miner_version, status);
+
+create table if not exists listing_mentions (
+  id              bigint generated always as identity primary key,
+  listing_id      text        not null,
+  source          text        not null,
+  family          text        not null,
+  sold_or_attempt text        not null check (sold_or_attempt in ('sold','attempt')),
+  miner_version   text        not null,
+  topic           text        not null,   -- as written by the miner, a few plain words
+  category        text        not null,
+  statement_type  text        not null check (statement_type in ('work_done','condition_present','absence_stated','claim')),
+  polarity        text        not null check (polarity in ('positive','negative','neutral')),
+  has_date        boolean     not null default false,
+  has_mileage     boolean     not null default false,
+  span_start      integer     not null,
+  span_end        integer     not null,
+  created_at      timestamptz not null default now(),
+  check (span_end > span_start and span_start >= 0)
+);
+create index if not exists listing_mentions_listing_idx on listing_mentions (listing_id, miner_version);
+create index if not exists listing_mentions_family_idx  on listing_mentions (family, miner_version, topic);
+
+create table if not exists topic_map (
+  raw_topic       text        not null,
+  canonical_topic text        not null,
+  family          text        not null,
+  map_version     text        not null,
+  created_at      timestamptz not null default now(),
+  primary key (family, map_version, raw_topic)
+);
+
+-- STANDING RULE (CLAUDE.md, Database security): locked down from creation.
+alter table listing_mining_runs enable row level security;
+alter table listing_mentions    enable row level security;
+alter table topic_map           enable row level security;
+revoke all on listing_mining_runs from anon, authenticated;
+revoke all on listing_mentions    from anon, authenticated;
+revoke all on topic_map           from anon, authenticated;
+```
+
+## FACT MINING, STAGES 2 TO 6 (Lane B, lane-b-factmine; order bc85; NOT pushed)
+CAUSE / CLASS: there was no way to learn which facts sellers repeatedly state, only a fixed list someone chose. Class: any model family. The pilot is e46_m3 and p996_carrera by lib/valueCensus.js's own family matcher (same set-asides: projects, replicas, RUF, Turbo-look, sedans, other trims); a new family is one entry in FAMILIES and MINE_FAMILIES. No page and no email reads any of this (no public page touched): everything is behind the ops door and returns counts.
+- STAGE 2, TASK factmine (lib/factMine.js, api/usageDashboard.js, behind the probe key): ONE source (bringatrailer, carsandbids, pcarmarket, hagerty, rmsothebys, sothebysmotorsport, hemmings), ONE family, from and to required (an unwindowed call and a window over 366 days are refused), limit at most 25 (default 10), tokenCap per call (default 60,000, at most 150,000). It reads the window the way valuecensus does, keeps the listings of the family, skips every listing that already has a run row for this miner version (fm1; a failed one is tried again), and for each remaining listing sends the model (SAM_MODEL, claude-sonnet-4-6, the model the site uses) the description and "Car: <year> BMW M3 (E46), variant: Coupe" and NOTHING ELSE: buildPrompt takes year, model, variant and text and no row. The model returns items (topic in a few plain words, category from the 16, statement type from the 4, polarity, has_date, has_mileage, and an exact QUOTE of at most 120 characters); the server finds the quote in the text it sent and stores the SPAN; an item whose quote is not in the text, or whose category, type or polarity is not in its list, is dropped. Written: listing_mentions (topic, category, type, polarity, flags, span start and end, listing id, source, family, sold or attempt, miner version) and one listing_mining_runs row (done, failed, skipped_no_text, with characters read, items found, tokens). Never text, never a seller. The answer is counts and tokens (window_listings, in_family, already_mined, asked, mined, skipped_no_text, failed, items_written, items_dropped, tokens_input, tokens_output, stopped, remaining_unmined); assertCountsOnly refuses a string over 200 characters. Missing tables answer 409 "tables not created: run docs/supabase-factmine.sql". The token use of each call is logged once to app_usage_events (tokens and cost only).
+- STAGE 3, TASK factmap (lib/factMap.js): the distinct raw topics of a family with their counts (labels only) that topic_map does not hold for the map version, most common first, at most 300 a call, to the model, which groups them; written to topic_map with the version. THE OPPOSITE MEANINGS GUARD is deterministic and runs on whatever the model returned: meaningKey names the classes a topic holds (negation, redone work, original, accident, clean history, rust) and splitOpposites splits any group whose members differ, so "repainted" and "original paint", "accident" and "no accident", "rust" and "no rust", "original engine" and "engine replaced" are never one topic; a label the model leaves out or invents is handled (left alone, or not written). Idempotent: a second run asks nothing.
+- STAGE 4, TASK factreport (lib/factReport.js, read only): per family the canonical topics by listings and share, by source (and share of that source's listings) and by sale year (from sales_archive), the statement type and polarity split, the share of mentions with a date and with a mileage, and the pairs of topics that appear together with the lift over chance. Counts only.
+- STAGE 5, TASK factprice (lib/factPrice.js, read only, SOLD ONLY: attempts are filtered out before anything is read for price): a topic on 30 or more sold listings and absent from 30 or more is compared; strata of the same source, sale year, model year group, mileage band, variant, body, gearbox and listing length (terciles of the characters the miner read); the effect is the weighted mean over strata that hold both kinds of the median sold price with against without. The listings are split by a hash (sha1) of the listing id; the effect is computed on each half; CONFIRMED only if both halves have 8 or more matched listings on each side in 3 or more strata, the first half's effect is 2 percent or more, the second half has the same sign and at least half the size. Output: counts, raw medians, matched counts, strata, the effect, each half's effect, confirmed, and a line in observational words ("Sold listings that state X sold for N% more (median, within matched listings); the second half agrees"). I added the 2 percent floor myself: below it a no-effect topic confirmed itself on noise in the fixtures.
+- STAGE 6, CHECKS: scripts/factMineCheck.mjs 50 pass and scripts/factPriceCheck.mjs 22 pass, on fixtures and a fake database (no network, no model). factMineCheck: a marker in the price, bid, outcome, seller, comments fields and the sale price column of every fixture listing never reaches the prompt (and the builder's source names none of them); an item with no quote, a quote not in the text, or a bad category, type or polarity is dropped, kept spans equal the quote's place; a second run asks the model nothing and writes nothing; an unwindowed call, a window of 367 days, 26 listings, a token cap over its limit, a source without full text, a family outside the pilot are refused before anything is read; the token cap stops a call; a listing with no text is skipped without the model; missing tables refuse; no task returns text (the markers never appear) and what is written holds none; the map keeps opposite meanings apart whatever the model groups, and is idempotent; the report's counts. 19 mutants, all killed. factPriceCheck: a planted +10 percent effect is found and confirmed; an effect in one half only is reported and not confirmed; a second half in the same direction under half the size, and one pointing the other way, are not confirmed; a topic on 29 or 20 listings, or absent from fewer than 30, is not reported; a topic that only travels with low mileage, and one that only travels with long listings, has no effect inside the bands and is not confirmed; through the task body attempts are ignored (a topic on 60 attempt listings is not reported); the wording never says adds or worth. 11 mutants, all killed. Both fail on main (the files do not exist there).
+- WHAT I COULD NOT TEST: the real model (no key use here: the prompt and the answer's shape are checked on fixtures; the first real batch is Lane F's), the real tables (they do not exist until Sam runs the SQL), and the quote-to-span step on real descriptions (a model that paraphrases a quote loses the item, counted in items_dropped; if that share is high on the first batch, the prompt is the thing to change, not the guard).
+- COST OF ONE FULL RUN OVER BOTH FAMILIES, for Sam to agree before Lane F runs it. Listings: the sold listings of the seven full text sources for the two families, all years, from Lane F's census (a floor): e46_m3 274 (BaT 170, C&B 83, RM 12, Hagerty 3, Hemmings 3, Sotheby's 2, PCARMARKET 1), p996_carrera 1,792 (BaT 1,335, C&B 337, PCARMARKET 96, Hagerty 10, RM 8, Hemmings 3, Sotheby's 3): about 2,070 listings (unsold attempts would be more; not counted). Description size, read from the live valuecensus counts (2025): BaT p50 2,600 to 2,900 characters (p90 3,100 to 3,900), Cars & Bids p50 1,900 (p90 2,400): about 750 tokens of description; the system prompt is 1,680 characters, about 420 tokens; so about 1,200 input tokens a listing. Output: 25 to 40 items a listing at about 75 tokens an item (topic, category, type, polarity, flags, a quote of up to 120 characters): about 2,300 output tokens a listing (the one number I cannot measure before a real batch). So about 3,500 tokens a listing, about 7.2 million tokens for the mining (about 2.5 million in, 4.7 million out), range 6 to 10 million. Add the map: about 15,000 distinct raw topics, 300 a call, about 50 calls of about 8,000 tokens: about 0.4 million. TOTAL about 7.6 million tokens. At the repo's Sonnet rates ($3 per million in, $15 per million out, api/_usage.js) that is about $78 for mining and $4 for the map: about $82, range $65 to $115, almost all of it output. The first call (25 listings, tokenCap 150,000) will measure the real tokens a listing: Lane F should run that one first, read tokens_input and tokens_output, and Sam should confirm the total from it.
+- HOW LANE F RUNS IT, after Sam has run the SQL and Lane C has pushed and deployed (one call at a time; three heavy reads at most): GET /api/usageDashboard?view=ops&task=factmine&source=bringatrailer&family=e46_m3&from=2025-01-01&to=2025-12-31&limit=25&tokenCap=150000 (repeat per source, family and year window until remaining_unmined is 0); then task=factmap&family=e46_m3 (repeat until asked is 0), then task=factreport&family=e46_m3 and task=factprice&family=e46_m3. All with the probe key header.
+- READY B (Lane B, lane-b-factmine, code commit is the one before this note, tip is the next commit; off origin/main 7aa57033; NOT pushed): value driver mining, tasks factmine, factmap, factreport and factprice; the SQL for Sam is in docs/supabase-factmine.sql and above. Search check: no public page touched.
+- READY B (Lane B, lane-b-factmine): code and notes commit 6e336a54, tip is the next commit; correction of the line above, which said 'the one before this note': the code and the notes went in one commit. NOT pushed.
