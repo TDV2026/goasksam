@@ -1722,6 +1722,13 @@ try {
 } catch (e) {
   record("signinReturnCheck (scripts/signinReturnCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
+// The signed out /tasks page has a working way to start (Lane S, Nov 16 2026): the request box, its submit button and the header Account button open the sign-in card, and the live sign-in check clicks controls that exist. No network.
+try {
+  const out = execSync("node scripts/tasksStartControlCheck.mjs", { encoding: "utf8" });
+  record("tasksStartControlCheck (scripts/tasksStartControlCheck.mjs)", "PASS", (out.match(/tasksStartControlCheck: .*/) || [""])[0]);
+} catch (e) {
+  record("tasksStartControlCheck (scripts/tasksStartControlCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+}
 // The holding page (Sam, Oct 25 2026): sealed, a stranger gets the countdown page (503, no noindex), at zero the site stays closed, crew and keyed jobs pass. No network.
 try {
   const out = execSync("node scripts/holdPageCheck.mjs", { encoding: "utf8" });

@@ -1670,6 +1670,17 @@ async function handleOps(req, res) {
   }
   // task=storedwide (Lane B, Nov 9 2026; READ-ONLY, zero OldCarsData, zero writes): the stored Market Check rows by the cause their wide line names (market.raw.wideCause), counted with exact counts (no row bodies), and the keys of the rows whose
   // wide line names modified cars (mods) or a year span (year): those are the rows that gain the Modified and Original or the year pills only when they are computed again (the warm list). Two small key reads (up to 500 keys each, light columns); counts are HEAD reads.
+  // task=keyedrows (Lane B, lane-b-notice, Nov 17 2026; READ-ONLY, zero OldCarsData, zero writes, exact counts with limit 1): how many stored rows the versioned typed-word keys leave unread. Stored questions
+  // (spec_market_cache MCQ:*): the rows under the pre-fix key shape are never asked for again, the rows under the versioned shape ("|n2:") are the ones in use. Stored extractions (narration_cache): the extraction rows are
+  // the ones whose text is a JSON object (chat replies are prose); their key is a hash, so the pre-fix ones cannot be told from the new by key, every one of them is unread under the new key and counts as left unread.
+  if (task === "keyedrows") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const t0 = Date.now(), H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
+    const cnt = async (table, f, sel) => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${table}?${f}&select=${sel}&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const mcq = await cnt("spec_market_cache", "spec_key=like.MCQ%3A*", "spec_key"), mcqNew = await cnt("spec_market_cache", "spec_key=like.MCQ%3A*%7Cn*%3A*", "spec_key");
+    const ext = await cnt("narration_cache", "response_text=like.%7B*", "cache_key"), narr = await cnt("narration_cache", "cache_key=not.is.null", "cache_key");
+    return res.status(200).json({ task: "keyedrows", ocdSpend: 0, writes: 0, storedQuestions: { all: mcq, versioned: mcqNew, leftUnread: mcq != null && mcqNew != null ? mcq - mcqNew : null }, storedExtractions: { narrationCacheRows: narr, extractionShaped: ext, leftUnread: ext }, ms: Date.now() - t0 });
+  }
   if (task === "storedwide") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const t0 = Date.now(), H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
@@ -3570,6 +3581,15 @@ if (task === "optiondetail") {
       venues.push({ venue: slug, total, withCountryCode: withCc, withoutCountryCode: total != null && withCc != null ? total - withCc : null, sampleOf: sample.length, codesSeen: codes, currenciesSeen: curs });
     }
     return res.status(200).json({ task: "countrycov", since, venues });
+  }
+  // task=valuecensus (Lane D, Nov 17 2026, to Lane F's spec): READ-ONLY, zero vendor spend, no writes. One source, one family, a window of at most 366 days (an unwindowed call is refused).
+  // mode=counts (default): numbers only, never a seller name or listing text. mode=sample: up to ten listings with their description for the hand check, refused above ten; nothing is logged or stored here.
+  if (task === "valuecensus") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { runValueCensus } = await import("../lib/valueCensus.js");
+    const r = await runValueCensus(req.query || {}, { fetchPage: qs => supabaseSelect(env, qs) });
+    res.setHeader("Cache-Control", "no-store");
+    return r.ok ? res.status(200).json(r.body) : res.status(r.status || 400).json({ task: "valuecensus", error: r.why });
   }
   if (task === "poolrows") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });

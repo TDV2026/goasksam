@@ -23,7 +23,7 @@ import { mcUrlOf } from "../lib/mcLink.js";
 import { track, withTracking } from "../lib/track/log.js";
 import { historyEnv, houseName, normVin } from "./_historyData.js";
 import { isAbroadRow, parseQuery, parseQueryResolved, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME, COLOURS } from "../lib/live/search.js";
-import { placingFor, bidPlaceOf, timeLeftWords, ENGINE_VERSION } from "../lib/onebox.js";
+import { placingFor, bidPlaceOf, timeLeftWords, ENGINE_VERSION, withServedCar } from "../lib/onebox.js";
 import { photoOrNull } from "../lib/photoHosts.js";
 import { asideRowsFor, asideMatch, setAsideLabel } from "../lib/tasks/setAside.js";
 import { findGeneration } from "../lib/generations.js";
@@ -728,11 +728,12 @@ async function handler(req, res) {
     // visitor_id/admin-dashboard join, this one does. Resolved make|model key only, never the typed q.
     if (v && v.make) logEvent(env, { event: EVENTS.SEARCH, tool: "buy", visitorId: readVisitorId(req), props: { key: `${v.make}|${v.model || ""}` } }).catch(() => {});
     const familyKey = ["family", v.make, v.parentModel || v.model, v.trim, (f.gens || []).join("-"), (f.bodies || []).join("-")].filter(Boolean).join(":").toLowerCase().replace(/[^a-z0-9:-]+/g, "-");
-    return res.status(200).json({
+    // THE CAR ON THE ANSWER (lane-b-typed-through): the car Find read, with the mileage the typed words carried, as token, line and short (lib/onebox.js withServedCar), the same words every tool's answer carries
+    return res.status(200).json(withServedCar({
       status: "ok",
       understood: { make: v.make, model: v.parentModel || v.model || null, trim: v.trim || null, year: v.year || null, noun: nounFor(v, f), filters: f },
       total: rows.length, shownCap: capped.length, cards: first.concat(rest), facets, familyKey, emptyMarket, excluded: excluded && excluded.length ? excluded : undefined
-    });
+    }, v, env));
   } catch (e) {
     console.error("buySearch failed:", (e && e.stack) || e);
     return res.status(500).json({ status: "error" });
