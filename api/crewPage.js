@@ -27,6 +27,8 @@ import { renderDeskPreview, previewDeskApi } from "../lib/preview/deskPreview.js
 import { renderDeskV4, deskV4Shell } from "../lib/preview/deskV4.js";
 import { renderDeskV2, deskV2Shell } from "../lib/preview/deskV2.js";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { carBarFinish, prepareCarRequest, carRedirect, vinCarOf, TOOL_OF } from "../lib/carBar.js";
+const PREVIEW_PATH = { "preview-find": "/preview/find", "preview-market-check": "/preview/market-check", "preview-sell": "/preview/sell", "preview-tasks": "/preview/tasks", "preview-tasks-mine": "/preview/tasks/mine" };
 // PUBLIC MODE (go live Stage 3): when the new design answers a public address (lib/_newDesign.js, newPageHtml), every example read runs in a time box and a read that is slow, fails or says "could not read" leaves its section OUT, silently:
 // the search box is in the page the moment it is sent and never waits on an example. The crew previews are unchanged (a failed read still prints its visible line there).
 const PUBLIC_CTX = new AsyncLocalStorage();
@@ -118,6 +120,7 @@ async function historyFor(req) {
   if ((slug && !SLUG_RE.test(slug)) || (vin && !VIN_RE.test(vin))) throw new Error("not a history address");
   const live = await capture(historyPage, "/api/history?" + (slug ? "slug=" + encodeURIComponent(slug) + (vin ? "&vin=" + encodeURIComponent(vin) : "") : "index=1"), req);
   if (live.code !== 200) throw new Error("the live history page answered " + live.code);
+  if (vin) { const vc = vinCarOf(live.body); if (vc) req.__car = vc; }   // the VIN page's car bar (crew only, lib/carBar.js)
   return wrapSite(live.body);
 }
 const SITE_PAGES = Object.fromEntries(Object.keys(SITE).map(k => ["preview-site-" + k, { frame: true, render: () => "", renderAsync: req => siteFor(k, req) }]));
@@ -141,7 +144,8 @@ export default async function handler(req, res) {
     return res.status(302).send("");
   }
   if (!p || !isCrewRequest(req) && !(p.tester && isTesterRequest(req))) return sendDisguisedNotFound(res, req);
-  let html; try { html = p.renderAsync ? await p.renderAsync(req) : p.render ? p.render() : fs.readFileSync(path.join(process.cwd(), "lib/crewPages", p.file), "utf8"); } catch { return sendDisguisedNotFound(res, req); }
+  const tool = TOOL_OF[name] || null; if (tool) { req.__base = "/preview"; prepareCarRequest(req, tool, PREVIEW_PATH[name] || null); if (carRedirect(req, res)) return; }   // the car bar (crew only): a ?car= token opens the tool already run
+  let html; try { html = p.renderAsync ? await p.renderAsync(req) : p.render ? p.render() : fs.readFileSync(path.join(process.cwd(), "lib/crewPages", p.file), "utf8"); if (tool && typeof html === "string") html = carBarFinish(html, req, tool); } catch { return sendDisguisedNotFound(res, req); }
   res.setHeader("Content-Type", p.contentType || "text/html; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store"); res.setHeader("X-Robots-Tag", "noindex, nofollow");
   res.status(200).send(html);
 }
@@ -151,7 +155,8 @@ export default async function handler(req, res) {
 export function newPageHtml(name, req) { return PUBLIC_CTX.run({ public: true }, () => newPageHtmlIn(name, req)); }
 async function newPageHtmlIn(name, req) {
   const p = PAGES[name]; if (!p) return null;
-  const html = p.renderAsync ? await p.renderAsync(req) : p.render ? p.render() : fs.readFileSync(path.join(process.cwd(), "lib/crewPages", p.file), "utf8");
+  let html = p.renderAsync ? await p.renderAsync(req) : p.render ? p.render() : fs.readFileSync(path.join(process.cwd(), "lib/crewPages", p.file), "utf8");
+  if (TOOL_OF[name] && typeof html === "string") html = carBarFinish(html, req, TOOL_OF[name]);   // crew only; a visitor's page is untouched
   if (/^<!DOCTYPE html><meta charset="utf-8"><title>Preview<\/title>/.test(String(html))) throw new Error("the new page could not be built (" + name + ")");   // the preview's could-not-build page is never a public answer
   return html;
 }
