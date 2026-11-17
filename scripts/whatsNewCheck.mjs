@@ -35,6 +35,25 @@ for (const e of file || []) {
 }
 ok(!/data\/whatsNew|whatsNew\.json/.test(page), "the page never prints its data path");
 
+// THE ENTRY RULES on the data file (Lane D, Nov 17 2026): dated, newest first, no dash, no banned word; and the audit fails on a bad entry
+ok(lib && typeof lib.auditEntries === "function", "lib/whatsNew.js exports auditEntries");
+if (lib && lib.auditEntries) {
+  const problems = lib.auditEntries(file || []);
+  ok(problems.length === 0, "the data file passes the entry rules: " + problems.slice(0, 3).join("; "));
+  const good = { date: "2026-11-17", text: "Type a car and its mileage together and the range narrows." };
+  const BADS = [["no date", { text: "Type a car and its mileage together." }], ["a dash", { ...good, text: "Type a car \u2014 and its mileage." }], ["an en dash", { ...good, text: "Type a car \u2013 and its mileage." }], ["the word AI", { ...good, text: "The AI reads the car now." }], ["first person", { ...good, text: "I now read the mileage with the car." }], ["a source count", { ...good, text: "Reads 19 sources for the car." }], ["limit", { ...good, text: "Ten Tasks, the limit for every account." }]];
+  for (const [what, e] of BADS) ok(lib.auditEntries([e]).length > 0, "the audit fails on a bad entry: " + what);
+  ok(lib.auditEntries([good, { date: "2026-11-18", text: "Another line that is newer than the one above." }]).some(p => /newer than the entry above/.test(p)), "the audit fails when an entry is not newest first");
+  ok(lib.auditEntries([good, { date: "2026-11-10", text: "An older line under a newer one is fine." }]).length === 0, "the audit passes a clean newest first list");
+  // THE HELD ENTRY (data/whatsNewHeld.json): prepared, never read by the page, words held to the same rules
+  const held = (() => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, "data/whatsNewHeld.json"), "utf8")); } catch { return null; } })();
+  ok(Array.isArray(held) && held.length >= 1, "the held file holds the prepared entry");
+  for (const h of held || []) {
+    ok(lib.auditEntries([{ ...h, date: "2026-11-17" }]).length === 0, "the held entry passes the entry rules");
+    ok(!page.includes(h.title) && !(file || []).some(e => e.title === h.title), "the held entry is not on the page or in the live file");
+  }
+}
+
 // FIXTURES: 0, 1 and 12 entries over several days, dates out of order in the file
 const mk = (n, d, extra) => ({ date: d, text: "Sam now reads sale number " + n + " for cars like the one you asked about.", ...(extra || {}) });
 const TWELVE = [mk(1, "2026-10-28"), mk(2, "2026-10-31", { thanks: "Thanks Rick and Owen." }), mk(3, "2026-10-30"), mk(4, "2026-10-31"), mk(5, "2026-10-29"), mk(6, "2026-10-30"), mk(7, "2026-10-27"), mk(8, "2026-10-28"), mk(9, "2026-10-31"), mk(10, "2026-10-26"), mk(11, "2026-10-30"), mk(12, "2026-10-25")];
