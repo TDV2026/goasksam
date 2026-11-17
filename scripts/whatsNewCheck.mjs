@@ -47,7 +47,7 @@ if (lib && lib.auditEntries) {
   ok(lib.auditEntries([good, { date: "2026-11-10", text: "An older line under a newer one is fine." }]).length === 0, "the audit passes a clean newest first list");
   // THE HELD ENTRY (data/whatsNewHeld.json): prepared, never read by the page, words held to the same rules
   const held = (() => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, "data/whatsNewHeld.json"), "utf8")); } catch { return null; } })();
-  ok(Array.isArray(held) && held.length >= 1, "the held file holds the prepared entry");
+  ok(Array.isArray(held), "the held file is a list (empty once its entry is published, Nov 17 2026: the trims entry moved to the live file)");
   for (const h of held || []) {
     ok(lib.auditEntries([{ ...h, date: "2026-11-17" }]).length === 0, "the held entry passes the entry rules");
     ok(!page.includes(h.title) && !(file || []).some(e => e.title === h.title), "the held entry is not on the page or in the live file");
