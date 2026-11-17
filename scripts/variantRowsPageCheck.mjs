@@ -19,7 +19,7 @@ if (process.argv.includes("--mutants")) {
     ["show ignored", FILES.rows, "vs.show !== true || !Array.isArray(vs.rows)", "!vs || !Array.isArray(vs.rows)"],
     ["a show that is not true accepted", FILES.rows, "if (!vs || vs.show !== true || !Array.isArray(vs.rows)) return \"\";", "if (!vs || !vs.show || !Array.isArray(vs.rows)) return \"\";"],
     ["an empty range printed on a thin row", FILES.rows, '(text(r.rangeText) ? \'<span class="vrs-range">\'', '(true ? \'<span class="vrs-range">\''],
-    ["rows that are not links", FILES.rows, 'return "<li>" + (href ? \'<a class="vrs-row"', 'return "<li>" + (false ? \'<a class="vrs-row"'],
+    ["rows that are not links", FILES.rows, 'h += "<li>" + (href ? \'<a class="vrs-row"', 'h += "<li>" + (false ? \'<a class="vrs-row"'],
     ["every row linking to the same address", FILES.rows, 'r.car.address.charAt(0) === "/" ? r.car.address : ""', 'r.car.address.charAt(0) === "/" ? "/market-check" : ""'],
     ["the engine's line dropped", FILES.rows, "(text(vs.line) ? '<p class=\"vrs-line\">'", "(false ? '<p class=\"vrs-line\">'"],
     ["a total added", FILES.rows, 'return h + "</ul></div>";', 'return h + "</ul><p class=\\"vrs-total\\">" + rows.length + " variants</p></div>";'],
@@ -55,7 +55,7 @@ const URL0 = "/market-check?q=1995%20Porsche%20911";
 const READ = () => { const v = document.getElementById("vrs"), card = document.querySelector(".hero-left .sfc-card"); if (!v) return { present: false, cards: !!card };
   const r = v.getBoundingClientRect(), c = card && card.getBoundingClientRect(), rows = [...v.querySelectorAll(".vrs-row")];
   return { present: true, cards: !!card, text: v.textContent, line: (v.querySelector(".vrs-line") || {}).textContent || null, under: !!card && v.previousElementSibling === card && r.top >= c.bottom - 1, inHero: !!v.closest(".hero-left"),
-    rows: rows.map(x => ({ tag: x.tagName, href: x.getAttribute("href"), label: (x.querySelector(".vrs-l") || {}).textContent, range: (x.querySelector(".vrs-range") || {}).textContent || null, sales: (x.querySelector(".vrs-sales") || {}).textContent || null })),
+    rows: rows.map(x => ({ tag: x.tagName, href: x.getAttribute("href"), label: (x.querySelector(".vrs-l") || {}).textContent, range: x.querySelector(".vrs-range") ? x.querySelector(".vrs-range").textContent : null, sales: x.querySelector(".vrs-sales") ? x.querySelector(".vrs-sales").textContent : null })),
     overflow: document.documentElement.scrollWidth - innerWidth, right: Math.round(r.right), vw: innerWidth }; };
 const b = await launch();
 const view = async (fx, w = 1440) => { const p = await open(b, URL0, { width: w, fixtures: fx, settle: 3500 }); const r = await p.evaluate(READ); return [p, r]; };
@@ -82,6 +82,9 @@ async function call(handler, url, crew) { const res = { h: {}, code: 200, body: 
 // 4 nothing to draw
 for (const [name, vs] of [["show false (the rows sent anyway)", { ...SPLIT, show: false }], ["no variantSplit (a stated variant)", undefined], ["variantSplit null", null], ["show true with no rows", { ...SPLIT, rows: [] }], ["show that is not the boolean true", { ...SPLIT, show: "yes" }], ["rows with no labels", { ...SPLIT, rows: [{ salesText: "3 sales", car: SPLIT.rows[0].car }] }]]) {
   const [p, r] = await view(withSplit(vs)); ok(!r.present && r.cards, "draws nothing: " + name + " (the result itself is on the page :: " + r.cards + ")"); await p.close(); }
+// the row builder on its own (the page also guards before it calls it): nothing for show false, a show that is not true, no rows, rows without labels; the thin row has no range element
+{ const f = VR.variantRowsHtml, T = SPLIT.rows[0]; ok(f({ ...SPLIT, show: false }) === "" && f({ ...SPLIT, show: "yes" }) === "" && f({ ...SPLIT, show: 1 }) === "" && f(undefined) === "" && f(null) === "" && f({ ...SPLIT, rows: [] }) === "" && f({ show: true, line: "x", rows: [{ salesText: "3 sales", car: T.car }] }) === "", "the row builder returns nothing for show false, a show that is not true, no variantSplit, no rows or rows with no labels");
+  const html = f(SPLIT); ok((html.match(/class="vrs-range"/g) || []).length === 4 && (html.match(/<a class="vrs-row"/g) || []).length === 5, "the row builder: five links, four ranges (the thin variant has none)"); }
 // 5 a visitor
 { const vis = await call(MCH, URL0, false), crewRes = await call(MCH, URL0, true);
   ok(vis.code === 200 && !/vrs-mod|vrs-css|variantSplit|id="gas-carbar"|GAS_CAR_BAR/.test(vis.body), "a visitor's Market Check page has no variant rows module (and no car bar)");
