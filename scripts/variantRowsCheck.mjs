@@ -28,7 +28,7 @@ const PLAN = { "pontiac-firebird-3rd": { year: 1987, counts: [0, 3, 9, 10, 8], u
 const TITLE = { "ZR-1": "ZR1" };   // the archive titles a ZR-1 'ZR1' as often as 'ZR-1', and the resolver's trim fence is ZR1 (a hyphen spelling does not match it: the known gap in CLAUDE.md, the resolver backlog)
 const mkRows = (f, plan, { replicas = true, flat = false } = {}) => {
   const rows = [], model = f.models[0]; let k = 0, base = 9000; const add = (words, count, price) => { for (let i = 0; i < count; i++) { const id = "vr" + (seq++), title = `${plan.year} ${f.make} ${model}${words ? " " + words : ""}`;
-    const raw = { id, title, featured_image_url: "https://img.example/" + id + ".jpg", mileage: String(30000 + k * 211), body_style: "Coupe", modifications: null, currency: "USD", transmission: "Manual (5-Speed)", exterior_color: "Red", title_status: "Clean", url: "https://bat.example/" + id, source_url: "https://src.example/" + id, city: "Austin", state: "TX", country_code: "US", auction_end_precision: "day" };
+    const raw = { id, title, featured_image_url: "https://img.example/" + id + ".jpg", mileage: String(20000 + k * 1300), body_style: "Coupe", modifications: null, currency: "USD", transmission: "Manual (5-Speed)", exterior_color: "Red", title_status: "Clean", url: "https://bat.example/" + id, source_url: "https://src.example/" + id, city: "Austin", state: "TX", country_code: "US", auction_end_precision: "day" };
     rows.push({ id, source_id: id, sale_price: price + i * 53, sale_date: new Date(Date.now() - (40 + (k % 9) * 8) * DAY).toISOString().slice(0, 10), platform: k % 3 === 0 ? "Cars & Bids" : "Bring a Trailer", listing_title: title, year: plan.year, make: f.make, model, vin_norm: null, stated_mileage: null, project_flag: null, desc_facts: null, has_reserve: false, raw_record: raw, vehicle_type: "car" }); k++; } };
   add("", plan.unstated, base); f.variants.forEach((v, i) => { base = flat ? base : Math.round(base * 1.12); add(TITLE[v.name] || v.name, plan.counts[i] || 0, base); });
   if (replicas) add(`${f.variants[f.variants.length - 1].name} Replica`, 3, base * 3);
@@ -72,13 +72,13 @@ for (const f of FAMS) {
     ok(`${L}: a variant of ${want} sales is priced exactly when its own page shows a range (the Corvette ZR-1 is a halo the engine refuses: no range there, none here), and counts what that page counts`, hr ? (row.priced === true && /^\$[\d,]+ to \$[\d,]+$/.test(row.rangeText) && row.salesText === CN.countNoun(want, "sale")) : (row.priced === false && !row.rangeText), [row.rangeText, hr, row.salesText, want]);
   }
   // 4 typed mileage
-  const miles = 36000, am = await hit({ oneBox: true, search: `${name} ${miles.toLocaleString("en-US")} miles`, car: { raw: name, vehicle: { ...(VH.sanitizeResolvedVehicle(RES.get(name).vehicle)), mileage: miles } } }), vm = am && am.variantSplit;
+  const miles = 40000, am = await hit({ oneBox: true, search: `${name} ${miles.toLocaleString("en-US")} miles`, car: { raw: name, vehicle: { ...(VH.sanitizeResolvedVehicle(RES.get(name).vehicle)), mileage: miles } } }), vm = am && am.variantSplit;
   ok(`${f.id}, typed mileage: show stays true`, !!vm && vm.show === true, am && [am.tier, vm && vm.show]);
   for (const [i, row] of (vm ? vm.rows : []).entries()) {
     const L = `${f.id}, ${row.name}, ${miles} miles`, dec = row.car && CT.decodeCar(row.car.token);
-    ok(`${L}: the row's car carries the typed mileage (token, words, address)`, !!dec && dec.mileage === miles && row.car.words.endsWith(`${miles.toLocaleString("en-US")} miles`) && row.car.address.includes(encodeURIComponent("36,000 miles")), row.car);
+    ok(`${L}: the row's car carries the typed mileage (token, words, address)`, !!dec && dec.mileage === miles && row.car.words.endsWith(`${miles.toLocaleString("en-US")} miles`) && row.car.address.includes(encodeURIComponent("40,000 miles")), row.car);
     if ((plan.counts[i] || 0) < 5) { ok(`${L}: an unpriced variant stays unpriced with the mileage (no range, its own count)`, !row.rangeText && row.priced === false, row); continue; }
-    const h = row.car ? await asked(f, plan, row.car.words.replace(/ 36,000 miles$/, ""), miles) : null; if (!h) continue;
+    const h = row.car ? await asked(f, plan, row.car.words.replace(/ 40,000 miles$/, ""), miles) : null; if (!h) continue;
     const thin = !!(h.variants && h.variants.thin), hr = thin ? null : VR.rangeTextOf(h), hn = thin && h.variants.pooled != null ? h.variants.pooled : VR.salesCountOf(h);
     ok(`${L}: the row equals the banded answer of its own car (range ${hr || "none"}, ${CN.countNoun(hn, "sale")})`, (row.rangeText || null) === (hr || null) && row.salesText === CN.countNoun(hn, "sale"), [row.rangeText, hr, row.salesText, hn]);
   }
