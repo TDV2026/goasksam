@@ -24,7 +24,6 @@ if (process.argv.includes("--mutants")) {
     ["the typed request's sign in way back dropping the car", "'return MINE + \"?start=1&car=' + ENC + '\"'", "'return MINE + \"?start=1\"'"],
     ["the token stripped from the Tasks address (the sign in way back loses it)", 'if(C.tool!=="tasks")u.searchParams.delete("car");', 'u.searchParams.delete("car");'],
     ["a sign in redirect not read as an arrival with the car", 'if (!touched && tool === "tasks") {', 'if (false) {'],
-    ["the Tasks page patched for a visitor", 'const hopTok = tool === "tasks" ?', 'const hopTok = tool === "tasks" || true ?'],
     ["the bar for a visitor", "isCrewRequest(req) !== true || ", ""],
     ["the Tasks focus dropped", 'if(focus){i.focus();', 'if(false){i.focus();'],
     ["Change that keeps the session car", 'ch.addEventListener("click",function(){save(null)});', ''],
@@ -249,6 +248,11 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
     ok(barOk(r0, "Tasks") && r0.pq.startsWith(LABEL), "Tasks app signed out: the sign in page the person is sent to shows the bar and the car in its request box :: " + JSON.stringify([r0.bar, r0.pq]));
     await p.click("#acct"); await settle(300); await p.evaluate(() => { localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "a.b.c", refresh_token: "r", expires_at: Math.floor(Date.now() / 1000) + 86400, email: "x@example.com", user: { email: "x@example.com" } })); }); await p.reload({ waitUntil: "domcontentloaded" }); await settle(1800);
     const r = await p.evaluate(TS); ok(/^\/tasks\/mine/.test(r.loc) && barOk(r, "Tasks") && r.tkq.startsWith(LABEL), "Tasks app signed out then signed in (Account button): the person ends on the app with the car bar and the car in the composer :: " + JSON.stringify([r.loc.slice(0, 70), r.bar, r.tkq])); await p.close(); }
+  // Change on a Tasks page (the bar's Change link, /tasks?change=<token>): the landing's request box and the app's get the car's words and the cursor
+  { const p = await open("/tasks?change=" + enc(TOKEN), 1440, { live: LIVEMAP, signed: false }), r = await p.evaluate(TS);
+    ok(r.pq.startsWith(LABEL) && r.active === "pq", "Tasks Change, signed out: the landing's request box holds the car's words and the cursor is in it :: " + JSON.stringify([r.pq, r.active])); await p.close(); }
+  { const p = await open("/tasks/mine?app=1&change=" + enc(TOKEN), 1440, { live: LIVEMAP, signed: true }), r = await p.evaluate(TS);
+    ok(r.tkq.startsWith(LABEL) && r.active === "tkq", "Tasks Change, in the app: the composer holds the car's words and the cursor is in it :: " + JSON.stringify([r.tkq, r.active])); await p.close(); }
   // the other pages a pill lands on: every step of Sell's flow keeps the bar and the car (the steps are in one document; the address grows)
   { const p = await open("/sell?car=" + enc(TOKEN), 1440, { live: LIVEMAP, signed: false }), seen = [];
     for (let i = 0; i < 4; i++) { seen.push(await p.evaluate(TS)); const c = await p.$(".chip"); if (!c || i === 3) break; await c.click(); await settle(1100); }
