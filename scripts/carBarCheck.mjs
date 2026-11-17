@@ -23,11 +23,12 @@ if (process.argv.includes("--mutants")) {
     ["the line not truncated", ".gcb-line{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;", ".gcb-line{min-width:0;white-space:nowrap;"],
     ["the pills on the line's own row", "@media (max-width:640px){.gcb-in{padding:8px 16px}.gcb-l{flex:1 1 100%}", "@media (max-width:640px){.gcb-in{padding:8px 16px;flex-wrap:nowrap}.gcb-l{flex:1 1 auto}"],
     ["the token not handed to the tool's first API call", "if(pending&&typeof input===", "if(false&&typeof input==="],
-    ["the bar not taking car.token from the answer", "function take(tok){if(!tok||", "function take(tok){if(true||"],
-    ["the old token still sent after an answer has its own", "pending=null;of.call(window", "of.call(window"],
+    ["the bar not taking car.token from the answer", "function take(c){if(!c||!c.token||", "function take(c){if(true||"],
+    ["the old token still sent after an answer has its own", "function take(c){if(!c||!c.token||(car&&car.token===c.token))return;pending=null;", "function take(c){if(!c||!c.token||(car&&car.token===c.token))return;"],
     ["a tampered token accepted", "const info = tool === \"vin\" ? null : carInfo(v);", "const info = tool === \"vin\" ? null : { token: v, line: v, short: v, label: v };"],
     ["Sell's plain words treated as a token", 'export const isCarToken = v => typeof v === "string" && v.startsWith(TOKEN_VERSION + ".");', 'export const isCarToken = v => typeof v === "string" && v.length > 0;'],
-    ["the pills keeping the old token after the car changes", "function take(tok){if(!tok||(car&&car.token===tok))return;", "function take(tok){if(!tok||car)return;"]
+    ["the pills keeping the old token after the car changes", "function take(c){if(!c||!c.token||(car&&car.token===c.token))return;", "function take(c){if(!c||!c.token||car)return;"],
+    ["a car line built on the page from the token", "car={token:c.token,line:c.line,short:c.short||\"\"}", "car={token:c.token,line:\"\"+c.token,short:\"\"}"]
   ];
   let bad = 0;
   for (const [name, from, to] of MUT) {
@@ -47,6 +48,7 @@ const { mintCrewCookieValue } = await imp("lib/_crew.js"), CREW = "gas_crew=" + 
 const CP = (await imp("api/crewPage.js")).default, CT = await imp("lib/carToken.js"), CB = await imp("lib/carBar.js"), V = await imp("lib/vehicle.js");
 const SL = { raw: "2003 mercedes sl500", year: 2003, make: "Mercedes-Benz", model: "SL-Class", trim: "SL500", vin: "WDBSK75F83F044627", mileage: 38400, transmission: "Automatic", confidence: "high" };
 const TOKEN = CT.encodeCar(SL), TOKEN2 = CT.encodeCar({ ...SL, mileage: 41000, transmission: "Manual" }), TAMPERED = TOKEN.slice(0, 30) + (TOKEN[30] === "A" ? "B" : "A") + TOKEN.slice(31), CUT = TOKEN.slice(0, TOKEN.length - 14);
+const STAMP = CT.carStamp(SL), STAMP2 = CT.carStamp({ ...SL, mileage: 41000, transmission: "Manual" });   // the engine's own car.token, car.line and car.short (lib/carToken.js carStamp): the answers below carry what the engine sends
 const LINE = "2003 Mercedes-Benz SL-Class SL500 · 38,400 miles · VIN ...4627", LABEL = "2003 Mercedes-Benz SL-Class SL500", LINE2 = "2003 Mercedes-Benz SL-Class SL500 · 41,000 miles · VIN ...4627";
 const LONGCAR = { year: 1967, make: "Mercedes-Benz", model: "300 SL Gullwing Coupe Alloy Body Competition Package", trim: "Special Order Build", vin: "WDB1980405500AAAA", mileage: 120400 }, LONG = CT.encodeCar(LONGCAR);
 const enc = encodeURIComponent;
@@ -115,13 +117,13 @@ for (const [tool, p0, idx, apiRe] of TOOLS) {
   } finally { globalThis.fetch = realFetch; } }
 // 2 a typed search with no token: the bar comes from car.token in the answer; the first call carried none
 for (const [tool, p0, idx, apiRe] of TOOLS.slice(0, 3)) {
-  const q = tool === "sell" ? "?car=" + enc("2003 mercedes sl500") + "&state=California&how=unsure&rush=none" : "?q=" + enc("2003 mercedes sl500"), ans = [[new RegExp(apiRe.source), { raw: { car: { token: TOKEN } }, car: { token: TOKEN } }]];
+  const q = tool === "sell" ? "?car=" + enc("2003 mercedes sl500") + "&state=California&how=unsure&rush=none" : "?q=" + enc("2003 mercedes sl500"), ans = [[new RegExp(apiRe.source), { raw: { car: STAMP }, car: STAMP }]];
   const p = await open(p0 + q, 1440, { answers: ans }), r = await p.evaluate(BAR);
   ok(r.present && r.shown && r.line === LINE && r.pills.length === 4 && r.pills.every((x, i) => x.h === "/preview" + PATHS[i] + "?car=" + enc(TOKEN)) && r.pills[idx].on, tool + ": a typed search shows the bar from car.token in the engine's answer, the pills carry it " + JSON.stringify([r.present, r.line]));
   const first = p._api.find(c => apiRe.test(c.u)); ok(first && !new URL(first.u, "https://x").searchParams.get("car"), tool + ": a typed search sends no token"); await p.close();
 }
 // 3 the car changes in a tool (mileage, transmission): the next answer's token is the pills' token; calls after an answer carry no old token
-{ const p = await open("/preview/find?car=" + enc(TOKEN), 1440, { answers: [[/\/api\/buySearch/, { car: { token: TOKEN2 } }]] });
+{ const p = await open("/preview/find?car=" + enc(TOKEN), 1440, { answers: [[/\/api\/buySearch/, { car: STAMP2 }]] });
   await p.evaluate(() => fetch("/api/buySearch", { method: "POST", body: "{}" }).then(r => r.json())); await new Promise(r => setTimeout(r, 900)); const r = await p.evaluate(BAR);
   ok(r.line === LINE2 && r.pills.every((x, i) => x.h === "/preview" + PATHS[i] + "?car=" + enc(TOKEN2)) && r.change === "/preview/find?change=" + enc(TOKEN2), "a changed car: the bar and every pill take the new car.token from the next answer " + JSON.stringify([r.line, r.pills[0] && r.pills[0].h.slice(-12)]));
   await p.evaluate(() => fetch("/api/buySearch", { method: "POST", body: "{}" })); await new Promise(r => setTimeout(r, 300));
@@ -146,7 +148,8 @@ for (const bad of [TAMPERED, CUT]) for (const [tool, p0, , apiRe] of TOOLS.slice
 }
 // 5 a visitor: the preview pages are the platform 404 and the bar's script is in no visitor page
 for (const [tool, p0] of TOOLS.slice(0, 3)) { const o = await pageOf(p0 + "?car=" + enc(TOKEN), false); ok(o.code === 404 || !/gas-carbar|GAS_CAR_BAR/.test(o.body), tool + ": a visitor's request has no car bar in the page"); }
-{ const o = await call(CP, "/api/crewPage?page=preview-car-line&car=" + enc(TOKEN), { crew: false }); ok(o.code === 404, "the car line door is crew only"); }
+for (const crew of [false, true]) { const o = await call(CP, "/api/crewPage?page=preview-car-line&car=" + enc(TOKEN), { crew }); ok(o.code === 404 && !/miles/.test(String(o.body)), "the car line door is gone (" + (crew ? "crew" : "visitor") + "): the bar's words come from the answer's car.line, nothing builds them from decoded fields on the page side"); }
+ok(STAMP && STAMP.line === LINE && STAMP.short === "2003 SL500" && STAMP2.line === LINE2, "the engine's car.line and car.short are the bar's words: " + JSON.stringify(STAMP && [STAMP.line, STAMP.short]));
 // Change fills the landing and clears the session car; the car is kept and Home and the rail say Back to your car
 { const p = await open("/preview/find?car=" + enc(TOKEN)); const kept = await p.evaluate(() => sessionStorage.getItem("gas_car_bar")); ok(!!kept && JSON.parse(kept).token === TOKEN, "the car is kept for the session");
   await p.goto("https://goasksam.com/preview/market-check?q=" + enc("2003 mercedes sl500"), { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 1400)); let r = await p.evaluate(BAR);

@@ -7,6 +7,7 @@ import { chatOut } from "../lib/live/chatHttp.js";
 import { runSellTurn } from "../lib/sell/sellChat.js";
 import { checkCeiling, followupGuard, sellModelGuard, testLimits, isCrew, CALM } from "../lib/_ceilings.js";
 import { hasServerCredential } from "../lib/_credential.js";
+import { carFromRequest } from "../lib/carToken.js";
 import { runAsCaller, callerFor } from "../lib/_caller.js";
 
 async function handlerCore(req, res) {
@@ -16,8 +17,10 @@ async function handlerCore(req, res) {
   // (the preview page, api/sellNext.js) - internal testing only.
   if (process.env.SELL_NEXT_ON !== "1" && !(hasServerCredential(req) || isCrew(req))) return res.status(404).json({ error: "Not found." });
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
-  const env = supabaseEnv();
-  if (!env) return res.status(503).json({ error: "unavailable" });
+  const env0 = supabaseEnv();
+  if (!env0) return res.status(503).json({ error: "unavailable" });
+  // ?car=<v1 token>: the car the page already resolved, per request (a copy of env, never shared); a plain words ?car= is not a token and changes nothing
+  const env = { ...env0, car: carFromRequest(req) };
   const b = req.body || {};
   // The one-direction Sell (lib/sell/sellFlow.js). The car questions are Market Check's own (api/sellNext.js
   // serves its page); {action:"flow", step:"result", car, state, how} -> the result; step:"ask" -> follow-up.

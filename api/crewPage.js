@@ -27,7 +27,7 @@ import { renderDeskPreview, previewDeskApi } from "../lib/preview/deskPreview.js
 import { renderDeskV4, deskV4Shell } from "../lib/preview/deskV4.js";
 import { renderDeskV2, deskV2Shell } from "../lib/preview/deskV2.js";
 import { AsyncLocalStorage } from "node:async_hooks";
-import { carBarFinish, prepareCarRequest, vinCarOf, carInfo, TOOL_OF } from "../lib/carBar.js";
+import { carBarFinish, prepareCarRequest, vinCarOf, TOOL_OF } from "../lib/carBar.js";
 // PUBLIC MODE (go live Stage 3): when the new design answers a public address (lib/_newDesign.js, newPageHtml), every example read runs in a time box and a read that is slow, fails or says "could not read" leaves its section OUT, silently:
 // the search box is in the page the moment it is sent and never waits on an example. The crew previews are unchanged (a failed read still prints its visible line there).
 const PUBLIC_CTX = new AsyncLocalStorage();
@@ -126,11 +126,6 @@ const SITE_PAGES = Object.fromEntries(Object.keys(SITE).map(k => ["preview-site-
 export const PAGES = { ...SITE_PAGES, "preview-history": { frame: true, render: () => "", renderAsync: historyFor }, "onebox-preview": { file: "onebox-preview.html", tester: true }, "preview-tasks": { render: () => tasksPublicHtml({}), renderAsync: tasksPublicFor }, "preview-tasks-mine": { render: tasksMineHtml }, "preview-desk": { render: () => deskV4Shell(), renderAsync: renderDeskV4 }, "preview-desk2": { render: () => deskV2Shell(), renderAsync: renderDeskV2 }, "preview-desk-valuations": { render: renderDeskPreview }, "preview-home": { render: PREVIEW_PAGES["preview-home"], renderAsync: req => homeHtmlFor(req, { read: r => boxed(() => FEATURED.read(r), "featuredHistory"), now: FEATURED.now() }) }, "preview-find": { render: PREVIEW_PAGES["preview-find"], renderAsync: findFor }, "preview-market-check": { render: () => entryHtml("mc"), renderAsync: req => mcSellFor("mc", req) }, "preview-sell": { render: () => entryHtml("sell"), renderAsync: req => mcSellFor("sell", req) }, "preview-market-check-example": { frame: true, render: () => { throw new Error("no example result"); }, renderAsync: exampleFrame }, "preview-onebox-js": { render: oneboxJs, contentType: "application/javascript; charset=utf-8" } };
 export default async function handler(req, res) {
   const name = String((req.query && req.query.page) || "").toLowerCase(), p = PAGES[name];
-  if (name === "preview-car-line") {   // the car bar's words for a token (lib/carBar.js carInfo): crew only, GET only, JSON; a token that does not decode answers {}
-    if (req.method !== "GET" || !isCrewRequest(req)) return sendDisguisedNotFound(res, req);
-    res.setHeader("Content-Type", "application/json; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store"); res.setHeader("X-Robots-Tag", "noindex, nofollow");
-    return res.status(200).send(JSON.stringify(carInfo(String((req.query && req.query.car) || "")) || {}));
-  }
   if (name === "preview-tasks-api") {   // the Tasks preview's own door: crew only, POST only; the live handler answers (lib/preview/tasksMine.js)
     if (req.method !== "POST" || !isCrewRequest(req)) return sendDisguisedNotFound(res, req);
     if (typeof req.body === "string") { try { req.body = JSON.parse(req.body); } catch { req.body = {}; } }

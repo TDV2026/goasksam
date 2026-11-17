@@ -19,7 +19,19 @@ if (args.includes("--mutants")) {
     ["api/buySearch.js", "car: carFromRequest(req) }", "car: null }", "Find never reads ?car="],
     ["api/tasks.js", "car: carFromRequest(req) }", "car: null }", "the Tasks composer never reads ?car="],
     ["lib/onebox.js", "const withCarToken = (res, vehicle, env) => {", "const withCarToken = (res, vehicle, env) => { return res;", "the answer carries no car.token"],
-    ["lib/carToken.js", "const t = q || b;", "const t = b;", "?car= in the query is not read"]
+    ["lib/carToken.js", "const t = q || b;", "const t = b;", "?car= in the query is not read"],
+    ["api/sellChat.js", "car: carFromRequest(req) }", "car: null }", "Sell's first call (api/sellChat) ignores ?car="],
+    ["lib/sell/sellFacts.js", "const tokenV = env && env.car && env.car.make && env.car.model ? { ...env.car } : null;", "const tokenV = null;", "Sell's resolver seam resolves again although the request carries the car"],
+    ["api/vehicleIdentity.js", "if (tokenCar) { const w = carWords(tokenCar);", "if (false) { const w = carWords(tokenCar);", "vehicleIdentity resolves although a token is supplied"],
+    ["api/vehicleIdentity.js", "line: w ? w.line : null, short: w ? w.short : null", "line: null, short: null", "vehicleIdentity's answer has no car.line and car.short"],
+    ["lib/live/chatCore.js", "mustTool = env && env.car && env.car.make && env.car.model ? true :", "mustTool =", "the chat core resolves to ask whether the message names a car although the request carries it"],
+    ["lib/onebox.js", "{ token: st.token, line: st.line, short: st.short }", "{ token: st.token }", "the answer carries car.token without car.line and car.short"],
+    ["lib/sheetRead.js", "line: (a.car && a.car.line) || null, short: (a.car && a.car.short) || null,", "", "the Desk read serves car.token without its words"],
+    ["lib/carToken.js", "if (Number(car.mileage) > 0) parts.push(nf(car.mileage) + \" miles\");", "parts.push(nf(car.mileage || 0) + \" miles\");", "the line states miles for a car with none"],
+    ["lib/carToken.js", "if (car.vin) parts.push(\"VIN ...\" + String(car.vin).slice(-4));", "if (car.vin) parts.push(\"VIN \" + String(car.vin));", "the line prints the whole VIN"],
+    ["lib/carToken.js", "short: [car.year, car.trim || car.model].filter(Boolean).join(\" \") || label", "short: label", "the short name is the whole label"],
+    ["api/crewPage.js", "export default async function handler(req, res) {", "export default async function handler(req, res) { if (req.query && req.query.page === \"preview-car-line\") return res.status(200).send(\"{}\");", "the car line door is back"],
+    ["lib/carBar.js", "car={token:c.token,line:c.line,short:c.short||\"\"}", "car={token:c.token,line:c.token+\" miles\",short:\"\"}", "the bar builds its own wording"]
   ];
   let survivors = 0;
   for (const [file, from, to, want] of muts) {
@@ -77,7 +89,7 @@ const F = [
   ok("a crafted token with a good checksum: a car is a car", CT.decodeCar(mk({ mk: "Porsche", md: "911", y: 1999 })) !== null);
   ok("a crafted token: an unknown key, a bad vin, a text year, a missing model all decode to null", [{ mk: "A", md: "B", zz: 1 }, { mk: "A", md: "B", v: "123" }, { mk: "A", md: "B", y: "1999" }, { mk: "A" }, { mk: "A", md: "B", mi: -5 }, { mk: "A", md: "B", cf: "certain" }].every(o => CT.decodeCar(mk(o)) === null)); }
 // 3. THE ENGINE'S ANSWER CARRIES car.token (oneEngineAnswer's wrapper), and the five entry points
-const SL = F[0], TOKEN = CT.encodeCar(SL);
+const SL = F[0], TOKEN = CT.encodeCar(SL), TAMPER_T = TOKEN.slice(0, 30) + (TOKEN[30] === "A" ? "B" : "A") + TOKEN.slice(31);
 { const OB = await imp("lib/onebox.js"); ok("the engine builds the token of the car it ran on (carTokenOf), a token that decodes to that car", typeof OB.carTokenOf === "function" && (() => { const d = CT.decodeCar(OB.carTokenOf(SL, { desk: { subject: { transmission: "Automatic" } } })); return d && d.make === "Mercedes-Benz" && d.vin === "WDBSK75F83F044627" && d.mileage === 38400 && d.transmission === "Automatic"; })());
   const ob = fs.readFileSync("lib/onebox.js", "utf8"); ok("oneEngineAnswer puts car.token on every answer it returns", /return withCarToken\(res, vehicle, env\);/.test(ob) && /return withCarToken\(result, vehicle, env\);/.test(ob));
   const SR = fs.readFileSync("lib/sheetRead.js", "utf8"); ok("the Desk read serves car.token", /car: \{ token: \(a\.car && a\.car\.token\) \|\| null,/.test(SR)); }
@@ -113,6 +125,55 @@ const isSL = v => !!v && v.make === "Mercedes-Benz" && v.model === "SL-Class" &&
   const SRd = await imp("lib/sheetRead.js"), c = { n: 0 }, dd = { resolveVehicle: async () => { c.n++; return { status: "valid", vehicle: { ...SL } }; }, decodeVin: async () => ({ readable: true, year: 2003, make: "Mercedes-Benz", model: "SL-Class", trim: null, bodyStyle: "convertible" }), archiveMatch: async () => null, liveMatch: async () => null, vinPlan: VA.vinSearchPlan, carTier: null };
   let plan = null; try { await SRd.sheetRead({ supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" }, { vin: "WDBSK75F83F044627", mileage: 38400, car: TOKEN, desk: { caseDate: "2026-11-14", transmission: "Automatic", label: "x", case: { verification: {} }, exclusions: [], head: async () => ({ status: 200, bytes: 5e4, type: "image/jpeg" }) } }, dd); } catch { }
   ok("the Desk's VIN read given the token: its plan never calls the resolver", c.n === 0, c.n); }
+
+// ---- CLOSING THE GAPS (lane-b-car-token-2): Sell's first call (api/sellChat), vehicleIdentity, the Tasks handler run for real, the words of the car from the engine, the door gone
+{ // SELL (api/sellChat): the flow's result step and the resolver seam both run on the token
+  process.env.SELL_NEXT_ON = "1"; process.env.PROBE_KEY = "probe-ct"; process.env.CURTAIN_CREW_CODE = "ct-secret";
+  const SF = await imp("lib/sell/sellFacts.js"), env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
+  const w = await calls(() => SF.resolveSellCar(TOKEN, { ...env, car: CT.decodeCar(TOKEN) })), wo = await calls(() => SF.resolveSellCar("2003 Mercedes SL500", env));
+  ok("SELL's resolver seam (resolveSellCar) given the token: the SL500 with its VIN and 38,400 miles, the resolver is asked 0 times", w.n === 0 && w.out && w.out.car && isSL(w.out.car.v) && w.out.car.v.mileage === 38400, JSON.stringify([w.n, w.err && String(w.err).slice(0, 80)]));
+  ok("SELL's seam without the token: the resolver runs once", wo.n === 1, wo.n);
+  const SC = (await imp("api/sellChat.js")).default, runSell = async (body, query) => { let out = null; const res = { status(c) { this.code = c; return this; }, json(b) { out = b; return this; }, setHeader() {}, end() {}, getHeader() {}, write() {}, flushHeaders() {} }; await SC({ method: "POST", headers: { origin: "https://goasksam.com", cookie: "", "x-ops-key": "probe-ct" }, query: query || {}, body, url: "/api/sellChat" }, res); return out; };
+  const hw = await calls(() => runSell({ action: "flow", step: "range", car: "2003 Mercedes SL500", state: "California", how: "unsure", rush: "none" }, { car: TOKEN })), hwo = await calls(() => runSell({ action: "flow", step: "range", car: "2003 Mercedes SL500", state: "California", how: "unsure", rush: "none" }, {}));
+  const hp = await calls(() => runSell({ action: "flow", step: "range", car: "2003 Mercedes SL500", state: "California", how: "unsure", rush: "none" }, { car: "2003 mercedes sl500" }));
+  ok("SELL's first call (api/sellChat, ?car=<token>): the resolver is asked 0 times", hw.n === 0, JSON.stringify([hw.n, hw.err && String(hw.err).slice(0, 80)]));
+  ok("SELL without the token: the resolver runs (once)", hwo.n === 1, hwo.n);
+  ok("SELL with plain words in ?car= behaves as on main: the resolver runs once on the words", hp.n === 1 && hp.n === hwo.n && Object.keys(hp.out || {}).sort().join() === Object.keys(hwo.out || {}).sort().join(), JSON.stringify([hp.n, Object.keys(hp.out || {}), Object.keys(hwo.out || {})])); }
+{ // VEHICLEIDENTITY
+  const VI = (await imp("api/vehicleIdentity.js")).default, runVI = async (body, query) => { let out = null; const res = { status(c) { this.code = c; return this; }, json(b) { out = b; return this; }, setHeader() {}, end() {}, getHeader() {} }; await VI({ method: "POST", headers: { origin: "https://goasksam.com", cookie: "" }, query: query || {}, body, url: "/api/vehicleIdentity" }, res); return out; };
+  const a = await calls(() => runVI({ car: TOKEN }, {})), b = await calls(() => runVI({ text: "x" }, { car: TOKEN })), c = await calls(() => runVI({ text: "2003 mercedes sl500" }, {})), d = await calls(() => runVI({ car: TAMPER_T }, {}));
+  ok("vehicleIdentity given the token (body.car): the valid SL500 comes back, the resolver is asked 0 times", a.n === 0 && a.out && a.out.status === "valid" && isSL(a.out.vehicle) && a.out.vehicle.mileage === 38400, JSON.stringify([a.n, a.out && a.out.status]));
+  ok("vehicleIdentity given the token in ?car=: the same, 0 resolves", b.n === 0 && b.out && isSL(b.out.vehicle), b.n);
+  ok("vehicleIdentity's answer carries car.token, car.line and car.short", a.out && a.out.car && a.out.car.token === TOKEN && a.out.car.line === CT.carWords(SL).line && a.out.car.short === "2003 SL500", a.out && a.out.car);
+  ok("vehicleIdentity without the token: the resolver runs", c.n >= 1, c.n);
+  ok("vehicleIdentity given a tampered token: it is not a car, the words path runs (the resolver is asked)", d.n >= 1 && !(d.out && d.out.car && d.out.car.token), d.n); }
+{ // THE TASKS HANDLER, RUN FOR REAL with a test session (the probe key and a test user id, api/tasks.js who()): the composer's first turn
+  process.env.PROBE_KEY = "probe-ct"; const TH = (await imp("api/tasks.js")).default;
+  const runT = async (query, body) => { let out = null; const res = { status(c) { this.code = c; return this; }, json(b) { out = b; return this; }, send(b) { out = b; return this; }, setHeader() {}, end() {}, getHeader() {}, removeHeader() {} }; await TH({ method: "POST", headers: { "x-ops-key": "probe-ct", "x-test-user": "00000000-0000-4000-8000-0000000000b1", cookie: "" }, query, body, url: "/api/tasks" }, res); return { out, code: res.code }; };
+  const f0 = globalThis.fetch; globalThis.fetch = async u => /anthropic/.test(String(u)) ? new Response(JSON.stringify({ content: [{ type: "text", text: "{}" }], usage: { input_tokens: 1, output_tokens: 1 } }), { status: 200 }) : new Response("[]", { status: 200 });
+  const t1 = await calls(() => runT({ car: TOKEN }, { action: "say", text: "a 2003 mercedes sl500" })), t2 = await calls(() => runT({}, { action: "say", text: "a 2003 mercedes sl500" }));
+  globalThis.fetch = f0;
+  ok("the real Tasks handler (test session), the composer's first turn given the token: it answers, the resolver is asked 0 times", t1.n === 0 && t1.out && t1.out.out !== undefined || (t1.n === 0 && t1.out && t1.out.draft), JSON.stringify([t1.n, t1.out && Object.keys(t1.out).slice(0, 4)]));
+  ok("the real Tasks handler without the token: the resolver is asked once (the chat core's does-it-name-a-car gate)", t2.n === 1, t2.n); }
+// THE WORDS OF THE CAR come from the engine: car.line and car.short wherever car.token is, built by one function beside encodeCar
+{ const OB = await imp("lib/onebox.js"), bad = [];
+  for (const [i, car] of F.entries()) {
+    const st = CT.carStamp(car), d = st && CT.decodeCar(st.token), w = d && CT.carWords(d);
+    const label = String(car.canonicalLabel || [car.year, car.make, car.model, car.trim].filter(x => x != null && x !== "").join(" ")).replace(/\s+/g, " ").trim();
+    const want = [label, Number(car.mileage) > 0 ? Number(car.mileage).toLocaleString("en-US") + " miles" : null, car.vin ? "VIN ..." + car.vin.slice(-4) : null].filter(Boolean).join(" · ");
+    if (!st || !w || st.line !== want || st.line !== w.line || st.short !== w.short || !st.short || (Number(car.mileage) > 0) !== /miles/.test(st.line) || !!car.vin !== /VIN \.\.\./.test(st.line)) bad.push(i + ":" + (st && st.line));
+  }
+  ok("car.line and car.short match the decoded car for all 20 fixture cars (mileage and VIN only when known; a chassis car with no mileage reads without miles)", bad.length === 0, bad.join(" | "));
+  { const o = CT.carStamp({ year: 2003, make: "Mercedes-Benz", model: "SL-Class", trim: "SL500", vin: "WDBSK75F83F044627", mileage: 38400, transmission: "Automatic" }); ok("the SL500's words are the order's: line and short", o && o.line === "2003 Mercedes-Benz SL-Class SL500 \u00b7 38,400 miles \u00b7 VIN ...4627" && o.short === "2003 SL500", o); }
+  const chassis = CT.carStamp(F[3]); ok("a chassis car with no mileage in its token: the line has no miles and no VIN", chassis && !/VIN/.test(chassis.line.replace(/10867S109963/, "")) && /1961 Chevrolet Corvette/.test(chassis.line), chassis && chassis.line);
+  const st = OB.carStampOf(SL, { desk: { subject: { transmission: "Automatic" } } }); ok("the engine's stamp (carStampOf) is token, line and short of the car it ran on", st && CT.decodeCar(st.token).transmission === "Automatic" && st.line === CT.carWords(CT.decodeCar(st.token)).line && st.short === "2003 SL500", st);
+  const ob = fs.readFileSync("lib/onebox.js", "utf8"); ok("the engine's wrapper puts car.line and car.short beside car.token on every answer", /\{ token: st\.token, line: st\.line, short: st\.short \}/.test(ob));
+  const SR = fs.readFileSync("lib/sheetRead.js", "utf8"); ok("the Desk read serves car.line and car.short beside car.token", /car: \{ token: \(a\.car && a\.car\.token\) \|\| null, line: \(a\.car && a\.car\.line\) \|\| null, short: \(a\.car && a\.car\.short\) \|\| null,/.test(SR));
+  const VIs = fs.readFileSync("api/vehicleIdentity.js", "utf8"); ok("no second builder of the words: carWords is defined once, in lib/carToken.js", !/function carLineOf|\" miles\"\)|miles\"\)\s*;\s*if \(car\.vin\)/.test(fs.readFileSync("lib/carBar.js", "utf8")) && (fs.readFileSync("lib/carToken.js", "utf8").match(/export function carWords/g) || []).length === 1);
+  // the crew only door that built the line from decoded fields is gone, and no page file builds the words
+  const door = []; for (const f of fs.readdirSync("api").filter(x => x.endsWith(".js")).map(x => "api/" + x).concat(["lib/carBar.js", "lib/_newDesign.js"])) { if (/preview-car-line/.test(fs.readFileSync(f, "utf8"))) door.push(f); }
+  ok("the crew only car line door (preview-car-line) is gone from every file", door.length === 0, door.join(" "));
+  const cb = fs.readFileSync("lib/carBar.js", "utf8"); ok("the bar takes car.line and car.short from the answer and builds no wording on the page", /typeof o\.car\.line==="string"/.test(cb) && /line:c\.line,short:c\.short/.test(cb) && !/ miles"/.test(cb.slice(cb.indexOf("CAR_BAR_JS"))), null); }
 globalThis.fetch = realFetch;
 // the Find and Tasks handlers hand the decoded car to their engine through a COPY of env (never the shared one); checked in the source because their handlers need a database to run
 { for (const [name, f] of [["FIND (api/buySearch.js)", "api/buySearch.js"], ["TASKS COMPOSER (api/tasks.js)", "api/tasks.js"]]) { const src = fs.readFileSync(f, "utf8"); ok(`${name} reads ?car= into a per-request copy of env`, /env = env0 \? \{ \.\.\.env0, car: carFromRequest\(req\) \} : env0;/.test(src) && /import \{ carFromRequest \} from "\.\.\/lib\/carToken\.js";/.test(src)); } }
