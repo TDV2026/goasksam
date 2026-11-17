@@ -79,6 +79,28 @@ check("MC visitor: 'Fiat 500' stays a Fiat 500", FI.ok && /MARKET CHECK \| Fiat 
 check("MC visitor: ...and asks which one it is", /Which one is it\?/.test(FI.text), FI.text.slice(0, 250));
 await FI.p.close();
 
+// ---- 1b. visitor: the Firebird, the variants (Nov 17 2026, after lane-b-variants-merged and variant-2) -----------------------------------------------------------------------------
+const RANGE = /\$[\d,]+ to \$[\d,]+/;
+const fb = await mcSearch(false, "1987 Pontiac Firebird");
+check("MC visitor: '1987 Pontiac Firebird' gives a range and its count, the whole generation", fb.ok && /MARKET CHECK \| 1987 Pontiac Firebird/.test(fb.text) && RANGE.test(fb.text) && /of the \d+ sales since/.test(fb.text), fb.text.slice(0, 300));
+check("MC visitor: ...with no variant question", !/Which (one|variant|Firebird)|Trans Am \([\d]+\) →|Formula \([\d]+\) →/.test(fb.text), fb.text.slice(0, 300));
+check("MC visitor: ...and no notice", !/didn't use/i.test(fb.text), (fb.text.match(/Sam didn't use[^|]*/) || [""])[0]);
+await fb.p.close();
+const ta = await mcSearch(false, "1987 Pontiac Firebird Trans Am");
+check("MC visitor: '1987 Pontiac Firebird Trans Am' is the Trans Am with a range and a count", ta.ok && /MARKET CHECK \| 1987 Pontiac Firebird Trans Am/.test(ta.text) && RANGE.test(ta.text) && /of the \d+ sales since/.test(ta.text), ta.text.slice(0, 300));
+await ta.p.close();
+const gta = await mcSearch(false, "1987 Pontiac Firebird Trans Am GTA");
+check("MC visitor: '1987 Pontiac Firebird Trans Am GTA' is the GTA with a range and a count", gta.ok && /MARKET CHECK \| 1987 Pontiac Firebird Trans Am GTA/i.test(gta.text) && RANGE.test(gta.text) && /of the \d+ sales since/.test(gta.text), gta.text.slice(0, 300));
+await gta.p.close();
+const tur = await mcSearch(false, "1989 Pontiac Firebird Turbo Trans Am");
+check("MC visitor: '1989 Pontiac Firebird Turbo Trans Am' is narrowed to turbo with a range and a count", tur.ok && /Narrowed to turbo/.test(tur.text) && RANGE.test(tur.text) && /of the \d+ sales since/.test(tur.text), tur.text.slice(0, 300));
+await tur.p.close();
+const tam = await mcSearch(false, "1987 Pontiac Firebird Trans Am 42,500 miles");
+check("MC visitor: '1987 Pontiac Firebird Trans Am 42,500 miles' keeps the Trans Am and holds 42,500 in the mileage box", tam.ok && /MARKET CHECK \| 1987 Pontiac Firebird Trans Am/.test(tam.text) && /^42,?500$/.test(String(tam.miles || "")), tam.miles + " " + tam.text.slice(0, 200));
+check("MC visitor: ...the mileage band is applied, or says plainly there are too few sales near 42,500 miles", /within [\d,]+ miles of 42,500/.test(tam.text) && (RANGE.test(tam.text)), tam.text.slice(0, 400));
+check("MC visitor: ...no notice", !/didn't use/i.test(tam.text), (tam.text.match(/Sam didn't use[^|]*/) || [""])[0]);
+await tam.p.close();
+
 // ---- 2. visitor: Sell and Tasks ---------------------------------------------------------------------------------------------------------------------------------------------------
 {
   const p = await open(false); await p.goto(SITE + "/sell?car=" + encodeURIComponent("2003 Mercedes-Benz SL500"), { waitUntil: "networkidle2" });
