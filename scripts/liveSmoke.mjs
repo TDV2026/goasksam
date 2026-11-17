@@ -139,6 +139,7 @@ async function barSuite(isCrew, who) {
     await p.waitForFunction(() => /live match|No live|0 live/i.test(document.body.innerText), { timeout: 60000 }).catch(() => {});
     const t = await textOf(p);
     check("Find pill (crew): opens already run for the SL500 (a result line, the car's chips, not the empty prompt)", /live match/i.test(t) && /SL500/.test(t) && !/What car are you looking for\?/.test(t), t.slice(0, 300));
+    check("Find pill (crew): the line above the cars names the mileage (the ones within 15,000 miles of 38,400, or none is within it and here is every one)", /None for sale right now is within 15,000 miles of 38,400, so here is every one\.|These are the ones within 15,000 miles of 38,400\./.test(t) && !/38,400 to 38,400/.test(t), t.slice(0, 700));
     check("Find pill (crew): the bar is kept on the Find page", /38,400 miles/.test(t), t.slice(0, 200));
     await p.close();
   } else check("Find pill (crew): opens already run", false, "no Find pill");
@@ -174,6 +175,15 @@ async function barSuite(isCrew, who) {
 globalThis.__check = check;
 if (CREW) await barSuite(true, "crew"); else check("crew cookie available (Keychain goasksam-crew)", false, "missing: the crew assertions did not run");
 await barSuite(false, "visitor");
+// ---- 3b. Find's one line about the mileage (lane-b-find-line): a search with no mileage keeps "That's everything", a typed ceiling still filters ---------------------------------------------------------------
+{
+  const findText = async typed => { const p = await open(false); await p.goto(SITE + "/find", { waitUntil: "networkidle2" }); await p.type("#pq", typed); await p.keyboard.press("Enter");
+    const end = Date.now() + 60000; while (Date.now() < end) { await new Promise(r => setTimeout(r, 1000)); try { if (/live match|Nothing live|No .* live/i.test(await textOf(p))) break; } catch { /* moving */ } } await new Promise(r => setTimeout(r, 2000)); const t = await textOf(p), u = p.url(); await p.close(); return { t, u }; };
+  const nm = await findText("2003 Mercedes-Benz SL500");
+  check("Find (visitor): a search with no mileage still reads \"That's everything matching your search right now.\"", /That.s everything matching your search right now\./.test(nm.t), nm.t.slice(0, 400));
+  const un = await findText("2003 Mercedes-Benz SL500 under 40,000 miles");
+  check("Find (visitor): \"under 40,000 miles\" still filters (a mileage chip and the ceiling in the address)", /Under 40,000 miles/.test(un.t) && /miles=40000/.test(un.u), un.u + " " + un.t.slice(0, 300));
+}
 // ---- 4. the variant rows: crew only, the engine's answer, each row matches its own page ----------------------------------------------------------------------------------------------------------------
 {
   const rowsOf = p => p.evaluate(() => { const v = document.getElementById("vrs"); if (!v) return null; return { line: (v.querySelector(".vrs-line") || {}).textContent || "", rows: [...v.querySelectorAll(".vrs-row")].map(a => ({ label: (a.querySelector(".vrs-l") || {}).textContent || "", range: (a.querySelector(".vrs-range") || {}).textContent || "", sales: (a.querySelector(".vrs-sales") || {}).textContent || "", href: a.getAttribute("href") })) }; });
