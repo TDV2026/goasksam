@@ -25,6 +25,8 @@ if (process.argv.includes("--mutants")) {
     ["the token not handed to the tool's first API call", "if(pending&&typeof input===", "if(false&&typeof input==="],
     ["the bar not taking car.token from the answer", "function take(c){if(!c||!c.token||", "function take(c){if(true||"],
     ["the old token still sent after an answer has its own", "function take(c){if(!c||!c.token||(car&&car.token===c.token))return;pending=null;", "function take(c){if(!c||!c.token||(car&&car.token===c.token))return;"],
+    ["Find's door not knowing ?car= (the rollback page)", "if (!req || !q || isCrewRequest(req) !== true) return null;\n  const car", "return null;\n  const car"],
+    ["Find's door open to a visitor", "if (!req || !q || isCrewRequest(req) !== true) return null;\n  const car", "if (!req || !q) return null;\n  const car"],
     ["a tampered token accepted", "const info = tool === \"vin\" ? null : carInfo(v);", "const info = tool === \"vin\" ? null : { token: v, line: v, short: v, label: v };"],
     ["Sell's plain words treated as a token", 'export const isCarToken = v => typeof v === "string" && v.startsWith(TOKEN_VERSION + ".");', 'export const isCarToken = v => typeof v === "string" && v.length > 0;'],
     ["the pills keeping the old token after the car changes", "function take(c){if(!c||!c.token||(car&&car.token===c.token))return;", "function take(c){if(!c||!c.token||car)return;"],
@@ -166,5 +168,36 @@ ok(STAMP && STAMP.line === LINE && STAMP.short === "2003 SL500" && STAMP2.line =
 for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG), 390), r = await p.evaluate(BAR);
   ok(r.shown && r.overflowX <= 0 && r.trunc && r.pills.length === 4 && r.pills[0].top > r.lineBottom, tool + " at 390: no sideways scroll, the car line truncates, the pills sit on their own row " + JSON.stringify([r.overflowX, r.trunc, r.pills[0] && r.pills[0].top, r.lineBottom])); await p.close(); }
 { const p = await open("/preview/find?car=" + enc(TOKEN), 1440), r = await p.evaluate(BAR); ok(r.overflowX <= 0, "at 1440 nothing overflows sideways"); await p.close(); }
+// 6 THE PAGES AS SERVED LIVE (Lane S, Nov 17 2026). Everything above opens the preview addresses or the rollback handlers (NEW_DESIGN unset). The live site runs NEW_DESIGN=1: the door in each api file picks the page file, and
+// /find?car=<token> got the rollback page (the door's route key read ?car= as an unknown query): the empty "What car are you looking for?", no bar. So the five pages are opened here through THEIR OWN live handlers
+// (api/buy.js, marketCheck.js, sell.js, tasksPage.js, history.js) with the new design on and the crew cookie, in Chrome: the page is the new design's (X-Design: new), the bar is there with the car's line and four pills carrying the token,
+// the page's first API call carries ?car=<token>, and Find ran its search rather than showing the empty page. The VIN page is read from the stubbed archive (scripts/_historyStub.mjs).
+{
+  process.env.NEW_DESIGN = "1"; process.env.SUPABASE_URL = "https://fake.supabase.test"; process.env.SUPABASE_SERVICE_ROLE_KEY = "k";
+  const HS = await import(pathToFileURL(path.join(ROOT, "scripts/_historyStub.mjs")).href), realFetch = globalThis.fetch;
+  HS.vins.push({ vin: SL.vin, ident: { year: 2003, make: "Mercedes-Benz", model: "SL-Class", family: "SL-Class", slug: "2003-mercedes-benz-sl-class" } });
+  globalThis.fetch = async u => /fake\.supabase\.test/.test(String(u)) ? new Response(JSON.stringify(HS.historyRows(String(u)) || []), { status: 200, headers: { "content-type": "application/json" } }) : realFetch(u);
+  const LH = { find: (await imp("api/buy.js")).default, mc: (await imp("api/marketCheck.js")).default, sell: (await imp("api/sell.js")).default, tasks: (await imp("api/tasksPage.js")).default, vin: (await imp("api/history.js")).default };
+  const VINURL = "/history/2003-mercedes-benz-sl-class/" + SL.vin + "?slug=2003-mercedes-benz-sl-class&vin=" + SL.vin;
+  const LIVE_PAGES = [["Find", "find", "/find?car=" + enc(TOKEN), /\/api\/buySearch/, false], ["Market Check", "mc", "/market-check?car=" + enc(TOKEN), /\/api\/sellerDecision/, false],
+    ["Sell", "sell", "/sell?car=" + enc(TOKEN) + SELLQ, /\/api\/sellChat/, false], ["Tasks", "tasks", "/tasks/mine?app=1&car=" + enc(TOKEN), /\/api\/tasks/, true], ["VIN page", "vin", VINURL, null, false]];
+  for (const [name, k, url, apiRe, signed] of LIVE_PAGES) {
+    const served = await call(LH[k], url);
+    ok(served.code === 200 && served.h["x-design"] === "new", "live " + name + ": the page as served is the new design's (X-Design: new), not the rollback page :: " + served.code + " " + (served.h["x-design"] || "none"));
+    const p = await open(url, 1440, { html: served.body, signed }); const r = await p.evaluate(BAR);
+    ok(r.present && r.shown, "live " + name + ": the car bar is on the page");
+    if (k === "vin") ok(r.present && /^20\d\d|^2003 Mercedes-Benz SL-Class/.test(r.line || "") && r.pills.length === 4 && r.pills.every(x => /\?car=v1\./.test(x.h)), "live VIN page: the bar shows the page's own car with four pills carrying a token :: " + (r.line || ""));
+    else ok(r.present && r.line === LINE && r.pills.length === 4 && r.pills.every(x => x.h.endsWith("?car=" + enc(TOKEN))), "live " + name + ": the bar shows the car's line and the four pills carry the token :: " + (r.line || ""));
+    if (apiRe) { const first = p._api.find(c => apiRe.test(c.u)); ok(!!first && hasToken(first), "live " + name + ": the page's first API call carries ?car=<token> :: " + (first ? first.u : "no call made")); }
+    await p.close();
+  }
+  { const served = await call(LH.find, "/find?change=" + enc(TOKEN)); ok(served.h["x-design"] === "new", "live Find: ?change=<token> is the new Find's landing, not the rollback page"); }
+  for (const bad of [TAMPERED, CUT]) for (const [name, k, url, apiRe, signed] of LIVE_PAGES.slice(0, 4)) {
+    const u = url.replace(enc(TOKEN), enc(bad)), served = await call(LH[k], u), p = await open(u, 1440, { html: served.body, signed }), r = await p.evaluate(BAR), sent = p._api.some(c => /car=v1\./.test(c.u));
+    ok(served.h["x-design"] === "new" && (!r.present || !r.shown) && !r.loc.includes("v1.") && !sent, "live " + name + ": a " + (bad === CUT ? "cut" : "tampered") + " token is the new page with no bar, nothing sent and no token left in the address :: " + (served.h["x-design"] || "none") + " " + r.loc); await p.close();
+  }
+  { const pub = await (async () => { const res = await call(LH.find, "/find?car=" + enc(TOKEN), { crew: false }); return res; })(); ok(!pub.h["x-design"], "live Find: a visitor's ?car= is today's page (no X-Design), as before"); ok(!/gas-carbar/.test(pub.body), "live Find: a visitor's page has no car bar"); }
+  globalThis.fetch = realFetch; delete process.env.NEW_DESIGN; delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+}
 await b.close();
 console.log(out.join("\n")); console.log("carBarCheck: " + pass + " pass, " + fail + " FAIL"); process.exit(fail ? 1 : 0);
