@@ -41,7 +41,8 @@ ok(/we:market->>warmEpoch/.test(ud) && /epoch: epochMatch\(mc,/.test(ud), "warmD
     return new Response("[]", { status: 200 }); };
   const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
   const SE = await import("../lib/live/search.js"), SB = await import("../lib/sell/sellBlock.js");
-  const answer = (await (await import("../lib/onebox.js")).oneEngineAnswer({ make: "", model: "" }, null, "x", env, null)).raw;   // a real engine answer (a refusal needs no archive)
+  // an answer the engine would STORE: a refusal or a failed read is never written (storeRefusalReason, 4ffca68e Nov 15: "no failed read is ever stored"), so the writer test needs a tier the store accepts; the epoch rule under test is the same for any stored answer
+  const answer = { tier: "model_choice", question: "x" };
   // a cold instance: the per-instance cache holds nothing and the read fails
   epochMode = "fail"; puts.length = 0;
   await SE.writeWarmAnswer(env, "MCWARM:a", answer); await SE.writeQuestionRow(env, "MCQ:a|x", { tier: "model_choice" }); await SB.writeBlock(env, "SELLBLOCK:a", { kind: "sellblock", warmEpoch: undefined, places: { total: 1 } });
