@@ -80,6 +80,7 @@ check("MC visitor: ...and asks which one it is", /Which one is it\?/.test(FI.tex
 await FI.p.close();
 
 // ---- 1b. visitor: the Firebird, the variants (Nov 17 2026, after lane-b-variants-merged and variant-2) -----------------------------------------------------------------------------
+const RANGE_OK = /\$[\d,]+ to \$[\d,]+/;
 const RANGE = /\$[\d,]+ to \$[\d,]+/;
 const fb = await mcSearch(false, "1987 Pontiac Firebird");
 check("MC visitor: '1987 Pontiac Firebird' gives a range and its count, the whole generation", fb.ok && /MARKET CHECK \| 1987 Pontiac Firebird/.test(fb.text) && RANGE.test(fb.text) && /of the \d+ sales since/.test(fb.text), fb.text.slice(0, 300));
@@ -146,6 +147,27 @@ if (CREW) {
     check("Sell pill (crew): opens for the SL500 with the bar (at Sell's first question)", /SL500/.test(t) && /Which state is it in\?/.test(t) && /38,400 miles/.test(t), t.slice(0, 300));
     await p.close();
   } else check("Sell pill (crew): opens for the SL500", false, "no Sell pill");
+  // ---- the Tasks pill (Nov 17 2026, lane-s-car-bar-3): it fills the request box with the car in words, puts the cursor in it, and the bar shows with Tasks filled; the other pills return to their tool already run ----
+  const tasksPill = bar && bar.pills.find(a => a.label === "Tasks");
+  if (tasksPill) {
+    const tp = await open(true); await tp.goto(new URL(tasksPill.href, SITE).href, { waitUntil: "networkidle2" });
+    const end = Date.now() + 40000; let tk = null;
+    while (Date.now() < end) { try { tk = await tp.evaluate(() => { const s = document.getElementById("gas-carbar"), q = document.getElementById("pq"); return { box: q ? q.value : null, focused: !!q && document.activeElement === q, line: s && !s.hidden ? (s.querySelector(".gcb-line") || {}).textContent : null, on: s ? [...s.querySelectorAll(".gcb-pill.on")].map(a => a.textContent) : [], pills: s ? [...s.querySelectorAll(".gcb-pill")].map(a => ({ label: a.textContent, href: a.getAttribute("href") })) : [] }; }); if (tk.box && tk.line) break; } catch { /* moving */ } await new Promise(r => setTimeout(r, 1000)); }
+    check("Tasks pill (crew): the request box holds the car in words", !!tk && /SL500/.test(tk.box || ""), tk && tk.box);
+    check("Tasks pill (crew): the cursor is in the request box", !!tk && tk.focused, tk && tk.focused);
+    check("Tasks pill (crew): the car bar shows above, with Tasks filled", !!tk && !!tk.line && /SL500/.test(tk.line) && tk.on.length === 1 && tk.on[0] === "Tasks", tk && JSON.stringify([tk.line, tk.on]));
+    const tks = tk ? tk.pills.map(a => (/[?&]car=([^&]+)/.exec(a.href) || [])[1]).filter(Boolean) : [];
+    check("Tasks pill (crew): the other three pills carry the same token as the Market Check bar", tks.length === 4 && tks.every(x => x === toks[0]), tks.length + " tokens");
+    for (const [label, ready, re] of [["Find", /live match/i, /SL500/], ["Market Check", null, /SL500/], ["Sell", /Which state is it in\?/, /SL500/]]) {
+      const pill = tk && tk.pills.find(a => a.label === label); if (!pill) { check("Tasks to " + label + " (crew): the pill is on the Tasks bar", false, "missing"); continue; }
+      const q = await open(true); await q.goto(new URL(pill.href, SITE).href, { waitUntil: "networkidle2" });
+      if (label === "Market Check") await answered(q); else await q.waitForFunction(r => new RegExp(r).test(document.body.innerText), { polling: 500, timeout: 60000 }, ready.source).catch(() => {});
+      const t = await textOf(q), barLine = await q.evaluate(() => { const s = document.getElementById("gas-carbar"); return s && !s.hidden ? (s.querySelector(".gcb-line") || {}).textContent : null; });
+      check("Tasks to " + label + " (crew): already run for the car, with the bar", re.test(t) && (ready ? ready.test(t) : RANGE_OK.test(t)) && !!barLine, t.slice(0, 260));
+      await q.close();
+    }
+    await tp.close();
+  } else check("Tasks pill (crew): the pill is on the bar", false, "no Tasks pill");
 } else check("crew cookie available (Keychain goasksam-crew)", false, "missing: the crew assertions did not run");
 
 console.log("\nliveSmoke " + SITE + ": " + pass + " pass, " + fail + " FAIL");
