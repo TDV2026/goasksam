@@ -5,6 +5,7 @@
       "id": "pontiac-firebird-3rd", "label": "Pontiac Firebird, 1982 to 1992", "make": "Pontiac", "models": ["Firebird"], "years": [1982, 1992], "vin": null,
       "variants": [
         { "name": "Firehawk", "words": ["fire\\s?hawk"] },
+        { "name": "20th Anniversary Turbo Trans Am", "words": ["20th\\s+anniversary", "turbo\\s+trans[\\s-]?am"], "package": "Trans Am" },
         { "name": "GTA", "words": ["\\bgta\\b"], "package": "Trans Am" },
         { "name": "Trans Am", "words": ["trans[\\s-]?am"], "includesPackages": false },
         { "name": "Formula", "words": ["\\bformula\\b"] }

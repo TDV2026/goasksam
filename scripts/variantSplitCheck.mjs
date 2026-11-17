@@ -17,19 +17,20 @@ const WLD = await imp("scripts/_deskOlderWorld.mjs"), OB = await imp("lib/onebox
 let pass = 0, fail = 0; const fails = []; const ok = (n, c, d) => { if (c) pass++; else { fail++; fails.push(n + (d !== undefined ? " " + JSON.stringify(d).slice(0, 300) : "")); } };
 const err = console.error; console.error = () => {};
 const w = WLD.install(ROOT), DAY = 864e5; let seq = 0;
+let UNIQ = false;   // part 2 of variant-2: every sale of a world has its own price and mileage, so the engine's dedupe keeps them all
 const world = (make, model, years, spec) => {   // spec: [[title words, count, price]] ; the title words are the variant words the sale names ("" names none)
   const rows = []; let k = 0;
   for (const [words, count, price] of spec) for (let i = 0; i < count; i++) {
     const year = years[0] + (k % (years[1] - years[0] + 1)), id = "vs" + (seq++), title = `${year} ${make} ${model}${words ? " " + words : ""}`;
-    const raw = { id, title, featured_image_url: "https://img.example/" + id + ".jpg", mileage: String(30000 + (k % 20) * 500), body_style: "Coupe", modifications: null, currency: "USD", transmission: "Manual (5-Speed)", exterior_color: "Red", title_status: "Clean", url: "https://bat.example/" + id, source_url: "https://src.example/" + id, city: "Austin", state: "TX", country_code: "US", auction_end_precision: "day" };
-    rows.push({ id, source_id: id, sale_price: price + (i % 5) * 250, sale_date: new Date(Date.now() - (40 + (k % 9) * 8) * DAY).toISOString().slice(0, 10), platform: k % 3 === 0 ? "Cars & Bids" : "Bring a Trailer", listing_title: title, year, make, model, vin_norm: null, stated_mileage: null, project_flag: null, desc_facts: null, has_reserve: false, raw_record: raw, vehicle_type: "car" });
+    const raw = { id, title, featured_image_url: "https://img.example/" + id + ".jpg", mileage: String(UNIQ ? 30000 + k * 211 : 30000 + (k % 20) * 500), body_style: "Coupe", modifications: null, currency: "USD", transmission: "Manual (5-Speed)", exterior_color: "Red", title_status: "Clean", url: "https://bat.example/" + id, source_url: "https://src.example/" + id, city: "Austin", state: "TX", country_code: "US", auction_end_precision: "day" };
+    rows.push({ id, source_id: id, sale_price: price + (UNIQ ? i * 53 : (i % 5) * 250), sale_date: new Date(Date.now() - (40 + (k % 9) * 8) * DAY).toISOString().slice(0, 10), platform: k % 3 === 0 ? "Cars & Bids" : "Bring a Trailer", listing_title: title, year, make, model, vin_norm: null, stated_mileage: null, project_flag: null, desc_facts: null, has_reserve: false, raw_record: raw, vehicle_type: "car" });
     k++;
   }
   return rows;
 };
 const install = (model, rows) => { w.DATA.clear(); w.DATA.set(model, rows); };
 // what the resolver reads of each typed string (the engine's real resolver gives these trims for these words: lib/vehicle.js, observed in lane-notes stage 1)
-const TRIMS = [[/trans[\s-]?am\s+gta|\bgta\b/i, "Trans AM GTA"], [/trans[\s-]?am/i, "Trans AM"], [/\bformula\b/i, "Formula"], [/iroc/i, "IROC-Z"], [/\bz[\s/-]?28\b/i, "Z28"], [/\brs\b/i, "RS"], [/cobra/i, "SVT Cobra"], [/\bgt\b/i, "GT"], [/\blx\b/i, "LX"]];
+const TRIMS = [[/20th/i, "Trans AM"], [/trans[\s-]?am\s+gta|\bgta\b/i, "Trans AM GTA"], [/trans[\s-]?am/i, "Trans AM"], [/\bformula\b/i, "Formula"], [/iroc/i, "IROC-Z"], [/\bz[\s/-]?28\b/i, "Z28"], [/\brs\b/i, "RS"], [/cobra/i, "SVT Cobra"], [/\bgt\b/i, "GT"], [/\blx\b/i, "LX"]];
 const FAMS = [["pontiac", "Pontiac", "Firebird"], ["chevrolet", "Chevrolet", "Camaro"], ["ford", "Ford", "Mustang"]];
 const carOf = text => { const y = Number(/\b(19\d\d)\b/.exec(text)[1]), f = FAMS.find(x => new RegExp(x[2], "i").test(text)), t = TRIMS.find(([re]) => re.test(text)); return { year: y, make: f[1], model: f[2], trim: t ? t[1] : null }; };
 w.deps.resolveVehicle = async text => ({ status: "valid", vehicle: carOf(text) });
@@ -68,7 +69,7 @@ const allIds = w.DATA.get("Firebird").map(r => r.id).sort();
 // ===== THE PACKAGE RULE IS DATA: a family whose entry says includesPackages counts the package with its parent =====
 { const list = JSON.parse(JSON.stringify(JSON.parse(fs.readFileSync(path.join(ROOT, "data/variantFamilies.json"), "utf8")).families)); list[0].variants.find(x => x.name === "Trans Am").includesPackages = true;
   const fam = V.familiesOf(list)[0];
-  ok("includesPackages true: asking for the Trans Am counts the GTA too", JSON.stringify(V.poolNames(fam, ["Trans Am"]).sort()) === JSON.stringify(["GTA", "Trans Am"]), V.poolNames(fam, ["Trans Am"]));
+  ok("includesPackages true: asking for the Trans Am counts the GTA too", JSON.stringify(V.poolNames(fam, ["Trans Am"]).sort()) === JSON.stringify(["20th Anniversary Turbo Trans Am", "GTA", "Trans Am"]), V.poolNames(fam, ["Trans Am"]));
   ok("includesPackages false (the data as shipped): asking for the Trans Am does not count the GTA", JSON.stringify(V.poolNames(V.familiesOf()[0], ["Trans Am"])) === JSON.stringify(["Trans Am"]));
   const rows = w.DATA.get("Firebird").map(r => ({ raw_title: r.listing_title })), got = V.applyVariants(rows, { variantFamily: fam.id, variantSet: V.poolNames(fam, ["Trans Am"]) }, { list });
   ok("includesPackages true: the pool is 11 sales (Trans Am and GTA)", got.rows.length === 11, got.rows.length);
@@ -156,6 +157,88 @@ ok("DESK_SHAPE is 9 (8 is lane-b-mileage-band's; lane-b-year-widen's own 8 is on
   ok("the one pool choke point applies the variants (fetchQualifyingCore)", /async function fetchQualifyingCore\(spec[^)]*\) \{[\s\S]{0,900}applyVariants\(rows, spec/.test(read("lib/onebox.js")));
   ok("the families are data, not code (the Firebird, Camaro, Mustang and Corvette entries live in data/variantFamilies.json)", ["pontiac-firebird-3rd", "chevrolet-camaro-3rd", "ford-mustang-fox", "chevrolet-corvette-c4"].every(id => read("data/variantFamilies.json").includes(id)) && !/Firehawk|Berlinetta/.test(read("lib/variants.js").replace(/\/\/.*$/gm, "")));
 }
+
+// ===== VARIANT 2, PART 1 (lane-b-variant-2, Nov 17 2026): the 20th Anniversary Turbo Trans Am is its own variant; replicas, tributes, KITT and Knight Rider cars are set aside from every pool with their count shown =====
+const read = f => fs.readFileSync(path.join(ROOT, f), "utf8");
+const REPLICA_TITLE = /kitt|knight rider|tribute|replica|re-?creation|clone/i;
+{ const famData = JSON.parse(read("data/variantFamilies.json")).families.find(f => f.id === "pontiac-firebird-3rd"), v20 = famData && famData.variants.find(v => /20th/i.test(v.name));
+  ok("the Firebird's variant data holds the 20th Anniversary Turbo Trans Am as a package of the Trans Am (20 sales at $42,000 against $14,250 in the engine's read, 2026-11-17)", !!v20 && v20.package === "Trans Am" && famData.variants.indexOf(v20) < famData.variants.findIndex(v => v.name === "Trans Am"), v20);
+  const FB2 = [["Trans Am", 12, 14000], ["20th Anniversary Turbo Trans Am", 8, 42000], ["Trans Am KITT Replica", 3, 60000], ["Trans Am Tribute", 2, 22000], ["Trans Am Knight Rider", 2, 30000], ["Trans Am GTA", 8, 24000], ["Formula", 8, 13000], ["", 8, 8000]];
+  install("Firebird", world("Pontiac", "Firebird", [1987, 1987], FB2));
+  const all = w.DATA.get("Firebird"), t = await answer("1987 Pontiac Firebird Trans Am"), u = await answer("1987 Pontiac Firebird"), s20 = await answer("1987 Pontiac Firebird 20th Anniversary Turbo Trans Am");
+  const inPool = d => (d.rawPool || []).map(r => String(r.raw_title || r.title || ""));
+  ok("a stated Trans Am: no 20th Anniversary car, and no replica, tribute, KITT or Knight Rider car, is in the pool", inPool(t).length > 0 && inPool(t).every(x => !/20th/i.test(x) && !REPLICA_TITLE.test(x)), inPool(t).filter(x => /20th/i.test(x) || REPLICA_TITLE.test(x)));
+  ok("an unstated Firebird: the 20th Anniversary cars are counted as their own variant (8 sales, own name)", vb(u) && item(vb(u), "20th Anniversary Turbo Trans Am") && item(vb(u), "20th Anniversary Turbo Trans Am").count === 8 && item(vb(u), "20th Anniversary Turbo Trans Am").package === "Trans Am", vb(u) && vb(u).items.map(i => i.name + ":" + i.count));
+  ok("a stated Trans Am prices on the Trans Am only: the 20th Anniversary cars are not in its pool (the engine's own halo rule and the package rule agree)", vb(t) && !item(vb(t), "20th Anniversary Turbo Trans Am").inPool, vb(t) && vb(t).line);
+  ok("an unstated Firebird: no replica, tribute, KITT or Knight Rider car is in the pool or in any variant's count (counts add up to the pool the census read)", inPool(u).every(x => !REPLICA_TITLE.test(x)) && vb(u) && vb(u).items.every(i => i.count >= 0) && vb(u).total === vb(u).items.reduce((n, i) => n + i.count, 0), vb(u) && [vb(u).total, vb(u).items.map(i => i.count)]);
+  const from = String(t.windowStart || "").slice(0, 10), want = all.filter(r => REPLICA_TITLE.test(r.listing_title) && (!from || r.sale_date >= from)).length;
+  ok("the replicas and tributes set aside are COUNTED on the answer (replicasAside), the number the archive holds in the answer's window", want > 0 && t.replicasAside === want, [t.replicasAside, want]);
+  const line = OB.withReadFields(t, "1987 Pontiac Firebird Trans Am", carOf("1987 Pontiac Firebird Trans Am")).setAsideLine;
+  ok("the engine's own set-aside line says so (the page prints it): N replicas or tributes set aside", new RegExp(`^${want} replicas? or tributes? set aside`).test(line || ""), line);
+  ok("a stated 20th Anniversary Turbo Trans Am is priced on those 8 sales only", ids(s20).length === 8 && titles(s20).every(x => /20th/i.test(x)), titles(s20).length);
+  ok("the Firebird no longer counts a Knight Rider title as a Trans Am sale (the title fence)", !all.filter(r => /knight rider/i.test(r.listing_title)).some(r => inPool(t).includes(r.listing_title)));
+  const C = await imp("lib/_classify.js"); ok("the one reader of a replica car names KITT, Knight Rider, tribute, replica, re-creation and clone and nothing else", ["1982 Pontiac Firebird Trans Am KITT", "1982 Trans Am Knight Rider", "Trans Am Tribute", "Trans Am Replica", "Trans Am Re-Creation", "Trans Am Clone"].every(x => C.isReplicaCar(x)) && ["1989 Pontiac Firebird Trans Am", "1999 Mrs Kittredge Special", "1987 Pontiac Firebird Formula"].every(x => !C.isReplicaCar(x)));
+}
+// A CLASS OF CARS: every family in the data keeps its replicas out of the pool and counts them (a replica of the family's first variant, in the family's own words)
+{ const FAMS2 = JSON.parse(read("data/variantFamilies.json")).families;
+  for (const f of FAMS2.filter(f => ["Firebird", "Camaro", "Mustang"].includes(f.models[0]))) {
+    const model = f.models[0], vn = f.variants.find(v => !v.package) || f.variants[0], word = vn.name.replace(/\W+$/, "");
+    install(model, world(f.make, model, [f.years[0] + 5, f.years[0] + 5], [[word, 10, 15000], ["", 8, 9000], [word + " Tribute", 2, 40000], [word + " Replica", 2, 40000]]));
+    const text = `${f.years[0] + 5} ${f.make} ${model}`, d = (await OB.oneEngineAnswer({ year: f.years[0] + 5, make: f.make, model, trim: null }, null, text, { ...w.env })).raw;
+    ok(`${f.label}: replicas and tributes are in no pool and the answer counts the 4 it set aside`, (d.rawPool || []).every(r => !REPLICA_TITLE.test(String(r.raw_title || r.title || ""))) && (d.replicasAside || 0) >= 1, [(d.rawPool || []).length, d.replicasAside]);
+  } }
+
+// ===== VARIANT 2, PART 2: THE VARIANT QUESTION (an unstated car of a family whose variants price apart is asked which variant; crew only) =====
+UNIQ = true; const TRIM_FIRST0 = OB.RANGE_RULES.trimFirst; OB.RANGE_RULES.trimFirst = false;   // the engine's own trim question (trimFirst, its rank test) goes first when trims price apart; this section is the case it does not fire, so it is switched off here and restored below
+process.env.OLDCARSDATA_API_KEY = "x"; process.env.CURTAIN_CREW_CODE = "fixture-crew-code"; process.env.SUPABASE_ANON_KEY = "k";
+{ const { mintCrewCookieValue } = await imp("lib/_crew.js"), CREW = "gas_crew=" + mintCrewCookieValue(), H = (await imp("api/sellerDecision.js")).default; let n = 0;
+  const hit = async (body, crew) => { let out = null; const res = { status(c) { this.code = c; return this; }, json(b) { out = b; return this; }, setHeader() {}, end() {}, getHeader() {} }; await H({ method: "POST", headers: { origin: "https://goasksam.com", cookie: crew ? CREW : "" }, query: {}, body, socket: { remoteAddress: "10.7." + Math.floor(++n / 250) + "." + (n % 250) } }, res); return out; };
+  const byVariant = (d, famId) => { const fam = V.familiesOf().find(f => f.id === famId), per = {}; for (const r of (d.rawPool || [])) { const k = V.variantOfSale(fam, r); per[k] = (per[k] || 0) + 1; } return per; };
+  const FQ = [["Trans Am", 14, 14000], ["Formula", 12, 11500], ["", 12, 9500], ["Trans Am GTA", 4, 24000]];
+  install("Firebird", world("Pontiac", "Firebird", [1987, 1987], FQ));
+  const eng = (await OB.oneEngineAnswer(carOf("1987 Pontiac Firebird"), null, "1987 Pontiac Firebird", { ...w.env })).raw, per = byVariant(eng, "pontiac-firebird-3rd");
+  const q = await hit({ oneBox: true, search: "1987 Pontiac Firebird" }, true), vis = await hit({ oneBox: true, search: "1987 Pontiac Firebird" }, false);
+  ok("CREW: an unstated Firebird whose variants price apart is answered with a variant question (tier variant_choice, askIndex 1)", q && q.status === "one_box" && q.tier === "variant_choice" && q.askIndex === 1 && q.variantQuestion === true, q && [q.tier, q.error]);
+  const ch = (q && q.variantChoices) || [];
+  ok("the options are the variants with five or more sales in the pool, with the engine's own counts, most sales first", ch.length >= 2 && ch.every(c => c.count >= 5) && ch.every(c => (c.key === "fv-unstated" ? per.Unstated : per[c.label]) === c.count) && ch.every((c, i) => i === 0 || ch[i - 1].count >= c.count), [ch.map(c => c.label + ":" + c.count), per]);
+  ok("a variant under five sales is not an option (the GTA is 4 here, set aside by the halo rule or too thin either way)", ch.every(c => c.label !== "GTA"));
+  ok("the question has the shape of the other identity questions: prompt, variantOptions as 'Name (N sales)', optionCounts, variantChoices of key, label, count, query and refine.variant", typeof q.prompt === "string" && /^Which .+\? The .+ sell in different markets\.$/.test(q.prompt) && q.variantOptions.length === ch.length && q.variantOptions.every((x, i) => x === `${ch[i].label} (${ch[i].count} sales)`) && q.optionCounts.join() === ch.map(c => c.count).join() && ch.every(c => /^fv-[a-z0-9-]+$/.test(c.key) && c.query === "1987 Pontiac Firebird" && c.refine && c.refine.variant === c.key), q.prompt);
+  ok("the sales that name no variant are an option in the engine's words ('Cars that name no variant')", ch.some(c => c.key === "fv-unstated" && c.label === "Cars that name no variant"), ch.map(c => c.label));
+  ok("VISITOR: the same search reads as it did before (a range, no question): visitors see today's behaviour", vis && vis.tier === "result" && !("variantChoices" in vis) && !vis.variantQuestion, vis && vis.tier);
+  ok("the question is never stored: after the crew's ask a visitor still reads the range", (await hit({ oneBox: true, search: "1987 Pontiac Firebird" }, false)).tier === "result");
+  const pick = await hit({ oneBox: true, search: "1987 Pontiac Firebird", refine: { variant: "fv-formula", label: "Formula" }, asked: 1 }, true);
+  ok("a chip (refine.variant fv-formula) is the car's variant: priced on Formula sales only, the variants block says it was asked", pick.tier === "result" && pick.variants && pick.variants.applied && pick.variants.stated.join() === "Formula" && pick.variants.source === "asked" && (pick.rawPool || []).length > 0 && (pick.rawPool || []).every(r => /formula/i.test(String(r.raw_title || r.title))), pick.variants && pick.variants.line);
+  const any = await hit({ oneBox: true, search: "1987 Pontiac Firebird", asked: 1 }, true);
+  ok("the Any chip (asked once, no variant) answers the range of every variant and does not ask again", any.tier === "result" && !any.variantQuestion);
+  const stated = await hit({ oneBox: true, search: "1987 Pontiac Firebird Trans Am" }, true);
+  ok("a car that names its variant is not asked", stated.tier === "result" && !stated.variantQuestion);
+  const bogus = await hit({ oneBox: true, search: "1987 Pontiac Firebird", refine: { variant: "fv-nope" }, asked: 1 }, true);
+  ok("a key that names no variant of the family changes nothing", bogus.tier === "result" && !(bogus.variants && bogus.variants.applied));
+  // alike: no question
+  install("Firebird", world("Pontiac", "Firebird", [1987, 1987], [["Trans Am", 14, 14000], ["Formula", 12, 14000], ["", 12, 14000]]));
+  { const al = await hit({ oneBox: true, search: "1987 Pontiac Firebird" }, true); ok("variants that do NOT price apart (middle halves overlap) are not asked about", al.tier === "result", [al.tier, al.prompt]); }
+  // one option only
+  install("Firebird", world("Pontiac", "Firebird", [1987, 1987], [["Trans Am", 14, 14000], ["Formula", 3, 11500], ["", 2, 9500]]));
+  ok("fewer than two variants with five sales: not asked", (await hit({ oneBox: true, search: "1987 Pontiac Firebird" }, true)).tier === "result");
+  // the threshold, exactly: the variant floor is the census floor and the apart test is the engine's own (splitMaterial)
+  const OBm = await imp("lib/onebox.js"); const base = { tier: "result", variants: { familyId: "pontiac-firebird-3rd", applied: false, stated: [], chosen: null }, titleLine: "1987 Pontiac Firebird", rawPool: [] };
+  const mkPool = (a, b, na, nb) => [...Array.from({ length: na }, (_, i) => ({ raw_title: "1987 Pontiac Firebird Trans Am", _usd: a + i * 100 })), ...Array.from({ length: nb }, (_, i) => ({ raw_title: "1987 Pontiac Firebird Formula", _usd: b + i * 100 }))];
+  const ask = (pool) => OBm.withVariantQuestion({ ...base, rawPool: pool }, { text: "1987 Pontiac Firebird", asked: 0 }).tier;
+  ok("THRESHOLD: 5 and 5 sales whose middle halves are clear of each other ask", ask(mkPool(20000, 10000, 5, 5)) === "variant_choice");
+  ok("THRESHOLD: 4 and 5 sales do not ask (a variant under five is never priced on its own)", ask(mkPool(20000, 10000, 4, 5)) === "result");
+  ok("THRESHOLD: middle halves that overlap do not ask", ask(mkPool(10000, 10300, 8, 8)) === "result");
+  ok("THRESHOLD: a gap between the middle halves of one pair asks, a hair of overlap does not", ask(mkPool(12000, 10000, 6, 6)) === "variant_choice" && ask(mkPool(10200, 10000, 6, 6)) === "result");
+  // the class: every Firebird, Camaro and Mustang family of the data whose variants price apart asks, in the same shape
+  for (const [id, make, model, year, names] of [["chevrolet-camaro-3rd", "Chevrolet", "Camaro", 1987, ["Z28", "RS", ""]], ["ford-mustang-fox", "Ford", "Mustang", 1987, ["GT", "LX", ""]]]) {
+    install(model, world(make, model, [year, year], [[names[0], 14, 20000], [names[1], 12, 16000], [names[2], 12, 12800]]));
+    const r = await hit({ oneBox: true, search: `${year} ${make} ${model}` }, true), rv = await hit({ oneBox: true, search: `${year} ${make} ${model}` }, false);
+    ok(`${id}: crew is asked which variant, a visitor reads the range`, (r.tier === "variant_choice" ? r.variantChoices.length >= 2 : /_choice$/.test(String(r.tier))) && rv.tier !== "variant_choice", [r.tier, rv.tier]);
+  }
+  OB.RANGE_RULES.trimFirst = TRIM_FIRST0; UNIQ = false;
+  // pages compute nothing: the page file has no variant reader and prints the engine's chips
+  const pg = read("public/js/onebox.js"); ok("the page reads no variant of a sale and builds no variant key (it prints variantChoices as sent)", !/variantOfSale|variantKey\(|fv-/.test(pg) && /data-variantopt/.test(pg));
+  ok("the question is served for a crew request only (the one call site)", /if \(isCrewRequest\(req\)\) oneBox = withVariantQuestion\(oneBox,/.test(read("api/sellerDecision.js")));
+}
 console.error = err;
 for (const f of fails.slice(0, +(process.env.SHOW || 40))) console.log("FAIL " + f);
 console.log(`variantSplitCheck: ${pass} passed, ${fail} failed`);
@@ -179,6 +262,19 @@ function mutants() {
     ["the Camaro family is not in the data", "data/variantFamilies.json", s => s.replace('"models": ["Camaro"]', '"models": ["Camaro Zz"]')],
     ["the Mustang family is not in the data", "data/variantFamilies.json", s => s.replace('"models": ["Mustang"]', '"models": ["Mustang Zz"]')],
     ["a car that names no variant is filtered to one", "lib/variants.js", s => s.replace("if (!car.names.length) return { variantFamily: fam.id };", "if (!car.names.length) return { variantFamily: fam.id, variantStated: [fam.variants[0].name], variantSet: [fam.variants[0].name], variantSource: 'words' };")],
+    ["the 20th Anniversary Turbo Trans Am is not in the data", "data/variantFamilies.json", s => s.replace('"name": "20th Anniversary Turbo Trans Am"', '"name": "20th Anniversary Turbo Trans Am Zz"').replace('"words": ["20th\\\\s+anniversary", "turbo\\\\s+trans[\\\\s-]?am"]', '"words": ["zzzz"]')],
+    ["a Knight Rider or KITT car passes the fence", "lib/_classify.js", s => s.replace("kitt|k\\.i\\.t\\.t|knight[\\s-]?rider|", "").replace("(kitt|k\\.i\\.t\\.t|knight[\\s-]?rider|", "(")],
+    ["the replicas set aside are not counted on the answer", "lib/onebox.js", s => s.replace("if (n > 0) { const r0 =", "if (false) { const r0 =")],
+    ["the replica count is not taken in the fetch", "lib/onebox.js", s => s.replace("&& isReplicaCar(r) && qualifyReason(r, spec) === \"memorabilia or replica\"", "&& false")],
+    ["no variant question is served", "api/sellerDecision.js", s => s.replace("if (isCrewRequest(req)) oneBox = withVariantQuestion(", "if (false) oneBox = withVariantQuestion(")],
+    ["the variant question is served to a visitor too", "api/sellerDecision.js", s => s.replace("if (isCrewRequest(req)) oneBox = withVariantQuestion(", "if (true) oneBox = withVariantQuestion(")],
+    ["the question is asked whatever the prices", "lib/onebox.js", s => s.replace("if (splitMaterial(options[i][1], options[j][1]).material) {", "if (true) {")],
+    ["a variant under five sales is an option", "lib/onebox.js", s => s.replace("filter(([, a]) => a.length >= VARIANT_MIN)", "filter(([, a]) => a.length >= 1)")],
+    ["the question is asked again after an answer", "lib/onebox.js", s => s.replace("if (Number(asked) > 0 || (refine && refine.variant)) return d;", "")],
+    ["a chip's variant is ignored by the engine", "lib/onebox.js", s => s.replace("if (fam && nm) { spec.variantFamily = fam.id; spec.variantStated = [nm];", "if (false) { spec.variantFamily = fam.id; spec.variantStated = [nm];")],
+    ["the chip's key is dropped by the handler's refine", "api/sellerDecision.js", s => s.replace("|| variantKeyShape(String(rawRefine.variant || \"\"))", "")],
+    ["a stated variant is asked about too", "lib/onebox.js", s => s.replace("d.variants.applied || (d.variants.stated || []).length || d.variants.chosen) return d;", "false) return d;")],
+    ["the options are not counted from the pool", "lib/onebox.js", s => s.replace("count: a.length, query: text,", "count: 99, query: text,")],
     ["the line names what is not set aside", "lib/variants.js", s => s.replace("aside: out.length ? joinAnd(out.map(noun)) : null,", "aside: inNames.length ? joinAnd(inNames.map(noun)) : null,")]
   ];
   let survived = 0;
