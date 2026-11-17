@@ -16,7 +16,15 @@ if (process.argv.includes("--mutants")) {
   const MUT = [
     ["a pill without the token", 'a.href=href(t.path,car.token);', 'a.href=(C.base||"")+t.path;'],
     ["the bar on an empty page", " else slot.hidden=true;\n var rail", ' else{slot.hidden=false;slot.appendChild(el("div","gcb-in","x"))}\n var rail'],
-    ["the car retyped into the target's input", 'else if(C.tool==="tasks"&&C.boot&&C.boot.label)fillInto(C.boot.label,"#tkq",true)}', 'else if(C.boot&&C.boot.label)fillInto(C.boot.label,"#pq,#q,#ob-input,#tkq",true)}'],
+    ["the car retyped into the target's input", 'else if(C.tool==="tasks"&&C.boot&&C.boot.label)fillInto(C.boot.label,"#tkq,#pq",true)}', 'else if(C.boot&&C.boot.label)fillInto(C.boot.label,"#pq,#q,#ob-input,#tkq",true)}'],
+    ["the Tasks landing's request box not filled (only the app's)", 'fillInto(C.boot.label,"#tkq,#pq",true)}', 'fillInto(C.boot.label,"#tkq",true)}'],
+    ["a Change on Tasks not filling the landing's box", 'C.tool==="tasks"?"#tkq,#pq":', 'C.tool==="tasks"?"#tkq":'],
+    ["the bar not on the live Tasks pages", 'tasks: "tasks", "tasks-mine": "tasks",', 'tasks: "", "tasks-mine": "",'],
+    ["the signed in hop to the app dropping the car", 'location.replace(MINE + "?car=', 'location.replace(MINE + "?x='],
+    ["the typed request's sign in way back dropping the car", "'return MINE + \"?start=1&car=' + ENC + '\"'", "'return MINE + \"?start=1\"'"],
+    ["the token stripped from the Tasks address (the sign in way back loses it)", 'if(C.tool!=="tasks")u.searchParams.delete("car");', 'u.searchParams.delete("car");'],
+    ["a sign in redirect not read as an arrival with the car", 'if (!touched && tool === "tasks") {', 'if (false) {'],
+    ["the Tasks page patched for a visitor", 'const hopTok = tool === "tasks" ?', 'const hopTok = tool === "tasks" || true ?'],
     ["the bar for a visitor", "isCrewRequest(req) !== true || ", ""],
     ["the Tasks focus dropped", 'if(focus){i.focus();', 'if(false){i.focus();'],
     ["Change that keeps the session car", 'ch.addEventListener("click",function(){save(null)});', ''],
@@ -65,14 +73,14 @@ const pageOf = async (url, crew = true) => { const u = new URL(url, "https://goa
 const STATIC = { ".js": "application/javascript", ".css": "text/css", ".png": "image/png", ".svg": "image/svg+xml", ".json": "application/json", ".ico": "image/x-icon" };
 const b = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] });
 // answers: [[regex over "METHOD url", json]] the engine's answer for a matching call (default {}); p._api records every API call the page makes
-async function open(url, width = 1440, { crew = true, html = null, signed = /^\/preview\/tasks\/mine/.test(url), answers = [] } = {}) {
+async function open(url, width = 1440, { crew = true, html = null, signed = /^\/preview\/tasks\/mine/.test(url), answers = [], live = null } = {}) {
   const p = await b.newPage(); await p.setViewport({ width, height: 900 }); p._err = []; p._api = [];
-  await p.evaluateOnNewDocument(si => { try { if (si && !localStorage.getItem("gas_auth_session")) localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "a.b.c", refresh_token: "r", expires_at: Math.floor(Date.now() / 1000) + 86400, email: "x@example.com", user: { email: "x@example.com" } })); } catch (e) {} }, signed);
+  await p.evaluateOnNewDocument(si => { try { if (!si && !sessionStorage.getItem("__cb_clr")) { localStorage.removeItem("gas_auth_session"); localStorage.removeItem("gas_signin_return"); sessionStorage.setItem("__cb_clr", "1"); } } catch (e) {} try { if (si && !localStorage.getItem("gas_auth_session")) localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "a.b.c", refresh_token: "r", expires_at: Math.floor(Date.now() / 1000) + 86400, email: "x@example.com", user: { email: "x@example.com" } })); } catch (e) {} }, signed);
   p.on("pageerror", e => p._err.push(String(e.message).slice(0, 200)));
   await p.setRequestInterception(true);
   p.on("request", async r => { try { const u = new URL(r.url());
     if (u.host !== "goasksam.com") return r.respond({ status: 200, contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="9" height="6"/>' });
-    if (r.isNavigationRequest()) { if (html != null) return r.respond({ status: 200, contentType: "text/html", body: html }); const o = await pageOf(u.pathname + u.search, crew); if (o) return r.respond({ status: o.code, contentType: o.h["content-type"] || "text/html", body: o.body }); return r.respond({ status: 404, body: "" }); }
+    if (r.isNavigationRequest()) { if (live && live[u.pathname]) { const o = await call(live[u.pathname], u.pathname + u.search + (u.pathname === "/tasks/mine" && !u.searchParams.get("app") ? (u.search ? "&" : "?") + "app=1" : ""), { crew }); (p._nav = p._nav || []).push(u.pathname + u.search); return r.respond({ status: o.code, contentType: o.h["content-type"] || "text/html", body: o.body, headers: o.h["x-design"] ? { "x-design": o.h["x-design"] } : {} }); } if (html != null) return r.respond({ status: 200, contentType: "text/html", body: html }); const o = await pageOf(u.pathname + u.search, crew); if (o) return r.respond({ status: o.code, contentType: o.h["content-type"] || "text/html", body: o.body }); return r.respond({ status: 404, body: "" }); }
     if (u.pathname === "/preview/tasks/api") { p._api.push({ m: r.method(), u: u.pathname + u.search, b: r.postData() || "" }); const o = await call(CP, "/api/crewPage?page=preview-tasks-api", { method: "POST", body: r.postData() || "{}" }); return r.respond({ status: o.code, contentType: "application/json", body: o.body || "{}" }); }
     if (u.pathname === "/preview/market-check/onebox.js") { const o = await pageOf(u.pathname); return r.respond({ status: 200, contentType: "application/javascript", body: o ? o.body : "" }); }
     if (u.pathname === "/api/crewPage") { const o = await call(CP, u.pathname + u.search, { crew }); return r.respond({ status: o.code, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: o.body || "{}" }); }
@@ -212,6 +220,44 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
     ok(served.h["x-design"] === "new" && (!r.present || !r.shown) && !r.loc.includes("v1.") && !sent, "live " + name + ": a " + (bad === CUT ? "cut" : "tampered") + " token is the new page with no bar, nothing sent and no token left in the address :: " + (served.h["x-design"] || "none") + " " + r.loc); await p.close();
   }
   { const pub = await (async () => { const res = await call(LH.find, "/find?car=" + enc(TOKEN), { crew: false }); return res; })(); ok(!pub.h["x-design"], "live Find: a visitor's ?car= is today's page (no X-Design), as before"); ok(!/gas-carbar/.test(pub.body), "live Find: a visitor's page has no car bar"); }
+  // 7 EVERY PAGE A PILL LANDS ON, AS SERVED LIVE (Lane S, Nov 17 2026). Sam: from Market Check the Tasks pill opened Tasks with the car not in the request box and no bar. The pill opens /tasks?car=<token>, the PUBLIC Tasks page (the new design's request box is #pq, not the app's #tkq,
+  // and for a signed in person with Tasks it sends them on to /tasks/mine and dropped the car), while section 6 only opened the app address /tasks/mine?app=1&car= signed in. Here the Tasks pill's own address is opened through the live handler (signed out, signed in with no Tasks, signed in with Tasks,
+  // a typed request carried through sign in, the app's own sign in redirect), every step of Sell's flow, and a visitor.
+  const LIVEMAP = { "/tasks": LH.tasks, "/tasks/mine": LH.tasks, "/find": LH.find, "/market-check": LH.mc, "/sell": LH.sell };
+  const TS = `(() => { const s = document.getElementById("gas-carbar"), v = id => (document.getElementById(id) || {}).value, pills = [...document.querySelectorAll(".gcb-pill")]; return { loc: location.pathname + location.search, bar: !!s && !s.hidden && s.getBoundingClientRect().height > 0, line: (document.querySelector(".gcb-line") || {}).textContent || null, pills: pills.map(x => x.getAttribute("href")), on: pills.filter(x => x.classList.contains("on")).map(x => x.textContent), pq: v("pq"), tkq: v("tkq"), active: document.activeElement && document.activeElement.id }; })()`;
+  const settle = ms => new Promise(r => setTimeout(r, ms));
+  const barOk = (r, tool) => r.bar && r.line === LINE && r.pills.length === 4 && r.pills.every(h => h.endsWith("?car=" + enc(TOKEN))) && r.on.join() === tool;
+  const SUMMARY_NONE = [[/GET \/api\/tasks\?summary=1/, { signedIn: true, count: 0, active: 0 }]], SUMMARY_HAS = [[/GET \/api\/tasks\?summary=1/, { signedIn: true, count: 1, active: 1 }]];
+  const T0 = "/tasks?car=" + enc(TOKEN);
+  { const p = await open(T0, 1440, { live: LIVEMAP, signed: false }), r = await p.evaluate(TS);
+    ok(barOk(r, "Tasks"), "Tasks pill, signed out: the Tasks page shows the car bar with the Tasks pill on and the other three leading back with the same token :: " + JSON.stringify([r.bar, r.line, r.on]));
+    ok(r.pq.startsWith(LABEL) && r.active === "pq", "Tasks pill, signed out: the request box holds the car's words and the cursor is in it :: " + JSON.stringify([r.pq, r.active])); ok(!p._err.length, "Tasks pill, signed out: no page error " + p._err.join("|")); await p.close(); }
+  { const p = await open(T0, 1440, { live: LIVEMAP, signed: true, answers: SUMMARY_NONE }), r = await p.evaluate(TS);
+    ok(barOk(r, "Tasks") && r.pq.startsWith(LABEL) && r.active === "pq", "Tasks pill, signed in with no Tasks: the bar, the car in the request box, the cursor in it :: " + JSON.stringify([r.bar, r.pq, r.active])); await p.close(); }
+  { const p = await open(T0, 1440, { live: LIVEMAP, signed: true, answers: SUMMARY_HAS }); await settle(1200); const r = await p.evaluate(TS);
+    ok(/^\/tasks\/mine/.test(r.loc) && r.loc.includes("car=" + enc(TOKEN)), "Tasks pill, signed in with Tasks: the person is sent on to the app and the car goes with them :: " + r.loc);
+    ok(barOk(r, "Tasks") && r.tkq.startsWith(LABEL) && r.active === "tkq", "Tasks pill, signed in with Tasks: the app shows the bar above the composer, the car in its request box, the cursor in it :: " + JSON.stringify([r.bar, r.tkq, r.active])); await p.close(); }
+  { const p = await open(T0, 1440, { live: LIVEMAP, signed: false }); await p.evaluate(LAB => { const i = document.getElementById("pq"); i.value = LAB + " under 40,000 miles"; i.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true })); }, LABEL); await settle(600);
+    const mem = await p.evaluate(() => { try { return JSON.parse(localStorage.getItem("gas_signin_return") || "null"); } catch (e) { return null; } });
+    ok(!!mem && /car=v1\./.test(mem.path || ""), "Tasks pill, signed out, a typed request: the page remembers where sign in goes back to and it carries the car :: " + JSON.stringify(mem && mem.path && mem.path.slice(0, 90)));
+    await p.evaluate(() => { localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "a.b.c", refresh_token: "r", expires_at: Math.floor(Date.now() / 1000) + 86400, email: "x@example.com", user: { email: "x@example.com" } })); authLandAfterSignIn(); }); await settle(1800);
+    const r = await p.evaluate(TS);
+    ok(/^\/tasks\/mine/.test(r.loc) && barOk(r, "Tasks"), "after sign in the person lands back on the Tasks composer with the car bar still there :: " + JSON.stringify([r.loc.slice(0, 60), r.bar, r.on]));
+    ok(r.tkq.startsWith(LABEL) && r.active === "tkq", "after sign in the composer still holds the car and the cursor is in it :: " + JSON.stringify([r.tkq, r.active])); await p.close(); }
+  { const p = await open("/tasks/mine?app=1&car=" + enc(TOKEN), 1440, { live: LIVEMAP, signed: false, answers: SUMMARY_HAS }); await settle(900); const r0 = await p.evaluate(TS);
+    ok(/^\/tasks\?signin=1/.test(r0.loc) && decodeURIComponent(r0.loc).includes("car=v1."), "Tasks app signed out: sent to sign in with the car in the way back :: " + r0.loc.slice(0, 120));
+    ok(barOk(r0, "Tasks") && r0.pq.startsWith(LABEL), "Tasks app signed out: the sign in page the person is sent to shows the bar and the car in its request box :: " + JSON.stringify([r0.bar, r0.pq]));
+    await p.click("#acct"); await settle(300); await p.evaluate(() => { localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "a.b.c", refresh_token: "r", expires_at: Math.floor(Date.now() / 1000) + 86400, email: "x@example.com", user: { email: "x@example.com" } })); }); await p.reload({ waitUntil: "domcontentloaded" }); await settle(1800);
+    const r = await p.evaluate(TS); ok(/^\/tasks\/mine/.test(r.loc) && barOk(r, "Tasks") && r.tkq.startsWith(LABEL), "Tasks app signed out then signed in (Account button): the person ends on the app with the car bar and the car in the composer :: " + JSON.stringify([r.loc.slice(0, 70), r.bar, r.tkq])); await p.close(); }
+  // the other pages a pill lands on: every step of Sell's flow keeps the bar and the car (the steps are in one document; the address grows)
+  { const p = await open("/sell?car=" + enc(TOKEN), 1440, { live: LIVEMAP, signed: false }), seen = [];
+    for (let i = 0; i < 4; i++) { seen.push(await p.evaluate(TS)); const c = await p.$(".chip"); if (!c || i === 3) break; await c.click(); await settle(1100); }
+    ok(seen.length === 4 && seen.every(s => barOk(s, "Sell")) && new Set(seen.map(s => s.loc)).size === 4, "Sell: the bar and the four pills with the token on every step of the flow (state, how, rush, result) :: " + JSON.stringify(seen.map(s => [s.bar, s.loc.length])));
+    ok(p._api.filter(a => /sellChat/.test(a.u)).every(a => /car=v1\./.test(a.u)) && p._api.some(a => /sellChat/.test(a.u)), "Sell: the engine call at the end of the flow carries ?car=<token> :: " + JSON.stringify(p._api.map(a => a.u.slice(0, 40)))); await p.close(); }
+  for (const [name, url, tool] of [["Find", "/find?car=" + enc(TOKEN), "Find"], ["Market Check", "/market-check?car=" + enc(TOKEN), "Market Check"]]) { const p = await open(url, 1440, { live: LIVEMAP, signed: false }), r = await p.evaluate(TS); ok(barOk(r, tool), name + " (pill address): the bar with four pills carrying the token :: " + JSON.stringify([r.bar, r.on])); await p.close(); }
+  { const pub = await call(LH.tasks, T0, { crew: false }), pub0 = await call(LH.tasks, "/tasks?car=plain", { crew: false });
+    ok(!/gas-carbar|GAS_CAR_BAR|car=v1\./.test(pub.body) && pub.body === pub0.body && pub.h["x-design"] === pub0.h["x-design"], "a visitor's /tasks?car=<token> is byte for byte the same page as /tasks?car=<anything> (no bar, no patched address)"); }
+  { const pub = await call(LH.tasks, "/tasks/mine?app=1&car=" + enc(TOKEN), { crew: false }), pub0 = await call(LH.tasks, "/tasks/mine?app=1", { crew: false }); ok(pub.body === pub0.body, "a visitor's /tasks/mine?app=1&car= is byte for byte the page without it"); }
   globalThis.fetch = realFetch; delete process.env.NEW_DESIGN; delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 }
 await b.close();
