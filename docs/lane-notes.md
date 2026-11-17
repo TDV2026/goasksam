@@ -3108,3 +3108,39 @@ Porsche 911S
 - FAULT PREDATES THE MERGE (Lane C): same visitor request, no crew cookie, "2003 Mercedes-Benz SL500 38,400 miles" on Market Check, 25 s wait. Deployment goasksam-i9lnjvipk (03f05f65, Ready, ten hours old, before 1aff0378): answer card title "2003 Mercedes-Benz 400". Live goasksam.com (1aff0378): "2003 Mercedes-Benz 400". Both say 400, so the merge did not cause it and I did not revert; the merge stays live (the bar is crew only). The fault is in the engine's reading of a typed "SL500 38,400 miles" (the "400" of the miles taken as the model, unverified), for Lane B. Nothing else merges until Sam says so.
 
 - HEAVY STEP START (Lane B, Nov 16 2026): READ ONLY, order bc85 stage 1 (variant split). No PUSH LOCK is open in this file (last lock lines read). One ops read at a time through /api/usageDashboard?view=ops&task=poolrows (sales_archive, zero OldCarsData spend, no writes): Pontiac Firebird 1982-1992, then Chevrolet Camaro 1982-1992, then Ford Mustang 1979-1993, sold in the last 24 months, paged at 500 rows. Three families, a handful of pages each, one page at a time.
+
+## VARIANT SPLIT, STAGE 1: THE TABLE (Lane B, lane-b-variant-split, cut from main d6085df9; order bc85) READ ONLY, nothing changed
+Read through the ops task poolrows (sales_archive, sold with a price, vehicle_type car, sale date on or after 2024-11-16, one read at a time, zero OldCarsData). WHAT "TITLE OR DETAILS" MEANS HERE: poolrows returns the listing title, the modifications text and the price, not the description, so every count below is the TITLE (the engine's own title fence reads the same words). A variant named only in a description is not counted here; the count is a floor. The price is the sale price in USD as stored. A sale that names two variant words counts once in each ("Trans Am GTA" counts for Trans Am and for GTA); the "exclusive" column gives each sale to its most specific word.
+
+| Family, years (sales, 24 months) | variant word | sales naming it | median sold | exclusive (most specific word) | what the engine calls it today |
+|---|---|---|---|---|---|
+| Pontiac Firebird 1982-1992 (102) | Firebird, no word | 13 | $7,500 | 13 | model Firebird, no trim, generation "third" 1982-1992; the base car cannot be typed |
+| | Formula | 13 | $13,500 | 13 | trim "Formula" (title fence Formula) |
+| | Trans Am | 76 | $24,625 | 53 at $31,250 | trim "Trans AM" (title fence "Trans AM": INCLUDES every GTA title) |
+| | GTA | 23 (all 23 also say Trans Am) | $24,000 | 23 | trim "Trans AM GTA" (title fence "Trans AM GTA": a title saying only GTA misses) |
+| | Firehawk | 0 | none | 0 | read as plain Firebird, the word is dropped |
+| Chevrolet Camaro 1982-1992 (158) | no word | 6 | $9,250 | 6 | model Camaro, generation "third" |
+| | RS | 16 | $10,750 | 16 | trim "RS" |
+| | Berlinetta | 1 | $8,500 | 1 | no trim, the word is dropped |
+| | Z28 | 87 | $17,400 | 57 at $14,700 | trim "Z28" (fence Z28) |
+| | IROC-Z | 78 | $22,125 | 78 | trim "IROC-Z" (fence IROC-Z; an IROC-Z is a Z28 package, 30 of the 87 Z28 titles also say IROC) |
+| Ford Mustang 1979-1993 (399) | no word | 36 | $25,000 | 36 | model Mustang, generation "Fox-body" 1979-1993 |
+| | LX | 156 | $19,625 | 156 | trim "LX" |
+| | GT | 138 | $18,000 | 137 | trim "GT" |
+| | Cobra | 38 | $64,750 | 38 | typed "Cobra" becomes trim "SVT Cobra" |
+| | SVO | 12 | $14,550 | 12 | no trim, the word is dropped |
+| | Saleen | 20 | $45,500 | 20 | no trim, the word is dropped |
+
+- WHAT THE ENGINE DOES TODAY (resolver and buildSpec run with the Pontiac/Chevrolet/Ford model lists served; the live taxonomy tables could not be read from here, so the live read of a word the offline list does not know may differ): an UNSTATED "1987 Pontiac Firebird" is the whole third generation (years 1982 to 1992), every variant in one pool, base and Firehawk included. A STATED trim already scopes by title (spec.titleContains), so "Trans Am" answers on Trans Am titles, GTA ones included, and "Trans Am GTA" on GTA titles; Formula, RS, Z28, IROC-Z, LX, GT and SVT Cobra do the same. What is missing is: (1) the variants are not a list in data, they are whichever trim words the resolver happens to know, so Firehawk, Berlinetta, SVO and Saleen are silently dropped and the car is priced as the whole generation; (2) a GTA is a Trans Am package but nothing says so, the Trans Am pool takes it in by accident of the string; (3) a sale naming no variant is not a counted thing: base cannot be asked for and the unstated sales are not shown; (4) the answer carries no variants for a page or the analyst to choose between.
+- SO THE HAGERTY SHAPE IS REAL BUT IT IS THE UNSTATED CASE: the Firebird, Camaro and Mustang pools answer as one market when no variant is typed, with a variant median spread of 4.2x (Firebird, no word $7,500 to Trans Am $31,250), 2.4x (Camaro, $9,250 to $22,125) and 3.9x (Mustang, $14,550 SVO and $18,000 GT to $64,750 Cobra).
+- OTHER FAMILIES WITH THE SAME SHAPE (one generation key, several variants in the title words, wide price gap; title words, 24 months, spread = highest over lowest median among the variant words with 5 or more sales):
+  - BMW 3 Series 1984-1991 (E30): 443 sales; M3 23 at $71,306, 325/325is 319 at $16,000, 318 65 at $13,500, convertible 128 at $13,500; spread 5.3x.
+  - Porsche 911 1984-1989 (G-series): 562 sales; Turbo 63 at $155,000, Speedster 35 at $222,999, Targa 150 at $67,500, Cabriolet 139 at $59,223, Carrera 467 at $72,500; spread 3.8x (Club Sport 2 sales).
+  - Corvette C4 1984-1996: 661 sales; ZR-1 137 at $35,000, Grand Sport 25 at $38,500, Collector Edition 37 at $17,000, convertible 201 at $13,750; spread 2.8x; 284 name none of these.
+  - Mercedes-Benz SL R107 1972-1989: 682 sales (title carries a three digit SL); 560SL 240 at $25,000, 450SL 225 at $10,500, 380SL 97 at $11,000, 300SL 23 at $24,377, SLC 41 at $9,500; spread 2.6x. (These are already model numbers in the title; the family is split by the resolver when the number is typed.)
+  - Buick Regal 1982-1987: 30 sales; Grand National 6 at $43,550, GNX 1 at $140,000, T-Type 7 at $19,255, Turbo 15 at $32,250; spread 2.3x (thin).
+  - Camaro 1967-1969: 803 sales; Yenko/COPO 13 at $94,600, Z/28 122 at $98,000, SS 145 at $66,000, RS 160 at $61,800; spread 1.6x; 464 name none of these.
+  - Chevelle 1968-1972: 405 sales; LS6/454 52 at $72,250, SS 155 at $71,500, Malibu 160 at $46,278; spread 1.6x.
+  - Dodge Charger 1968-1970: 69 sales; R/T 24 at $103,000, 500 6 at $64,850, Daytona 1 at $260,000 (thin).
+  - Not read, named from the same generation table and expected to share the shape (listed so nobody reads this as complete): Corvette C3, Mustang 1964 to 1973 (Boss, Mach 1, Shelby), Plymouth Road Runner, Toyota Supra, Mazda RX-7 FC, Nissan 300ZX.
+- HEAVY STEP DONE (Lane B, Nov 16 2026): READ ONLY, 21 sequential poolrows reads (3 for the ordered families, 18 pages for the sweep above), no write, no OldCarsData. Nothing was changed before this table.
