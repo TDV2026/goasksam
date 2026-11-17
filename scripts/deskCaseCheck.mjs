@@ -30,7 +30,14 @@ ok("mileage is one number in one place", M.mileageOf(withMi) === 42100 && JSON.s
 // photos append only, cover, selection
 let p = M.addPhoto(M.addPhoto(blank, { id: "a", name: "front" }, T), { id: "b", name: "rear" }, T);
 ok("the first photo is the cover", p.photos.coverId === "a" && p.photos.items.length === 2);
-ok("photos append only: no remove, a repeat adds nothing", M.addPhoto(p, { id: "a" }, T).photos.items.length === 2 && !("removePhoto" in M));
+// photos: a repeat adds nothing; the same bytes are never on a case twice; a photo can be taken off (removePhoto, Nov 15 2026) and everything that pointed at it goes with it
+ok("a repeat of a photo adds nothing", M.addPhoto(p, { id: "a" }, T).photos.items.length === 2);
+ok("the same bytes are never on a case twice (a second id with the same hash adds nothing)", M.addPhoto(M.addPhoto(blank, { id: "h1", hash: "abc" }, T), { id: "h2", hash: "abc" }, T).photos.items.length === 1);
+{ const r = M.removePhoto(p, "a", T);
+  ok("a photo can be removed: it leaves the list and the report ticks", r.photos.items.map(x => x.id).join() === "b" && !r.photos.reportIds.includes("a"));
+  ok("removing the cover hands the cover to the next photo, removing the last leaves none", r.photos.coverId === "b" && M.removePhoto(r, "b", T).photos.coverId === null);
+  ok("removing a photo that is not on the case changes nothing", M.removePhoto(p, "zzz", T) === p);
+  ok("a removal is audited", r.audit.some(e => e.what === "photo removed" && e.to === "a")); }
 ok("the cover must be a photo of the case", throws(() => M.setCover(p, "zzz")) && M.setCover(p, "b").photos.coverId === "b");
 ok("the report selection keeps the cover in", M.selectForReport(p, ["b"]).photos.reportIds.includes("a"));
 // needs review, exclusions
