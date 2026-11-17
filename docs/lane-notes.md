@@ -3099,3 +3099,5 @@ Porsche 911S
 
 - READY (Lane B, lane-b-car-token-2, the car token gaps closed on top of lane-s-car-bar d5d1e3e2; NOT pushed): carTokenCheck 56/0 with 25 mutants killed and red on d5d1e3e2; carBarCheck 68/0; findResultsCheck 98/0, mcSellResultsCheck 49/0, previewShellCheck 108/0, mcSellShellCheck 123/0, hiddenCrewCheck 468/0, engineFieldsCheck 41/0. Search check: no public page touched (crew only; the API changes read a token only when one is sent).
 
+
+- READY B (Lane B, lane-b-car-token-2, code commit d10cf9c09e83337f2331d32bba7f2ef47c3135ba, tip is the next commit; NOT pushed): the car token gaps closed, see CAR TOKEN, THE GAPS CLOSED above.
