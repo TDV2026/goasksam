@@ -168,7 +168,9 @@ for (const bad of [TAMPERED, CUT]) for (const [tool, p0, , apiRe] of TOOLS.slice
   const p = await open("/x", 1440, { html: page }), r = await p.evaluate(BAR);
   ok(r.present && r.shown && r.line === vc.line && r.pills.length === 4 && r.pills.every(x => !x.on) && r.pills.every(x => x.h.endsWith("?car=" + enc(vc.token))) && r.change.startsWith("/preview/find?change="), "vin: the bar shows with the car, four outlined pills carrying the same token, Change to Find");
   await p.close();
-  ok(CB.carBarFinish(vinHtml, { method: "GET", url: "/", headers: { cookie: "" }, __car: vc }, "vin") === vinHtml && CB.carBarFinish(vinHtml, { method: "GET", url: "/", headers: { cookie: "gas_crew=ok" }, __car: vc }, "vin") === vinHtml, "not crew (no cookie, the old plain cookie): the VIN page is byte for byte what it was");
+  // THE CAR BAR IS PUBLIC (Sam, Nov 17 2026; lib/carBar.js CAR_BAR_PUBLIC): a visitor (no cookie, the old plain cookie) gets the bar on the VIN page with the car's own line and the token
+  { const vis = [{ cookie: "" }, { cookie: "gas_crew=ok" }].map(h => CB.carBarFinish(vinHtml, { method: "GET", url: "/", headers: h, __car: vc }, "vin"));
+    ok(CB.CAR_BAR_PUBLIC === true && vis.every(h => h !== vinHtml && h.includes('id="gas-carbar"') && h.includes(vc.token) && !/vrs-mod|variantSplit/.test(h)), "a visitor (no cookie, the old plain cookie): the VIN page gets the bar with the car and its token, and no variant rows"); }
 }
 // 5 a visitor: the preview pages are the platform 404 and the bar's script is in no visitor page
 for (const [tool, p0] of TOOLS.slice(0, 3)) { const o = await pageOf(p0 + "?car=" + enc(TOKEN), false); ok(o.code === 404 || !/gas-carbar|GAS_CAR_BAR/.test(o.body), tool + ": a visitor's request has no car bar in the page"); }
@@ -218,7 +220,7 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
     const u = url.replace(enc(TOKEN), enc(bad)), served = await call(LH[k], u), p = await open(u, 1440, { html: served.body, signed }), r = await p.evaluate(BAR), sent = p._api.some(c => /car=v1\./.test(c.u));
     ok(served.h["x-design"] === "new" && (!r.present || !r.shown) && !r.loc.includes("v1.") && !sent, "live " + name + ": a " + (bad === CUT ? "cut" : "tampered") + " token is the new page with no bar, nothing sent and no token left in the address :: " + (served.h["x-design"] || "none") + " " + r.loc); await p.close();
   }
-  { const pub = await (async () => { const res = await call(LH.find, "/find?car=" + enc(TOKEN), { crew: false }); return res; })(); ok(!pub.h["x-design"], "live Find: a visitor's ?car= is today's page (no X-Design), as before"); ok(!/gas-carbar/.test(pub.body), "live Find: a visitor's page has no car bar"); }
+  { const pub = await (async () => { const res = await call(LH.find, "/find?car=" + enc(TOKEN), { crew: false }); return res; })(); ok(pub.h["x-design"] === "new", "live Find: a visitor's ?car= is the new page (the car bar is public)"); ok(/gas-carbar/.test(pub.body) && !/vrs-mod/.test(pub.body), "live Find: a visitor's page has the car bar (and no variant rows module)"); }
   // 7 EVERY PAGE A PILL LANDS ON, AS SERVED LIVE (Lane S, Nov 17 2026). Sam: from Market Check the Tasks pill opened Tasks with the car not in the request box and no bar. The pill opens /tasks?car=<token>, the PUBLIC Tasks page (the new design's request box is #pq, not the app's #tkq,
   // and for a signed in person with Tasks it sends them on to /tasks/mine and dropped the car), while section 6 only opened the app address /tasks/mine?app=1&car= signed in. Here the Tasks pill's own address is opened through the live handler (signed out, signed in with no Tasks, signed in with Tasks,
   // a typed request carried through sign in, the app's own sign in redirect), every step of Sell's flow, and a visitor.
@@ -260,8 +262,8 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
     ok(p._api.filter(a => /sellChat/.test(a.u)).every(a => /car=v1\./.test(a.u)) && p._api.some(a => /sellChat/.test(a.u)), "Sell: the engine call at the end of the flow carries ?car=<token> :: " + JSON.stringify(p._api.map(a => a.u.slice(0, 40)))); await p.close(); }
   for (const [name, url, tool] of [["Find", "/find?car=" + enc(TOKEN), "Find"], ["Market Check", "/market-check?car=" + enc(TOKEN), "Market Check"]]) { const p = await open(url, 1440, { live: LIVEMAP, signed: false }), r = await p.evaluate(TS); ok(barOk(r, tool), name + " (pill address): the bar with four pills carrying the token :: " + JSON.stringify([r.bar, r.on])); await p.close(); }
   { const pub = await call(LH.tasks, T0, { crew: false }), pub0 = await call(LH.tasks, "/tasks?car=plain", { crew: false });
-    ok(!/gas-carbar|GAS_CAR_BAR|car=v1\./.test(pub.body) && pub.body === pub0.body && pub.h["x-design"] === pub0.h["x-design"], "a visitor's /tasks?car=<token> is byte for byte the same page as /tasks?car=<anything> (no bar, no patched address)"); }
-  { const pub = await call(LH.tasks, "/tasks/mine?app=1&car=" + enc(TOKEN), { crew: false }), pub0 = await call(LH.tasks, "/tasks/mine?app=1", { crew: false }); ok(pub.body === pub0.body, "a visitor's /tasks/mine?app=1&car= is byte for byte the page without it"); }
+    ok(/gas-carbar/.test(pub.body) && /GAS_CAR_BAR/.test(pub.body) && /v1\.[A-Za-z0-9_-]{20,}/.test(pub.body) && !/v1\.[A-Za-z0-9_-]{20,}/.test(pub0.body) && !/vrs-mod/.test(pub.body), "a visitor's /tasks?car=<token> carries the bar and the car (the car bar is public); /tasks?car=<anything> carries no car"); }
+  { const pub = await call(LH.tasks, "/tasks/mine?app=1&car=" + enc(TOKEN), { crew: false }), pub0 = await call(LH.tasks, "/tasks/mine?app=1", { crew: false }); ok(!/vrs-mod/.test(pub.body) && (pub.body === pub0.body || /gas-carbar/.test(pub.body)), "a visitor's /tasks/mine?app=1&car= is the page without it or the page with the bar, never rows"); }
   globalThis.fetch = realFetch; delete process.env.NEW_DESIGN; delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 }
 await b.close();

@@ -93,8 +93,10 @@ for (const [name, vs] of [["show false (the rows sent anyway)", { ...SPLIT, show
   const html = f(SPLIT); ok((html.match(/class="vrs-range"/g) || []).length === 4 && (html.match(/<a class="vrs-row"/g) || []).length === 5, "the row builder: five links, four ranges (the thin variant has none)"); }
 // 5 a visitor
 { const vis = await call(MCH, URL0, false), crewRes = await call(MCH, URL0, true);
-  ok(vis.code === 200 && !/vrs-mod|vrs-css|variantSplit|id="gas-carbar"|GAS_CAR_BAR/.test(vis.body), "a visitor's Market Check page has no variant rows module (and no car bar)");
-  const req0 = { headers: { host: "goasksam.com" }, url: URL0 }; ok(CB.carBarFinish(vis.body, req0, "mc") === vis.body && VR.variantRowsFinish(vis.body, req0, "mc") === vis.body, "for a visitor the finishing functions return the page byte for byte");
+  // THE CAR BAR IS PUBLIC (Nov 17 2026), THE ROWS ARE NOT: a visitor's Market Check page has the bar and NO variant rows module; the rows finish returns the page it was given, byte for byte, for a visitor
+  ok(vis.code === 200 && !/vrs-mod|vrs-css|variantSplit/.test(vis.body) && /id="gas-carbar"/.test(vis.body) && /GAS_CAR_BAR/.test(vis.body), "a visitor's Market Check page has the car bar and no variant rows module");
+  const req0 = { headers: { host: "goasksam.com" }, url: URL0 }; ok(VR.variantRowsFinish(vis.body, req0, "mc") === vis.body && !/vrs-mod/.test(CB.carBarFinish(vis.body, req0, "mc")), "for a visitor the rows finish returns the page byte for byte and the bar's finish adds no rows");
+  ok(/vrs-mod/.test(crewRes.body) && /id="gas-carbar"/.test(crewRes.body), "the crew's page carries the bar and the rows module (the rows are crew only)");
   ok(crewRes.body.replace(/<style id="vrs-css">[\s\S]*?<\/style><script id="vrs-mod">[\s\S]*?<\/script>/, "").replace(/<script>window\.GAS_CAR_BAR=[\s\S]*?<\/script><script>\(function\(\)\{\nvar C=window\.GAS_CAR_BAR[\s\S]*?<\/script>/, "").length > 0, "(the crew page differs only by the module)"); }
 // 6 phone and desktop
 for (const w of [390, 1440]) { const [p, r] = await view(withSplit(SPLIT), w); ok(r.present && r.overflow <= 0 && r.right <= r.vw, "at " + w + " px no sideways scroll and the rows inside the screen :: " + JSON.stringify([r.overflow, r.right, r.vw]));

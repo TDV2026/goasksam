@@ -45,7 +45,7 @@ check("MC visitor: the card is the SL500", /MARKET CHECK \| 2003 Mercedes-Benz S
 check("MC visitor: the mileage box holds 38,400", /^38,?400$/.test(String(sl.miles || "")), sl.miles);
 check("MC visitor: the range is narrowed to that band ('within N miles of 38,400' and a $ range)", /within [\d,]+ miles of 38,400/.test(sl.text) && /\$[\d,]+ to \$[\d,]+/.test(sl.text), sl.text.slice(0, 400));
 check("MC visitor: no \"Sam didn't use\" notice", !/didn't use/i.test(sl.text), (sl.text.match(/Sam didn't use[^|]*/) || [""])[0]);
-check("MC visitor: no car bar (crew only)", await noBar(sl.p));
+check("MC visitor: the car bar shows (it is public)", !(await noBar(sl.p)));
 const slUrl = sl.url; await sl.p.close();
 check("MC visitor: the address the page writes carries the car", /[?&]car=/.test(slUrl), slUrl);
 
@@ -108,20 +108,21 @@ await tam.p.close();
   await p.waitForFunction(() => /Which state is it in\?/.test(document.body.innerText), { timeout: 60000 }).catch(() => {});
   const t = await textOf(p);
   check("Sell visitor: /sell?car=<words> opens on the SL500 at its first question", /SL500/.test(t) && /Which state is it in\?/.test(t), t.slice(0, 250));
-  check("Sell visitor: no car bar", await noBar(p));
+  check("Sell visitor: the bar is hidden when no car is given", await noBar(p));
   await p.close();
 }
 {
   const p = await open(false); await p.goto(SITE + "/tasks", { waitUntil: "networkidle2" });
   const box = await p.$("#pq"), go = await p.$("#pq-form .go");
   check("Tasks signed out: the page offers its request box (#pq) and submit button", !!box && !!go, !!box + "/" + !!go);
-  check("Tasks signed out: no car bar", await noBar(p));
+  check("Tasks signed out: the bar is hidden when no car is given", await noBar(p));
   await p.close();
 }
 
-// ---- 3. crew: the car bar ---------------------------------------------------------------------------------------------------------------------------------------------------------
-if (CREW) {
-  const c = await mcSearch(true, SL);
+// ---- 3. the car bar, for the crew and for a visitor (Nov 17 2026: the bar is public; the variant rows stay crew only) ----------------------------------------------------------------------------------
+async function barSuite(isCrew, who) {
+  const check = (n, o, d) => globalThis.__check(n.replace(/\bcrew\b/g, who), o, d);
+  const c = await mcSearch(isCrew, SL);
   check("MC crew: the SL500 answers", c.ok && /SL500/.test(c.text), c.text.slice(0, 200));
   await c.p.waitForFunction(() => { const s = document.getElementById("gas-carbar"); return s && !s.hidden && s.querySelector(".gcb-line"); }, { polling: 500, timeout: 30000 }).catch(() => {});
   const bar = await c.p.evaluate(() => { const s = document.getElementById("gas-carbar"); if (!s || s.hidden) return null; return { line: (s.querySelector(".gcb-line") || {}).textContent || "", pills: [...s.querySelectorAll(".gcb-pill")].map(a => ({ label: a.textContent, href: a.getAttribute("href") })) }; });
@@ -133,7 +134,7 @@ if (CREW) {
   const findPill = bar && bar.pills.find(a => a.label === "Find"), sellPill = bar && bar.pills.find(a => a.label === "Sell");
   await c.p.close();
   if (findPill) {
-    const p = await open(true); await p.goto(new URL(findPill.href, SITE).href, { waitUntil: "networkidle2" });
+    const p = await open(isCrew); await p.goto(new URL(findPill.href, SITE).href, { waitUntil: "networkidle2" });
     await p.waitForFunction(() => /live match|No live|0 live/i.test(document.body.innerText), { timeout: 60000 }).catch(() => {});
     const t = await textOf(p);
     check("Find pill (crew): opens already run for the SL500 (a result line, the car's chips, not the empty prompt)", /live match/i.test(t) && /SL500/.test(t) && !/What car are you looking for\?/.test(t), t.slice(0, 300));
@@ -141,7 +142,7 @@ if (CREW) {
     await p.close();
   } else check("Find pill (crew): opens already run", false, "no Find pill");
   if (sellPill) {
-    const p = await open(true); await p.goto(new URL(sellPill.href, SITE).href, { waitUntil: "networkidle2" });
+    const p = await open(isCrew); await p.goto(new URL(sellPill.href, SITE).href, { waitUntil: "networkidle2" });
     await p.waitForFunction(() => /Which state is it in\?/.test(document.body.innerText), { timeout: 60000 }).catch(() => {});
     const t = await textOf(p);
     check("Sell pill (crew): opens for the SL500 with the bar (at Sell's first question)", /SL500/.test(t) && /Which state is it in\?/.test(t) && /38,400 miles/.test(t), t.slice(0, 300));
@@ -150,7 +151,7 @@ if (CREW) {
   // ---- the Tasks pill (Nov 17 2026, lane-s-car-bar-3): it fills the request box with the car in words, puts the cursor in it, and the bar shows with Tasks filled; the other pills return to their tool already run ----
   const tasksPill = bar && bar.pills.find(a => a.label === "Tasks");
   if (tasksPill) {
-    const tp = await open(true); await tp.goto(new URL(tasksPill.href, SITE).href, { waitUntil: "networkidle2" });
+    const tp = await open(isCrew); await tp.goto(new URL(tasksPill.href, SITE).href, { waitUntil: "networkidle2" });
     const end = Date.now() + 40000; let tk = null;
     while (Date.now() < end) { try { tk = await tp.evaluate(() => { const s = document.getElementById("gas-carbar"), q = document.getElementById("pq"); return { box: q ? q.value : null, focused: !!q && document.activeElement === q, line: s && !s.hidden ? (s.querySelector(".gcb-line") || {}).textContent : null, on: s ? [...s.querySelectorAll(".gcb-pill.on")].map(a => a.textContent) : [], pills: s ? [...s.querySelectorAll(".gcb-pill")].map(a => ({ label: a.textContent, href: a.getAttribute("href") })) : [] }; }); if (tk.box && tk.line) break; } catch { /* moving */ } await new Promise(r => setTimeout(r, 1000)); }
     check("Tasks pill (crew): the request box holds the car in words", !!tk && /SL500/.test(tk.box || ""), tk && tk.box);
@@ -160,7 +161,7 @@ if (CREW) {
     check("Tasks pill (crew): the other three pills carry the same token as the Market Check bar", tks.length === 4 && tks.every(x => x === toks[0]), tks.length + " tokens");
     for (const [label, ready, re] of [["Find", /live match/i, /SL500/], ["Market Check", null, /SL500/], ["Sell", /Which state is it in\?/, /SL500/]]) {
       const pill = tk && tk.pills.find(a => a.label === label); if (!pill) { check("Tasks to " + label + " (crew): the pill is on the Tasks bar", false, "missing"); continue; }
-      const q = await open(true); await q.goto(new URL(pill.href, SITE).href, { waitUntil: "networkidle2" });
+      const q = await open(isCrew); await q.goto(new URL(pill.href, SITE).href, { waitUntil: "networkidle2" });
       if (label === "Market Check") await answered(q); else await q.waitForFunction(r => new RegExp(r).test(document.body.innerText), { polling: 500, timeout: 60000 }, ready.source).catch(() => {});
       const t = await textOf(q), barLine = await q.evaluate(() => { const s = document.getElementById("gas-carbar"); return s && !s.hidden ? (s.querySelector(".gcb-line") || {}).textContent : null; });
       check("Tasks to " + label + " (crew): already run for the car, with the bar", re.test(t) && (ready ? ready.test(t) : RANGE_OK.test(t)) && !!barLine, t.slice(0, 260));
@@ -168,7 +169,31 @@ if (CREW) {
     }
     await tp.close();
   } else check("Tasks pill (crew): the pill is on the bar", false, "no Tasks pill");
-} else check("crew cookie available (Keychain goasksam-crew)", false, "missing: the crew assertions did not run");
+}
+globalThis.__check = check;
+if (CREW) await barSuite(true, "crew"); else check("crew cookie available (Keychain goasksam-crew)", false, "missing: the crew assertions did not run");
+await barSuite(false, "visitor");
+// ---- 4. the variant rows: crew only, the engine's answer, each row matches its own page ----------------------------------------------------------------------------------------------------------------
+{
+  const rowsOf = p => p.evaluate(() => { const v = document.getElementById("vrs"); if (!v) return null; return { line: (v.querySelector(".vrs-line") || {}).textContent || "", rows: [...v.querySelectorAll(".vrs-row")].map(a => ({ label: (a.querySelector(".vrs-l") || {}).textContent || "", range: (a.querySelector(".vrs-range") || {}).textContent || "", sales: (a.querySelector(".vrs-sales") || {}).textContent || "", href: a.getAttribute("href") })) }; });
+  const waitRows = async p => { const end = Date.now() + 40000; let r = null; while (Date.now() < end) { try { r = await rowsOf(p); if (r) return r; } catch { /* moving */ } await new Promise(x => setTimeout(x, 1000)); } return r; };
+  if (CREW) {
+    const f = await mcSearch(true, "1987 Pontiac Firebird"); const r = await waitRows(f.p);
+    check("rows (crew): '1987 Pontiac Firebird' shows the engine's line and a row per variant under the range", !!r && !!r.line && r.rows.length >= 2 && r.rows.every(x => x.label && x.sales), r && JSON.stringify(r).slice(0, 300));
+    const row = r && (r.rows.find(x => x.range) || r.rows[0]); await f.p.close();
+    if (row) { const q = await open(true); await q.goto(new URL(row.href, SITE).href, { waitUntil: "networkidle2" }); await answered(q); const t = await textOf(q);
+      const n = (row.sales.match(/\d+/) || [""])[0];
+      check("rows (crew): the row '" + row.label + "' opens a page with the same range and sales it showed", (!row.range || t.includes(row.range)) && new RegExp("(^|[^\\d,])" + n + "( sales| sale|\\b)").test(t), row.range + " | " + row.sales + " | " + t.slice(0, 300)); await q.close(); }
+    const ta = await mcSearch(true, "1987 Pontiac Firebird Trans Am"); const rt = await rowsOf(ta.p).catch(() => null); await new Promise(x => setTimeout(x, 3000)); const rt2 = await rowsOf(ta.p).catch(() => null);
+    check("rows (crew): '1987 Pontiac Firebird Trans Am' shows no rows (the variant is stated)", !rt && !rt2, JSON.stringify(rt2 || rt)); await ta.p.close();
+  }
+  const v = await mcSearch(false, "1987 Pontiac Firebird"); await new Promise(x => setTimeout(x, 6000));
+  const rv = await rowsOf(v.p).catch(() => null);
+  check("rows (visitor): '1987 Pontiac Firebird' shows no variant rows", !rv && !/vrs-mod|vrs-css/.test(await v.p.content()), JSON.stringify(rv));
+  check("rows (visitor): ...and the car bar shows", !(await noBar(v.p)));
+  await v.p.close();
+}
+
 
 console.log("\nliveSmoke " + SITE + ": " + pass + " pass, " + fail + " FAIL");
 await browser.close();
