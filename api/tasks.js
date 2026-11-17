@@ -17,6 +17,7 @@
 //   GET  ?run=1                         -> the matching run after each live pull (Vercel cron, CRON_SECRET)
 // Probe-keyed tests (PROBE_KEY, in the x-ops-key or x-probe-key header): act as a test user, seed listing rows instead of the live table, mock
 // the clock; test runs never send email (email_status "test").
+import { carFromRequest } from "../lib/carToken.js";
 import { withTracking } from "../lib/track/log.js";
 import { supabaseEnv, supabaseSelect, supabaseBytesSoFar } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
@@ -64,7 +65,7 @@ async function who(req) {
 }
 
 async function handler(req, res) {
-  const env = supabaseEnv();
+  const env0 = supabaseEnv(), env = env0 ? { ...env0, car: carFromRequest(req) } : env0;   // the car token (?car=, lib/carToken.js): the Tasks composer reads the car it carries and does not resolve again; a copy, never the shared env
   if (!env) return res.status(503).json({ error: "unavailable" });
   const q = req.query || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;

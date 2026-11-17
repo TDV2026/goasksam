@@ -5,6 +5,7 @@ import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js"
 import { countNoun } from "../lib/countNoun.js";
 import { unusedFieldsFor } from "../lib/live/unusedWords.js";
 import { tryRefresh } from "../lib/refreshGate.js";
+import { carFromRequest } from "../lib/carToken.js";
 import { resolveVehicle, sanitizeResolvedVehicle, primeResolver } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
 import { archiveTitleModel, mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
@@ -3243,14 +3244,15 @@ async function handler(req, res) {
   }
 
   const car = typeof req.body?.car === "object" ? req.body.car : {};
+  const tokenCar = carFromRequest(req);   // the car token (Lane B, Nov 17 2026, lib/carToken.js): ?car=<token> or body.car as a token string
   const sellerCriteria = getSellerCriteria(car);
-  const rawSearch0 = req.body?.car?.raw || req.body?.car?.vehicle?.raw || req.body?.car || req.body?.search || req.body?.query;
+  const rawSearch0 = (tokenCar && tokenCar.raw) || req.body?.car?.raw || req.body?.car?.vehicle?.raw || req.body?.car || req.body?.search || req.body?.query;
   // AN ANSWER TO SAM'S QUESTION (Sam, Oct 23 2026): the page clears its box when Sam asks and sends what was first typed as car.context
   // (a VIN, a chassis number, the words that did not pin a car down) next to the answer in car.raw; the engine reads them together,
   // the answer first. Only a string, only up to 200 characters, and only when the answer does not already contain it.
   const askContext = typeof req.body?.car?.context === "string" ? req.body.car.context.trim().slice(0, 200) : "";
   const rawSearch = (askContext && typeof rawSearch0 === "string" && !rawSearch0.toLowerCase().includes(askContext.toLowerCase())) ? `${rawSearch0} ${askContext}` : rawSearch0;
-  if (!rawSearch && !car.vehicle) return res.status(400).json({ error: "Missing car/search field" });
+  if (!rawSearch && !car.vehicle && !tokenCar) return res.status(400).json({ error: "Missing car/search field" });
 
   // 2C: an authenticated reservation to refund if the search fails server-side.
   let reservationEventId = null;
@@ -3275,7 +3277,8 @@ async function handler(req, res) {
     // The frontend validates with vehicleIdentity and passes the resolved
     // vehicle object through; parsing happens once. Raw text is only re-resolved
     // (same shared resolver) when a caller skips that step.
-    let vehicle = sanitizeResolvedVehicle(car.vehicle);
+    // THE CAR TOKEN (Lane B, Nov 17 2026, lib/carToken.js): ?car=<token> or body.car as a token string is the car already resolved, for Market Check and Sell alike; it is read as car.vehicle is, and the resolver is not asked
+    let vehicle = sanitizeResolvedVehicle(tokenCar || car.vehicle);
     if (!vehicle) {
       // One Box: turn on VIN/chassis detection so a chassis-shaped query the reader typed
       // with a space ("1E 31588", the way BaT shows it) resolves to a chassis_hint we can
@@ -3399,7 +3402,7 @@ async function handler(req, res) {
       let liveMatch = null; try { liveMatch = vinIdLive ? await findVinLiveMatch({ supabaseUrl, supabaseKey }, { vin: vinIdLive }) : null; } catch { liveMatch = null; }   // a chassis number or short identifier is read too (lib/vinLiveMatch.js): the function itself says which identifiers it takes
       const vinLive = liveFactsOf(liveMatch);
       if (liveMatch && !vinArchive) { const lv = await liveVehicleOf(liveMatch, vehicle, resolveVehicle).catch(() => null); if (lv) vehicle = { ...vehicle, ...lv, trim: lv.trim || null }; }
-      const plan = await vinSearchPlan(vehicle, { resolveVehicle, archive: vinArchive, live: vinLive, liveMatch, rerunWords: req.body.vinTrimRun ? req.body.vinRerunWords : null });
+      const plan = await vinSearchPlan(vehicle, { car: tokenCar || null, resolveVehicle, archive: vinArchive, live: vinLive, liveMatch, rerunWords: req.body.vinTrimRun ? req.body.vinRerunWords : null });
       if (plan && plan.unresolved) return res.status(200).json({ status: "one_box", tier: "not_tracked", resolvedCar: null, samLine: plan.line, refusal_line: plan.line });
       if (plan) { vinCtx = { ...plan.ctx, text: plan.text }; vehicle = plan.vehicle; }
     }
