@@ -44,15 +44,40 @@ const mk = (i, mi) => ({ id: "L" + i, source: "bringatrailer", make: "Mercedes-B
 const read = async (mis, f) => S.searchLive({}, SL, f, "", { rows: mis.map((m, i) => mk(i, m)) });
 { const f = S.emptyFilters(); f.milesNear = 38400;
   const enough = await read([20000, 30000, 38000, 45000, 52000, 90000, 120000], f), ni = enough.milesNear;
-  ok("enough cars live within 15,000 miles: Find shows those (4 of 7) and says so in the engine's line", enough.rows.length === 4 && ni && ni.applied === true && ni.within === 4 && ni.total === 7 && ni.line === "Cars within 15,000 miles of 38,400 miles.", [enough.rows.length, ni]);
+  ok("enough cars live within 15,000 miles: Find shows those (4 of 7) and says so in the engine's line", enough.rows.length === 4 && ni && ni.applied === true && ni.within === 4 && ni.total === 7 && ni.line === "These are the ones within 15,000 miles of 38,400.", [enough.rows.length, ni]);
   ok("and every car shown is inside the band", enough.rows.every(x => x.facts.miles >= 23400 && x.facts.miles <= 53400));
   const few = await read([20000, 90000, 38000, 120000], f), nf = few.milesNear;
-  ok("too few within the band: EVERY live match is shown (4), with one line saying so", few.rows.length === 4 && nf && nf.applied === false && nf.within === 1 && nf.line === "Too few are live near 38,400 miles to narrow it, so every live match is shown.", [few.rows.length, nf]);
+  ok("too few within the band: EVERY live match is shown (4), with one line saying so", few.rows.length === 4 && nf && nf.applied === false && nf.within === 1 && nf.line === "Only one for sale right now is within 15,000 miles of 38,400, too few to narrow to, so here is every one.", [few.rows.length, nf]);
   const three = await read([30000, 38000, 45000, 90000], f); ok("three within the band is enough (the engine's question floor)", three.rows.length === 3 && three.milesNear.applied === true);
-  const two = await read([30000, 38000, 90000, 100000], f); ok("two is not", two.rows.length === 4 && two.milesNear.applied === false);
+  const two = await read([30000, 38000, 90000, 100000], f); ok("two is not, and the line says so in words", two.rows.length === 4 && two.milesNear.applied === false && two.milesNear.line === "Only two for sale right now are within 15,000 miles of 38,400, too few to narrow to, so here is every one.", two.milesNear);
+  const zero = await read([90000, 120000, 150000], f); ok("none within the band: every match is shown and the line says none is near the mileage", zero.rows.length === 3 && zero.milesNear.applied === false && zero.milesNear.line === "None for sale right now is within 15,000 miles of 38,400, so here is every one.", zero.milesNear);
+  const one = await read([120000], f); ok("one live car, none near: 'so here is the one'", one.milesNear.line === "None for sale right now is within 15,000 miles of 38,400, so here is the one.", one.milesNear.line);
   const f60 = S.emptyFilters(); f60.milesNear = 70000; const wide = await read([40000, 50000, 60000, 80000, 90000, 120000], f60); ok("from 60,000 miles the band is 25,000 either side (45,000 to 95,000)", wide.milesNear.miMin === 45000 && wide.milesNear.miMax === 95000 && wide.rows.length === 4, wide.milesNear);
   const none = await read([20000, 90000], S.emptyFilters()); ok("no mileage given: no band, no line, every match", none.rows.length === 2 && !none.milesNear, none.milesNear);
   const lim = S.emptyFilters(); lim.miMax = 40000; const limited = await read([20000, 30000, 38000, 45000, 90000], lim); ok("a typed maximum still limits (3 of 5) and is no band", limited.rows.length === 3 && !limited.milesNear, limited.rows.length); }
+// 4 THROUGH THE LIVE HANDLER (lane-b-find-line, Nov 18 2026): the Find page's own request (api/buySearch.js, action rerun) carries the engine's line in meta.milesNear, for the typed words, a car arriving by token (the car bar's words) and the chat tool's request; the page prints that line and no wording of its own
+{ process.env.SUPABASE_URL = "https://fake.supabase.test"; process.env.SUPABASE_SERVICE_ROLE_KEY = "k"; process.env.SUPABASE_ANON_KEY = "k"; process.env.LAUNCH_STAGE = "2";
+  const BS = (await imp("api/buySearch.js")).default; let LIVE = [], nn = 0;
+  globalThis.fetch = async url => { const u = String(url); if (/\/live_listings/.test(u)) return new Response(JSON.stringify(LIVE), { status: 200 }); return new Response("[]", { status: 200 }); };
+  const post = async body => { let out = null; const res = { status(c) { this.code = c; return this; }, json(b) { out = b; return this; }, setHeader() {}, end() {}, getHeader() {} }; await BS({ method: "POST", headers: { origin: "https://goasksam.com", cookie: "" }, query: {}, body, socket: { remoteAddress: "10.5." + Math.floor(++nn / 250) + "." + (nn % 250) } }, res); return out; };
+  const CASES = [["enough live cars near the mileage", [20000, 30000, 38000, 45000, 52000, 90000, 120000], "These are the ones within 15,000 miles of 38,400."], ["none near", [90000, 120000, 150000], "None for sale right now is within 15,000 miles of 38,400, so here is every one."], ["two near", [30000, 38000, 90000, 100000], "Only two for sale right now are within 15,000 miles of 38,400, too few to narrow to, so here is every one."], ["one live car, none near", [120000], "None for sale right now is within 15,000 miles of 38,400, so here is the one."]];
+  const WORDS2 = ["2003 Mercedes-Benz SL500 38,400 miles", CB.carInfo(TOKEN).label, "2003+Mercedes-Benz+SL500+38,400+miles"];
+  for (const [name, mis, line] of CASES) { LIVE = mis.map((m, i) => mk(i, m));
+    for (const w of WORDS2) { const r = await post({ action: "rerun", text: w }), m = r && r.meta;
+      ok(`the Find request "${w}", ${name}: the engine's line is meta.milesNear.line`, !!m && !!m.milesNear && m.milesNear.line === line, m && m.milesNear);
+      ok(`the Find request "${w}", ${name}: ${line.startsWith("These") ? "the cars are the ones in the band" : "every live match is shown"}`, line.startsWith("These") ? (r.cards || []).length === 4 : (r.cards || []).length === mis.length, (r.cards || []).length); }
+    // the chat tool's request: the model sent the typed number as a minimum and a maximum (toolSearchLive drops them) and the filters carry no mileage word
+    const rc = await post({ action: "rerun", filters: { make: "Mercedes-Benz", model: "SL-Class", trim: "SL500", year_min: 2003, year_max: 2003, miles_near: 38400 } }), mc = rc && rc.meta;
+    ok(`the chat tool's filters (miles_near), ${name}: the same line`, !!mc && !!mc.milesNear && mc.milesNear.line === line, mc && mc.milesNear); }
+  LIVE = [20000, 30000, 38000, 45000, 52000].map((m, i) => mk(i, m)); const none = await post({ action: "rerun", text: "2003 Mercedes-Benz SL500" }); ok("no mileage typed: no mileage line", !!none && !(none.meta && none.meta.milesNear), none && none.meta && none.meta.milesNear);
+  const lim = await post({ action: "rerun", text: "2003 Mercedes-Benz SL500 under 40,000 miles" }); ok("'under 40,000 miles' is a limit and says nothing about a car's mileage", !!lim && !(lim.meta && lim.meta.milesNear), lim && lim.meta && lim.meta.milesNear);
+  // the page: its header prints the engine's line and has no mileage wording of its own
+  const buySrc = fs.readFileSync(path.join(ROOT, "api/buy.js"), "utf8"), lit = /const CLIENT = ("(?:[^"\\]|\\.)*")/.exec(buySrc), client = lit ? (() => { try { return JSON.parse(lit[1]); } catch { return null; } })() : null, fnm = client && /function everythingLine\(m, f\)\{[\s\S]*?\n  \}/.exec(client);
+  const everything = fnm ? new Function("return (" + fnm[0].replace(/^function everythingLine/, "function") + ")")() : null;
+  ok("the page's header line is the engine's milesNear.line when there is one", !!everything && CASES.every(([, , line]) => everything({ milesNear: { line }, unstated: 0, remaining: 0 }, {}) === line), !!everything);
+  ok("and the old sentence only when the engine said nothing about a mileage", !!everything && everything({ unstated: 0, remaining: 0 }, {}) === "That’s everything matching your search right now.", everything && everything({ unstated: 0 }, {}));
+  ok("the page words no mileage line of its own (no 'within' or 'too few to narrow' in api/buy.js)", !/too few to narrow|None for sale right now|is within \$\{|miles of \$\{/.test(buySrc), null);
+}
 ok("the Find page prints the engine's line (milesNear.line) with the other engine notes and words nothing of its own", /d\.milesNear && typeof d\.milesNear\.line/.test(fs.readFileSync(path.join(ROOT, "api/buy.js"), "utf8")) && !/Too few are live near/.test(fs.readFileSync(path.join(ROOT, "api/buy.js"), "utf8")));
 console.log = log; console.error = errl;
 log(fails.slice(0, 40).map(f => "FAIL " + f).join("\n") + (fails.length ? "\n" : "") + `findMilesNearCheck: ${pass} pass, ${fail} FAIL`);
@@ -70,7 +95,12 @@ function mutants() {
     ["too few live cars still narrows", "lib/live/search.js", "applied = within.length >= MILES_NEAR_MIN,", "applied = within.length >= 0,"],
     ["the floor is four", "lib/live/search.js", "MILES_NEAR_MIN = 3", "MILES_NEAR_MIN = 4"],
     ["the band is not Market Check's", "lib/live/search.js", "bandedRefine({ miTarget: n })", "({ miMin: n - 5000, miMax: n + 5000 })"],
-    ["the line does not say which", "lib/reasonWords.js", "Too few are live near ${p.miles} miles to narrow it, so every live match is shown.", "Cars within ${p.miles} miles."],
+    ["a mileage that none is near says the same as one that few are near", "lib/live/search.js", "within.length === 0 ? reasonLine(\"find.near_none\", { band, miles, total: rows.length }) :", ""],
+    ["the none line does not say none", "lib/reasonWords.js", "None for sale right now is within ${p.band} miles of ${p.miles}, so here", "Here are some within ${p.band} miles of ${p.miles}, so here"],
+    ["the Find request carries no mileage line (the meta)", "lib/live/samChat.js", "ctx.searchMeta = { milesNear: sr.milesNear || null,", "ctx.searchMeta = { milesNear: null,"],
+    ["the search drops the mileage line before the meta", "lib/live/samChat.js", "excluded: res.excluded || [], milesNear: res.milesNear || null };", "excluded: res.excluded || [] };"],
+    ["the page keeps its own sentence over the engine's line", "api/buy.js", "if (m && m.milesNear && typeof m.milesNear.line === \\\"string\\\" && m.milesNear.line) return m.milesNear.line;\\n    ", ""],
+    ["the page hides the line when more cars are to come", "api/buy.js", "(Number(m.remaining) > 0 && !(m.milesNear && m.milesNear.line) ?", "(Number(m.remaining) > 0 ?"],
     ["the Find page does not print the line", "api/buy.js", "if (d.milesNear && typeof d.milesNear.line === \\\"string\\\" && d.milesNear.line) xl.push(d.milesNear.line);", ""]
   ];
   let survived = 0;
