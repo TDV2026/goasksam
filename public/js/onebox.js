@@ -2996,11 +2996,18 @@
   // two would fight over the history stack and break Back on both pages.
   function mcUrlActive() { return !SELL && location.pathname === "/market-check"; }
   function slugifyQuery(s) { return String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
-  function deslugifyQuery(s) { return String(s || "").replace(/-+/g, " ").trim(); }
+  // THE TYPED WORDS SURVIVE THE ADDRESS WHOLE (lane-b-notice, Nov 17 2026): ?car= carries the words as typed (commas, $, k, km, plus encoded by URLSearchParams); only an OLD link, a bare lowercase
+  // slug, is read the old way (hyphens to spaces, and "38-400-miles" back to "38,400 miles" so the mileage is not read as 400,000). ?q= is read with a plus as a space.
+  function deslugifyQuery(s) {
+    s = String(s || "");
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s)) return s.trim();
+    return s.replace(/(^|-)(\d{1,3})-(\d{3})(?=-(?:miles?|mi|km|kms)(?:-|$)|$)/g, "$1$2,$3").replace(/-+/g, " ").trim();
+  }
+  function mcQFromSearch(search) { var m = /[?&]q=([^&]*)/.exec(search || ""); if (!m) return null; try { return decodeURIComponent(m[1].replace(/\+/g, " ")); } catch (e) { return null; } }
   function mcCurrentParams() {
     var p = new URLSearchParams();
     if (vinAnchor && (obSourceVin || lastQuery)) p.set("vin", String(obSourceVin || lastQuery).toUpperCase());
-    else if (lastQuery) p.set("car", slugifyQuery(lastQuery));
+    else if (lastQuery) p.set("car", String(lastQuery).trim());
     else return null;
     var rf = obLastRefine;
     if (rf) {
@@ -3911,14 +3918,14 @@
       wire(); syncRailResults();
       var sp = new URLSearchParams(location.search || "");
       if (sp.get("car") || sp.get("vin")) { try { mcSuppressPush = true; mcApplyFromUrl(); } catch (e) {} return; }
-      var lq = /[?&]q=([^&]*)/.exec(location.search || "");
-      if (lq) { try { run(decodeURIComponent(lq[1])); } catch (e) {} }
+      var lq = mcQFromSearch(location.search);
+      if (lq) { try { run(lq); } catch (e) {} }
       return;
     }
     renderEmpty();
     syncRailResults();
-    var q = /[?&]q=([^&]*)/.exec(location.search || "");
-    if (q) { try { run(decodeURIComponent(q[1])); } catch (e) {} }
+    var q = mcQFromSearch(location.search);
+    if (q) { try { run(q); } catch (e) {} }
   }
   // The card builders, for Sell mode (same cards, same type): read-only use, nothing here changes.
   // renderResults (Market Check result-page spec, Oct 2026 proof round): exported so a hand-built

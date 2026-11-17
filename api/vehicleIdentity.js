@@ -30,6 +30,7 @@ function scrubVin(text) {
 
 
 const EXTRACT_MODEL = process.env.SAM_MODEL || "claude-sonnet-4-6";
+const EXTRACT_KEY_VERSION = "vehx2";
 const EXTRACT_SYS = `Extract vehicle facts from a message someone typed about a car they may sell. Reply with ONLY a JSON object, no prose:
 {"make":string|null,"model":string|null,"trim":string|null,"year":number|null,"decade":string|null,"condition_hint":string|null,"location_hint":string|null,"price_hint":string|null,"confidence":"high"|"low"}
 Rules: make/model use proper names (lx470 means Lexus LX 470; hellcat alone means Dodge but the model is ambiguous, leave model null). decade like "1980s" when only an era is given. confidence "high" only when make plus model (or an unambiguous nickname) are clear. Never invent details not present.`;
@@ -77,7 +78,9 @@ function dirtyInput(result) {
 async function llmExtractVehicle(text, env) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
-  const cacheKey = createHash("sha256").update(`vehx|${EXTRACT_MODEL}|${text}`).digest("hex");
+  // THE KEY IS VERSIONED (lane-b-notice, Nov 17 2026): an extraction cached before the number phrases were set aside (a mileage read as a model, the plus of an address read as part of a word) is never read again; nothing is deleted. Raise
+  // EXTRACT_KEY_VERSION to retire every stored extraction the same way.
+  const cacheKey = createHash("sha256").update(`${EXTRACT_KEY_VERSION}|${EXTRACT_MODEL}|${text}`).digest("hex");
   const cached = await supabaseSelect(env, `narration_cache?cache_key=eq.${cacheKey}&select=response_text&limit=1`);
   let jsonText = cached?.[0]?.response_text || null;
   let usage = null;

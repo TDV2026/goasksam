@@ -102,6 +102,23 @@ for (const [t, mileage] of FORMS) {
   ok(`phrase form "${t}": the stated model stays`, key(x.v) === want, { model: x.v.model, trim: x.v.trim });
   ok(`phrase form "${t}": the mileage reaches the answer as ${mileage} (a price or kilometres typed is never read as miles)`, mileage == null ? x.v.mileage == null : Number(x.v.mileage) === mileage, { mileage: x.v.mileage });
 }
+// A PRICE PHRASE BESIDE A MODEL (lane-b-notice, Nov 17 2026): one mutant survived the forms above, "a price phrase is left in the words", because every price there ends in a comma group the grouped-number rule also takes out.
+// These carry a price that ONLY the price rule can set aside: "$400" and "$911" (a dollar price with no comma is, left in the words, the model 400 or the Porsche 911), "under 60k" and "up to $45k" beside a typed model
+// (left in the words, 60k is read as a MILEAGE of 60,000), and "budget $18,000" (the cue word goes with the price). The model stays, no mileage is invented, and the price is the price.
+{
+  const PRICE = [["2003 Mercedes-Benz SL500 $400", "slclass|sl500"], ["2003 Mercedes-Benz SL500 $18,000", "slclass|sl500"], ["2003 Mercedes-Benz SL500 budget $18,000", "slclass|sl500"], ["2003 Mercedes-Benz SL500 up to $45k", "slclass|sl500"],
+    ["2003 Mercedes-Benz SL500 under 60k", "slclass|sl500"], ["2003 Mercedes-Benz SL500 around 18,000", "slclass|sl500"], ["2003 Mercedes-Benz 500 under 60k", "500|"], ["2003 Mercedes-Benz 500 $18,000", "500|"],
+    ["1999 Porsche Boxster $911", "boxster|"], ["1999 Porsche Boxster under 45k", "boxster|"], ["1999 Porsche Boxster budget $45k", "boxster|"], ["2001 BMW M3 $2002", "m3|"], ["2001 BMW M3 under 60k", "m3|"]];
+  const np2 = await imp("lib/numberPhrases.js").catch(() => null);
+  for (const [t, want] of PRICE) {
+    const x = await read(t);
+    ok(`price phrase "${t}": the stated model stays`, key(x.v) === want, { model: x.v.model, trim: x.v.trim });
+    ok(`price phrase "${t}": no mileage is read from a price`, x.v.mileage == null, { mileage: x.v.mileage });
+    ok(`price phrase "${t}": no price word is left on the car's words`, !/[$]|\bunder\b|\bbudget\b|\bup to\b|\baround\b/i.test(String((x.r && x.r.vehicle && x.r.vehicle.trim) || "") + " " + String(x.v.model || "")), { model: x.v.model, trim: x.v.trim });
+    if (np2) { const a = np2.setAsideNumbers(t); ok(`price phrase "${t}": the price leaves the words and is returned as the price`, a.changed && !!a.price && a.mileage == null && !/[$]|under|budget|up to|around|\d{2,}k|\b(?:400|911|2002|18,000|45k|60k)\b/i.test(a.text.replace(/\b(?:1999|2001|2003)\b/, "")), a); }
+  }
+  const nm = await read("2003 Mercedes-Benz $400"); ok("price phrase \"2003 Mercedes-Benz $400\": the price is never the model 400", norm(nm.v.model) !== "400", { model: nm.v.model });
+}
 { const a = await read("2003 Mercedes-Benz SL500 38,400 miles"); ok("the typed words are kept as typed on the car (raw)", /38,400 miles/.test(String(a.v.raw || "")), { raw: a.v.raw }); }
 { const np = await imp("lib/numberPhrases.js").catch(() => null); ok("lib/numberPhrases.js is there", !!np);
   if (np) for (const t of ["1936 Mercedes-Benz 540K", "1990 Fiat 500", "2003 Mercedes-Benz 400", "1972 BMW 2002", "1975 Fiat 124 Spider", "1992 Audi 100", "1988 Saab 9000", "1999 Ferrari 456", "1970 Oldsmobile 442", "2005 Mercedes-Benz 300 SL", "1989 Porsche 911 Carrera"])
