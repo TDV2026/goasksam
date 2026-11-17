@@ -3317,3 +3317,61 @@ Other checks on this tree: carTokenCheck 56/0, engineFieldsCheck 41/0, findResul
 - SELL PILL AND THE MILEAGE: cause: the car bar opens a tool with the car's search words (carWords label, written into ?car= for Sell and ?q= for Find, Market Check and the Tasks box), and the label held the car's name only, so the mileage was in the token for the first call and in no address, and a reload or any later call that sends words lost it. Fixed in one place (lib/carToken.js carWords): label ends with the typed mileage ("... SL500 38,400 miles"); line and short unchanged. Class: every tool opened from the bar, every form with a mileage on 3 cars: the words end with the mileage, and Sell, Find, Market Check and the Tasks box read the same car and the same mileage from them (checked: 33 checks fail on main). Mutant: the label drops the mileage, killed.
 - DOES "Which state is it in?" STAY WHEN THE CAR ARRIVES BY TOKEN? IT MUST STAY. The token is the car (make, model, year, trim, mileage, VIN, transmission) and holds nothing about the seller; the state is where the seller is, and the platform pick, the partner and the region routing read it. Sell already carries the answers given for the same car (S.carry, keyed by the car) across tools, so the question is asked once per car, not skipped.
 - READY B (Lane B, lane-b-variants-merged, tip is this commit; cut from lane-s-variants 0dea4fb5 with main ac31282e merged; NOT pushed; for Lane C): variants and typed-through together, plus the car bar's words carrying the mileage.
+- HEAVY STEP START (Lane B, Nov 17 2026): READ ONLY, order bc85 (variant-2) stage 1: three poolrows reads, one at a time, sales_archive, zero OldCarsData, no writes: Pontiac Firebird 1982-1992, Chevrolet Camaro 1982-1992, Ford Mustang 1979-1993, sold since 2024-11-16, one page of 500 each. No PUSH LOCK is open in the notes I read.
+
+## VARIANT 2, STAGE 1: WHAT IS IN THE TRANS AM, Z28 AND MUSTANG "NO WORD" GROUPS (Lane B, lane-b-variant-2, cut from lane-b-variant-split 1ecdb215; order bc85, second one) READ ONLY, posted before any change
+Read through poolrows (sales_archive, sold with a price, vehicle_type car, sold since 2024-11-16, zero OldCarsData), three reads for the titles and three more with fence=1 so each sale carries the ENGINE'S OWN verdict for the typed car (poolrows runs the engine's fence on the sale). One read at a time, Nov 17 2026. Titles and modifications text only (not the description): every count is a floor. The counts are one day newer than the Stage 1 table of the variant split (the Trans Am with no GTA reads 54, not 53; the Mustang no word group 36 as before).
+WHAT THE ANSWER IS: the $31,250 in my first table was a READ OF THE RAW TITLES, not what the engine prices. The 53 (now 54) hold the 1989 20th Anniversary Turbo Trans Am (20 sales at $42,000, 14 of them Pace Cars at $47,775) and 4 KITT and Knight Rider re-creations and tributes ($53,400), none of which the engine puts in the Trans Am's pool. THE ENGINE'S OWN READ of a stated Trans Am (live, today): 25 sales, median $14,250, the 22 Turbo and anniversary cars set aside by "halo or other variant of the base car" and the 4 replicas by "memorabilia or replica". The GTA is $24,000 over 19 sales: above the plain Trans Am, as the cars were new. The reverse in the first table came from reading the raw titles.
+
+FIREBIRD, Trans Am naming no GTA, the engine read of the typed '1987 Pontiac Firebird Trans Am'
+| group | sales (raw titles) | median | in the engine's pool | median there |
+|---|---|---|---|---|
+| ALL (Trans Am, no GTA) | 54 | $28,525 | 25 | $14,250 |
+| 20th Anniversary Turbo Trans Am (1989, most say Pace Car) | 20 | $42,000 | 0 | - |
+|   of which say Pace Car | 14 | $47,775 | 0 | - |
+| other anniversary / pace car / Daytona 500 editions (1983 25th Anniversary Daytona 500, 1984 15th) | 7 | $14,077 | 4 | $12,125 |
+| replicas, tributes, KITT / Knight Rider re-creations | 4 | $53,400 | 0 | - |
+| Trans Am naming none of those (the plain car) | 23 | $13,750 | 21 | $14,250 |
+| years 1982 to 1986 (all of the Trans Am group) | 26 | $14,325 | 17 | $14,400 |
+| years 1987 to 1992 (all) | 28 | $41,125 | 8 | $13,389 |
+| years 1982 to 1986, plain car only | 16 | $14,325 | 14 | $16,439 |
+| years 1987 to 1992, plain car only | 7 | $13,027 | 7 | $13,027 |
+
+Engine verdicts for the Trans Am with no GTA:  {"in the pool":25,"halo or other variant of the base car":22,"memorabilia or replica":4,"modified or non-stock":1,"substantially modified":1,"project or incomplete car (salvage)":1}
+
+FIREBIRD, GTA (same read)
+| group | sales (raw titles) | median | in the engine's pool | median there |
+|---|---|---|---|---|
+| GTA | 23 | $24,000 | 19 | $24,000 |
+
+CAMARO, Z28 naming no IROC, the engine read of '1987 Chevrolet Camaro Z28'
+| group | sales (raw titles) | median | in the engine's pool | median there |
+|---|---|---|---|---|
+| ALL (Z28, no IROC) | 57 | $14,700 | 50 | $15,125 |
+| 1LE package | 4 | $45,350 | 4 | $45,350 |
+| Indianapolis 500 pace car (1982) | 3 | $19,800 | 3 | $19,800 |
+| 25th / Heritage anniversary | 3 | $19,500 | 3 | $19,500 |
+| tributes / clones | 0 | $NaN | 0 | - |
+| years 1982 to 1986 | 35 | $13,055 | 30 | $14,025 |
+| years 1987 to 1992 | 22 | $19,500 | 20 | $19,500 |
+| years 1982 to 1984 | 29 | $13,750 | 26 | $14,500 |
+| years 1990 to 1992 | 19 | $19,500 | 17 | $19,500 |
+| (IROC-Z, same read) | 78 | $22,125 | 26 | $21,000 |
+
+MUSTANG, the 'no word' group (names none of LX, GT, Cobra, SVO, Saleen), the engine read of '1987 Ford Mustang'
+| group | sales (raw titles) | median | in the engine's pool | median there |
+|---|---|---|---|---|
+| ALL (no word) | 36 | $25,000 | 24 | $12,983 |
+| 1979 Indy Pace Car Edition | 5 | $38,500 | 4 | $39,600 |
+| SSP police cars | 3 | $31,000 | 1 | $26,011 |
+| SAAC, Roush, Steeda, McLaren, Cervini and other tuner builds | 8 | $12,983 | 8 | $12,983 |
+| Daytona concept | 1 | $37,000 | 1 | $37,000 |
+| replicas, tributes, projects | 4 | $40,500 | 0 | - |
+| convertible | 17 | $9,200 | 13 | $9,100 |
+| years 1979 to 1981 | 7 | $37,000 | 6 | $31,150 |
+| years 1982 to 1986 | 8 | $8,250 | 5 | $6,000 |
+| years 1987 to 1989 | 8 | $12,983 | 7 | $10,015 |
+| years 1990 to 1993 | 13 | $27,500 | 6 | $26,756 |
+| LX (same read) | 156 | $19,625 | 109 | $17,750 |
+| GT (same read) | 138 | $18,000 | 119 | $18,000 |
+WHAT THE TABLE SAYS, in the order asked: (1) Turbo Trans Am and 20th Anniversary: 20 sales, $42,000 (14 Pace Car, $47,775): a group that prices apart, five or more sales: ADDED to the Firebird's variant data (below). (2) Other anniversary and pace car editions (the 1983 25th Anniversary Daytona 500 and Pace Car Edition, the 1984 15th): 7 raw, 4 in the engine's pool at $12,125, against $14,250 for the plain car: not apart, NOT added. (3) Replicas and tributes (KITT, Knight Rider): 4, $53,400, already set aside by the engine's memorabilia fence when the title says replica, tribute or re-creation; a title that says only "Knight Rider" or "KITT" is NOT fenced (checked on a fake archive: 2 such sales sat in the Trans Am pool): fence widened below. (4) First years against last: 1982 to 1986 $14,325 (26), 1987 to 1992 $41,125 (28) raw, but the plain car alone is $14,325 (16) against $13,027 (7): the gap is the 1989 Turbo, not the years, so years are not a variant. The Z28: 50 in the pool at $15,125; the 1LE is 4 sales at $45,350 (under five: NOT added, named in the notes for the next read), the Indy pace car 3, the 25th 3; 1982 to 1986 $14,025 against 1987 to 1992 $19,500 is the generation's own years. NOTHING to add for the Z28. The Mustang no word group: 36 raw at $25,000 but 24 in the engine's pool at $12,983: the raw median is lifted by the 1979 Indy Pace Car Edition (5 raw, 4 in the pool at $39,600), police SSP cars (3), the Daytona concept (1) and replicas and projects (4, already set aside). Nothing reaches five in the pool and apart (the Pace Car is 4 after the fence): NOTHING added; the Pace Car is the first to add when one more sells.
