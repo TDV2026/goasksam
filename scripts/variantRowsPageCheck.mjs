@@ -77,6 +77,12 @@ async function call(handler, url, crew) { const res = { h: {}, code: 200, body: 
 // following a row: Market Check already run for that variant, the car bar carrying that car
 { const row = SPLIT.rows[0], p = await open(b, row.car.address, { width: 1440, fixtures: base, settle: 2500 }), r = await p.evaluate(() => { const s = document.getElementById("gas-carbar"); return { bar: !!s && !s.hidden, line: (document.querySelector(".gcb-line") || {}).textContent || "", pills: [...document.querySelectorAll(".gcb-pill")].map(x => x.getAttribute("href")) }; });
   ok(r.bar && /1987 Pontiac Firebird Trans Am/.test(r.line) && r.pills.length === 4 && r.pills.every(h => h.endsWith("?car=" + encodeURIComponent(row.car.token))), "a row's link opens Market Check with the car bar carrying that car :: " + JSON.stringify([r.bar, r.line, r.pills.length])); await p.close(); }
+// a later answer (a refinement) that carries no variantSplit takes the rows away; one that carries it again brings them back
+{ const NEXT = '{"probe":2}', NEXT2 = '{"probe":3}', fx = withSplit(SPLIT), j0 = JSON.parse(base[KEY].body), j1 = { ...j0, resolvedCar: { year: 1987, make: "Pontiac", model: "Firebird", trim: "Trans Am" } }; delete j1.variantSplit;
+  fx["POST /api/sellerDecision " + NEXT] = { status: 200, contentType: "application/json", body: JSON.stringify(j1) }; fx["POST /api/sellerDecision " + NEXT2] = { status: 200, contentType: "application/json", body: JSON.stringify({ ...j1, variantSplit: SPLIT }) };
+  const p = await open(b, URL0, { width: 1440, fixtures: fx, settle: 3000 }), ask = n => p.evaluate(b2 => fetch("/api/sellerDecision", { method: "POST", headers: { "content-type": "application/json" }, body: b2 }).then(r => r.json()).then(() => new Promise(r => setTimeout(r, 700))), n);
+  const r0 = await p.evaluate(READ); await ask(NEXT); const r1 = await p.evaluate(READ); await ask(NEXT2); const r2 = await p.evaluate(READ);
+  ok(r0.present && !r1.present && r2.present && r2.rows.length === 5, "a later answer with no variantSplit removes the rows and one that carries it brings them back :: " + JSON.stringify([r0.present, r1.present, r2.present])); await p.close(); }
 // 3 the source computes nothing
 { const src = VR.variantRowsFactory.toString() + VR.VARIANT_ROWS_JS; ok(!/\.sort\(|\.reduce\(|Math\.|parseInt|parseFloat|Number\(|\.length\s*[-*\/]|\.length\s*\+\s*[\w(]|\+\+/.test(src), "the module has no sort, sum or arithmetic on the engine's figures"); }
 // 4 nothing to draw
