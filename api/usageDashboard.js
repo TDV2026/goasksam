@@ -3571,6 +3571,15 @@ if (task === "optiondetail") {
     }
     return res.status(200).json({ task: "countrycov", since, venues });
   }
+  // task=valuecensus (Lane D, Nov 17 2026, to Lane F's spec): READ-ONLY, zero vendor spend, no writes. One source, one family, a window of at most 366 days (an unwindowed call is refused).
+  // mode=counts (default): numbers only, never a seller name or listing text. mode=sample: up to ten listings with their description for the hand check, refused above ten; nothing is logged or stored here.
+  if (task === "valuecensus") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { runValueCensus } = await import("../lib/valueCensus.js");
+    const r = await runValueCensus(req.query || {}, { fetchPage: qs => supabaseSelect(env, qs) });
+    res.setHeader("Cache-Control", "no-store");
+    return r.ok ? res.status(200).json(r.body) : res.status(r.status || 400).json({ task: "valuecensus", error: r.why });
+  }
   if (task === "poolrows") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const make = String(req.query?.make || "").trim();
