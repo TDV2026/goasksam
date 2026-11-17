@@ -23,6 +23,7 @@ import { SELLS_FOR_CARD_JS, SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
 import { heldFor } from "../lib/_hold.js";
 import { stillReadingMarket } from "../lib/live/search.js";   // the engine's own retry and wait for a market still being read, given to the Find client (no number of the page's own)
 import { withNewDesign } from "../lib/_newDesign.js";
+import { carFindRoute } from "../lib/carBar.js";
 const qsOf = req => { try { return new URL(String(req.url || "/"), "https://x").searchParams; } catch { return new URLSearchParams(); } };
 const STILL = stillReadingMarket();
 
@@ -185,4 +186,4 @@ ${CONSENT_BANNER_HTML}
 }
 export { BUY_CSS, CARD_RULES_CSS, RUNG_CSS, BUY_CARD_CSS, PRIOR_JS, CLIENT as BUY_CLIENT_SOURCE };   // the card kit (lib/findCardKit.js) reads Find's own card code and styles from here
 // the new Find: the landing without a search; with ?q= today's results page inside the new shell (find-results); any other parameter (part=landing and the rest) is today's page untouched
-export default withNewDesign(req => { const q = qsOf(req); q.delete("design"); q.delete("_crew"); if (q.get("part")) return null; return q.get("q") ? "find-results" : [...q.keys()].length ? null : "find"; }, handler);
+export default withNewDesign(req => { const q = qsOf(req); q.delete("design"); q.delete("_crew"); if (q.get("part")) return null; { const cf = carFindRoute(req, q); if (cf) return cf; } return q.get("q") ? "find-results" : [...q.keys()].length ? null : "find"; }, handler);
