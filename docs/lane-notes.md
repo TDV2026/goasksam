@@ -3453,3 +3453,28 @@ WHAT I COULD NOT DO: read the live case 137b802e or the live Find model turn (Ve
 - ALSO: scratch_p4.py (tracked at the repo root from lane-b-variants-merged, Lane C's note) is removed.
 - CHECKS: scripts/variantSplitCheck.mjs 111 pass (87 before): the question from the census, the answer's counts and their scope on both pages, the thin line's count, the ticks moving the Desk's range and its window line, the spelling sweep, the chip; 44 mutants (36 before and the new ones). scripts/findMilesNearCheck.mjs 66 pass, 11 mutants. Both fail on main. scripts/fixtures/deskShape.json is at shape 10; scripts/mcSellShellCheck and the other checks are unchanged.
 - READY B (Lane B, lane-b-variant-3, code and notes commit a3b8a7aa, tip is the next commit; off origin/main 8dfb280a; NOT pushed): the seven faults and the Hagerty answer above. REGRESSION, all green on this tree: variantSplitCheck 111/0, findMilesNearCheck 66/0, typedThroughCheck 1609/0, carBarCheck 101/0, carTokenCheck 56/0, noticeCheck 1465/0, resolverMileageCheck 2087/0, engineFieldsCheck 41/0 (scripts/fixtures/deskShape.json moved to shape 10), findResultsCheck 98/0, mcSellResultsCheck 49/0, mcSellShellCheck 123/0, deskV2Check 455/0, deskV4ShellCheck 203/0, deskLadderCheck 584/0, e96PagesCheck 332/0, valueCensusCheck 41/0. MUTANTS: findMilesNearCheck 11 of 11 killed; variantSplitCheck 36 of 37 killed on the first run, the one survivor was a stale pattern ('the Desk does not serve the variants'), fixed in the file; the full variant mutant re-run is STILL TO COME and runs in a separate copy of the worktree.
+
+## VARIANT ROWS, THE SHAPE OF variantSplit (Lane B, lane-b-variant-rows off lane-b-variant-3 b26f04e8; order bc85; posted BEFORE the checks finish so Lane S can build against it; NOT pushed)
+WHERE: api/sellerDecision.js, on the Market Check answer (tier result), beside car and variants. Built by lib/variantRows.js variantSplitFor; no page computes anything. Served for every visitor (no question is asked); show false means print nothing.
+```
+variantSplit: {
+  show: true | false,             // false: the variant is stated, the family has no variant list, the variants do not sell apart (the variant question's own test), or the answer is not a range
+  line: "A Firebird's price depends on which one it is." | null,       // one sentence above the rows, Sam's voice, third person; null when show is false
+  rows: [                          // one per variant of the family's list, in data/variantFamilies.json order; [] when show is false
+    {
+      name:      "Trans Am",       // the data's spelling
+      label:     "Trans Am",       // the words to print (the data's spelling)
+      priced:    true | false,     // a range is shown on this variant's own page
+      rangeText: "$8,500 to $15,500" | null,   // null when priced is false (too few sales to price): never a made-up number
+      salesText: "14 sales",       // always present: the sales that variant's own page counts ("1 sale", "0 sales")
+      car: {
+        token: "v1....",           // the car's token: that year, that variant, the typed mileage if any
+        words: "1987 Pontiac Firebird Trans Am 42,500 miles",   // the plain words (the tool's own input)
+        address: "/market-check?q=1987%20Pontiac%20Firebird%20Trans%20Am%2042%2C500%20miles",
+        line: "...", short: "..."  // the car bar's words for the same car (car.line, car.short of that answer)
+      }
+    }, ...
+  ]
+}
+```
+RULES: each row's rangeText and salesText are what Market Check shows when that row's car is asked for (the same pool, years, mileage band and set asides: the row IS the engine's answer for that car, read the way the page's own request reads it). Replicas and tributes are set aside and are no row; sales that name no variant are no row. A variant too thin to price has its label and salesText and no rangeText.
