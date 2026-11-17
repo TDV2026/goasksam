@@ -3578,3 +3578,73 @@ WHAT I COULD NOT DO: read the live case 137b802e or the live Find model turn (Ve
 - READY 036e0110 (Lane C): lane-d-factmine-2 67cb4172 and lane-b-variant-3 91059f72 (its READY line b26f04e8 is on its branch, not yet on main; 91059f72 adds only the mutant re-run note) pushed, deploy Ready. No conflicts apart from notes. 17 checks: factMineCheck 91/0, factPriceCheck 22/0, valueCensusCheck 41/0, variantSplitCheck 111/0, findMilesNearCheck 66/0, typedThroughCheck 1609/0, carBarCheck 119/0, carTokenCheck 56/0, tasksStartControlCheck 13/0, findResultsCheck 98/0, mcSellResultsCheck 49/0, mcSellShellCheck 123/0, hiddenCrewCheck 468/0, whatsNewCheck 639/0, copyCheck 808/0, tasksAuthCheck all pass, copyLint one FAIL, the RM Sotheby's / Gooding callout (Sam deciding, as ordered). liveSmoke on 036e0110: 46 pass, 1 FAIL; both Find assertions are GREEN now; the one FAIL is the smoke's own stale assertion ("a band not applied says too few"), since variant-3 prints no chip, fixed on lane-c-live-smoke (not pushed yet). (a) factmine with no source answers HTTP 400 "source must be one of: bringatrailer, carsandbids, pcarmarket, hagerty, rmsothebys, sothebysmotorsport, hemmings", so the new code is live and no listing was read.
   (b) FIND, crew: the Find pill from the SL500 38,400 miles search opens /find?q=2003 Mercedes-Benz SL-Class SL500&make=..&trim=SL500&from=2003&to=2003, 3 live matches (84,000, 5,000 and 16,000 miles), line "That's everything matching your search right now." It no longer reads "38,400 to 38,400". BUT none of the three is near 38,400 and the engine's line does not say so: nothing on the page says the mileage was not used. Typing "2003 Mercedes-Benz SL500 38,400 miles" into Find's own box gives the same 3 live matches with the same line and drops the miles from the address (q=2003 Mercedes-Benz SL500, no miles). "2003 Mercedes-Benz SL500 under 40,000 miles" still filters: chip "Under 40,000 miles", "See all 4 live Mercedes-Benz SL500s under 40,000 miles, +1 from 2002", 2 live matches (5,000 and 16,000 miles). I did not drive a separate Find chat box. VERDICT: b is NOT fully passed (the "one line saying so" is missing), so PART 3, THE CAR BAR PUBLIC, WAS NOT DONE.
   (c) MARKET CHECK: crew "1987 Pontiac Firebird": $8,500 to $19,500, 11 sales, 6 replicas set aside, NO variant question shown (only the mileage bands). Visitor "1987 Pontiac Firebird Trans Am GTA": title now "Trans Am GTA" (the data's spelling), $11,000 to $24,000, 9 sales. Visitor "1987 Pontiac Firebird Trans Am 42,500 miles": the Trans Am, $8,500 to $15,500, 14 sales, no mileage chip and no mileage line. The car bar is crew only. Nothing else merges until Sam says so.
+
+## VARIANT ROWS, THE SHAPE OF variantSplit (Lane B, lane-b-variant-rows off lane-b-variant-3 b26f04e8; order bc85; posted BEFORE the checks finish so Lane S can build against it; NOT pushed)
+WHERE: api/sellerDecision.js, on the Market Check answer (tier result), beside car and variants. Built by lib/variantRows.js variantSplitFor; no page computes anything. Served for every visitor (no question is asked); show false means print nothing.
+```
+variantSplit: {
+  show: true | false,             // false: the variant is stated, the family has no variant list, the variants do not sell apart (the variant question's own test), or the answer is not a range
+  line: "A Firebird's price depends on which one it is." | null,       // one sentence above the rows, Sam's voice, third person; null when show is false
+  rows: [                          // one per variant of the family's list, in data/variantFamilies.json order; [] when show is false
+    {
+      name:      "Trans Am",       // the data's spelling
+      label:     "Trans Am",       // the words to print (the data's spelling)
+      priced:    true | false,     // a range is shown on this variant's own page
+      rangeText: "$8,500 to $15,500" | null,   // null when priced is false (too few sales to price): never a made-up number
+      salesText: "14 sales",       // always present: the sales that variant's own page counts ("1 sale", "0 sales")
+      car: {
+        token: "v1....",           // the car's token: that year, that variant, the typed mileage if any
+        words: "1987 Pontiac Firebird Trans Am 42,500 miles",   // the plain words (the tool's own input)
+        address: "/market-check?q=1987%20Pontiac%20Firebird%20Trans%20Am%2042%2C500%20miles",
+        line: "...", short: "..."  // the car bar's words for the same car (car.line, car.short of that answer)
+      }
+    }, ...
+  ]
+}
+```
+RULES: each row's rangeText and salesText are what Market Check shows when that row's car is asked for (the same pool, years, mileage band and set asides: the row IS the engine's answer for that car, read the way the page's own request reads it). Replicas and tributes are set aside and are no row; sales that name no variant are no row. A variant too thin to price has its label and salesText and no rangeText.
+
+## VARIANT ROWS, STAGES (Lane B, lane-b-variant-rows off lane-b-variant-3 b26f04e8; order bc85; NOT pushed). THE SHAPE OF variantSplit IS POSTED ABOVE (commit 9d0b01b7) AND DID NOT CHANGE.
+CAUSE: a car asked for with no variant is answered with ONE blended range over every variant of its family, and nothing on the answer shows that the variants sell apart (the Firebird: Trans Am $14,250, GTA $24,000, the 20th Anniversary Turbo $42,000 against the plain car's $7,500 to $13,500). Before this the engine could only ASK the crew (the variant question); a visitor read the blend alone.
+THE FIX (lib/variantRows.js variantSplitFor, called at the one exit of the answer in api/sellerDecision.js beside car and variants; nothing computed by a page):
+- show is true only when the answer is a range for an UNSTATED car of a family in data/variantFamilies.json whose variants sell apart by the SAME test as the variant question (lib/onebox.js variantsApart, now one function for both: two variants with 5 or more sales whose middle halves are clear of each other, counted over the census of the generation). False for a stated variant, a family with no list, variants that do not sell apart, a refined answer (a body or trim chip: only a typed mileage is allowed), a VIN or exact-car answer, or a read that is not a range.
+- rows: one per variant of the list in the data's order and spelling (the replica and the unstated sales are no row). EACH ROW IS THE ENGINE'S ANSWER FOR ITS OWN CAR: the row's car is the same year with the variant's words added, resolved by the same resolver, read by oneEngineAnswer with the refine a typed mileage makes (withTypedMileage); rangeText is that answer's cluster ("$8,500 to $15,500", lib/onebox.js moneyOf) and salesText its sales (countNoun: "14 sales"); the car carries the typed mileage (token, words "1987 Pontiac Firebird Trans Am 40,000 miles", address /market-check?q=...). A variant whose own page reads every variant together (variants.thin, under five sales), or that the engine cannot price, has its label and its own sales count and NO rangeText (priced false). A zero is "no sales".
+- The line is the engine's (lib/reasonWords.js variant.split_line): "A Firebird's price depends on which one it is." (the model's name).
+- Cost: five reads of the family's variants per unstated search of a family that sells apart, held 10 minutes in the instance (keyed by family, year, typed mileage and engine version) so the reads are not repeated; none for a car in no family or whose variants do not sell apart. Rows are never stored (they are made at the exit).
+- lib/variants.js variants.pooled is new (the asked variant's own count when its page reads every variant together).
+SWEEP, every family with a variant list, one typical year each, ON THE CHECK'S FAKE ARCHIVE (the prices and counts are the fixture's, not the market's: the live rows need a live read, which is one POST of {"oneBox":true,"search":"1987 Pontiac Firebird"} to /api/sellerDecision and reading variantSplit):
+    
+    Pontiac Firebird, 1982 to 1992 (1987 Pontiac Firebird): show true
+      A Firebird's price depends on which one it is.
+      Firehawk                          (no range)            no sales
+      20th Anniversary Turbo Trans Am   (no range)            three sales
+      GTA                               $13,000 to $13,000    nine sales
+      Trans Am                          $14,500 to $14,500    ten sales
+      Formula                           $16,000 to $16,000    eight sales
+    
+    Chevrolet Camaro, 1982 to 1992 (1987 Chevrolet Camaro): show true
+      A Camaro's price depends on which one it is.
+      Berlinetta                        (no range)            no sales
+      IROC-Z                            $11,500 to $11,500    nine sales
+      Z28                               $13,000 to $13,000    ten sales
+      RS                                $14,500 to $14,500    eight sales
+    
+    Ford Mustang, 1979 to 1993 (1987 Ford Mustang): show true
+      A Mustang's price depends on which one it is.
+      Saleen                            (no range)            no sales
+      SVO                               (no range)            three sales
+      Cobra                             $13,000 to $13,000    nine sales
+      GT                                $14,500 to $14,500    ten sales
+      LX                                $16,000 to $16,000    eight sales
+    
+    Chevrolet Corvette, 1984 to 1996 (1990 Chevrolet Corvette): show true
+      A Corvette's price depends on which one it is.
+      ZR-1                              (no range)            no sales
+      Grand Sport                       (no range)            three sales
+      Collector Edition                 $13,000 to $13,000    nine sales
+  What the sweep shows: show is true on all four families; a variant the resolver drops (Firehawk, Berlinetta, Saleen, SVO, the old gap) still gets a row (the engine reads its words), priced when its own page prices it; the Corvette ZR-1 gets no range because the engine refuses a stated ZR-1 pool (a halo; its own page shows no range either, so no range here); a variant under five sales shows its count and no range.
+EVERY PAGE AND EMAIL THAT PRINTS THE BLENDED RANGE FOR A CAR WITH AN UNSTATED VARIANT (the field is on Market Check's answer only; these still print the blend, with no split, until each is told to): Market Check (public/js/onebox.js, the result page and the /o/<id> share), Sell's range card (lib/sell/sellBlock.js and sellFacts.js cardAnswerOf, shown by lib/preview/mcSellPreview.js and sellMcClient.js), the Find card's market line and the Find chat (lib/live/search.js listingMarket and findAnswerOf, lib/live/samChat.js), the Tasks composer and the Task emails (lib/tasks/tasks.js emailPreview and the email words lib/tasks/emailWords.js), the VIN and history pages and the spec pages (api/_historyData.js, api/specPage.js), the MCP tools (lib/tools/marketCheck.js, whereToSell.js), the partner answer (api/partnerAnswer.js), the nightly warm and the landing examples (lib/live/entryExamples.js). The Desk reads its own variants (desk.variants). Lane S builds the rows on the Market Check page; the others are a decision for Sam.
+KNOWN LIMIT, NOT CHANGED: the Corvette ZR-1 spelled with a hyphen in a title does not match the resolver's ZR1 trim fence (the resolver backlog in CLAUDE.md); the check's world titles a ZR-1 "ZR1".
+CHECK scripts/variantRowsCheck.mjs 153 pass: for each of the four families, through the real handler on a fake archive: show and the rows' count, order, spelling and line; every priced row equals the handler's answer for its own car (range and sales); a thin variant and a variant with no sale show their count and no range; no replica or unstated row; the car (token decodes to the year and variant, words, address) on every row; a typed mileage on every row's car and every row equal to the banded answer of its own car; show false for a stated variant, variants that do not sell apart (flat prices), a refined answer, a family with no list; no page builds a row; the one call site. Fails on the base branch (the field does not exist there). Mutants: see below.
+- READY B (Lane B, lane-b-variant-rows, code commit be180eb4de545eeb4b08c91cad7ed5af24d47adf, tip is the next commit; off lane-b-variant-3 b26f04e8; NOT pushed): variantSplit on Market Check's answer for an unstated car whose variants sell apart; the shape is posted above (9d0b01b7) and unchanged. REGRESSION, all green: variantRowsCheck 153/0, variantSplitCheck 111/0, findMilesNearCheck 66/0, typedThroughCheck 1609/0, carBarCheck 101/0, carTokenCheck 56/0, noticeCheck 1465/0, engineFieldsCheck 41/0, findResultsCheck 98/0, mcSellResultsCheck 49/0, mcSellShellCheck 123/0, deskV2Check 455/0, e96PagesCheck 332/0, deskLadderCheck 584/0. variantRowsCheck fails on the base branch (the field does not exist). MUTANTS: run in a separate copy; the first run killed 11 of 15 with 4 not killed (an unbanded-row mutant the fixture could not see, two stale patterns, a range text the check built with the same function); the check and patterns are fixed and the full re-run is STILL TO COME, result to be posted here.
+- MUTANTS (Lane B, lane-b-variant-rows, run in a separate copy at 7fb94418): variantRowsCheck 15 of 15 killed, none survived. Nothing to add. Tip with this line is the next commit.
