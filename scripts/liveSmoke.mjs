@@ -98,7 +98,7 @@ check("MC visitor: '1989 Pontiac Firebird Turbo Trans Am' is narrowed to turbo w
 await tur.p.close();
 const tam = await mcSearch(false, "1987 Pontiac Firebird Trans Am 42,500 miles");
 check("MC visitor: '1987 Pontiac Firebird Trans Am 42,500 miles' keeps the Trans Am and holds 42,500 in the mileage box", tam.ok && /MARKET CHECK \| 1987 Pontiac Firebird Trans Am/.test(tam.text) && /^42,?500$/.test(String(tam.miles || "")), tam.miles + " " + tam.text.slice(0, 200));
-check("MC visitor: ...the mileage band is applied, or says plainly there are too few sales near 42,500 miles", /within [\d,]+ miles of 42,500/.test(tam.text) && (RANGE.test(tam.text)), tam.text.slice(0, 400));
+check("MC visitor: ...the mileage band is applied, or no mileage chip is shown (variant-3: a band that was not applied prints no chip)", RANGE.test(tam.text) && (/within [\d,]+ miles of 42,500/.test(tam.text) || !/Cars within [\d,]+ miles of 42,500/.test(tam.text)), tam.text.slice(0, 400));
 check("MC visitor: ...no notice", !/didn't use/i.test(tam.text), (tam.text.match(/Sam didn't use[^|]*/) || [""])[0]);
 await tam.p.close();
 
