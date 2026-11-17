@@ -20,6 +20,7 @@ const host = new URL(SITE).hostname;
 async function open(crew) {
   const p = await browser.newPage(); await p.setViewport({ width: 1440, height: 900 });
   if (BYPASS) await p.setExtraHTTPHeaders({ "x-vercel-protection-bypass": BYPASS });
+  if (!crew) await p.deleteCookie({ name: "gas_crew", domain: host, path: "/" });   // one browser holds the cookies of every page: a visitor page must never inherit the crew cookie an earlier page set
   if (crew) { if (!CREW) throw new Error("no crew cookie (Keychain goasksam-crew)"); await p.setCookie({ name: "gas_crew", value: CREW, domain: host, path: "/", secure: SITE.startsWith("https") }); }
   return p;
 }
