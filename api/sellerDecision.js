@@ -8,7 +8,7 @@ import { tryRefresh } from "../lib/refreshGate.js";
 import { carFromRequest } from "../lib/carToken.js";
 import { resolveVehicle, sanitizeResolvedVehicle, primeResolver } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
-import { withTypedMileage, withServedCar, archiveTitleModel, mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
+import { withTypedMileage, withServedCar, withVariantQuestion, archiveTitleModel, mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
 import { timedShareId } from "../lib/shareId.js";
 import { typedAttributesIn, typedAttributeByKey } from "../lib/typedAttributes.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
@@ -22,6 +22,7 @@ import { callOldCarsData } from "../lib/_ocd.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { supabaseBytesSoFar } from "../lib/_supabase.js";
 import { VARIANT_MARKETS } from "../lib/modelRules.js";
+import { variantKeyShape } from "../lib/variants.js";
 import { BODY_LABEL, isSingerPorsche, withReadFields, isStorableQuestion } from "../lib/onebox.js";
 import { casedChips } from "../lib/chipLabel.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
@@ -3533,7 +3534,7 @@ async function handler(req, res) {
         // VARIANT_MARKETS: carrera, competizione, lightweight, gta, restoration/unrestored...) plus the M-car
         // competition/standard pair. The old line kept only competition/standard, so a variant-market chip reached
         // the engine as no refine and the base page came back for every zero-count option.
-        variant: VARIANT_REFINE_VALUES.has(String(rawRefine.variant || "")) ? String(rawRefine.variant) : null,
+        variant: (VARIANT_REFINE_VALUES.has(String(rawRefine.variant || "")) || variantKeyShape(String(rawRefine.variant || ""))) ? String(rawRefine.variant) : null,
         // Modified and Original (Nov 9 2026): the two sides of the pool the wide line names
         mods: rawRefine.mods === "modified" ? "modified" : rawRefine.mods === "original" ? "original" : null,
         // Item 7/8 dictionary-driver refine + item 9 observable-fact refine (both re-scope the pool).
@@ -3873,6 +3874,7 @@ async function handler(req, res) {
       }
       if (vinCtx) oneBox = applyVinOverlay(oneBox, vinCtx);   // the VIN car's own sales and option on the typed car's finished answer
       const unusedFields = unusedFieldsFor(typeof rawSearch0 === "string" ? rawSearch0 : oneBoxText, vehicle, oneBox);
+      if (isCrewRequest(req)) oneBox = withVariantQuestion(oneBox, { text: oneBoxText, asked: askedN, refine: obRefine });   // the variant question, crew only for now (lib/onebox.js withVariantQuestion); never stored
       oneBox = withServedCar(oneBox, vehicle, { supabaseUrl, supabaseKey });   // the car this answer is SERVED for, whatever row it came from (lib/onebox.js withServedCar)
       return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
     }

@@ -14,6 +14,7 @@
 //   node scripts/deskV2Check.mjs
 import { launch, imp, tally } from "./deskV3Harness.mjs";
 import fs from "node:fs";
+import { DESK_V2_CASE_JS } from "../lib/preview/deskV2Case.js";
 process.env.CURTAIN_CREW_CODE = "fixture-crew-code"; process.env.LAUNCH_STAGE = "2";
 const { mintCrewCookieValue } = await imp("lib/_crew.js"), crewPage = (await imp("api/crewPage.js")).default, V2 = await imp("lib/preview/deskV2.js"), V3 = await imp("lib/preview/deskV3.js");
 const { ok, done } = tally(), crew = "gas_crew=" + mintCrewCookieValue();
@@ -692,4 +693,64 @@ for (const [name, f] of Object.entries(REF_MUT)) { const css = ["cardShadow", "c
   let o2 = 0; await ohRun(V2.pageHtml(ohModel(null)), false, c => { o2++; ok(c, `OWN HISTORY: with no live match the heading counts the three rows and none is marked (check ${o2})`); });
   const OM = { oneRow: h => h.replace("hist.forEach(function(x){var t=", "hist.slice(0,1).forEach(function(x){var t="), noLink: h => h.replace('return url?el("a"', 'return false?el("a"'), reversed: h => h.replace("hist.forEach(function(x){var t=", "hist.slice().reverse().forEach(function(x){var t="), noCount: h => h.replace('"This car\'s own history ("+n+")"', '"This car\'s own history"'), noLive: h => h.replace("if(ll){body.appendChild(", "if(false){body.appendChild(") };
   for (const [name, f] of Object.entries(OM)) { const hb = V2.pageHtml(ohModel(LIVE)), mh = f(hb); if (mh === hb) { ok(false, "mutant target missing: " + name); continue; } let bad = 0; try { await ohRun(mh, true, c => { if (!c) bad++; }); } catch { bad++; } ok(bad > 0, `mutant ${name} is caught`); } }
+// ---------- VARIANT TICKS (Lane B's desk.variants, Nov 2026): the engine's line as sent, each variant found with its count and a tick for inPool; a change sends variant_set once with the whole chosen set and the screen repaints from the new answer; the page counts and words nothing ----------
+{ const L = (key, fig) => ({ key, figure: fig, figureLine: fig == null ? null : "$" + fig.toLocaleString("en-US"), line: key + " rung words", available: fig != null });
+  const sale = (i, p) => ({ id: "s" + i, price: p, priceLine: "$" + p.toLocaleString("en-US"), dateLine: "Mar 2026", tier: 3, titleLine: "1987 Pontiac Firebird Trans Am " + i, milesLine: "61,000 miles", platform: "Bring a Trailer", url: "https://bringatrailer.com/listing/ta-" + i + "/", photo: null });
+  const comp = (s, t) => ({ id: s.id, title: t + " " + s.id, year: 1987, generation: "3rd", body: "coupe", transmission: "Automatic", miles: 61000, platform: "Bring a Trailer", soldDate: "2026-03-13", priceLine: s.priceLine, dateLine: "March 2026", milesLine: "61,000 miles", price: s.price, url: s.url, photo: null, relevance: 1, why: "", inPopulation: true, whyLine: "" });
+  const mkSet = (n, base) => Array.from({ length: n }, (_, i) => sale(i + 1, base + i * 1500));
+  const item = (name, key, count, inPool, pkg) => ({ name, key, count, inPool, package: pkg || null });
+  const VA = { family: "Pontiac Firebird, 1982 to 1992", familyId: "pontiac-firebird-3rd", source: "words", stated: ["Trans Am"], chosen: null, applied: true, thin: false, thinLine: null, total: 9, line: "Priced on Trans Am sales. GTA, Formula and sales that name no variant are set aside.", items: [item("Firehawk", "firehawk", 0, false), item("GTA", "gta", 1, false, "Trans Am"), item("Trans Am", "transam", 6, true), item("Formula", "formula", 17, false), item("Unstated", "unstated", 1, false)] };
+  const VB = { ...VA, source: "analyst", chosen: ["Trans Am", "GTA"], line: "Priced on Trans Am and GTA sales. Formula and sales that name no variant are set aside.", items: [item("Firehawk", "firehawk", 0, false), item("GTA", "gta", 1, true, "Trans Am"), item("Trans Am", "transam", 6, true), item("Formula", "formula", 17, false), item("Unstated", "unstated", 1, false)] };
+  const SA = mkSet(6, 24000), SB = mkSet(7, 25500);
+  const mk = (vs, ev, S, lad, band, label) => ({ ...rm.kase, header: { ...rm.kase.header, title: "1987 Pontiac Firebird Trans Am" }, condition: { ...rm.kase.condition, chosen: null }, desk: { ...rm.kase.desk, titleLine: "1987 Pontiac Firebird Trans Am", specLine: "Third generation · Coupe · Automatic · 61,000 miles", evidence: { ...rm.kase.desk.evidence, ...ev, insufficient: false, closingLine: null }, sales: S, comparables: S.map(s => comp(s, label)), comparablesCount: S.length, reserveLadder: lad, bandNote: band, variants: vs }, reserve: { ...rm.kase.reserve, figure: lad.rungs[1].figure, figureLine: lad.rungs[1].figureLine, noReserve: false }, reserveChoice: { key: "balanced", source: "engine", line: "Balanced reads the middle rung." } });
+  const evA = { typicalLine: "$24,000 to $31,000", countLine: "6 sales", count: 6, strip: [{ key: "typical", label: "Typical range", value: "$24,000 to $31,000", note: "where most sales landed", emphasis: true }, { key: "count", label: "Sales", value: "6 sales", note: "Mar 2025 to Nov 2026", emphasis: false }] };
+  const evB = { typicalLine: "$25,500 to $33,000", countLine: "7 sales", count: 7, strip: [{ key: "typical", label: "Typical range", value: "$25,500 to $33,000", note: "where most sales landed", emphasis: true }, { key: "count", label: "Sales", value: "7 sales", note: "Mar 2025 to Nov 2026", emphasis: false }] };
+  const LA = { recommended: "balanced", reason: "A rung words.", rungs: [L("safe", 21000), L("balanced", 24500), L("ambitious", 29000), L("noReserve", null)] }, LB = { recommended: "balanced", reason: "B rung words.", rungs: [L("safe", 22500), L("balanced", 26000), L("ambitious", 31500), L("noReserve", null)] };
+  const KA = mk(VA, evA, SA, LA, "Band note A: six Trans Am sales.", "Trans Am A"), KB = mk(VB, evB, SB, LB, "Band note B: seven sales with the GTA.", "Trans Am B");
+  const htmlA = V2.pageHtml({ ...rm, kase: KA });
+  const vresp = (bd) => bd.action === "case_edit" && bd.op === "variant_set" ? (bd.variants && bd.variants.includes("REFUSE") ? { ok: false, why: "Choose variants this family has." } : { ok: true, case: (bd.variants || []).includes("GTA") ? KB : KA, readiness: { ready: true, blockers: [] } }) : ready(bd);
+  const SEEN = () => ({ line: (document.getElementById("vline") || {}).textContent || null, box: !!document.getElementById("variants"), rows: [...document.querySelectorAll(".vrow")].map(r => ({ name: r.querySelector(".vn").textContent, count: r.querySelector(".vc").textContent, on: r.querySelector("input").checked })), range: (document.getElementById("rrv") || {}).textContent || "", cells: [...document.querySelectorAll("#mstrip .mcv")].map(x => x.textContent).join("|"), lad: [...document.querySelectorAll("#rlad .lrow:not(.cust) .lfg")].map(x => x.textContent).join("|"), dots: document.querySelectorAll("#plot circle[data-sale]").length, near: [...document.querySelectorAll("#s-closest")].map(x => x.textContent).join(" "), band: (document.getElementById("rband") || {}).textContent || "", mband: (document.getElementById("mband") || {}).textContent || "" });
+  const run = async (h, cnt) => { const q = await open(h, 1440, vresp); const a = await q.evaluate(SEEN);
+    cnt(a.line === VA.line);                                                                             // the engine's line as sent
+    cnt(a.rows.map(r => r.name).join() === "GTA,Trans Am,Formula,Unstated" && a.rows.map(r => r.count).join() === "(1),(6),(17),(1)");   // each variant found with its served count (17 disagrees with the sales list on purpose); Firehawk (0 sales) is not drawn
+    cnt(a.rows.map(r => r.on).join() === "false,true,false,false");                                       // the ticks are inPool
+    cnt(a.range === "$24,000 to $31,000" && a.lad === "$21,000|$24,500|$29,000|No reserve" && a.dots === 6 && /Trans Am A/.test(a.near) && a.band === "Band note A: six Trans Am sales.");
+    await q.click('[data-vtick="GTA"]'); await wait(400);
+    const posts = (q._posts || []).filter(x => x.action === "case_edit" && x.op === "variant_set"); cnt(posts.length === 1 && posts[0].variants.slice().sort().join() === "GTA,Trans Am");   // once, the whole chosen set
+    const z = await q.evaluate(SEEN);
+    cnt(z.line === VB.line && z.rows.map(r => r.on).join() === "true,true,false,false");                  // the line and ticks from the new answer
+    cnt(z.range === "$25,500 to $33,000" && z.cells.includes("$25,500 to $33,000|7 sales") && z.lad === "$22,500|$26,000|$31,500|No reserve" && z.dots === 7 && /Trans Am B/.test(z.near) && !/Trans Am A/.test(z.near) && z.band === "Band note B: seven sales with the GTA." && z.mband === "Band note B: seven sales with the GTA.");   // range, ladder, chart, nearest sales, band note all repainted
+    await q.close(); };
+  let n1 = 0; try { await run(htmlA, c => { n1++; ok(c, `VARIANTS: the engine's line as sent; each variant found with its served count and a tick for inPool, none with 0 sales; a tick sends variant_set once with the whole set; range, ladder, chart, nearest sales and band note repaint from the answer (check ${n1})`); }); } catch (e) { ok(false, "VARIANTS: the tick control is not on the page (" + String(e.message || e).slice(0, 80) + ")"); }
+  // nothing to choose: variants null, one variant found, none found -> no tick row (and no block at all when the answer carries none)
+  const ONE = { ...VA, items: [item("Trans Am", "transam", 6, true), item("GTA", "gta", 0, false, "Trans Am")] };
+  for (const [label, vs, wantBox] of [["null", null, false], ["one variant found", ONE, true], ["no items", { ...VA, items: [] }, true]]) {
+    const q = await open(V2.pageHtml({ ...rm, kase: { ...KA, desk: { ...KA.desk, variants: vs } } }), 1440, vresp), s = await q.evaluate(SEEN); await q.close();
+    ok(s.rows.length === 0 && s.box === wantBox, `VARIANTS: ${label}: no tick row${wantBox ? " (the engine's line still prints)" : " and no block"}`); }
+  // a refusal puts the tick back and shows the server's words
+  { const q = await open(htmlA, 1440, bd => bd.action === "case_edit" && bd.op === "variant_set" ? { ok: false, why: "Choose variants this family has." } : ready(bd)); await q.click('[data-vtick="GTA"]').catch(() => {}); await wait(300); const s = await q.evaluate(() => ({ on: !!document.querySelector('[data-vtick="GTA"]') && document.querySelector('[data-vtick="GTA"]').checked, dis: !!(document.querySelector('[data-vtick="GTA"]') || {}).disabled, msg: (document.getElementById("vmsg") || {}).textContent, hid: (document.getElementById("vmsg") || {}).hidden })); await q.close();
+    ok(s.on === false && s.dis === false && s.msg === "Choose variants this family has." && s.hid === false, "VARIANTS: a refused change puts the tick back and shows the server's words"); }
+  // nothing computed from the sales list: the function reads only desk.variants; no sum, sort, Math or sales read
+  { const fn = (DESK_V2_CASE_JS.match(/function variantsP[\s\S]*?\nfunction lens/) || [""])[0];
+    ok(fn.length > 200 && !/g\("sales"\)|g\("comparables"\)|\.reduce\(|\.sort\(|Math\.|\.count\s*[-*\/]|\.count\s*\+\s*[\w(]|\.length\s*[-+*\/]/.test(fn.replace(/items\.length>1/, "")) && /g\("variants"\)/.test(fn), "VARIANTS: nothing on the page is computed from the sales list (variantsP reads only desk.variants: no sales read, no sum, no sort, no arithmetic on a count)"); }
+  const VM = {
+    lineDropped: h => h.replace('if(v.line)box.appendChild(el("p",{class:"vline"', 'if(false)box.appendChild(el("p",{class:"vline"'),
+    ownLine: h => h.replace('id:"vline",text:v.line', 'id:"vline",text:"Priced on the chosen variants."'),
+    zeroShown: h => h.replace("&&Number(x.count)>0}", "}"),
+    rowForOne: h => h.replace("if(items.length>1){var rows", "if(items.length>0){var rows"),
+    blockForNull: h => h.replace('if(!v||typeof v!=="object")return;var items', 'if(!v)v={line:"No variants.",items:[]};var items'),
+    tickIgnored: h => h.replace("cb.checked=x.inPool===true;", "cb.checked=true;"),
+    countComputed: h => h.replace('text:"("+x.count+")"', 'text:"("+(g("sales")||[]).length+")"'),
+    notSent: h => h.replace('edit("variant_set",{variants:names})', 'edit("variant_unset",{variants:names})'),
+    onlyClicked: h => h.replace('edit("variant_set",{variants:names})', 'edit("variant_set",{variants:[x.name]})'),
+    sentTwice: h => h.replace('edit("variant_set",{variants:names}).then(', 'edit("variant_set",{variants:names});edit("variant_set",{variants:names}).then('),
+    noRepaint: h => h.replace("if(r&&r.ok){redraw()}else{[].forEach", "if(r&&r.ok){}else{[].forEach"),
+    refusalKept: h => h.replace("cb.checked=!cb.checked;msg.textContent", "msg.textContent"),
+  };
+  for (const [name, f] of Object.entries(VM)) { const mh = f(htmlA); if (mh === htmlA) { ok(false, "mutant target missing: " + name); continue; } let bad = 0; const cnt = c => { if (!c) bad++; };
+    try { await run(mh, cnt); } catch { bad++; }
+    for (const [vs, want] of [[null, false], [ONE, true]]) { const q = await open(f(V2.pageHtml({ ...rm, kase: { ...KA, desk: { ...KA.desk, variants: vs } } })), 1440, vresp); const s2 = await q.evaluate(SEEN).catch(() => ({ rows: [1], box: !want })); cnt(s2.rows.length === 0 && s2.box === want); await q.close(); }
+    { const q = await open(mh, 1440, bd => bd.action === "case_edit" && bd.op === "variant_set" ? { ok: false, why: "Choose variants this family has." } : ready(bd)); await q.click('[data-vtick="GTA"]').catch(() => {}); await wait(300); const s = await q.evaluate(() => ({ on: document.querySelector('[data-vtick="GTA"]') && document.querySelector('[data-vtick="GTA"]').checked })).catch(() => ({ on: true })); cnt(s.on === false); await q.close(); }
+    ok(bad > 0, `mutant ${name} is caught`); }
+  if (process.env.SHOTS) { const q = await open(htmlA, 1440, vresp); await q.screenshot({ path: "docs/demo-run/desk2-variants-trans-am-1440.png", fullPage: true }); await q.click('[data-vtick="GTA"]'); await wait(400); await q.screenshot({ path: "docs/demo-run/desk2-variants-trans-am-gta-1440.png", fullPage: true }); await q.close(); const q2 = await open(htmlA, 390, vresp); await q2.screenshot({ path: "docs/demo-run/desk2-variants-trans-am-390.png", fullPage: true }); await q2.close(); } }
 await b.close(); done("deskV2Check");

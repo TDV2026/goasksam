@@ -196,8 +196,9 @@ check("1d lint: detects a removed house name", lintText("records from RM Sotheby
 // The dash exemption is REMOVED: the global no-dash rule now has zero exceptions.
 // The hero supporting line is the approved dash-free copy and is linted like the
 // rest of the homepage copy.
+// (Nov 17 2026, Lane C: the line has spoken of Sam in the third person since d3179ea2, Oct 20; the check still pinned the older first person line.)
 check("homepage: hero supporting line is the approved dash-free copy",
-  HERO_SUPPORTING === "I'll recommend where I'd sell your car and show you exactly why.", JSON.stringify(HERO_SUPPORTING));
+  HERO_SUPPORTING === "Sam will recommend where to sell your vehicle and show you exactly why." && !/[–—]/.test(HERO_SUPPORTING) && !/\b(I|I'll|I'd|my)\b/.test(HERO_SUPPORTING), JSON.stringify(HERO_SUPPORTING));
 // ALL homepage copy, hero supporting line INCLUDED: no dashes, standard lint clean.
 const homepageCopy = [
   HERO_SUPPORTING,
@@ -208,7 +209,9 @@ const homepageCopy = [
 check("homepage: no en/em dashes in ANY homepage copy (zero exceptions, hero line included)", !/[–—]/.test(homepageCopy), (homepageCopy.match(/[^\n]*[–—][^\n]*/) || [""])[0]);
 check("homepage: all non-hero homepage copy passes standard lint", lintText(homepageCopy).length === 0, lintText(homepageCopy).join(" ; "));
 check("homepage: Selling Platforms names no REMOVED auction houses (SOMO permitted)", !/\bGooding\b|\bSotheby'?s\b(?!\s+Motorsport)/i.test(homepageCopy), (homepageCopy.match(/\bGooding\b|\bSotheby'?s\b(?!\s+Motorsport)/i) || ["none"])[0]);
-check("homepage: placeholder examples are real cars (year + make)", PLACEHOLDER_EXAMPLES.every(e => /^\d{4}\s+[A-Z]/.test(e)), JSON.stringify(PLACEHOLDER_EXAMPLES));
+// (Nov 17 2026, Lane C: the example is a sentence today, "e.g. 2004 Porsche 911 Carrera, or paste a VIN."; the car inside it is what must be real: a year and a make.)
+const exampleCar = e => String(e).replace(/^e\.g\.\s+/i, "").replace(/,?\s+or\s+paste a VIN\.?$/i, "").trim();
+check("homepage: placeholder examples are real cars (year + make)", PLACEHOLDER_EXAMPLES.length > 0 && PLACEHOLDER_EXAMPLES.every(e => /^(19|20)\d{2}\s+[A-Z][A-Za-z-]+\s+\S+/.test(exampleCar(e))), JSON.stringify(PLACEHOLDER_EXAMPLES));
 // (Polish round, July 2026) The three newly-tracked platforms appear on the
 // Selling Platforms page; SOMO is always named in full.
 for (const name of ["Hemmings", "Sotheby's Motorsport (SOMO)"]) {
@@ -278,7 +281,8 @@ check("plausibility: a sane 34% premium still renders (unchanged)", /34% higher 
     check(`start page ${name}: lint-clean (no dashes, banned phrases)`, lintText(text).length === 0, lintText(text).join(" ; "));
     check(`start page ${name}: no "collector", no "AI" label`, !/collector/i.test(text) && !/\bAI\b/.test(text), text.slice(0, 120));
     check(`start page ${name}: the dated line is a date only (no source, sale or live-car count)`, !/\b\d[\d,]*\s+(?:sales?|sources?|listings?|cars|auctions)\b/i.test(text), text.slice(-220));
-    check(`start page ${name}: no Daily Vroom section in the body`, !/Daily Vroom/i.test(text), "");
+    // (Nov 17 2026, Lane C: the Home body carries the credit "from The Daily Vroom" in its free line and its legal line since cb8e2ab9, Oct 25; that credit is allowed, a Daily Vroom SECTION or any other mention is not.)
+    check(`start page ${name}: no Daily Vroom section in the body (the credit "from The Daily Vroom" is the only mention)`, !/Daily Vroom/i.test(text.replace(/from The Daily Vroom/gi, "")), (text.replace(/from The Daily Vroom/gi, "").match(/.{0,40}Daily Vroom.{0,40}/i) || [""])[0]);
     // THE BETA PILL (Sam, Oct 23 2026): beside the wordmark in the rail and the mobile header on every shared-rail page; a label, never a control
     // (a span: no link, button, hover or focus state); never in the title, meta, headings or structured data.
     const pills = html.match(/<span class="(?:gas-)?beta">Beta<\/span>/g) || [];

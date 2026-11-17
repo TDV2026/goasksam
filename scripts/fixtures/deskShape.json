@@ -1,5 +1,5 @@
 {
- "shape": 8,
+ "shape": 9,
  "top": [
   "anyCondition",
   "bandNote",
@@ -32,6 +32,7 @@
   "supports",
   "titleLine",
   "trimNote",
+  "variants",
   "version",
   "views",
   "whyDraft",
@@ -189,6 +190,7 @@
   "supports",
   "titleLine",
   "trimNote",
+  "variants",
   "version",
   "whyDraft",
   "windowNote",

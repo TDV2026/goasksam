@@ -1,5 +1,19 @@
 [
   {
+    "date": "2026-11-17",
+    "title": "Trims that sell differently are priced on their own",
+    "lines": [
+      "Ask about a Firebird Trans Am, a GTA or a Turbo Trans Am and the range comes from that trim's own sales. The same goes for the Camaro Z28 and IROC-Z, and the Mustang LX, GT, Cobra and Saleen. Replicas and tributes are set aside and counted."
+    ]
+  },
+  {
+    "date": "2026-11-17",
+    "title": "Type the mileage with the car",
+    "lines": [
+      "Type a car and its mileage together, like 2003 Mercedes-Benz SL500 38,400 miles, and Market Check narrows the range to cars within 15,000 miles of yours."
+    ]
+  },
+  {
     "when": "NEW_DESIGN",
     "dateEnv": "NEW_DESIGN_DATE",
     "title": "A new look for GoAskSam",
@@ -9,6 +23,17 @@
       "Market Check and Sell each show a real example, so you can see what you get before you search.",
       "Every page shares the same header and footer, and reads better on a phone."
     ]
+  },
+  {
+    "date": "2026-11-11",
+    "title": "Ten Tasks at once, free for every account",
+    "lines": [
+      "Run up to ten Tasks at once. Every account gets all ten at no cost."
+    ]
+  },
+  {
+    "date": "2026-11-11",
+    "text": "Find reads a phrase like updated engine as an engine swap, and says so."
   },
   {
     "date": "2026-11-10",
@@ -54,6 +79,20 @@
   {
     "date": "2026-11-02",
     "text": "Every Find card now has the same shape: a label line, the figures, and one line below. No card text is cut off."
+  },
+  {
+    "date": "2026-11-01",
+    "text": "Leave cars out by saying so. Words like not, without and except take those cars out of the results, and the page says what was left out.",
+    "thanks": "Thanks to Ron."
+  },
+  {
+    "date": "2026-11-01",
+    "text": "Older and pre-war cars read better: coachbuilders, body styles, makes and models are understood the way they were written. Collector car auction data at rickcarey.com.",
+    "thanks": "Thanks to Rick."
+  },
+  {
+    "date": "2026-11-01",
+    "text": "Model names show the way they are written, like M8, E-Type and GT3."
   },
   {
     "date": "2026-10-31",
