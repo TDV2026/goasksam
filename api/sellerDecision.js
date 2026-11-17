@@ -8,7 +8,7 @@ import { tryRefresh } from "../lib/refreshGate.js";
 import { carFromRequest } from "../lib/carToken.js";
 import { resolveVehicle, sanitizeResolvedVehicle, primeResolver } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
-import { archiveTitleModel, mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
+import { withTypedMileage, withServedCar, archiveTitleModel, mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
 import { timedShareId } from "../lib/shareId.js";
 import { typedAttributesIn, typedAttributeByKey } from "../lib/typedAttributes.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
@@ -3555,6 +3555,8 @@ async function handler(req, res) {
         const tk = typedAttributesIn(oneBoxText, vehicle, obRefine && obRefine.attrsOff).map(a => a.key);
         if (tk.length) obRefine = { ...(obRefine || {}), attrs: tk };
       }
+      // TYPED MILES ARE THE BOX'S MILES (lane-b-typed-through, lib/onebox.js withTypedMileage): a mileage the resolver set aside is read as the refine the page's box sends, BEFORE the stored row is chosen, so it is never answered from (or stored as) the mileage-free row
+      if (vehicle && vehicle.make && !vinCtx) obRefine = withTypedMileage(vehicle, obRefine);
       // #1 divergence rule: the exact-car sale is fetched by the frontend (vehicleIdentity ->
       // vinAnchor) and passed back in car.exactSale; the engine compares it to the cluster.
       const rawES = car && typeof car.exactSale === "object" ? car.exactSale : null;
@@ -3871,6 +3873,7 @@ async function handler(req, res) {
       }
       if (vinCtx) oneBox = applyVinOverlay(oneBox, vinCtx);   // the VIN car's own sales and option on the typed car's finished answer
       const unusedFields = unusedFieldsFor(typeof rawSearch0 === "string" ? rawSearch0 : oneBoxText, vehicle, oneBox);
+      oneBox = withServedCar(oneBox, vehicle, { supabaseUrl, supabaseKey });   // the car this answer is SERVED for, whatever row it came from (lib/onebox.js withServedCar)
       return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
     }
 

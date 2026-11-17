@@ -118,10 +118,25 @@ for (const [tool, p0, idx, apiRe] of TOOLS) {
     }
   } finally { globalThis.fetch = realFetch; } }
 // 2 a typed search with no token: the bar comes from car.token in the answer; the first call carried none
+// THE ANSWERS ARE THE REAL HANDLERS' (lane-b-typed-through, Nov 17 2026): the answer for the typed SL500 is read through api/sellerDecision.js (Market Check), api/buySearch.js (Find) and lib/sell/sellFlow.js (Sell) on the test world of scripts/typedThroughCheck.mjs
+// (a fake PostgREST with the archive AND the stored answer rows, a stored row included), so an answer that carries no token (the fault found live: a stored row served as written) hides the bar here and turns this red. Before, the answers were recorded STAMPs, which carry a token whatever the handler does.
+const REAL = await (async () => {
+  const WLD = await import(pathToFileURL(path.join(ROOT, "scripts/_typedThroughWorld.mjs")).href), fetch0 = globalThis.fetch, log0 = console.log, err0 = console.error, envKeys = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ANON_KEY", "OLDCARSDATA_API_KEY"];
+  WLD.setEnv(); WLD.install([{ make: "Mercedes-Benz", model: "SL-Class", title: "SL500", year: 2003, price: 22000, n: 40 }]); console.log = () => {}; console.error = () => {};
+  const out = {};
+  try {
+    const mcCall = WLD.caller((await imp("api/sellerDecision.js")).default), buyCall = WLD.caller((await imp("api/buySearch.js")).default), SF = await imp("lib/sell/sellFlow.js");
+    await mcCall({ oneBox: true, search: "2003 mercedes sl500" });   // the stored row is there before the car is asked for: the stored path is the one served
+    out.mc = (await mcCall({ oneBox: true, search: "2003 mercedes sl500" })).car; out.find = (await buyCall({ q: "2003 mercedes sl500" })).car;
+    out.sell = (await SF.buildRange({ supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" }, { carText: "2003 mercedes sl500", state: "California", how: "unsure", rush: "none" })).car;
+  } catch (e) { out.error = String(e && e.message); } finally { globalThis.fetch = fetch0; console.log = log0; console.error = err0; for (const k of envKeys) delete process.env[k]; }
+  return out;
+})();
+for (const k of ["mc", "find", "sell"]) ok(!!(REAL[k] && REAL[k].token && REAL[k].line && REAL[k].short && CT.decodeCar(REAL[k].token)), k + ": the REAL handler's answer for a typed car carries car.token, car.line and car.short " + JSON.stringify(REAL[k] || REAL.error));
 for (const [tool, p0, idx, apiRe] of TOOLS.slice(0, 3)) {
-  const q = tool === "sell" ? "?car=" + enc("2003 mercedes sl500") + "&state=California&how=unsure&rush=none" : "?q=" + enc("2003 mercedes sl500"), ans = [[new RegExp(apiRe.source), { raw: { car: STAMP }, car: STAMP }]];
+  const q = tool === "sell" ? "?car=" + enc("2003 mercedes sl500") + "&state=California&how=unsure&rush=none" : "?q=" + enc("2003 mercedes sl500"), RC = REAL[tool === "mc" ? "mc" : tool], ans = [[new RegExp(apiRe.source), { raw: { car: RC }, car: RC }]];
   const p = await open(p0 + q, 1440, { answers: ans }), r = await p.evaluate(BAR);
-  ok(r.present && r.shown && r.line === LINE && r.pills.length === 4 && r.pills.every((x, i) => x.h === "/preview" + PATHS[i] + "?car=" + enc(TOKEN)) && r.pills[idx].on, tool + ": a typed search shows the bar from car.token in the engine's answer, the pills carry it " + JSON.stringify([r.present, r.line]));
+  ok(RC && r.present && r.shown && r.line === RC.line && r.pills.length === 4 && r.pills.every((x, i) => x.h === "/preview" + PATHS[i] + "?car=" + enc(RC.token)) && r.pills[idx].on, tool + ": a typed search shows the bar from car.token in the REAL handler's answer, the pills carry it " + JSON.stringify([r.present, r.line]));
   const first = p._api.find(c => apiRe.test(c.u)); ok(first && !new URL(first.u, "https://x").searchParams.get("car"), tool + ": a typed search sends no token"); await p.close();
 }
 // 3 the car changes in a tool (mileage, transmission): the next answer's token is the pills' token; calls after an answer carry no old token
