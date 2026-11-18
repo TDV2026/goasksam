@@ -36,6 +36,8 @@ async function mcSearch(crew, typed) {
   const ok = await answered(p);
   return { p, ok, text: await textOf(p), url: p.url(), miles: await p.$eval("#ob-miles", e => e.value).catch(() => null) };
 }
+// settle: the page text is the same on two reads half a second apart (a named condition, ceiling 12 s), never a fixed pause
+const quiet = async p => { let last = null; const end = Date.now() + 12000; while (Date.now() < end) { let t = null; try { t = await p.evaluate(() => document.body.innerText); } catch { /* moving */ } if (t !== null && t === last) return; last = t; await new Promise(r => setTimeout(r, 500)); } };
 const noBar = p => p.evaluate(() => { const s = document.getElementById("gas-carbar"); return !s || s.hidden || !s.querySelector(".gcb-line"); });
 
 // ---- 1. visitor: Market Check ----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -178,11 +180,51 @@ await barSuite(false, "visitor");
 // ---- 3b. Find's one line about the mileage (lane-b-find-line): a search with no mileage keeps "That's everything", a typed ceiling still filters ---------------------------------------------------------------
 {
   const findText = async typed => { const p = await open(false); await p.goto(SITE + "/find", { waitUntil: "networkidle2" }); await p.type("#pq", typed); await p.keyboard.press("Enter");
-    const end = Date.now() + 60000; while (Date.now() < end) { await new Promise(r => setTimeout(r, 1000)); try { if (/live match|Nothing live|No .* live/i.test(await textOf(p))) break; } catch { /* moving */ } } await new Promise(r => setTimeout(r, 2000)); const t = await textOf(p), u = p.url(); await p.close(); return { t, u }; };
+    const end = Date.now() + 60000; while (Date.now() < end) { await new Promise(r => setTimeout(r, 1000)); try { if (/live match|Nothing live|No .* live/i.test(await textOf(p))) break; } catch { /* moving */ } } await quiet(p); const t = await textOf(p), u = p.url(); await p.close(); return { t, u }; };
   const nm = await findText("2003 Mercedes-Benz SL500");
   check("Find (visitor): a search with no mileage still reads \"That's everything matching your search right now.\"", /That.s everything matching your search right now\./.test(nm.t), nm.t.slice(0, 400));
   const un = await findText("2003 Mercedes-Benz SL500 under 40,000 miles");
   check("Find (visitor): \"under 40,000 miles\" still filters (a mileage chip and the ceiling in the address)", /Under 40,000 miles/.test(un.t) && /miles=40000/.test(un.u), un.u + " " + un.t.slice(0, 300));
+}
+// ---- 3c. the partial car (a make with no model), crew only: the join of the bar and the model choice (lane-d-car-bar-partial-2) -----------------------------------------------------------------------
+{
+  const gmc = p => p.evaluate(() => ({ blocks: document.querySelectorAll("#gmc").length, line: (document.querySelector("#gmc .gmc-line") || {}).textContent || "", buttons: [...document.querySelectorAll("#gmc .gmc-btn")].map(a => a.textContent), older: /Which BMW\?/.test(document.body.innerText) }));
+  const poll = async (f, ms = 45000) => { const end = Date.now() + ms; while (Date.now() < end) { try { const r = await f(); if (r) return r; } catch { /* moving */ } await new Promise(x => setTimeout(x, 700)); } return null; };
+  const barOf = p => p.evaluate(() => { const s = document.getElementById("gas-carbar"); return s && !s.hidden ? { line: (s.querySelector(".gcb-line") || {}).textContent, pills: [...s.querySelectorAll(".gcb-pill")].map(a => ({ l: a.textContent, h: a.getAttribute("href") })) } : null; });
+  if (CREW) {
+    const p = await open(true); await p.goto(SITE + "/market-check", { waitUntil: "networkidle2" }); await p.type("#pq", "2009 BMW"); await p.keyboard.press("Enter");
+    const g = await poll(async () => { const x = await gmc(p); return x.buttons.length ? x : null; }), bar = await poll(() => barOf(p), 15000);
+    check("partial car (crew): Market Check '2009 BMW' shows the choice once, 'Which 2009 BMW?', with model buttons", !!g && g.blocks === 1 && g.line === "Which 2009 BMW?" && g.buttons.length >= 3 && g.buttons.includes("M3"), g && JSON.stringify(g).slice(0, 200));
+    check("partial car (crew): ...and no older 'Which BMW?' block beside it", !!g && g.older === false, g && g.older);
+    check("partial car (crew): ...and the car bar above reads '2009 BMW' with four pills", !!bar && bar.line === "2009 BMW" && bar.pills.length === 4, bar && bar.line);
+    if (g && g.buttons.includes("M3")) {
+      await p.evaluate(() => { const a = [...document.querySelectorAll("#gmc .gmc-btn")].find(x => x.textContent === "M3"); a && a.click(); });
+      const r = await poll(async () => { const t = await textOf(p), b2 = await barOf(p); return /\$[\d,]+ to \$[\d,]+/.test(t) && b2 && /M3/.test(b2.line) ? { t, b2 } : null; }, 60000);
+      check("partial car (crew): tapping M3 runs Market Check for the 2009 BMW M3 and the bar carries the full car", !!r && /MARKET CHECK \| 2009 BMW M3/.test(r.t) && r.b2.line === "2009 BMW M3", r && r.b2.line);
+    }
+    const pills = bar ? bar.pills : []; await p.close();
+    const tp = pills.find(x => x.l === "Tasks");
+    if (tp) { const q = await open(true); await q.goto(new URL(tp.h, SITE).href, { waitUntil: "networkidle2" }); const r = await poll(async () => { const v = await q.evaluate(() => (document.getElementById("pq") || {}).value), b2 = await barOf(q); return v && b2 ? { v, b2 } : null; }, 30000);
+      check("partial car (crew): the Tasks pill fills the request box with '2009 BMW' and the bar shows", !!r && /^2009 BMW\s*$/.test(r.v) && r.b2.line === "2009 BMW", r && JSON.stringify([r.v, r.b2.line])); await q.close(); }
+    const sp = pills.find(x => x.l === "Sell");
+    if (sp) { const q = await open(true); await q.goto(new URL(sp.h, SITE).href, { waitUntil: "networkidle2" }); const r = await poll(async () => { const t = await textOf(q), b2 = await barOf(q); return /Which state is it in\?/.test(t) && b2 ? { t, b2 } : null; }, 30000);
+      check("partial car (crew): the Sell pill opens Sell with the bar '2009 BMW' at its first question", !!r && r.b2.line === "2009 BMW", r && r.b2.line); await q.close(); }
+    const fp = pills.find(x => x.l === "Find");
+    if (fp) { const q = await open(true); await q.goto(new URL(fp.h, SITE).href, { waitUntil: "networkidle2" }); const r = await poll(async () => { const t = await textOf(q), b2 = await barOf(q); return /live match/i.test(t) && b2 ? { t, b2 } : null; }, 60000);
+      check("partial car (crew): the Find pill opens the results with the bar '2009 BMW'", !!r && r.b2.line === "2009 BMW", r && r.b2.line); await q.close(); }
+    { const q = await open(true); await q.goto(SITE + "/market-check", { waitUntil: "networkidle2" }); await q.type("#pq", "1950 Toyota"); await q.keyboard.press("Enter");
+      const afterOf = t => t.slice(t.indexOf("Search a car") + 12, t.indexOf("Real sales only") > 0 ? t.indexOf("Real sales only") : undefined).replace(/[|→\s]+/g, " ").trim();
+      const after = (await poll(async () => { const a = afterOf(await textOf(q)); return a.length > 10 ? a : null; }, 20000)) || "";
+      check("partial car (crew): a make and year with nothing sold ('1950 Toyota') prints the engine's one line", after.length > 10, JSON.stringify(after)); await q.close(); }
+    { const q = await open(true); await q.goto(SITE + "/market-check", { waitUntil: "networkidle2" }); await q.type("#pq", "2009 BMW"); await q.keyboard.press("Enter"); await poll(async () => (await gmc(q)).buttons.length ? 1 : 0);
+      await q.setOfflineMode(true); await q.click("#ob-input", { clickCount: 3 }).catch(() => {}); await q.type("#ob-input", "2009 Audi").catch(() => {}); await q.keyboard.press("Enter");
+      const t = (await poll(async () => { const x = await textOf(q); return /trouble|try again|couldn.t|could not|went wrong|not read|offline|failed/i.test(x) ? x : null; }, 15000)) || await textOf(q); check("partial car (crew): a request that breaks after the choices show still prints a failure line", /trouble|try again|couldn.t|could not|went wrong|not read|offline|failed/i.test(t), (await gmc(q)).buttons.length + " choices still drawn; " + t.slice(0, 160)); await q.setOfflineMode(false); await q.close(); }
+  }
+  { const p = await open(false); await p.goto(SITE + "/market-check", { waitUntil: "networkidle2" }); await p.type("#pq", "2009 BMW"); await p.keyboard.press("Enter");
+    await poll(async () => /Which BMW\?/.test(await textOf(p)), 45000); await quiet(p); const g = await gmc(p), b2 = await barOf(p);
+    check("partial car (visitor): Market Check '2009 BMW' is the older 'Which BMW?' question, no new choice block, no bar", g.blocks === 0 && g.older === true && !b2, JSON.stringify([g.blocks, g.older, b2 && b2.line])); await p.close(); }
+  { const p = await open(false); await p.goto(SITE + "/market-check", { waitUntil: "networkidle2" }); await p.type("#pq", "2009 BMW M3"); await p.keyboard.press("Enter"); const b2 = await poll(() => barOf(p), 45000);
+    check("partial car (visitor): a full car '2009 BMW M3' keeps the public bar", !!b2 && b2.line === "2009 BMW M3" && b2.pills.length === 4, b2 && b2.line); await p.close(); }
 }
 // ---- 4. the variant rows: crew only, the engine's answer, each row matches its own page ----------------------------------------------------------------------------------------------------------------
 {
@@ -195,10 +237,10 @@ await barSuite(false, "visitor");
     if (row) { const q = await open(true); await q.goto(new URL(row.href, SITE).href, { waitUntil: "networkidle2" }); await answered(q); const t = await textOf(q);
       const n = (row.sales.match(/\d+/) || [""])[0];
       check("rows (crew): the row '" + row.label + "' opens a page with the same range and sales it showed", (!row.range || t.includes(row.range)) && new RegExp("(^|[^\\d,])" + n + "( sales| sale|\\b)").test(t), row.range + " | " + row.sales + " | " + t.slice(0, 300)); await q.close(); }
-    const ta = await mcSearch(true, "1987 Pontiac Firebird Trans Am"); const rt = await rowsOf(ta.p).catch(() => null); await new Promise(x => setTimeout(x, 3000)); const rt2 = await rowsOf(ta.p).catch(() => null);
+    const ta = await mcSearch(true, "1987 Pontiac Firebird Trans Am"); const rt = await rowsOf(ta.p).catch(() => null); await quiet(ta.p); const rt2 = await rowsOf(ta.p).catch(() => null);
     check("rows (crew): '1987 Pontiac Firebird Trans Am' shows no rows (the variant is stated)", !rt && !rt2, JSON.stringify(rt2 || rt)); await ta.p.close();
   }
-  const v = await mcSearch(false, "1987 Pontiac Firebird"); await new Promise(x => setTimeout(x, 6000));
+  const v = await mcSearch(false, "1987 Pontiac Firebird"); await quiet(v.p);
   const rv = await rowsOf(v.p).catch(() => null);
   check("rows (visitor): '1987 Pontiac Firebird' shows no variant rows", !rv && !/vrs-mod|vrs-css/.test(await v.p.content()), JSON.stringify(rv));
   check("rows (visitor): ...and the car bar shows", !(await noBar(v.p)));
