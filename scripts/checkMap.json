@@ -21,7 +21,9 @@
   "scripts/checkMap.json"
  ],
  "notes": {
-  "clock": "expiredRowServedCheck and questionColdCheck fail between 00:00 and 03:00 UTC (a row 2 to 3 hours old is then from the earlier UTC day); that is the clock, not running beside other checks"
+  "clock": "expiredRowServedCheck and questionColdCheck fail between 00:00 and 03:00 UTC (a row 2 to 3 hours old is then from the earlier UTC day); that is the clock, not running beside other checks",
+  "origin_main": "tasksBadgeCheck and tasksCrewExportCheck copy api/tasks.js from origin/main (git show) into a temporary file next to this worktree's lib; when origin/main moves ahead of the worktree they fail on an import the worktree does not have. Run them on a tree rebased on origin/main.",
+  "unstable": "searchCheck and reasonWordsCheck give different counts between runs even one at a time (searchCheck 3 pass 0 fail exit 1 serial, 10 pass beside others; reasonWordsCheck 882/3, 748/2, 175/0 in different runs): they depend on something the runner does not control (network, the archive or the order of an object). Not an effect of running side by side."
  },
  "checks": {
   "amazonCarStateCheck": {
@@ -1082,6 +1084,7 @@
   "crewWiringCheck": {
    "file": "scripts/crewWiringCheck.mjs",
    "kind": "offline",
+   "serial": "browser checks that count how many times an action ran or wait for a rendered state; they fail about one run in three when seven checks share the processor (valueIntentCheck: 'the action completes exactly once (opens 2)'), and pass alone",
    "covers": [
     "api/crewPage.js",
     "lib/_crew.js",
@@ -5519,6 +5522,11 @@
   "runChecksCheck": {
    "file": "scripts/runChecksCheck.mjs",
    "kind": "offline",
+   "extra": [
+    "scripts/runChecks.mjs",
+    "scripts/_checkGraph.mjs",
+    "scripts/buildCheckMap.mjs"
+   ],
    "covers": [
     "docs/",
     "lib/",
@@ -5528,6 +5536,8 @@
     "lib/onebox.js",
     "lib/vehicle.js",
     "scripts/",
+    "scripts/_checkGraph.mjs",
+    "scripts/buildCheckMap.mjs",
     "scripts/checkMap.json",
     "scripts/runChecks.mjs"
    ]
@@ -7067,6 +7077,7 @@
   "valueIntentCheck": {
    "file": "scripts/valueIntentCheck.mjs",
    "kind": "offline",
+   "serial": "browser checks that count how many times an action ran or wait for a rendered state; they fail about one run in three when seven checks share the processor (valueIntentCheck: 'the action completes exactly once (opens 2)'), and pass alone",
    "covers": [
     "api/buy.js"
    ]
