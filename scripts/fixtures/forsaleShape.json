@@ -120,5 +120,26 @@
   "seller_name",
   "zip"
  ],
- "descriptionNeverReturned": true
+ "descriptionNeverReturned": true,
+ "laneFActiveUsLast24h": {
+  "_about": "Lane F's real pull (docs/classifieds/vin-history.md on lane-f-forsale-vins at d10a771c, Nov 18 2026): US listings last seen in the 24 hours before the pull, by source. Counts only.",
+  "autotraderclassics": 34835,
+  "classiccars": 28818,
+  "dupontregistry": 8978,
+  "streetside": 1485,
+  "classicautomall": 699,
+  "grautogallery": 590,
+  "barnfinds": 561,
+  "fusionmotorco": 126,
+  "autobarnclassiccars": 122,
+  "vanguardmotorsales": 107,
+  "ellingsonmotorcars": 89,
+  "rkmotors": 73,
+  "pjsautoworld": 59,
+  "restoreamusclecar": 41,
+  "supersportclassics": 41,
+  "driversource": 40,
+  "gpmotorsports": 21,
+  "gaudinclassic": 5
+ }
 }

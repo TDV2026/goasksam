@@ -25,7 +25,15 @@ const RULES = await tryImp("lib/forsale/rules.js") || { typeOf() {}, pulledSourc
 const HAVE = !!(await tryImp("lib/forsale/rules.js") && await tryImp("api/pullForSale.js"));
 const BUY = (await imp("api/buySearch.js")).default, MC = (await imp("api/sellerDecision.js")).default, PULL = ((await tryImp("api/pullForSale.js")) || { default: async () => { throw new Error("api/pullForSale.js is not in this tree"); } }).default;
 const SP = await imp("lib/live/samChat.js");
+const BUD = (await tryImp("lib/forsale/budget.js")) || { BUDGET: {}, planRun: () => ({}), daysLeft: () => 0, cycleStart: () => new Date(0), callsFor: () => -1 }, INGEST = await tryImp("lib/forsale/ingest.js");
+const BUDGET = BUD ? BUD.BUDGET : {};   // the SAME config object the handler reads: a case sets a number here, as a person would in data/forsaleBudget.json
+const SHIPPED = fs.existsSync(path.join(ROOT, "data/forsaleBudget.json")) ? JSON.parse(fs.readFileSync(path.join(ROOT, "data/forsaleBudget.json"), "utf8")) : null;
+let REMAIN = 90000, SEED_FS = 0, SEED_AUC = 0, USAGE_DOWN = false;   // the vendor's own count left, queries counted before this run (for sale, auction feed), the usage table unreadable
 const DAY = 864e5, HOUR = 36e5, NOW = Date.now(), ago = h => new Date(NOW - h * HOUR).toISOString();
+// THE WORLD OF THE OLDER CASES: a person has set a budget and switched every group on (the shipped default is 0 and autotraderclassics off: its own cases are in section 8). The same config object the handler reads.
+const WORLD_CFG = { plan_monthly: 100000, auction_reserve_monthly: 10, forsale_monthly_budget: 90000, forsale_run_cap: 400, cycle_reset_day: 25, max_pages_per_source: 400, pull: { dealers: true, classifieds: true, autotraderclassics: true }, schedule: { pull_on: false, prepare_on: false } };
+const setCfg = over => { for (const k of Object.keys(BUDGET)) delete BUDGET[k]; Object.assign(BUDGET, JSON.parse(JSON.stringify({ ...WORLD_CFG, ...over }))); };
+if (BUD) setCfg({});
 
 // ---- the world: an archive that sold 1987 Porsche 911s and 2009 BMW M3s (the engine reads it through its own queries), the stored answers, a live board, the vendor and OUR table ----
 const CARS = [
@@ -94,7 +102,7 @@ const applyFilter = (rows, u) => {   // a plain PostgREST over our table: the fi
 globalThis.fetch = async (url, init) => {
   const s = String(url), u = new URL(s), p = u.pathname;
   if (/api\.anthropic\.com/.test(s)) return fakeModel(init);
-  if (u.host === "api.oldcarsdata.com" && p === "/classifieds") { const hdr = init && init.headers || {}; if (!/Bearer /.test(String(hdr.Authorization || ""))) return new Response("{}", { status: 401 }); return new Response(JSON.stringify(pageOf(u)), { status: 200, headers: { "x-ratelimit-remaining": "90000", "x-ratelimit-limit": "100000" } }); }
+  if (u.host === "api.oldcarsdata.com" && p === "/classifieds") { const hdr = init && init.headers || {}; if (!/Bearer /.test(String(hdr.Authorization || ""))) return new Response("{}", { status: 401 }); return new Response(JSON.stringify(pageOf(u)), { status: 200, headers: { "x-ratelimit-remaining": String(REMAIN), "x-ratelimit-limit": "100000" } }); }
   if (p.endsWith("/for_sale_listings")) {
     const method = (init && init.method) || "GET";
     if (method === "POST") { const rows = JSON.parse(init.body); DB_WRITES.push(...rows); for (const r of rows) { const i = TABLE.findIndex(x => x.source === r.source && x.source_listing_id === r.source_listing_id); if (i >= 0) Object.assign(TABLE[i], r); else TABLE.push({ id: TID++, first_seen: new Date().toISOString(), resolve_state: null, read: null, history: null, car: null, car_key: null, gone: false, ...r }); } return new Response("", { status: 201 }); }
@@ -104,7 +112,17 @@ globalThis.fetch = async (url, init) => {
     const rg = init && init.headers && (init.headers.Range || init.headers.range); if (rg) { const m = /(\d+)-(\d+)/.exec(rg); if (m) hit = hit.slice(Number(m[1]), Number(m[2]) + 1); }
     return new Response(JSON.stringify(hit), { status: 200 });
   }
-  if (p.endsWith("/app_usage_events")) { if (init && init.method === "POST") { USAGE.push(init.body); return new Response("", { status: 201 }); } return new Response("[]", { status: 200 }); }
+  if (p.endsWith("/app_config") && u.searchParams.get("key") === "eq.ocd_rate_limit") return new Response(JSON.stringify(REMAIN == null ? [] : [{ value: JSON.stringify({ remaining: REMAIN, at: Date.now() }) }]), { status: 200 });   // the vendor's own count left, as the live jobs keep it
+  if (p.endsWith("/app_usage_events")) {
+    if (init && init.method === "POST") { USAGE.push(init.body); return new Response("", { status: 201 }); }
+    if (USAGE_DOWN) return new Response("{}", { status: 500 });
+    const posted = USAGE.map(b => { try { return JSON.parse(b); } catch { return null; } }).filter(Boolean);
+    if (/^in\.\(forsale_pull/.test(u.searchParams.get("event_type") || "")) { const last = posted.filter(e => /^forsale_pull/.test(e.event_type)).pop(); return new Response(JSON.stringify(last ? [{ created_at: new Date().toISOString(), event_type: last.event_type, metadata: last.metadata }] : []), { status: 200 }); }
+    const job = (u.searchParams.get("metadata->>job") || "").replace(/^eq\./, "");   // what the budget counts: the metered rows the vendor client wrote (one per call), by job
+    const rows = posted.filter(e => e.event_type === "ocd_call" && (!job || (e.metadata && e.metadata.job === job))).map(e => ({ oldcarsdata_metered_requests: e.oldcarsdata_metered_requests }));
+    rows.push({ oldcarsdata_metered_requests: (job ? 0 : SEED_AUC) + SEED_FS });
+    return new Response(JSON.stringify(rows), { status: 200 });
+  }
   if (p.endsWith("/taxonomy_makes")) return new Response(JSON.stringify(["BMW", "Porsche", "Audi"].map(name => ({ name }))), { status: 200 });
   if (p.endsWith("/live_listings")) { const make = (u.searchParams.get("make") || "").replace(/^ilike\./, "").replace(/\*/g, "").toLowerCase(); return new Response(JSON.stringify(LIVE.filter(r => (!make || r.make.toLowerCase().includes(make)) && r.status === "live")), { status: 200 }); }
   if (p.endsWith("/vin_index")) return new Response("[]", { status: 200 });
@@ -401,6 +419,129 @@ await section("each rule on its own (the pure rule, one row at a time)", async (
     globalThis.fetch = f0;
     ok("the prepare job never runs more than three engine reads at once (the standing limit of heavy reads), whatever it is asked for", maxCur >= 2 && maxCur <= 3, maxCur);
   }
+});
+
+// ================= 8. THE BUDGET, THE RESERVE, THE RUN CAP, THE ORDER, THE SCHEDULE (Lane D, Nov 18 2026; Lane F's real pull: 76,690 listings, about 770 queries a full pull, against a plan of 10,000 the auction feed shares) =================
+// CAUSE this guards: the pull was built on a census count (10,054 listings, about 90 queries) with no spending limit of its own: it would have drawn about 92,000 queries a month from a plan of 10,000 and taken the auction feed's allowance. CLASS: any
+// job that spends vendor queries must have its own budget and a per run cap read from one config (default 0), keep a hard reserve for the auction feed, stop cleanly (marking nothing gone) and say so in the report, and no schedule may fire until a person says so.
+await section("budget", async () => {
+  process.env.CRON_SECRET = process.env.CRON_SECRET || "cron-secret-" + "Bq3Lw8Vn"; const CRON = "Bearer " + process.env.CRON_SECRET;
+  const probeHdr = { "x-ops-key": PROBE }, n = () => VENDOR_CALLS.length, writes = () => DB_WRITES.length;
+  const pull = async (extra = "") => { const before = n(), r = await call(PULL, "/api/pullForSale?mode=pull" + extra, { crew: false, headers: probeHdr }); return { r, o: json(r) || {}, calls: VENDOR_CALLS.slice(before) }; };
+  const postedFs = () => USAGE.map(b => { try { return JSON.parse(b); } catch { return null; } }).filter(e => e && e.event_type === "ocd_call" && e.metadata && e.metadata.job === "pull_for_sale").reduce((t, e) => t + (Number(e.oldcarsdata_metered_requests) || 0), 0);
+  const setSpent = k => { SEED_FS = k - postedFs(); };       // what this cycle has cost so far, counted from the metered rows (the run's own rows are in it)
+  const all = RULES.pulledSources(), DEALERS = all.filter(k => RULES.typeOf(k) === "dealer");
+  const backdate = () => TABLE.forEach(r => { r.pulled_at = new Date(Date.now() - 10 * 60e3).toISOString(); });
+  // ---- A. THE SHIPPED DEFAULT: 0, nothing is pulled until a person sets it ----
+  ok("the shipped config exists and a person can read it: a plan, an auction reserve, a budget, a per run cap, the groups and the schedule switches", !!SHIPPED && ["plan_monthly", "auction_reserve_monthly", "forsale_monthly_budget", "forsale_run_cap", "pull", "schedule"].every(k => k in SHIPPED), SHIPPED && Object.keys(SHIPPED));
+  ok("the shipped budget and per run cap are 0", !!SHIPPED && SHIPPED.forsale_monthly_budget === 0 && SHIPPED.forsale_run_cap === 0, SHIPPED && [SHIPPED.forsale_monthly_budget, SHIPPED.forsale_run_cap]);
+  ok("the shipped plan is the 10,000 the auction feed shares, with a hard reserve for auctions above 0 and under the plan", !!SHIPPED && SHIPPED.plan_monthly === 10000 && SHIPPED.auction_reserve_monthly > 0 && SHIPPED.auction_reserve_monthly < SHIPPED.plan_monthly, SHIPPED && [SHIPPED.plan_monthly, SHIPPED.auction_reserve_monthly]);
+  ok("the shipped schedule is off for the pull and for prepare", !!SHIPPED && SHIPPED.schedule && SHIPPED.schedule.pull_on === false && SHIPPED.schedule.prepare_on === false);
+  ok("autotraderclassics ships switched off, the dealers and the other classifieds on", !!SHIPPED && SHIPPED.pull && SHIPPED.pull.autotraderclassics === false && SHIPPED.pull.dealers === true && SHIPPED.pull.classifieds === true);
+  if (SHIPPED) { for (const k of Object.keys(BUDGET)) delete BUDGET[k]; Object.assign(BUDGET, JSON.parse(JSON.stringify(SHIPPED))); }
+  REMAIN = 90000; setSpent(0);
+  let w0 = writes(), u0 = USAGE.length; let a = await pull();
+  ok("with the shipped config a pull makes no vendor query, writes nothing, and says why (budget_zero)", a.r.code === 200 && a.calls.length === 0 && writes() === w0 && a.o.skipped === "budget_zero" && a.o.vendorQueries === 0 && /0/.test(String(a.o.why)), [a.r.code, a.calls.length, a.o.skipped]);
+  ok("a skipped pull is recorded as a usage row", USAGE.slice(u0).some(b => /forsale_pull_skipped/.test(b)));
+  setCfg({ forsale_run_cap: 0 }); a = await pull(); ok("a monthly budget with a per run cap of 0 pulls nothing", a.calls.length === 0 && a.o.skipped === "budget_zero", a.o.skipped);
+  setCfg({ forsale_monthly_budget: 0 }); a = await pull(); ok("a per run cap with a monthly budget of 0 pulls nothing", a.calls.length === 0 && a.o.skipped === "budget_zero", a.o.skipped);
+  setCfg({ forsale_monthly_budget: "ten" }); a = await pull(); ok("a budget that is not a number is 0 (nothing is pulled)", a.calls.length === 0, a.o.skipped);
+
+  // ---- B. THE PER RUN CAP: stops cleanly after exactly that many queries, marks nothing gone, says where ----
+  setCfg({ forsale_run_cap: 3 }); setSpent(0); REMAIN = 90000;
+  const gi = DATASET.findIndex(d => d.source === "streetside" && d.vin === vin(5)), removed = DATASET.splice(gi, 1)[0]; backdate();
+  const goneBefore = TABLE.filter(r => r.gone).length;
+  a = await pull();
+  ok("a per run cap of 3 makes exactly 3 vendor queries", a.calls.length === 3 && a.o.vendorQueries === 3, [a.calls.length, a.o.vendorQueries]);
+  ok("the run walked the dealers first, in the file's order", a.calls.map(c => c.source).join() === DEALERS.slice(0, 3).join(), a.calls.map(c => c.source));
+  ok("the run says it stopped, why (the allowance), where, and what it had not done", !!a.o.stopped && a.o.stopped.reason === "allowance" && a.o.stopped.source === DEALERS[3] && a.o.stopped.sourcesLeft.length === all.length - 3, a.o.stopped);
+  ok("a run that stops marks NOTHING gone (a source it did finish, no longer listing a car, still holds it)", a.o.markedGone === 0 && TABLE.filter(r => r.gone).length === goneBefore && TABLE.find(r => r.vin === vin(5) && r.source === "streetside").gone === false, [a.o.markedGone]);
+  ok("the run names its binding limit and the plan it was given", a.o.binding === "run_cap" && a.o.plan && a.o.plan.limits.runCap === 3, [a.o.binding, a.o.plan]);
+  // the report route says so, spends nothing
+  const q0 = n(), rep = json(await call(PULL, "/api/pullForSale?report=1", { crew: false, headers: probeHdr })) || {}, B = rep.budget || {};
+  ok("the report route says the last run stopped, why and where, with the vendor untouched", n() === q0 && rep.vendorQueries === 0 && B.lastRun && B.lastRun.stopped && B.lastRun.stopped.reason === "allowance" && B.lastRun.stopped.source === DEALERS[3] && B.lastRun.requests === 3, B.lastRun);
+  ok("the report route gives the budget: the plan, the reserve, the budget, the run cap, what this cycle has cost, the vendor's count left, the next run's allowance and the limit that binds", ["planMonthly", "auctionReserveMonthly", "forsaleMonthlyBudget", "forsaleRunCap", "spentThisCycle", "vendorRemaining", "nextRunAllowance", "nextRunBinding", "pull", "schedule"].every(k => k in B) && B.spentThisCycle === 3 && B.nextRunAllowance === 3, B);
+  // a run that EXACTLY fits is not a stop: it finishes, and a complete walk marks what is gone
+  setCfg({ forsale_run_cap: all.length }); setSpent(0); backdate();
+  a = await pull();
+  ok("a run whose allowance exactly covers every source finishes (no stop) and uses all of it", a.calls.length === all.length && a.o.stopped === null, [a.calls.length, a.o.stopped]);
+  ok("a finished run marks the car that left its source as gone", a.o.markedGone >= 1 && TABLE.find(r => r.vin === vin(5) && r.source === "streetside").gone === true, a.o.markedGone);
+  DATASET.push(removed); setCfg({}); setSpent(0); await pull();
+  ok("a car that comes back is live again", TABLE.find(r => r.vin === vin(5) && r.source === "streetside").gone === false);
+
+  { const calls = []; const out = INGEST ? await INGEST.pullForSale({ supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" }, KEY, { call: async p => { calls.push(p); return { data: [], meta: { has_more: false, next_cursor: null } }; } }) : { requests: -1 };
+    ok("the pull itself, given no allowance, makes no vendor query (a caller that forgets one spends nothing)", calls.length === 0 && out.requests === 0, [calls.length, out.requests]);
+    const out2 = INGEST ? await INGEST.pullForSale({ supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" }, KEY, { maxRequests: 2, call: async p => { calls.push(p); return { data: [], meta: { has_more: true, next_cursor: "x" } }; } }) : { requests: -1 };
+    ok("the pull itself, given an allowance of 2, makes 2 and says it stopped on the allowance", calls.length === 2 && out2.requests === 2 && out2.stopped && out2.stopped.reason === "allowance" && out2.markedGone === 0, [calls.length, out2.stopped]); }
+  // ---- C. THE MONTHLY BUDGET: its own, counted from the metered rows; the next run sees what the last spent ----
+  setCfg({ forsale_monthly_budget: 10, forsale_run_cap: 400 }); setSpent(8);
+  a = await pull();
+  ok("8 spent of a monthly budget of 10: the run is given 2 and makes 2", a.calls.length === 2 && a.o.stopped && a.o.stopped.reason === "allowance" && a.o.binding === "monthly_budget", [a.calls.length, a.o.binding]);
+  a = await pull();
+  ok("then 10 are spent (counted from the metered rows the first run wrote): the next run makes none and says the budget is spent", a.calls.length === 0 && a.o.skipped === "monthly_budget" && a.o.plan.spentCycle === 10, [a.calls.length, a.o.skipped, a.o.plan && a.o.plan.spentCycle]);
+  setCfg({ plan_monthly: 1000, auction_reserve_monthly: 700, forsale_monthly_budget: 5000, forsale_run_cap: 400 }); setSpent(299);
+  a = await pull();
+  ok("a budget above plan minus the auction reserve is held to it: 299 spent of a room of 300, one query", a.calls.length === 1 && a.o.plan.monthlyCap === 300, [a.calls.length, a.o.plan && a.o.plan.monthlyCap]);
+  setSpent(300); a = await pull();
+  ok("300 spent, the room is gone: the for sale pull cannot spend the auction feed's allowance whatever its own budget says", a.calls.length === 0 && a.o.skipped === "monthly_budget", [a.calls.length, a.o.skipped]);
+
+  // ---- D. THE AUCTION FEED'S RESERVE, from the vendor's own count left ----
+  const RES = () => Math.ceil(300000 * Math.min(1, BUD.daysLeft(Date.now(), 25) / 30));
+  setCfg({ plan_monthly: 1000000, auction_reserve_monthly: 300000, forsale_monthly_budget: 900000, forsale_run_cap: 400 }); setSpent(0);
+  REMAIN = RES() + 5; a = await pull();
+  ok("the vendor's count left is 5 above what the auction feed is kept for the days left: 5 queries, no more", a.calls.length === 5 && a.o.binding === "auction_reserve", [a.calls.length, a.o.binding]);
+  REMAIN = RES(); a = await pull();
+  ok("the vendor's count left is exactly the auction feed's reserve: the pull makes no query", a.calls.length === 0 && a.o.skipped === "auction_reserve", [a.calls.length, a.o.skipped]);
+  REMAIN = RES() - 500; a = await pull();
+  ok("under the reserve: no query", a.calls.length === 0 && a.o.skipped === "auction_reserve", [a.calls.length, a.o.skipped]);
+  ok("the reserve is the auction feed's use scaled to the days left in the cycle (it shrinks as the cycle runs out)", BUD.planRun({ cfg: { plan_monthly: 10000, auction_reserve_monthly: 7000, forsale_monthly_budget: 5000, forsale_run_cap: 400, cycle_reset_day: 25 }, spentCycle: 0, remaining: 5000, now: Date.UTC(2026, 10, 18, 12) }).reserveLeft === Math.ceil(7000 * (Date.UTC(2026, 10, 25) - Date.UTC(2026, 10, 18, 12)) / 864e5 / 30));
+  REMAIN = 90000;
+
+  // ---- E. WHAT IT CANNOT PROVE IT MAY NOT SPEND ----
+  setCfg({}); setSpent(0); USAGE_DOWN = true; a = await pull(); USAGE_DOWN = false;
+  ok("the usage table unreadable: the run cannot count what the cycle has cost, so it spends nothing", a.calls.length === 0 && a.o.skipped === "spend_unreadable", [a.calls.length, a.o.skipped]);
+  REMAIN = null; a = await pull(); REMAIN = 90000;
+  ok("the vendor's count left unknown: the reserve cannot be proved, so it spends nothing", a.calls.length === 0 && a.o.skipped === "remaining_unknown", [a.calls.length, a.o.skipped]);
+  ok("the pure plan, every edge: zero budget, zero cap, spent, reserve, unknowns", (() => {
+    const base = { plan_monthly: 10000, auction_reserve_monthly: 7000, forsale_monthly_budget: 2000, forsale_run_cap: 100, cycle_reset_day: 25 }, now = Date.UTC(2026, 10, 18, 12), P = (o, x) => BUD.planRun({ cfg: { ...base, ...o }, spentCycle: 0, remaining: 9000, now, ...x }).allowance;
+    const RL = Math.ceil(7000 * (Date.UTC(2026, 10, 25) - now) / 864e5 / 30);   // what the auction feed is kept for the days left
+    return P({}) === 100 && P({ forsale_run_cap: 0 }) === 0 && P({ forsale_monthly_budget: 0 }) === 0 && P({}, { spentCycle: 1950 }) === 50 && P({}, { spentCycle: 2000 }) === 0 && P({ forsale_monthly_budget: 99999 }, { spentCycle: 2999 }) === 1 && P({ forsale_monthly_budget: 99999 }, { spentCycle: 3000 }) === 0
+      && P({}, { spentCycle: null }) === 0 && P({}, { remaining: null }) === 0 && P({}, { remaining: 1000 }) === 0 && P({}, { remaining: RL }) === 0 && P({}, { remaining: RL + 60 }) === 60 && P({}, { remaining: RL + 5000 }) === 100 && P({ auction_reserve_monthly: 10000 }) === 0;
+  })());
+  ok("the billing cycle begins on the reset day, across a year end", [[Date.UTC(2026, 10, 18), Date.UTC(2026, 9, 25)], [Date.UTC(2026, 10, 25, 3), Date.UTC(2026, 10, 25)], [Date.UTC(2027, 0, 3), Date.UTC(2026, 11, 25)]].every(([now, want]) => BUD.cycleStart(now, 25).getTime() === want));
+
+  // ---- F. THE ORDER AND THE SWITCHES: the dealers first, then the classifieds, autotraderclassics last and its own switch ----
+  setCfg({}); setSpent(0); a = await pull(); const order = [...new Set(a.calls.map(c => c.source))];
+  ok("every dealer is walked before any classified, and autotraderclassics is the last of all", order.length === all.length && order.slice(0, DEALERS.length).every(k => RULES.typeOf(k) === "dealer") && order.slice(DEALERS.length).every(k => RULES.typeOf(k) === "classified") && order[order.length - 1] === "autotraderclassics", order);
+  setCfg({ pull: { dealers: true, classifieds: true, autotraderclassics: false } }); setSpent(0); a = await pull();
+  ok("autotraderclassics switched off on its own: it is never asked for, the other classifieds still are", !a.calls.some(c => c.source === "autotraderclassics") && a.calls.some(c => c.source === "classiccars") && a.calls.some(c => c.source === "streetside"), [...new Set(a.calls.map(c => c.source))]);
+  setCfg({ pull: { dealers: true, classifieds: false, autotraderclassics: false } }); setSpent(0); a = await pull();
+  ok("dealers only: the dealers' sources and nothing else", a.calls.length === DEALERS.length && a.calls.every(c => RULES.typeOf(c.source) === "dealer"), [...new Set(a.calls.map(c => c.source))]);
+  setCfg({ pull: { dealers: false, classifieds: false, autotraderclassics: true } }); setSpent(0); a = await pull();
+  ok("autotraderclassics alone: only it", a.calls.length >= 1 && a.calls.every(c => c.source === "autotraderclassics"), [...new Set(a.calls.map(c => c.source))]);
+  ok("a held source is never in any order, whatever the switches", ["gatewayclassiccars", "lowmilesnomiles", "carandclassic"].every(k => !RULES.pulledSources({ dealers: true, classifieds: true, autotraderclassics: true }).includes(k)));
+
+  // ---- G. THE REAL CALLS A PULL COSTS, from Lane F's per source counts (100 a page is the vendor's largest) ----
+  const C = SHAPE.laneFActiveUsLast24h || {}, order0 = RULES.pulledSources({ dealers: true, classifieds: true, autotraderclassics: true });
+  const dealerSrc = order0.filter(k => RULES.typeOf(k) === "dealer"), classSrc = order0.filter(k => RULES.typeOf(k) === "classified" && k !== "autotraderclassics");
+  ok("the calls per pull from Lane F's counts: the 14 dealers 42, the three other classifieds 385, autotraderclassics 349, everything 776 (the order's about 770)", BUD.callsFor(C, dealerSrc) === 42 && BUD.callsFor(C, classSrc) === 385 && BUD.callsFor(C, ["autotraderclassics"]) === 349 && BUD.callsFor(C, order0) === 776, [BUD.callsFor(C, dealerSrc), BUD.callsFor(C, classSrc), BUD.callsFor(C, ["autotraderclassics"]), BUD.callsFor(C, order0)]);
+  const op = JSON.parse(fs.readFileSync(path.join(ROOT, "scripts/fixtures/forsaleShape.json"), "utf8"));
+  ok("the vendor's published page size is 100 at most (no larger page is offered) and the pull asks for it", op.limitMax === 100 && (INGEST ? INGEST.PAGE === 100 : false), [op.limitMax]);
+
+  // ---- H. NO SCHEDULE FIRES UNTIL SAM SAYS SO ----
+  const vj = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
+  ok("vercel.json carries no cron for the for sale pull or prepare (the platform fires nothing)", !(vj.crons || []).some(c => /pullForSale/.test(c.path)), (vj.crons || []).filter(c => /pullForSale/.test(c.path)));
+  ok("vercel.json pins the function's maxDuration (300 seconds) and the pull stops itself before it", vj.functions && vj.functions["api/pullForSale.js"] && vj.functions["api/pullForSale.js"].maxDuration === 300 && /240000/.test(fs.readFileSync(path.join(ROOT, "lib/forsale/ingest.js"), "utf8")), vj.functions && vj.functions["api/pullForSale.js"]);
+  setCfg({ schedule: { pull_on: false, prepare_on: false } }); setSpent(0); const f0 = FSREADS.length; const q1 = n();
+  let r = await call(PULL, "/api/pullForSale?mode=pull", { crew: false, headers: { authorization: CRON } }); let o = json(r) || {};
+  ok("a scheduled pull call (Bearer cron secret) with the pull schedule off does nothing and says so", r.code === 200 && o.skipped === "schedule_off" && n() === q1, [r.code, o.skipped]);
+  r = await call(PULL, "/api/pullForSale?mode=prepare", { crew: false, headers: { authorization: CRON } }); o = json(r) || {};
+  ok("a scheduled prepare call with the prepare schedule off does nothing and says so (no engine run, no read of the table)", r.code === 200 && o.skipped === "schedule_off" && FSREADS.length === f0, [r.code, o.skipped]);
+  setCfg({ schedule: { pull_on: true, prepare_on: false } }); setSpent(0); r = await call(PULL, "/api/pullForSale?mode=pull", { crew: false, headers: { authorization: CRON } }); o = json(r) || {};
+  ok("switched on in the config, a scheduled pull runs (still inside the budget)", r.code === 200 && !o.skipped && n() > q1, [r.code, o.skipped]);
+  setCfg({}); setSpent(0);
+  const man = await call(PULL, "/api/pullForSale?mode=pull", { crew: false, headers: probeHdr }); ok("a person with the probe key can still run it by hand with the schedule off (inside the budget)", (json(man) || {}).skipped === undefined && man.code === 200);
+  ok("the vendor key is in no skipped answer, report or usage row of these cases", !everyWrite().includes(KEY) && !JSON.stringify(rep).includes(KEY));
 });
 
 // ================= 7. THE KEY NEVER IN ANY OUTPUT =================

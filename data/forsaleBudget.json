@@ -1,0 +1,12 @@
+{
+  "_about": "THE ONE CONFIG for the for sale pull's spending (Lane D, Nov 18 2026). A person changes numbers here and nothing else decides them. Every number is vendor queries (one a page of 100 listings). DEFAULT 0: nothing is pulled until a person sets forsale_monthly_budget and forsale_run_cap above 0. The for sale pull can never spend the auction feed's allowance: auction_reserve_monthly is a hard reserve (the pull's room is at most plan_monthly minus auction_reserve_monthly in a billing month, and a run also needs the vendor's own remaining count to stay above the reserve for the days left in the cycle). A run that would pass any limit stops at once, marks nothing gone, and the report says which limit and where.",
+  "plan_monthly": 10000,
+  "auction_reserve_monthly": 7000,
+  "auction_use_basis": "The auction feed's use this cycle, DERIVED from figures Lane F posted (plan 10,000; 4,963 remained before its pull; its pull took 1,035; the cycle resets about the 25th): 10,000 - 4,963 = 5,037 used in the 24 days since Oct 25, which is about 210 a day, about 6,300 a month. 7,000 is that plus about 10 percent. Not read from the usage table: correct it from app_usage_events (the report route prints the measured figure).",
+  "cycle_reset_day": 25,
+  "forsale_monthly_budget": 0,
+  "forsale_run_cap": 0,
+  "max_pages_per_source": 400,
+  "pull": { "dealers": true, "classifieds": true, "autotraderclassics": false },
+  "schedule": { "pull_on": false, "prepare_on": false }
+}

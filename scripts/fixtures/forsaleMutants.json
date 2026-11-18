@@ -309,8 +309,8 @@
   "edits": [
    {
     "file": "api/pullForSale.js",
-    "from": "const meta = { ...out, vendorQueries: getOcdRunMetered() - start };",
-    "to": "const meta = { ...out, key: apiKey, vendorQueries: getOcdRunMetered() - start };"
+    "from": "const meta = { ...out, vendorQueries: getOcdRunMetered() - start, binding: plan.binding,",
+    "to": "const meta = { ...out, key: apiKey, vendorQueries: getOcdRunMetered() - start, binding: plan.binding,"
    }
   ]
  },
@@ -319,8 +319,8 @@
   "edits": [
    {
     "file": "lib/forsale/ingest.js",
-    "from": "if (st.complete) {",
-    "to": "if (false) {"
+    "from": "if (!out.stopped) for (const source of complete) {",
+    "to": "if (false) for (const source of complete) {"
    }
   ]
  },
@@ -401,6 +401,281 @@
     "file": "lib/onebox.js",
     "from": "export const RANGE_THRESHOLD",
     "to": "// for_sale_listings\nexport const RANGE_THRESHOLD"
+   }
+  ]
+ },
+ {
+  "name": "budget: the shipped monthly budget and run cap are not 0 (it pulls before Sam sets it)",
+  "edits": [
+   {
+    "file": "data/forsaleBudget.json",
+    "from": "\"forsale_monthly_budget\": 0,",
+    "to": "\"forsale_monthly_budget\": 5000,"
+   },
+   {
+    "file": "data/forsaleBudget.json",
+    "from": "\"forsale_run_cap\": 0,",
+    "to": "\"forsale_run_cap\": 400,"
+   }
+  ]
+ },
+ {
+  "name": "budget: the shipped schedule is on",
+  "edits": [
+   {
+    "file": "data/forsaleBudget.json",
+    "from": "\"schedule\": { \"pull_on\": false, \"prepare_on\": false }",
+    "to": "\"schedule\": { \"pull_on\": true, \"prepare_on\": true }"
+   }
+  ]
+ },
+ {
+  "name": "budget: autotraderclassics ships on",
+  "edits": [
+   {
+    "file": "data/forsaleBudget.json",
+    "from": "\"autotraderclassics\": false",
+    "to": "\"autotraderclassics\": true"
+   }
+  ]
+ },
+ {
+  "name": "schedule: the pull cron is back in vercel.json",
+  "edits": [
+   {
+    "file": "vercel.json",
+    "from": "\"crons\": [",
+    "to": "\"crons\": [\n    { \"path\": \"/api/pullForSale?mode=pull\", \"schedule\": \"10 */6 * * *\" },"
+   }
+  ]
+ },
+ {
+  "name": "schedule: the prepare cron is back in vercel.json",
+  "edits": [
+   {
+    "file": "vercel.json",
+    "from": "\"crons\": [",
+    "to": "\"crons\": [\n    { \"path\": \"/api/pullForSale?mode=prepare\", \"schedule\": \"40 * * * *\" },"
+   }
+  ]
+ },
+ {
+  "name": "schedule: a scheduled call ignores the config switch",
+  "edits": [
+   {
+    "file": "api/pullForSale.js",
+    "from": "if (scheduled && (mode === \"prepare\" ? BUDGET.schedule.prepare_on : BUDGET.schedule.pull_on) !== true) {",
+    "to": "if (false) {"
+   }
+  ]
+ },
+ {
+  "name": "maxDuration is not pinned",
+  "edits": [
+   {
+    "file": "vercel.json",
+    "from": "    \"api/pullForSale.js\": {\n      \"maxDuration\": 300\n    },\n",
+    "to": ""
+   }
+  ]
+ },
+ {
+  "name": "budget: the monthly cap is not held to plan minus the auction reserve",
+  "edits": [
+   {
+    "file": "lib/forsale/budget.js",
+    "from": "const monthlyCap = Math.min(budget, Math.max(0, plan - reserve));",
+    "to": "const monthlyCap = budget;"
+   }
+  ]
+ },
+ {
+  "name": "budget: the auction reserve is not kept from the vendor's own count",
+  "edits": [
+   {
+    "file": "lib/forsale/budget.js",
+    "from": "const reserveRoom = Math.max(0, n0(remaining) - reserveLeft);",
+    "to": "const reserveRoom = 1e9;"
+   }
+  ]
+ },
+ {
+  "name": "budget: the reserve does not follow the days left",
+  "edits": [
+   {
+    "file": "lib/forsale/budget.js",
+    "from": "Math.min(1, daysLeft(now, cfg.cycle_reset_day) / 30)",
+    "to": "1"
+   }
+  ]
+ },
+ {
+  "name": "budget: the per run cap is ignored",
+  "edits": [
+   {
+    "file": "lib/forsale/budget.js",
+    "from": "const a = Math.min(runCap, monthlyLeft, reserveRoom);",
+    "to": "const a = Math.min(monthlyLeft, reserveRoom);"
+   }
+  ]
+ },
+ {
+  "name": "budget: what this cycle has spent is ignored",
+  "edits": [
+   {
+    "file": "lib/forsale/budget.js",
+    "from": "const monthlyLeft = Math.max(0, monthlyCap - n0(spentCycle));",
+    "to": "const monthlyLeft = monthlyCap;"
+   }
+  ]
+ },
+ {
+  "name": "budget: an unreadable spend count lets the run go on",
+  "edits": [
+   {
+    "file": "lib/forsale/budget.js",
+    "from": "if (spentCycle == null) {",
+    "to": "if (false) {"
+   }
+  ]
+ },
+ {
+  "name": "budget: an unknown vendor count lets the run go on",
+  "edits": [
+   {
+    "file": "lib/forsale/budget.js",
+    "from": "if (remaining == null) {",
+    "to": "if (false) {"
+   }
+  ]
+ },
+ {
+  "name": "budget: a zero budget is not a stop",
+  "edits": [
+   {
+    "file": "lib/forsale/budget.js",
+    "from": "if (!(budget > 0) || !(runCap > 0)) {",
+    "to": "if (false) {"
+   }
+  ]
+ },
+ {
+  "name": "handler: a plan with no allowance still pulls",
+  "edits": [
+   {
+    "file": "api/pullForSale.js",
+    "from": "if (plan.allowance < 1) {\n      const skipped",
+    "to": "if (false) {\n      const skipped"
+   }
+  ]
+ },
+ {
+  "name": "ingest: the allowance is ignored",
+  "edits": [
+   {
+    "file": "lib/forsale/ingest.js",
+    "from": "if (out.requests >= allowance) {",
+    "to": "if (false) {"
+   }
+  ]
+ },
+ {
+  "name": "ingest: a stopped run still marks gone",
+  "edits": [
+   {
+    "file": "lib/forsale/ingest.js",
+    "from": "if (!out.stopped) for (const source of complete) {",
+    "to": "for (const source of complete) {"
+   }
+  ]
+ },
+ {
+  "name": "ingest: no allowance given pulls anyway",
+  "edits": [
+   {
+    "file": "lib/forsale/ingest.js",
+    "from": "const allowance = Math.max(0, Math.floor(Number(opts.maxRequests) || 0))",
+    "to": "const allowance = Math.max(0, Math.floor(Number(opts.maxRequests) || 400))"
+   }
+  ]
+ },
+ {
+  "name": "order: autotraderclassics is not last",
+  "edits": [
+   {
+    "file": "lib/forsale/rules.js",
+    "from": "return [...dealers, ...classifieds, ...last];",
+    "to": "return [...last, ...dealers, ...classifieds];"
+   }
+  ]
+ },
+ {
+  "name": "order: the classifieds before the dealers",
+  "edits": [
+   {
+    "file": "lib/forsale/rules.js",
+    "from": "return [...dealers, ...classifieds, ...last];",
+    "to": "return [...classifieds, ...dealers, ...last];"
+   }
+  ]
+ },
+ {
+  "name": "order: autotraderclassics has no switch of its own",
+  "edits": [
+   {
+    "file": "lib/forsale/rules.js",
+    "from": "const last = groups.autotraderclassics && all.includes(SEPARATE_LAST) ? [SEPARATE_LAST] : [];",
+    "to": "const last = all.includes(SEPARATE_LAST) ? [SEPARATE_LAST] : [];"
+   }
+  ]
+ },
+ {
+  "name": "order: the dealers cannot be switched off",
+  "edits": [
+   {
+    "file": "lib/forsale/rules.js",
+    "from": "const dealers = groups.dealers ? all.filter(k => typeOf(k) === \"dealer\") : [];",
+    "to": "const dealers = all.filter(k => typeOf(k) === \"dealer\");"
+   }
+  ]
+ },
+ {
+  "name": "report: no budget block",
+  "edits": [
+   {
+    "file": "api/pullForSale.js",
+    "from": "return res.status(200).json({ report: true, vendorQueries: 0, budget, live:",
+    "to": "return res.status(200).json({ report: true, vendorQueries: 0, live:"
+   }
+  ]
+ },
+ {
+  "name": "report: the last run does not say it stopped",
+  "edits": [
+   {
+    "file": "api/pullForSale.js",
+    "from": "stopped: m.stopped || null, skipped",
+    "to": "stopped: null, skipped"
+   }
+  ]
+ },
+ {
+  "name": "cost: a page is counted as 50 listings",
+  "edits": [
+   {
+    "file": "lib/forsale/budget.js",
+    "from": "Math.ceil((Number(counts[k]) || 0) / 100)",
+    "to": "Math.ceil((Number(counts[k]) || 0) / 50)"
+   }
+  ]
+ },
+ {
+  "name": "ingest: the page size is not the vendor's largest",
+  "edits": [
+   {
+    "file": "lib/forsale/ingest.js",
+    "from": "export const PAGE = 100;",
+    "to": "export const PAGE = 50;"
    }
   ]
  }
