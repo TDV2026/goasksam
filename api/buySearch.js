@@ -53,6 +53,8 @@ import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.j
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
 import { carFromRequest, isPartialCar, carWords, withPartialCar } from "../lib/carToken.js";
+import { forSaleFor } from "../lib/forsale/serve.js";
+import { withForSale } from "../lib/forsale/gate.js";
 import { runTurn, runFilters, runSearch, filtersFromText, suggestFor, BATCH_BUDGET_MS, useMarketRank, radiusOf } from "../lib/live/samChat.js";
 // The composer's suggestions (Stage 1c item 6), from the shaped cards (seen_before exists only after shaping).
 const withSuggest = (out, r) => ({ ...r, suggest: suggestFor({ meta: out.meta, filters: out.state && out.state.filters, seenAny: (r.cards || []).some(c => c && c.seen_before) }) });
@@ -657,7 +659,7 @@ async function handler(req, res) {
       // zip: the buyer's zip for the distance question (kept by the page for the session), never a filter by itself.
       const out = await runFilters(env, (byWords && byWords.filters) || b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, radius: radiusOf(b.radius), lastUser: (byWords && byWords.lastUser) || "" });
       const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
-      return res.status(200).json({ ...(out.car ? { car: out.car } : {}), reply: out.reply, searchNote: out.searchNote || null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
+      return res.status(200).json({ ...(out.car ? { car: out.car } : {}), ...(out.forSale ? { forSale: out.forSale } : {}), reply: out.reply, searchNote: out.searchNote || null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
     }
     // SHOW MORE (Nov 2 2026, a dealer buyer's "all live sales this week": 1,669 matches, 24 cards, no way to the rest): the next batch of the SAME search, in the engine's own order.
     // The page sends the search's filters (its sort and chips are among them) and how many cars it already draws; the engine reads the search again and answers with the cars after those,
@@ -670,7 +672,7 @@ async function handler(req, res) {
       const pre = Promise.all(out.cards.map(x => specOf(env, x.r, x.facts).catch(() => null))).then(sp => { const keys = sp.filter(Boolean).map(z => z.key); return keys.length ? prefetchSpecs(env, keys) : null; }).catch(() => null);
       const cards = await moreBatch(out.cards, { enrichOne: async x => { await pre; return enrichFast(env, x); }, pendingOf: pendingCardOf });
       const m = out.meta || {};
-      return res.status(200).json({ ...(out.car ? { car: out.car } : {}), cards, meta: { live: m.live, shown: m.shown, remaining: m.remaining, nextN: m.nextN, countLine: m.countLine || null, liveLine: m.liveLine || null, within: m.within || null, offset: m.offset } });
+      return res.status(200).json({ ...(out.car ? { car: out.car } : {}), ...(out.forSale ? { forSale: out.forSale } : {}), cards, meta: { live: m.live, shown: m.shown, remaining: m.remaining, nextN: m.nextN, countLine: m.countLine || null, liveLine: m.liveLine || null, within: m.within || null, offset: m.offset } });
     }
     // The detail's live bid refresh can meter one upstream call: only our own jobs may trigger it, never a
     // public visitor (open-search policy: public answers come from the cache and the archive only).
@@ -729,8 +731,11 @@ async function handler(req, res) {
     if (v && v.make) logEvent(env, { event: EVENTS.SEARCH, tool: "buy", visitorId: readVisitorId(req), props: { key: `${v.make}|${v.model || ""}` } }).catch(() => {});
     const familyKey = ["family", v.make, v.parentModel || v.model, v.trim, (f.gens || []).join("-"), (f.bodies || []).join("-")].filter(Boolean).join(":").toLowerCase().replace(/[^a-z0-9:-]+/g, "-");
     // THE CAR ON THE ANSWER (lane-b-typed-through): the car Find read, with the mileage the typed words carried, as token, line and short (lib/onebox.js withServedCar), the same words every tool's answer carries
+    // FOR SALE (lane-d-forsale): dealers and classifieds beside the auctions, the same search over our own table; null (nothing added to the answer) for a visitor while FORSALE_PUBLIC is off
+    const forSale = await forSaleFor(env, rowsIn => searchLive(env, v, f, parsed.text, { rows: rowsIn }), rows.length).catch(() => null);
     return res.status(200).json(withServedCar({
       status: "ok",
+      ...(forSale ? { forSale } : {}),
       understood: { make: v.make, model: v.parentModel || v.model || null, trim: v.trim || null, year: v.year || null, noun: nounFor(v, f), filters: f },
       total: rows.length, shownCap: capped.length, cards: first.concat(rest), facets, familyKey, emptyMarket, excluded: excluded && excluded.length ? excluded : undefined, milesNear: milesNear || undefined
     }, v, env));
@@ -916,8 +921,8 @@ function buyChat(res, env, b, visitorId, req) {
     // its prepared result only by its own listing id, never by position, so a re-sort or a second search can never
     // give one car another's market; anything not prepared is enriched here as before.
     prepare: x => enrichFast(env, x),
-    shape: async out => withSuggest(out, { ...(out.car ? { car: out.car } : {}), cards: await Promise.all(out.cards.map(async x => { const pre = out.prepared instanceof Map && x && x.r ? out.prepared.get(x.r.id) : null; const c = (pre ? await pre.catch(() => null) : null) || await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun, meta: out.meta || null, searchNote: out.searchNote }) });
+    shape: async out => withSuggest(out, { ...(out.car ? { car: out.car } : {}), ...(out.forSale ? { forSale: out.forSale } : {}), cards: await Promise.all(out.cards.map(async x => { const pre = out.prepared instanceof Map && x && x.r ? out.prepared.get(x.r.id) : null; const c = (pre ? await pre.catch(() => null) : null) || await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun, meta: out.meta || null, searchNote: out.searchNote }) });
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
-export default withTracking("/api/buySearch", (req, res) => withPartialCar(req, () => handler(req, res)), "buy");   // the partial car is crew only: the engine asks partialCarActive() (lib/carToken.js)
+export default withTracking("/api/buySearch", (req, res) => withPartialCar(req, () => withForSale(req, () => handler(req, res))), "buy");   // the partial car is crew only: the engine asks partialCarActive() (lib/carToken.js)

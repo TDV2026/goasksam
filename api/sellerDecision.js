@@ -6,6 +6,8 @@ import { countNoun } from "../lib/countNoun.js";
 import { unusedFieldsFor } from "../lib/live/unusedWords.js";
 import { tryRefresh } from "../lib/refreshGate.js";
 import { carFromRequest, isPartialCar, carWords, partialCarOk, withPartialCar } from "../lib/carToken.js";
+import { withForSaleLine } from "../lib/forsale/serve.js";
+import { withForSale } from "../lib/forsale/gate.js";
 import { partialChoiceAnswer, makeWithYearsOnly, choiceReply } from "../lib/carChoice.js";
 import { resolveVehicle, sanitizeResolvedVehicle, primeResolver } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
@@ -3890,6 +3892,7 @@ async function handler(req, res) {
       // NO QUALIFYING QUESTION (Sam, Nov 17 2026): a car of a family whose variants sell apart is answered with its variants as rows (variantSplit), never asked which one it is and never one blended range; the question (variantQuestionFor) is no longer asked here
       if (!vinCtx && !exactSale && isCrewRequest(req)) oneBox = await variantSplitFor(oneBox, { asked: askedN, refine: obRefine, crew: isCrewRequest(req) }, vehicle, generation, { supabaseUrl, supabaseKey }, { deadlineMs: Math.max(4000, Math.min(14000, obRemaining() - 2000)) });   // the variants of an unstated car, as rows (lib/variantRows.js); each row is the engine's answer for its own car
       oneBox = withServedCar(oneBox, vehicle, { supabaseUrl, supabaseKey });   // the car this answer is SERVED for, whatever row it came from (lib/onebox.js withServedCar)
+      oneBox = await withForSaleLine({ supabaseUrl, supabaseKey }, oneBox);   // crew only behind FORSALE_PUBLIC: "20 for sale now: 3 at auction, 12 at dealers, 5 classifieds" and the address of Find for the car (lib/forsale/serve.js); a visitor's answer is returned as it came
       return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
     }
 
@@ -4772,4 +4775,4 @@ async function handler(req, res) {
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
-export default withTracking("/api/sellerDecision", (req, res) => withPartialCar(req, () => handler(req, res)), "sell");   // the partial car is crew only: the engine asks partialCarActive() (lib/carToken.js)
+export default withTracking("/api/sellerDecision", (req, res) => withPartialCar(req, () => withForSale(req, () => handler(req, res))), "sell");   // the partial car is crew only: the engine asks partialCarActive() (lib/carToken.js)
