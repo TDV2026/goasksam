@@ -208,6 +208,9 @@ await section("visitor", async () => {
   const ptok = tokenOf({ raw: "2009 BMW", year: 2009, make: "BMW" });
   const fp = await callBuyV({ car: ptok }), vp = await callV({ oneBox: true, car: ptok });
   ok("visitor, a partial token in the request is read as no token (Find, Market Check): no partial car, no choice", !partialIn(fp) && !partialIn(vp) && !(vp && vp.modelChoice), [fp && fp.status, vp && vp.tier]);
+  { // a gate that is named but not imported fails only when the handler runs (a ReferenceError the first Sell call of a visitor hits): every file that uses partialCarOk, withPartialCar or partialCarActive imports it
+    const bad = []; for (const f of ["api/buySearch.js", "api/sellerDecision.js", "api/sellChat.js", "api/tasks.js", "lib/onebox.js", "lib/sell/sellFlow.js", "lib/carBar.js"]) { const t = fs.readFileSync(path.join(ROOT, f), "utf8"); for (const fn of ["partialCarOk", "withPartialCar", "partialCarActive"]) { const used = new RegExp("\\b" + fn + "\\(").test(t.replace(/^import .*$/gm, "").replace(/\/\/[^\n]*/g, "")); const imported = new RegExp("^import \\{[^}]*\\b" + fn + "\\b[^}]*\\} from", "m").test(t) || new RegExp("export (const|function) " + fn + "\\b").test(t); if (used && !imported) bad.push(f + ":" + fn); } }
+    ok("every file that uses a partial car gate imports it (a missing import is a ReferenceError at the first request)", bad.length === 0, bad); }
   ok("visitor, carFromRequest reads a partial token as no car; the crew's request reads it", CT.carFromRequest({ query: { car: ptok }, headers: { cookie: "" } }) === null && !!CT.carFromRequest({ query: { car: ptok }, headers: { cookie: "gas_crew=" + globalThis.__mintCrew() } }));
   const sv = await SFLOW.buildRange({ ...env, noStore: false, partialCar: false }, { carText: "2009 BMW", state: "Texas", how: "self", rush: null });
   ok("visitor, Sell '2009 BMW': no modelChoice, the old error words", !sv.modelChoice && sv.error === "car", sv && Object.keys(sv));

@@ -7,7 +7,7 @@ import { chatOut } from "../lib/live/chatHttp.js";
 import { runSellTurn } from "../lib/sell/sellChat.js";
 import { checkCeiling, followupGuard, sellModelGuard, testLimits, isCrew, CALM } from "../lib/_ceilings.js";
 import { hasServerCredential } from "../lib/_credential.js";
-import { carFromRequest } from "../lib/carToken.js";
+import { carFromRequest, partialCarOk, withPartialCar } from "../lib/carToken.js";
 import { runAsCaller, callerFor } from "../lib/_caller.js";
 
 async function handlerCore(req, res) {

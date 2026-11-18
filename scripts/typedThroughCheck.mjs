@@ -34,7 +34,8 @@ const carOfForm = t => CARS.find(c => t.includes(c.name) || (t.includes(c.name.r
 const plus = t => t.replace(/ /g, "+");
 const spellings = t => [["spaces", t], ["plus signs", plus(t)]];
 const nf = n => Number(n).toLocaleString("en-US");
-const call = W.caller(SD), callBuy = W.caller(BS);
+process.env.CURTAIN_CREW_CODE = process.env.CURTAIN_CREW_CODE || "fixture-crew-code"; globalThis.__mintCrew = (await imp("lib/_crew.js")).mintCrewCookieValue;
+const call = W.caller(SD, { crew: true }), callBuy = W.caller(BS, { crew: true });   // the partial car cases are the crew's (PARTIAL_CAR_PUBLIC off); a crew request reads everything a visitor's does, the visitor's side of the partial car is in partialCarCheck
 const mc = async (text, extra) => { try { return await call({ oneBox: true, search: text, ...(extra || {}) }); } catch (e) { return { error: String(e && e.message) }; } };
 const decode = c => (c && c.token ? CT.decodeCar(c.token) : null);
 const plainOf = c => { const d = decode(c); return d ? [d.make, d.model, d.trim || null].join("|") : null; };
@@ -55,7 +56,7 @@ const expectOf = async () => { EXPECT = {}; for (const c of CARS) { const r = aw
       const words = `${c.year} ${c.make} 38,400 miles`, o = await mc(words), z = o && o.modelChoice, pick = z && z.choices.find(x => x.label === c.model);   // by the archive's own name for the model; its token is the car the resolver gives for those words
       ok(`partial car, Market Check, "${words}": the model choice, not an answer`, !!z && o.status === "one_box" && o.tier === "model_choice" && z.line === `Which ${c.year} ${c.make}?`, o && [o.status, o.tier, z && z.line]);
       ok(`partial car, Market Check, "${words}": the stated model is a choice, its token is the full car with the typed mileage and its address is Market Check's`, !!pick && CT.decodeCar(pick.token).mileage === 38400 && CT.decodeCar(pick.token).year === c.year && !!CT.decodeCar(pick.token).model && pick.address === "/market-check?car=" + encodeURIComponent(pick.token), z && z.choices.map(x => [x.label, CT.decodeCar(x.token)]));
-      const sf = await SFLOW.buildRange({ ...env, noStore: false }, { carText: words, state: "Texas", how: "self", rush: null }), sz = sf && sf.modelChoice;
+      const sf = await SFLOW.buildRange({ ...env, noStore: false, partialCar: true }, { carText: words, state: "Texas", how: "self", rush: null }), sz = sf && sf.modelChoice;
       ok(`partial car, Sell, "${words}": the model choice with Sell's addresses, no answer`, !!sz && sz.choices.length > 0 && sz.choices.every(x => x.address === "/sell?car=" + encodeURIComponent(x.token)) && !sf.noRange && !sf.refusal, sf && Object.keys(sf).slice(0, 8));
     }
   } finally { globalThis.fetch = realFetch; }
