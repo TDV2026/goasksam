@@ -37,11 +37,29 @@ if (process.argv.includes("--mutants")) {
     ["a tampered token accepted", "const info = tool === \"vin\" ? null : carInfo(v);", "const info = tool === \"vin\" ? null : { token: v, line: v, short: v, label: v };"],
     ["Sell's plain words treated as a token", 'export const isCarToken = v => typeof v === "string" && v.startsWith(TOKEN_VERSION + ".");', 'export const isCarToken = v => typeof v === "string" && v.length > 0;'],
     ["the pills keeping the old token after the car changes", "function take(c){if(!c||!c.token||(car&&car.token===c.token))return;", "function take(c){if(!c||!c.token||car)return;"],
+    ["a partial car opened for a visitor", 'const info = tool === "vin" ? null : carInfo(v, crewOnly(req));', 'const info = tool === "vin" ? null : carInfo(v, true);', "lib/carBar.js"],
+    ["a partial car not opened for the crew", 'const info = tool === "vin" ? null : carInfo(v, crewOnly(req));', 'const info = tool === "vin" ? null : carInfo(v, false);', "lib/carBar.js"],
+    ["Find's door not opening a partial car (the empty landing)", 'carInfo(car, crewOnly(req)) ? "find-results"', 'carInfo(car, false) ? "find-results"', "lib/carBar.js"],
+    ["Change not carrying a partial car", 'const info = carInfo(ch, crewOnly(req));', 'const info = carInfo(ch, false);', "lib/carBar.js"],
+    ["every API reading a make-only token as a car", '(!partial && (typeof car.model !== "string" || !car.model))', '(false && (typeof car.model !== "string" || !car.model))', "lib/carToken.js"],
+    ["the make not the short words of a partial car", 'car.trim || car.model || car.make]', 'car.trim || car.model]', "lib/carToken.js"],
+    ["the choices module not wired", "return modelChoiceFinish(variantRowsFinish(", "return ((x) => x)(variantRowsFinish(", "lib/carBar.js"],
+    ["the choices for a visitor", 'isCrewRequest(req) !== true || s.indexOf(\'id="gmc-mod"\')', 's.indexOf(\'id="gmc-mod"\')', "lib/modelChoicePage.js"],
+    ["the choices not on Sell", '(tool !== "mc" && tool !== "sell")', 'tool !== "mc"', "lib/modelChoicePage.js"],
+    ["a choice that is not a link", "(a ? '<a class=\"gmc-btn\" href=\"'", "(false ? '<a class=\"gmc-btn\" href=\"'", "lib/modelChoicePage.js"],
+    ["the choices sorted", "var cs = mc.choices.filter(", "var cs = mc.choices.slice().sort(function (a, b) { return String(a.label) < String(b.label) ? -1 : 1; }).filter(", "lib/modelChoicePage.js"],
+    ["stale choices left after a later answer", "draw(f===undefined?null:f)", "if(f!==undefined)draw(f)", "lib/modelChoicePage.js"],
+    ["words of the page's own on the line", "esc(mc.line) + \"</p>\"", "esc(mc.line) + \" Choose one.</p>\"", "lib/modelChoicePage.js"],
+    ["the closing words dropped", "if (text(m)) h +=", "if (false) h +=", "lib/modelChoicePage.js"],
+    ["an address from outside the site made a link", 'c.car.address.charAt(0) === "/" ? c.car.address : ""', 'c.car.address ? c.car.address : ""', "lib/modelChoicePage.js"],
+    ["the choices not under the bar", 'bar.insertAdjacentHTML("afterend",h)', 'bar.insertAdjacentHTML("beforebegin",h)', "lib/modelChoicePage.js"],
+    ["the choices not wrapping (a phone scrolls sideways)", "display:flex;flex-wrap:wrap;gap:8px}.gmc-list li", "display:flex;flex-wrap:nowrap;gap:8px}.gmc-list li", "lib/modelChoicePage.js"],
+    ["the choices read from Market Check only", "API=/\\/api\\/(sellerDecision|buySearch|sellChat)(", "API=/\\/api\\/(sellerDecision)(", "lib/modelChoicePage.js"],
     ["a car line built on the page from the token", "car={token:c.token,line:c.line,short:c.short||\"\"}", "car={token:c.token,line:\"\"+c.token,short:\"\"}"]
   ];
   let bad = 0;
-  for (const [name, from, to] of MUT) {
-    const P = path.join(ROOT, f), orig = fs.readFileSync(P, "utf8");
+  for (const [name, from, to, file] of MUT.filter(m => !process.argv.includes("--partial") || m[3])) {
+    const P = path.join(ROOT, file || f), orig = fs.readFileSync(P, "utf8");
     if (!orig.includes(from)) { console.log("MUTANT NOT APPLICABLE (source changed): " + name); bad++; continue; }
     let code = 0; try { fs.writeFileSync(P, orig.replace(from, () => to)); try { execFileSync("node", [fileURLToPath(import.meta.url)], { stdio: "pipe", timeout: 240000 }); } catch (e) { code = e.status || 1; } } finally { fs.writeFileSync(P, orig); }
     console.log((code ? "caught   " : "MISSED   ") + "without " + name); if (!code) bad++;
