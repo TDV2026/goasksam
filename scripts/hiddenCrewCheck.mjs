@@ -147,14 +147,14 @@ if (LIVE) {
   ok(missed.length === 0, `every check that calls a crew page's handler sends the crew cookie or says it tests the refusal (${missed.join(", ") || "none missed"})`);
 }
 // THE CAR BAR IS PUBLIC, THE CREW'S ADDRESSES AND THE VARIANT ROWS ARE NOT (Lane C, Nov 17 2026, Sam's word). Class: a public page must never name a crew address or carry a crew only module. Each public tool page, built for a visitor with a car token,
-// gets the bar whose four pills and Change point at the PUBLIC tool addresses (never /preview), and carries no variant rows module, no crew only word; with the switch off (CAR_BAR_PUBLIC false) the visitor gets no bar.
+// gets the bar whose four pills and Change point at the PUBLIC tool addresses (never /preview), and carries the variant rows module (the split is public, VARIANT_SPLIT_PUBLIC), no crew only word; with the switch off (CAR_BAR_PUBLIC false) the visitor gets no bar.
 {
   const CBm = await import(pathToFileURL(path.join(ROOT, "lib/carBar.js")).href), CTm = await import(pathToFileURL(path.join(ROOT, "lib/carToken.js")).href), VRp = await import(pathToFileURL(path.join(ROOT, "lib/variantRowsPage.js")).href);
   const car = CTm.encodeCar({ year: 2003, make: "Mercedes-Benz", model: "SL-Class", trim: "SL500", mileage: 38400 }), info = CBm.carInfo(car), page = '<!doctype html><html><head><meta charset="utf-8"><title>x</title></head><body><header>h</header><main></main></body></html>';
   for (const tool of ["find", "mc", "sell", "tasks"]) {
     const req = { method: "GET", url: "/x", headers: { host: "goasksam.com", cookie: "" }, __car: info }, out = CBm.carBarFinish(page, req, tool);
-    ok(CBm.CAR_BAR_PUBLIC === true && out.includes('id="gas-carbar"') && !/\/preview/.test(out) && !/vrs-mod|vrs-css|variantSplit/.test(out), `${tool}: a visitor's page gets the car bar with public addresses only (no /preview, no variant rows module)`);
-    ok(VRp.variantRowsFinish(out, req, tool) === out, `${tool}: the variant rows finish returns a visitor's page byte for byte`);
+    ok(CBm.CAR_BAR_PUBLIC === true && out.includes('id="gas-carbar"') && !/\/preview/.test(out) && (tool === "mc" ? /vrs-mod/.test(out) : !/vrs-mod/.test(out)), `${tool}: a visitor's page gets the car bar with public addresses only (no /preview), and the variant rows module on Market Check only`);
+    ok(VRp.variantRowsFinish(out, req, tool) === out, `${tool}: the variant rows finish adds the module once and never twice`);
   }
 }
 console.log(`hiddenCrewCheck${LIVE ? " (live)" : ""}: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

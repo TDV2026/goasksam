@@ -436,6 +436,19 @@ async function handleOps(req, res) {
     return res.status(401).json({ error: "Unauthorized (ops). Send the key in the x-ops-key header." });
   }
 
+  // task=vinoverlap (Lane S, Nov 18 2026): READ ONLY, POST only, no OldCarsData, no cache, no writes; lib/ops/vinOverlap.js.
+  // After the key check above and before the OCD key check, which this task never needs.
+  if (String(req.query?.task || "") === "vinoverlap") {
+    if (req.method !== "POST") { res.setHeader("Allow", "POST"); return res.status(405).json({ error: "vinoverlap is POST only." }); }
+    const venv = supabaseEnv();
+    if (!venv) return res.status(500).json({ error: "Supabase env not set." });
+    let body = req.body; if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = null; } }
+    const { runVinOverlap } = await import("../lib/ops/vinOverlap.js");
+    const out = await runVinOverlap(body, p => supabaseSelectAll(venv, p));
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(out.status).json(out.json);
+  }
+
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set in Vercel." });
   const env = supabaseEnv();

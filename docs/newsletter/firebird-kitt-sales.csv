@@ -1,0 +1,12 @@
+price_usd,sold_month,venue,model_year,mileage,colour,gearbox,reserve
+96000,2026-05,bringatrailer,1992,85000,black,automatic,reserve
+67310,2026-09,carandclassic,1982,71000,black,automatic,reserve
+65000,2026-07,bringatrailer,1984,1000,black,automatic,reserve
+64000,2025-11,bringatrailer,1987,,black,automatic,reserve
+56000,2026-10,bringatrailer,1984,45000,black,automatic,reserve
+50000,2024-04,barrettjackson,1984,,black,automatic,no_reserve
+50000,2024-03,bringatrailer,1984,,black,automatic,reserve
+38000,2025-01,barrettjackson,1983,,black,,no_reserve
+31500,2022-11,bringatrailer,1992,71000,black,automatic,no_reserve
+18250,2024-08,bringatrailer,1987,45000,black,automatic,reserve
+10000,2026-09,barrettjackson,1982,,black,automatic,no_reserve

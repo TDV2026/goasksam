@@ -232,7 +232,7 @@ await section("visitor", async () => {
   ok("visitor, Sell '2009 BMW': the model choice", !!sv.modelChoice && sv.modelChoice.choices.length > 0, sv && Object.keys(sv));
   ok("visitor, the bar's door opens a partial car", !!CB.carInfo(ptok, CT.partialCarOk({ headers: { cookie: "" } })));
   { const MC = await imp("lib/modelChoicePage.js"), VRp = await imp("lib/variantRowsPage.js"), page = '<!doctype html><html><head><meta charset="utf-8"></head><body><header>h</header></body></html>', req = { headers: { host: "goasksam.com", cookie: "" }, url: "/market-check" };
-    ok("visitor: the model choice module is on the page, the variant rows module is not", /id="gmc-mod"/.test(MC.modelChoiceFinish(page, req, "mc")) && VRp.variantRowsFinish(page, req, "mc") === page); }
+    ok("visitor: the model choice module and (the split is public) the variant rows module are on the page", /id="gmc-mod"/.test(MC.modelChoiceFinish(page, req, "mc")) && /id="vrs-mod"/.test(VRp.variantRowsFinish(page, req, "mc"))); }
 });
 console.log = log; console.error = err;
 log(fails.slice(0, 80).map(f => "FAIL " + f).join("\n") + (fails.length ? "\n" : "") + `partialCarCheck: ${pass} pass, ${fail} FAIL`);
