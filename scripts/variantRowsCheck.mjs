@@ -23,11 +23,12 @@ let chain = Promise.resolve();   // one offline read at a time: it borrows the p
 const offline = text => { const run = chain.then(() => offline0(text)); chain = run.catch(() => {}); return run; };
 const offline0 = async text => { const u = process.env.SUPABASE_URL, k = process.env.SUPABASE_SERVICE_ROLE_KEY, f0 = globalThis.fetch; delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; globalThis.fetch = async () => new Response("[]", { status: 200 }); try { return await VH.resolveVehicle(text, {}); } finally { process.env.SUPABASE_URL = u; process.env.SUPABASE_SERVICE_ROLE_KEY = k; globalThis.fetch = f0; } };
 const builtOf = (f, year) => f.variants.filter(v => !v.years || (year >= v.years[0] && year <= v.years[1]));   // the variants built in the asked year (the data's years per variant)
-const FAMS = JSON.parse(fs.readFileSync(path.join(ROOT, "data/variantFamilies.json"), "utf8")).families;
+const ALL = JSON.parse(fs.readFileSync(path.join(ROOT, "data/variantFamilies.json"), "utf8")).families;   // every list; FAMS (below, after the plans) is the lists of the first fourteen families, each with a plan and a recorded live shape; the lists of lane-b-sell-nolump are read by the LUMPING CLASS section
 // the sales of a family: [variant name or "", count, base price]; the first variants get the lowest prices, each next one 1.4 times the one before
 const PLAN = { "pontiac-firebird-3rd": { year: 1987, counts: [0, 8, 10, 9, 3, 0], unstated: 12 }, "chevrolet-camaro-3rd": { year: 1987, counts: [0, 9, 10, 8], unstated: 12 }, "ford-mustang-fox": { year: 1987, counts: [0, 3, 9, 10, 8], unstated: 12 }, "chevrolet-corvette-c4": { year: 1996, counts: [0, 9, 9], unstated: 12 } , "bmw-3-series-e30": { year: 1987, counts: [3, 9, 10, 9], unstated: 0 }, "porsche-911-1984-1989": { year: 1987, counts: [0, 9, 10, 8, 3, 9], unstated: 12 }, "mercedes-sl-r107": { year: 1980, counts: [3, 9, 10, 9, 8, 0], unstated: 0 }, "mercedes-sl-w113": { year: 1968, counts: [9, 10, 8], unstated: 0 },
   "porsche-964": { year: 1991, counts: [9, 10, 8, 9, 3, 0], unstated: 0 }, "porsche-993": { year: 1996, counts: [0, 9, 10, 8, 9, 3, 9], unstated: 12 }, "chevrolet-corvette-c5": { year: 2002, counts: [0, 10], unstated: 12 }, "chevrolet-corvette-c6": { year: 2011, counts: [0, 9, 10, 9], unstated: 12 },
   "ford-mustang-sn95": { year: 2003, counts: [10, 9, 8, 0], unstated: 0 }, "ford-mustang-s197": { year: 2012, counts: [10, 9, 8, 0], unstated: 0 } };
+const FAMS = ALL.filter(f => PLAN[f.id]);
 const TITLE = { "ZR-1": "ZR1" };   // the archive titles a ZR-1 'ZR1' as often as 'ZR-1', and the resolver's trim fence is ZR1 (a hyphen spelling does not match it: the known gap in CLAUDE.md, the resolver backlog)
 const mkRows = (f, plan, { replicas = true, flat = false } = {}) => {
   const rows = [], model = f.models[0]; let k = 0, base = 9000; const add = (words, count, price) => { for (let i = 0; i < count; i++) { const id = "vr" + (seq++), title = `${plan.year} ${f.make} ${model}${words ? " " + words : ""}`;
@@ -57,10 +58,10 @@ if (VR && VR.__setResolver) VR.__setResolver(async text => RES.get(text) || { st
   for (const [id, title, want] of READS) { const fam0 = VV.familiesOf().find(x => x.id === id); if (!fam0) { ok(`the list of ${id} exists`, false); continue; } const got = VV.variantOfSale(fam0, { title }); ok(`the list of ${id} reads "${title}" as ${want}`, got === want, got); } }
 // EVERY LIST READS ITSELF (lane-b-variant-split, the class of a list that cannot read its own variants): for every family of the data, the variant's own words as a title read back as that variant (the one reader), no list name reads as another variant, every family's models and years are named, and no two families of a make and model overlap in years
 { const VV = await imp("lib/variants.js");
-  for (const f of FAMS) { const fam = VV.familiesOf().find(x => x.id === f.id), y = f.years[0];
+  for (const f of ALL) { const fam = VV.familiesOf().find(x => x.id === f.id), y = f.years[0];
     ok(`${f.id}: the family names its make, models and years, and its variants have words`, !!f.make && f.models.length > 0 && f.years.length === 2 && f.variants.length >= 2 && f.variants.every(v => v.name && v.words && v.words.length > 0), f.id);
     for (const v of f.variants) { const got = VV.variantOfSale(fam, { title: `${y} ${f.make} ${f.models[0]} ${v.ask || v.name}` }); ok(`${f.id}: "${v.name}" as a title reads as ${v.name}`, got === v.name, got); }
-    const dup = FAMS.filter(g => g !== f && g.make === f.make && g.models.some(m => f.models.includes(m)) && g.years[0] <= f.years[1] && f.years[0] <= g.years[1]); ok(`${f.id}: no other family of the same make and model covers the same years (${dup.map(g => g.id).join(", ") || "none"})`, dup.length === 0, dup.map(g => g.id)); } }
+    const dup = ALL.filter(g => g !== f && g.make === f.make && g.models.some(m => f.models.includes(m)) && g.years[0] <= f.years[1] && f.years[0] <= g.years[1]); ok(`${f.id}: no other family of the same make and model covers the same years (${dup.map(g => g.id).join(", ") || "none"})`, dup.length === 0, dup.map(g => g.id)); } }
 const SWEEP = [];
 const OB0 = OB.RANGE_RULES.trimFirst; OB.RANGE_RULES.trimFirst = false;
 for (const f of FAMS) {

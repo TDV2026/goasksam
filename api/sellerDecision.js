@@ -3718,7 +3718,7 @@ async function handler(req, res) {
           // The deadline stops the read it gave up on (lane-b-archiveread step d), EXCEPT on the cold-store path: there the compute keeps running after the handoff and stores its row
           // (keepAlive below), so it must never be aborted.
           const engineAc = coldStore ? null : new AbortController();
-          engineP = oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, ...(crewVariantCar ? { noTrimQuestion: true } : {}), ...(poolSeed ? { poolSeed } : {}), ...(engineAc ? { signal: engineAc.signal } : {}), asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine);
+          engineP = oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, ...(crewVariantCar ? { noTrimQuestion: true } : {}), ...(poolSeed ? { poolSeed } : {}), ...(engineAc ? { signal: engineAc.signal } : {}), asked: crewVariantCar ? 2 : Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine);   // a car whose variants are the answer asks no question of any kind (lane-b-sell-nolump: the Porsche 356 asked which generation before it could show its bodies); the engine answers on the broader family and says so
           const handoffMs = coldStore ? Math.min(obRemaining(), Number(process.env.ONEBOX_HANDOFF_MS || 8000)) : obRemaining();
           const engineAnswer = await Promise.race([
             engineP,
@@ -3889,7 +3889,7 @@ async function handler(req, res) {
       if (vinCtx) oneBox = applyVinOverlay(oneBox, vinCtx);   // the VIN car's own sales and option on the typed car's finished answer
       const unusedFields = unusedFieldsFor(typeof rawSearch0 === "string" ? rawSearch0 : oneBoxText, vehicle, oneBox);
       // NO QUALIFYING QUESTION (Sam, Nov 17 2026): a car of a family whose variants sell apart is answered with its variants as rows (variantSplit), never asked which one it is and never one blended range; the question (variantQuestionFor) is no longer asked here
-      if (!vinCtx && !exactSale && splitServed(req)) oneBox = await variantSplitFor(oneBox, { asked: askedN, refine: obRefine, crew: isCrewRequest(req) }, vehicle, generation, { supabaseUrl, supabaseKey }, { deadlineMs: Math.max(4000, Math.min(14000, obRemaining() - 2000)) });   // the variants of an unstated car, as rows (lib/variantRows.js); each row is the engine's answer for its own car
+      if (!vinCtx && !exactSale && splitServed(req)) oneBox = await variantSplitFor(oneBox, { asked: askedN, refine: obRefine, crew: isCrewRequest(req), text: oneBoxText }, vehicle, generation, { supabaseUrl, supabaseKey }, { deadlineMs: Math.max(4000, Math.min(14000, obRemaining() - 2000)) });   // the variants of an unstated car, as rows (lib/variantRows.js); each row is the engine's answer for its own car
       oneBox = withServedCar(oneBox, vehicle, { supabaseUrl, supabaseKey });   // the car this answer is SERVED for, whatever row it came from (lib/onebox.js withServedCar)
       return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
     }

@@ -290,6 +290,38 @@ process.env.OLDCARSDATA_API_KEY = "x"; process.env.CURTAIN_CREW_CODE = "fixture-
   }
   ok("no page builds its own mileage chip (it prints appliedFilters as sent)", !/Cars within/.test(read("public/js/onebox.js").replace(/\/\/[^\n]*/g, "")));
 }
+
+// ===== THE LUMPING CLASS (lane-b-sell-nolump, Nov 18 2026): live, Sam's "Ferrari 330 GT" pooled the 330 GTC ($791,000, $502,000) with the 330 GT 2+2 ($270,000, $216,330) and called the pool "too spread out"; "Ferrari 330 GT 2+2" answered not tracked. =====
+// THE CLASS: a model the archive holds as several distinct cars at different money (variants whose medians differ by more than two times). Recorded live for three models (scripts/fixtures/lumpShapes.json, counts, tokens, years, ages and prices only): the Ferrari 330, the Ferrari 365 and the Aston Martin DB6, each rebuilt as an archive and read through the real handler.
+//   1 typed words that name no car of the list: the answer carries the cards (variantSplit show true), one per car, each the answer of its own page; no answer says "too spread out" while the pool holds two or more of the list's cars
+//   2 typed words that name one: the car is that one on the family's own pool (a result), and it is the cars of that variant only
+{ const LUMP = JSON.parse(read("scripts/fixtures/lumpShapes.json")), { mintCrewCookieValue } = await imp("lib/_crew.js"), CREWC = "gas_crew=" + mintCrewCookieValue(), HH = (await imp("api/sellerDecision.js")).default; let nn2 = 0;
+  const hit2 = async (body, crew = true) => { let out = null; const res = { status(c) { this.code = c; return this; }, json(b) { out = b; return this; }, setHeader() {}, end() {}, getHeader() {} }; await HH({ method: "POST", headers: { origin: "https://goasksam.com", cookie: crew ? CREWC : "" }, query: {}, body, socket: { remoteAddress: "10.9." + Math.floor(++nn2 / 250) + "." + (nn2 % 250) } }, res); return out; };
+  const CN = await imp("lib/countNoun.js"), VV2 = await imp("lib/variants.js"), money2 = x => "$" + Math.round(Number(x)).toLocaleString("en-US");
+  const TF = OB.RANGE_RULES.trimFirst; OB.RANGE_RULES.trimFirst = false;
+  for (const L of LUMP.families) {
+    const fam = VV2.familiesOf().find(f => f.id === L.id); if (!fam) { ok(`${L.id}: the list is in the data (the lumping class has a list for the model)`, false); continue; }
+    const rows = L.sales.map((r, i) => { const id = "lc" + (seq++), title = `${r.y} ${L.make} ${fam.baseModel} ${L.title[r.v]}`;
+      return { id, source_id: id, sale_price: r.p + i, sale_date: new Date(Date.now() - r.ago * DAY).toISOString().slice(0, 10), platform: i % 3 === 0 ? "RM Sotheby's" : "Bring a Trailer", listing_title: title, year: r.y, make: L.make, model: r.token, vin_norm: null, stated_mileage: null, project_flag: null, desc_facts: null, has_reserve: false, vehicle_type: "car",
+        raw_record: { id, title, featured_image_url: "https://img.example/" + id + ".jpg", mileage: String(20000 + i * 97), body_style: "Coupe", modifications: null, currency: "USD", transmission: "Manual (4-Speed)", exterior_color: "Red", title_status: "Clean", url: "https://bat.example/" + id, source_url: "https://src.example/" + id, city: "Austin", state: "TX", country_code: "US", auction_end_precision: "day" } }; });
+    install(L.resolvedModel, rows);
+    const car = (text, model) => ({ raw: text, vehicle: { raw: text, make: L.make, model, year: null, trim: null, confidence: "high", canonicalLabel: text } });
+    const a = await hit2({ oneBox: true, search: L.typed, car: car(L.typed, L.resolvedModel) }), vs = a && a.variantSplit, names = Object.keys(L.exact);
+    ok(`${L.id}: "${L.typed}" is answered with the cards, one per car of the list that has sales, in the list's order (live it was one blended pool)`, !!vs && vs.show === true && JSON.stringify(vs.rows.map(r => r.label)) === JSON.stringify(fam.variants.map(v => v.name).filter(n => names.includes(n))), vs && [vs.show, (vs.rows || []).map(r => r.label), vs.why]);
+    { const vis = await hit2({ oneBox: true, search: L.typed, car: car(L.typed, L.resolvedModel) }, false); ok(`${L.id}: a VISITOR is served the same cards (the split is public) and none of the crew's why`, !!vis && !!vis.variantSplit && vis.variantSplit.show === true && !vis.variantSplit.why && JSON.stringify(vis.variantSplit.rows.map(r => r.label)) === JSON.stringify((vs && vs.rows || []).map(r => r.label)), vis && [vis.tier, vis.variantSplit && vis.variantSplit.show]); }
+    const said = [a && a.samLine, a && a.refusal_line, a && a.noRangeLine, a && a.thinLine, a && a.refusal && a.refusal.line].filter(Boolean).join(" | ");
+    ok(`${L.id}: no line of the blended answer says "too spread out" while its pool holds two or more of the list's cars (tier ${a && a.tier})`, !!a && !/too spread out/i.test(said), said);
+    if (a && a.tier === "refusal" && a.refusal && a.refusal.kind === "varied") ok(`${L.id}: a blended refusal names the cars as different cars at different prices (refusal.mixed)`, Array.isArray(a.refusal.mixed) && a.refusal.mixed.length > 1 && /different cars/.test(said) && a.noRangeCode === "mixed_cars", [a.refusal, a.noRangeCode]);
+    const med = x => { const m = /\$([\d,]+) to \$([\d,]+)/.exec(x || ""); return m ? (Number(m[1].replace(/,/g, "")) + Number(m[2].replace(/,/g, ""))) / 2 : null; };
+    const priced = (vs && vs.rows || []).filter(r => r.priced);
+    ok(`${L.id}: the cards have ranges of their own and the dearest card is more than two times the cheapest (the cars price apart)`, priced.length >= 2 && Math.max(...priced.map(r => med(r.rangeText))) > 2 * Math.min(...priced.map(r => med(r.rangeText))), priced.map(r => r.rangeText));
+    for (const [vn, [words, model]] of Object.entries(L.exact)) {
+      const e = await hit2({ oneBox: true, search: words, car: car(words, model) }), row = vs && (vs.rows || []).find(r => r.label === vn), cl = e && Array.isArray(e.cluster) ? money2(e.cluster[0]) + " to " + money2(e.cluster[1]) : null;
+      const alone = e && (e.rawPool || []).length > 0 && (e.rawPool || []).every(r => VV2.variantOfSale(fam, r) === vn), nPage = e ? (Number.isFinite(Number(e.poolN)) && e.poolN != null ? Number(e.poolN) : (Number(e.noRangeTotal) || (e.rawPool || []).length)) : 0;
+      ok(`${L.id}: "${words}" is the ${vn} alone: a range on the ${vn} sales only (a car with a spread of its own may show no range, but never the mixed-cars line), no split (live: "${vn}" ${L.id === "ferrari-330" && vn === "GT 2+2" ? "answered not tracked" : "read on the blended pool"})`, !!e && ["result", "refusal", "thin"].includes(e.tier) && !(e.refusal && e.refusal.mixed) && (!e.variantSplit || e.variantSplit.show !== true) && alone, e && [e.tier, (e.rawPool || []).length, e.variantSplit && e.variantSplit.show, String(e.samLine || "").slice(0, 80), e.variants && [e.variants.stated, e.variants.applied, e.variants.thin, e.variants.pooled], e.rungLabel, [...new Set((e.rawPool || []).map(r => VV2.variantOfSale(fam, r)))]]);
+      ok(`${L.id}: the ${vn} card is exactly what its own page shows (range and count)`, !!row && !!e && row.rangeText === cl && row.salesText === CN.countNoun(nPage, "sale"), [row && row.rangeText, cl, row && row.salesText, nPage]);
+    } }
+  OB.RANGE_RULES.trimFirst = TF; }
 console.error = err;
 for (const f of fails.slice(0, +(process.env.SHOW || 40))) console.log("FAIL " + f);
 console.log(`variantSplitCheck: ${pass} passed, ${fail} failed`);
@@ -299,7 +331,6 @@ function mutants() {
   const me = fileURLToPath(import.meta.url), R = path.resolve(args.find(a => !a.startsWith("--")) || path.join(path.dirname(me), ".."));
   const M = [
     ["the variant filter never narrows the pool", "lib/onebox.js", s => s.replace("    return kept;\n  } catch { return rows; }", "    return rows;\n  } catch { return rows; }")],
-    ["a sale that names no variant is counted as Base", "lib/variants.js", s => s.replace("variantNamed(fam, textOf(row || {})) || UNSTATED;", "variantNamed(fam, textOf(row || {})) || fam.variants[0].name;")],
     ["a package is counted with its parent whatever the data says", "lib/variants.js", s => s.replace("if (def && def.includesPackages) for", "if (def) for")],
     ["there is no thin fallback", "lib/variants.js", s => s.replace("export const VARIANT_MIN = 5;", "export const VARIANT_MIN = 0;")],
     ["the thin fallback fires at 5", "lib/onebox.js", s => s.replace("value.rawPool.length < VARIANT_MIN", "value.rawPool.length <= VARIANT_MIN")],
@@ -307,6 +338,16 @@ function mutants() {
     ["the Desk read drops the chosen set", "lib/sheetRead.js", s => s.replace("variantSet: Array.isArray(input.desk.variantSet) ? input.desk.variantSet : null,", "")],
     ["the chosen set is not in the case's recall key", "lib/desk/caseWorkflow.js", s => s.replace("...(variantSetOf(c) ? [{ variants: variantSetOf(c) }] : [])]);", "]);")],
     ["the chosen set is not sent to the engine", "lib/desk/caseWorkflow.js", s => s.replace("...(variantSetOf(c) ? { variantSet: variantSetOf(c) } : {}) }\n  };", "}\n  };")],
+    ["LUMP: the exact car is not read on the family's pool", "lib/onebox.js", s => s.replace("try { vehicle = variantExactCar(vehicle, searchText); } catch", "try { /* off */ } catch")],
+    ["LUMP: a mix of cars is still called too spread out", "lib/onebox.js", s => s.replace("const mixedNames = mixedVariantNames(spec, refusalRows);", "const mixedNames = null;")],
+    ["LUMP: a stated variant is still one number across models", "lib/onebox.js", s => s.replace("if (spec && Array.isArray(spec.variantStated) && spec.variantStated.length) return false;", "")],
+    ["LUMP: the split is not the answer when the blended answer has no range", "lib/variantRows.js", s => s.replace('const noRangeTier = d && (d.tier === "refusal" || d.tier === "thin"),', "const noRangeTier = false,")],
+    ["LUMP: typed words read as a sale's title does (a 330 GT is a 2+2)", "lib/variants.js", s => s.replace("(typed ? x.resT : x.res)", "x.res")],
+    ["LUMP: a variant's row is read through the resolver, not the family's pool", "lib/variantRows.js", s => s.replace("const r = fam.baseModel ? { vehicle:", "const r = false ? { vehicle:")],
+    ["LUMP: the stated variant is set aside as a halo (the Speedster)", "lib/onebox.js", s => s.replace("(variantAnswerCtx.getStore() || {}).variantSelf", "undefined")],
+    ["LUMP: the Ferrari 330 list is not in the data", "data/variantFamilies.json", s => s.replace('"models": ["330*"]', '"models": ["330zz*"]')],
+    ["LUMP: a model is matched whole, never by its start", "lib/variants.js", s => s.replace('String(m).endsWith("*") ? md.startsWith(norm(m)) : md === norm(m)', "md === norm(m)")],
+    ["LUMP: a row with sales and no range says no sales", "lib/variantRows.js", s => s.replace('(raw.tier === "refusal" || raw.tier === "thin") ?', "false ?")],
     ["the census of the set aside variants is not read", "lib/onebox.js", s => s.replace("if (!box.census && (spec.trim || spec.titleContains))", "if (false)")],
     ["the Desk does not serve the variants", "lib/deskV3.js", s => s.replace("variants: desk.variants ? { ...desk.variants, windowCount:", "variants: null ? { ...desk.variants, windowCount:")],
     ["the Desk is not at the next shape", "lib/deskV3.js", s => s.replace("export const DESK_SHAPE = 10;", "export const DESK_SHAPE = 9;")],
@@ -317,9 +358,6 @@ function mutants() {
     ["a Knight Rider or KITT car passes the fence", "lib/_classify.js", s => s.replace("kitt|k\\.i\\.t\\.t|knight[\\s-]?rider|", "").replace("(kitt|k\\.i\\.t\\.t|knight[\\s-]?rider|", "(")],
     ["the replicas set aside are not counted on the answer", "lib/onebox.js", s => s.replace("if (n > 0) { const r0 =", "if (false) { const r0 =")],
     ["the replica count is not taken in the fetch", "lib/onebox.js", s => s.replace("&& isReplicaCar(r) && qualifyReason(r, spec) === \"memorabilia or replica\"", "&& false")],
-    ["no variant question is served", "api/sellerDecision.js", s => s.replace("if (isCrewRequest(req)) oneBox = await variantQuestionFor(", "if (false) oneBox = await variantQuestionFor(")],
-    ["the variant question is served to a visitor too", "api/sellerDecision.js", s => s.replace("if (isCrewRequest(req)) oneBox = await variantQuestionFor(", "if (true) oneBox = await variantQuestionFor(")],
-    ["the question is asked whatever the prices", "lib/onebox.js", s => s.replace("if (splitMaterial(options[i][1], options[j][1]).material) {", "if (true) {")],
     ["a variant under five sales is an option", "lib/onebox.js", s => s.replace("filter(([, a]) => a.length >= VARIANT_MIN)", "filter(([, a]) => a.length >= 1)")],
     ["the question is asked again after an answer", "lib/onebox.js", s => s.replace("if (Number(asked) > 0 || (refine && refine.variant)) return d;", "")],
     ["a chip's variant is ignored by the engine", "lib/onebox.js", s => s.replace("if (fam && nm) { spec.variantFamily = fam.id; spec.variantStated = [nm];", "if (false) { spec.variantFamily = fam.id; spec.variantStated = [nm];")],
