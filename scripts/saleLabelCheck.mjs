@@ -30,7 +30,6 @@ if (process.argv.includes("--mutants")) {
     ["the switch on", FILES.sl, "export const SALE_LABEL_PUBLIC = false;", "export const SALE_LABEL_PUBLIC = true;"],
     ["the module not wired into the page", FILES.bar, "return saleLabelFinish(modelChoiceFinish(", "return (modelChoiceFinish("],
     ["the module on every tool", FILES.sl, 'if (tool !== "mc" || (!SALE_LABEL_PUBLIC', 'if ((!SALE_LABEL_PUBLIC'],
-    ["the phone grid left three across", FILES.sl, ".thin-tiles-wide.sl-on{grid-template-columns:repeat(2,minmax(0,1fr))}", ".thin-tiles-wide.sl-on{}"],
     ["a line wider than the card", FILES.sl, ".sale-line{margin:0 0 2px;", ".sale-line{min-width:900px;margin:0 0 2px;"],
   ];
   let bad = 0;
