@@ -2,13 +2,14 @@
   "note": "THE VARIANTS OF A FAMILY (Lane B, lane-b-variant-split, Nov 17 2026): one entry per family whose variants price apart and share one generation key. A family is a make, its model words, and the years it covers. variants lists each variant MOST SPECIFIC FIRST (a package before the variant it is a package of): a sale takes the first variant whose words its title or details name; a sale that names none is 'unstated', never base. words are case-insensitive regular expressions. package names the variant this one is an option package on (the GTA is a package on the Trans Am). includesPackages (default false): when this variant is asked for, its packages are counted with it; false means a package is its own variant and is set aside when its parent is asked for. vin, when a family has one, reads the variant from the VIN: { pos: 1-based position, years: [first, last], map: { character: variant name } }; no family below has a verified VIN rule yet, so none carries one and the variant comes from the words. To add a family add an entry here; no code changes.",
   "families": [
     {
-      "id": "pontiac-firebird-3rd", "label": "Pontiac Firebird, 1982 to 1992", "make": "Pontiac", "models": ["Firebird"], "years": [1982, 1992], "vin": null,
+      "id": "pontiac-firebird-3rd", "label": "Pontiac Firebird, 1982 to 1992", "make": "Pontiac", "models": ["Firebird"], "years": [1982, 1992], "vin": null, "unnamedIs": "Base",
       "variants": [
-        { "name": "Firehawk", "words": ["fire\\s?hawk"] },
-        { "name": "20th Anniversary Turbo Trans Am", "words": ["20th\\s+anniversary", "turbo\\s+trans[\\s-]?am"], "package": "Trans Am" },
-        { "name": "GTA", "words": ["\\bgta\\b"], "package": "Trans Am" },
+        { "name": "Base", "words": ["\\bbase\\b"] },
+        { "name": "Formula", "words": ["\\bformula\\b"] },
         { "name": "Trans Am", "words": ["trans[\\s-]?am"], "includesPackages": false },
-        { "name": "Formula", "words": ["\\bformula\\b"] }
+        { "name": "GTA", "words": ["\\bgta\\b"], "package": "Trans Am" },
+        { "name": "20th Anniversary Turbo Trans Am", "words": ["20th\\s+anniversary", "turbo\\s+trans[\\s-]?am"], "package": "Trans Am" },
+        { "name": "Firehawk", "words": ["fire\\s?hawk"], "matchFirst": true }
       ]
     },
     {
@@ -33,7 +34,7 @@
     {
       "id": "chevrolet-corvette-c4", "label": "Chevrolet Corvette, 1984 to 1996", "make": "Chevrolet", "models": ["Corvette"], "years": [1984, 1996], "vin": null,
       "variants": [
-        { "name": "ZR-1", "words": ["zr[\\s-]?1"] },
+        { "name": "ZR-1", "ask": "ZR1", "words": ["zr[\\s-]?1"] },
         { "name": "Grand Sport", "words": ["grand[\\s-]?sport"] },
         { "name": "Collector Edition", "words": ["collector"] }
       ]

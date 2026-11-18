@@ -28,6 +28,10 @@ if (process.argv.includes("--mutants")) {
     ["the module added for a visitor", FILES.rows, "if (tool !== \"mc\" || isCrewRequest(req) !== true || ", "if (tool !== \"mc\" || "],
     ["the module not wired into the page", FILES.bar, "return variantRowsFinish(carBarApply(", "return (carBarApply("],
     ["a row wider than the phone", FILES.rows, ".vrs{margin:12px 0 0;max-width:100%}", ".vrs{margin:12px 0 0;min-width:700px}"],
+    ["the single range card is kept next to the cards", FILES.rows, 'card.style.display="none";card.setAttribute("data-vrs-hid","1");', ''],
+    ["the range card stays hidden after a later answer has no variants", FILES.rows, 'card.style.display="";card.removeAttribute("data-vrs-hid")', ''],
+    ["a variant's mileage note is not printed", FILES.rows, "(text(r.mileageNote) ? '<span class=\"vrs-mi\">'", "(false ? '<span class=\"vrs-mi\">'"],
+    ["the set-aside line is not printed", FILES.rows, "(text(vs.asideLine) ? '<p class=\"vrs-aside\">'", "(false ? '<p class=\"vrs-aside\">'"],
     ["the old answer's rows kept when a new answer has none", FILES.rows, "else if(isAnswer(j)||(j&&isAnswer(j.answer)))vs=null;place()", "place()"],
   ];
   let bad = 0;
@@ -49,12 +53,13 @@ const tok = (trim, extra = {}) => CT.encodeCar({ year: 1987, make: "Pontiac", mo
 const ROW = (label, rangeText, salesText, trim) => { const t = tok(trim); return { label, ...(rangeText ? { rangeText } : {}), salesText, car: { token: t, words: "1987 Pontiac Firebird " + trim, address: "/market-check?car=" + encodeURIComponent(t) } }; };
 // the engine's order is deliberately neither alphabetical nor by figure; the thin variant has no range
 const SPLIT = { show: true, line: "Five variants sold in the last 24 months, priced apart.", rows: [ROW("Trans Am", "$22,000 to $31,000", "14 sales", "Trans Am"), ROW("Formula", "$16,000 to $22,500", "9 sales", "Formula"), ROW("Firebird", "$9,500 to $14,000", "11 sales", "Base"), ROW("GTA", "$24,500 to $33,000", "6 sales", "GTA"), ROW("Firehawk", null, "2 sales", "Firehawk")] };
+SPLIT.rows[0].mileageNote = "The range is for all mileages."; SPLIT.asideLine = "Four replicas and tributes are set aside and counted in none of these.";   // the engine's words per row (the same mileage line its own page prints) and the one line for the set-aside replicas
 const base = loadFixtures("mc-1995-porsche-911"), KEY = Object.keys(base).find(k => /^POST \/api\/sellerDecision/.test(k));
 const withSplit = (vs, firebird = true) => { const f = { ...base }, j = JSON.parse(base[KEY].body); if (firebird) j.resolvedCar = { year: 1987, make: "Pontiac", model: "Firebird", trim: "Trans Am" }; if (vs === undefined) delete j.variantSplit; else j.variantSplit = vs; f[KEY] = { ...base[KEY], body: JSON.stringify(j) }; return f; };
 const URL0 = "/market-check?q=1995%20Porsche%20911";
-const READ = () => { const v = document.getElementById("vrs"), card = document.querySelector(".hero-left .sfc-card"); if (!v) return { present: false, cards: !!card };
+const READ = () => { const v = document.getElementById("vrs"), card = document.querySelector(".hero-left .sfc-card"); if (!v) return { present: false, cards: !!card, hidden: !!card && getComputedStyle(card).display === "none" };
   const r = v.getBoundingClientRect(), c = card && card.getBoundingClientRect(), rows = [...v.querySelectorAll(".vrs-row")];
-  return { present: true, cards: !!card, text: v.textContent, line: (v.querySelector(".vrs-line") || {}).textContent || null, under: !!card && v.previousElementSibling === card && r.top >= c.bottom - 1, inHero: !!v.closest(".hero-left"),
+  return { present: true, cards: !!card, hidden: !!card && getComputedStyle(card).display === "none", mi: [...v.querySelectorAll(".vrs-mi")].map(x => x.textContent), aside: (v.querySelector(".vrs-aside") || {}).textContent || null, text: v.textContent, line: (v.querySelector(".vrs-line") || {}).textContent || null, under: !!card && v.previousElementSibling === card && r.top >= c.bottom - 1, inHero: !!v.closest(".hero-left"),
     rows: rows.map(x => ({ tag: x.tagName, href: x.getAttribute("href"), label: (x.querySelector(".vrs-l") || {}).textContent, range: x.querySelector(".vrs-range") ? x.querySelector(".vrs-range").textContent : null, sales: x.querySelector(".vrs-sales") ? x.querySelector(".vrs-sales").textContent : null })),
     overflow: document.documentElement.scrollWidth - innerWidth, right: Math.round(r.right), vw: innerWidth }; };
 const b = await launch();
@@ -72,7 +77,9 @@ async function call(handler, url, crew) { const res = { h: {}, code: 200, body: 
   ok(r.present && r.rows[4].label === "Firehawk" && r.rows[4].range === null && r.rows[4].sales === "2 sales", "the thin variant shows its label and salesText only");
   ok(r.present && r.under && r.inHero, "the rows sit directly under the price range card, in the answer's own column");
   ok(r.present && r.rows.every((x, i) => x.tag === "A" && x.href === want[i].car.address && x.href.includes(encodeURIComponent(want[i].car.token))), "each row is a real link to its own car address and the address carries that row's token :: " + JSON.stringify(r.rows && r.rows.map(x => x.tag)));
-  ok(r.present && r.text === SPLIT.line + want.map(w => w.label + (w.rangeText || "") + w.salesText).join(""), "the block's text is the engine's words and no others (no total, no question, no chooser) :: " + (r.text || "").slice(0, 160));
+  ok(r.present && r.text === SPLIT.line + want.map(w => w.label + (w.rangeText || "") + w.salesText + (w.mileageNote || "")).join("") + SPLIT.asideLine, "the block's text is the engine's words and no others (no total, no question, no chooser) :: " + (r.text || "").slice(0, 160));
+  ok(r.present && r.hidden === true, "the single range card is not shown while the variants are (a card per variant takes its place) :: " + r.hidden);
+  ok(r.present && r.mi.length === 1 && r.mi[0] === want[0].mileageNote && r.aside === SPLIT.asideLine, "each variant shows the engine's mileage note and the one set-aside line is printed as sent :: " + JSON.stringify([r.mi, r.aside]));
   ok(!p._err.length, "no page error :: " + p._err.join("|")); await p.close(); }
 // following a row: Market Check already run for that variant, the car bar carrying that car
 { const row = SPLIT.rows[0], p = await open(b, row.car.address, { width: 1440, fixtures: base, settle: 2500 }), r = await p.evaluate(() => { const s = document.getElementById("gas-carbar"); return { bar: !!s && !s.hidden, line: (document.querySelector(".gcb-line") || {}).textContent || "", pills: [...document.querySelectorAll(".gcb-pill")].map(x => x.getAttribute("href")) }; });
@@ -82,7 +89,7 @@ async function call(handler, url, crew) { const res = { h: {}, code: 200, body: 
   fx["POST /api/sellerDecision " + NEXT] = { status: 200, contentType: "application/json", body: JSON.stringify(j1) }; fx["POST /api/sellerDecision " + NEXT2] = { status: 200, contentType: "application/json", body: JSON.stringify({ ...j1, variantSplit: SPLIT }) };
   const p = await open(b, URL0, { width: 1440, fixtures: fx, settle: 3000 }), ask = n => p.evaluate(b2 => fetch("/api/sellerDecision", { method: "POST", headers: { "content-type": "application/json" }, body: b2 }).then(r => r.json()).then(() => new Promise(r => setTimeout(r, 700))), n);
   const r0 = await p.evaluate(READ); await ask(NEXT); const r1 = await p.evaluate(READ); await ask(NEXT2); const r2 = await p.evaluate(READ);
-  ok(r0.present && !r1.present && r2.present && r2.rows.length === 5, "a later answer with no variantSplit removes the rows and one that carries it brings them back :: " + JSON.stringify([r0.present, r1.present, r2.present])); await p.close(); }
+  ok(r0.present && !r1.present && r2.present && r2.rows.length === 5 && r0.hidden === true && r1.hidden === false && r2.hidden === true, "a later answer with no variantSplit removes the rows and one that carries it brings them back :: " + JSON.stringify([r0.present, r1.present, r2.present])); await p.close(); }
 // 3 the source computes nothing
 { const src = VR.variantRowsFactory.toString() + VR.VARIANT_ROWS_JS; ok(!/\.sort\(|\.reduce\(|Math\.|parseInt|parseFloat|Number\(|\.length\s*[-*\/]|\.length\s*\+\s*[\w(]|\+\+/.test(src), "the module has no sort, sum or arithmetic on the engine's figures"); }
 // 4 nothing to draw
