@@ -243,7 +243,7 @@ function mutants() {
     sub("lib/carChoice.js", "return { label: model, token, words: w.label, address: addressOf(tool, token) };", "return { label: model, token, words: w.label, address: addressOf(tool, token), n: 3 };", "a count is in a choice"),
     sub("lib/carChoice.js", "`${PATH[tool] || PATH.mc}?car=", "`${PATH.mc}?car=", "Sell's choices carry Market Check's address"),
     sub("lib/carChoice.js", "typeLine: TYPE_LINE,", "typeLine: null,", "no line saying to type the model"),
-    sub("api/sellerDecision.js", "if (mch) return res.status(200).json({ status: \"one_box\", ...(mc ||", "if (false) return res.status(200).json({ status: \"one_box\", ...(mc ||", "Market Check serves no modelChoice"),
+    sub("api/sellerDecision.js", "if (mch) return res.status(200).json(choiceReply({ status: \"one_box\", ...(mc ||", "if (false) return res.status(200).json(choiceReply({ status: \"one_box\", ...(mc ||", "Market Check serves no modelChoice"),
     sub("api/sellerDecision.js", "const rawSearch0 = (tokenCar && isPartialCar(tokenCar) && carWords(tokenCar).label) ||", "const rawSearch0 =", "Market Check does not read a partial token as its words"),
     sub("lib/sell/sellFlow.js", "if (!sc.car && sc.partial && env && env.partialCar === true) return done({ modelChoice: await partialChoiceAnswer(sc.partial, env, \"sell\") || undefined, error: \"car\", couldNotLine: reasonLine(\"cold.missed\") });", "", "Sell serves no modelChoice"),
     sub("lib/sell/sellFacts.js", "if (env && isPartialCar(env.car) && /^v1\\./.test(String(text || \"\"))) text = carWords(env.car).label;", "", "Sell does not read a partial token as its words"),

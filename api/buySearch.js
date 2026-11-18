@@ -657,7 +657,7 @@ async function handler(req, res) {
       // zip: the buyer's zip for the distance question (kept by the page for the session), never a filter by itself.
       const out = await runFilters(env, (byWords && byWords.filters) || b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, radius: radiusOf(b.radius), lastUser: (byWords && byWords.lastUser) || "" });
       const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
-      return res.status(200).json({ reply: out.reply, searchNote: out.searchNote || null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
+      return res.status(200).json({ ...(out.car ? { car: out.car } : {}), reply: out.reply, searchNote: out.searchNote || null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
     }
     // SHOW MORE (Nov 2 2026, a dealer buyer's "all live sales this week": 1,669 matches, 24 cards, no way to the rest): the next batch of the SAME search, in the engine's own order.
     // The page sends the search's filters (its sort and chips are among them) and how many cars it already draws; the engine reads the search again and answers with the cars after those,
@@ -670,7 +670,7 @@ async function handler(req, res) {
       const pre = Promise.all(out.cards.map(x => specOf(env, x.r, x.facts).catch(() => null))).then(sp => { const keys = sp.filter(Boolean).map(z => z.key); return keys.length ? prefetchSpecs(env, keys) : null; }).catch(() => null);
       const cards = await moreBatch(out.cards, { enrichOne: async x => { await pre; return enrichFast(env, x); }, pendingOf: pendingCardOf });
       const m = out.meta || {};
-      return res.status(200).json({ cards, meta: { live: m.live, shown: m.shown, remaining: m.remaining, nextN: m.nextN, countLine: m.countLine || null, liveLine: m.liveLine || null, within: m.within || null, offset: m.offset } });
+      return res.status(200).json({ ...(out.car ? { car: out.car } : {}), cards, meta: { live: m.live, shown: m.shown, remaining: m.remaining, nextN: m.nextN, countLine: m.countLine || null, liveLine: m.liveLine || null, within: m.within || null, offset: m.offset } });
     }
     // The detail's live bid refresh can meter one upstream call: only our own jobs may trigger it, never a
     // public visitor (open-search policy: public answers come from the cache and the archive only).
@@ -916,7 +916,7 @@ function buyChat(res, env, b, visitorId, req) {
     // its prepared result only by its own listing id, never by position, so a re-sort or a second search can never
     // give one car another's market; anything not prepared is enriched here as before.
     prepare: x => enrichFast(env, x),
-    shape: async out => withSuggest(out, { cards: await Promise.all(out.cards.map(async x => { const pre = out.prepared instanceof Map && x && x.r ? out.prepared.get(x.r.id) : null; const c = (pre ? await pre.catch(() => null) : null) || await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun, meta: out.meta || null, searchNote: out.searchNote }) });
+    shape: async out => withSuggest(out, { ...(out.car ? { car: out.car } : {}), cards: await Promise.all(out.cards.map(async x => { const pre = out.prepared instanceof Map && x && x.r ? out.prepared.get(x.r.id) : null; const c = (pre ? await pre.catch(() => null) : null) || await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun, meta: out.meta || null, searchNote: out.searchNote }) });
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.

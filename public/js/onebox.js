@@ -3143,6 +3143,9 @@
       var viaFinish = false;   // the result path hands Sell the answer (onCar); every other end tells Sell its early question is over (onEarlyEnd)
       try {
       if (opts.inline) dimHeroForRerun(false);   // the rerun's answer landed (narrowed or not): the range and the chart un-fade whatever it says
+      // A COMPLETE REPLY (lane-d-car-bar-partial-2): the engine's model choice (d.complete with d.modelChoice, served for the crew only) is the whole answer. The crew's choice module (lib/modelChoicePage.js) draws it from the same reply;
+      // this page draws no older question and no fallback line for it, only the search box. A visitor's reply carries neither field, so nothing here changes for a visitor.
+      if (d && d.complete === true && d.modelChoice) { obAsk = null; root.innerHTML = inboxHtml(lastQuery, "Your car or its VIN") + footHtml(); wire(); return; }
       if (d && d.couldNot) { renderCouldNot(d.d, "timeout", Date.now() - coldT0); return; }
       pushRecent(text, d);
       // Typo confirmation (found this round, Sam's review): a typed year/body combination the

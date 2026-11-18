@@ -50,17 +50,11 @@ if (process.argv.includes("--mutants")) {
     ["the choices sorted", "var cs = mc.choices.filter(", "var cs = mc.choices.slice().sort(function (a, b) { return String(a.label) < String(b.label) ? -1 : 1; }).filter(", "lib/modelChoicePage.js"],
     ["stale choices left after a later answer", "draw(f===undefined?null:f)", "if(f!==undefined)draw(f)", "lib/modelChoicePage.js"],
     ["words of the page's own on the line", "esc(mc.line) + \"</p>\"", "esc(mc.line) + \" Choose one.</p>\"", "lib/modelChoicePage.js"],
-    ["the closing words dropped", "if (text(m)) h +=", "if (false) h +=", "lib/modelChoicePage.js"],
-    ["an address from outside the site made a link", 'c.car.address.charAt(0) === "/" ? c.car.address : ""', 'c.car.address ? c.car.address : ""', "lib/modelChoicePage.js"],
+    ["the closing words dropped", "if (text(mc.typeLine)) h +=", "if (false) h +=", "lib/modelChoicePage.js"],
+    ["an address from outside the site made a link", 'c.address.charAt(0) === "/" ? c.address : ""', 'c.address ? c.address : ""', "lib/modelChoicePage.js"],
     ["the choices not under the bar", 'bar.insertAdjacentHTML("afterend",h)', 'bar.insertAdjacentHTML("beforebegin",h)', "lib/modelChoicePage.js"],
     ["the choices not wrapping (a phone scrolls sideways)", "display:flex;flex-wrap:wrap;gap:8px}.gmc-list li", "display:flex;flex-wrap:nowrap;gap:8px}.gmc-list li", "lib/modelChoicePage.js"],
     ["the choices read from Market Check only (Sell's reply not read)", "(sellerDecision|buySearch|sellChat)(", "(sellerDecision|buySearch)(", "lib/modelChoicePage.js"],
-    ["the fallback hold not set (the busy line stays under the choices)", "h);held=true;sweep()}", "h);sweep()}", "lib/modelChoicePage.js"],
-    ["the Have Sam keep looking card left under the choices", 'querySelectorAll(".sam,.samonit")', 'querySelectorAll(".sam")', "lib/modelChoicePage.js"],
-    ["the Sam bubble left under the choices", 'querySelectorAll(".sam,.samonit")', 'querySelectorAll(".samonit")', "lib/modelChoicePage.js"],
-    ["the hold kept when a later request is made (a real failure loses its line)", "if(API.test(u)){held=false;p.then(", "if(API.test(u)){p.then(", "lib/modelChoicePage.js"],
-    ["the sweep never run when the page redraws", "new MutationObserver(sweep).observe(", "new MutationObserver(function(){}).observe(", "lib/modelChoicePage.js"],
-    ["the hold applied on Find too (a Find line taken off for every reply)", "var held=false;", "var held=true;", "lib/modelChoicePage.js"],
     ["a car line built on the page from the token", "car={token:c.token,line:c.line,short:c.short||\"\"}", "car={token:c.token,line:\"\"+c.token,short:\"\"}"]
   ];
   let bad = 0;
@@ -293,9 +287,9 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
   {
     const PART = CT.encodeCar({ raw: "2009 BMW", year: 2009, make: "BMW", confidence: "low" }, { partial: true }), PSTAMP = { token: PART, line: "2009 BMW", short: "2009 BMW" }, PQ = "?car=" + enc(PART);
     const MODELS = ["3 Series", "M3", "5 Series"], FULLS = MODELS.map(m => CT.carStamp({ raw: "2009 BMW " + m, year: 2009, make: "BMW", model: m, confidence: "high" }));
-    const CHOICES = path => MODELS.map((m, i) => ({ label: "2009 BMW " + m, car: { token: FULLS[i].token, words: "2009 BMW " + m, address: path + "?car=" + enc(FULLS[i].token) + (path === "/sell" ? SELLQ : "") } }));
+    const CHOICES = path => MODELS.map((m, i) => ({ label: "2009 BMW " + m, token: FULLS[i].token, words: "2009 BMW " + m, address: path + "?car=" + enc(FULLS[i].token) + (path === "/sell" ? SELLQ : "") }));   // the engine's own choice shape (lib/carChoice.js); the join with the real handlers is scripts/partialCarJoinCheck.mjs
     const LINE_MC = "BMW built several models in 2009. Pick one to read.", MORE = "More models are on the engine's list.";
-    const MCANS = { car: PSTAMP, modelChoice: { line: LINE_MC, choices: CHOICES("/market-check"), more: MORE } }, SELLANS = { car: PSTAMP, modelChoice: { line: LINE_MC, choices: CHOICES("/sell"), more: MORE } };
+    const MCANS = { car: PSTAMP, complete: true, modelChoice: { line: LINE_MC, partial: PSTAMP, choices: CHOICES("/market-check"), typeLine: MORE, box: true, empty: false, complete: true } }, SELLANS = { car: PSTAMP, complete: true, modelChoice: { line: LINE_MC, partial: PSTAMP, choices: CHOICES("/sell"), typeLine: MORE, box: true, empty: false, complete: true } };
     process.env.CURTAIN_CREW_CODE = process.env.CURTAIN_CREW_CODE || "fixture-crew-code"; const CREWCK = "gas_crew=" + (await import(pathToFileURL(path.join(ROOT, "lib/_crew.js")).href)).mintCrewCookieValue();
     ok(CT.isPartialCar(CT.decodeCar(PART)) && CT.decodeCar(PART).make === "BMW" && CT.carFromRequest({ query: { car: PART }, headers: { cookie: "" } }) === null && !!CT.carFromRequest({ query: { car: PART }, headers: { cookie: CREWCK } }) && CB.carInfo(PART) === null && CB.carInfo(PART, true) && CB.carInfo(PART, true).partial === true && CB.carInfo(PART, true).short === "2009 BMW" && CB.carInfo(PART, true).line === "2009 BMW" && CB.carInfo(TOKEN, false).partial === false, "partial car (crew only, PARTIAL_CAR_PUBLIC off): a visitor's request reads a make-only token as no car, the crew's reads it, the bar's door opens it for the crew only, and its words are the make's");
     const GMC = `(() => { const g = document.getElementById("gmc"), W = document.documentElement.clientWidth; if (!g) return { present: false }; const bar = document.getElementById("gas-carbar"), r = g.getBoundingClientRect();
@@ -314,7 +308,7 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
       if (tool === "mc" || tool === "sell") {
         const g = await p.evaluate(GMC), want = CHOICES(tool === "mc" ? "/market-check" : "/sell");
         ok(g.present && g.line === LINE_MC && g.more === MORE, tool + ": the engine's line and its closing words are printed as served " + JSON.stringify([g.line, g.more]));
-        ok(g.btns.length === 3 && g.btns.every((x, i) => x.tag === "A" && x.t === want[i].label && x.h === want[i].car.address), tool + ": each choice is a tap button that is a real link to its address, in the engine's order " + JSON.stringify(g.btns.map(x => x.t)));
+        ok(g.btns.length === 3 && g.btns.every((x, i) => x.tag === "A" && x.t === want[i].label && x.h === want[i].address), tool + ": each choice is a tap button that is a real link to its address, in the engine's order " + JSON.stringify(g.btns.map(x => x.t)));
         ok(g.text === [LINE_MC, ...want.map(c => c.label), MORE].join(" ") && g.afterBar, tool + ": nothing is printed that the engine did not send (no count, no wording of the page's own), and the block sits under the bar " + g.text);
         ok(g.box, tool + ": the box stays available to type a model");
         
@@ -323,13 +317,10 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
         if (process.env.SHOTS) await p.screenshot({ path: path.join(ROOT, "docs/demo-run/car-bar-partial-" + tool + "-1440.png"), clip: { x: 0, y: 0, width: 1440, height: 520 } });
         { const left = await p.evaluate(() => ({ cards: document.querySelectorAll(".samonit,.sam").length, keep: /Have Sam keep looking/.test(document.body.innerText) }));
           ok(left.cards === 0 && !left.keep, tool + ": no Sam bubble and no Have Sam keep looking card is left under the choices " + JSON.stringify(left));
-          // while the choices are the latest reply, a fallback the page draws later (a redraw) goes too
-          await p.evaluate(() => { (document.getElementById("ob") || document.body).insertAdjacentHTML("beforeend", '<div class="sam big"><p>x fallback</p></div><section class="samonit">y fallback</section>'); }); await new Promise(r => setTimeout(r, 300));
-          ok(await p.evaluate(() => !/fallback/.test(document.body.innerText)), tool + ": a fallback the page draws after the choices is taken off too");
-          // a later reply that is a real failure ends the hold: the page's own line shows again (typed through the box)
-          answers[0][1] = {}; const typed = await p.evaluate(() => { const i = document.getElementById("ob-input") || [...document.querySelectorAll("#ob input,#ob textarea")].find(e => !e.disabled && e.offsetWidth > 0); if (!i) return false; i.focus(); i.value = "2009 BMW M3"; return document.activeElement === i; });
+          // a later reply that is a real failure (not complete) shows the page's own line again; typed through Market Check's box. Sell has no in-page box to type a model into after the choices (its search box opens a new page), so its case is the join check's: a Sell reply that is not a complete choice keeps the shell's own line
+          if (tool === "mc") { answers[0][1] = {}; const typed = await p.evaluate(() => { const i = document.getElementById("ob-input") ||  [...document.querySelectorAll("#ob input,#ob textarea")].find(e => !e.disabled && e.offsetWidth > 0); if (!i) return false; i.focus(); i.value = "2009 BMW M3"; return document.activeElement === i; });
           if (typed) { await p.keyboard.press("Enter"); await new Promise(r => setTimeout(r, 1200)); }
-          ok(typed && await p.evaluate(() => /busy right now|could not be read/.test(document.body.innerText)), tool + ": a failure reply after the choices shows the page's own line again (the hold ends with the next reply)");
+          ok(typed && await p.evaluate(() => /busy right now|could not be read/.test(document.body.innerText)), tool + ": a real failure after the choices still shows the page's own line (a complete reply draws none, a failure is not complete)"); }
           answers[0][1] = tool === "mc" ? MCANS : SELLANS; await p.evaluate(u => fetch(u, { method: "POST", body: "{}" }).then(r => r.json()), tool === "mc" ? "/api/sellerDecision?x=9" : "/api/sellChat?x=9"); await new Promise(r => setTimeout(r, 400)); }
         // a later answer without modelChoice takes the block away (the person typed a model)
         answers[0][1] = { car: FULLS[0] }; await p.evaluate(u => fetch(u, { method: "POST", body: "{}" }).then(r => r.json()), tool === "mc" ? "/api/sellerDecision?x=1" : "/api/sellChat?x=1"); await new Promise(r => setTimeout(r, 500));
@@ -377,7 +368,7 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
     { const c = await call(LH.sell, "/sell?car=" + enc(TOKEN) + SELLQ); ok(c.code === 200 && /gmc-mod/.test(c.body), "crew sell: the choices module is on the Sell page"); }
     // the builder, in Node: the engine's words only, a link only for an address that starts with "/", nothing for no choices
     try { const M = await imp("lib/modelChoicePage.js"), h = M.modelChoiceHtml;
-      ok(h(null) === "" && h({}) === "" && h({ choices: [] }) === "" && h({ choices: [{ label: " " }] }) === "" && !/<a /.test(h({ choices: [{ label: "X", car: { address: "https://evil.example/x" } }, { label: "Y", car: { address: "javascript:alert(1)" } }, { label: "Z" }] })) && /<a class="gmc-btn" href="\/sell\?car=1">X<\/a>/.test(h({ choices: [{ label: "X", car: { address: "/sell?car=1" } }] })) && /<a href="\/find">More<\/a>/.test(h({ choices: [{ label: "X" }], more: { label: "More", address: "/find" } })) && !/<script/.test(h({ line: "<script>", choices: [{ label: "<b>" }] })), "model choices builder: nothing for no choices, a link only for an address of this site, the engine's text escaped"); } catch (e) { ok(false, "model choices builder: lib/modelChoicePage.js does not load (" + String(e && e.message).slice(0, 80) + ")"); }
+      ok(h(null) === "" && h({}) === "" && h({ choices: [] }) === "" && h({ choices: [{ label: " " }] }) === "" && !/<a /.test(h({ choices: [{ label: "X", address: "https://evil.example/x" }, { label: "Y", address: "javascript:alert(1)" }, { label: "Z" }] })) && /<a class="gmc-btn" href="\/sell\?car=1">X<\/a>/.test(h({ choices: [{ label: "X", address: "/sell?car=1" }] })) && /Type the model/.test(h({ choices: [{ label: "X" }], typeLine: "Type the model." })) && !/<script/.test(h({ line: "<script>", choices: [{ label: "<b>" }] })), "model choices builder: nothing for no choices, a link only for an address of this site, the engine's text escaped"); } catch (e) { ok(false, "model choices builder: lib/modelChoicePage.js does not load (" + String(e && e.message).slice(0, 80) + ")"); }
   }
   globalThis.fetch = realFetch; delete process.env.NEW_DESIGN; delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 }
