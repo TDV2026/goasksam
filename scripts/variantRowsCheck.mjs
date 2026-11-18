@@ -144,7 +144,7 @@ for (const f of FAMS) {
 }
 // ONE ARCHIVE READ FOR THE SIX (lane-b-variant-split-3): the variants' reads share the request's memo, so the archive is asked less than six pages' worth. Counted on the family's own world: the archive reads of the crew's unstated read against the reads of the same car's blended answer plus each variant's page asked alone
 { const f = FAMS.find(x => x.id === "pontiac-firebird-3rd"), plan = PLAN[f.id], model = f.models[0], name = `${plan.year} ${f.make} ${model}`; let n = 0; const f0 = globalThis.fetch; globalThis.fetch = (u, ...r) => { if (/sales_archive/.test(String(u))) n++; return f0(u, ...r); };
-  try { install(model, mkRows(f, plan)); n = 0; await hit({ oneBox: true, search: name }, true); const blended = n;
+  try { install(model, mkRows(f, plan)); n = 0; { const r0 = RES.get(name), v0 = r0 && r0.vehicle; await OB.oneEngineAnswer({ ...(VH.sanitizeResolvedVehicle(v0) || v0) }, null, name, { ...w.env }); } const blended = n;   // the blended answer alone (the engine, no split: a visitor read now carries the split too)
     install(model, mkRows(f, plan)); n = 0; await hit({ oneBox: true, search: name }); const split = n; let alone = 0;
     for (const v of builtOf(f, plan.year)) { install(model, mkRows(f, plan)); n = 0; await asked(f, plan, `${name} ${v.ask || v.name}`); alone += n; }
     if (process.env.READS) process.stderr.write("READS " + JSON.stringify({ split, alone, blended }) + "\n");
