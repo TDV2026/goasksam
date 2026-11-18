@@ -19,7 +19,7 @@ if (process.argv.includes("--mutants")) {
     ["the line printed under the price", FILES.sl, "at.parentNode.insertBefore(p,at)", "at.parentNode.insertBefore(p,at.nextSibling)"],
     ["the line read from the card's title", FILES.sl, 'line=map[id],old=', 'line=map[id]||(el.querySelector(".thin-tile-title,.salescard-title")||{}).textContent,old='],
     ["a card with no saleLine given the year and model", FILES.sl, "if(!line){if(old)old.remove();continue}", 'if(!line){line="1987 Firebird"}'],
-    ["a blank saleLine accepted", FILES.sl, 'typeof o.saleLine==="string"&&o.saleLine.trim())map', 'typeof o.saleLine==="string")map'],
+    ["a blank saleLine accepted", FILES.sl, 'typeof o.saleLine==="string"&&o.saleLine.trim())map[String(o.id)]=o.saleLine.trim();', 'typeof o.saleLine==="string")map[String(o.id)]=o.saleLine;'],
     ["a stale line kept when a later answer has none", FILES.sl, "if(isAnswer(j)||(j&&isAnswer(j.answer)))map={};", ""],
     ["the line trimmed to a word", FILES.sl, "p.textContent=line;p.title=line;", "p.textContent=line.split(' ').slice(0,2).join(' ');p.title=line;"],
     ["the line wrapped", FILES.sl, "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%", "white-space:normal"],
@@ -92,6 +92,12 @@ async function call(handler, url, crew) { const res = { h: {}, code: 200, body: 
 // 4 the other cards of the page: a pool over sixteen draws the three cards of "Sales behind this answer"
 { const [fx, j] = shaped(41, Array.from({ length: 41 }, (_, i) => LINES[i % LINES.length])), [p, r] = await view(fx);
   const sc = r.tiles; ok(sc.length >= 3 && sc.every(t => t.line && t.above), "the cards of \"Sales behind this answer\" print the line above the price :: " + JSON.stringify(sc.map(t => t.line))); await p.close(); }
+// 4b the cards of "Sales behind this answer" with no saleLine print no line (the card's own title is never used)
+{ const [fx] = shaped(41, []), [p, r] = await view(fx); ok(r.tiles.length >= 3 && r.tiles.every(t => t.line === null), "the cards of \"Sales behind this answer\" with no saleLine have no line (the title is not used) :: " + JSON.stringify(r.tiles.map(t => t.line))); await p.close(); }
+// 4c a line longer than the card stays on one row, cut by an ellipsis, the whole line in its title
+{ const LONG = "1987 Pontiac Firebird Trans Am GTA Anniversary Edition Special"; const L = [...LINES]; L[0] = LONG; const [fx, j] = shaped(11, L), [p, r] = await view(fx, 390);
+  const t = r.tiles.find(x => x.id === String(j.cards[0].id)), full = await p.evaluate(() => document.querySelector(".sale-line").title);
+  ok(t && t.line === LONG && t.oneRow && t.clipped && t.inside && full === LONG, "a line longer than the card stays on one row inside the card, cut by an ellipsis, with the whole line in its title :: " + JSON.stringify(t && [t.oneRow, t.clipped, t.inside, full])); await p.close(); }
 // 5 a later answer with no saleLine takes the lines away
 { const NEXT = '{"probe":2}', [fx, j] = shaped(11, LINES), j1 = JSON.parse(JSON.stringify(j)); j1.cards.forEach(c => { delete c.saleLine; });
   fx["POST /api/sellerDecision " + NEXT] = { status: 200, contentType: "application/json", body: JSON.stringify(j1) };
