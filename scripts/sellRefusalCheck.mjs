@@ -26,6 +26,8 @@ if (process.argv.includes("--mutants")) {
     ["the client ignores the cards of the way in", "lib/sell/sellMcClient.js", "if (d && d.variantSplit && d.variantSplit.show === true) {", "if (false) {"],
     ["the client ignores the cards of the range step", "lib/sell/sellMcClient.js", "if (j && j.split && j.split.show === true) { stopWait();", "if (false) { stopWait();"],
     ["the cards link to the Market Check address, not Sell's", "lib/sell/sellMcClient.js", 'CARDS(vs, "sellAddress")', 'CARDS(vs)'],
+    ["every car is asked for its cards (the list is not read)", "lib/sell/sellMcClient.js", "|| !cardCar([S.label, key].join(\" \"))) { next(); return; }", ") { next(); return; }"],
+    ["the page is not handed the list", "api/sellNext.js", "cardCars: cardCarsList() }", "cardCarsX: 1 }"],
     ["the page never asks for the cards before the first question", "lib/sell/sellMcClient.js", "    if (!key || S.cardsFor === key) { next(); return; }", "    next(); return;"],
     ["the cards are asked again and again", "lib/sell/sellMcClient.js", "S.cardsFor = key; S.busy = true;", "S.busy = true;"],
     ["a cards read that fails blocks Sell (no first question)", "lib/sell/sellMcClient.js", "      next();\n    }); };", "    }); };"],
@@ -92,7 +94,8 @@ const listeners = {}, calls = [];
 let replies = [];
 const OBX = { root: { innerHTML: "" }, esc: s => String(s), inboxHtml: () => "<inbox>", footHtml: () => "<foot>", wire() {}, renderError(t) { OBX.root.innerHTML = "ERR " + t; }, renderCouldNot() { OBX.root.innerHTML = "ERR Sam couldn't read this one yet."; }, renderEmpty() {},
   qscreenHtml: (p, c, eb) => `<q>${p}</q>${c}`, samMsgHtml: (a, x, size) => `<sam ${size}>${a.join(" ")}</sam>`, saleCardHtml: () => "<sale>" };
-globalThis.window = { OBX, addEventListener() {}, matchMedia: () => ({ matches: false }), scrollTo() {}, sellsForCardHtml };
+const CARD_CARS = (await import(pathToFileURL(path.join(path.dirname(fileURLToPath(import.meta.url)), "../lib/variants.js")).href)).cardCarsList();   // what api/sellNext.js hands the page: the cars whose versions can be cards, from the data
+globalThis.window = { OBX, addEventListener() {}, matchMedia: () => ({ matches: false }), scrollTo() {}, sellsForCardHtml, GAS_SELL_CFG: { cardCars: CARD_CARS } };
 globalThis.location = { search: "", pathname: "/sell" };
 globalThis.history = { pushState() {}, replaceState() {} };
 globalThis.localStorage = { getItem: () => null, setItem() {} };
@@ -191,6 +194,18 @@ for (const how of ["typed", "bar", "partial"]) {
 }
 // the server answers the cards step (api/sellChat.js reads it and buildCards builds it)
 { const sc = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../api/sellChat.js"), "utf8"); ok(/b\.step === "cards"/.test(sc) && /buildCards\(env/.test(sc), "api/sellChat.js answers the step cards with buildCards"); }
+// ONLY A CAR IN THE LIST IS ASKED FOR ITS CARDS (lane-b-sell-cards-first, the six reds: firstQuestionNowCheck, earlyQuestionEndCheck, sellBuilderCheck, sellQuestionCheck, sellTypedCheck had the first question drawn at once and my first version drew a waiting screen first for every car). A car in no list, a page with no list, a VIN: the first question AT ONCE (no cards request, no waiting screen); a car in the list: the cards are asked for first.
+{ const mkq = async (cfg, rc, text) => { calls.length = 0; cardCalls.length = 0; cardsReply = { split: null }; globalThis.location = { search: "", pathname: "/sell" }; globalThis.window.GAS_SELL_CFG = cfg; new Function(SELL_MC_CLIENT)(); replies = []; const before = OBX.root.innerHTML; window.GAS_SELL.onCar({ resolvedCar: rc }, text); return { sync: /Which state is it in/.test(OBX.root.innerHTML), cards: cardCalls.length }; };
+  const cfgL = { cardCars: CARD_CARS };
+  let r = await mkq(cfgL, { year: 2004, make: "Porsche", model: "Cayenne" }, "2004 Porsche Cayenne"); ok(r.sync && r.cards === 0, "a car in no list (2004 Porsche Cayenne): the first question at once, no cards request :: " + JSON.stringify(r));
+  r = await mkq({}, { year: 1987, make: "Pontiac", model: "Firebird" }, "1987 Pontiac Firebird"); ok(r.sync && r.cards === 0, "a page with no list: the first question at once, no cards request :: " + JSON.stringify(r));
+  r = await mkq(cfgL, { year: 1987, make: "Pontiac", model: "Firebird" }, "1987 Pontiac Firebird"); ok(!r.sync && r.cards === 1, "a car in the list (1987 Pontiac Firebird): the cards are asked for before the question :: " + JSON.stringify(r));
+  r = await mkq(cfgL, { year: 1987, make: "Pontiac", model: "Firebird" }, "1HGCM82633A004352"); ok(r.sync && r.cards === 0, "a VIN of a car in the list: the first question at once, no cards request :: " + JSON.stringify(r));
+  globalThis.window.GAS_SELL_CFG = { cardCars: CARD_CARS }; }
+// the list is the data's: every make and model of every family in data/variantFamilies.json is in it, and api/sellNext.js hands it to the page
+{ const fams = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../data/variantFamilies.json"), "utf8")).families, lowerMake = new Set(CARD_CARS.map(e => e[0]));
+  ok(fams.every(f => lowerMake.has(String(f.make).toLowerCase()) && f.models.every(m => CARD_CARS.find(e => e[0] === String(f.make).toLowerCase())[1].includes(String(m).replace(/\*$/, "").toLowerCase()))), "the cards list holds every make and model of every family in the data (" + fams.length + " families)");
+  ok(/cardCars: cardCarsList\(\)/.test(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../api/sellNext.js"), "utf8")), "api/sellNext.js hands the list to the page"); }
 // the cards are asked for once per car: the same car again (the state question already shown) is not asked a second time
 { calls.length = 0; cardCalls.length = 0; cardsReply = { split: null }; globalThis.location = { search: "", pathname: "/sell" }; new Function(SELL_MC_CLIENT)(); replies = []; const S5 = window.GAS_SELL; S5.onCar({ resolvedCar: { year: 1987, make: "Porsche", model: "911" } }, "1987 Porsche 911"); for (let i = 0; i < 6; i++) await tick(); S5.onCar({ resolvedCar: { year: 1987, make: "Porsche", model: "911" } }, "1987 Porsche 911"); for (let i = 0; i < 6; i++) await tick(); ok(cardCalls.length === 1, "the cards are asked for once for the same car (" + cardCalls.length + ")"); }
 // a failed cards read never blocks Sell: the first question comes
