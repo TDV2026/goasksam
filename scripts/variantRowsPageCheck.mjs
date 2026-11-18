@@ -115,6 +115,12 @@ const READR = () => { const v = document.getElementById("vrs"), vis = el => !!el
   ok(!p._err.length, "no page error :: " + p._err.join("|")); await p.close(); }
 { const p = await open(b, URL0, { width: 1440, fixtures: withRefusal(null), settle: 3000 }), r = await p.evaluate(READR);
   ok(!r.present && r.refusal && r.refusalShown && r.salesShown, "a refusal with no split is unchanged: the refusal block and the sales list show, no rows :: " + JSON.stringify([r.present, r.refusalShown, r.salesShown])); await p.close(); }
+// a later answer that carries no split (a car chosen) brings the refusal's own page back: the block and the list are shown again, the rows are gone
+{ const NEXTR = '{"probe":7}', fx = withRefusal(SPLIT); fx["POST /api/sellerDecision " + NEXTR] = { status: 200, contentType: "application/json", body: withRefusal(null)[KEY].body };
+  const p = await open(b, URL0, { width: 1440, fixtures: fx, settle: 3000 }), r0 = await p.evaluate(READR);
+  await p.evaluate(b2 => fetch("/api/sellerDecision", { method: "POST", headers: { "content-type": "application/json" }, body: b2 }).then(r => r.json()).then(() => new Promise(r => setTimeout(r, 900))), NEXTR);
+  const r1 = await p.evaluate(READR);
+  ok(r0.present && !r0.refusalShown && !r0.salesShown && !r1.present && (!r1.refusal || (r1.refusalShown && r1.salesShown)), "a later answer with no split shows the refusal block and the sales list again and the rows go :: " + JSON.stringify([r0.present, r0.refusalShown, r0.salesShown, r1.present, r1.refusal, r1.refusalShown, r1.salesShown])); await p.close(); }
 // 3 the source computes nothing
 { const src = VR.variantRowsFactory.toString() + VR.VARIANT_ROWS_JS; ok(!/\.sort\(|\.reduce\(|Math\.|parseInt|parseFloat|Number\(|\.length\s*[-*\/]|\.length\s*\+\s*[\w(]|\+\+/.test(src), "the module has no sort, sum or arithmetic on the engine's figures"); }
 // 4 nothing to draw
