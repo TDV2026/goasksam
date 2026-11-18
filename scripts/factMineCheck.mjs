@@ -22,20 +22,25 @@ const ROWS = Array.from({ length: 7 }, (_, i) => ({ source_id: "S" + (100 + i), 
   raw_record: { title: "x", description: DESC(i), price: "PRICEMARK" + i, high_bid: "BIDMARK" + i, status: "OUTCOMEMARK" + i, seller: "SELLERMARK" + i, seller_username: "SELLERMARK" + i, comments: ["COMMENTMARK" + i], has_reserve: false } }));
 const MARKERS = ["PRICEMARK", "BIDMARK", "OUTCOMEMARK", "SELLERMARK", "COMMENTMARK", "31337"];   // 31337xx is the sale price column
 const mkDb = (rows = ROWS) => {
-  const db = { runs: new Map(), mentions: [], map: [], inserts: 0, modelCalls: 0, prompts: [], selects: [], tablesMissing: false };
+  const db = { runs: new Map(), mentions: [], map: [], leases: [], inserts: 0, modelCalls: 0, prompts: [], selects: [], tablesMissing: false };
   db.select = async qs => {
     db.selects.push(qs);
     if (qs.startsWith("sales_archive?")) { const off = Number((/offset=(\d+)/.exec(qs) || [0, 0])[1]), lim = Number((/limit=(\d+)/.exec(qs) || [0, 100])[1]); return rows.slice(off, off + lim); }
+    if (qs.startsWith("app_usage_events?")) { if (db.leaseDown) return null; const gte = decodeURIComponent((/created_at=gte\.([^&]*)/.exec(qs) || [0, ""])[1]); return db.leases.filter(l => !gte || l.at >= Date.parse(gte)).map(l => ({ id: l.id, status: l.status, metadata: l.metadata })); }
     if (qs.startsWith("listing_mining_runs?")) { if (db.tablesMissing) return null; const m = /listing_id=in\.([^&]*)/.exec(qs); if (m) { const ids = decodeURIComponent(m[1]).replace(/[()"]/g, "").split(","), ver = (/miner_version=eq\.([^&]*)/.exec(qs) || [0, null])[1]; return ids.filter(i => db.runs.has(i) && (!ver || db.runs.get(i).miner_version === ver)).map(i => ({ listing_id: i, status: db.runs.get(i).status })); } return [...db.runs.values()].filter(r => r.status === "done").slice(0, 1000); }
     if (qs.startsWith("listing_mentions?")) { if (db.tablesMissing) return null; const off = Number((/offset=(\d+)/.exec(qs) || [0, 0])[1]), lim = Number((/limit=(\d+)/.exec(qs) || [0, 1000])[1]); return db.mentions.slice(off, off + lim); }
     if (qs.startsWith("topic_map?")) { if (db.tablesMissing) return null; const off = Number((/offset=(\d+)/.exec(qs) || [0, 0])[1]), lim = Number((/limit=(\d+)/.exec(qs) || [0, 1000])[1]); return db.map.slice(off, off + lim); }
     return [];
   };
-  db.insert = async (table, rs) => { db.inserts++; if (table === "listing_mining_runs") for (const r of rs) db.runs.set(r.listing_id, r); else if (table === "listing_mentions") db.mentions.push(...rs); else if (table === "topic_map") { for (const r of rs) if (!db.map.some(m => m.raw_topic === r.raw_topic && m.family === r.family && m.map_version === r.map_version)) db.map.push(r); } return {}; };
+  db.insert = async (table, rs, prefer) => { if (table === "app_usage_events") { if (db.leaseWriteDown) return { error: "x" }; for (const r of rs) db.leases.push({ id: db.leases.length + 1, at: Date.now(), status: r.status, metadata: r.metadata, event_type: r.event_type }); return {}; } db.inserts++; if (table === "listing_mining_runs") for (const r of rs) db.runs.set(r.listing_id, r); else if (table === "listing_mentions") db.mentions.push(...rs); else if (table === "topic_map") { for (const r of rs) { const k = db.map.findIndex(m => m.raw_topic === r.raw_topic && m.family === r.family && m.map_version === r.map_version); if (k < 0) db.map.push({ ...r }); else if (/merge-duplicates/.test(prefer || "")) db.map[k] = { ...db.map[k], ...r }; } } return {}; };
   db.model = text => async ({ system, user }) => { db.modelCalls++; db.prompts.push({ system, user }); return { text: typeof text === "function" ? text(user) : text, usage: { input_tokens: 1200, output_tokens: 300 }, stop_reason: "end_turn" }; };
   db.callModel = a => db.model(GOOD)(a);
   return db;
 };
+// a map model: the groups JSON for the grouping call, kinds for the labelling call
+const mapModel = (db, groupsJson, kinds = {}) => async a => { db.modelCalls++; db.mapPrompts = (db.mapPrompts || []).concat([a.system]); const u = { input_tokens: 100, output_tokens: 50 };
+  if (/^You label/.test(a.system)) return { text: JSON.stringify({ kinds: JSON.parse(a.user).map(x => ({ topic: x.topic, kind: kinds[x.topic] || "other" })) }), usage: u };
+  return { text: groupsJson, usage: u }; };
 const quoteOf = (d, i) => d.slice(d.indexOf(i), d.indexOf(i) + i.length);
 const L = (topic, cat, type, pol, d, m, quote) => [topic, cat, type, pol, d ? "D" : "-", m ? "M" : "-", quote].join(" | ");
 const GOOD = user => [
@@ -111,15 +116,15 @@ const Q = { source: "bringatrailer", family: "e46_m3", from: "2026-01-01", to: "
 { const db = mkDb(); await FM.runFactMine({ ...Q, limit: 7 }, { select: db.select, insert: db.insert, callModel: db.model(GOOD) });
   // add raw topics that a model would be tempted to merge
   for (const t of ["original paint", "repainted", "accident", "no accident", "accident free", "timing chain replaced", "timing chain guides replaced", "rust on subframe", "no rust", "original engine", "engine replaced"]) db.mentions.push({ listing_id: "bringatrailer:S100", source: "bringatrailer", topic: t, statement_type: "claim", polarity: "neutral", has_date: false, has_mileage: false });
-  const greedy = JSON.stringify({ groups: [{ canonical: "paint", members: ["original paint", "repainted"] }, { canonical: "accident history", members: ["accident", "no accident", "accident free"] }, { canonical: "timing chain work", members: ["timing chain replaced", "timing chain guides replaced"] }, { canonical: "rust", members: ["rust on subframe", "no rust"] }, { canonical: "engine", members: ["original engine", "engine replaced"] }, { canonical: "ghost", members: ["never asked label"] }] });
-  const m1 = await MAP.runFactMap({ family: "e46_m3", limit: 300 }, { select: db.select, insert: db.insert, callModel: db.model(greedy) });
+  const greedy = JSON.stringify({ groups: [{ canonical: "paint", kind: "condition", members: ["original paint", "repainted"] }, { canonical: "accident history", kind: "history", members: ["accident", "no accident", "accident free"] }, { canonical: "timing chain work", kind: "work_done", members: ["timing chain replaced", "timing chain guides replaced"] }, { canonical: "rust", kind: "condition", members: ["rust on subframe", "no rust"] }, { canonical: "engine", kind: "history", members: ["original engine", "engine replaced"] }, { canonical: "ghost", kind: "other", members: ["never asked label"] }] });
+  const m1 = await MAP.runFactMap({ family: "e46_m3", limit: 300 }, { select: db.select, insert: db.insert, callModel: mapModel(db, greedy, { "service records": "paperwork" }) });
   ok("the map ran", m1.ok, m1.why); const cm = new Map(db.map.map(r => [r.raw_topic, r.canonical_topic]));
   ok("repainted and original paint stay apart", cm.get("repainted") !== cm.get("original paint"), [cm.get("repainted"), cm.get("original paint")]);
   ok("accident and no accident stay apart", cm.get("accident") !== cm.get("no accident"), [cm.get("accident"), cm.get("no accident")]);
   ok("rust and no rust stay apart; original engine and engine replaced stay apart", cm.get("rust on subframe") !== cm.get("no rust") && cm.get("original engine") !== cm.get("engine replaced"));
   ok("the same fact in different words is one topic (timing chain replaced and timing chain guides replaced)", cm.get("timing chain replaced") === cm.get("timing chain guides replaced") && !!cm.get("timing chain replaced"), [cm.get("timing chain replaced"), cm.get("timing chain guides replaced")]);
   ok("a label the model did not ask about is not written; a label it left out stands alone", !cm.has("never asked label") && cm.get("service records") === "service records");
-  const n1 = db.map.length, c1 = db.modelCalls; const m2 = await MAP.runFactMap({ family: "e46_m3", limit: 300 }, { select: db.select, insert: db.insert, callModel: db.model(greedy) });
+  const n1 = db.map.length, c1 = db.modelCalls; const m2 = await MAP.runFactMap({ family: "e46_m3", limit: 300 }, { select: db.select, insert: db.insert, callModel: mapModel(db, greedy) });
   ok("a second run maps nothing new and asks the model nothing", m2.ok && db.map.length === n1 && db.modelCalls === c1 && m2.body.asked === 0, m2.body);
   ok("the guard's meaning key separates negation and the paint, accident and part classes", MAP.meaningKey("no accident") !== MAP.meaningKey("accident") && MAP.meaningKey("repainted") !== MAP.meaningKey("original paint") && MAP.meaningKey("timing chain replaced") === MAP.meaningKey("timing chain guides replaced"));
   ok("the map refuses a family outside the pilot and a bad limit", (await MAP.runFactMap({ family: "x" }, db)).ok === false && (await MAP.runFactMap({ family: "e46_m3", limit: 999 }, db)).ok === false);
@@ -145,15 +150,17 @@ const mine = (db, q, extra) => FM.runFactMine({ ...Q, ...q }, { select: db.selec
 const withTimeout = (p, ms) => Promise.race([p, new Promise(res => setTimeout(() => res("HUNG"), ms))]);
 await section("prompt", async () => {
   const S = FM.SYSTEM;
-  ok("the prompt skips standard equipment and plain feature lists, and names examples", /SKIP:/.test(S) && /every car of this model has/.test(S) && /standard equipment/.test(S) && /climate control/.test(S) && /cruise control/.test(S) && /plain lists of features/.test(S), S.slice(0, 120));
-  ok("the prompt keeps condition, faults, work and when, accident and paint history, rust, originality and modifications, ownership and location, service records, stated absences and named packages", ["condition present", "faults and wear", "work done and when", "accident and paint history", "rust", "originality and modifications", "ownership and location history", "service records and paperwork", "stated absences", "factory packages or rare options named as such"].every(w => S.includes(w)));
+  ok("the prompt skips standard equipment and plain feature lists, and names examples", /SKIP:/.test(S) && /every car of this model has/.test(S) && /standard equipment/.test(S) && /climate control/.test(S) && /cruise control/.test(S) && /factory equipment and options of every kind/.test(S) && /even when the seller names/.test(S), S.slice(0, 120));
+  ok("fm3: equipment stays only when the statement is about its condition, a fault, a repair, a replacement, an aftermarket change or its absence", /ONLY when the statement is about its condition, a fault, a repair, a replacement, an aftermarket change or its absence/.test(S));
+  ok("fm3: the prompt no longer asks to keep factory packages or rare options", !/factory packages or rare options/.test(S) && !/named packages/.test(S));
+  ok("the prompt keeps condition, faults, work and when, accident and paint history, rust, originality and modifications, ownership and location, service records, stated absences", ["condition present", "faults and wear", "work done and when", "accident and paint history", "rust", "originality and modifications", "ownership and location history", "service records and paperwork", "stated absences"].every(w => S.includes(w)));
   ok("the prompt orders by buyer weight and caps at 30 items", /most likely to matter to a buyer first/.test(S) && /At most 30 items/.test(S) && FM.MAX_ITEMS === 30);
   ok("the prompt asks for lines, not JSON, quote at most 60 characters", /one item per line, no JSON/.test(S) && /at most 60 characters/.test(S) && !/Return ONLY JSON/.test(S));
   ok("the prompt is still blind (no price, bid, outcome, comment or seller field)", !/PRICEMARK|SELLERMARK/.test(S));
 });
 await section("equipment", async () => {   // a model that obeys the prompt: it lists equipment only if the prompt does not tell it to skip it
   const EQ = "This 2004 BMW M3 has automatic climate control, cruise control, a Harman Kardon sound system, rain-sensing wipers, 19 inch wheels, power windows, leather seats and a sunroof. It is silver over black. Nothing else is stated about the car in this listing at all.";
-  const obeying = ({ system }) => { const skips = /SKIP:/.test(system) && /standard equipment such as climate control/.test(system); return { text: skips ? "NONE" : [L("automatic climate control", "interior", "condition_present", "positive", 0, 0, "automatic climate control"), L("cruise control", "interior", "condition_present", "positive", 0, 0, "cruise control"), L("sound system", "interior", "condition_present", "positive", 0, 0, "Harman Kardon sound system")].join("\n"), usage: { input_tokens: 900, output_tokens: 40 }, stop_reason: "end_turn" }; };
+  const obeying = ({ system }) => { const skips = /SKIP:/.test(system) && /factory equipment and options of every kind/.test(system); return { text: skips ? "NONE" : [L("automatic climate control", "interior", "condition_present", "positive", 0, 0, "automatic climate control"), L("cruise control", "interior", "condition_present", "positive", 0, 0, "cruise control"), L("sound system", "interior", "condition_present", "positive", 0, 0, "Harman Kardon sound system")].join("\n"), usage: { input_tokens: 900, output_tokens: 40 }, stop_reason: "end_turn" }; };
   const db = mkDb(rowsN(1, EQ)); db.callModel2 = async a => obeying(a); const r = await mine(db, { limit: 1 });
   ok("an equipment only description yields no items, and the listing is done, not failed", r.ok && r.body.mined === 1 && r.body.items_written === 0 && r.body.failed === 0 && db.mentions.length === 0 && [...db.runs.values()][0].status === "done", r.body || r);
   ok("NONE is a clean empty answer (also with a trailing full stop or spaces)", FM.parseItems("NONE", "x".repeat(200)).bad === false && FM.parseItems("  none. \n", "x".repeat(200)).items.length === 0);
@@ -201,9 +208,9 @@ await section("dropped and failed reasons", async () => {
   ok("a failed listing is read again next time (failed is not done)", again.body.mined === 2, again.body);
 });
 await section("version", async () => {
-  ok("the miner version is bumped to fm2", FM.MINER_VERSION === "fm2" && FM.MINER_VERSION !== "fm1");
-  const db = mkDb(rowsN(8)); for (let i = 0; i < 8; i++) db.runs.set("bringatrailer:N" + (1000 + i), { listing_id: "bringatrailer:N" + (1000 + i), miner_version: "fm1", status: "done" });
-  const r = await mine(db, { limit: 8 }); ok("the 8 listings already read under fm1 are read again", r.ok && r.body.already_mined === 0 && r.body.mined === 8 && db.modelCalls === 8, r.body);
+  ok("the miner version is bumped to fm3 (the equipment rule changes what is kept)", FM.MINER_VERSION === "fm3" && FM.MINER_VERSION !== "fm2");
+  const db = mkDb(rowsN(8)); for (let i = 0; i < 8; i++) db.runs.set("bringatrailer:N" + (1000 + i), { listing_id: "bringatrailer:N" + (1000 + i), miner_version: "fm2", status: "done" });
+  const r = await mine(db, { limit: 8 }); ok("the 8 listings already read under fm2 are read again under fm3", r.ok && r.body.already_mined === 0 && r.body.mined === 8 && db.modelCalls === 8, r.body);
   ok("the done check asks for this miner version only", db.selects.some(q => q.startsWith("listing_mining_runs?") && q.includes("miner_version=eq." + FM.MINER_VERSION)));
 });
 await section("time budget", async () => {
@@ -244,6 +251,108 @@ await section("class: every model call in the miner's path is cut at a timeout a
   ok("the model call is raced against its own timer in the runner (a model that never answers cannot hold the call)", /callWithTimeout/.test(mineSrc) && /Promise\.race/.test(mineSrc));
   ok("the runner has no one-at-a-time loop over the listings", !/for \(let k = 0; k < todo\.length; k\+\+\)/.test(mineSrc));
 });
+
+// ===== 10 THE QUOTE IS MATCHED AFTER NORMALISING (Lane D, lane-d-factmine-3) =====
+// The miner copies a quote in plain characters; the listing text holds curly quotes, dashes, entities, line breaks and runs of spaces. Both sides are normalised, the span is read back from the ORIGINAL text, and a quote that still does not match is dropped.
+await section("normalising the quote", async () => {
+  const T0 = "The owner’s car has the “original” paint – never repainted. Service — all done at the dealer.\n\nNo accidents &amp; no rust. It&#8217;s a keeper&nbsp;car with 62,000 miles.   Rod bearings replaced in 2021.";
+  const keep = (text, quote) => FM.parseItems(L("fact", "other", "claim", "neutral", 0, 0, quote), text);
+  const spanOk = (text, quote, plain) => { const r = FM.locate(text, quote); return !!r && FM.norm(text.slice(r[0], r[1])).s === FM.norm(plain || quote).s; };
+  const cases = [
+    ["curly apostrophe in the listing, plain in the quote", "The owner's car has the"],
+    ["curly double quotes in the listing, plain in the quote", 'the "original" paint'],
+    ["an en dash in the listing, a hyphen in the quote", "paint - never repainted"],
+    ["an em dash in the listing, a hyphen in the quote", "Service - all done at the dealer"],
+    ["a paragraph break in the listing, one space in the quote", "dealer. No accidents"],
+    ["a non breaking space and a run of spaces", "62,000 miles. Rod bearings"],
+    ["case folded", "NO ACCIDENTS & NO RUST"],
+    ["the entity &amp; in the listing, & in the quote", "No accidents & no rust"],
+    ["the numeric entity &#8217; in the listing, a plain apostrophe in the quote", "It's a keeper"],
+    ["the entity &nbsp; in the listing, a space in the quote", "keeper car with"]];
+  for (const [name, quote] of cases) { const p = keep(T0, quote); ok("matches: " + name, p.items.length === 1 && p.dropped === 0 && spanOk(T0, quote), [p.dropped, p.reasons]); }
+  const pq = keep("x owner's y z w", "owner’s y"); ok("matches: a curly apostrophe in the quote, a plain one in the listing", pq.items.length === 1 && pq.dropped === 0, pq.reasons);
+  // the span is the original text, not the normalised one
+  const r1 = FM.locate(T0, "paint - never repainted"); ok("the span is read from the original text: it holds the en dash the listing has", !!r1 && T0.slice(r1[0], r1[1]) === "paint – never repainted", r1 && T0.slice(r1[0], r1[1]));
+  const r2 = FM.locate(T0, "No accidents & no rust"); ok("the span of an entity quote covers the whole &amp; in the original", !!r2 && T0.slice(r2[0], r2[1]) === "No accidents &amp; no rust", r2 && T0.slice(r2[0], r2[1]));
+  // the 60 character cap: the model's quote is cut at 60 and may end in the middle of a word or of an entity
+  const LONG = "The seller says that the car’s documented service history includes every oil change since new and a recent major service at the dealer.";
+  const longQ = "The seller says that the car's documented service history includes every oil change since new", cut = FM.parseItems(L("cut", "other", "claim", "neutral", 0, 0, longQ), LONG);
+  const cutText = cut.items[0] ? LONG.slice(cut.items[0].span_start, cut.items[0].span_end) : "";
+  const q60 = longQ.slice(0, FM.MAX_QUOTE);
+  ok("fixture: the 60 character cut falls in the middle of a word", /[a-z]$/i.test(q60) && /[a-z]/i.test(longQ[FM.MAX_QUOTE]), q60);
+  ok("a quote over 60 characters is cut at 60, ends in the middle of a word, and still matches", cut.items.length === 1 && cut.dropped === 0, [cut.dropped, cutText]);
+  ok("the cut quote's span is the first 60 characters of the quote (original positions)", cut.items.length === 1 && FM.norm(cutText).s === FM.norm(longQ.slice(0, FM.MAX_QUOTE)).s, cutText);
+  const ENT = "It was repainted &amp; polished by the dealer before the sale in 2024.";
+  ok("a quote cut in the middle of an entity (\"&am\") matches the words before it", keep(ENT, "It was repainted &am").items.length === 1 && keep(ENT, "It was repainted &").items.length === 1 && keep(ENT, "It was repainted &#82").items.length === 1);
+  ok("a quote the model wrapped in ellipses matches the words inside", keep(T0, "...Rod bearings replaced in 2021...").items.length === 1 && keep(T0, "…no rust…").items.length === 1);
+  ok("zero width characters and a soft hyphen in the listing do not break the match", keep("Rod \u200Bbearings re\u00ADplaced in 2021 at the dealer.", "Rod bearings replaced in 2021").items.length === 1);
+  // what is still dropped
+  const drops = [["a paraphrase", "bearings were changed in 2021"], ["one wrong word", "Rod bearings removed in 2021"], ["words out of order", "2021 in replaced bearings Rod"], ["a quote under four characters", "rod"], ["text that is not in the listing", "the engine was rebuilt in 2019"]];
+  for (const [n, q] of drops) { const p = keep(T0, q); ok("still dropped as quote_not_found: " + n, p.items.length === 0 && p.reasons.quote_not_found === 1, p.reasons); }
+  ok("a quote that is only punctuation and entities is not a match", keep(T0, "&amp;&amp;&amp;").items.length === 0 && keep(T0, "...").items.length === 0);
+  // the class: every character and entity the normaliser knows is matched against its plain form
+  const bad = [];
+  for (const [k, v] of Object.entries(FM.CHARMAP)) { if (!v || /^\s*$/.test(v)) continue; const text = `before ${k} after the sale`, q = `before ${v} after the sale`; if (!FM.locate(text, q)) bad.push("char " + k.codePointAt(0).toString(16)); }
+  for (const [n, v] of Object.entries(FM.ENTITIES)) { if (!v.trim()) continue; const text = `before &${n}; after the sale`, q = `before ${v} after the sale`; if (!FM.locate(text, q)) bad.push("entity " + n); }
+  ok("class: every character and entity in the normaliser's tables matches its plain form", bad.length === 0, bad);
+  ok("the tables cover the curly quotes, the dashes and the common entities", ["‘", "’", "“", "”", "–", "—"].every(c => c in FM.CHARMAP) && ["amp", "nbsp", "rsquo", "lsquo", "ldquo", "rdquo", "ndash", "mdash", "quot", "apos"].every(n => n in FM.ENTITIES));
+  // through the whole call: a curly listing and plain quotes, which used to be dropped, are kept; the answer counts what was recovered and why, with no text
+  const CURLY = "The car’s “original” engine was rebuilt – not replaced. No accidents &amp; clean title. The owner’s manuals and both keys are included. ".repeat(3);
+  const db = mkDb(rowsN(1, CURLY)); db.callModel2 = async () => ({ text: [L("engine rebuilt", "mechanical work", "work_done", "positive", 0, 0, 'original" engine was rebuilt - not replaced'), L("original engine", "originality", "claim", "positive", 0, 0, 'The car\'s "original" engine'), L("no accidents", "accident and title", "absence_stated", "positive", 0, 0, "No accidents & clean title"), L("manuals", "documentation", "claim", "positive", 0, 0, "The owner's manuals and both keys are included"), L("ghost", "other", "claim", "neutral", 0, 0, "the transmission was replaced last year")].join("\n"), usage: { input_tokens: 900, output_tokens: 100 }, stop_reason: "end_turn" });
+  const r = await mine(db, { limit: 1 }), rc = r.body.quotes_recovered_by_cause;
+  ok("end to end: four quotes the old exact match would have dropped are kept, the invented one is dropped", r.ok && r.body.items_written === 4 && r.body.dropped_by_reason.quote_not_found === 1 && r.body.items_dropped === 1, [r.body.items_written, r.body.dropped_by_reason]);
+  ok("the answer says how many were recovered and which difference they needed (counts only): entity 1, curly quotes 3", !!rc && rc.entity === 1 && rc.curly_quote === 3 && Object.values(rc).reduce((a, b) => a + b, 0) === 4, rc);
+  ok("the written rows hold spans into the original text and no quote", db.mentions.every(m => m.span_end > m.span_start && m.span_end <= CURLY.length && !("quote" in m)));
+  const plain = mkDb(rowsN(1, DESC(0))), rp = await mine(plain, { limit: 1 });
+  ok("a listing whose quotes match exactly recovers nothing", Object.values(rp.body.quotes_recovered_by_cause).every(n => n === 0), rp.body.quotes_recovered_by_cause);
+});
+
+// ===== 11 THREE CALLS AT ONCE, NO MORE (Lane D, lane-d-factmine-3) =====
+await section("the three call cap", async () => {
+  const gateModel = (db, gate) => async a => { db.modelCalls++; await gate; return { text: GOOD(a.user), usage: { input_tokens: 900, output_tokens: 100 }, stop_reason: "end_turn" }; };
+  const call = (db, extra = {}) => FM.runFactMine({ ...Q, limit: 1 }, { select: db.select, insert: db.insert, callModel: db.callModel2 || db.model(GOOD), ...extra });
+  const wait = async (f, ms = 3000) => { const t0 = Date.now(); while (!f() && Date.now() - t0 < ms) await new Promise(r => setTimeout(r, 5)); return f(); };
+  const live = db => FM.activeLeases(db.leases.map(l => ({ status: l.status, metadata: l.metadata }))).length;
+  ok("the limit is three", FM.MAX_CONCURRENT === 3);
+  // three in flight, a fourth is refused
+  const db = mkDb(rowsN(6)); let open; const gate = new Promise(r => { open = r; }); db.callModel2 = gateModel(db, gate);
+  const three = [call(db), call(db), call(db)]; await wait(() => db.modelCalls === 3);
+  const sel0 = db.selects.filter(q => q.startsWith("sales_archive?")).length, models0 = db.modelCalls;
+  const fourthP = await withTimeout(call(db), 1500), hungFourth = fourthP === "HUNG", fourth = hungFourth ? { ok: "never answered: it ran" } : fourthP;   // without the cap the fourth call runs and waits on the gate
+  ok("a fourth call while three run is refused with a 429 and a clear reason", fourth.ok === false && fourth.status === 429 && /3 factmine calls are already running/.test(fourth.why) && /limit is 3 at once/.test(fourth.why), fourth);
+  ok("the refused call read nothing and asked the model nothing", db.selects.filter(q => q.startsWith("sales_archive?")).length === sel0 && db.modelCalls === models0);
+  ok("the refused call released its own lease: three running leases are left, not four", live(db) === 3, db.leases.map(l => l.status));
+  const fifthP = hungFourth ? "HUNG" : await withTimeout(call(db), 1500), fifth = fifthP === "HUNG" ? { ok: true } : fifthP; ok("a fifth is refused the same way", fifth.ok === false && fifth.status === 429);
+  open(); const done = await Promise.all(three);
+  ok("the three that were running all answered", done.every(d => d.ok && d.body.mined === 1), done.map(d => d.ok));
+  ok("every lease is released when its call answers: none active", live(db) === 0);
+  const after = await call(db, { callModel: db.model(GOOD) }); ok("after they answer a new call runs", after.ok === true && after.body.asked === 1, after.why);
+  // four started at the same moment: exactly three run
+  const dr = mkDb(rowsN(6)); let open2; const gate2 = new Promise(r => { open2 = r; }); dr.callModel2 = gateModel(dr, gate2);
+  const race = [call(dr), call(dr), call(dr), call(dr)]; await wait(() => dr.modelCalls >= 3); await new Promise(r => setTimeout(r, 100)); open2(); const rr = await Promise.all(race);
+  ok("four calls started together: three run and one is refused", rr.filter(x => x.ok).length === 3 && rr.filter(x => !x.ok && x.status === 429).length === 1, rr.map(x => x.ok ? "ok" : x.status));
+  ok("the refused one is the last to take a lease (leases are counted in order)", !rr[3].ok && rr.slice(0, 3).every(x => x.ok), rr.map(x => x.ok));
+  // a lease that is released or old does not count
+  const old = mkDb(rowsN(3)); for (let i = 0; i < 3; i++) old.leases.push({ id: i + 1, at: Date.now() - FM.LEASE_MS - 5000, status: "running", metadata: { lease: "old" + i } });
+  const ro = await call(old); ok("three leases older than the time budget plus a minute have lapsed: a call runs", ro.ok === true, ro.why);
+  const rel = mkDb(rowsN(3)); for (let i = 0; i < 3; i++) { rel.leases.push({ id: 2 * i + 1, at: Date.now(), status: "running", metadata: { lease: "r" + i } }); rel.leases.push({ id: 2 * i + 2, at: Date.now(), status: "released", metadata: { lease: "r" + i } }); }
+  const rr2 = await call(rel); ok("three released leases do not count: a call runs", rr2.ok === true, rr2.why);
+  const fresh = mkDb(rowsN(3)); for (let i = 0; i < 3; i++) fresh.leases.push({ id: i + 1, at: Date.now() - 1000, status: "running", metadata: { lease: "f" + i } });
+  const rf = await call(fresh); ok("three fresh running leases refuse a call", rf.ok === false && rf.status === 429 && fresh.modelCalls === 0, rf.why);
+  // fail closed
+  const dn = mkDb(rowsN(3)); dn.leaseDown = true; const rd = await call(dn); ok("if the number running cannot be read the call does not start (503), and asks nothing", rd.ok === false && rd.status === 503 && dn.modelCalls === 0, rd);
+  const wd = mkDb(rowsN(3)); wd.leaseWriteDown = true; const rw = await call(wd); ok("if the lease cannot be written the call does not start (503)", rw.ok === false && rw.status === 503 && wd.modelCalls === 0, rw);
+  // the door first, release on every exit
+  const dd = mkDb(rowsN(3)), rb = await FM.runFactMine({ source: "bringatrailer", family: "e46_m3" }, { select: dd.select, insert: dd.insert, callModel: dd.model(GOOD) }); ok("a call the door refuses takes no lease", rb.ok === false && rb.status === 400 && dd.leases.length === 0);
+  const mt = mkDb(rowsN(3)); mt.tablesMissing = true; const rm = await call(mt); ok("a call that ends in a refusal after the lease (tables missing) releases it", rm.status === 409 && live(mt) === 0);
+  const ex = mkDb(rowsN(3)), bomb = { select: async qs => { if (qs.startsWith("sales_archive?")) throw new Error("boom"); return ex.select(qs); }, insert: ex.insert, callModel: ex.model(GOOD) };
+  let thrown = false; try { await FM.runFactMine({ ...Q, limit: 1 }, bomb); } catch { thrown = true; }
+  ok("a call that throws releases its lease too", thrown && live(ex) === 0);
+  const src = fs.readFileSync("api/usageDashboard.js", "utf8"), at = src.indexOf('task === "factmine"');
+  ok("the endpoint passes the refusal's status through (a 429 is a 429)", at > 0 && /res\.status\(r\.status \|\| 400\)/.test(src.slice(at, at + 3000)));
+  const mineSrc = fs.readFileSync("lib/factMine.js", "utf8");
+  ok("the lease is counted from the database (app_usage_events), not from a variable in one instance", /app_usage_events\?select=id,status,metadata&event_type=eq\./.test(mineSrc) && !/let activeCalls|activeCount\+\+/.test(mineSrc));
+});
 if (args.includes("--estimate")) {
   const sysT = Math.round(FM.SYSTEM.length / 4), long = "The car was repainted in 2019. ".repeat(190).slice(0, 6000), user = FM.buildPrompt({ year: 2004, model: "BMW M3 (E46)", variant: "Coupe", text: long }).user, userT = Math.round(user.length / 4);
   const item = L("rod bearings replaced", "mechanical work", "work_done", "positive", 1, 1, "rod bearings were replaced in March 2021 at 74,000 miles"), itemT = Math.round(item.length / 3.2);
@@ -262,7 +371,26 @@ function mutants() {
     ["the prompt holds the seller", ...sub("lib/factMine.js", "variant: variantOf(call.family, title), text });", "variant: variantOf(call.family, title), text: text + ' ' + (rawOf(r).seller || '') });")],
     ["the prompt holds the comments", ...sub("lib/factMine.js", "variant: variantOf(call.family, title), text });", "variant: variantOf(call.family, title), text: text + ' ' + JSON.stringify(rawOf(r).comments || '') });")],
     ["the prompt holds the sale price column", ...sub("lib/factMine.js", "variant: variantOf(call.family, title), text });", "variant: variantOf(call.family, title), text: text + ' ' + (r.sale_price_usd || '') });")],
-    ["an item whose quote is not in the text keeps a span", ...sub("lib/factMine.js", "  i = text.toLowerCase().indexOf(q.toLowerCase()); if (i >= 0) return [i, i + q.length];\n  return null;", "  i = text.toLowerCase().indexOf(q.toLowerCase()); if (i >= 0) return [i, i + q.length];\n  return [0, Math.min(q.length, text.length)];")],
+    ["an item whose quote is not in the text keeps a span", ...sub("lib/factMine.js", "const i = n.s.indexOf(q); if (i < 0) return null;", "const i = n.s.indexOf(q); if (i < 0) return [0, Math.min(q.length, text.length)];")],
+    ["the quote match does not fold whitespace", ...sub("lib/factMine.js", "if (/\\s/.test(ch)) {", "if (false) {")],
+    ["the quote match does not read curly quotes", ...sub("lib/factMine.js", "\"\\u2018\": \"'\", \"\\u2019\": \"'\",", "")],
+    ["the quote match does not read en and em dashes", ...sub("lib/factMine.js", "\"\\u2013\": \"-\", \"\\u2014\": \"-\",", "")],
+    ["the quote match does not decode entities", ...sub("lib/factMine.js", "if (c === \"&\") {", "if (false) {")],
+    ["the quote match is case sensitive", ...sub("lib/factMine.js", "for (const ch of c.toLowerCase()) {", "for (const ch of c) {")],
+    ["the span is the normalised position, not the original", ...sub("lib/factMine.js", "return [n.from[i], n.to[i + q.length - 1]];", "return [i, i + q.length];")],
+    ["an unfinished entity at the 60 character cut is not taken off", ...sub("lib/factMine.js", ".replace(/&#?[A-Za-z0-9]{0,8}$/, \"\")", "")],
+    ["a leading or trailing ellipsis is not taken off", "lib/factMine.js", s => s.replace(/\.replace\(\/\^\\s\*\(\?:[^\n]*?\$\/g, ""\)/, ""), "ellipsis"],
+    ["a recovered quote is not counted", ...sub("lib/factMine.js", "if (textRead.toLowerCase().indexOf(q0.toLowerCase()) < 0) recovered[", "if (false) recovered[")],
+    ["the fourth call is not refused", ...sub("lib/factMine.js", "if (rank >= MAX_CONCURRENT) {", "if (false) {")],
+    ["the limit is four", ...sub("lib/factMine.js", "MAX_CONCURRENT = 3,", "MAX_CONCURRENT = 4,")],
+    ["a lease is not released when the call answers", ...sub("lib/factMine.js", "finally { await releaseLease(deps, L.lease); }", "finally { }")],
+    ["a refused call keeps its lease", ...sub("lib/factMine.js", "if (rank >= MAX_CONCURRENT) { await releaseLease(deps, lease); return", "if (rank >= MAX_CONCURRENT) { return")],
+    ["a lapsed lease still counts", ...sub("lib/factMine.js", "&created_at=gte.${encodeURIComponent(since)}", "")],
+    ["a released lease still counts", ...sub("lib/factMine.js", "r.status === \"running\" && !gone.has(r.metadata && r.metadata.lease)", "r.status === \"running\"")],
+    ["the call starts when the lease count cannot be read", ...sub("lib/factMine.js", "if (!act || rank < 0) {", "if (false) {")],
+    ["the call starts when the lease cannot be written (both guards: the write error and the missing own row)", "lib/factMine.js", s => s.replace("if (w && w.error) return { ok: false, status: 503, why: \"this call could not be counted", "if (false) return { ok: false, status: 503, why: \"this call could not be counted").replace("if (!act || rank < 0) {", "if (false) {"), "lease write"],
+    ["the refusal is a 400, not a 429", ...sub("lib/factMine.js", "return { ok: false, status: 429,", "return { ok: false, status: 400,")],
+    ["the endpoint drops the refusal's status", ...sub("api/usageDashboard.js", "res.status(r.status || 400).json({ task, error: r.why });", "res.status(400).json({ task, error: r.why });")],
     ["an item with a bad category is kept", ...sub("lib/factMine.js", "const category = enumOf(c, CATEGORIES); if (!category) {", "const category = enumOf(c, CATEGORIES) || \"other\"; if (false) {")],
     ["a done listing is mined again", ...sub("lib/factMine.js", "const todo = eligible.filter((r, i) => !doneIds.has(ids[i])).slice(0, call.limit);", "const todo = eligible.slice(0, call.limit);")],
     ["an unwindowed call is allowed", ...sub("lib/factMine.js", "if (!DATE.test(from) || !DATE.test(to)) return", "if (false) return")],
@@ -274,13 +402,14 @@ function mutants() {
     ["text can be returned", ...sub("lib/factMine.js", "if (typeof v === \"string\") return v.length <= 200;", "if (typeof v === \"string\") return true;")],
     ["the map merges opposite meanings", ...sub("lib/factMap.js", "if (parts.size <= 1) return [{ canonical, members: [...members] }];", "return [{ canonical, members: [...members] }];")],
     ["the map asks again for what is mapped", ...sub("lib/factMap.js", "filter(([t]) => !have.has(t))", "filter(([t]) => true)")],
-    ["the prompt no longer skips standard equipment", ...sub("lib/factMine.js", "standard equipment such as climate control", "ordinary things such as climate control")],
+    ["the prompt no longer skips factory equipment", ...sub("lib/factMine.js", "factory equipment and options of every kind, even when", "ordinary things, even when")],
+    ["the prompt keeps factory packages again", ...sub("lib/factMine.js", "stated absences (\\\"no accidents\\\", \\\"never tracked\\\").\",", "stated absences (\\\"no accidents\\\", \\\"never tracked\\\"); factory packages or rare options named as such.\",")],
     ["a cut off answer keeps its partial last line", ...sub("lib/factMine.js", "if (opts.truncated && !/\\n\\s*$/.test(raw) && lines.length) {", "if (false) {")],
     ["a truncated listing is not flagged", ...sub("lib/factMine.js", "...(truncated ? { error: \"truncated\" } : {})", "")],
     ["a truncated listing is a failure", ...sub("lib/factMine.js", "if (parsed.bad) return fail(", "if (parsed.bad || truncated) return fail(")],
     ["the item cap of 30 is not applied", ...sub("lib/factMine.js", "if (evaluated >= MAX_ITEMS) {", "if (false) {")],
     ["a quote is not clipped to 60 characters", ...sub("lib/factMine.js", ".trim().slice(0, MAX_QUOTE), topic", ".trim(), topic")],
-    ["the miner version is not bumped", ...sub("lib/factMine.js", "export const MINER_VERSION = \"fm2\"", "export const MINER_VERSION = \"fm1\"")],
+    ["the miner version is not bumped", ...sub("lib/factMine.js", "export const MINER_VERSION = \"fm3\"", "export const MINER_VERSION = \"fm2\"")],
     ["the output limit goes back to 4,000", ...sub("lib/factMine.js", "MAX_OUT_TOKENS = 1800", "MAX_OUT_TOKENS = 4000")],
     ["listings are read one at a time", ...sub("lib/factMine.js", "PARALLEL = 5,", "PARALLEL = 1,")],
     ["a listing is started with no time left", ...sub("lib/factMine.js", "if (Date.now() - t0 + T.modelTimeoutMs + T.marginMs > T.budgetMs) {", "if (false) {")],
