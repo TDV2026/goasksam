@@ -8,6 +8,7 @@
 // each kind of failed-read row and still stores every real answer. (C) a Find search over a failing archive stores no row at all that says nothing; the same search over a working archive stores only real answers.
 //   node scripts/failedReadNeverStoredCheck.mjs [repo root]   (run it against origin/main: B fails); --mutants breaks one rule at a time.
 import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { spawnSync } from "node:child_process"; import { fileURLToPath, pathToFileURL } from "node:url";
+import { SPEC_V } from "../lib/live/search.js";   // a stored core carries the engine's own SPEC_V, never a number of its own (scripts/specVersionFixtureCheck.mjs)
 const args = process.argv.slice(2), here = path.dirname(fileURLToPath(import.meta.url)), root = path.resolve(args.find(a => !a.startsWith("--")) || path.join(here, ".."));
 if (args.includes("--mutants")) process.exit(mutants());
 process.chdir(root);
@@ -45,7 +46,7 @@ globalThis.fetch = async (url, init = {}) => { const u = String(url), method = (
   return new Response(JSON.stringify(/\/rest\/v1\/live_listings/.test(u) ? rows : []), { status: 200 }); };
 const FAIL = { archive: false };
 const stored = async core => { WRITES.length = 0; const r = await S.persistCore(env, "KEY", core); return WRITES.some(w => w.rows.some(x => x && x.spec_key === "KEY")) && r !== false; };
-const failedNone = { v: 1, engineVersion: "e100", kind: "none", notTrackedLine: null, thinZero: false, refusalLine: NONE };
+const failedNone = { v: SPEC_V, engineVersion: "e100", kind: "none", notTrackedLine: null, thinZero: false, refusalLine: NONE };
 ok("(B) a none row that is only the generic line (what a failed read left) is refused", !(await stored(failedNone)));
 ok("(B) …the same row with a null answeredTier is refused", !(await stored({ ...failedNone, answeredTier: null })));
 ok("(B) a row that says readFailed is refused", !(await stored({ kind: "pending", readFailed: true })) && !(await stored({ kind: "pending", stillReading: true })));
