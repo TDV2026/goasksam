@@ -55,10 +55,23 @@ if (process.argv.includes("--mutants")) {
     ["the choices not under the bar", 'bar.insertAdjacentHTML("afterend",h)', 'bar.insertAdjacentHTML("beforebegin",h)', "lib/modelChoicePage.js"],
     ["the choices not wrapping (a phone scrolls sideways)", "display:flex;flex-wrap:wrap;gap:8px}.gmc-list li", "display:flex;flex-wrap:nowrap;gap:8px}.gmc-list li", "lib/modelChoicePage.js"],
     ["the choices read from Market Check only", "API=/\\/api\\/(sellerDecision|buySearch|sellChat)(", "API=/\\/api\\/(sellerDecision)(", "lib/modelChoicePage.js"],
+    ["the card asked for while the page loads (no wait for auth.js)", 'whenAuth(function(){ openSignInCard("Sign in to start your Task.', 'if (typeof openSignInCard === "function") (function(){ openSignInCard("Sign in to start your Task.', "lib/preview/tasksPreview.js", "edges"],
+    ["the wait for auth.js never made", 'document.addEventListener("DOMContentLoaded", function(){ if (typeof openSignInCard === "function") f(); });', 'void 0;', "lib/preview/tasksPreview.js", "edges"],
+    ["a car in hand not opening the card", '(P.get("signin") || P.get("words") || HAS_CAR)', '(P.get("signin") || P.get("words"))', "lib/preview/tasksPreview.js", "edges"],
+    ["the card opening on every Tasks landing", '(P.get("signin") || P.get("words") || HAS_CAR)', '(true)', "lib/preview/tasksPreview.js", "edges"],
+    ["the sign in card not handed the car", "function ready(){wrapSign();draw();", "function ready(){draw();", "lib/carBar.js", "edges"],
+    ["the way back without the car for Find, Market Check and Tasks", 'else u.searchParams.set("car",car.token);return u.pathname', 'else u.searchParams.set("x",car.token);return u.pathname', "lib/carBar.js", "edges"],
+    ["the way back without the token on Sell", 'if(C.tool==="sell")u.searchParams.set("cb",car.token);else u.searchParams.set("car"', 'if(C.tool==="sell")u.searchParams.set("x",car.token);else u.searchParams.set("car"', "lib/carBar.js", "edges"],
+    ["a caller's own destination overwritten", "if(!(opts&&opts.dest)){var d=dest();", "if(true){var d=dest();", "lib/carBar.js", "edges"],
+    ["Sell's step address without the token", 'u1.searchParams.set("cb",car.token);url=', 'u1.searchParams.set("x",car.token);url=', "lib/carBar.js", "edges"],
+    ["the address not refreshed when the answer brings the car", 'if(C.tool==="sell"&&/[?&]car=/.test(location.search)&&history.replaceState){try{history.replaceState(history.state,', 'if(false&&history.replaceState){try{history.replaceState(history.state,', "lib/carBar.js", "edges"],
+    ["a reload not reading cb on the server", 'if (tool === "sell" && u.searchParams.has("cb"))', 'if (false && tool === "sell" && u.searchParams.has("cb"))', "lib/carBar.js", "edges"],
+    ["a cb that does not decode accepted", 'const info = isCarToken(cb) ? carInfo(cb, crewOnly(req)) : null; if (info &&', 'const info = { token: cb, line: cb, short: cb, label: cb }; if (info &&', "lib/carBar.js", "edges"],
+    ["the step's history state dropped by the address refresh", 'history.replaceState(history.state,"",location.pathname+location.search+location.hash)', 'history.replaceState(null,"",location.pathname+location.search+location.hash)', "lib/carBar.js", "edges"],
     ["a car line built on the page from the token", "car={token:c.token,line:c.line,short:c.short||\"\"}", "car={token:c.token,line:\"\"+c.token,short:\"\"}"]
   ];
   let bad = 0;
-  for (const [name, from, to, file] of MUT.filter(m => !process.argv.includes("--partial") || m[3])) {
+  for (const [name, from, to, file] of MUT.filter(m => process.argv.includes("--edges") ? m[4] === "edges" : (!process.argv.includes("--partial") || (m[3] && !m[4])))) {
     const P = path.join(ROOT, file || f), orig = fs.readFileSync(P, "utf8");
     if (!orig.includes(from)) { console.log("MUTANT NOT APPLICABLE (source changed): " + name); bad++; continue; }
     let code = 0; try { fs.writeFileSync(P, orig.replace(from, () => to)); try { execFileSync("node", [fileURLToPath(import.meta.url)], { stdio: "pipe", timeout: 240000 }); } catch (e) { code = e.status || 1; } } finally { fs.writeFileSync(P, orig); }
