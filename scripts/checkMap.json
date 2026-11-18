@@ -607,6 +607,7 @@
     "lib/carBar.js",
     "lib/carToken.js",
     "lib/live/search.js",
+    "lib/modelChoicePage.js",
     "lib/sell/sellFlow.js",
     "lib/vehicle.js",
     "package.json",
@@ -2725,6 +2726,19 @@
     "node_modules/"
    ]
   },
+  "findHeaderCheck": {
+   "file": "scripts/findHeaderCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/_crew.js",
+    "lib/carToken.js",
+    "package.json",
+    "public/",
+    "scripts/_pinEndTimes.mjs",
+    "scripts/fixtures/findSl65Search.json"
+   ]
+  },
   "findIntelCheck": {
    "file": "scripts/findIntelCheck.mjs",
    "kind": "offline",
@@ -4659,6 +4673,35 @@
     "scripts/e98Render.mjs"
    ]
   },
+  "partialCarCheck": {
+   "file": "scripts/partialCarCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/buySearch.js",
+    "api/sellChat.js",
+    "api/sellerDecision.js",
+    "api/tasks.js",
+    "api/vehicleIdentity.js",
+    "docs/",
+    "lib/",
+    "lib/_crew.js",
+    "lib/carBar.js",
+    "lib/carChoice.js",
+    "lib/carToken.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/sell/sellFacts.js",
+    "lib/sell/sellFlow.js",
+    "lib/sheetRead.js",
+    "lib/tasks/tasks.js",
+    "lib/vinAsTyped.js",
+    "node_modules/",
+    "public/",
+    "scripts/"
+   ]
+  },
   "partnerAccessCheck": {
    "file": "scripts/partnerAccessCheck.mjs",
    "kind": "offline",
@@ -4912,6 +4955,18 @@
    "kind": "offline",
    "covers": [
     "lib/onebox.js"
+   ]
+  },
+  "poolrowsCheck": {
+   "file": "scripts/poolrowsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/usageDashboard.js",
+    "lib/factMine.js",
+    "lib/poolRowsExt.js",
+    "lib/valueCensus.js",
+    "node_modules/"
    ]
   },
   "popupSalesCheck": {
@@ -6990,6 +7045,7 @@
     "./",
     "api/buySearch.js",
     "api/sellerDecision.js",
+    "lib/_crew.js",
     "lib/carBar.js",
     "lib/carToken.js",
     "lib/desk/intake/run.js",
