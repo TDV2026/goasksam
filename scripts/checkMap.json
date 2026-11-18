@@ -1,0 +1,7574 @@
+{
+ "_readme": "Which checks cover which files. Built by scripts/buildCheckMap.mjs from what each check imports and names; edit serial, ignore, engine and notes by hand, the builder keeps them. Run: node scripts/runChecks.mjs",
+ "engine": [
+  "data/calculatorModelYears.json",
+  "data/copy.json",
+  "data/deadPhotoHosts.json",
+  "data/modelYearsFilled.json",
+  "data/variantFamilies.json",
+  "lib/bareModel.js",
+  "lib/live/",
+  "lib/numberPhrases.js",
+  "lib/onebox.js",
+  "lib/vehicle.js"
+ ],
+ "ignore": [
+  "docs/",
+  "proofs/",
+  "*.md",
+  ".gitignore",
+  "LICENSE",
+  "scripts/checkMap.json"
+ ],
+ "notes": {},
+ "checks": {
+  "amazonCarStateCheck": {
+   "file": "scripts/amazonCarStateCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_amazonDemo.js",
+    "api/_amazonDemoCars.js",
+    "api/partnerDemo.js"
+   ]
+  },
+  "amazonCarsCheck": {
+   "file": "scripts/amazonCarsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_amazonDemoCars.js",
+    "api/partnerAnswer.js",
+    "api/usageDashboard.js",
+    "vercel.json"
+   ]
+  },
+  "amazonCaseCheck": {
+   "file": "scripts/amazonCaseCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_amazonDemo.js",
+    "api/_amazonDemoCars.js",
+    "api/partnerDemo.js"
+   ]
+  },
+  "amazonDemoCheck": {
+   "file": "scripts/amazonDemoCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "api/_amazonDemoCars.js"
+   ]
+  },
+  "amazonGridCheck": {
+   "file": "scripts/amazonGridCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_amazonDemo.js",
+    "api/_amazonDemoCars.js",
+    "api/partnerDemo.js"
+   ]
+  },
+  "amazonQuestionChipsCheck": {
+   "file": "scripts/amazonQuestionChipsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_amazonDemo.js",
+    "api/partnerDemo.js"
+   ]
+  },
+  "amazonR2Check": {
+   "file": "scripts/amazonR2Check.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_amazonDemo.js",
+    "api/partnerDemo.js"
+   ]
+  },
+  "amazonR3ListingCheck": {
+   "file": "scripts/amazonR3ListingCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_amazonDemo.js",
+    "api/_amazonDemoCars.js",
+    "api/partnerDemo.js"
+   ]
+  },
+  "amazonSalesListCheck": {
+   "file": "scripts/amazonSalesListCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_amazonDemo.js",
+    "api/partnerDemo.js",
+    "lib/sellsForCard.js"
+   ]
+  },
+  "amazonScopeCheck": {
+   "file": "scripts/amazonScopeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_amazonDemo.js",
+    "api/partnerDemo.js"
+   ]
+  },
+  "amazonTypedCheck": {
+   "file": "scripts/amazonTypedCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/partnerAnswer.js",
+    "lib/_crew.js",
+    "lib/amazonDemoCase.js"
+   ]
+  },
+  "amgBadgeCheck": {
+   "file": "scripts/amgBadgeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "amgGtcCheck": {
+   "file": "scripts/amgGtcCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "analyticsCheck": {
+   "file": "scripts/analyticsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/_usage.js",
+    "api/admin.js",
+    "api/track.js",
+    "lib/track/catalog.js",
+    "lib/track/consent.js",
+    "lib/track/ledger.js",
+    "lib/track/log.js",
+    "lib/track/privacy.js"
+   ]
+  },
+  "answerWordsCheck": {
+   "file": "scripts/answerWordsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/live/answerWords.js",
+    "lib/tasks/tasks.js",
+    "public/js/onebox.js",
+    "public/onebox.html",
+    "vercel.json"
+   ]
+  },
+  "appliedAllCheck": {
+   "file": "scripts/appliedAllCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "appliedFiltersCheck": {
+   "file": "scripts/appliedFiltersCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98Render.mjs"
+   ]
+  },
+  "archiveMakeCheck": {
+   "file": "scripts/archiveMakeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/vehicle.js"
+   ]
+  },
+  "archiveModelCheck": {
+   "file": "scripts/archiveModelCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/vehicle.js"
+   ]
+  },
+  "arrivalCheck": {
+   "file": "scripts/arrivalCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/track.js",
+    "docs/",
+    "lib/admin/launch.js",
+    "lib/appShell.js",
+    "lib/track/log.js",
+    "lib/track/privacy.js",
+    "scripts/"
+   ]
+  },
+  "askContextCheck": {
+   "file": "scripts/askContextCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/marketCheck.js",
+    "public/js/",
+    "public/js/onebox.js"
+   ]
+  },
+  "askedYearCheck": {
+   "file": "scripts/askedYearCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js"
+   ]
+  },
+  "attemptsWalkCheck": {
+   "file": "scripts/attemptsWalkCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_attemptsWalk.js"
+   ]
+  },
+  "authPrefillCheck": {
+   "file": "scripts/authPrefillCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "public/js/auth.js"
+   ]
+  },
+  "bareModelCheck": {
+   "file": "scripts/bareModelCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/badgeAliases.js",
+    "lib/generations.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "basisPoolCheck": {
+   "file": "scripts/basisPoolCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/sellsForCard.js"
+   ]
+  },
+  "beaconCeilingCheck": {
+   "file": "scripts/beaconCeilingCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/funnel.js",
+    "lib/_ceilings.js"
+   ]
+  },
+  "beforeItEndsCheck": {
+   "file": "scripts/beforeItEndsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/buyAlerts.js",
+    "lib/live/watches.js",
+    "lib/tasks/digest.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "bidPlaceCheck": {
+   "file": "scripts/bidPlaceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/buySearch.js",
+    "lib/",
+    "lib/live/bidPlaceVerify.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "public/js/",
+    "scripts/fixtures/m3Answer.json"
+   ]
+  },
+  "bodiesOrderAsideCheck": {
+   "file": "scripts/bodiesOrderAsideCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/bodyWords.js",
+    "lib/onebox.js",
+    "lib/sellsForCard.js"
+   ]
+  },
+  "bodyAsideCheck": {
+   "file": "scripts/bodyAsideCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js"
+   ]
+  },
+  "bodyAsideCountCheck": {
+   "file": "scripts/bodyAsideCountCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_bodyAside.js",
+    "lib/onebox.js"
+   ]
+  },
+  "bodyChangesCheck": {
+   "file": "scripts/bodyChangesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_bodyChanges.js"
+   ]
+  },
+  "bodyChangesTaskCheck": {
+   "file": "scripts/bodyChangesTaskCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js"
+   ]
+  },
+  "bodyNamePhraseCheck": {
+   "file": "scripts/bodyNamePhraseCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/bodyWords.js",
+    "lib/onebox.js",
+    "lib/vehicleData.js"
+   ]
+  },
+  "bodyTrustCheck": {
+   "file": "scripts/bodyTrustCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/_flags.js",
+    "lib/bodyAudit.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/mcLink.js",
+    "lib/modelBodies.js",
+    "lib/onebox.js",
+    "node_modules/"
+   ]
+  },
+  "bulkSaleCheck": {
+   "file": "scripts/bulkSaleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/partnerAnswer.js",
+    "lib/bulkSale.js",
+    "lib/sellsForCard.js"
+   ]
+  },
+  "buy1fCheck": {
+   "file": "scripts/buy1fCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/live/narrow.js"
+   ]
+  },
+  "buyActionsCheck": {
+   "file": "scripts/buyActionsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js"
+   ]
+  },
+  "buyBarCheck": {
+   "file": "scripts/buyBarCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/live/buyLanding.js",
+    "lib/startPage.js"
+   ]
+  },
+  "buyBarFlushCheck": {
+   "file": "scripts/buyBarFlushCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js"
+   ]
+  },
+  "buyBikeCheck": {
+   "file": "scripts/buyBikeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js"
+   ]
+  },
+  "buyBoxCheck": {
+   "file": "scripts/buyBoxCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js"
+   ]
+  },
+  "buyCardAskCheck": {
+   "file": "scripts/buyCardAskCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "api/buySearch.js",
+    "lib/live/narrow.js",
+    "lib/live/search.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "buyColorCheck": {
+   "file": "scripts/buyColorCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/samChat.js"
+   ]
+  },
+  "buyColorSpellingCheck": {
+   "file": "scripts/buyColorSpellingCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/appShell.js",
+    "lib/live/buyExample.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "buyComposerClientCheck": {
+   "file": "scripts/buyComposerClientCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "scripts/_pageLift.mjs"
+   ]
+  },
+  "buyEmptyGuardCheck": {
+   "file": "scripts/buyEmptyGuardCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/samChat.js"
+   ]
+  },
+  "buyGridCheck": {
+   "file": "scripts/buyGridCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js"
+   ]
+  },
+  "buyHistChipCheck": {
+   "file": "scripts/buyHistChipCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/live/priorListing.js"
+   ]
+  },
+  "buyHistPopupCheck": {
+   "file": "scripts/buyHistPopupCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/live/priorListing.js"
+   ]
+  },
+  "buyMicCheck": {
+   "file": "scripts/buyMicCheck.mjs",
+   "kind": "live",
+   "covers": []
+  },
+  "buyNameBodyCheck": {
+   "file": "scripts/buyNameBodyCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buySearch.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "buyOutcomeCheck": {
+   "file": "scripts/buyOutcomeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/samChat.js"
+   ]
+  },
+  "buyPanelCheck": {
+   "file": "scripts/buyPanelCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js"
+   ]
+  },
+  "buyRowsCheck": {
+   "file": "scripts/buyRowsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js"
+   ]
+  },
+  "buySearchLineCheck": {
+   "file": "scripts/buySearchLineCheck.mjs",
+   "kind": "live",
+   "covers": []
+  },
+  "buySearchLineCycleCheck": {
+   "file": "scripts/buySearchLineCycleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js"
+   ]
+  },
+  "buyStage1Check": {
+   "file": "scripts/buyStage1Check.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js"
+   ]
+  },
+  "buyStage1cCheck": {
+   "file": "scripts/buyStage1cCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "scripts/_pageLift.mjs"
+   ]
+  },
+  "buyStage1fCheck": {
+   "file": "scripts/buyStage1fCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js"
+   ]
+  },
+  "buyStage2Check": {
+   "file": "scripts/buyStage2Check.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js"
+   ]
+  },
+  "buyTopCheck": {
+   "file": "scripts/buyTopCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js"
+   ]
+  },
+  "c63GenCheck": {
+   "file": "scripts/c63GenCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "cacheHeaderCheck": {
+   "file": "scripts/cacheHeaderCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/history.js",
+    "api/publicConfig.js"
+   ]
+  },
+  "calmFailureCheck": {
+   "file": "scripts/calmFailureCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sell.js",
+    "api/specPage.js",
+    "lib/_hold.js"
+   ]
+  },
+  "candleLabelsCheck": {
+   "file": "scripts/candleLabelsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "public/js/onebox.js",
+    "public/onebox.html"
+   ]
+  },
+  "carBarCheck": {
+   "file": "scripts/carBarCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "api/buySearch.js",
+    "api/crewPage.js",
+    "api/history.js",
+    "api/marketCheck.js",
+    "api/sell.js",
+    "api/sellerDecision.js",
+    "api/tasksPage.js",
+    "lib/_crew.js",
+    "lib/carBar.js",
+    "lib/carToken.js",
+    "lib/live/search.js",
+    "lib/sell/sellFlow.js",
+    "lib/vehicle.js",
+    "package.json",
+    "public/",
+    "scripts/_historyStub.mjs",
+    "scripts/_typedThroughWorld.mjs"
+   ]
+  },
+  "carNamesCheck": {
+   "file": "scripts/carNamesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/deskIntakeKit.mjs"
+   ]
+  },
+  "carTokenCheck": {
+   "file": "scripts/carTokenCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "./",
+    "api/",
+    "api/buySearch.js",
+    "api/crewPage.js",
+    "api/sellChat.js",
+    "api/sellerDecision.js",
+    "api/tasks.js",
+    "api/vehicleIdentity.js",
+    "lib/_newDesign.js",
+    "lib/carBar.js",
+    "lib/carToken.js",
+    "lib/live/chatCore.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/sell/sellFacts.js",
+    "lib/sheetRead.js",
+    "lib/tasks/tasks.js",
+    "lib/vehicle.js",
+    "lib/vinAsTyped.js",
+    "node_modules/",
+    "public/js/entry.js",
+    "public/js/onebox.js",
+    "public/js/result.js",
+    "public/js/wizard.js"
+   ]
+  },
+  "cardLevelCheck": {
+   "file": "scripts/cardLevelCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/e98FindRender.mjs",
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98PanelRender.mjs",
+    "scripts/e98Render.mjs"
+   ]
+  },
+  "cardLinesCheck": {
+   "file": "scripts/cardLinesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/e98FindRender.mjs",
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98PanelRender.mjs",
+    "scripts/e98Render.mjs"
+   ]
+  },
+  "cardPopupCountCheck": {
+   "file": "scripts/cardPopupCountCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/cardSlots.js",
+    "lib/live/search.js"
+   ]
+  },
+  "cardQueryReadBackCheck": {
+   "file": "scripts/cardQueryReadBackCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "scripts/buyEngineMatch.mjs"
+   ]
+  },
+  "cardTitleCheck": {
+   "file": "scripts/cardTitleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "api/buySearch.js",
+    "api/partnerAnswer.js",
+    "public/js/onebox.js"
+   ]
+  },
+  "cardsRangeCheck": {
+   "file": "scripts/cardsRangeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "carriedFieldsCheck": {
+   "file": "scripts/carriedFieldsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buySearch.js",
+    "api/marketCheck.js",
+    "lib/engineFields.js",
+    "lib/live/search.js",
+    "lib/sell/sellFacts.js",
+    "lib/sellsForCard.js",
+    "lib/tasks/emailCards.js",
+    "public/js/",
+    "public/js/onebox.js",
+    "scripts/fixtures/"
+   ]
+  },
+  "caseSendCheck": {
+   "file": "scripts/caseSendCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/caseSend.js",
+    "lib/desk/intake/store.js",
+    "lib/desk/send.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "lib/reasonWords.js",
+    "scripts/_deskCaseWorld.mjs"
+   ]
+  },
+  "chartGapCheck": {
+   "file": "scripts/chartGapCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "public/js/onebox.js",
+    "public/onebox.html"
+   ]
+  },
+  "chartLadderCheck": {
+   "file": "scripts/chartLadderCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "chartNoDotsCheck": {
+   "file": "scripts/chartNoDotsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/",
+    "lib/onebox.js",
+    "public/js/",
+    "public/js/desk.js",
+    "scripts/fixtures/"
+   ]
+  },
+  "chartNoReasonCheck": {
+   "file": "scripts/chartNoReasonCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/",
+    "lib/engineFields.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "public/",
+    "public/js/onebox.js",
+    "scripts/"
+   ]
+  },
+  "chartSplitFloorCheck": {
+   "file": "scripts/chartSplitFloorCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "chartWhyCheck": {
+   "file": "scripts/chartWhyCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "public/js/onebox.js"
+   ]
+  },
+  "chartYearScopeCheck": {
+   "file": "scripts/chartYearScopeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "chassisCodeCheck": {
+   "file": "scripts/chassisCodeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/modelRules.js",
+    "lib/onebox.js"
+   ]
+  },
+  "chassisCodeTypedCheck": {
+   "file": "scripts/chassisCodeTypedCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js"
+   ]
+  },
+  "chatNumberGuardCheck": {
+   "file": "scripts/chatNumberGuardCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/chat.js",
+    "lib/live/chatCore.js",
+    "lib/live/numberGuard.js"
+   ]
+  },
+  "checkSilenceCheck": {
+   "file": "scripts/checkSilenceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/"
+   ]
+  },
+  "chipCasingCheck": {
+   "file": "scripts/chipCasingCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/bodyWords.js",
+    "lib/chipLabel.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "chipLabelCheck": {
+   "file": "scripts/chipLabelCheck.mjs",
+   "kind": "offline",
+   "extra": [
+    "public/js/result-copy.js",
+    "public/js/chat-core.js"
+   ],
+   "covers": [
+    "public/js/chat-core.js",
+    "public/js/result-copy.js"
+   ]
+  },
+  "clockCheck": {
+   "file": "scripts/clockCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/",
+    "scripts/prePush.mjs"
+   ]
+  },
+  "clockPinCheck": {
+   "file": "scripts/clockPinCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "scripts/_pinEndTimes.mjs"
+   ]
+  },
+  "clockShiftCheck": {
+   "file": "scripts/clockShiftCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "data/",
+    "node_modules/",
+    "scripts/",
+    "scripts/_clockShift.mjs",
+    "scripts/prePush.mjs",
+    "scripts/tasksDemoCheck.mjs"
+   ]
+  },
+  "coldPathCheck": {
+   "file": "scripts/coldPathCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_amazonDemo.js",
+    "api/_historyData.js",
+    "api/buy.js",
+    "api/history.js",
+    "api/marketCheck.js",
+    "api/partnerDemo.js",
+    "api/sellerDecision.js",
+    "api/tasksPage.js",
+    "lib/keepAlive.js",
+    "lib/live/search.js",
+    "lib/reasonWords.js",
+    "lib/sell/sellMcClient.js",
+    "lib/track/catalog.js",
+    "public/js/",
+    "public/js/onebox.js",
+    "scripts/fixtures/m3Answer.json",
+    "vercel.json"
+   ]
+  },
+  "coldResolverCheck": {
+   "file": "scripts/coldResolverCheck.mjs",
+   "kind": "offline",
+   "serial": "asserts how many milliseconds a primed first car waits for the outside list (205 ms against a limit); it fails when other checks take the processor (3.1 s alone, 5.1 s beside others)",
+   "covers": [
+    "lib/generations.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "coldWaitCheck": {
+   "file": "scripts/coldWaitCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/partnerAnswer.js",
+    "api/sellerDecision.js",
+    "lib/live/search.js",
+    "public/js/onebox.js",
+    "vercel.json"
+   ]
+  },
+  "containedReadCheck": {
+   "file": "scripts/containedReadCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "converseRetiredCheck": {
+   "file": "scripts/converseRetiredCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/buy.js",
+    "api/buySearch.js",
+    "docs/",
+    "lib/",
+    "node_modules/",
+    "public/",
+    "scripts/",
+    "scripts/buyTimes.mjs",
+    "scripts/findAlwaysCardsCheck.mjs",
+    "vercel.json"
+   ]
+  },
+  "copyCheck": {
+   "file": "scripts/copyCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "data/copy.json",
+    "lib/",
+    "scripts/copyRender.mjs",
+    "scripts/copyRules.mjs"
+   ]
+  },
+  "copyProposalsCheck": {
+   "file": "scripts/copyProposalsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "data/copy.json",
+    "scripts/copyCheck.mjs",
+    "scripts/copyRules.mjs"
+   ]
+  },
+  "correctionMoveCheck": {
+   "file": "scripts/correctionMoveCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_corrections.js",
+    "lib/onebox.js"
+   ]
+  },
+  "corsCheck": {
+   "file": "scripts/corsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/_cors.js"
+   ]
+  },
+  "countNounCheck": {
+   "file": "scripts/countNounCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/sellerDecision.js",
+    "api/usageDashboard.js",
+    "lib/",
+    "lib/countNoun.js",
+    "lib/onebox.js",
+    "lib/sell/sellFlow.js",
+    "lib/sellsForCard.js",
+    "lib/tasks/tasks.js",
+    "public/js/",
+    "public/js/onebox.js",
+    "scripts/"
+   ]
+  },
+  "countsCheck": {
+   "file": "scripts/countsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "credStorageCheck": {
+   "file": "scripts/credStorageCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/"
+   ]
+  },
+  "crewBhsCheck": {
+   "file": "scripts/crewBhsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/crew.js",
+    "lib/_beehiiv.js"
+   ]
+  },
+  "crewBoxCheck": {
+   "file": "scripts/crewBoxCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/crew.js",
+    "lib/_ceilings.js",
+    "lib/_crew.js",
+    "lib/_hold.js"
+   ]
+  },
+  "crewKeysCheck": {
+   "file": "scripts/crewKeysCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/pullLive.js",
+    "api/usageDashboard.js",
+    "lib/live/featuredHistory.js",
+    "lib/live/tasksDemo.js",
+    "node_modules/"
+   ]
+  },
+  "crewPublicColoursCheck": {
+   "file": "scripts/crewPublicColoursCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/about.js",
+    "api/business.js",
+    "api/buy.js",
+    "api/feedback.js",
+    "api/home.js",
+    "api/howSamDecides.js",
+    "api/marketCheck.js",
+    "api/sellPage.js",
+    "api/tasksPage.js",
+    "scripts/e98CrewColours.mjs",
+    "scripts/e98FindRender.mjs",
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98Render.mjs"
+   ]
+  },
+  "crewReadCheck": {
+   "file": "scripts/crewReadCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/_historyData.js",
+    "api/crewPage.js",
+    "lib/_crew.js",
+    "lib/live/tasksDemo.js",
+    "scripts/findExamplesFixture.mjs",
+    "scripts/tasksFixture.mjs",
+    "vercel.json"
+   ]
+  },
+  "crewWiringCheck": {
+   "file": "scripts/crewWiringCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/crewPage.js",
+    "lib/_crew.js",
+    "lib/preview/fieldCompose.js",
+    "scripts/findExamplesFixture.mjs",
+    "scripts/tasksFixture.mjs"
+   ]
+  },
+  "crossProductCapCheck": {
+   "file": "scripts/crossProductCapCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/crossProductCheck.js"
+   ]
+  },
+  "crossProductCheck": {
+   "file": "scripts/crossProductCheck.js",
+   "kind": "offline",
+   "covers": [
+    "api/buySearch.js",
+    "api/sellerDecision.js",
+    "lib/_classify.js",
+    "lib/_houseComps.js",
+    "lib/_supabase.js",
+    "lib/generations.js",
+    "lib/live/converse.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/platformPick.js",
+    "lib/sell/sellBlock.js",
+    "lib/sell/sellFacts.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "crossProductNotReadCheck": {
+   "file": "scripts/crossProductNotReadCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "node_modules/",
+    "scripts/crossProductCheck.js"
+   ]
+  },
+  "deltaReadCheck": {
+   "file": "scripts/deltaReadCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "demoFrameCheck": {
+   "file": "scripts/demoFrameCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/partnerDemo.js"
+   ]
+  },
+  "demoStoredCheck": {
+   "file": "scripts/demoStoredCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/partnerAnswer.js",
+    "lib/onebox.js"
+   ]
+  },
+  "demoVinCheck": {
+   "file": "scripts/demoVinCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/partnerAnswer.js",
+    "lib/amazonDemoCase.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "deskActionsResolveCheck": {
+   "file": "scripts/deskActionsResolveCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/sheetActions.js",
+    "lib/preview/deskPreview.js",
+    "lib/preview/deskV3.js",
+    "lib/preview/deskV3Fixture.js"
+   ]
+  },
+  "deskAuditLineCheck": {
+   "file": "scripts/deskAuditLineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/",
+    "lib/preview/deskV3.js",
+    "lib/reasonWords.js",
+    "scripts/_deskCaseWorld.mjs"
+   ]
+  },
+  "deskBlockersCheck": {
+   "file": "scripts/deskBlockersCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/conditionTier.js",
+    "lib/desk/decisionRules.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetRead.js",
+    "lib/desk/sheetShape.js",
+    "lib/desk/sheetStore.js",
+    "lib/onebox.js",
+    "lib/sheetRead.js",
+    "public/js/deskvals.js"
+   ]
+  },
+  "deskCaseCheck": {
+   "file": "scripts/deskCaseCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/caseModel.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js"
+   ]
+  },
+  "deskCasePhotosCheck": {
+   "file": "scripts/deskCasePhotosCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/liveFill.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "lib/preview/deskPreview.js",
+    "lib/preview/deskV3.js",
+    "lib/preview/deskV4.js",
+    "lib/preview/deskV4Client.js",
+    "scripts/fixtures/desk-intake/portrait.heic",
+    "scripts/lib_fakePostgrest.mjs"
+   ]
+  },
+  "deskCompsCheck": {
+   "file": "scripts/deskCompsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/deskV3.js",
+    "lib/reasonWords.js",
+    "lib/sheetRead.js",
+    "node_modules/",
+    "scripts/_deskV3World.mjs"
+   ]
+  },
+  "deskCompsMinCheck": {
+   "file": "scripts/deskCompsMinCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/deskV3.js",
+    "lib/onebox.js",
+    "lib/sheetRead.js",
+    "scripts/_deskOlderWorld.mjs"
+   ]
+  },
+  "deskDashCheck": {
+   "file": "scripts/deskDashCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/",
+    "lib/conditionTier.js",
+    "lib/desk/",
+    "lib/desk/reportPdf.js",
+    "lib/desk/send.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "lib/pdf/mini.js",
+    "lib/preview/deskPreview.js",
+    "lib/sheetRead.js",
+    "public/js/desk.js",
+    "public/js/deskphoto.js",
+    "public/js/deskvals.js",
+    "scripts/deskValsRender.mjs"
+   ]
+  },
+  "deskDemoCarCheck": {
+   "file": "scripts/deskDemoCarCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/caseDemo.js",
+    "lib/desk/caseView.js",
+    "lib/desk/demoCar.js",
+    "lib/preview/deskPreview.js",
+    "lib/preview/deskRecordedReads.js",
+    "lib/preview/deskV3.js",
+    "lib/preview/deskV3Fixture.js",
+    "lib/preview/recordedRead.js",
+    "lib/reasonWords.js"
+   ]
+  },
+  "deskDemoCheck": {
+   "file": "scripts/deskDemoCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "docs/supabase-desk-brand-color.sql",
+    "lib/conditionTier.js",
+    "lib/crewPages/desk.html",
+    "lib/desk/demoCar.js",
+    "lib/desk/orgSettings.js",
+    "lib/desk/reportPdf.js",
+    "lib/desk/send.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetRead.js",
+    "lib/desk/sheetStore.js",
+    "lib/pdf/mini.js",
+    "lib/preview/deskPreview.js",
+    "lib/sheetRead.js",
+    "public/icon-192.png",
+    "public/js/deskvals.js",
+    "scripts/deskValsRender.mjs",
+    "vercel.json"
+   ]
+  },
+  "deskDoorsCheck": {
+   "file": "scripts/deskDoorsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/desk.js",
+    "api/deskSeat.js",
+    "lib/_crew.js",
+    "lib/desk/",
+    "lib/desk/door.js",
+    "lib/desk/intake/",
+    "lib/desk/intake/caller.js",
+    "lib/desk/seatCookie.js",
+    "lib/desk/seats.js",
+    "lib/desk/viewAs.js",
+    "scripts/_deskDb.mjs"
+   ]
+  },
+  "deskDryrun2Check": {
+   "file": "scripts/deskDryrun2Check.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/decisionRules.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetShape.js",
+    "lib/desk/sheetStore.js",
+    "public/img/sell/specialist.jpg",
+    "scripts/deskValsRender.mjs"
+   ]
+  },
+  "deskEvidenceCheck": {
+   "file": "scripts/deskEvidenceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/deskV3.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "lib/sheetRead.js",
+    "node_modules/",
+    "scripts/_deskV3World.mjs"
+   ]
+  },
+  "deskFactorsCheck": {
+   "file": "scripts/deskFactorsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/conditionTier.js",
+    "lib/deskV3.js",
+    "lib/modelRules.js",
+    "lib/reasonWords.js",
+    "lib/sheetRead.js",
+    "node_modules/",
+    "scripts/_deskV3World.mjs"
+   ]
+  },
+  "deskFormatCheck": {
+   "file": "scripts/deskFormatCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/countNoun.js",
+    "lib/desk/",
+    "lib/desk/reportPdf.js",
+    "lib/desk/reportPdfV3.js",
+    "lib/pdf/",
+    "lib/reasonWords.js"
+   ]
+  },
+  "deskHagertySalesCheck": {
+   "file": "scripts/deskHagertySalesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/reportPdfV3.js",
+    "lib/desk/reportState.js",
+    "lib/deskV3.js",
+    "lib/pdf/mini.js",
+    "lib/reasonWords.js",
+    "scripts/_deskCaseWorld.mjs"
+   ]
+  },
+  "deskHandlingCheck": {
+   "file": "scripts/deskHandlingCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/desk/caseView.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "scripts/_deskCaseWorld.mjs"
+   ]
+  },
+  "deskHeaderCheck": {
+   "file": "scripts/deskHeaderCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/deskV3.js",
+    "lib/onebox.js",
+    "lib/sheetRead.js",
+    "node_modules/",
+    "scripts/_deskV3World.mjs"
+   ]
+  },
+  "deskIndependenceCheck": {
+   "file": "scripts/deskIndependenceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/_deskCaseWorld.mjs"
+   ]
+  },
+  "deskLadderCheck": {
+   "file": "scripts/deskLadderCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/desk/caseView.js",
+    "lib/desk/caseWorkflow.js",
+    "lib/desk/reportPdfV3.js",
+    "lib/desk/reportState.js",
+    "lib/deskV3.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "lib/sheetRead.js",
+    "lib/vehicle.js",
+    "lib/vinAsTyped.js",
+    "node_modules/",
+    "public/js/desk.js",
+    "scripts/_deskCaseWorld.mjs",
+    "scripts/_deskOlderWorld.mjs"
+   ]
+  },
+  "deskLikelyBasisCheck": {
+   "file": "scripts/deskLikelyBasisCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/deskV3.js",
+    "lib/sheetRead.js",
+    "node_modules/",
+    "scripts/_deskCaseWorld.mjs",
+    "scripts/_deskOlderWorld.mjs"
+   ]
+  },
+  "deskNextStepsCheck": {
+   "file": "scripts/deskNextStepsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/caseModel.js",
+    "lib/desk/caseView.js",
+    "lib/desk/caseWorkflow.js",
+    "lib/desk/nextSteps.js",
+    "lib/desk/reportState.js",
+    "lib/desk/sheetActions.js",
+    "lib/preview/deskPreview.js",
+    "lib/preview/deskV3.js",
+    "lib/preview/deskV3Fixture.js",
+    "lib/reasonWords.js"
+   ]
+  },
+  "deskNoEngineTalkCheck": {
+   "file": "scripts/deskNoEngineTalkCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/",
+    "lib/desk/caseModel.js",
+    "lib/desk/caseView.js",
+    "lib/desk/reportPdfV3.js",
+    "lib/desk/reportPdfV4.js",
+    "lib/desk/reportState.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "lib/deskV3.js",
+    "lib/pdf/mini.js",
+    "lib/preview/deskPreview.js",
+    "lib/preview/deskV4.js",
+    "lib/reasonWords.js",
+    "public/",
+    "public/icon-512.png",
+    "scripts/_deskCaseWorld.mjs"
+   ]
+  },
+  "deskOlderCarsCheck": {
+   "file": "scripts/deskOlderCarsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/deskV3.js",
+    "lib/generations.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "lib/sheetRead.js",
+    "node_modules/",
+    "scripts/_deskOlderWorld.mjs"
+   ]
+  },
+  "deskPdfCheck": {
+   "file": "scripts/deskPdfCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/desk.js",
+    "lib/desk/caseSend.js",
+    "lib/desk/handler.js",
+    "lib/desk/imageCache.js",
+    "lib/desk/reportBuild.js",
+    "lib/desk/reportPdf.js",
+    "lib/desk/reportPdfV3.js",
+    "lib/desk/reportPdfV4.js",
+    "lib/desk/reportState.js",
+    "lib/desk/reserveModeLines.js",
+    "lib/desk/send.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "lib/pdf/fonts.js",
+    "lib/pdf/mini.js",
+    "lib/preview/deskPreview.js",
+    "lib/reasonWords.js",
+    "public/icon-512.png",
+    "scripts/_deskCaseWorld.mjs"
+   ]
+  },
+  "deskPersistCheck": {
+   "file": "scripts/deskPersistCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/reportState.js",
+    "lib/desk/sheetStore.js",
+    "lib/pdf/mini.js",
+    "lib/preview/deskPreview.js",
+    "lib/preview/deskV3.js",
+    "lib/preview/deskV3Fixture.js",
+    "scripts/lib_fakePostgrest.mjs"
+   ]
+  },
+  "deskPreviewCheck": {
+   "file": "scripts/deskPreviewCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/crewPage.js",
+    "lib/_crew.js",
+    "lib/preview/deskPreview.js",
+    "package.json",
+    "public/js/",
+    "public/js/deskvals.js",
+    "scripts/figureScan.mjs",
+    "vercel.json"
+   ]
+  },
+  "deskPreviewImageCheck": {
+   "file": "scripts/deskPreviewImageCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/demoCar.js",
+    "lib/preview/deskPreview.js",
+    "lib/preview/deskV3Fixture.js",
+    "lib/preview/previewImage.js",
+    "public/img/sell/specialist.jpg"
+   ]
+  },
+  "deskPriorCasesCheck": {
+   "file": "scripts/deskPriorCasesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/caseModel.js",
+    "lib/desk/priorCases.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "lib/reasonWords.js"
+   ]
+  },
+  "deskQuarterCheck": {
+   "file": "scripts/deskQuarterCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/deskV3.js",
+    "lib/sheetRead.js",
+    "node_modules/",
+    "scripts/_deskV3World.mjs"
+   ]
+  },
+  "deskRailCheck": {
+   "file": "scripts/deskRailCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "scripts/deskValsRender.mjs"
+   ]
+  },
+  "deskReadinessCheck": {
+   "file": "scripts/deskReadinessCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/",
+    "scripts/_deskCaseWorld.mjs"
+   ]
+  },
+  "deskRecomputeCheck": {
+   "file": "scripts/deskRecomputeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/deskV3.js",
+    "lib/sheetRead.js",
+    "node_modules/",
+    "scripts/_deskV3World.mjs"
+   ]
+  },
+  "deskReserveCheck": {
+   "file": "scripts/deskReserveCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/deskV3.js",
+    "lib/reasonWords.js",
+    "lib/sheetRead.js",
+    "node_modules/",
+    "scripts/_deskV3World.mjs"
+   ]
+  },
+  "deskReserveFlowCheck": {
+   "file": "scripts/deskReserveFlowCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/caseView.js",
+    "lib/desk/caseWorkflow.js",
+    "lib/desk/reportState.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "lib/preview/deskV3.js",
+    "scripts/_deskCaseWorld.mjs"
+   ]
+  },
+  "deskReserveModeCheck": {
+   "file": "scripts/deskReserveModeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/usageDashboard.js",
+    "lib/deskV3.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "lib/sheetRead.js",
+    "node_modules/",
+    "scripts/_deskOlderWorld.mjs",
+    "scripts/_deskV3World.mjs",
+    "scripts/ingest.js",
+    "scripts/ingestAttempts.js"
+   ]
+  },
+  "deskRetiredCheck": {
+   "file": "scripts/deskRetiredCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/crewPage.js",
+    "api/sitemapPages.js",
+    "lib/",
+    "lib/_crew.js",
+    "lib/_tester.js",
+    "lib/appShell.js",
+    "lib/desk/seatCookie.js",
+    "public/",
+    "public/robots.txt",
+    "vercel.json"
+   ]
+  },
+  "deskRungsCheck": {
+   "file": "scripts/deskRungsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/desk/rungs.js",
+    "lib/sheetRead.js",
+    "scripts/_deskCaseWorld.mjs"
+   ]
+  },
+  "deskSalesCheck": {
+   "file": "scripts/deskSalesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/deskV3.js",
+    "lib/reasonWords.js",
+    "lib/sheetRead.js",
+    "node_modules/",
+    "scripts/_deskV3World.mjs"
+   ]
+  },
+  "deskSaveOrderCheck": {
+   "file": "scripts/deskSaveOrderCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "public/js/deskvals.js",
+    "scripts/deskValsRender.mjs"
+   ]
+  },
+  "deskSeatSqlCheck": {
+   "file": "scripts/deskSeatSqlCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "docs/supabase-desk-preview-org.sql",
+    "docs/supabase-desk-seat.sql",
+    "lib/preview/deskPreview.js"
+   ]
+  },
+  "deskShapesCheck": {
+   "file": "scripts/deskShapesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/caseDemo.js",
+    "lib/desk/caseModel.js",
+    "lib/desk/caseView.js",
+    "lib/desk/caseWorkflow.js",
+    "lib/desk/reportState.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "lib/deskV3.js",
+    "lib/preview/deskV3Fixture.js",
+    "lib/preview/recordedRead.js",
+    "lib/reasonWords.js",
+    "public/js/deskvals.js",
+    "scripts/_deskCaseWorld.mjs"
+   ]
+  },
+  "deskStateCheck": {
+   "file": "scripts/deskStateCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/crewPages/",
+    "lib/desk/",
+    "lib/desk/caseModel.js",
+    "lib/desk/caseView.js",
+    "lib/desk/caseWorkflow.js",
+    "lib/desk/reportState.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "lib/sheetRead.js",
+    "public/js/",
+    "scripts/_deskCaseWorld.mjs"
+   ]
+  },
+  "deskTrimAskCheck": {
+   "file": "scripts/deskTrimAskCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "lib/sheetRead.js",
+    "scripts/_deskOlderWorld.mjs"
+   ]
+  },
+  "deskTypedBodyCheck": {
+   "file": "scripts/deskTypedBodyCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/sheetRead.js",
+    "scripts/_deskOlderWorld.mjs"
+   ]
+  },
+  "deskTypedCasesCheck": {
+   "file": "scripts/deskTypedCasesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/_flags.js",
+    "lib/desk/answerHealth.js",
+    "lib/desk/caseModel.js",
+    "lib/desk/caseView.js",
+    "lib/desk/caseWorkflow.js",
+    "lib/desk/demoCar.js",
+    "lib/desk/docTypes.js",
+    "lib/desk/door.js",
+    "lib/desk/handler.js",
+    "lib/desk/intake/reread.js",
+    "lib/desk/intake/run.js",
+    "lib/desk/intake/toCase.js",
+    "lib/desk/intake/toSheet.js",
+    "lib/desk/lifecycle.js",
+    "lib/desk/ownCar.js",
+    "lib/desk/reportSales.js",
+    "lib/desk/reportState.js",
+    "lib/desk/seatName.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "lib/desk/storage.js",
+    "lib/desk/vinStep.js",
+    "lib/desk/whyLine.js",
+    "lib/deskV3.js",
+    "lib/preview/deskPreview.js",
+    "lib/preview/deskRecordedReads.js",
+    "lib/preview/deskV3.js",
+    "lib/preview/deskV4Client.js",
+    "lib/reasonWords.js",
+    "lib/sheetRead.js",
+    "lib/vehicle.js",
+    "lib/vinLiveMatch.js",
+    "public/icon-192.png",
+    "scripts/_deskCaseWorld.mjs",
+    "scripts/_deskOlderWorld.mjs",
+    "scripts/fixtures/porsche911PartialAnswer.json"
+   ]
+  },
+  "deskTypedSentenceCheck": {
+   "file": "scripts/deskTypedSentenceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/caseSend.js",
+    "lib/desk/caseWorkflow.js",
+    "lib/desk/decisionRules.js",
+    "lib/desk/reportPdf.js",
+    "lib/desk/send.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetShape.js",
+    "lib/reasonWords.js",
+    "lib/sheetRead.js",
+    "public/js/deskvals.js"
+   ]
+  },
+  "deskV2Check": {
+   "file": "scripts/deskV2Check.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/crewPage.js",
+    "data/",
+    "lib/_crew.js",
+    "lib/preview/deskV2.js",
+    "lib/preview/deskV2Case.js",
+    "lib/preview/deskV3.js",
+    "lib/preview/deskV4Client.js",
+    "scripts/deskV3Harness.mjs",
+    "vercel.json"
+   ]
+  },
+  "deskV3ClickCheck": {
+   "file": "scripts/deskV3ClickCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/deskV3Harness.mjs"
+   ]
+  },
+  "deskV3DecisionCheck": {
+   "file": "scripts/deskV3DecisionCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/caseWorkflow.js",
+    "lib/preview/recordedRead.js",
+    "scripts/deskV3Harness.mjs"
+   ]
+  },
+  "deskV3DemoFlowCheck": {
+   "file": "scripts/deskV3DemoFlowCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/sheetRead.js",
+    "lib/deskV3.js",
+    "lib/preview/deskPreview.js",
+    "scripts/deskV3Harness.mjs"
+   ]
+  },
+  "deskV3MarketCheck": {
+   "file": "scripts/deskV3MarketCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/deskV3.js",
+    "lib/preview/deskV3Fixture.js",
+    "scripts/deskV3Harness.mjs"
+   ]
+  },
+  "deskV3PreviewCheck": {
+   "file": "scripts/deskV3PreviewCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/deskV3Harness.mjs"
+   ]
+  },
+  "deskV3ShellCheck": {
+   "file": "scripts/deskV3ShellCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/crewPage.js",
+    "lib/_crew.js",
+    "lib/preview/deskPreview.js",
+    "lib/preview/deskV3.js",
+    "package.json",
+    "scripts/deskV3Harness.mjs",
+    "vercel.json"
+   ]
+  },
+  "deskV3WireCheck": {
+   "file": "scripts/deskV3WireCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/conditionTier.js",
+    "lib/desk/caseWorkflow.js",
+    "lib/preview/deskPreview.js",
+    "lib/preview/deskV3.js",
+    "scripts/deskV3Harness.mjs"
+   ]
+  },
+  "deskV4FlowCheck": {
+   "file": "scripts/deskV4FlowCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/demoCar.js",
+    "lib/preview/deskV4.js",
+    "scripts/deskV4Harness.mjs"
+   ]
+  },
+  "deskV4FourthRunCheck": {
+   "file": "scripts/deskV4FourthRunCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/deskV3.js",
+    "lib/preview/deskV4.js",
+    "lib/preview/deskV4Client.js",
+    "lib/reasonWords.js",
+    "scripts/deskV4Harness.mjs"
+   ]
+  },
+  "deskV4HagertyCheck": {
+   "file": "scripts/deskV4HagertyCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/preview/deskV4.js",
+    "lib/preview/deskV4Client.js",
+    "scripts/deskV4Harness.mjs"
+   ]
+  },
+  "deskV4IntakeQueueCheck": {
+   "file": "scripts/deskV4IntakeQueueCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/preview/deskV3.js",
+    "scripts/deskV4Harness.mjs"
+   ]
+  },
+  "deskV4LiveCheck": {
+   "file": "scripts/deskV4LiveCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "package.json"
+   ]
+  },
+  "deskV4NewCaseCheck": {
+   "file": "scripts/deskV4NewCaseCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/intake/parse.js",
+    "scripts/",
+    "scripts/deskV4Harness.mjs"
+   ]
+  },
+  "deskV4OwnHistoryCheck": {
+   "file": "scripts/deskV4OwnHistoryCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/ownCar.js",
+    "lib/preview/deskV4Client.js",
+    "scripts/deskV4Harness.mjs"
+   ]
+  },
+  "deskV4RereadCheck": {
+   "file": "scripts/deskV4RereadCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/sheetActions.js",
+    "lib/reasonWords.js",
+    "scripts/deskV4Harness.mjs",
+    "scripts/fixtures/hagertySamResend.subject.txt",
+    "scripts/fixtures/hagertySamResend.txt"
+   ]
+  },
+  "deskV4ReserveModeCheck": {
+   "file": "scripts/deskV4ReserveModeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/deskV4Harness.mjs"
+   ]
+  },
+  "deskV4SearchCheck": {
+   "file": "scripts/deskV4SearchCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/priorCases.js",
+    "lib/preview/deskV4Client.js",
+    "scripts/deskV4Harness.mjs"
+   ]
+  },
+  "deskV4SecondRunCheck": {
+   "file": "scripts/deskV4SecondRunCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "docs/",
+    "scripts/deskV4Harness.mjs"
+   ]
+  },
+  "deskV4SellerFactsCheck": {
+   "file": "scripts/deskV4SellerFactsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/caseView.js",
+    "lib/preview/deskV4Client.js",
+    "scripts/deskV4Harness.mjs"
+   ]
+  },
+  "deskV4SendCheck": {
+   "file": "scripts/deskV4SendCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/deskV4Harness.mjs"
+   ]
+  },
+  "deskV4ShellCheck": {
+   "file": "scripts/deskV4ShellCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/crewPage.js",
+    "lib/_crew.js",
+    "lib/desk/caseWorkflow.js",
+    "lib/preview/deskV3.js",
+    "lib/preview/deskV4.js",
+    "lib/preview/deskV4Client.js",
+    "lib/preview/deskV4Css.js",
+    "lib/reasonWords.js",
+    "scripts/deskV2Check.mjs",
+    "scripts/deskV3Harness.mjs",
+    "scripts/deskV4Harness.mjs",
+    "vercel.json"
+   ]
+  },
+  "deskV4ThirdRunCheck": {
+   "file": "scripts/deskV4ThirdRunCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/reportPdfV3.js",
+    "lib/preview/deskV4Client.js",
+    "scripts/deskV4Harness.mjs"
+   ]
+  },
+  "deskV4WireCheck": {
+   "file": "scripts/deskV4WireCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/preview/deskV4Client.js",
+    "scripts/deskV4Harness.mjs"
+   ]
+  },
+  "deskVersionCheck": {
+   "file": "scripts/deskVersionCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "scripts/_deskCaseWorld.mjs",
+    "scripts/deskValsRender.mjs"
+   ]
+  },
+  "deskViewAsPageCheck": {
+   "file": "scripts/deskViewAsPageCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/deskValsRender.mjs"
+   ]
+  },
+  "deskViewsCheck": {
+   "file": "scripts/deskViewsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/caseView.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "lib/deskV3.js",
+    "scripts/_deskCaseWorld.mjs"
+   ]
+  },
+  "deskWhyCheck": {
+   "file": "scripts/deskWhyCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/deskV3.js",
+    "lib/reasonWords.js",
+    "lib/sheetRead.js",
+    "node_modules/",
+    "scripts/_deskV3World.mjs"
+   ]
+  },
+  "deskWindowCheck": {
+   "file": "scripts/deskWindowCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/deskV3.js",
+    "lib/reasonWords.js",
+    "lib/sheetRead.js",
+    "node_modules/",
+    "scripts/_deskV3World.mjs"
+   ]
+  },
+  "deskWorkflowCheck": {
+   "file": "scripts/deskWorkflowCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/caseView.js",
+    "lib/desk/reportState.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "lib/deskV3.js",
+    "lib/preview/deskPreview.js",
+    "lib/reasonWords.js",
+    "scripts/_deskCaseWorld.mjs"
+   ]
+  },
+  "deviceIdCheck": {
+   "file": "scripts/deviceIdCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_ceilings.js",
+    "lib/_visitor.js"
+   ]
+  },
+  "digestBidLineCheck": {
+   "file": "scripts/digestBidLineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/tasks/bidFixture.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "distanceZipCheck": {
+   "file": "scripts/distanceZipCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/converse.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js"
+   ]
+  },
+  "distinctTrimPoolCheck": {
+   "file": "scripts/distinctTrimPoolCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "droppedTrimCheck": {
+   "file": "scripts/droppedTrimCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "e96PagesCheck": {
+   "file": "scripts/e96PagesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "api/history.js",
+    "api/marketCheck.js",
+    "lib/live/search.js",
+    "lib/pooledWords.js",
+    "lib/reasonWords.js",
+    "lib/sell/sellFacts.js",
+    "lib/sellsForCard.js",
+    "lib/tasks/tasks.js",
+    "lib/tools/marketCheck.js",
+    "public/js/",
+    "public/js/onebox.js",
+    "scripts/fixtures/m3Answer.json"
+   ]
+  },
+  "e98DomCheck": {
+   "file": "scripts/e98DomCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/optionProblems.js"
+   ]
+  },
+  "e98LiveCheck": {
+   "file": "scripts/e98LiveCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "scripts/e98DesignControls.mjs",
+    "scripts/e98DomCheck.mjs",
+    "scripts/e98EmailDom.mjs"
+   ]
+  },
+  "earlyQuestionEndCheck": {
+   "file": "scripts/earlyQuestionEndCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/sell/sellMcClient.js",
+    "public/js/onebox.js"
+   ]
+  },
+  "emailCardsCheck": {
+   "file": "scripts/emailCardsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buySearch.js",
+    "lib/live/buyAlerts.js",
+    "lib/live/watches.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "lib/tasks/emailCards.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "emailFormCheck": {
+   "file": "scripts/emailFormCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/countNoun.js",
+    "lib/live/rung.js",
+    "lib/tasks/digest.js",
+    "lib/tasks/emailCaps.js",
+    "lib/tasks/fullCards.js",
+    "scripts/emailFixtures.mjs"
+   ]
+  },
+  "emailHeadersCheck": {
+   "file": "scripts/emailHeadersCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/businessLead.js",
+    "lib/",
+    "lib/_email.js"
+   ]
+  },
+  "emailModeCheck": {
+   "file": "scripts/emailModeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buySearch.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/tasks/digest.js",
+    "lib/tasks/emailCardLayout.js",
+    "lib/tasks/emailCards.js",
+    "lib/tasks/tasks.js",
+    "scripts/fixtures/"
+   ]
+  },
+  "emailWordsCheck": {
+   "file": "scripts/emailWordsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/tasks.js",
+    "api/tasksPage.js",
+    "lib/live/buyAlerts.js",
+    "lib/live/watches.js",
+    "lib/tasks/bidFixture.js",
+    "lib/tasks/delivery.js",
+    "lib/tasks/digest.js",
+    "lib/tasks/emailWords.js",
+    "lib/tasks/rungFixture.js",
+    "lib/tasks/tasks.js",
+    "vercel.json"
+   ]
+  },
+  "emptyHeadingCheck": {
+   "file": "scripts/emptyHeadingCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/e98FindRender.mjs",
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98Render.mjs"
+   ]
+  },
+  "endedLotCheck": {
+   "file": "scripts/endedLotCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/pullLive.js",
+    "lib/live/feed.js",
+    "lib/live/search.js",
+    "vercel.json"
+   ]
+  },
+  "engineCardShapeCheck": {
+   "file": "scripts/engineCardShapeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/buySearch.js",
+    "lib/_crew.js",
+    "lib/live/findExamples.js",
+    "lib/live/geo.js",
+    "lib/live/search.js",
+    "lib/live/tasksDemo.js",
+    "lib/live/watchingDemo.js",
+    "lib/reasonWords.js",
+    "lib/tasks/tasks.js",
+    "node_modules/"
+   ]
+  },
+  "engineCheck": {
+   "file": "scripts/engineCheck.js",
+   "kind": "live",
+   "covers": []
+  },
+  "engineChoiceCheck": {
+   "file": "scripts/engineChoiceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/tasks/engineChoice.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "engineFieldsCheck": {
+   "file": "scripts/engineFieldsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/caseView.js",
+    "lib/desk/caseWorkflow.js",
+    "lib/desk/reportState.js",
+    "lib/deskV3.js",
+    "lib/engineFields.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/questionWayOut.js",
+    "lib/sell/sellFacts.js",
+    "lib/sheetRead.js",
+    "public/js/desk.js",
+    "scripts/_deskOlderWorld.mjs",
+    "scripts/fixtures/deskShape.json",
+    "scripts/fixtures/m3Answer.json"
+   ]
+  },
+  "engineWordFilterCheck": {
+   "file": "scripts/engineWordFilterCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/live/unusedWords.js",
+    "lib/typedAttributes.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "enthusiastTermsCheck": {
+   "file": "scripts/enthusiastTermsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/enthusiastTerms.js",
+    "lib/live/search.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "entryExamplesCheck": {
+   "file": "scripts/entryExamplesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/_crew.js",
+    "lib/live/entryExamples.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "node_modules/"
+   ]
+  },
+  "entryFinalCheck": {
+   "file": "scripts/entryFinalCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/marketCheck.js",
+    "api/sell.js",
+    "lib/appShell.js",
+    "lib/authBar.js",
+    "lib/entryCopy.js",
+    "lib/findCardKit.js",
+    "lib/preview/mcSellPreview.js",
+    "lib/preview/previewPages.js",
+    "lib/reasonWords.js",
+    "lib/startPlaceholders.js",
+    "public/js/onebox.js",
+    "public/js/result-v2.js",
+    "public/js/result.js",
+    "public/onebox.html",
+    "scripts/deskV3Harness.mjs",
+    "scripts/entryFinalFixture.mjs"
+   ]
+  },
+  "epochMatchCheck": {
+   "file": "scripts/epochMatchCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/sell/sellBlock.js",
+    "lib/warmDay.js"
+   ]
+  },
+  "eraChipsCheck": {
+   "file": "scripts/eraChipsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/narrow.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js"
+   ]
+  },
+  "errorTextCheck": {
+   "file": "scripts/errorTextCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/_fail.js"
+   ]
+  },
+  "exactYearLineCheck": {
+   "file": "scripts/exactYearLineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "exactYearParallelCheck": {
+   "file": "scripts/exactYearParallelCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "exampleFallbackCheck": {
+   "file": "scripts/exampleFallbackCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/publicExamples.js",
+    "lib/_crew.js",
+    "lib/live/",
+    "lib/live/findExamples.js",
+    "lib/live/geo.js",
+    "lib/live/search.js",
+    "lib/live/tasksDemo.js",
+    "lib/live/watchingDemo.js",
+    "lib/reasonWords.js",
+    "lib/tasks/tasks.js",
+    "node_modules/"
+   ]
+  },
+  "exampleFromEngineCheck": {
+   "file": "scripts/exampleFromEngineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_historyData.js",
+    "lib/live/deskExample.js",
+    "lib/live/marketCheckExample.js"
+   ]
+  },
+  "exampleKeepsGoodCheck": {
+   "file": "scripts/exampleKeepsGoodCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/buyExample.js",
+    "lib/live/deskExample.js",
+    "lib/live/marketCheckExample.js"
+   ]
+  },
+  "exclusionCheck": {
+   "file": "scripts/exclusionCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/exclusions.js",
+    "lib/generations.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/typedAttributes.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "expiredRowServedCheck": {
+   "file": "scripts/expiredRowServedCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellerDecision.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/refreshGate.js",
+    "scripts/fixtures/",
+    "scripts/fixtures/answer-stag.json"
+   ]
+  },
+  "factMineCheck": {
+   "file": "scripts/factMineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "data/",
+    "lib/",
+    "lib/factMap.js",
+    "lib/factMine.js",
+    "lib/factModel.js",
+    "lib/factReport.js",
+    "node_modules/",
+    "package.json",
+    "scripts/"
+   ]
+  },
+  "factPriceCheck": {
+   "file": "scripts/factPriceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "data/",
+    "lib/",
+    "lib/factPrice.js",
+    "node_modules/",
+    "package.json",
+    "scripts/"
+   ]
+  },
+  "failedReadNeverStoredCheck": {
+   "file": "scripts/failedReadNeverStoredCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/buySearch.js",
+    "api/usageDashboard.js",
+    "lib/",
+    "lib/_staleMark.js",
+    "lib/live/buyExample.js",
+    "lib/live/deskExample.js",
+    "lib/live/findExamples.js",
+    "lib/live/marketCheckExample.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/ops/noneRows.js",
+    "lib/reasonWords.js",
+    "lib/sell/sellBlock.js",
+    "lib/sell/sellExample.js",
+    "lib/sell/sellFacts.js",
+    "node_modules/",
+    "package.json",
+    "public/",
+    "scripts/",
+    "vercel.json"
+   ]
+  },
+  "farmFenceCheck": {
+   "file": "scripts/farmFenceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_classify.js",
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "featuredHistoryCheck": {
+   "file": "scripts/featuredHistoryCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/buySearch.js",
+    "api/crewPage.js",
+    "api/featuredHistory.js",
+    "api/home.js",
+    "api/publicConfig.js",
+    "api/publicExamples.js",
+    "api/pullLive.js",
+    "api/sitemapPages.js",
+    "api/specPage.js",
+    "docs/",
+    "lib/",
+    "lib/_crew.js",
+    "lib/live/entryExamples.js",
+    "lib/live/featuredHistory.js",
+    "lib/live/findExamples.js",
+    "lib/live/marketCheckExamples.js",
+    "lib/live/publicAccess.js",
+    "lib/live/tasksDemo.js",
+    "lib/live/watchingDemo.js",
+    "lib/preview/previewPages.js",
+    "lib/vehicle.js",
+    "node_modules/",
+    "package.json",
+    "public/",
+    "scripts/",
+    "vercel.json"
+   ]
+  },
+  "featuredWireCheck": {
+   "file": "scripts/featuredWireCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/crewPage.js",
+    "api/featuredHistory.js",
+    "lib/_crew.js",
+    "lib/live/featuredHistory.js",
+    "lib/preview/previewPages.js",
+    "package.json",
+    "scripts/homeFindMeasure.mjs"
+   ]
+  },
+  "feedbackCheck": {
+   "file": "scripts/feedbackCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/feedback.js",
+    "lib/_ceilings.js",
+    "lib/_crew.js",
+    "lib/_email.js"
+   ]
+  },
+  "filtersRangeCheck": {
+   "file": "scripts/filtersRangeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/sellsForCard.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "findAlwaysCardsCheck": {
+   "file": "scripts/findAlwaysCardsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/buy.js",
+    "api/buySearch.js",
+    "lib/",
+    "lib/live/chatCore.js",
+    "lib/live/converse.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/reasonWords.js",
+    "node_modules/",
+    "package.json",
+    "public/",
+    "scripts/",
+    "vercel.json"
+   ]
+  },
+  "findAnswerCheck": {
+   "file": "scripts/findAnswerCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buySearch.js",
+    "lib/onebox.js"
+   ]
+  },
+  "findCardKitCheck": {
+   "file": "scripts/findCardKitCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/findCardKit.js",
+    "lib/placeCase.js",
+    "lib/tasks/fullCards.js"
+   ]
+  },
+  "findCardShapeCheck": {
+   "file": "scripts/findCardShapeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "api/buySearch.js",
+    "lib/findCardKit.js",
+    "lib/live/cardSlots.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/sellsForCard.js",
+    "public/js/onebox.js",
+    "scripts/e98FindRender.mjs",
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98Render.mjs",
+    "scripts/fixtures/m3Answer.json"
+   ]
+  },
+  "findEqualsMarketCheckCheck": {
+   "file": "scripts/findEqualsMarketCheckCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "api/usageDashboard.js",
+    "lib/_classify.js",
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "findExcludedCheck": {
+   "file": "scripts/findExcludedCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/buy.js",
+    "lib/live/samChat.js"
+   ]
+  },
+  "findGenerationsCheck": {
+   "file": "scripts/findGenerationsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/bareModel.js",
+    "lib/genCodeTrim.js",
+    "lib/genPhrase.js",
+    "lib/generations.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/vehicle.js",
+    "node_modules/"
+   ]
+  },
+  "findIntelCheck": {
+   "file": "scripts/findIntelCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/_classify.js",
+    "lib/_crew.js",
+    "lib/live/findExamples.js",
+    "lib/live/search.js",
+    "lib/reasonWords.js",
+    "node_modules/"
+   ]
+  },
+  "findMilesNearCheck": {
+   "file": "scripts/findMilesNearCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/buy.js",
+    "api/buySearch.js",
+    "data/",
+    "lib/",
+    "lib/carBar.js",
+    "lib/carToken.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/reasonWords.js",
+    "node_modules/",
+    "package.json",
+    "scripts/"
+   ]
+  },
+  "findMoreReadingCheck": {
+   "file": "scripts/findMoreReadingCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/buy.js",
+    "api/buySearch.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js"
+   ]
+  },
+  "findNoPickCheck": {
+   "file": "scripts/findNoPickCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/",
+    "lib/live/cardSlots.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "lib/sellsForCard.js",
+    "public/"
+   ]
+  },
+  "findNoSaleLineCheck": {
+   "file": "scripts/findNoSaleLineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "api/buySearch.js",
+    "lib/findCardKit.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/tasks/emailCards.js",
+    "scripts/fixtures/m3Answer.json"
+   ]
+  },
+  "findPickCheck": {
+   "file": "scripts/findPickCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/pullLive.js",
+    "lib/_crew.js",
+    "lib/live/findExamples.js",
+    "lib/live/search.js",
+    "node_modules/"
+   ]
+  },
+  "findPickVarietyCheck": {
+   "file": "scripts/findPickVarietyCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/live/findExamples.js",
+    "node_modules/"
+   ]
+  },
+  "findPrefillCheck": {
+   "file": "scripts/findPrefillCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/live/search.js",
+    "scripts/warmFind.mjs"
+   ]
+  },
+  "findRefineStoredCheck": {
+   "file": "scripts/findRefineStoredCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "findResolveCheck": {
+   "file": "scripts/findResolveCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js"
+   ]
+  },
+  "findResultsCheck": {
+   "file": "scripts/findResultsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/preview/mcSellPreview.js",
+    "lib/reasonWords.js",
+    "package.json",
+    "public/",
+    "scripts/_pinEndTimes.mjs",
+    "scripts/fixtures/findSl65Search.json"
+   ]
+  },
+  "findSalesButtonCheck": {
+   "file": "scripts/findSalesButtonCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "findShowMoreCheck": {
+   "file": "scripts/findShowMoreCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/buy.js",
+    "api/buySearch.js",
+    "lib/live/samChat.js"
+   ]
+  },
+  "findSortsCheck": {
+   "file": "scripts/findSortsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/buy.js",
+    "api/buySearch.js",
+    "lib/live/geo.js",
+    "lib/live/samChat.js",
+    "lib/reasonWords.js"
+   ]
+  },
+  "findThinSalesCheck": {
+   "file": "scripts/findThinSalesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/findCardKit.js",
+    "lib/live/cardSlots.js",
+    "lib/live/search.js",
+    "lib/sellsForCard.js",
+    "scripts/_pageLift.mjs"
+   ]
+  },
+  "findThinThresholdCheck": {
+   "file": "scripts/findThinThresholdCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/onebox.js"
+   ]
+  },
+  "findVoiceCheck": {
+   "file": "scripts/findVoiceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/buy.js",
+    "api/buySearch.js",
+    "api/chat.js",
+    "api/sellChat.js",
+    "api/sellerDecision.js",
+    "lib/_ceilings.js",
+    "lib/live/chatHttp.js",
+    "lib/live/converse.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/reasonWords.js",
+    "lib/tasks/tasks.js",
+    "node_modules/",
+    "public/js/chat-core.js",
+    "public/js/entry.js",
+    "public/js/onebox.js",
+    "public/js/result-v2.js",
+    "public/js/result.js"
+   ]
+  },
+  "findWatchCheck": {
+   "file": "scripts/findWatchCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "api/buySearch.js",
+    "api/tasks.js",
+    "api/tasksPage.js",
+    "api/watch.js",
+    "lib/_ceilings.js",
+    "lib/live/buyAlerts.js",
+    "lib/live/looking.js",
+    "lib/live/lookingCaps.js",
+    "lib/live/search.js",
+    "lib/live/watches.js",
+    "lib/tasks/limit.js"
+   ]
+  },
+  "firstQuestionNowCheck": {
+   "file": "scripts/firstQuestionNowCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/sell/sellMcClient.js",
+    "public/js/onebox.js"
+   ]
+  },
+  "footerOptionsCheck": {
+   "file": "scripts/footerOptionsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/sellsForCard.js"
+   ]
+  },
+  "foreignCarsTaskCheck": {
+   "file": "scripts/foreignCarsTaskCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js"
+   ]
+  },
+  "freeLinesCheck": {
+   "file": "scripts/freeLinesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/about.js",
+    "api/tasks.js",
+    "lib/appShell.js",
+    "lib/copy.js",
+    "public/js/auth.js"
+   ]
+  },
+  "functionBundleCheck": {
+   "file": "scripts/functionBundleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/buy.js",
+    "api/crewPage.js",
+    "api/featuredHistory.js",
+    "api/home.js",
+    "api/marketCheck.js",
+    "api/publicExamples.js",
+    "api/pullLive.js",
+    "api/sell.js",
+    "api/tasksPage.js",
+    "lib/live/marketCheckExamples.js",
+    "lib/live/publicAccess.js",
+    "node_modules/",
+    "vercel.json"
+   ]
+  },
+  "gaConsentCheck": {
+   "file": "scripts/gaConsentCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/gaConsent.js",
+    "lib/_crew.js",
+    "lib/analytics.js"
+   ]
+  },
+  "gapCheck": {
+   "file": "scripts/gapCheck.mjs",
+   "kind": "args",
+   "kindFixed": "args",
+   "why": "a gate for READ GAP lines: it needs docs/lane-notes.md as its argument, it is not a code check",
+   "covers": []
+  },
+  "gearboxCheck": {
+   "file": "scripts/gearboxCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js"
+   ]
+  },
+  "gearboxStrictCheck": {
+   "file": "scripts/gearboxStrictCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_descFacts.js",
+    "lib/onebox.js"
+   ]
+  },
+  "gearboxWordCheck": {
+   "file": "scripts/gearboxWordCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/modelRules.js",
+    "lib/onebox.js"
+   ]
+  },
+  "genPhraseCheck": {
+   "file": "scripts/genPhraseCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/genPhrase.js",
+    "lib/generations.js",
+    "lib/live/samChat.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "generationChipCheck": {
+   "file": "scripts/generationChipCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js"
+   ]
+  },
+  "generationPoolCheck": {
+   "file": "scripts/generationPoolCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js"
+   ]
+  },
+  "generationQuestionCheck": {
+   "file": "scripts/generationQuestionCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "getragCountCheck": {
+   "file": "scripts/getragCountCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js"
+   ]
+  },
+  "goLiveExamplesCheck": {
+   "file": "scripts/goLiveExamplesCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "api/",
+    "api/crewPage.js",
+    "lib/_crew.js",
+    "lib/preview/tasksPreview.js",
+    "lib/tasks/limit.js"
+   ]
+  },
+  "goLiveGuardsCheck": {
+   "file": "scripts/goLiveGuardsCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "api/",
+    "api/crewPage.js",
+    "api/sell.js",
+    "lib/_crew.js"
+   ]
+  },
+  "goLiveLiveCheck": {
+   "file": "scripts/goLiveLiveCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "api/crewPage.js",
+    "docs/go-live-public-baseline.json",
+    "lib/_publicHead.js",
+    "lib/consentBanner.js",
+    "lib/preview/sitePages.js",
+    "lib/preview/tasksPreview.js",
+    "lib/tasks/limit.js",
+    "package.json",
+    "scripts/_crewCookie.mjs",
+    "scripts/_historyStub.mjs",
+    "scripts/_localSite.mjs",
+    "scripts/_railProbe.mjs",
+    "scripts/_visitorWorld.mjs"
+   ]
+  },
+  "goLiveParityCheck": {
+   "file": "scripts/goLiveParityCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "api/",
+    "docs/go-live-held.json",
+    "lib/_crew.js",
+    "lib/_newDesign.js",
+    "lib/_publicHead.js",
+    "lib/preview/previewPages.js",
+    "vercel.json"
+   ]
+  },
+  "goLivePerfCheck": {
+   "file": "scripts/goLivePerfCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "api/",
+    "package.json"
+   ]
+  },
+  "goLiveSignedInCheck": {
+   "file": "scripts/goLiveSignedInCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "lib/_publicHead.js",
+    "lib/preview/mcSellPreview.js",
+    "package.json",
+    "public/js/auth.js",
+    "scripts/_historyStub.mjs",
+    "scripts/_localSite.mjs",
+    "scripts/_pageShots.mjs",
+    "scripts/_railProbe.mjs",
+    "scripts/_visitorWorld.mjs",
+    "scripts/tasksFixture.mjs"
+   ]
+  },
+  "goLiveSwitchCheck": {
+   "file": "scripts/goLiveSwitchCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "api/",
+    "api/buy.js",
+    "lib/_crew.js",
+    "lib/_newDesign.js",
+    "lib/tasks/limit.js",
+    "node_modules/",
+    "vercel.json"
+   ]
+  },
+  "goLiveTasksFlowCheck": {
+   "file": "scripts/goLiveTasksFlowCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "api/about.js",
+    "api/tasksPage.js",
+    "lib/_publicHead.js",
+    "lib/preview/tasksApp.js",
+    "package.json",
+    "public/",
+    "scripts/tasksFixture.mjs"
+   ]
+  },
+  "goLiveVisitorCheck": {
+   "file": "scripts/goLiveVisitorCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "./",
+    "api/",
+    "api/buy.js",
+    "api/crewPage.js",
+    "lib/preview/fieldCompose.js",
+    "lib/preview/previewPages.js",
+    "lib/preview/tasksPreview.js",
+    "vercel.json"
+   ]
+  },
+  "groupFenceCheck": {
+   "file": "scripts/groupFenceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "heroPhotoCheck": {
+   "file": "scripts/heroPhotoCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buySearch.js",
+    "api/history.js",
+    "lib/_salePhoto.js",
+    "lib/heroPhoto.js",
+    "lib/live/search.js",
+    "lib/tasks/emailCards.js"
+   ]
+  },
+  "hiddenCrewCheck": {
+   "file": "scripts/hiddenCrewCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/about.js",
+    "api/admin.js",
+    "api/business.js",
+    "api/buy.js",
+    "api/crewPage.js",
+    "api/desk.js",
+    "api/home.js",
+    "api/howSamDecides.js",
+    "api/legal.js",
+    "api/marketCheck.js",
+    "api/partnerAnswer.js",
+    "api/partnerDemo.js",
+    "api/sellNext.js",
+    "api/sitemapPages.js",
+    "api/tasksPage.js",
+    "api/whatsNew.js",
+    "data/whatsNew.json",
+    "lib/_crew.js",
+    "lib/_notFoundTemplate.js",
+    "lib/carBar.js",
+    "lib/carToken.js",
+    "lib/variantRowsPage.js",
+    "public/",
+    "public/robots.txt",
+    "scripts/",
+    "vercel.json"
+   ]
+  },
+  "historyReachCheck": {
+   "file": "scripts/historyReachCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/about.js",
+    "api/buy.js",
+    "api/history.js",
+    "api/howSamDecides.js",
+    "lib/appShell.js",
+    "lib/historyLinks.js",
+    "lib/preview/previewPages.js",
+    "public/js/onebox.js"
+   ]
+  },
+  "historyWindowCheck": {
+   "file": "scripts/historyWindowCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/history.js",
+    "lib/onebox.js",
+    "scripts/fixtures/m3Answer.json"
+   ]
+  },
+  "holdPageCheck": {
+   "file": "scripts/holdPageCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellNext.js",
+    "api/sellerDecision.js",
+    "api/vehicleIdentity.js",
+    "lib/_crew.js",
+    "lib/_hold.js",
+    "lib/_launchStage.js",
+    "lib/launchTime.js",
+    "scripts/_fakeClock.mjs"
+   ]
+  },
+  "holdZeroCheck": {
+   "file": "scripts/holdZeroCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_hold.js",
+    "lib/launchTime.js",
+    "scripts/_fakeClock.mjs"
+   ]
+  },
+  "homeFindPreviewCheck": {
+   "file": "scripts/homeFindPreviewCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/crewPage.js",
+    "api/featuredHistory.js",
+    "api/home.js",
+    "api/publicExamples.js",
+    "api/pullLive.js",
+    "lib/",
+    "lib/_crew.js",
+    "lib/live/entryExamples.js",
+    "lib/live/featuredHistory.js",
+    "lib/live/findExamples.js",
+    "lib/live/marketCheckExamples.js",
+    "lib/live/publicExamples.js",
+    "lib/live/search.js",
+    "lib/live/tasksDemo.js",
+    "lib/live/watchingDemo.js",
+    "lib/preview/fieldCompose.js",
+    "lib/preview/previewPages.js",
+    "lib/preview/publicFind.js",
+    "lib/preview/tasksPreview.js",
+    "lib/startPlaceholders.js",
+    "package.json",
+    "public/",
+    "scripts/featuredHistoryFixture.mjs",
+    "scripts/findExamplesFixture.mjs",
+    "scripts/homeFindMeasure.mjs",
+    "vercel.json"
+   ]
+  },
+  "homeTightenCheck": {
+   "file": "scripts/homeTightenCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/buy.js",
+    "api/home.js",
+    "api/marketCheck.js",
+    "api/sellNext.js",
+    "lib/",
+    "lib/copy.js",
+    "lib/live/marketCheckLanding.js",
+    "lib/sell/sellLanding.js",
+    "lib/sellsForCard.js"
+   ]
+  },
+  "hourlyRevalidateCheck": {
+   "file": "scripts/hourlyRevalidateCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/pullLive.js",
+    "lib/_crew.js",
+    "lib/live/",
+    "lib/live/featuredHistory.js",
+    "lib/live/findExamples.js",
+    "lib/live/search.js",
+    "lib/live/tasksDemo.js",
+    "node_modules/"
+   ]
+  },
+  "houseGearboxCheck": {
+   "file": "scripts/houseGearboxCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/marketCheck.js",
+    "lib/onebox.js",
+    "public/js/",
+    "public/js/onebox.js",
+    "scripts/fixtures/answer-diablo.json"
+   ]
+  },
+  "houseReadCheck": {
+   "file": "scripts/houseReadCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellChat.js",
+    "api/sellerDecision.js",
+    "api/usageDashboard.js",
+    "lib/onebox.js",
+    "lib/platformPick.js",
+    "lib/sell/sellFlow.js"
+   ]
+  },
+  "houseSalesCountCheck": {
+   "file": "scripts/houseSalesCountCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js"
+   ]
+  },
+  "howSamDecidesCheck": {
+   "file": "scripts/howSamDecidesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/howSamDecides.js",
+    "lib/copy.js"
+   ]
+  },
+  "hubDashRedirectCheck": {
+   "file": "scripts/hubDashRedirectCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/history.js"
+   ]
+  },
+  "hubGateCheck": {
+   "file": "scripts/hubGateCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_historyData.js",
+    "api/history.js"
+   ]
+  },
+  "hubLeadCheck": {
+   "file": "scripts/hubLeadCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/history.js"
+   ]
+  },
+  "hubLinkCheck": {
+   "file": "scripts/hubLinkCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_historyData.js",
+    "api/history.js"
+   ]
+  },
+  "hubOneGateCheck": {
+   "file": "scripts/hubOneGateCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/history.js",
+    "node_modules/",
+    "scripts/buildVinRolloutCache.js"
+   ]
+  },
+  "hubSlugCheck": {
+   "file": "scripts/hubSlugCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_historyData.js",
+    "api/history.js"
+   ]
+  },
+  "idDecodeRuleCheck": {
+   "file": "scripts/idDecodeRuleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_historyData.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "identityLocalCheck": {
+   "file": "scripts/identityLocalCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "indexingCheck": {
+   "file": "scripts/indexingCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/about.js",
+    "api/business.js",
+    "api/buy.js",
+    "api/home.js",
+    "api/howSamDecides.js",
+    "api/legal.js",
+    "api/marketCheck.js",
+    "api/sellNext.js",
+    "api/sitemapPages.js",
+    "api/tasksPage.js",
+    "api/whatsNew.js",
+    "public/",
+    "public/mcp.html",
+    "public/powersellers.html",
+    "public/robots.txt",
+    "vercel.json"
+   ]
+  },
+  "intakeAuthCheck": {
+   "file": "scripts/intakeAuthCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/intake/resendInbound.js",
+    "lib/desk/intake/store.js",
+    "scripts/deskIntakeKit.mjs"
+   ]
+  },
+  "intakeParseCheck": {
+   "file": "scripts/intakeParseCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/deskIntakeKit.mjs"
+   ]
+  },
+  "intakeToCaseCheck": {
+   "file": "scripts/intakeToCaseCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/caseModel.js",
+    "lib/desk/caseView.js",
+    "lib/desk/caseWorkflow.js",
+    "lib/desk/considered.js",
+    "lib/desk/intake/hagertyForm.js",
+    "lib/desk/intake/reread.js",
+    "lib/desk/intake/run.js",
+    "lib/desk/intake/toCase.js",
+    "lib/desk/priorCases.js",
+    "lib/desk/reportState.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "lib/desk/title.js",
+    "scripts/_deskCaseWorld.mjs",
+    "scripts/deskIntakeKit.mjs",
+    "scripts/fixtures/hagertyFirebirdLead.txt",
+    "scripts/fixtures/hagertySamResend.subject.txt",
+    "scripts/fixtures/hagertySamResend.txt",
+    "scripts/fixtures/labelPerLineLead.txt"
+   ]
+  },
+  "intakeToSheetCheck": {
+   "file": "scripts/intakeToSheetCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/sheetActions.js",
+    "scripts/deskIntakeKit.mjs",
+    "scripts/deskValsRender.mjs"
+   ]
+  },
+  "invariantNameFormsCheck": {
+   "file": "scripts/invariantNameFormsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "keepLookingLineCheck": {
+   "file": "scripts/keepLookingLineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/live/buyAlerts.js",
+    "lib/tasks/bidTime.js"
+   ]
+  },
+  "keyInAddressCheck": {
+   "file": "scripts/keyInAddressCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buySearch.js",
+    "api/history.js",
+    "api/pullLive.js",
+    "api/refreshSpecLiveCounts.js",
+    "api/usageDashboard.js",
+    "lib/_credential.js",
+    "vercel.json"
+   ]
+  },
+  "keyedCompareCheck": {
+   "file": "scripts/keyedCompareCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/"
+   ]
+  },
+  "landingExampleCheck": {
+   "file": "scripts/landingExampleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/business.js",
+    "lib/",
+    "public/js/"
+   ]
+  },
+  "launchDashCheck": {
+   "file": "scripts/launchDashCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/account.js",
+    "api/admin.js",
+    "api/out.js",
+    "lib/_crew.js",
+    "lib/_email.js",
+    "lib/admin/",
+    "lib/admin/finalOutcome.js",
+    "lib/admin/health.js",
+    "lib/admin/heldBack.js",
+    "lib/admin/launch.js",
+    "lib/admin/people.js",
+    "lib/outboundUtm.js",
+    "lib/track/catalog.js",
+    "lib/track/consent.js",
+    "lib/track/log.js"
+   ]
+  },
+  "launchHealthCheck": {
+   "file": "scripts/launchHealthCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/admin.js",
+    "lib/_crew.js",
+    "lib/admin/health.js",
+    "lib/admin/launch.js",
+    "lib/track/catalog.js"
+   ]
+  },
+  "leadHardeningCheck": {
+   "file": "scripts/leadHardeningCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/businessLead.js",
+    "api/submitSellerLead.js"
+   ]
+  },
+  "learnVinTrimCodesCheck": {
+   "file": "scripts/learnVinTrimCodesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/vinTrimCodes.js",
+    "lib/vinTrimLearn.js"
+   ]
+  },
+  "leftoverPageCheck": {
+   "file": "scripts/leftoverPageCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/live/samChat.js",
+    "public/js/onebox.js"
+   ]
+  },
+  "legalPagesCheck": {
+   "file": "scripts/legalPagesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/home.js",
+    "api/legal.js",
+    "api/sitemapPages.js",
+    "lib/copy.js",
+    "lib/legal/privacyText.js",
+    "lib/legal/termsText.js",
+    "public/js/auth.js",
+    "vercel.json"
+   ]
+  },
+  "liveExamplesCheck": {
+   "file": "scripts/liveExamplesCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "./",
+    "lib/_crew.js",
+    "lib/live/findExamples.js",
+    "lib/live/geo.js",
+    "lib/live/search.js",
+    "lib/live/tasksDemo.js",
+    "lib/live/watchingDemo.js",
+    "lib/reasonWords.js",
+    "lib/tasks/tasks.js",
+    "node_modules/"
+   ]
+  },
+  "liveExamplesSoonCheck": {
+   "file": "scripts/liveExamplesSoonCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "./",
+    "api/",
+    "lib/",
+    "lib/_crew.js",
+    "lib/live/endingSoon.js",
+    "lib/live/featuredHistory.js",
+    "lib/live/findExamples.js",
+    "lib/live/liveBand.js",
+    "lib/live/marketCheckExamples.js",
+    "lib/live/search.js",
+    "lib/live/tasksDemo.js",
+    "lib/live/titleYear.js",
+    "lib/live/usdFence.js",
+    "lib/live/watchingDemo.js",
+    "lib/reasonWords.js",
+    "node_modules/",
+    "package.json",
+    "public/",
+    "scripts/",
+    "vercel.json"
+   ]
+  },
+  "liveGearboxCheck": {
+   "file": "scripts/liveGearboxCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "api/usageDashboard.js"
+   ]
+  },
+  "liveListingStatusCheck": {
+   "file": "scripts/liveListingStatusCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "./",
+    "lib/live/search.js",
+    "scripts/crossProductCheck.js"
+   ]
+  },
+  "livePreviewCheck": {
+   "file": "scripts/livePreviewCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "api/crewPage.js",
+    "lib/_crew.js",
+    "package.json",
+    "scripts/findExamplesFixture.mjs",
+    "scripts/tasksFixture.mjs"
+   ]
+  },
+  "liveSalesDatesCheck": {
+   "file": "scripts/liveSalesDatesCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "api/",
+    "api/admin.js",
+    "lib/",
+    "lib/asOf.js"
+   ]
+  },
+  "liveScopeCheck": {
+   "file": "scripts/liveScopeCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "liveStubCheck": {
+   "file": "scripts/liveStubCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "scripts/",
+    "scripts/_crewCookie.mjs"
+   ]
+  },
+  "liveWaitsCheck": {
+   "file": "scripts/liveWaitsCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "scripts/"
+   ]
+  },
+  "logLinesCheck": {
+   "file": "scripts/logLinesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/buySearch.js",
+    "api/cspReport.js",
+    "api/deskInbound.js",
+    "api/feedback.js",
+    "api/sellerDecision.js",
+    "api/usageDashboard.js",
+    "data/",
+    "docs/",
+    "lib/",
+    "lib/_email.js",
+    "lib/_epoch.js",
+    "lib/_houseComps.js",
+    "lib/_spendAlerts.js",
+    "lib/_vinDecodeStore.js",
+    "lib/live/search.js",
+    "lib/newsletterSignup.js",
+    "lib/onebox.js",
+    "lib/tasks/tasks.js",
+    "lib/vehicle.js",
+    "package.json",
+    "public/",
+    "scripts/",
+    "scripts/buildCanonical.js",
+    "scripts/buildSpecMarketCache.js",
+    "scripts/buildVinIndex.js",
+    "scripts/crossProductCheck.js",
+    "scripts/warm-list.json",
+    "scripts/warm-named.json",
+    "vercel.json"
+   ]
+  },
+  "makeDisplayCheck": {
+   "file": "scripts/makeDisplayCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/unusedWords.js",
+    "lib/onebox.js"
+   ]
+  },
+  "makeRegexEscapeCheck": {
+   "file": "scripts/makeRegexEscapeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/vehicle.js",
+    "lib/vehicleData.js"
+   ]
+  },
+  "makeYearAskCheck": {
+   "file": "scripts/makeYearAskCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/calculatorYears.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "marketChartCheck": {
+   "file": "scripts/marketChartCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "public/js/onebox.js",
+    "public/onebox.html"
+   ]
+  },
+  "marketPlaceCheck": {
+   "file": "scripts/marketPlaceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_classify.js"
+   ]
+  },
+  "marketSectionsCheck": {
+   "file": "scripts/marketSectionsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/tasks/bidTime.js",
+    "public/js/onebox.js",
+    "public/onebox.html"
+   ]
+  },
+  "marketWaitCheck": {
+   "file": "scripts/marketWaitCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "api/marketCheck.js",
+    "public/js/"
+   ]
+  },
+  "matchedOptionCheck": {
+   "file": "scripts/matchedOptionCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "mcCarCapCheck": {
+   "file": "scripts/mcCarCapCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellerDecision.js",
+    "lib/_ceilings.js",
+    "lib/track/catalog.js",
+    "lib/track/log.js",
+    "public/js/onebox.js"
+   ]
+  },
+  "mcExampleCheck": {
+   "file": "scripts/mcExampleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/live/marketCheckExamples.js",
+    "lib/reasonWords.js",
+    "node_modules/",
+    "scripts/_mcExamplesWorld.mjs"
+   ]
+  },
+  "mcExamplesCheck": {
+   "file": "scripts/mcExamplesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/crewPage.js",
+    "lib/live/entryExamples.js",
+    "lib/live/marketCheckExamples.js",
+    "lib/onebox.js",
+    "node_modules/",
+    "public/js/onebox.js",
+    "scripts/_mcExamplesWorld.mjs",
+    "scripts/fixtures/",
+    "scripts/fixtures/answer-325i.json"
+   ]
+  },
+  "mcLinkCheck": {
+   "file": "scripts/mcLinkCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/mcLink.js"
+   ]
+  },
+  "mcResultFixesCheck": {
+   "file": "scripts/mcResultFixesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "public/js/onebox.js",
+    "public/onebox.html",
+    "vercel.json"
+   ]
+  },
+  "mcSellResultsCheck": {
+   "file": "scripts/mcSellResultsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/reasonWords.js",
+    "scripts/mcSellHarness.mjs"
+   ]
+  },
+  "mcSellShellCheck": {
+   "file": "scripts/mcSellShellCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/crewPage.js",
+    "api/marketCheck.js",
+    "api/sell.js",
+    "api/sellNext.js",
+    "api/sellPage.js",
+    "lib/_crew.js",
+    "lib/appShell.js",
+    "lib/authBar.js",
+    "lib/live/marketCheckExamples.js",
+    "lib/live/marketCheckLanding.js",
+    "lib/preview/mcSellPreview.js",
+    "lib/preview/previewPages.js",
+    "lib/sell/",
+    "package.json",
+    "public/js/",
+    "public/js/onebox.js",
+    "public/onebox.html",
+    "scripts/fixtures/mcSell/mc-2006-ford-gt.json",
+    "vercel.json"
+   ]
+  },
+  "mcVinCheck": {
+   "file": "scripts/mcVinCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/vehicle.js",
+    "lib/vinAsTyped.js",
+    "public/js/onebox.js"
+   ]
+  },
+  "mcVinLiveCheck": {
+   "file": "scripts/mcVinLiveCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "./",
+    "public/js/onebox.js",
+    "scripts/mcSellHarness.mjs"
+   ]
+  },
+  "mileageBandNearCheck": {
+   "file": "scripts/mileageBandNearCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/buySearch.js",
+    "lib/",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "lib/tasks/emailCards.js",
+    "lib/tasks/tasks.js",
+    "public/",
+    "scripts/fixtures/m3Answer.json"
+   ]
+  },
+  "mileageNearCheck": {
+   "file": "scripts/mileageNearCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "mileageRuleCheck": {
+   "file": "scripts/mileageRuleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "mileageYearSplitCheck": {
+   "file": "scripts/mileageYearSplitCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "milesFaultCheck": {
+   "file": "scripts/milesFaultCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js"
+   ]
+  },
+  "mixedRangeCheck": {
+   "file": "scripts/mixedRangeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "modelChipsCheck": {
+   "file": "scripts/modelChipsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/narrow.js",
+    "lib/live/samChat.js"
+   ]
+  },
+  "modelChipsTopCheck": {
+   "file": "scripts/modelChipsTopCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/live/samChat.js"
+   ]
+  },
+  "modelChoicesCheck": {
+   "file": "scripts/modelChoicesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "modelClashCheck": {
+   "file": "scripts/modelClashCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "modelCrossMakeCheck": {
+   "file": "scripts/modelCrossMakeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js"
+   ]
+  },
+  "modelFoldCheck": {
+   "file": "scripts/modelFoldCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/narrow.js",
+    "lib/live/samChat.js"
+   ]
+  },
+  "modelIdentityCheck": {
+   "file": "scripts/modelIdentityCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/modelRules.js",
+    "lib/onebox.js"
+   ]
+  },
+  "modelSpacingCheck": {
+   "file": "scripts/modelSpacingCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js"
+   ]
+  },
+  "modelYearsBucketCheck": {
+   "file": "scripts/modelYearsBucketCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "data/calculatorModelYears.json",
+    "data/modelYearBuckets.json",
+    "data/modelYearsFilled.json",
+    "data/modelYearsUnfilled.json",
+    "lib/calculatorYears.js",
+    "lib/modelYears.js",
+    "lib/vehicle.js",
+    "lib/vehicleData.js"
+   ]
+  },
+  "modsPillCheck": {
+   "file": "scripts/modsPillCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/partnerAnswer.js",
+    "api/sellerDecision.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "node_modules/"
+   ]
+  },
+  "movementCheck": {
+   "file": "scripts/movementCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "nameCheck": {
+   "file": "scripts/nameCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "nameGuardCheck": {
+   "file": "scripts/nameGuardCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/live/search.js",
+    "lib/nameGuard.js",
+    "lib/onebox.js",
+    "lib/vehicle.js",
+    "lib/vehicleData.js"
+   ]
+  },
+  "namedModelCheck": {
+   "file": "scripts/namedModelCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/genPhrase.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "namedWarmCheck": {
+   "file": "scripts/namedWarmCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "scripts/warm-named.json",
+    "scripts/warmNamed.mjs"
+   ]
+  },
+  "narrowCheck": {
+   "file": "scripts/narrowCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/narrow.js"
+   ]
+  },
+  "narrowFlagCheck": {
+   "file": "scripts/narrowFlagCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/usageDashboard.js",
+    "lib/",
+    "lib/_crew.js",
+    "lib/onebox.js",
+    "public/"
+   ]
+  },
+  "narrowReadCheck": {
+   "file": "scripts/narrowReadCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "nearBandPagesCheck": {
+   "file": "scripts/nearBandPagesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/sellsForCard.js",
+    "lib/tasks/emailCards.js",
+    "lib/tasks/tasks.js",
+    "scripts/fixtures/m3Answer.json"
+   ]
+  },
+  "newSearchCheck": {
+   "file": "scripts/newSearchCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/buy.js",
+    "public/js/onebox.js"
+   ]
+  },
+  "newsletterSignupCheck": {
+   "file": "scripts/newsletterSignupCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/account.js",
+    "lib/_ceilings.js",
+    "lib/newsletterSignup.js",
+    "public/js/auth.js"
+   ]
+  },
+  "nightlyExampleCheck": {
+   "file": "scripts/nightlyExampleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/exampleAnswer.js",
+    "scripts/",
+    "scripts/buildDeskExample.js",
+    "scripts/buildMarketCheckExample.js",
+    "scripts/buildSellExample.js"
+   ]
+  },
+  "nightlyHealthCheck": {
+   "file": "scripts/nightlyHealthCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "docs/supabase-vin-index-atomic-swap.sql",
+    "docs/supabase-vin-swap-timeout.sql",
+    "lib/_specRecompute.js",
+    "scripts/recomputeSpecCache.js"
+   ]
+  },
+  "nightlyTimeoutCheck": {
+   "file": "scripts/nightlyTimeoutCheck.mjs",
+   "kind": "offline",
+   "extra": [
+    "docs/nightly-workflow.yml",
+    ".github/workflows/nightly.yml"
+   ],
+   "covers": [
+    ".github/workflows/nightly.yml",
+    "docs/nightly-workflow.yml"
+   ]
+  },
+  "noChartLayoutCheck": {
+   "file": "scripts/noChartLayoutCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/findCardKit.js",
+    "lib/tasks/emailCards.js",
+    "public/js/",
+    "public/js/onebox.js",
+    "public/onebox.html",
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98Render.mjs"
+   ]
+  },
+  "noDesignControlsCheck": {
+   "file": "scripts/noDesignControlsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/about.js",
+    "api/business.js",
+    "api/buy.js",
+    "api/crewPage.js",
+    "api/desk.js",
+    "api/feedback.js",
+    "api/home.js",
+    "api/howSamDecides.js",
+    "api/legal.js",
+    "api/marketCheck.js",
+    "api/sellNext.js",
+    "api/sellPage.js",
+    "api/tasksPage.js",
+    "lib/",
+    "lib/appShell.js",
+    "lib/crewPages/",
+    "lib/crewPages/desk.html",
+    "lib/crewPages/onebox-preview.html",
+    "public/",
+    "public/js/desk.js",
+    "scripts/e98DesignControls.mjs",
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98Render.mjs",
+    "vercel.json"
+   ]
+  },
+  "noQuestionRuleCheck": {
+   "file": "scripts/noQuestionRuleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "scripts/generationChipCheck.mjs",
+    "scripts/mixedRangeCheck.mjs",
+    "scripts/prePush.mjs",
+    "scripts/questionRuleCheck.mjs",
+    "scripts/questionSpeedCheck.mjs"
+   ]
+  },
+  "noRangeCardsCheck": {
+   "file": "scripts/noRangeCardsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/desk/",
+    "lib/desk/intake/engineRead.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetRead.js",
+    "lib/findCardKit.js",
+    "lib/sellsForCard.js",
+    "public/js/deskvals.js",
+    "public/js/onebox.js",
+    "scripts/deskValsRender.mjs"
+   ]
+  },
+  "noRangeFieldsCheck": {
+   "file": "scripts/noRangeFieldsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js"
+   ]
+  },
+  "nomenclatureCheck": {
+   "file": "scripts/nomenclatureCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/bodyWords.js",
+    "lib/nomenclature.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "nonVehicleCheck": {
+   "file": "scripts/nonVehicleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buySearch.js",
+    "lib/_classify.js",
+    "lib/live/feed.js",
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "noneRowReasonCheck": {
+   "file": "scripts/noneRowReasonCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "noneRowsCheck": {
+   "file": "scripts/noneRowsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/usageDashboard.js",
+    "lib/",
+    "lib/live/search.js",
+    "lib/ops/noneRows.js",
+    "lib/reasonWords.js",
+    "node_modules/",
+    "package.json",
+    "public/",
+    "scripts/",
+    "vercel.json"
+   ]
+  },
+  "notACarCheck": {
+   "file": "scripts/notACarCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "notTrackedCardCheck": {
+   "file": "scripts/notTrackedCardCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buySearch.js",
+    "lib/live/buyAlerts.js",
+    "lib/live/converse.js",
+    "lib/live/rung.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/live/watches.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "notTrimsRefineCheck": {
+   "file": "scripts/notTrimsRefineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellerDecision.js",
+    "lib/onebox.js"
+   ]
+  },
+  "noticeCheck": {
+   "file": "scripts/noticeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/usageDashboard.js",
+    "api/vehicleIdentity.js",
+    "data/",
+    "lib/",
+    "lib/live/search.js",
+    "lib/live/unusedWords.js",
+    "lib/numberPhrases.js",
+    "lib/onebox.js",
+    "lib/sell/sellFacts.js",
+    "lib/tools/_shared.js",
+    "lib/vehicle.js",
+    "node_modules/",
+    "package.json",
+    "public/",
+    "public/js/onebox.js"
+   ]
+  },
+  "nullIsNoNumberCheck": {
+   "file": "scripts/nullIsNoNumberCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/out.js",
+    "api/partnerAnswer.js",
+    "api/sellerDecision.js",
+    "lib/live/search.js",
+    "lib/live/watches.js",
+    "lib/onebox.js",
+    "lib/tasks/fullCards.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "numberNameCheck": {
+   "file": "scripts/numberNameCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "numberSentenceCheck": {
+   "file": "scripts/numberSentenceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/buy.js",
+    "lib/",
+    "lib/_flags.js",
+    "lib/live/featuredHistory.js",
+    "lib/onebox.js",
+    "lib/preview/",
+    "lib/preview/previewPages.js",
+    "lib/preview/tasksPreview.js",
+    "lib/reasonWords.js",
+    "lib/sellsForCard.js",
+    "public/",
+    "public/js/onebox.js"
+   ]
+  },
+  "offWindowCheck": {
+   "file": "scripts/offWindowCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/buy.js",
+    "public/js/onebox.js"
+   ]
+  },
+  "oneOptionPoolCheck": {
+   "file": "scripts/oneOptionPoolCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "node_modules/",
+    "scripts/crossProductCheck.js"
+   ]
+  },
+  "onePickFixtureCheck": {
+   "file": "scripts/onePickFixtureCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/crossProductCheck.js"
+   ]
+  },
+  "oneboxCheck": {
+   "file": "scripts/oneboxCheck.js",
+   "kind": "live",
+   "covers": []
+  },
+  "openSiteGateCheck": {
+   "file": "scripts/openSiteGateCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/about.js",
+    "api/business.js",
+    "api/buy.js",
+    "api/feedback.js",
+    "api/home.js",
+    "api/howSamDecides.js",
+    "api/legal.js",
+    "api/marketCheck.js",
+    "api/sell.js",
+    "api/specPage.js",
+    "api/tasksPage.js",
+    "lib/_launchStage.js"
+   ]
+  },
+  "openingTimeCheck": {
+   "file": "scripts/openingTimeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/",
+    "lib/_hold.js",
+    "lib/admin/launch.js",
+    "lib/launchTime.js",
+    "public/",
+    "scripts/_fakeClock.mjs"
+   ]
+  },
+  "optionsAddUpCheck": {
+   "file": "scripts/optionsAddUpCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/optionProblems.js"
+   ]
+  },
+  "optionsFieldCheck": {
+   "file": "scripts/optionsFieldCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/engineFields.js",
+    "lib/onebox.js"
+   ]
+  },
+  "orgSettingsCheck": {
+   "file": "scripts/orgSettingsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_chrome.js",
+    "api/deskOrg.js",
+    "api/sitemapPages.js",
+    "lib/_crew.js",
+    "lib/appShell.js",
+    "lib/authBar.js",
+    "lib/desk/",
+    "public/",
+    "public/robots.txt",
+    "scripts/_deskDb.mjs",
+    "scripts/_deskFakes.mjs",
+    "vercel.json"
+   ]
+  },
+  "outboundUtmCheck": {
+   "file": "scripts/outboundUtmCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "api/marketCheck.js",
+    "api/sellNext.js",
+    "api/sellPage.js",
+    "api/tasksPage.js",
+    "lib/_email.js",
+    "lib/live/buyAlerts.js",
+    "lib/outboundUtm.js",
+    "lib/sell/sellClient.js",
+    "lib/sell/sellMcClient.js",
+    "lib/tasks/emailCards.js",
+    "lib/tasks/tasks.js",
+    "public/js/chat-core.js",
+    "public/js/onebox.js",
+    "public/js/result-copy.js",
+    "public/js/result.js"
+   ]
+  },
+  "ownTrimRivalCheck": {
+   "file": "scripts/ownTrimRivalCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "pageReasonCopyCheck": {
+   "file": "scripts/pageReasonCopyCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/buy.js",
+    "lib/",
+    "lib/reasonWords.js",
+    "public/"
+   ]
+  },
+  "pageSliceCheck": {
+   "file": "scripts/pageSliceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/"
+   ]
+  },
+  "pageSortCheck": {
+   "file": "scripts/pageSortCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/_amazonDemo.js",
+    "api/buy.js",
+    "api/history.js",
+    "api/partnerAnswer.js",
+    "api/partnerDemo.js",
+    "lib/onebox.js",
+    "public/js/",
+    "public/js/desk.js",
+    "public/js/onebox.js",
+    "public/js/result-copy.js",
+    "public/js/result.js",
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98Render.mjs"
+   ]
+  },
+  "pageWaitCheck": {
+   "file": "scripts/pageWaitCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_amazonDemo.js",
+    "api/about.js",
+    "api/business.js",
+    "api/buy.js",
+    "api/feedback.js",
+    "api/history.js",
+    "api/home.js",
+    "api/howSamDecides.js",
+    "api/marketCheck.js",
+    "api/partnerAnswer.js",
+    "api/partnerDemo.js",
+    "api/sellNext.js",
+    "api/sellPage.js",
+    "api/specPage.js",
+    "api/tasksPage.js",
+    "lib/appShell.js",
+    "lib/sell/",
+    "lib/startPage.js",
+    "lib/tasks/",
+    "public/js/",
+    "scripts/e98FindRender.mjs",
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98Render.mjs"
+   ]
+  },
+  "partnerAccessCheck": {
+   "file": "scripts/partnerAccessCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/partnerAnswer.js",
+    "api/partnerDemo.js",
+    "lib/_ceilings.js",
+    "lib/_crew.js",
+    "lib/_partnerAccess.js",
+    "vercel.json"
+   ]
+  },
+  "partnerApartCheck": {
+   "file": "scripts/partnerApartCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/partnerAnswer.js",
+    "lib/generations.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "partnerDemoCheck": {
+   "file": "scripts/partnerDemoCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/partnerAnswer.js",
+    "api/partnerDemo.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "public/js/onebox.js",
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98Render.mjs"
+   ]
+  },
+  "partnerDemoInertCheck": {
+   "file": "scripts/partnerDemoInertCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_amazonDemo.js",
+    "api/_amazonLogo.js",
+    "api/partnerAnswer.js",
+    "api/partnerDemo.js",
+    "lib/reasonWords.js"
+   ]
+  },
+  "partnerFirstLoadCheck": {
+   "file": "scripts/partnerFirstLoadCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/partnerAnswer.js",
+    "lib/generations.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "partnerOrderCheck": {
+   "file": "scripts/partnerOrderCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/partnerAnswer.js",
+    "lib/onebox.js"
+   ]
+  },
+  "partnerPositionCheck": {
+   "file": "scripts/partnerPositionCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/_amazonDemo.js",
+    "api/partnerAnswer.js",
+    "api/partnerDemo.js",
+    "data/deadPhotoHosts.json",
+    "lib/onebox.js",
+    "public/"
+   ]
+  },
+  "pdfLayoutCheck": {
+   "file": "scripts/pdfLayoutCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/reportPdf.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "lib/pdf/mini.js",
+    "public/icon-192.png",
+    "public/img/sell/specialist.jpg",
+    "scripts/deskValsRender.mjs",
+    "scripts/figureScan.mjs"
+   ]
+  },
+  "pendingCardFillCheck": {
+   "file": "scripts/pendingCardFillCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "api/tasksPage.js",
+    "lib/reasonWords.js",
+    "lib/tasks/limit.js",
+    "lib/tasks/overview.js",
+    "scripts/e98FindRender.mjs",
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98Render.mjs"
+   ]
+  },
+  "peopleBrowserCheck": {
+   "file": "scripts/peopleBrowserCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/admin.js",
+    "lib/_crew.js",
+    "lib/admin/launch.js",
+    "lib/admin/people.js"
+   ]
+  },
+  "peopleTabCheck": {
+   "file": "scripts/peopleTabCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/admin.js",
+    "lib/admin/people.js",
+    "lib/track/catalog.js",
+    "vercel.json"
+   ]
+  },
+  "photoHostCheck": {
+   "file": "scripts/photoHostCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/buySearch.js",
+    "api/usageDashboard.js",
+    "lib/",
+    "lib/onebox.js",
+    "lib/photoHosts.js"
+   ]
+  },
+  "photoRuleCheck": {
+   "file": "scripts/photoRuleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/_crew.js",
+    "lib/live/",
+    "lib/live/featuredHistory.js",
+    "lib/live/findExamples.js",
+    "lib/live/geo.js",
+    "lib/live/photoRule.js",
+    "lib/live/search.js",
+    "lib/live/tasksDemo.js",
+    "lib/live/watchingDemo.js",
+    "lib/tasks/tasks.js",
+    "node_modules/"
+   ]
+  },
+  "photoWidthCheck": {
+   "file": "scripts/photoWidthCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_amazonDemo.js",
+    "api/partnerAnswer.js",
+    "api/partnerDemo.js",
+    "lib/_salePhoto.js"
+   ]
+  },
+  "pickRaceCheck": {
+   "file": "scripts/pickRaceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "lib/",
+    "lib/live/featuredHistory.js",
+    "lib/live/findExamples.js",
+    "lib/live/search.js",
+    "lib/live/storeGuard.js",
+    "lib/live/tasksDemo.js",
+    "lib/live/watchingDemo.js",
+    "node_modules/",
+    "package.json",
+    "public/",
+    "scripts/",
+    "vercel.json"
+   ]
+  },
+  "pillFenceCheck": {
+   "file": "scripts/pillFenceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/live/converse.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "node_modules/"
+   ]
+  },
+  "pillOverlapCheck": {
+   "file": "scripts/pillOverlapCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/"
+   ]
+  },
+  "placeCaseCheck": {
+   "file": "scripts/placeCaseCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buySearch.js",
+    "lib/placeCase.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "placeholderCheck": {
+   "file": "scripts/placeholderCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/startPlaceholders.js",
+    "package.json"
+   ]
+  },
+  "poolColumnsCheck": {
+   "file": "scripts/poolColumnsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "poolSourceCheck": {
+   "file": "scripts/poolSourceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "poolWildcardCheck": {
+   "file": "scripts/poolWildcardCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "pooledAnswerCheck": {
+   "file": "scripts/pooledAnswerCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "popupSalesCheck": {
+   "file": "scripts/popupSalesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "api/buySearch.js",
+    "api/marketCheck.js",
+    "api/tasksPage.js",
+    "lib/findCardKit.js",
+    "lib/live/cardSlots.js",
+    "lib/live/search.js",
+    "lib/mcLink.js",
+    "lib/onebox.js",
+    "public/js/",
+    "public/js/onebox.js",
+    "scripts/e98PanelRender.mjs",
+    "scripts/e98Render.mjs"
+   ]
+  },
+  "prePushStatusCheck": {
+   "file": "scripts/prePushStatusCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/_prePushStatus.mjs",
+    "scripts/prePush.mjs"
+   ]
+  },
+  "premiumFreshCheck": {
+   "file": "scripts/premiumFreshCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/admin.js",
+    "lib/ops/premiumFresh.js"
+   ]
+  },
+  "previewBindCheck": {
+   "file": "scripts/previewBindCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_bodyChanges.js",
+    "lib/generations.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "previewCopyCheck": {
+   "file": "scripts/previewCopyCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/crewPage.js",
+    "lib/copy.js",
+    "lib/entryCopy.js",
+    "lib/preview/deskPreview.js",
+    "lib/preview/previewPages.js",
+    "lib/preview/tasksPreview.js",
+    "lib/reasonWords.js",
+    "lib/startPlaceholders.js",
+    "lib/tasks/limit.js"
+   ]
+  },
+  "previewHeaderCheck": {
+   "file": "scripts/previewHeaderCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/preview/previewPages.js",
+    "lib/preview/tasksMine.js",
+    "lib/preview/tasksPreview.js",
+    "package.json"
+   ]
+  },
+  "previewRealCardCheck": {
+   "file": "scripts/previewRealCardCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/preview/previewPages.js",
+    "lib/preview/tasksPreview.js"
+   ]
+  },
+  "previewShellCheck": {
+   "file": "scripts/previewShellCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/crewPage.js",
+    "lib/_crew.js",
+    "lib/preview/mcSellPreview.js",
+    "lib/preview/previewPages.js",
+    "lib/preview/tasksMine.js",
+    "lib/preview/tasksPreview.js",
+    "package.json",
+    "scripts/findExamplesFixture.mjs",
+    "scripts/tasksFixture.mjs"
+   ]
+  },
+  "prewarAnySizeCheck": {
+   "file": "scripts/prewarAnySizeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "prewarBodyApartCheck": {
+   "file": "scripts/prewarBodyApartCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js"
+   ]
+  },
+  "prewarBodyStoredCheck": {
+   "file": "scripts/prewarBodyStoredCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "prewarYearlessCheck": {
+   "file": "scripts/prewarYearlessCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/marketCheck.js",
+    "lib/generations.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "node_modules/",
+    "public/js/",
+    "public/js/onebox.js"
+   ]
+  },
+  "priorListingCheck": {
+   "file": "scripts/priorListingCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/live/priorListing.js"
+   ]
+  },
+  "publicExamplesCheck": {
+   "file": "scripts/publicExamplesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/publicExamples.js",
+    "api/pullLive.js",
+    "lib/_crew.js",
+    "lib/live/entryExamples.js",
+    "lib/live/featuredHistory.js",
+    "lib/live/findExamples.js",
+    "lib/live/marketCheckExamples.js",
+    "lib/live/publicAccess.js",
+    "lib/live/publicExamples.js",
+    "lib/live/search.js",
+    "lib/live/tasksDemo.js",
+    "node_modules/",
+    "public/"
+   ]
+  },
+  "pullStarterCheck": {
+   "file": "scripts/pullStarterCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/pullLive.js",
+    "lib/_ocd.js",
+    "lib/live/pullReport.js"
+   ]
+  },
+  "pushCheck": {
+   "file": "scripts/pushCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "scripts/_crewCookie.mjs"
+   ]
+  },
+  "questionColdCheck": {
+   "file": "scripts/questionColdCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellerDecision.js",
+    "lib/generations.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "questionPayloadsCheck": {
+   "file": "scripts/questionPayloadsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellerDecision.js",
+    "api/vehicleIdentity.js",
+    "lib/onebox.js",
+    "lib/questionWayOut.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "questionRuleCheck": {
+   "file": "scripts/questionRuleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/modelRules.js",
+    "lib/onebox.js"
+   ]
+  },
+  "questionSpeedCheck": {
+   "file": "scripts/questionSpeedCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "questionWayOutCheck": {
+   "file": "scripts/questionWayOutCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellerDecision.js",
+    "lib/onebox.js",
+    "lib/questionWayOut.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "rail2Check": {
+   "file": "scripts/rail2Check.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/business.js",
+    "api/buy.js",
+    "api/home.js",
+    "api/howSamDecides.js",
+    "api/marketCheck.js",
+    "api/publicConfig.js",
+    "api/sellNext.js",
+    "api/sellPage.js",
+    "api/sitemapPages.js",
+    "api/tasksPage.js",
+    "lib/appShell.js",
+    "lib/copy.js",
+    "scripts/",
+    "vercel.json"
+   ]
+  },
+  "railCheck": {
+   "file": "scripts/railCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/_crew.js"
+   ]
+  },
+  "rangeLadderCheck": {
+   "file": "scripts/rangeLadderCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "rangeRulesCheck": {
+   "file": "scripts/rangeRulesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/onebox.js"
+   ]
+  },
+  "rangeSentenceShareCheck": {
+   "file": "scripts/rangeSentenceShareCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "lib/sellsForCard.js",
+    "public/"
+   ]
+  },
+  "rawColumnsLineCheck": {
+   "file": "scripts/rawColumnsLineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/ingest.js"
+   ]
+  },
+  "readAbortCheck": {
+   "file": "scripts/readAbortCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellerDecision.js",
+    "lib/_supabase.js",
+    "lib/live/narrow.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/sell/sellBlock.js"
+   ]
+  },
+  "readCallerCheck": {
+   "file": "scripts/readCallerCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/partnerAnswer.js",
+    "api/sellChat.js",
+    "api/sellNext.js",
+    "api/usageDashboard.js",
+    "lib/_caller.js",
+    "lib/_supabase.js",
+    "lib/onebox.js",
+    "lib/track/log.js",
+    "scripts/buildSpecPagesCache.js",
+    "scripts/warmMarketCheck.js"
+   ]
+  },
+  "readConcurrencyCheck": {
+   "file": "scripts/readConcurrencyCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_supabase.js",
+    "lib/onebox.js"
+   ]
+  },
+  "readFailureCheck": {
+   "file": "scripts/readFailureCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellChat.js",
+    "api/sellerDecision.js",
+    "api/usageDashboard.js",
+    "lib/_classify.js",
+    "lib/desk/execute.js",
+    "lib/desk/measures.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/platformPick.js",
+    "lib/sell/sellFacts.js",
+    "lib/specPages.js"
+   ]
+  },
+  "readRacerCheck": {
+   "file": "scripts/readRacerCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/_historyData.js",
+    "api/buy.js",
+    "api/buySearch.js",
+    "api/crewPage.js",
+    "api/history.js",
+    "api/partnerAnswer.js",
+    "api/partnerDemo.js",
+    "api/pullLive.js",
+    "api/sellerDecision.js",
+    "lib/",
+    "lib/_routeLimit.js",
+    "lib/live/buyExample.js",
+    "lib/live/chatCore.js",
+    "lib/live/deskExample.js",
+    "lib/live/entryExamples.js",
+    "lib/live/findExamples.js",
+    "lib/live/marketCheckExample.js",
+    "lib/live/marketCheckExamples.js",
+    "lib/live/narrow.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/live/withClock.js",
+    "lib/newsletterSignup.js",
+    "lib/onebox.js",
+    "lib/sell/sellBlock.js",
+    "lib/sell/sellExample.js",
+    "lib/sell/sellFacts.js",
+    "lib/tasks/fullCards.js",
+    "lib/tasks/tasks.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "readRetryCheck": {
+   "file": "scripts/readRetryCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_supabase.js"
+   ]
+  },
+  "readRetryRequestCheck": {
+   "file": "scripts/readRetryRequestCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/execute.js",
+    "lib/onebox.js"
+   ]
+  },
+  "reasonRulesCheck": {
+   "file": "scripts/reasonRulesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/decisionRules.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetShape.js",
+    "lib/desk/sheetStore.js",
+    "scripts/deskValsRender.mjs"
+   ]
+  },
+  "reasonWordsCheck": {
+   "file": "scripts/reasonWordsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/sellerDecision.js",
+    "lib/",
+    "lib/desk/",
+    "lib/deskV3.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "lib/sellsForCard.js",
+    "lib/sheetRead.js",
+    "public/"
+   ]
+  },
+  "refineFromStoredCheck": {
+   "file": "scripts/refineFromStoredCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellerDecision.js",
+    "lib/onebox.js"
+   ]
+  },
+  "refineKeyParityCheck": {
+   "file": "scripts/refineKeyParityCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js"
+   ]
+  },
+  "refusalCauseCheck": {
+   "file": "scripts/refusalCauseCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/vehicle.js",
+    "lib/vehicleData.js"
+   ]
+  },
+  "refusalCheck": {
+   "file": "scripts/refusalCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "scripts/_crewCookie.mjs",
+    "scripts/refusalCars.mjs"
+   ]
+  },
+  "refusalNoCountCheck": {
+   "file": "scripts/refusalNoCountCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "regionCheck": {
+   "file": "scripts/regionCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "vercel.json"
+   ]
+  },
+  "replicaHideCheck": {
+   "file": "scripts/replicaHideCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/live/specialFlag.js"
+   ]
+  },
+  "reportConsistencyCheck": {
+   "file": "scripts/reportConsistencyCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/",
+    "lib/desk/caseView.js",
+    "lib/desk/considered.js",
+    "lib/desk/coverPhoto.js",
+    "lib/desk/reportPdfV3.js",
+    "lib/desk/reportPdfV4.js",
+    "lib/desk/reportState.js",
+    "lib/desk/reserveModeLines.js",
+    "lib/desk/rungs.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "lib/deskV3.js",
+    "lib/pdf/mini.js",
+    "lib/preview/deskV4.js",
+    "lib/preview/deskV4Client.js",
+    "lib/reasonWords.js",
+    "public/icon-192.png",
+    "public/icon-512.png",
+    "scripts/_deskCaseWorld.mjs"
+   ]
+  },
+  "reportV4Check": {
+   "file": "scripts/reportV4Check.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/imageCache.js",
+    "lib/desk/reportBuild.js",
+    "lib/desk/reportPdfV3.js",
+    "lib/desk/reportPdfV4.js",
+    "lib/desk/reportState.js",
+    "lib/desk/salePhoto.js",
+    "lib/pdf/mini.js",
+    "lib/preview/deskPreview.js",
+    "lib/preview/previewImage.js",
+    "public/icon-192.png",
+    "public/icon-512.png",
+    "scripts/_deskCaseWorld.mjs",
+    "scripts/fixtures/sl500Sales.json"
+   ]
+  },
+  "resolverHangCheck": {
+   "file": "scripts/resolverHangCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/vehicle.js"
+   ]
+  },
+  "resolverLanesCheck": {
+   "file": "scripts/resolverLanesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "resolverMileageCheck": {
+   "file": "scripts/resolverMileageCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/vehicleIdentity.js",
+    "data/",
+    "data/calculatorModelYears.json",
+    "lib/",
+    "lib/carToken.js",
+    "lib/desk/intake/run.js",
+    "lib/live/search.js",
+    "lib/numberPhrases.js",
+    "lib/sell/sellFacts.js",
+    "lib/tools/_shared.js",
+    "lib/vehicle.js",
+    "lib/vehicleData.js",
+    "node_modules/",
+    "package.json"
+   ]
+  },
+  "resolverOfflineCheck": {
+   "file": "scripts/resolverOfflineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/vehicle.js"
+   ]
+  },
+  "retentionCheck": {
+   "file": "scripts/retentionCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/",
+    "scripts/_deskDb.mjs",
+    "scripts/_deskFakes.mjs"
+   ]
+  },
+  "rlsCheck": {
+   "file": "scripts/rlsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "data/",
+    "docs/",
+    "lib/",
+    "public/",
+    "scripts/_deskDb.mjs",
+    "scripts/_deskUrls.mjs"
+   ]
+  },
+  "routeLimitCheck": {
+   "file": "scripts/routeLimitCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/history.js",
+    "api/publicConfig.js",
+    "api/vehicleIdentity.js",
+    "lib/_ceilings.js",
+    "lib/_credential.js",
+    "lib/_crew.js",
+    "lib/_routeLimit.js",
+    "lib/track/log.js"
+   ]
+  },
+  "ruleTagsCurrentCheck": {
+   "file": "scripts/ruleTagsCurrentCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "runChecksCheck": {
+   "file": "scripts/runChecksCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "docs/",
+    "lib/",
+    "lib/bareModel.js",
+    "lib/live/search.js",
+    "lib/numberPhrases.js",
+    "lib/onebox.js",
+    "lib/vehicle.js",
+    "scripts/",
+    "scripts/checkMap.json",
+    "scripts/runChecks.mjs"
+   ]
+  },
+  "rungAlwaysCheck": {
+   "file": "scripts/rungAlwaysCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/live/rung.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "rungCheck": {
+   "file": "scripts/rungCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/buyAlerts.js",
+    "lib/live/rung.js",
+    "lib/live/watches.js",
+    "lib/tasks/rungFixture.js",
+    "lib/tasks/tasks.js",
+    "lib/track/log.js"
+   ]
+  },
+  "salePhotoCheck": {
+   "file": "scripts/salePhotoCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_partnerLogo.js",
+    "api/partnerAnswer.js",
+    "api/partnerDemo.js",
+    "lib/_ceilings.js",
+    "lib/_salePhoto.js"
+   ]
+  },
+  "salesListOrderCheck": {
+   "file": "scripts/salesListOrderCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js"
+   ]
+  },
+  "salesOrderCheck": {
+   "file": "scripts/salesOrderCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/partnerAnswer.js",
+    "api/partnerDemo.js",
+    "lib/onebox.js"
+   ]
+  },
+  "salesPanelCheck": {
+   "file": "scripts/salesPanelCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/findCardKit.js",
+    "lib/tasks/emailCards.js",
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98PanelRender.mjs",
+    "scripts/e98Render.mjs"
+   ]
+  },
+  "sameSetCheck": {
+   "file": "scripts/sameSetCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "savedNameCheck": {
+   "file": "scripts/savedNameCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js"
+   ]
+  },
+  "scopeReasonCheck": {
+   "file": "scripts/scopeReasonCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/tools/whereToSell.js"
+   ]
+  },
+  "searchCheck": {
+   "file": "scripts/searchCheck.js",
+   "kind": "offline",
+   "covers": [
+    "api/_usage.js",
+    "lib/_supabase.js"
+   ]
+  },
+  "searchTextCheck": {
+   "file": "scripts/searchTextCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/admin.js",
+    "api/buySearch.js",
+    "api/sellerDecision.js",
+    "lib/_crew.js",
+    "lib/admin/people.js",
+    "lib/track/catalog.js",
+    "lib/track/log.js"
+   ]
+  },
+  "seatAccessCheck": {
+   "file": "scripts/seatAccessCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/crewPage.js",
+    "api/desk.js",
+    "api/deskSeat.js",
+    "lib/_crew.js",
+    "lib/desk/seatCookie.js",
+    "public/js/auth.js",
+    "vercel.json"
+   ]
+  },
+  "secHeadersCheck": {
+   "file": "scripts/secHeadersCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/cspReport.js",
+    "vercel.json"
+   ]
+  },
+  "sellBestDayCheck": {
+   "file": "scripts/sellBestDayCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "public/js/",
+    "public/sell-old.html"
+   ]
+  },
+  "sellBuilderCheck": {
+   "file": "scripts/sellBuilderCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/sell/sellFacts.js",
+    "lib/sell/sellFlow.js",
+    "lib/sell/sellMcClient.js"
+   ]
+  },
+  "sellCutoffCheck": {
+   "file": "scripts/sellCutoffCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "api/sellNext.js",
+    "api/sellPage.js",
+    "lib/sell/sellMcClient.js",
+    "public/js/"
+   ]
+  },
+  "sellDayTileCheck": {
+   "file": "scripts/sellDayTileCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/sell/sellFacts.js",
+    "lib/sell/sellFlow.js"
+   ]
+  },
+  "sellEndingCheck": {
+   "file": "scripts/sellEndingCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellChat.js",
+    "api/sellNext.js",
+    "lib/sell/sellBlock.js",
+    "lib/sell/sellFacts.js",
+    "lib/sell/sellFlow.js",
+    "lib/sell/sellMcClient.js"
+   ]
+  },
+  "sellEntryCheck": {
+   "file": "scripts/sellEntryCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/home.js",
+    "api/sellPage.js",
+    "api/tasksPage.js",
+    "lib/live/buyLanding.js",
+    "lib/live/marketCheckLanding.js",
+    "lib/sell/sellEntry.js",
+    "lib/startPage.js",
+    "lib/startPlaceholders.js",
+    "public/js/homepage.js",
+    "public/js/result-copy.js",
+    "public/styles.css"
+   ]
+  },
+  "sellExampleCheck": {
+   "file": "scripts/sellExampleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/crewPage.js",
+    "lib/live/entryExamples.js",
+    "lib/live/marketCheckExamples.js",
+    "lib/reasonWords.js",
+    "node_modules/",
+    "scripts/_mcExamplesWorld.mjs"
+   ]
+  },
+  "sellFieldsCheck": {
+   "file": "scripts/sellFieldsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "sellFieldsLegCheck": {
+   "file": "scripts/sellFieldsLegCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "sellLabelCheck": {
+   "file": "scripts/sellLabelCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js",
+    "lib/platformPick.js",
+    "lib/vehicle.js",
+    "scripts/crossProductCheck.js"
+   ]
+  },
+  "sellQuestionCheck": {
+   "file": "scripts/sellQuestionCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/sell/sellFacts.js",
+    "lib/sell/sellFlow.js",
+    "lib/sell/sellMcClient.js"
+   ]
+  },
+  "sellRefusalCheck": {
+   "file": "scripts/sellRefusalCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/sell/sellFacts.js",
+    "lib/sell/sellFlow.js",
+    "lib/sell/sellMcClient.js",
+    "lib/sellsForCard.js"
+   ]
+  },
+  "sellReserveLineCheck": {
+   "file": "scripts/sellReserveLineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "public/js/",
+    "public/sell-old.html"
+   ]
+  },
+  "sellResultLinksCheck": {
+   "file": "scripts/sellResultLinksCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellChat.js",
+    "lib/sell/sellFacts.js",
+    "lib/sell/sellFlow.js",
+    "lib/sell/sellMcClient.js",
+    "lib/sellsForCard.js"
+   ]
+  },
+  "sellRouteCheck": {
+   "file": "scripts/sellRouteCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sell.js",
+    "api/sellPage.js",
+    "lib/_crew.js",
+    "vercel.json"
+   ]
+  },
+  "sellSpeedCheck": {
+   "file": "scripts/sellSpeedCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/sell/sellBlock.js",
+    "lib/sell/sellFacts.js",
+    "lib/sell/sellFlow.js"
+   ]
+  },
+  "sellThinLineCheck": {
+   "file": "scripts/sellThinLineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "public/js/",
+    "public/sell-old.html"
+   ]
+  },
+  "sellTypedCheck": {
+   "file": "scripts/sellTypedCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/sell/sellMcClient.js",
+    "lib/sellsForCard.js"
+   ]
+  },
+  "sellValueFloorCheck": {
+   "file": "scripts/sellValueFloorCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "public/js/",
+    "public/js/entry.js",
+    "public/js/result-v2.js",
+    "public/js/result.js",
+    "public/sell-old.html"
+   ]
+  },
+  "sellVenueLineCheck": {
+   "file": "scripts/sellVenueLineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/sell/sellFacts.js",
+    "lib/sell/sellFlow.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "sellVoiceCheck": {
+   "file": "scripts/sellVoiceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellChat.js",
+    "api/sellNext.js",
+    "api/sellPage.js",
+    "lib/sell/sellChat.js",
+    "lib/sell/sellClient.js",
+    "lib/sell/sellExample.js",
+    "lib/sell/sellFacts.js",
+    "lib/sell/sellFlow.js",
+    "lib/sell/sellFollow.js",
+    "lib/sell/sellLanding.js",
+    "lib/sell/sellMcClient.js",
+    "lib/sell/sellPartner.js",
+    "public/js/chat-core.js",
+    "public/js/entry.js",
+    "public/js/homepage.js",
+    "public/js/pipeline.js",
+    "public/js/result-copy.js",
+    "public/js/result-v2.js",
+    "public/js/result.js",
+    "public/js/steps.js",
+    "public/js/wizard.js",
+    "public/sell-old.html"
+   ]
+  },
+  "sellWeekdayCheck": {
+   "file": "scripts/sellWeekdayCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "public/js/",
+    "public/sell-old.html"
+   ]
+  },
+  "sellsForCardCheck": {
+   "file": "scripts/sellsForCardCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/sellsForCard.js"
+   ]
+  },
+  "sendCheck": {
+   "file": "scripts/sendCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "docs/supabase-desk-storage.sql",
+    "scripts/deskIntakeKit.mjs"
+   ]
+  },
+  "servedCardKeysCheck": {
+   "file": "scripts/servedCardKeysCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/sell/sellFacts.js"
+   ]
+  },
+  "setAsideCheck": {
+   "file": "scripts/setAsideCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "api/buySearch.js",
+    "lib/live/buyAlerts.js",
+    "lib/live/watches.js",
+    "lib/tasks/setAside.js"
+   ]
+  },
+  "setAsideLineCheck": {
+   "file": "scripts/setAsideLineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "sheetPoolCheck": {
+   "file": "scripts/sheetPoolCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/conditionTier.js",
+    "lib/desk/decisionRules.js",
+    "lib/desk/reportPdf.js",
+    "lib/desk/sheetShape.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "lib/sheetRead.js",
+    "node_modules/",
+    "public/js/deskvals.js"
+   ]
+  },
+  "sheetReadCheck": {
+   "file": "scripts/sheetReadCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetRead.js",
+    "lib/desk/sheetShape.js",
+    "lib/onebox.js",
+    "lib/sheetRead.js"
+   ]
+  },
+  "sheetRenderCheck": {
+   "file": "scripts/sheetRenderCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "public/js/deskvals.js",
+    "scripts/deskValsRender.mjs",
+    "scripts/figureScan.mjs"
+   ]
+  },
+  "sheetVersionCheck": {
+   "file": "scripts/sheetVersionCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
+    "public/js/deskvals.js",
+    "scripts/deskValsRender.mjs"
+   ]
+  },
+  "shellHeaderFindCheck": {
+   "file": "scripts/shellHeaderFindCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "api/",
+    "public/js/"
+   ]
+  },
+  "showMoreCheck": {
+   "file": "scripts/showMoreCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98PanelRender.mjs",
+    "scripts/e98Render.mjs"
+   ]
+  },
+  "signedWebhookCheck": {
+   "file": "scripts/signedWebhookCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/deskInbound.js",
+    "data/",
+    "lib/desk/intake/resendInbound.js"
+   ]
+  },
+  "signinReturnCheck": {
+   "file": "scripts/signinReturnCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/tasks/limit.js",
+    "public/"
+   ]
+  },
+  "singerLeftoverCheck": {
+   "file": "scripts/singerLeftoverCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellerDecision.js",
+    "lib/live/unusedWords.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "sitePagesContentCheck": {
+   "file": "scripts/sitePagesContentCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/sitePagesHarness.mjs"
+   ]
+  },
+  "sitePagesHistoryCheck": {
+   "file": "scripts/sitePagesHistoryCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/crewPage.js",
+    "api/history.js",
+    "lib/_crew.js",
+    "lib/preview/previewPages.js",
+    "lib/preview/sitePages.js",
+    "scripts/sitePagesHarness.mjs"
+   ]
+  },
+  "sitePagesShellCheck": {
+   "file": "scripts/sitePagesShellCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/sitePagesHarness.mjs"
+   ]
+  },
+  "sitemapHonestyCheck": {
+   "file": "scripts/sitemapHonestyCheck.mjs",
+   "kind": "live",
+   "kindFixed": "live",
+   "why": "it fetches the live sitemaps and samples live pages",
+   "covers": []
+  },
+  "sitemapRouteCheck": {
+   "file": "scripts/sitemapRouteCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "public/",
+    "public/robots.txt",
+    "vercel.json"
+   ]
+  },
+  "sitemapValidCheck": {
+   "file": "scripts/sitemapValidCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "public/",
+    "public/robots.txt",
+    "scripts/fixtures/",
+    "vercel.json"
+   ]
+  },
+  "skipSummaryCheck": {
+   "file": "scripts/skipSummaryCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/tasks/runBudget.js",
+    "scripts/"
+   ]
+  },
+  "slotLimitCheck": {
+   "file": "scripts/slotLimitCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/live/cardSlots.js",
+    "lib/reasonWords.js"
+   ]
+  },
+  "smallLabelsCheck": {
+   "file": "scripts/smallLabelsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/bodyWords.js",
+    "lib/generations.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "node_modules/"
+   ]
+  },
+  "snapshotAfterResponseCheck": {
+   "file": "scripts/snapshotAfterResponseCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/publicConfig.js",
+    "api/sellerDecision.js",
+    "lib/shareId.js"
+   ]
+  },
+  "spacedModelCodeCheck": {
+   "file": "scripts/spacedModelCodeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "spacedTaxonomyModelCheck": {
+   "file": "scripts/spacedTaxonomyModelCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "specKeyRoundTripCheck": {
+   "file": "scripts/specKeyRoundTripCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/_specRecompute.js",
+    "lib/generations.js",
+    "lib/live/search.js",
+    "node_modules/"
+   ]
+  },
+  "specLiveAbroadCheck": {
+   "file": "scripts/specLiveAbroadCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "lib/live/search.js",
+    "lib/specPages.js"
+   ]
+  },
+  "specPinCheck": {
+   "file": "scripts/specPinCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/_negCache.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "node_modules/",
+    "scripts/crossProductCheck.js"
+   ]
+  },
+  "specVersionFixtureCheck": {
+   "file": "scripts/specVersionFixtureCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "scripts/"
+   ]
+  },
+  "splitStateCheck": {
+   "file": "scripts/splitStateCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "spreadLineCheck": {
+   "file": "scripts/spreadLineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/buySearch.js",
+    "lib/",
+    "lib/asOf.js",
+    "lib/engineFields.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "lib/sellsForCard.js",
+    "public/"
+   ]
+  },
+  "stageTimerCheck": {
+   "file": "scripts/stageTimerCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellerDecision.js",
+    "api/usageDashboard.js",
+    "lib/generations.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "staleMarkCheck": {
+   "file": "scripts/staleMarkCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_staleMark.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "scripts/ingest.js"
+   ]
+  },
+  "standingControlsCheck": {
+   "file": "scripts/standingControlsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_chrome.js",
+    "api/buy.js",
+    "api/buySearch.js",
+    "api/tasks.js",
+    "api/tasksPage.js",
+    "api/watch.js",
+    "lib/appShell.js",
+    "lib/live/looking.js",
+    "lib/live/lookingCaps.js",
+    "lib/tasks/limit.js",
+    "lib/track/catalog.js",
+    "lib/track/log.js",
+    "public/js/onebox.js"
+   ]
+  },
+  "standingDrawerCheck": {
+   "file": "scripts/standingDrawerCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "scripts/_pinEndTimes.mjs"
+   ]
+  },
+  "standingNoticesCheck": {
+   "file": "scripts/standingNoticesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_historyData.js",
+    "api/about.js",
+    "api/buy.js",
+    "api/buySearch.js",
+    "api/history.js",
+    "api/tasks.js",
+    "api/tasksPage.js",
+    "api/watch.js",
+    "docs/",
+    "lib/_email.js",
+    "lib/appShell.js",
+    "lib/legal/privacyText.js",
+    "lib/live/buyAlerts.js",
+    "lib/live/converse.js",
+    "lib/live/looking.js",
+    "lib/live/watches.js",
+    "lib/newsletterSignup.js",
+    "lib/preview/tasksAppFork.js",
+    "lib/preview/tasksPreview.js",
+    "lib/tasks/delivery.js",
+    "lib/tasks/digest.js",
+    "lib/tasks/tasks.js",
+    "public/js/auth.js",
+    "public/js/onebox.js",
+    "vercel.json"
+   ]
+  },
+  "startButtonCheck": {
+   "file": "scripts/startButtonCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/sellPage.js",
+    "lib/startPage.js",
+    "public/"
+   ]
+  },
+  "startPagesCheck": {
+   "file": "scripts/startPagesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/sellPage.js",
+    "lib/copy.js",
+    "lib/startPage.js",
+    "vercel.json"
+   ]
+  },
+  "startPlaceCheck": {
+   "file": "scripts/startPlaceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/home.js",
+    "api/tasksPage.js",
+    "lib/live/buyLanding.js",
+    "lib/live/marketCheckLanding.js",
+    "lib/sell/sellLanding.js",
+    "lib/startPage.js"
+   ]
+  },
+  "storedFitCheck": {
+   "file": "scripts/storedFitCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/admin/storedFit.js"
+   ]
+  },
+  "storedQuestionRecheckCheck": {
+   "file": "scripts/storedQuestionRecheckCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "scripts/emailModeCheck.mjs"
+   ]
+  },
+  "storedReadNeedsNoFxCheck": {
+   "file": "scripts/storedReadNeedsNoFxCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellerDecision.js",
+    "lib/_fx.js",
+    "lib/_houseComps.js",
+    "lib/onebox.js",
+    "scripts/fixtures/"
+   ]
+  },
+  "storedRefusalNotServedCheck": {
+   "file": "scripts/storedRefusalNotServedCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "storedSweepCheck": {
+   "file": "scripts/storedSweepCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/onebox.js"
+   ]
+  },
+  "storedTextCheck": {
+   "file": "scripts/storedTextCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/_historyData.js",
+    "api/sellerDecision.js",
+    "api/usageDashboard.js",
+    "lib/",
+    "lib/live/narrow.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/platformPick.js",
+    "lib/reasonWords.js",
+    "public/"
+   ]
+  },
+  "taskCountsCheck": {
+   "file": "scripts/taskCountsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/tasks.js",
+    "api/tasksPage.js",
+    "lib/countNoun.js",
+    "lib/live/buyAlerts.js",
+    "lib/live/watches.js",
+    "lib/tasks/",
+    "lib/tasks/emailCaps.js",
+    "lib/tasks/fullCards.js",
+    "lib/tasks/overview.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "taskEmailSwitchCheck": {
+   "file": "scripts/taskEmailSwitchCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/_email.js",
+    "lib/live/",
+    "lib/tasks/"
+   ]
+  },
+  "taskFiltersCheck": {
+   "file": "scripts/taskFiltersCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "taskLimitLiteralCheck": {
+   "file": "scripts/taskLimitLiteralCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/",
+    "lib/tasks/limit.js",
+    "public/",
+    "scripts/",
+    "scripts/tasksLimitCheck.mjs"
+   ]
+  },
+  "taskSingerCheck": {
+   "file": "scripts/taskSingerCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "taskStopCheck": {
+   "file": "scripts/taskStopCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/tasks.js",
+    "api/watch.js",
+    "lib/live/watches.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "tasksAnyModelCheck": {
+   "file": "scripts/tasksAnyModelCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/tasks/tasks.js",
+    "node_modules/"
+   ]
+  },
+  "tasksAuthCheck": {
+   "file": "scripts/tasksAuthCheck.mjs",
+   "kind": "live",
+   "covers": []
+  },
+  "tasksBadgeCheck": {
+   "file": "scripts/tasksBadgeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/tasks.js",
+    "lib/_crew.js",
+    "lib/_tester.js"
+   ]
+  },
+  "tasksCrewExportCheck": {
+   "file": "scripts/tasksCrewExportCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/tasks.js",
+    "lib/",
+    "lib/_crew.js",
+    "lib/_tester.js",
+    "lib/desk/seatCookie.js",
+    "lib/tasks/crewGate.js",
+    "lib/tasks/limit.js",
+    "public/",
+    "scripts/"
+   ]
+  },
+  "tasksCrewLimitCheck": {
+   "file": "scripts/tasksCrewLimitCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/tasks.js",
+    "lib/",
+    "lib/_crew.js",
+    "lib/_tester.js",
+    "lib/desk/seatCookie.js",
+    "lib/tasks/",
+    "lib/tasks/crewGate.js",
+    "lib/tasks/limit.js"
+   ]
+  },
+  "tasksCriteriaCheck": {
+   "file": "scripts/tasksCriteriaCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/tasks.js",
+    "lib/preview/tasksApp.js",
+    "lib/preview/tasksMine.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "tasksDemoCheck": {
+   "file": "scripts/tasksDemoCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/crewPage.js",
+    "api/home.js",
+    "api/publicExamples.js",
+    "api/pullLive.js",
+    "lib/",
+    "lib/_crew.js",
+    "lib/live/entryExamples.js",
+    "lib/live/featuredHistory.js",
+    "lib/live/findExamples.js",
+    "lib/live/geo.js",
+    "lib/live/marketCheckExamples.js",
+    "lib/live/publicAccess.js",
+    "lib/live/publicExamples.js",
+    "lib/live/search.js",
+    "lib/live/tasksDemo.js",
+    "lib/live/watchingDemo.js",
+    "lib/preview/fieldCompose.js",
+    "lib/preview/previewPages.js",
+    "lib/preview/publicFind.js",
+    "lib/preview/tasksPreview.js",
+    "lib/reasonWords.js",
+    "lib/tasks/tasks.js",
+    "node_modules/",
+    "public/",
+    "vercel.json"
+   ]
+  },
+  "tasksDismissCountCheck": {
+   "file": "scripts/tasksDismissCountCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/buy.js",
+    "api/tasksPage.js",
+    "lib/appShell.js",
+    "lib/consentBanner.js",
+    "lib/live/watches.js",
+    "lib/reasonWords.js",
+    "lib/tasks/digest.js",
+    "lib/tasks/emailCaps.js",
+    "lib/tasks/fullCards.js",
+    "lib/tasks/limit.js",
+    "lib/tasks/overview.js",
+    "lib/tasks/tasks.js",
+    "public/js/auth.js",
+    "public/js/onebox.js",
+    "public/js/result.js"
+   ]
+  },
+  "tasksDraftCheck": {
+   "file": "scripts/tasksDraftCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/answerWords.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "tasksEmailCapCheck": {
+   "file": "scripts/tasksEmailCapCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/tasks/digest.js",
+    "lib/tasks/emailCaps.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "tasksEmailExampleCheck": {
+   "file": "scripts/tasksEmailExampleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/_crew.js",
+    "lib/live/findExamples.js",
+    "lib/live/tasksDemo.js",
+    "lib/tasks/tasks.js",
+    "node_modules/"
+   ]
+  },
+  "tasksLeftCheck": {
+   "file": "scripts/tasksLeftCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/tasks.js",
+    "lib/_crew.js",
+    "lib/crewPages/",
+    "lib/live/looking.js",
+    "lib/preview/",
+    "lib/tasks/limit.js",
+    "public/"
+   ]
+  },
+  "tasksLeftoverCheck": {
+   "file": "scripts/tasksLeftoverCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "tasksLimitCheck": {
+   "file": "scripts/tasksLimitCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_chrome.js",
+    "api/tasks.js",
+    "api/tasksPage.js",
+    "lib/appShell.js",
+    "lib/tasks/limit.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "tasksMatcherReadCheck": {
+   "file": "scripts/tasksMatcherReadCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/tasks.js",
+    "lib/tasks/",
+    "lib/tasks/runBudget.js",
+    "vercel.json"
+   ]
+  },
+  "tasksPreferredCheck": {
+   "file": "scripts/tasksPreferredCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/buySearch.js",
+    "api/home.js",
+    "api/sellerDecision.js",
+    "api/tasks.js",
+    "lib/live/converse.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/tasks/tasks.js",
+    "node_modules/"
+   ]
+  },
+  "tasksPreviewCheck": {
+   "file": "scripts/tasksPreviewCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/crewPage.js",
+    "lib/",
+    "lib/_crew.js",
+    "lib/preview/previewPages.js",
+    "lib/preview/tasksApp.js",
+    "lib/preview/tasksAppFork.js",
+    "lib/preview/tasksMine.js",
+    "lib/preview/tasksPreview.js",
+    "lib/tasks/digest.js",
+    "lib/tasks/emailCardLayout.js",
+    "lib/tasks/limit.js",
+    "lib/tasks/tasks.js",
+    "package.json",
+    "public/",
+    "scripts/homeFindMeasure.mjs",
+    "scripts/tasksFixture.mjs",
+    "vercel.json"
+   ]
+  },
+  "tasksReadsCheck": {
+   "file": "scripts/tasksReadsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/tasks/digest.js"
+   ]
+  },
+  "tasksRunTimeCheck": {
+   "file": "scripts/tasksRunTimeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/tasks/runBudget.js"
+   ]
+  },
+  "tasksSeenCheck": {
+   "file": "scripts/tasksSeenCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/tasks/digest.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "tasksSendPaceCheck": {
+   "file": "scripts/tasksSendPaceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/tasks/"
+   ]
+  },
+  "tasksStartControlCheck": {
+   "file": "scripts/tasksStartControlCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "public/",
+    "scripts/tasksAuthCheck.mjs"
+   ]
+  },
+  "tasksTapPageCheck": {
+   "file": "scripts/tasksTapPageCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/tasks.js",
+    "lib/tasks/limit.js",
+    "lib/tasks/tasks.js"
+   ]
+  },
+  "taxonomyUnreadableCheck": {
+   "file": "scripts/taxonomyUnreadableCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "testerCheck": {
+   "file": "scripts/testerCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/crew.js",
+    "api/desk.js",
+    "lib/_tester.js",
+    "lib/desk/door.js",
+    "vercel.json"
+   ]
+  },
+  "thinLineVoiceCheck": {
+   "file": "scripts/thinLineVoiceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/reasonWords.js"
+   ]
+  },
+  "thinSalesCheck": {
+   "file": "scripts/thinSalesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js",
+    "lib/onebox.js"
+   ]
+  },
+  "thinWordsCheck": {
+   "file": "scripts/thinWordsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "api/partnerDemo.js",
+    "public/js/onebox.js"
+   ]
+  },
+  "tierAssignCheck": {
+   "file": "scripts/tierAssignCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "docs/supabase-condition-tier.sql",
+    "lib/conditionTier.js",
+    "scripts/assignConditionTier.mjs"
+   ]
+  },
+  "tierBandPoolCheck": {
+   "file": "scripts/tierBandPoolCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/conditionTier.js",
+    "lib/desk/familyKey.js",
+    "lib/generations.js",
+    "lib/tierPool.js",
+    "scripts/assignConditionTier.mjs"
+   ]
+  },
+  "tierJobSafetyCheck": {
+   "file": "scripts/tierJobSafetyCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/conditionTier.js",
+    "scripts/assignConditionTier.mjs",
+    "scripts/fixtures/poolFake.mjs"
+   ]
+  },
+  "tierMarkCheck": {
+   "file": "scripts/tierMarkCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/",
+    "lib/conditionTier.js",
+    "lib/desk/reportPdf.js",
+    "lib/desk/sheetActions.js",
+    "lib/desk/sheetRead.js",
+    "lib/desk/sheetShape.js",
+    "lib/desk/sheetStore.js",
+    "lib/pdf/mini.js",
+    "lib/sheetRead.js",
+    "public/",
+    "public/js/deskvals.js",
+    "scripts/deskValsRender.mjs"
+   ]
+  },
+  "tierPoolCheck": {
+   "file": "scripts/tierPoolCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "tierSpeedCheck": {
+   "file": "scripts/tierSpeedCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/conditionTier.js",
+    "lib/tierPriority.js",
+    "node_modules/",
+    "scripts/assignConditionTier.mjs",
+    "scripts/fixtures/poolFake.mjs",
+    "scripts/fixtures/tierJobBefore.mjs"
+   ]
+  },
+  "tierWordsCheck": {
+   "file": "scripts/tierWordsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/conditionTier.js"
+   ]
+  },
+  "titleFragmentModelCheck": {
+   "file": "scripts/titleFragmentModelCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/titleNoise.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "toolRetryCheck": {
+   "file": "scripts/toolRetryCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/_historyData.js",
+    "api/history.js",
+    "lib/",
+    "lib/live/narrow.js",
+    "lib/onebox.js",
+    "lib/sell/sellBlock.js",
+    "lib/sell/sellFacts.js",
+    "lib/sell/sellFlow.js",
+    "lib/sheetRead.js",
+    "lib/tools/_shared.js",
+    "lib/tools/marketCheck.js",
+    "lib/tools/whereToSell.js"
+   ]
+  },
+  "totalCountOnceCheck": {
+   "file": "scripts/totalCountOnceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "public/js/onebox.js",
+    "scripts/fixtures/m3Answer.json"
+   ]
+  },
+  "trendPricesCheck": {
+   "file": "scripts/trendPricesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "trimChipKeyCheck": {
+   "file": "scripts/trimChipKeyCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js"
+   ]
+  },
+  "trimChipPoolCheck": {
+   "file": "scripts/trimChipPoolCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "trimChipRefusalCheck": {
+   "file": "scripts/trimChipRefusalCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "trimChoiceDrawCheck": {
+   "file": "scripts/trimChoiceDrawCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "public/js/onebox.js"
+   ]
+  },
+  "trimCodesCheck": {
+   "file": "scripts/trimCodesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/trimCodes.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "trimFirstCheck": {
+   "file": "scripts/trimFirstCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/onebox.js"
+   ]
+  },
+  "trimGearboxCheck": {
+   "file": "scripts/trimGearboxCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "trimTextCheck": {
+   "file": "scripts/trimTextCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_mileageText.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "trimWordCountCheck": {
+   "file": "scripts/trimWordCountCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js"
+   ]
+  },
+  "trimWordKeptCheck": {
+   "file": "scripts/trimWordKeptCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/unusedWords.js",
+    "lib/onebox.js",
+    "lib/tasks/tasks.js",
+    "lib/vehicle.js",
+    "lib/vehicleData.js"
+   ]
+  },
+  "twoRangeSplitCheck": {
+   "file": "scripts/twoRangeSplitCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "typedAttributeCheck": {
+   "file": "scripts/typedAttributeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js",
+    "lib/typedAttributes.js"
+   ]
+  },
+  "typedThroughCheck": {
+   "file": "scripts/typedThroughCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/buySearch.js",
+    "api/sellerDecision.js",
+    "lib/carBar.js",
+    "lib/carToken.js",
+    "lib/desk/intake/run.js",
+    "lib/desk/intake/store.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/sell/sellBlock.js",
+    "lib/sell/sellFacts.js",
+    "lib/sell/sellFlow.js",
+    "lib/tasks/tasks.js",
+    "lib/vehicle.js",
+    "public/js/onebox.js"
+   ]
+  },
+  "typicalRangeWordsCheck": {
+   "file": "scripts/typicalRangeWordsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_chrome.js",
+    "api/buy.js",
+    "api/partnerAnswer.js",
+    "api/partnerDemo.js",
+    "lib/live/buyAlerts.js",
+    "lib/live/marketCheckLanding.js",
+    "lib/live/search.js",
+    "lib/sell/sellFlow.js",
+    "public/js/onebox.js"
+   ]
+  },
+  "underlineCheck": {
+   "file": "scripts/underlineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/_amazonDemo.js",
+    "api/partnerAnswer.js",
+    "lib/",
+    "lib/sell/sellMcClient.js",
+    "lib/sellsForCard.js",
+    "lib/tasks/emailCards.js",
+    "public/",
+    "public/js/",
+    "public/js/onebox.js",
+    "public/onebox.html",
+    "scripts/e98DomCheck.mjs",
+    "scripts/e98EmailDom.mjs",
+    "scripts/e98FindRender.mjs",
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98Render.mjs",
+    "scripts/fixtures/taskEmailPreview.html"
+   ]
+  },
+  "unknownTrimReadsModelCheck": {
+   "file": "scripts/unknownTrimReadsModelCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/generations.js",
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "unusedWordsCheck": {
+   "file": "scripts/unusedWordsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/unusedWords.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "unusedWordsCodeCheck": {
+   "file": "scripts/unusedWordsCodeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/unusedWords.js"
+   ]
+  },
+  "valueCensusCheck": {
+   "file": "scripts/valueCensusCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/valueCensus.js",
+    "lib/vehicleData.js"
+   ]
+  },
+  "valueIntentCheck": {
+   "file": "scripts/valueIntentCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js"
+   ]
+  },
+  "variantRowsCheck": {
+   "file": "scripts/variantRowsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/sellerDecision.js",
+    "data/",
+    "data/variantFamilies.json",
+    "lib/",
+    "lib/_crew.js",
+    "lib/carToken.js",
+    "lib/countNoun.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "lib/variantRows.js",
+    "lib/vehicle.js",
+    "node_modules/",
+    "package.json",
+    "public/js/onebox.js",
+    "scripts/",
+    "scripts/_deskOlderWorld.mjs",
+    "scripts/fixtures/"
+   ]
+  },
+  "variantRowsPageCheck": {
+   "file": "scripts/variantRowsPageCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/marketCheck.js",
+    "lib/_crew.js",
+    "lib/carBar.js",
+    "lib/carToken.js",
+    "lib/variantRowsPage.js",
+    "scripts/mcSellHarness.mjs"
+   ]
+  },
+  "variantSplitCheck": {
+   "file": "scripts/variantSplitCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/sellerDecision.js",
+    "data/",
+    "data/variantFamilies.json",
+    "lib/",
+    "lib/_classify.js",
+    "lib/_crew.js",
+    "lib/desk/caseModel.js",
+    "lib/desk/caseWorkflow.js",
+    "lib/desk/sheetActions.js",
+    "lib/deskV3.js",
+    "lib/onebox.js",
+    "lib/preview/deskV4Client.js",
+    "lib/sheetRead.js",
+    "lib/variants.js",
+    "lib/vehicle.js",
+    "node_modules/",
+    "package.json",
+    "public/js/onebox.js",
+    "scripts/",
+    "scripts/_deskOlderWorld.mjs",
+    "scripts/fixtures/"
+   ]
+  },
+  "vercelConfigCheck": {
+   "file": "scripts/vercelConfigCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "docs/vercel-json-schema.json",
+    "package.json",
+    "scripts/_jsonSchema.mjs",
+    "vercel.json"
+   ]
+  },
+  "vinDecodeDryCheck": {
+   "file": "scripts/vinDecodeDryCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js"
+   ]
+  },
+  "vinDecodeStoreCheck": {
+   "file": "scripts/vinDecodeStoreCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_historyData.js",
+    "lib/_vinDecodeStore.js"
+   ]
+  },
+  "vinDecodeTrimCheck": {
+   "file": "scripts/vinDecodeTrimCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "lib/",
+    "lib/vehicle.js",
+    "lib/vinDecodeTrim.js",
+    "node_modules/",
+    "package.json",
+    "public/",
+    "scripts/",
+    "vercel.json"
+   ]
+  },
+  "vinFirstVisitCheck": {
+   "file": "scripts/vinFirstVisitCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_historyData.js",
+    "api/history.js",
+    "api/usageDashboard.js",
+    "lib/generations.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "node_modules/"
+   ]
+  },
+  "vinIdentityCheck": {
+   "file": "scripts/vinIdentityCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_historyData.js",
+    "api/history.js"
+   ]
+  },
+  "vinIdentityDryCheck": {
+   "file": "scripts/vinIdentityDryCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js"
+   ]
+  },
+  "vinLiveMatchCheck": {
+   "file": "scripts/vinLiveMatchCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "./",
+    "api/",
+    "api/buySearch.js",
+    "api/sellerDecision.js",
+    "api/vehicleIdentity.js",
+    "lib/",
+    "lib/live/feed.js",
+    "lib/live/samChat.js",
+    "lib/sheetRead.js",
+    "lib/vehicle.js",
+    "lib/vinAsTyped.js",
+    "lib/vinDecodeTrim.js",
+    "lib/vinLiveMatch.js",
+    "node_modules/",
+    "package.json",
+    "public/",
+    "public/js/entry.js",
+    "public/js/onebox.js",
+    "scripts/",
+    "scripts/_deskOlderWorld.mjs",
+    "vercel.json"
+   ]
+  },
+  "vinLookupCheck": {
+   "file": "scripts/vinLookupCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_flags.js"
+   ]
+  },
+  "vinLooseCheck": {
+   "file": "scripts/vinLooseCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/vehicle.js"
+   ]
+  },
+  "vinNamesCheck": {
+   "file": "scripts/vinNamesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/vehicle.js"
+   ]
+  },
+  "vinPlanCheck": {
+   "file": "scripts/vinPlanCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/vehicle.js",
+    "lib/vinAsTyped.js"
+   ]
+  },
+  "vinPrefilterCheck": {
+   "file": "scripts/vinPrefilterCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_historyData.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "vinSettleCheck": {
+   "file": "scripts/vinSettleCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/partnerAnswer.js",
+    "api/sellerDecision.js",
+    "lib/onebox.js",
+    "lib/vehicle.js",
+    "lib/vinAsTyped.js"
+   ]
+  },
+  "vinTypedCheck": {
+   "file": "scripts/vinTypedCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/vehicle.js",
+    "lib/vinAsTyped.js"
+   ]
+  },
+  "vinTypedMatchCheck": {
+   "file": "scripts/vinTypedMatchCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/partnerAnswer.js",
+    "api/partnerDemo.js",
+    "api/sellerDecision.js",
+    "lib/_salePhoto.js",
+    "lib/onebox.js",
+    "lib/vehicle.js",
+    "lib/vinAsTyped.js",
+    "lib/vinTrimCodes.js"
+   ]
+  },
+  "voiceGroupACheck": {
+   "file": "scripts/voiceGroupACheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "api/history.js",
+    "api/tasksPage.js",
+    "public/js/onebox.js"
+   ]
+  },
+  "voiceGroupDCheck": {
+   "file": "scripts/voiceGroupDCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/about.js",
+    "api/tasksPage.js",
+    "lib/copy.js",
+    "public/js/entry.js",
+    "public/js/homepage.js",
+    "public/powersellers.html"
+   ]
+  },
+  "voiceStartCheck": {
+   "file": "scripts/voiceStartCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "public/js/",
+    "public/js/onebox.js"
+   ]
+  },
+  "vpicErrorCacheCheck": {
+   "file": "scripts/vpicErrorCacheCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/vehicle.js"
+   ]
+  },
+  "w111Check": {
+   "file": "scripts/w111Check.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "warmBaseCheck": {
+   "file": "scripts/warmBaseCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "scripts/launchWarm.sh",
+    "scripts/warmStale.sh"
+   ]
+  },
+  "warmCoverageCheck": {
+   "file": "scripts/warmCoverageCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/crossProductCheck.js",
+    "scripts/warm-crosscheck.json",
+    "scripts/warm-crossrest.json",
+    "scripts/warm-named.json",
+    "scripts/warmNamed.mjs"
+   ]
+  },
+  "warmDayCheck": {
+   "file": "scripts/warmDayCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/warmDay.js"
+   ]
+  },
+  "warmEpochCheck": {
+   "file": "scripts/warmEpochCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/_epoch.js",
+    "lib/warmDay.js",
+    "node_modules/"
+   ]
+  },
+  "warmGateCheck": {
+   "file": "scripts/warmGateCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/_epoch.js",
+    "lib/warmDay.js",
+    "node_modules/",
+    "scripts/ingest.js"
+   ]
+  },
+  "warmHitsCheck": {
+   "file": "scripts/warmHitsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "scripts/",
+    "scripts/warmNamed.mjs",
+    "vercel.json"
+   ]
+  },
+  "warmLeftoverRowCheck": {
+   "file": "scripts/warmLeftoverRowCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_historyData.js",
+    "api/sellerDecision.js",
+    "api/usageDashboard.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/sell/sellBlock.js",
+    "scripts/warmMarketCheck.js"
+   ]
+  },
+  "warmMarketCheck": {
+   "file": "scripts/warmMarketCheck.js",
+   "kind": "offline",
+   "covers": [
+    "lib/_caller.js",
+    "lib/_supabase.js",
+    "lib/generations.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/sell/sellBlock.js",
+    "lib/vehicle.js"
+   ]
+  },
+  "warmResolveCheck": {
+   "file": "scripts/warmResolveCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/sellerDecision.js",
+    "lib/generations.js",
+    "lib/live/search.js",
+    "lib/modelRules.js",
+    "lib/onebox.js",
+    "lib/vehicle.js",
+    "lib/vehicleData.js",
+    "node_modules/"
+   ]
+  },
+  "warmStoresFullAnswerCheck": {
+   "file": "scripts/warmStoresFullAnswerCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/search.js"
+   ]
+  },
+  "warmUnionCheck": {
+   "file": "scripts/warmUnionCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/live/search.js",
+    "scripts/",
+    "scripts/postDeployWarm.mjs",
+    "scripts/warmUnion.mjs"
+   ]
+  },
+  "warmVinCursorCheck": {
+   "file": "scripts/warmVinCursorCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/warmVinPass.js"
+   ]
+  },
+  "watchBidLineCheck": {
+   "file": "scripts/watchBidLineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/watches.js"
+   ]
+  },
+  "wayOutAndLabelCheck": {
+   "file": "scripts/wayOutAndLabelCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/questionWayOut.js",
+    "scripts/e98Fixtures.mjs",
+    "scripts/e98Render.mjs"
+   ]
+  },
+  "whatsNewCheck": {
+   "file": "scripts/whatsNewCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/whatsNew.js",
+    "data/whatsNew.json",
+    "data/whatsNewHeld.json",
+    "lib/copy.js",
+    "lib/whatsNew.js",
+    "scripts/copyRules.mjs",
+    "vercel.json"
+   ]
+  },
+  "whichChipsCheck": {
+   "file": "scripts/whichChipsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/vehicle.js"
+   ]
+  },
+  "wideCauseCheck": {
+   "file": "scripts/wideCauseCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "widePeriodCheck": {
+   "file": "scripts/widePeriodCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/buy.js",
+    "api/history.js",
+    "lib/desk/reportPdf.js",
+    "lib/engineFields.js",
+    "lib/findCardKit.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "lib/tasks/emailCards.js",
+    "node_modules/",
+    "public/js/deskvals.js"
+   ]
+  },
+  "widenedLineCheck": {
+   "file": "scripts/widenedLineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/live/unusedWords.js",
+    "lib/onebox.js"
+   ]
+  },
+  "windowWordsCheck": {
+   "file": "scripts/windowWordsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "workflowStepsCheck": {
+   "file": "scripts/workflowStepsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "node_modules/",
+    "scripts/warmMarketCheck.js"
+   ]
+  },
+  "yearNoteCheck": {
+   "file": "scripts/yearNoteCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "zeroRefusalCheck": {
+   "file": "scripts/zeroRefusalCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/onebox.js"
+   ]
+  },
+  "zeroStreakGapCheck": {
+   "file": "scripts/zeroStreakGapCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_ingestHealth.js"
+   ]
+  }
+ }
+}
