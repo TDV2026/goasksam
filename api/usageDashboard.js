@@ -3606,6 +3606,7 @@ if (task === "optiondetail") {
   }
   if (task === "poolrows") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const PX = await import("../lib/poolRowsExt.js");
     const make = String(req.query?.make || "").trim();
     const model = String(req.query?.model || "").trim();
     const title = String(req.query?.title || "").trim();
@@ -3617,13 +3618,54 @@ if (task === "optiondetail") {
     const offset = Math.max(0, Number(req.query?.offset) || 0);
     const wantFence = req.query?.fence === "1";
     const q = typeof req.query?.q === "string" ? req.query.q.trim() : "";
+    const secret = PX.carKeySecret();   // the key of the one way car key (a hash of the VIN, never the VIN): server side only
+    const fenceSpecFor = async words => {
+      try {
+        const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
+        const { findGeneration } = await import("../lib/generations.js");
+        const { buildSpec } = await import("../lib/onebox.js");
+        const rv = await resolveVehicle(words, { vinConfirm: true });
+        const v = sanitizeResolvedVehicle(rv && rv.vehicle) || (rv && rv.vehicle);
+        return v && v.make ? buildSpec(v, await findGeneration(v, env).catch(() => null), words) : null;
+      } catch (e) { return null; }
+    };
+    res.setHeader("Cache-Control", "no-store");
+    // SAMPLE MODE (lane-d-poolrows-2): ONE flagged group of ONE family, at most 40 listings, with the description for a lane to read in process; marked do not write to disk; no seller name; nothing logged or stored here.
+    if (req.query?.sample === "1" || req.query?.sample === "true") {
+      const sp = PX.parseSample(req.query || {});
+      if (!sp.ok) return res.status(400).json({ task: "poolrows", mode: "sample", error: sp.why });
+      const c = sp.call;
+      const fs0 = c.flag === "setaside" ? await fenceSpecFor(c.q) : null;
+      if (c.flag === "setaside" && !fs0) return res.status(400).json({ task: "poolrows", mode: "sample", error: "q did not resolve to a car, so there are no set asides to read" });
+      const { titleFenceReason } = await import("../lib/onebox.js");
+      const got = mustRows(await supabaseSelect(env, PX.sampleQuery(c)), "ops poolrows sample");
+      const keep = got.filter(r => c.flag === "setaside" ? titleFenceReason({ raw_title: r.raw_title, rtitle: r.raw_title, year: r.year, make: r.make, model: r.model, source: r.source_slug, source_slug: r.source_slug, project_flag: r.project_flag }, fs0) !== null : c.flag === "replica" ? PX.verdictsOf(r).replica : true);
+      const rows = keep.slice(0, c.limit).map(r => PX.sampleRow(c, r, secret));
+      res.setHeader("X-Do-Not-Write-To-Disk", "1");
+      return res.status(200).json({ task: "poolrows", mode: "sample", doNotWriteToDisk: true, notice: PX.DO_NOT_WRITE, table: c.table, flag: c.flag, family: { make: c.make || null, model: c.model || null, title: c.title || null, yearMin: c.yearMin, yearMax: c.yearMax }, window: { since: c.since, until: c.until }, limit: c.limit, readRows: got.length, flaggedInRead: keep.length, count: rows.length, rows });
+    }
+    // UNSOLD ATTEMPTS (lane-d-poolrows-2): table=attempts reads auction_attempts for ANY family, with the same fields as a sold row plus the high bid, the outcome and the attempt date, and the engine's verdicts; a family and a since date are required.
+    if (String(req.query?.table || "") === "attempts") {
+      if (!make && !model && !title) return res.status(400).json({ task: "poolrows", table: "attempts", error: "one family is required (make, model or title)" });
+      if (!since) return res.status(400).json({ task: "poolrows", table: "attempts", error: "since is required (YYYY-MM-DD): an unwindowed attempts read is refused" });
+      const f = { source: String(req.query?.source || "").trim(), make, model, title, yearMin, yearMax, since, until };
+      const fsp = wantFence && q ? await fenceSpecFor(q) : null;
+      const { titleFenceReason } = await import("../lib/onebox.js");
+      let total = null;
+      try { const tr = await fetch(`${env.supabaseUrl}/rest/v1/${PX.attemptsQuery(f, 1, 0)}`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" } }); const m = /\/(\d+)$/.exec(tr.headers.get("content-range") || ""); total = m ? Number(m[1]) : null; } catch (e) { total = null; }
+      const got = mustRows(await supabaseSelect(env, PX.attemptsQuery(f, limit, offset)), "ops poolrows attempts");
+      const rows = got.map(r => PX.attemptRow(r, { secret, setAside: fsp ? titleFenceReason({ raw_title: r.raw_title, rtitle: r.raw_title, mileage: r.mileage, mods: r.mods, image: r.image, year: r.year, make: r.make, model: r.model, source: r.source_slug, source_slug: r.source_slug, transmission: r.gearbox }, fsp) : null }));
+      const coverage = await PX.attemptsCoverage(qs2 => supabaseSelect(env, qs2), f, rows);
+      return res.status(200).json({ task: "poolrows", table: "attempts", filters: { make: make || null, model: model || null, title: title || null, yearMin, yearMax, since, until }, total, count: rows.length, coverage, rows });
+    }
 
     // Column aliases match the engine's own select (lib/onebox.js ~1670): currency/mileage/mods/
     // rtitle/transmission/image live in raw_record, the rest are native columns.
     const cols = "id,year,make,model,raw_title:listing_title,source_slug,platform,sale_date,price:sale_price,price_usd:sale_price_usd," +
       "currency:raw_record->>currency,mileage:raw_record->>mileage,rtitle:raw_record->>title,mods:raw_record->>modifications," +
       "transmission:raw_record->>transmission,image:raw_record->>featured_image_url,vin_norm,project_flag,vehicle_type," +
-      "body:raw_record->>body_style,cc:raw_record->>country_code,city:raw_record->>city,state:raw_record->>state";
+      "body:raw_record->>body_style,cc:raw_record->>country_code,city:raw_record->>city,state:raw_record->>state," +
+      PX.SOLD_EXTRA_COLS;   // gearbox and exterior colour from their COLUMNS (raw_record is empty for them) and the reserve flag (lib/poolRowsExt.js)
     const sourceSlug = String(req.query?.source || "").trim();
     let qs = `sales_archive?select=${cols}&sale_price=not.is.null&vehicle_type=eq.car`;
     if (sourceSlug) qs += `&source_slug=eq.${encodeURIComponent(sourceSlug)}`;
@@ -3648,17 +3690,7 @@ if (task === "optiondetail") {
     // fence=1&q=<typed words>: resolve q the SAME way Market Check does and run every row through
     // the engine's own qualifyReason (titleFenceReason plus the price-floor/photo gates) - this
     // NEVER changes a fence, it only narrates what the existing one already decided per row.
-    let fenceSpec = null;
-    if (wantFence && q) {
-      try {
-        const { resolveVehicle, sanitizeResolvedVehicle } = await import("../lib/vehicle.js");
-        const { findGeneration } = await import("../lib/generations.js");
-        const { buildSpec } = await import("../lib/onebox.js");
-        const rv = await resolveVehicle(q, { vinConfirm: true });
-        const v = sanitizeResolvedVehicle(rv && rv.vehicle) || (rv && rv.vehicle);
-        if (v && v.make) fenceSpec = buildSpec(v, await findGeneration(v, env).catch(() => null), q);
-      } catch (e) { fenceSpec = null; }
-    }
+    let fenceSpec = wantFence && q ? await fenceSpecFor(q) : null;
     const { qualifyReason, __specEngine } = await import("../lib/onebox.js");
     const { marketCountry: prCountryOf, inMarket: prInMarketOf } = await import("../lib/_classify.js");
     const prCountry = r => prCountryOf({ ...r, source: r.platform, raw_title: r.raw_title });
@@ -3675,7 +3707,8 @@ if (task === "optiondetail") {
         mileage: r.mileage || null, vin_norm: r.vin_norm || null, has_photo: !!r.image, project_flag: r.project_flag || null, vehicle_type: r.vehicle_type, mods: r.mods ? String(r.mods).slice(0, 400) : null,   // e64: the modifications text the substantial-mod fence reads
         body_style: r.body || null, country_code: r.cc || null, city: r.city || null, state: r.state || null,
         country: prCountry(r).country, countryBasis: prCountry(r).basis, inMarket: prInMarket(r),
-        engineVerdict: fenceSpec ? qualifyReason(engineRow, fenceSpec) : null
+        engineVerdict: fenceSpec ? qualifyReason(engineRow, fenceSpec) : null,
+        ...PX.soldExtras(r, secret)   // gearbox, exterior_color, reserve, car_key (a keyed hash of the VIN, never the VIN), variant, variantFamily, replica
       };
     });
     return res.status(200).json({ task: "poolrows", filters: { make: make || null, model: model || null, title: title || null, yearMin, yearMax, since, until }, total, windowDays, count: out.length, rows: out });
