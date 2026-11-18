@@ -1,0 +1,804 @@
+{
+ "note": "THE LIVE SHAPE OF EVERY FAMILY (Lane B, lane-b-variant-split-3, Nov 18 2026): what production answered for the crew on d2054079 for one typical year of each of the 14 families (cards as served, the page of a variant where it was read), counts and ranges only. rows[].page is that variant's own page answer in summary (tier, sales, cluster). shown is what the cards must be once a variant is shown only for the years it was built; expectShow is whether two or more of those have a range of their own that is not the same range.",
+ "families": [
+  {
+   "id": "pontiac-firebird-3rd",
+   "year": 1987,
+   "search": "1987 Pontiac Firebird",
+   "servedMs": 6349,
+   "served": {
+    "tier": "result",
+    "show": false,
+    "why": "variants_do_not_sell_apart",
+    "blendedRange": "$8,500 to $19,500",
+    "blendedSales": 11
+   },
+   "rows": [
+    {
+     "name": "Base",
+     "range": "$11,000 to $17,000",
+     "sales": 9,
+     "page": {
+      "tier": "result",
+      "poolN": 9,
+      "cluster": [
+       11000,
+       17000
+      ]
+     }
+    },
+    {
+     "name": "Formula",
+     "range": "$10,500 to $16,000",
+     "sales": 11,
+     "page": {
+      "tier": "result",
+      "poolN": 11,
+      "cluster": [
+       10500,
+       16000
+      ]
+     }
+    },
+    {
+     "name": "Trans Am",
+     "range": "$8,500 to $15,500",
+     "sales": 14,
+     "page": {
+      "tier": "result",
+      "poolN": 14,
+      "cluster": [
+       8500,
+       15500
+      ]
+     }
+    },
+    {
+     "name": "GTA",
+     "range": "$11,000 to $24,000",
+     "sales": 9,
+     "page": {
+      "tier": "result",
+      "poolN": 9,
+      "cluster": [
+       11000,
+       24000
+      ]
+     }
+    },
+    {
+     "name": "20th Anniversary Turbo Trans Am",
+     "range": null,
+     "sales": 4,
+     "page": {
+      "tier": "result",
+      "poolN": 11,
+      "cluster": [
+       8500,
+       19500
+      ],
+      "variants": {
+       "thin": true,
+       "pooled": 4
+      }
+     }
+    },
+    {
+     "name": "Firehawk",
+     "range": null,
+     "sales": 0,
+     "page": {
+      "tier": "not_tracked"
+     }
+    }
+   ],
+   "shown": [
+    "Base",
+    "Formula",
+    "Trans Am",
+    "GTA"
+   ],
+   "expectShow": true
+  },
+  {
+   "id": "porsche-911-1984-1989",
+   "year": 1987,
+   "search": "1987 Porsche 911",
+   "servedMs": 592,
+   "served": {
+    "tier": "trim_choice",
+    "question": "These sold as Carrera and Turbo, and they price differently. Which one is it?",
+    "options": "Carrera (45) Turbo (11)"
+   },
+   "rows": [],
+   "shown": [],
+   "expectShow": null
+  },
+  {
+   "id": "ford-mustang-sn95",
+   "year": 2003,
+   "search": "2003 Ford Mustang",
+   "servedMs": 19220,
+   "served": {
+    "tier": "result",
+    "show": true,
+    "note": "two earlier reads of 60 s answered unavailable"
+   },
+   "rows": [
+    {
+     "name": "GT",
+     "range": "$11,000 to $14,500",
+     "sales": 8,
+     "page": {
+      "tier": "result",
+      "poolN": 8,
+      "cluster": [
+       11000,
+       14500
+      ]
+     }
+    },
+    {
+     "name": "Cobra",
+     "range": null,
+     "sales": 14,
+     "page": {
+      "tier": "result",
+      "poolN": 14,
+      "cluster": null
+     }
+    },
+    {
+     "name": "Mach 1",
+     "range": "$16,000 to $24,500",
+     "sales": 12,
+     "page": {
+      "tier": "result",
+      "poolN": 12,
+      "cluster": [
+       16000,
+       24500
+      ]
+     }
+    },
+    {
+     "name": "Bullitt",
+     "range": "$14,000 to $18,500",
+     "sales": 10,
+     "page": {
+      "tier": "result",
+      "poolN": 10,
+      "cluster": [
+       14000,
+       18500
+      ]
+     }
+    }
+   ],
+   "shown": [
+    "GT",
+    "Cobra",
+    "Mach 1"
+   ],
+   "expectShow": true
+  },
+  {
+   "id": "bmw-3-series-e30",
+   "year": 1988,
+   "search": "1988 BMW 3 Series",
+   "servedMs": 26101,
+   "served": {
+    "tier": "result",
+    "show": true,
+    "blendedSales": 15,
+    "cardSalesAdded": 30
+   },
+   "rows": [
+    {
+     "name": "318i",
+     "range": null,
+     "sales": 14,
+     "page": {
+      "tier": "unavailable"
+     }
+    },
+    {
+     "name": "325e",
+     "range": null,
+     "sales": 0,
+     "page": {
+      "tier": "not_tracked"
+     }
+    },
+    {
+     "name": "325i",
+     "range": null,
+     "sales": 0,
+     "page": {
+      "tier": "body_choice"
+     }
+    },
+    {
+     "name": "325is",
+     "range": "$13,500 to $24,000",
+     "sales": 16,
+     "page": {
+      "tier": "result",
+      "poolN": 16,
+      "cluster": [
+       13500,
+       24000
+      ]
+     }
+    }
+   ],
+   "shown": [
+    "318i",
+    "325i",
+    "325is"
+   ],
+   "expectShow": false,
+   "expectSales": {
+    "318i": "no sales",
+    "325i": "no sales",
+    "325is": "16 sales"
+   }
+  },
+  {
+   "id": "mercedes-sl-r107",
+   "year": 1985,
+   "search": "1985 Mercedes-Benz SL",
+   "servedMs": 13031,
+   "served": {
+    "tier": "result",
+    "show": true
+   },
+   "rows": [
+    {
+     "name": "280SL",
+     "range": "$17,000 to $29,500",
+     "sales": 11,
+     "page": {
+      "tier": "result",
+      "poolN": 11,
+      "cluster": [
+       17000,
+       29500
+      ]
+     }
+    },
+    {
+     "name": "350SL",
+     "range": "$9,000 to $15,500",
+     "sales": 15,
+     "page": {
+      "tier": "result",
+      "poolN": 15,
+      "cluster": [
+       9000,
+       15500
+      ]
+     }
+    },
+    {
+     "name": "380SL",
+     "range": "$6,500 to $16,500",
+     "sales": 20,
+     "page": {
+      "tier": "result",
+      "poolN": 20,
+      "cluster": [
+       6500,
+       16500
+      ]
+     }
+    },
+    {
+     "name": "450SL",
+     "range": "$7,000 to $11,000",
+     "sales": 11,
+     "page": {
+      "tier": "result",
+      "poolN": 11,
+      "cluster": [
+       7000,
+       11000
+      ]
+     }
+    },
+    {
+     "name": "500SL",
+     "range": "$15,500 to $25,000",
+     "sales": 9,
+     "page": {
+      "tier": "result",
+      "poolN": 9,
+      "cluster": [
+       15500,
+       25000
+      ]
+     }
+    },
+    {
+     "name": "560SL",
+     "range": null,
+     "sales": 46,
+     "page": {
+      "tier": "result",
+      "poolN": 46,
+      "cluster": null
+     }
+    }
+   ],
+   "shown": [
+    "280SL",
+    "380SL",
+    "500SL"
+   ],
+   "expectShow": true
+  },
+  {
+   "id": "chevrolet-corvette-c6",
+   "year": 2005,
+   "search": "2005 Chevrolet Corvette",
+   "servedMs": 47990,
+   "served": {
+    "tier": "result",
+    "show": true
+   },
+   "rows": [
+    {
+     "name": "Base",
+     "range": "$19,000 to $24,000",
+     "sales": 19,
+     "page": {
+      "tier": "result",
+      "poolN": 19,
+      "cluster": [
+       19000,
+       24000
+      ]
+     }
+    },
+    {
+     "name": "Grand Sport",
+     "range": "$35,000 to $38,500",
+     "sales": 8,
+     "page": {
+      "tier": "result",
+      "poolN": 8,
+      "cluster": [
+       35000,
+       38500
+      ]
+     }
+    },
+    {
+     "name": "Z06",
+     "range": "$39,500 to $47,500",
+     "sales": 10,
+     "page": {
+      "tier": "result",
+      "poolN": 10,
+      "cluster": [
+       39500,
+       47500
+      ]
+     }
+    },
+    {
+     "name": "ZR1",
+     "range": "$81,000 to $102,000",
+     "sales": 21,
+     "page": {
+      "tier": "result",
+      "poolN": 21,
+      "cluster": [
+       81000,
+       102000
+      ]
+     }
+    }
+   ],
+   "shown": [
+    "Base"
+   ],
+   "expectShow": false
+  },
+  {
+   "id": "chevrolet-camaro-3rd",
+   "year": 1987,
+   "search": "1987 Chevrolet Camaro",
+   "servedMs": 10633,
+   "served": {
+    "tier": "result",
+    "show": true
+   },
+   "rows": [
+    {
+     "name": "Berlinetta",
+     "range": null,
+     "sales": 4,
+     "page": {
+      "tier": "result",
+      "poolN": 4,
+      "cluster": null
+     }
+    },
+    {
+     "name": "IROC-Z",
+     "range": "$17,500 to $25,500",
+     "sales": 11,
+     "page": {
+      "tier": "result",
+      "poolN": 11,
+      "cluster": [
+       17500,
+       25500
+      ]
+     }
+    },
+    {
+     "name": "Z28",
+     "range": "$10,500 to $20,500",
+     "sales": 8,
+     "page": {
+      "tier": "result",
+      "poolN": 8,
+      "cluster": [
+       10500,
+       20500
+      ]
+     }
+    },
+    {
+     "name": "RS",
+     "range": "$8,000 to $13,500",
+     "sales": 11,
+     "page": {
+      "tier": "result",
+      "poolN": 11,
+      "cluster": [
+       8000,
+       13500
+      ]
+     }
+    }
+   ],
+   "shown": [
+    "Berlinetta",
+    "IROC-Z",
+    "Z28",
+    "RS"
+   ],
+   "expectShow": true
+  },
+  {
+   "id": "ford-mustang-fox",
+   "year": 1987,
+   "search": "1987 Ford Mustang",
+   "servedMs": 573,
+   "served": {
+    "tier": "body_choice",
+    "question": "These sold as Convertible and Hatchback, and they price differently. Which one is it?"
+   },
+   "rows": [],
+   "shown": [],
+   "expectShow": null
+  },
+  {
+   "id": "chevrolet-corvette-c4",
+   "year": 1990,
+   "search": "1990 Chevrolet Corvette",
+   "servedMs": 15061,
+   "served": {
+    "tier": "result",
+    "show": true
+   },
+   "rows": [
+    {
+     "name": "ZR-1",
+     "range": "$26,500 to $44,000",
+     "sales": 25,
+     "page": {
+      "tier": "result",
+      "poolN": 25,
+      "cluster": [
+       26500,
+       44000
+      ]
+     }
+    },
+    {
+     "name": "Grand Sport",
+     "range": "$29,500 to $39,000",
+     "sales": 10,
+     "page": {
+      "tier": "result",
+      "poolN": 10,
+      "cluster": [
+       29500,
+       39000
+      ]
+     }
+    },
+    {
+     "name": "Collector Edition",
+     "range": null,
+     "sales": 16,
+     "page": {
+      "tier": "result",
+      "poolN": 16,
+      "cluster": null
+     }
+    }
+   ],
+   "shown": [
+    "ZR-1"
+   ],
+   "expectShow": false
+  },
+  {
+   "id": "mercedes-sl-w113",
+   "year": 1966,
+   "search": "1966 Mercedes-Benz SL",
+   "servedMs": 22848,
+   "served": {
+    "tier": "result",
+    "show": true
+   },
+   "rows": [
+    {
+     "name": "230SL",
+     "range": null,
+     "sales": 18,
+     "page": {
+      "tier": "result",
+      "poolN": 18,
+      "cluster": null
+     }
+    },
+    {
+     "name": "250SL",
+     "range": "$46,500 to $75,500",
+     "sales": 11,
+     "page": {
+      "tier": "result",
+      "poolN": 11,
+      "cluster": [
+       46500,
+       75500
+      ]
+     }
+    },
+    {
+     "name": "280SL",
+     "range": null,
+     "sales": 16,
+     "page": {
+      "tier": "result",
+      "poolN": 16,
+      "cluster": null
+     }
+    }
+   ],
+   "shown": [
+    "230SL",
+    "250SL"
+   ],
+   "expectShow": false
+  },
+  {
+   "id": "porsche-964",
+   "year": 1991,
+   "search": "1991 Porsche 964",
+   "servedMs": 29963,
+   "served": {
+    "tier": "result",
+    "show": true
+   },
+   "rows": [
+    {
+     "name": "Carrera 2",
+     "range": "$79,000 to $120,000",
+     "sales": 12,
+     "page": {
+      "tier": "result",
+      "poolN": 12,
+      "cluster": [
+       79000,
+       120000
+      ]
+     }
+    },
+    {
+     "name": "Carrera 4",
+     "range": "$85,500 to $105,000",
+     "sales": 8,
+     "page": {
+      "tier": "result",
+      "poolN": 8,
+      "cluster": [
+       85500,
+       105000
+      ]
+     }
+    },
+    {
+     "name": "Targa",
+     "range": "$81,500 to $113,000",
+     "sales": 8,
+     "page": {
+      "tier": "result",
+      "poolN": 8,
+      "cluster": [
+       81500,
+       113000
+      ]
+     }
+    },
+    {
+     "name": "Cabriolet",
+     "range": null,
+     "sales": 8,
+     "page": {
+      "tier": "result",
+      "poolN": 8,
+      "cluster": null
+     }
+    },
+    {
+     "name": "Turbo",
+     "range": "$283,000 to $411,000",
+     "sales": 11,
+     "page": {
+      "tier": "result",
+      "poolN": 11,
+      "cluster": [
+       283000,
+       411000
+      ]
+     }
+    },
+    {
+     "name": "RS",
+     "range": null,
+     "sales": 0,
+     "page": {
+      "tier": "not_tracked"
+     }
+    }
+   ],
+   "shown": [
+    "Carrera 2",
+    "Carrera 4",
+    "Targa",
+    "Cabriolet",
+    "Turbo"
+   ],
+   "expectShow": true
+  },
+  {
+   "id": "porsche-993",
+   "year": 1996,
+   "search": "1996 Porsche 993",
+   "servedMs": 3050,
+   "served": {
+    "tier": "trim_choice",
+    "question": "These sold as Carrera, Carrera 4, Carrera 4S and Turbo, and they price differently. Which one is it?"
+   },
+   "rows": [],
+   "shown": [],
+   "expectShow": null
+  },
+  {
+   "id": "chevrolet-corvette-c5",
+   "year": 2002,
+   "search": "2002 Chevrolet Corvette",
+   "servedMs": 17313,
+   "served": {
+    "tier": "result",
+    "show": true
+   },
+   "rows": [
+    {
+     "name": "Base",
+     "range": null,
+     "sales": 19,
+     "page": {
+      "tier": "result",
+      "poolN": 19,
+      "cluster": null
+     }
+    },
+    {
+     "name": "Z06",
+     "range": "$23,500 to $30,000",
+     "sales": 11,
+     "page": {
+      "tier": "result",
+      "poolN": 11,
+      "cluster": [
+       23500,
+       30000
+      ]
+     }
+    }
+   ],
+   "shown": [
+    "Base",
+    "Z06"
+   ],
+   "expectShow": false
+  },
+  {
+   "id": "ford-mustang-s197",
+   "year": 2010,
+   "search": "2010 Ford Mustang",
+   "servedMs": 31115,
+   "served": {
+    "tier": "result",
+    "show": true
+   },
+   "rows": [
+    {
+     "name": "GT",
+     "range": "$15,500 to $19,000",
+     "sales": 10,
+     "page": {
+      "tier": "result",
+      "poolN": 10,
+      "cluster": [
+       15500,
+       19000
+      ]
+     }
+    },
+    {
+     "name": "Shelby GT500",
+     "range": "$31,500 to $46,000",
+     "sales": 9,
+     "page": {
+      "tier": "result",
+      "poolN": 9,
+      "cluster": [
+       31500,
+       46000
+      ]
+     }
+    },
+    {
+     "name": "Boss 302",
+     "range": "$32,000 to $50,000",
+     "sales": 11,
+     "page": {
+      "tier": "result",
+      "poolN": 11,
+      "cluster": [
+       32000,
+       50000
+      ]
+     }
+    },
+    {
+     "name": "Bullitt",
+     "range": "$19,500 to $27,500",
+     "sales": 14,
+     "page": {
+      "tier": "result",
+      "poolN": 14,
+      "cluster": [
+       19500,
+       27500
+      ]
+     }
+    }
+   ],
+   "shown": [
+    "GT",
+    "Shelby GT500"
+   ],
+   "expectShow": true
+  }
+ ]
+}

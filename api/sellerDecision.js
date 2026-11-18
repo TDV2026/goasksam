@@ -24,6 +24,7 @@ import { isTesterRequest } from "../lib/_tester.js";
 import { supabaseBytesSoFar } from "../lib/_supabase.js";
 import { VARIANT_MARKETS } from "../lib/modelRules.js";
 import { variantSplitFor } from "../lib/variantRows.js";
+import { familyOf as variantFamilyOfCar } from "../lib/variants.js";
 import { variantKeyShape } from "../lib/variants.js";
 import { BODY_LABEL, isSingerPorsche, withReadFields, isStorableQuestion } from "../lib/onebox.js";
 import { casedChips } from "../lib/chipLabel.js";
@@ -3596,7 +3597,10 @@ async function handler(req, res) {
       const warmP = (wantsWarm && !recompute) ? readWarmAnswerDetailed({ supabaseUrl, supabaseKey }, warmKey).catch(() => null) : null;
       // THE QUESTION AS ITS OWN ROW (Nov 1 2026, lib/live/search.js): a text the engine asks about before it answers (which body, generation, trim, model) is read from its stored question, beside the answer row, and wins over it
       const qKey = wantsWarm ? questionRowKey(warmKey, oneBoxText) : null;
-      const qP = (wantsWarm && !recompute) ? readQuestionRow({ supabaseUrl, supabaseKey }, qKey).catch(() => null) : null;
+      // NO QUALIFYING QUESTION FOR THE CREW (lane-b-variant-split-3, Sam's rule): a car of a family with a variant list, its variant not stated, is answered with its variants as cards, never asked which trim it is. The stored question rows (trim_choice, kept for the visitor) are not read for it,
+      // the engine is told not to ask a trim question (env.noTrimQuestion), and nothing this crew read computes is written to the shared stores (a visitor still reads the question as before).
+      const crewVariantCar = !!(isCrewRequest(req) && vehicle && vehicle.make && !exactSale && !vehicle.vin && !vehicle.chassis && !(obRefine && (obRefine.trim || obRefine.variant)) && variantFamilyOfCar(vehicle.make, vehicle.model, vehicle.year != null ? vehicle.year : vehicle.yearRange));
+      const qP = (wantsWarm && !recompute && !crewVariantCar) ? readQuestionRow({ supabaseUrl, supabaseKey }, qKey).catch(() => null) : null;
       if (vehicle && vehicle.make && !obRefine) {
         const carKey = specKeyFor(vehicle, generation, null);
         let carLimit;
@@ -3678,6 +3682,7 @@ async function handler(req, res) {
       // finishStore: the one place a computed answer is stored (inline, or after the response by keepAlive)
       const finishStore = async (ans) => {
         const raw = ans && ans.raw;
+        if (crewVariantCar) return;   // what the crew's no-question read computes is never stored: the visitor's rows stay the visitor's
         if (wantsWarm && !poolSeed && raw && isStorableQuestion(raw)) { await writeQuestionRow({ supabaseUrl, supabaseKey }, qKey, slimAnswerForWire(raw)).catch(() => {}); return; }   // a question is stored as itself, never as an answer row
         if (wantsWarm && !poolSeed && raw && answerCacheable(raw) && !/_choice$/.test(String(raw.tier || ""))) {   // a recompute self-call lands here too and writes the fresh row
           { const ts = Date.now(); await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(raw)).catch(() => {}); if (debugLogOn()) console.log(JSON.stringify({ tag: "stage_ms", stage: "store", ms: Date.now() - ts, key: String(warmKey).slice(0, 80) })); }
@@ -3696,7 +3701,7 @@ async function handler(req, res) {
           if (br && br.tier === "result" && Array.isArray(br.rawPool) && br.rawPool.length) poolSeed = { rows: br.rawPool, storedAt: bare.storedAt || null };
         } catch (e) { if (e && e.message === "onebox_deadline") return obStillReading(); }
       }
-      const coldStore = wantsWarm && !poolSeed;
+      const coldStore = wantsWarm && !poolSeed && !crewVariantCar;   // a crew variant car computes inline (nothing is stored for it, so there is nothing to hand off)
       try {
         if (!warmHit) {
           const te = Date.now();
@@ -3712,7 +3717,7 @@ async function handler(req, res) {
           // The deadline stops the read it gave up on (lane-b-archiveread step d), EXCEPT on the cold-store path: there the compute keeps running after the handoff and stores its row
           // (keepAlive below), so it must never be aborted.
           const engineAc = coldStore ? null : new AbortController();
-          engineP = oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, ...(poolSeed ? { poolSeed } : {}), ...(engineAc ? { signal: engineAc.signal } : {}), asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine);
+          engineP = oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, ...(crewVariantCar ? { noTrimQuestion: true } : {}), ...(poolSeed ? { poolSeed } : {}), ...(engineAc ? { signal: engineAc.signal } : {}), asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine);
           const handoffMs = coldStore ? Math.min(obRemaining(), Number(process.env.ONEBOX_HANDOFF_MS || 8000)) : obRemaining();
           const engineAnswer = await Promise.race([
             engineP,
@@ -3883,7 +3888,7 @@ async function handler(req, res) {
       if (vinCtx) oneBox = applyVinOverlay(oneBox, vinCtx);   // the VIN car's own sales and option on the typed car's finished answer
       const unusedFields = unusedFieldsFor(typeof rawSearch0 === "string" ? rawSearch0 : oneBoxText, vehicle, oneBox);
       // NO QUALIFYING QUESTION (Sam, Nov 17 2026): a car of a family whose variants sell apart is answered with its variants as rows (variantSplit), never asked which one it is and never one blended range; the question (variantQuestionFor) is no longer asked here
-      if (!vinCtx && !exactSale && isCrewRequest(req)) oneBox = await variantSplitFor(oneBox, { asked: askedN, refine: obRefine, crew: isCrewRequest(req) }, vehicle, generation, { supabaseUrl, supabaseKey });   // the variants of an unstated car, as rows (lib/variantRows.js); each row is the engine's answer for its own car
+      if (!vinCtx && !exactSale && isCrewRequest(req)) oneBox = await variantSplitFor(oneBox, { asked: askedN, refine: obRefine, crew: isCrewRequest(req) }, vehicle, generation, { supabaseUrl, supabaseKey }, { deadlineMs: Math.max(4000, Math.min(14000, obRemaining() - 2000)) });   // the variants of an unstated car, as rows (lib/variantRows.js); each row is the engine's answer for its own car
       oneBox = withServedCar(oneBox, vehicle, { supabaseUrl, supabaseKey });   // the car this answer is SERVED for, whatever row it came from (lib/onebox.js withServedCar)
       return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
     }
