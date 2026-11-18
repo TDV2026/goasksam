@@ -309,8 +309,8 @@
   "edits": [
    {
     "file": "api/pullForSale.js",
-    "from": "const meta = { ...out, vendorQueries: getOcdRunMetered() - start, binding: plan.binding,",
-    "to": "const meta = { ...out, key: apiKey, vendorQueries: getOcdRunMetered() - start, binding: plan.binding,"
+    "from": "const meta = { ...out, vendorQueries: getOcdRunMetered() - start + probed, binding: plan.binding,",
+    "to": "const meta = { ...out, key: apiKey, vendorQueries: getOcdRunMetered() - start + probed, binding: plan.binding,"
    }
   ]
  },
@@ -401,41 +401,6 @@
     "file": "lib/onebox.js",
     "from": "export const RANGE_THRESHOLD",
     "to": "// for_sale_listings\nexport const RANGE_THRESHOLD"
-   }
-  ]
- },
- {
-  "name": "budget: the shipped monthly budget and run cap are not 0 (it pulls before Sam sets it)",
-  "edits": [
-   {
-    "file": "data/forsaleBudget.json",
-    "from": "\"forsale_monthly_budget\": 0,",
-    "to": "\"forsale_monthly_budget\": 5000,"
-   },
-   {
-    "file": "data/forsaleBudget.json",
-    "from": "\"forsale_run_cap\": 0,",
-    "to": "\"forsale_run_cap\": 400,"
-   }
-  ]
- },
- {
-  "name": "budget: the shipped schedule is on",
-  "edits": [
-   {
-    "file": "data/forsaleBudget.json",
-    "from": "\"schedule\": { \"pull_on\": false, \"prepare_on\": false }",
-    "to": "\"schedule\": { \"pull_on\": true, \"prepare_on\": true }"
-   }
-  ]
- },
- {
-  "name": "budget: autotraderclassics ships on",
-  "edits": [
-   {
-    "file": "data/forsaleBudget.json",
-    "from": "\"autotraderclassics\": false",
-    "to": "\"autotraderclassics\": true"
    }
   ]
  },
@@ -564,8 +529,8 @@
   "edits": [
    {
     "file": "api/pullForSale.js",
-    "from": "if (plan.allowance < 1) {\n      const skipped",
-    "to": "if (false) {\n      const skipped"
+    "from": "if (plan.allowance < 1) return skip({ skipped: plan.binding",
+    "to": "if (false) return skip({ skipped: plan.binding"
    }
   ]
  },
@@ -624,7 +589,7 @@
   "edits": [
    {
     "file": "lib/forsale/rules.js",
-    "from": "const last = groups.autotraderclassics && all.includes(SEPARATE_LAST) ? [SEPARATE_LAST] : [];",
+    "from": "const last = all.includes(SEPARATE_LAST) && on(SEPARATE_LAST) && groups[SEPARATE_LAST] === true ? [SEPARATE_LAST] : [];",
     "to": "const last = all.includes(SEPARATE_LAST) ? [SEPARATE_LAST] : [];"
    }
   ]
@@ -634,7 +599,7 @@
   "edits": [
    {
     "file": "lib/forsale/rules.js",
-    "from": "const dealers = groups.dealers ? all.filter(k => typeOf(k) === \"dealer\") : [];",
+    "from": "const dealers = all.filter(k => typeOf(k) === \"dealer\" && on(k));",
     "to": "const dealers = all.filter(k => typeOf(k) === \"dealer\");"
    }
   ]
@@ -676,6 +641,241 @@
     "file": "lib/forsale/ingest.js",
     "from": "export const PAGE = 100;",
     "to": "export const PAGE = 50;"
+   }
+  ]
+ },
+ {
+  "name": "shipped: the monthly budget is over the room (plan minus the auction reserve)",
+  "edits": [
+   {
+    "file": "data/forsaleBudget.json",
+    "from": "\"forsale_monthly_budget\": 2800",
+    "to": "\"forsale_monthly_budget\": 9000"
+   }
+  ]
+ },
+ {
+  "name": "shipped: the per run cap is far above one pull of A",
+  "edits": [
+   {
+    "file": "data/forsaleBudget.json",
+    "from": "\"forsale_run_cap\": 50",
+    "to": "\"forsale_run_cap\": 500"
+   }
+  ]
+ },
+ {
+  "name": "shipped: the schedule switches are off",
+  "edits": [
+   {
+    "file": "data/forsaleBudget.json",
+    "from": "\"schedule\": { \"pull_on\": true, \"prepare_on\": true }",
+    "to": "\"schedule\": { \"pull_on\": false, \"prepare_on\": false }"
+   }
+  ]
+ },
+ {
+  "name": "shipped: autotraderclassics is on",
+  "edits": [
+   {
+    "file": "data/forsaleBudget.json",
+    "from": "\"autotraderclassics\": false",
+    "to": "\"autotraderclassics\": true"
+   }
+  ]
+ },
+ {
+  "name": "shipped: the classifieds group is on",
+  "edits": [
+   {
+    "file": "data/forsaleBudget.json",
+    "from": "\"classifieds\": false",
+    "to": "\"classifieds\": true"
+   }
+  ]
+ },
+ {
+  "name": "shipped: classiccars has no switch of its own (and its group is on)",
+  "edits": [
+   {
+    "file": "data/forsaleBudget.json",
+    "from": "\"classifieds\": false",
+    "to": "\"classifieds\": true"
+   },
+   {
+    "file": "data/forsaleBudget.json",
+    "from": "\"classiccars\": false",
+    "to": "\"classiccars\": true"
+   }
+  ]
+ },
+ {
+  "name": "shipped: the pull cron fires four times a day",
+  "edits": [
+   {
+    "file": "vercel.json",
+    "from": "\"schedule\": \"10 */12 * * *\"",
+    "to": "\"schedule\": \"10 */6 * * *\""
+   }
+  ]
+ },
+ {
+  "name": "shipped: the pull cron is gone",
+  "edits": [
+   {
+    "file": "vercel.json",
+    "from": "    { \"path\": \"/api/pullForSale?mode=pull\", \"schedule\": \"10 */12 * * *\" },\n",
+    "to": ""
+   }
+  ]
+ },
+ {
+  "name": "shipped: the prepare cron is gone",
+  "edits": [
+   {
+    "file": "vercel.json",
+    "from": "    { \"path\": \"/api/pullForSale?mode=prepare\", \"schedule\": \"40 * * * *\" },\n",
+    "to": ""
+   }
+  ]
+ },
+ {
+  "name": "order: a source's own switch is ignored",
+  "edits": [
+   {
+    "file": "lib/forsale/rules.js",
+    "from": "const on = k => typeof groups[k] === \"boolean\" ? groups[k] : typeOf(k) === \"dealer\" ? !!groups.dealers : !!groups.classifieds;",
+    "to": "const on = k => typeOf(k) === \"dealer\" ? !!groups.dealers : !!groups.classifieds;"
+   }
+  ]
+ },
+ {
+  "name": "vendor figures: not kept after a run",
+  "edits": [
+   {
+    "file": "api/pullForSale.js",
+    "from": "await persistFigures(env, out.rateLimit);",
+    "to": "void 0;"
+   }
+  ]
+ },
+ {
+  "name": "vendor figures: no reading query when none is kept fresh",
+  "edits": [
+   {
+    "file": "api/pullForSale.js",
+    "from": "if (!(rl && rl.fresh) && spent != null &&",
+    "to": "if (false && spent != null &&"
+   }
+  ]
+ },
+ {
+  "name": "report: no vendor figures block",
+  "edits": [
+   {
+    "file": "api/pullForSale.js",
+    "from": "const budget = { vendor, cycleStart:",
+    "to": "const budget = { cycleStart:"
+   }
+  ]
+ },
+ {
+  "name": "report: the plan is not the header's limit",
+  "edits": [
+   {
+    "file": "lib/forsale/budget.js",
+    "from": "plan: Number.isFinite(Number(v.limit)) ? Number(v.limit) : null",
+    "to": "plan: null"
+   }
+  ]
+ },
+ {
+  "name": "report: the reset is not read as a date",
+  "edits": [
+   {
+    "file": "lib/forsale/budget.js",
+    "from": "resetAt: ms ? new Date(ms).toISOString() : null",
+    "to": "resetAt: null"
+   }
+  ]
+ },
+ {
+  "name": "more: the offset is ignored",
+  "edits": [
+   {
+    "file": "lib/forsale/serve.js",
+    "from": "list.slice(from, from + CARDS_SHOWN)",
+    "to": "list.slice(0, CARDS_SHOWN)"
+   }
+  ]
+ },
+ {
+  "name": "more: a batch of another size than the auctions' SHOW_BATCH",
+  "edits": [
+   {
+    "file": "lib/forsale/serve.js",
+    "from": "export const CARDS_SHOWN = 24;",
+    "to": "export const CARDS_SHOWN = 12;"
+   }
+  ]
+ },
+ {
+  "name": "more: nextN is always the full batch",
+  "edits": [
+   {
+    "file": "lib/forsale/serve.js",
+    "from": "nextN: Math.min(CARDS_SHOWN, Math.max(0, list.length - shown))",
+    "to": "nextN: CARDS_SHOWN"
+   }
+  ]
+ },
+ {
+  "name": "more: the other group's cards are sent too",
+  "edits": [
+   {
+    "file": "lib/forsale/serve.js",
+    "from": "const batch = more && more.group !== name ? [] : list.slice",
+    "to": "const batch = list.slice"
+   }
+  ]
+ },
+ {
+  "name": "more: remaining is not counted from what is drawn",
+  "edits": [
+   {
+    "file": "lib/forsale/serve.js",
+    "from": "remaining: Math.max(0, list.length - shown),",
+    "to": "remaining: Math.max(0, list.length - CARDS_SHOWN),"
+   }
+  ]
+ },
+ {
+  "name": "more: buySearch ignores the offset the page sends",
+  "edits": [
+   {
+    "file": "api/buySearch.js",
+    "from": "offset: Math.max(0, Math.min(100000, Math.floor(Number(b.forSaleOffset) || 0))) } : null;",
+    "to": "offset: 0 } : null;"
+   }
+  ]
+ },
+ {
+  "name": "more: buySearch takes any group name",
+  "edits": [
+   {
+    "file": "api/buySearch.js",
+    "from": "const fsMore = b.forSaleGroup === \"dealers\" || b.forSaleGroup === \"classifieds\" ? {",
+    "to": "const fsMore = b.forSaleGroup ? {"
+   }
+  ]
+ },
+ {
+  "name": "more: a visitor is served the group",
+  "edits": [
+   {
+    "file": "lib/forsale/serve.js",
+    "from": "if (!forSaleActive()) return null;\n  const now = opts.now",
+    "to": "if (false) return null;\n  const now = opts.now"
    }
   ]
  }

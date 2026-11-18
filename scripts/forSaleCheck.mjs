@@ -28,10 +28,11 @@ const SP = await imp("lib/live/samChat.js");
 const BUD = (await tryImp("lib/forsale/budget.js")) || { BUDGET: {}, planRun: () => ({}), daysLeft: () => 0, cycleStart: () => new Date(0), callsFor: () => -1 }, INGEST = await tryImp("lib/forsale/ingest.js");
 const BUDGET = BUD ? BUD.BUDGET : {};   // the SAME config object the handler reads: a case sets a number here, as a person would in data/forsaleBudget.json
 const SHIPPED = fs.existsSync(path.join(ROOT, "data/forsaleBudget.json")) ? JSON.parse(fs.readFileSync(path.join(ROOT, "data/forsaleBudget.json"), "utf8")) : null;
-let REMAIN = 90000, SEED_FS = 0, SEED_AUC = 0, USAGE_DOWN = false;   // the vendor's own count left, queries counted before this run (for sale, auction feed), the usage table unreadable
+let REMAIN = 90000, FIG = { remaining: 90000, limit: 10000, reset: "1795580863", at: Date.now() }, SEED_FS = 0, SEED_AUC = 0, USAGE_DOWN = false;   // the vendor's own count left, queries counted before this run (for sale, auction feed), the usage table unreadable
 const DAY = 864e5, HOUR = 36e5, NOW = Date.now(), ago = h => new Date(NOW - h * HOUR).toISOString();
 // THE WORLD OF THE OLDER CASES: a person has set a budget and switched every group on (the shipped default is 0 and autotraderclassics off: its own cases are in section 8). The same config object the handler reads.
 const WORLD_CFG = { plan_monthly: 100000, auction_reserve_monthly: 10, forsale_monthly_budget: 90000, forsale_run_cap: 400, cycle_reset_day: 25, max_pages_per_source: 400, pull: { dealers: true, classifieds: true, autotraderclassics: true }, schedule: { pull_on: false, prepare_on: false } };
+const setRemain = n => { REMAIN = n; FIG = n == null ? null : { remaining: n, limit: 10000, reset: "1795580863", at: Date.now() }; };   // the vendor's own count: in its response headers and in the figures kept
 const setCfg = over => { for (const k of Object.keys(BUDGET)) delete BUDGET[k]; Object.assign(BUDGET, JSON.parse(JSON.stringify({ ...WORLD_CFG, ...over }))); };
 if (BUD) setCfg({});
 
@@ -102,7 +103,7 @@ const applyFilter = (rows, u) => {   // a plain PostgREST over our table: the fi
 globalThis.fetch = async (url, init) => {
   const s = String(url), u = new URL(s), p = u.pathname;
   if (/api\.anthropic\.com/.test(s)) return fakeModel(init);
-  if (u.host === "api.oldcarsdata.com" && p === "/classifieds") { const hdr = init && init.headers || {}; if (!/Bearer /.test(String(hdr.Authorization || ""))) return new Response("{}", { status: 401 }); return new Response(JSON.stringify(pageOf(u)), { status: 200, headers: { "x-ratelimit-remaining": String(REMAIN), "x-ratelimit-limit": "100000" } }); }
+  if (u.host === "api.oldcarsdata.com" && p === "/classifieds") { const hdr = init && init.headers || {}; if (!/Bearer /.test(String(hdr.Authorization || ""))) return new Response("{}", { status: 401 }); return new Response(JSON.stringify(pageOf(u)), { status: 200, headers: { ...(REMAIN == null ? {} : { "x-ratelimit-remaining": String(REMAIN), "x-ratelimit-reset": "1795580863" }), "x-ratelimit-limit": "10000" } }); }
   if (p.endsWith("/for_sale_listings")) {
     const method = (init && init.method) || "GET";
     if (method === "POST") { const rows = JSON.parse(init.body); DB_WRITES.push(...rows); for (const r of rows) { const i = TABLE.findIndex(x => x.source === r.source && x.source_listing_id === r.source_listing_id); if (i >= 0) Object.assign(TABLE[i], r); else TABLE.push({ id: TID++, first_seen: new Date().toISOString(), resolve_state: null, read: null, history: null, car: null, car_key: null, gone: false, ...r }); } return new Response("", { status: 201 }); }
@@ -112,7 +113,11 @@ globalThis.fetch = async (url, init) => {
     const rg = init && init.headers && (init.headers.Range || init.headers.range); if (rg) { const m = /(\d+)-(\d+)/.exec(rg); if (m) hit = hit.slice(Number(m[1]), Number(m[2]) + 1); }
     return new Response(JSON.stringify(hit), { status: 200 });
   }
-  if (p.endsWith("/app_config") && u.searchParams.get("key") === "eq.ocd_rate_limit") return new Response(JSON.stringify(REMAIN == null ? [] : [{ value: JSON.stringify({ remaining: REMAIN, at: Date.now() }) }]), { status: 200 });   // the vendor's own count left, as the live jobs keep it
+  if (p.endsWith("/app_config") && u.searchParams.get("key") === "eq.ocd_rate_limit") {   // the vendor's own figures, as the live jobs keep them (a pull writes them too)
+    if (init && init.method === "POST") { try { FIG = JSON.parse(init.body)[0].value; } catch {} return new Response("", { status: 201 }); }
+    return new Response(JSON.stringify(FIG == null ? [] : [{ value: JSON.stringify(FIG) }]), { status: 200 });
+  }
+  if (p.endsWith("/app_config") && init && init.method === "POST") { try { const b = JSON.parse(init.body)[0]; if (b && b.key === "ocd_rate_limit") FIG = b.value; } catch {} return new Response("", { status: 201 }); }
   if (p.endsWith("/app_usage_events")) {
     if (init && init.method === "POST") { USAGE.push(init.body); return new Response("", { status: 201 }); }
     if (USAGE_DOWN) return new Response("{}", { status: 500 });
@@ -421,34 +426,89 @@ await section("each rule on its own (the pure rule, one row at a time)", async (
   }
 });
 
+// ================= 9. SHOW MORE of the dealers and the classifieds (Lane D, Nov 18 2026): the first answer sends 24 of each group; the rest on request by the road auctions use for more, same rules, same order =================
+// CAUSE this guards: forSale carried the first 24 cards of each group and a count, with no way to ask for the rest, so a group of 300 cars drew 24 and stopped. CLASS: every list the answer cuts to a first batch must say how many are left and serve the rest by the one road, in the one order, under the same rules.
+await section("show more", async () => {
+  const postedFs = () => USAGE.map(b => { try { return JSON.parse(b); } catch { return null; } }).filter(e => e && e.event_type === "ocd_call" && e.metadata && e.metadata.job === "pull_for_sale").reduce((t, e) => t + (Number(e.oldcarsdata_metered_requests) || 0), 0);
+  const setSpent = k => { SEED_FS = k - postedFs(); };
+  setCfg({}); setRemain(90000); setSpent(0);
+  const EXTRA_D = ["streetside", "grautogallery", "classicautomall"], EXTRA_C = ["dupontregistry", "classiccars", "barnfinds"];
+  for (let i = 0; i < 30; i++) { DATASET.push(rec(EXTRA_D[i % 3], { vin: vin(300 + i), asking_price: 40000 + i * 500, mileage: 30000 + i * 700 })); DATASET.push(rec(EXTRA_C[i % 3], { vin: vin(400 + i), asking_price: 39000 + i * 450, mileage: 31000 + i * 650, seller_type: "private" })); }
+  const pr = json(await call(PULL, "/api/pullForSale?mode=pull", { crew: false, headers: { "x-ops-key": PROBE } })) || {};
+  if (process.env.FS_DEBUG) process.stderr.write("DBG pull " + JSON.stringify({ sk: pr.skipped, why: pr.why, req: pr.requests, wrote: pr.wrote, stopped: pr.stopped, err: pr.errors, tbl: TABLE.length }) + "\n");
+  for (let i = 0; i < 4; i++) await call(PULL, "/api/pullForSale?mode=prepare&budgetMs=240000", { crew: false, headers: { "x-ops-key": PROBE } });
+  SERVE.forSaleReset();
+  const filters = { make: "Porsche", model: "911" }, first = json(await find({ action: "rerun", filters })), FS = first && first.forSale;   // the first answer and every later batch are the same search: these filters
+  const more = (group, offset, o = {}) => find({ action: "more", filters, forSaleGroup: group, forSaleOffset: offset, ...(o.body || {}) }, { crew: o.crew !== false }).then(json);
+  ok("the first answer carries 24 cards of each group (the one batch size, the same as the auctions' SHOW_BATCH) and says how many are left and how many the next ask returns", !!FS && FS.dealers.count > 24 && FS.classifieds.count > 24 && FS.dealers.cards.length === 24 && FS.classifieds.cards.length === 24 && SERVE.CARDS_SHOWN === SP.SHOW_BATCH && FS.dealers.shown === 24 && FS.dealers.remaining === FS.dealers.count - 24 && FS.dealers.nextN === Math.min(24, FS.dealers.remaining) && FS.dealers.offset === 0, FS && [FS.dealers.count, FS.dealers.cards.length, FS.dealers.remaining, FS.dealers.nextN]);
+  for (const [name, kind] of [["dealers", "dealer"], ["classifieds", "classified"]]) {
+    const g0 = FS[name], seen = [...g0.cards.map(c => c.id)]; let off = 24, guard = 0, last = null, batches = 0, counts = true, onlyKind = true, otherEmpty = true, noAuctions = true;
+    while (off < g0.count && guard++ < 20) {
+      const m = await more(name, off), g = m && m.forSale && m.forSale[name]; last = g; if (!g) break; batches++;
+      counts = counts && JSON.stringify(m.forSale.counts) === JSON.stringify(FS.counts); onlyKind = onlyKind && g.cards.every(c => c.kind === kind && c.typeWord === (kind === "dealer" ? "Dealer" : "Classified")); otherEmpty = otherEmpty && m.forSale[name === "dealers" ? "classifieds" : "dealers"].cards.length === 0; noAuctions = noAuctions && Array.isArray(m.cards) && m.cards.length === 0 && m.forSale.more === name;
+      seen.push(...g.cards.map(c => c.id)); off += g.cards.length; if (!g.cards.length) break;
+    }
+    ok("the " + name + ": asking for the rest returns every card after the first 24, none twice, none missing (" + g0.count + " in all)", seen.length === g0.count && new Set(seen).size === seen.length && batches >= 1, [seen.length, g0.count, batches]);
+    ok("the " + name + ": the last batch says nothing is left", !!last && last.remaining === 0 && last.nextN === 0 && last.shown === g0.count, last && [last.remaining, last.nextN, last.shown]);
+    ok("the " + name + ": each batch carries the same four counts as the first answer, only that group's cards, and no auction card", counts && onlyKind && otherEmpty && noAuctions);
+    const again = await more(name, 0); ok("the " + name + ": more from 0 is the first answer's own 24, in the same order (one order, one set of rules)", !!again && again.forSale[name].cards.map(c => c.id).join() === g0.cards.map(c => c.id).join(), again && again.forSale[name].cards.length);
+    const m2 = await more(name, 24), m3 = await more(name, 24); ok("the " + name + ": asking twice gives the same batch", JSON.stringify(m2.forSale[name].cards.map(c => c.id)) === JSON.stringify(m3.forSale[name].cards.map(c => c.id)));
+    const edge = await more(name, 100000); ok("the " + name + ": an offset past the end returns no cards and nothing left", edge && edge.forSale[name].cards.length === 0 && edge.forSale[name].remaining === 0 && edge.forSale[name].count === g0.count, edge && edge.forSale && edge.forSale[name]);
+    const neg = await more(name, -7); ok("the " + name + ": an offset below 0 is read as 0", neg && neg.forSale[name].cards.map(c => c.id).join() === g0.cards.map(c => c.id).join());
+  }
+  const bogus = await find({ action: "more", filters, forSaleGroup: "bogus", offset: 0 }).then(json); ok("an unknown group is an ordinary more of the auctions (no forSale more, the auction cards come back)", bogus && !(bogus.forSale && bogus.forSale.more) && Array.isArray(bogus.cards) && bogus.cards.length > 0, bogus && bogus.forSale && bogus.forSale.more);
+  // the SAME rules: a listing last seen more than 24 hours ago, or gone, is in no batch
+  const victim = TABLE.find(r => r.source === "streetside" && r.vin === vin(300)), g1 = FS.dealers.count;
+  victim.last_seen = ago(30); SERVE.forSaleReset(); const f2 = json(await find({ action: "rerun", filters })), all2 = [...f2.forSale.dealers.cards.map(c => c.id)]; let off2 = 24; while (off2 < f2.forSale.dealers.count) { const m = await more("dealers", off2); all2.push(...m.forSale.dealers.cards.map(c => c.id)); off2 += m.forSale.dealers.cards.length || 1000; }
+  ok("a listing last seen 30 hours ago is in no batch (the same 24 hour rule), and the count says so", f2.forSale.dealers.count === g1 - 1 && !all2.includes("fs-" + victim.id) && all2.length === g1 - 1, [f2.forSale.dealers.count, g1, all2.length]);
+  victim.last_seen = ago(1); SERVE.forSaleReset();
+  // a visitor: no for sale in the answer, no read of our table
+  const f0 = FSREADS.length, v = json(await find({ action: "more", filters, forSaleGroup: "dealers", forSaleOffset: 24 }, { crew: false }));
+  ok("a visitor asking for more of the dealers gets no for-sale group and no card, and our table is not read", v && !("forSale" in v) && Array.isArray(v.cards) && v.cards.length === 0 && FSREADS.length === f0, v && Object.keys(v));
+  const nv = json(await find({ action: "more", filters, offset: 0 }, { crew: false })); ok("a visitor's ordinary more is as before: no forSale, the auctions' batch", nv && !("forSale" in nv) && Array.isArray(nv.cards));
+  const src = fs.readFileSync(path.join(ROOT, "api/buySearch.js"), "utf8");
+  ok("the more road for sale is one ask on the auctions' own action: buySearch has no second endpoint and no slicing of its own (the batch is cut in lib/forsale/serve.js)", /b\.action === "more"/.test(src) && /forSaleGroup/.test(src) && !/slice\(.*forSale/.test(src.replace(/\/\/.*$/gm, "")));
+  // the cards of a batch are finished words, the same card as the first answer
+  const mm = await more("dealers", 24); const cd = mm.forSale.dealers.cards[0]; ok("a card of a later batch is the same card: name, asking line, miles line, location, link, image, the read", !!cd && cd.name && /^Asking \$[\d,]+$/.test(cd.askingLine) && /^[\d,]+ miles$/.test(cd.milesLine) && cd.location && /^https:\/\//.test(cd.url) && cd.read.startsWith(cd.askingLine + ". "), cd);
+});
+
 // ================= 8. THE BUDGET, THE RESERVE, THE RUN CAP, THE ORDER, THE SCHEDULE (Lane D, Nov 18 2026; Lane F's real pull: 76,690 listings, about 770 queries a full pull, against a plan of 10,000 the auction feed shares) =================
 // CAUSE this guards: the pull was built on a census count (10,054 listings, about 90 queries) with no spending limit of its own: it would have drawn about 92,000 queries a month from a plan of 10,000 and taken the auction feed's allowance. CLASS: any
 // job that spends vendor queries must have its own budget and a per run cap read from one config (default 0), keep a hard reserve for the auction feed, stop cleanly (marking nothing gone) and say so in the report, and no schedule may fire until a person says so.
 await section("budget", async () => {
   process.env.CRON_SECRET = process.env.CRON_SECRET || "cron-secret-" + "Bq3Lw8Vn"; const CRON = "Bearer " + process.env.CRON_SECRET;
-  const probeHdr = { "x-ops-key": PROBE }, n = () => VENDOR_CALLS.length, writes = () => DB_WRITES.length;
+  const vjA = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8")), probeHdr = { "x-ops-key": PROBE }, n = () => VENDOR_CALLS.length, writes = () => DB_WRITES.length;
   const pull = async (extra = "") => { const before = n(), r = await call(PULL, "/api/pullForSale?mode=pull" + extra, { crew: false, headers: probeHdr }); return { r, o: json(r) || {}, calls: VENDOR_CALLS.slice(before) }; };
   const postedFs = () => USAGE.map(b => { try { return JSON.parse(b); } catch { return null; } }).filter(e => e && e.event_type === "ocd_call" && e.metadata && e.metadata.job === "pull_for_sale").reduce((t, e) => t + (Number(e.oldcarsdata_metered_requests) || 0), 0);
   const setSpent = k => { SEED_FS = k - postedFs(); };       // what this cycle has cost so far, counted from the metered rows (the run's own rows are in it)
   const all = RULES.pulledSources(), DEALERS = all.filter(k => RULES.typeOf(k) === "dealer");
   const backdate = () => TABLE.forEach(r => { r.pulled_at = new Date(Date.now() - 10 * 60e3).toISOString(); });
-  // ---- A. THE SHIPPED DEFAULT: 0, nothing is pulled until a person sets it ----
+  // ---- A. THE SHIPPED CONFIG IS CHOICE A: the 14 dealers, twice a day, inside the room (Sam's word, Nov 18 2026) ----
+  let a; const A_SRC = DEALERS, A_CALLS = BUD.callsFor(SHAPE.laneFActiveUsLast24h || {}, A_SRC);
+  const cronOf = pat => (vjA.crons || []).filter(c => pat.test(c.path)), perDay = sched => { const m = /^\d+ \*\/(\d+) \* \* \*$/.exec(sched || ""); return m ? 24 / Number(m[1]) : /^\d+ \* \* \* \*$/.test(sched || "") ? 24 : null; };
   ok("the shipped config exists and a person can read it: a plan, an auction reserve, a budget, a per run cap, the groups and the schedule switches", !!SHIPPED && ["plan_monthly", "auction_reserve_monthly", "forsale_monthly_budget", "forsale_run_cap", "pull", "schedule"].every(k => k in SHIPPED), SHIPPED && Object.keys(SHIPPED));
-  ok("the shipped budget and per run cap are 0", !!SHIPPED && SHIPPED.forsale_monthly_budget === 0 && SHIPPED.forsale_run_cap === 0, SHIPPED && [SHIPPED.forsale_monthly_budget, SHIPPED.forsale_run_cap]);
   ok("the shipped plan is the 10,000 the auction feed shares, with a hard reserve for auctions above 0 and under the plan", !!SHIPPED && SHIPPED.plan_monthly === 10000 && SHIPPED.auction_reserve_monthly > 0 && SHIPPED.auction_reserve_monthly < SHIPPED.plan_monthly, SHIPPED && [SHIPPED.plan_monthly, SHIPPED.auction_reserve_monthly]);
-  ok("the shipped schedule is off for the pull and for prepare", !!SHIPPED && SHIPPED.schedule && SHIPPED.schedule.pull_on === false && SHIPPED.schedule.prepare_on === false);
-  ok("autotraderclassics ships switched off, the dealers and the other classifieds on", !!SHIPPED && SHIPPED.pull && SHIPPED.pull.autotraderclassics === false && SHIPPED.pull.dealers === true && SHIPPED.pull.classifieds === true);
+  ok("the shipped pull is exactly the 14 dealers: no classified, not autotraderclassics, not dupontregistry, barnfinds or classiccars", !!SHIPPED && RULES.pulledSources(SHIPPED.pull).join() === A_SRC.join() && A_SRC.length === 14, SHIPPED && RULES.pulledSources(SHIPPED.pull));
+  ok("each of autotraderclassics and the three other classifieds is off by its own switch, not only by its group", !!SHIPPED && ["autotraderclassics", "dupontregistry", "barnfinds", "classiccars"].every(k => SHIPPED.pull[k] === false) && SHIPPED.pull.classifieds === false && SHIPPED.pull.dealers === true);
+  ok("the shipped schedule is on for the pull and for prepare", !!SHIPPED && SHIPPED.schedule && SHIPPED.schedule.pull_on === true && SHIPPED.schedule.prepare_on === true);
+  ok("vercel.json fires the pull twice a day and prepare every hour, each once", cronOf(/pullForSale\?mode=pull$/).length === 1 && perDay(cronOf(/pullForSale\?mode=pull$/)[0].schedule) === 2 && cronOf(/pullForSale\?mode=prepare$/).length === 1 && perDay(cronOf(/pullForSale\?mode=prepare$/)[0].schedule) === 24, cronOf(/pullForSale/));
+  { const runs = perDay((cronOf(/pullForSale\?mode=pull$/)[0] || {}).schedule) || 0, month = runs * A_CALLS * 30, room = SHIPPED ? SHIPPED.plan_monthly - SHIPPED.auction_reserve_monthly : 0;
+    ok("choice A twice a day is 84 queries a day, 2,520 a month", A_CALLS === 42 && month === 2520, [A_CALLS, month]);
+    ok("the shipped monthly budget covers A at that cadence with a small margin and sits inside the room (plan minus the auction reserve)", !!SHIPPED && SHIPPED.forsale_monthly_budget >= month && SHIPPED.forsale_monthly_budget <= month * 1.25 && SHIPPED.forsale_monthly_budget <= room, [SHIPPED && SHIPPED.forsale_monthly_budget, month, room]);
+    ok("the shipped per run cap covers one pull of A (42) with a margin for the vendor's older active rows and the one reading query, and no more than 25 percent over", !!SHIPPED && SHIPPED.forsale_run_cap >= A_CALLS + 1 + Math.ceil(A_CALLS * 0.075) && SHIPPED.forsale_run_cap <= Math.ceil(A_CALLS * 1.25), SHIPPED && [SHIPPED.forsale_run_cap, A_CALLS]); }
+  ok("FORSALE_PUBLIC stays off", GATE.FORSALE_PUBLIC === false);
   if (SHIPPED) { for (const k of Object.keys(BUDGET)) delete BUDGET[k]; Object.assign(BUDGET, JSON.parse(JSON.stringify(SHIPPED))); }
-  REMAIN = 90000; setSpent(0);
-  let w0 = writes(), u0 = USAGE.length; let a = await pull();
-  ok("with the shipped config a pull makes no vendor query, writes nothing, and says why (budget_zero)", a.r.code === 200 && a.calls.length === 0 && writes() === w0 && a.o.skipped === "budget_zero" && a.o.vendorQueries === 0 && /0/.test(String(a.o.why)), [a.r.code, a.calls.length, a.o.skipped]);
-  ok("a skipped pull is recorded as a usage row", USAGE.slice(u0).some(b => /forsale_pull_skipped/.test(b)));
+  setRemain(90000); setSpent(0);
+  { const d0 = n(), w0b = writes(); a = await pull(); ok("the shipped config, run as shipped, pulls the dealers (and only them) inside its run cap", a.r.code === 200 && a.calls.length === A_SRC.length && a.calls.every(c => RULES.typeOf(c.source) === "dealer") && a.o.stopped === null, [a.calls.length, a.o.stopped]); }
+  { const w1 = writes(), u0 = USAGE.length;
+    setCfg({ forsale_monthly_budget: 0 }); a = await pull();
+    ok("a budget of 0 makes no vendor query, writes nothing, and says why (budget_zero)", a.r.code === 200 && a.calls.length === 0 && writes() === w1 && a.o.skipped === "budget_zero" && a.o.vendorQueries === 0, [a.calls.length, a.o.skipped]);
+    ok("a skipped pull is recorded as a usage row", USAGE.slice(u0).some(b => /forsale_pull_skipped/.test(b))); }
   setCfg({ forsale_run_cap: 0 }); a = await pull(); ok("a monthly budget with a per run cap of 0 pulls nothing", a.calls.length === 0 && a.o.skipped === "budget_zero", a.o.skipped);
-  setCfg({ forsale_monthly_budget: 0 }); a = await pull(); ok("a per run cap with a monthly budget of 0 pulls nothing", a.calls.length === 0 && a.o.skipped === "budget_zero", a.o.skipped);
   setCfg({ forsale_monthly_budget: "ten" }); a = await pull(); ok("a budget that is not a number is 0 (nothing is pulled)", a.calls.length === 0, a.o.skipped);
 
   // ---- B. THE PER RUN CAP: stops cleanly after exactly that many queries, marks nothing gone, says where ----
-  setCfg({ forsale_run_cap: 3 }); setSpent(0); REMAIN = 90000;
+  setCfg({ forsale_run_cap: 3 }); setSpent(0); setRemain(90000);
   const gi = DATASET.findIndex(d => d.source === "streetside" && d.vin === vin(5)), removed = DATASET.splice(gi, 1)[0]; backdate();
   const goneBefore = TABLE.filter(r => r.gone).length;
   a = await pull();
@@ -488,20 +548,18 @@ await section("budget", async () => {
   // ---- D. THE AUCTION FEED'S RESERVE, from the vendor's own count left ----
   const RES = () => Math.ceil(300000 * Math.min(1, BUD.daysLeft(Date.now(), 25) / 30));
   setCfg({ plan_monthly: 1000000, auction_reserve_monthly: 300000, forsale_monthly_budget: 900000, forsale_run_cap: 400 }); setSpent(0);
-  REMAIN = RES() + 5; a = await pull();
+  setRemain(RES() + 5); a = await pull();
   ok("the vendor's count left is 5 above what the auction feed is kept for the days left: 5 queries, no more", a.calls.length === 5 && a.o.binding === "auction_reserve", [a.calls.length, a.o.binding]);
-  REMAIN = RES(); a = await pull();
+  setRemain(RES()); a = await pull();
   ok("the vendor's count left is exactly the auction feed's reserve: the pull makes no query", a.calls.length === 0 && a.o.skipped === "auction_reserve", [a.calls.length, a.o.skipped]);
-  REMAIN = RES() - 500; a = await pull();
+  setRemain(RES() - 500); a = await pull();
   ok("under the reserve: no query", a.calls.length === 0 && a.o.skipped === "auction_reserve", [a.calls.length, a.o.skipped]);
   ok("the reserve is the auction feed's use scaled to the days left in the cycle (it shrinks as the cycle runs out)", BUD.planRun({ cfg: { plan_monthly: 10000, auction_reserve_monthly: 7000, forsale_monthly_budget: 5000, forsale_run_cap: 400, cycle_reset_day: 25 }, spentCycle: 0, remaining: 5000, now: Date.UTC(2026, 10, 18, 12) }).reserveLeft === Math.ceil(7000 * (Date.UTC(2026, 10, 25) - Date.UTC(2026, 10, 18, 12)) / 864e5 / 30));
-  REMAIN = 90000;
+  setRemain(90000);
 
   // ---- E. WHAT IT CANNOT PROVE IT MAY NOT SPEND ----
   setCfg({}); setSpent(0); USAGE_DOWN = true; a = await pull(); USAGE_DOWN = false;
   ok("the usage table unreadable: the run cannot count what the cycle has cost, so it spends nothing", a.calls.length === 0 && a.o.skipped === "spend_unreadable", [a.calls.length, a.o.skipped]);
-  REMAIN = null; a = await pull(); REMAIN = 90000;
-  ok("the vendor's count left unknown: the reserve cannot be proved, so it spends nothing", a.calls.length === 0 && a.o.skipped === "remaining_unknown", [a.calls.length, a.o.skipped]);
   ok("the pure plan, every edge: zero budget, zero cap, spent, reserve, unknowns", (() => {
     const base = { plan_monthly: 10000, auction_reserve_monthly: 7000, forsale_monthly_budget: 2000, forsale_run_cap: 100, cycle_reset_day: 25 }, now = Date.UTC(2026, 10, 18, 12), P = (o, x) => BUD.planRun({ cfg: { ...base, ...o }, spentCycle: 0, remaining: 9000, now, ...x }).allowance;
     const RL = Math.ceil(7000 * (Date.UTC(2026, 10, 25) - now) / 864e5 / 30);   // what the auction feed is kept for the days left
@@ -519,6 +577,10 @@ await section("budget", async () => {
   ok("dealers only: the dealers' sources and nothing else", a.calls.length === DEALERS.length && a.calls.every(c => RULES.typeOf(c.source) === "dealer"), [...new Set(a.calls.map(c => c.source))]);
   setCfg({ pull: { dealers: false, classifieds: false, autotraderclassics: true } }); setSpent(0); a = await pull();
   ok("autotraderclassics alone: only it", a.calls.length >= 1 && a.calls.every(c => c.source === "autotraderclassics"), [...new Set(a.calls.map(c => c.source))]);
+  { const P = g => RULES.pulledSources(g).join();
+    ok("a source's own switch wins over its group: dupontregistry off leaves the other classifieds; classiccars on alone with every group off is asked for alone", P({ dealers: false, classifieds: true, autotraderclassics: false, dupontregistry: false }) === "classiccars,barnfinds" || P({ dealers: false, classifieds: true, autotraderclassics: false, dupontregistry: false }).split(",").sort().join() === "barnfinds,classiccars", P({ dealers: false, classifieds: true, autotraderclassics: false, dupontregistry: false }));
+    ok("a classified on by its own name with its group off is the only one asked for", P({ dealers: false, classifieds: false, autotraderclassics: false, classiccars: true }) === "classiccars", P({ dealers: false, classifieds: false, autotraderclassics: false, classiccars: true }));
+    ok("a dealer off by its own name is not asked for", !RULES.pulledSources({ dealers: true, classifieds: false, streetside: false }).includes("streetside") && RULES.pulledSources({ dealers: true, classifieds: false, streetside: false }).length === 13); }
   ok("a held source is never in any order, whatever the switches", ["gatewayclassiccars", "lowmilesnomiles", "carandclassic"].every(k => !RULES.pulledSources({ dealers: true, classifieds: true, autotraderclassics: true }).includes(k)));
 
   // ---- G. THE REAL CALLS A PULL COSTS, from Lane F's per source counts (100 a page is the vendor's largest) ----
@@ -530,7 +592,7 @@ await section("budget", async () => {
 
   // ---- H. NO SCHEDULE FIRES UNTIL SAM SAYS SO ----
   const vj = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
-  ok("vercel.json carries no cron for the for sale pull or prepare (the platform fires nothing)", !(vj.crons || []).some(c => /pullForSale/.test(c.path)), (vj.crons || []).filter(c => /pullForSale/.test(c.path)));
+  ok("every cron vercel.json carries for the for sale route is the pull or prepare, and a cron fires nothing the config does not switch on (the scheduled cases below)", (vj.crons || []).filter(c => /pullForSale/.test(c.path)).every(c => /^\/api\/pullForSale\?mode=(pull|prepare)$/.test(c.path)));
   ok("vercel.json pins the function's maxDuration (300 seconds) and the pull stops itself before it", vj.functions && vj.functions["api/pullForSale.js"] && vj.functions["api/pullForSale.js"].maxDuration === 300 && /240000/.test(fs.readFileSync(path.join(ROOT, "lib/forsale/ingest.js"), "utf8")), vj.functions && vj.functions["api/pullForSale.js"]);
   setCfg({ schedule: { pull_on: false, prepare_on: false } }); setSpent(0); const f0 = FSREADS.length; const q1 = n();
   let r = await call(PULL, "/api/pullForSale?mode=pull", { crew: false, headers: { authorization: CRON } }); let o = json(r) || {};
@@ -541,6 +603,16 @@ await section("budget", async () => {
   ok("switched on in the config, a scheduled pull runs (still inside the budget)", r.code === 200 && !o.skipped && n() > q1, [r.code, o.skipped]);
   setCfg({}); setSpent(0);
   const man = await call(PULL, "/api/pullForSale?mode=pull", { crew: false, headers: probeHdr }); ok("a person with the probe key can still run it by hand with the schedule off (inside the budget)", (json(man) || {}).skipped === undefined && man.code === 200);
+  // (last of all: a response with no remaining header makes the vendor client fail closed for the rest of the process, as it does in production)
+  { setRemain(90000); FIG = null; setSpent(0); setCfg({}); const f0 = n(); a = await pull();
+    ok("no fresh figures kept for the vendor's count: ONE query reads them from the response headers, keeps them, and the run then goes on inside its reserve", a.calls.length >= 2 && a.calls[0].limit === "1" && FIG && FIG.remaining === 90000 && FIG.limit === 10000 && a.o.vendorQueries === a.calls.length, [a.calls.length, a.calls[0] && a.calls[0].limit, FIG]);
+    const sizeA = FIG && FIG.at; setRemain(4321); FIG = { remaining: 5000, limit: 10000, reset: "1795580863", at: Date.now() }; REMAIN = 4321; setSpent(0); a = await pull();
+    ok("after a run the vendor's own figures from the last response header are kept (the stored count moves from 5000 to the header's 4321)", FIG && FIG.remaining === 4321 && a.calls.length > 1, [FIG && FIG.remaining]);
+    { const rep2 = json(await call(PULL, "/api/pullForSale?report=1", { crew: false, headers: probeHdr })) || {}, V = (rep2.budget || {}).vendor || {};
+      ok("the report prints the vendor's own plan, remaining and reset as the response header gave them, and when they were read", V.plan === 10000 && V.remaining === 4321 && String(V.reset) === "1795580863" && V.resetAt === "2026-11-25T04:27:43.000Z" && typeof V.readAt === "string" && V.fresh === true && /x-ratelimit-limit/.test(String(V.from)), V);
+      ok("the vendor's figures are in the report with no vendor query", rep2.vendorQueries === 0); }
+    setRemain(null); a = await pull(); setRemain(90000);
+    ok("the vendor's count unknown even from its headers: the reserve cannot be proved, so it spends nothing more than the one reading query and goes no further", a.calls.length <= 1 && a.o.skipped === "remaining_unknown", [a.calls.length, a.o.skipped]); }
   ok("the vendor key is in no skipped answer, report or usage row of these cases", !everyWrite().includes(KEY) && !JSON.stringify(rep).includes(KEY));
 });
 

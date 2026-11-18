@@ -7,11 +7,12 @@
 // NO SCHEDULE FIRES UNTIL SAM SAYS SO: vercel.json carries no cron for this route, and a call that arrives as a scheduled one (Authorization: Bearer CRON_SECRET) is refused unless data/forsaleBudget.json schedule.pull_on / prepare_on is true.
 // The vendor key is read from the environment here and handed to the client; it is never printed, logged, stored or returned. A visitor never reaches this: a visitor's Find reads our table only.
 import { hasServerCredential, keyInAddress, ADDRESS_KEY_REFUSED, cronOk } from "../lib/_credential.js";
-import { configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";
+import { configureOcdUsage, flushOcdUsage, getOcdRunMetered, callOldCarsData } from "../lib/_ocd.js";
 import { historyEnv } from "./_historyData.js";
 import { recordUsageEvent } from "./_usage.js";
 import { readRemaining, reserveFloor } from "../lib/live/ocdGuard.js";
-import { BUDGET, planRun, spentThisCycle, cycleStart } from "../lib/forsale/budget.js";
+import { BUDGET, planRun, spentThisCycle, cycleStart, persistFigures, readFigures } from "../lib/forsale/budget.js";
+import { pulledSources } from "../lib/forsale/rules.js";
 import { pullForSale } from "../lib/forsale/ingest.js";
 import { prepareForSale } from "../lib/forsale/prepare.js";
 
@@ -30,7 +31,8 @@ export default async function handler(req, res) {
       const plan = planRun({ spentCycle: spent, remaining: rl && rl.fresh ? rl.remaining : null, now });
       let last = null;
       try { const r = await fetch(`${env.supabaseUrl}/rest/v1/app_usage_events?event_type=in.(forsale_pull,forsale_pull_skipped)&select=created_at,event_type,metadata&order=created_at.desc&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); const x = r.ok ? await r.json() : []; if (x[0]) { const m = x[0].metadata || {}; last = { at: x[0].created_at, event: x[0].event_type, requests: m.vendorQueries ?? m.requests ?? 0, allowance: m.allowance ?? null, stopped: m.stopped || null, skipped: m.skipped || null, errors: Array.isArray(m.errors) ? m.errors.length : 0, markedGone: m.markedGone ?? null, sources: m.sources ? Object.fromEntries(Object.entries(m.sources).map(([k, v]) => [k, { pages: v.pages, seen: v.seen, kept: v.kept, complete: v.complete }])) : null }; } } catch { /* the report still answers */ }
-      const budget = { cycleStart: cycleStart(now).toISOString(), planMonthly: BUDGET.plan_monthly, auctionReserveMonthly: BUDGET.auction_reserve_monthly, forsaleMonthlyBudget: BUDGET.forsale_monthly_budget, forsaleRunCap: BUDGET.forsale_run_cap, pull: BUDGET.pull, schedule: BUDGET.schedule, spentThisCycle: spent, allVendorQueriesThisCycle: all, auctionFeedThisCycleMeasured: spent == null || all == null ? null : Math.max(0, all - spent), vendorRemaining: rl ? rl.remaining : null, vendorRemainingFresh: !!(rl && rl.fresh), nextRunAllowance: plan.allowance, nextRunBinding: plan.binding, nextRunWhy: plan.why, lastRun: last };
+      const vendor = await readFigures(env, now);
+      const budget = { vendor, cycleStart: cycleStart(now).toISOString(), planMonthly: BUDGET.plan_monthly, auctionReserveMonthly: BUDGET.auction_reserve_monthly, forsaleMonthlyBudget: BUDGET.forsale_monthly_budget, forsaleRunCap: BUDGET.forsale_run_cap, pull: BUDGET.pull, schedule: BUDGET.schedule, spentThisCycle: spent, allVendorQueriesThisCycle: all, auctionFeedThisCycleMeasured: spent == null || all == null ? null : Math.max(0, all - spent), vendorRemaining: rl ? rl.remaining : null, vendorRemainingFresh: !!(rl && rl.fresh), nextRunAllowance: plan.allowance, nextRunBinding: plan.binding, nextRunWhy: plan.why, lastRun: last };
       return res.status(200).json({ report: true, vendorQueries: 0, budget, live: await count("gone=eq.false"), gone: await count("gone=eq.true"), resolved: await count("gone=eq.false&resolve_state=eq.resolved"), unresolved: await count("gone=eq.false&resolve_state=eq.unresolved"), notTried: await count("gone=eq.false&resolve_state=is.null"), withRead: await count("gone=eq.false&read=not.is.null") });
     }
     if (scheduled && (mode === "prepare" ? BUDGET.schedule.prepare_on : BUDGET.schedule.pull_on) !== true) {
@@ -42,23 +44,30 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, mode, vendorQueries: 0, ...out });
     }
     // the pull: the vendor key from the environment, in process only
-    const now = Date.now(), rl = await readRemaining(env), spent = await spentThisCycle(env, now);
-    const plan = planRun({ spentCycle: spent, remaining: rl && rl.fresh ? rl.remaining : null, now });
-    if (plan.allowance < 1) {
-      const skipped = { skipped: plan.binding, why: plan.why, plan: { allowance: plan.allowance, limits: plan.limits, monthlyCap: plan.monthlyCap, spentCycle: plan.spentCycle, remaining: plan.remaining, reserveLeft: plan.reserveLeft ?? null, daysLeft: plan.daysLeft } };
-      await recordUsageEvent({ event_type: "forsale_pull_skipped", route: "pull_for_sale", status: "skipped", oldcarsdata_metered_requests: 0, metadata: skipped }, env.supabaseUrl, env.supabaseKey).catch(() => {});
-      return res.status(200).json({ ok: true, mode, vendorQueries: 0, ...skipped });
+    const now = Date.now(); let rl = await readRemaining(env), spent = await spentThisCycle(env, now), probed = 0;
+    const apiKey = process.env.OLDCARSDATA_API_KEY;
+    const skip = async (skipped) => { await recordUsageEvent({ event_type: "forsale_pull_skipped", route: "pull_for_sale", status: "skipped", oldcarsdata_metered_requests: 0, metadata: skipped }, env.supabaseUrl, env.supabaseKey).catch(() => {}); return res.status(200).json({ ok: true, mode, vendorQueries: probed, ...skipped }); };
+    // NO FRESH READING of the vendor's own count (the live jobs keep it from searches, and an hour with none leaves it stale): ONE query reads it from the response headers and keeps it, when the budget can afford that query. Otherwise the reserve cannot be proved and the plan spends nothing.
+    if (!(rl && rl.fresh) && spent != null && planRun({ spentCycle: spent, remaining: 1e9, now }).allowance >= 2 && apiKey) {
+      const first = pulledSources(BUDGET.pull)[0];
+      if (first) {
+        configureOcdUsage({ ...env, job: "pull_for_sale", startedBy: scheduled ? "scheduled" : "probe", startedDetail: "reading the vendor's count" });
+        try { const j = await callOldCarsData("/classifieds", { source: first, status: "active", country_code: "US", limit: 1 }, apiKey); probed = 1; await flushOcdUsage(); if (await persistFigures(env, j && j.__rateLimit)) rl = await readRemaining(env); spent = await spentThisCycle(env, now); }
+        catch { probed = 1; }
+      }
     }
+    const plan = planRun({ spentCycle: spent, remaining: rl && rl.fresh ? rl.remaining : null, now });
+    if (plan.allowance < 1) return skip({ skipped: plan.binding, why: plan.why, plan: { allowance: plan.allowance, limits: plan.limits, monthlyCap: plan.monthlyCap, spentCycle: plan.spentCycle, remaining: plan.remaining, reserveLeft: plan.reserveLeft ?? null, daysLeft: plan.daysLeft } });
     // never past the vendor's own monthly reserve either (the existing floor every live job keeps), whatever the config says
     const floor = reserveFloor(); if (rl && rl.fresh && rl.remaining - plan.allowance < floor) plan.allowance = Math.max(0, rl.remaining - floor);
-    if (plan.allowance < 1) { const skipped = { skipped: "auction_reserve", why: "the vendor's remaining count is under the shared floor" }; await recordUsageEvent({ event_type: "forsale_pull_skipped", route: "pull_for_sale", status: "skipped", oldcarsdata_metered_requests: 0, metadata: skipped }, env.supabaseUrl, env.supabaseKey).catch(() => {}); return res.status(200).json({ ok: true, mode, vendorQueries: 0, ...skipped }); }
-    const apiKey = process.env.OLDCARSDATA_API_KEY;
+    if (plan.allowance < 1) return skip({ skipped: "auction_reserve", why: "the vendor's remaining count is under the shared floor" });
     if (!apiKey) return res.status(500).json({ error: "Vendor key missing." });
     configureOcdUsage({ ...env, job: "pull_for_sale", startedBy: scheduled ? "scheduled" : "probe", startedDetail: "classifieds pull" });
     const start = getOcdRunMetered();
     const out = await pullForSale(env, apiKey, { maxRequests: plan.allowance });
     await flushOcdUsage();
-    const meta = { ...out, vendorQueries: getOcdRunMetered() - start, binding: plan.binding, plan: { limits: plan.limits, monthlyCap: plan.monthlyCap, spentCycle: plan.spentCycle, remaining: plan.remaining } };
+    await persistFigures(env, out.rateLimit);   // the vendor's own figures from the last response, kept for the next run and the report
+    const meta = { ...out, vendorQueries: getOcdRunMetered() - start + probed, binding: plan.binding, plan: { limits: plan.limits, monthlyCap: plan.monthlyCap, spentCycle: plan.spentCycle, remaining: plan.remaining } };
     await recordUsageEvent({ event_type: "forsale_pull", route: "pull_for_sale", status: out.errors.length ? "errors" : out.stopped ? "stopped" : "ok", oldcarsdata_metered_requests: 0, metadata: meta }, env.supabaseUrl, env.supabaseKey).catch(() => {});
     return res.status(200).json({ ok: true, mode, ...meta });
   } catch (e) {
