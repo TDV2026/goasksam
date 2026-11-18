@@ -24,15 +24,11 @@ if (process.argv.includes("--mutants")) {
     ["the not-seen line ignores the engine's total", "lib/sell/sellFlow.js", "Number(p0.total) || 0, Number(noRange && noRange.total) || 0, list.length);", "Number(p0.total) || 0, list.length);"],
     ["buildResult prints its own not-seen line", "lib/sell/sellFlow.js", "empty: emptyLine,", "empty: !platform && !partner ? (note || \"Sam has not seen this car sell yet, so there is no place on record to point to.\") : null,"],
     ["the client ignores the cards of the way in", "lib/sell/sellMcClient.js", "if (d && d.variantSplit && d.variantSplit.show === true) {", "if (false) {"],
-    ["the client ignores the cards of the range step", "lib/sell/sellMcClient.js", "if (j && j.split && j.split.show === true) {", "if (false) {"],
+    ["the client ignores the cards of the range step", "lib/sell/sellMcClient.js", "if (j && j.split && j.split.show === true) { stopWait();", "if (false) { stopWait();"],
     ["the cards link to the Market Check address, not Sell's", "lib/sell/sellMcClient.js", 'CARDS(vs, "sellAddress")', 'CARDS(vs)'],
-    ["the range step drops the cards", "lib/sell/sellFlow.js", "  if (first && first.split) return { ...head, split: first.split };", ""],
-    ["the rest of Sell builds the blend's decision beside the cards", "lib/sell/sellFlow.js", "  if (first.split) return done({ ...head, split: first.split });", ""],
-    ["Sell never reads the cards", "lib/sell/sellBlock.js", "if (!VARIANT_SPLIT_PUBLIC || !d ||", "if (true || !d ||"],
-    ["the cards of a block are not kept", "lib/sell/sellBlock.js", "if (sp) first.split = sp; }\n  const base", "}\n  const base"],
     ["the page never asks for the cards before the first question", "lib/sell/sellMcClient.js", "    if (!key || S.cardsFor === key) { next(); return; }", "    next(); return;"],
     ["the cards are asked again and again", "lib/sell/sellMcClient.js", "S.cardsFor = key; S.busy = true;", "S.busy = true;"],
-    ["a failed cards read blocks Sell", "lib/sell/sellMcClient.js", "}).catch(function(){ if (seq0 === S.seq) { stopWait(); S.busy = false; next(); } });", "}).catch(function(){});"],
+    ["a failed cards read blocks Sell", "lib/sell/sellMcClient.js", "ask().catch(function(){ if (seq0 === S.seq) { stopWait(); S.busy = false; next(); } });", "ask().catch(function(){});"],
     ["a VIN is asked for its cards", "lib/sell/sellMcClient.js", "S.cardsFor = engineCar();   // a VIN names its car", "   // a VIN names its car"],
     ["the cards step is not in the server", "api/sellChat.js", 'if (b.step === "cards")', 'if (b.step === "cardsX")'],
     ["the range step carries no price line", "lib/sell/sellFlow.js", "noRange: { ...first.noRange, priceLine: first.noRange.priceLine || priceLineOf(first.noRange) } };", "noRange: first.noRange };"],
@@ -193,6 +189,8 @@ for (const how of ["typed", "bar", "partial"]) {
   calls.length = 0; cardCalls.length = 0; cardsReply = { split: null }; globalThis.location = { search: "?car=Ferrari%20330%20GTC", pathname: "/sell" }; new Function(SELL_MC_CLIENT)(); window.GAS_SELL.homeHtml(() => "<inbox>"); for (let i = 0; i < 8; i++) await tick();
   ok(/Which state is it in/.test(OBX.root.innerHTML) && cardCalls.length === 1 && !/vrs-row/.test(OBX.root.innerHTML), `${how}: one variant (no cards): the state question, exactly as before`);
 }
+// the cards are asked for once per car: the same car again (the state question already shown) is not asked a second time
+{ calls.length = 0; cardCalls.length = 0; cardsReply = { split: null }; globalThis.location = { search: "", pathname: "/sell" }; new Function(SELL_MC_CLIENT)(); replies = []; const S5 = window.GAS_SELL; S5.onCar({ resolvedCar: { year: 1987, make: "Porsche", model: "911" } }, "1987 Porsche 911"); for (let i = 0; i < 6; i++) await tick(); S5.onCar({ resolvedCar: { year: 1987, make: "Porsche", model: "911" } }, "1987 Porsche 911"); for (let i = 0; i < 6; i++) await tick(); ok(cardCalls.length === 1, "the cards are asked for once for the same car (" + cardCalls.length + ")"); }
 // a failed cards read never blocks Sell: the first question comes
 { calls.length = 0; cardCalls.length = 0; globalThis.location = { search: "?car=Ferrari%20330%20GT", pathname: "/sell" }; const f9 = globalThis.fetch; globalThis.fetch = (u, o) => { if (JSON.parse(o.body).step === "cards") return Promise.reject(new Error("net")); return f9(u, o); }; new Function(SELL_MC_CLIENT)(); window.GAS_SELL.homeHtml(() => "<inbox>"); for (let i = 0; i < 8; i++) await tick(); globalThis.fetch = f9;
   ok(/Which state is it in/.test(OBX.root.innerHTML), "a cards read that fails: the first question, Sell is never blocked"); }

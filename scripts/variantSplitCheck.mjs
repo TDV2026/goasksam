@@ -458,7 +458,7 @@ function mutants() {
     ["CARDFIX: a card says too few at any count", "lib/variantRows.js", s => s.replace("  if (n < floor) return reasonLine(\"variant.row_few\");", "  return reasonLine(\"variant.row_few\");")],
     ["NODEAD: the cards are not the answer when the blend has no range (two cars with sales)", "lib/variantRows.js", s => s.replace("if (blendNoRange === true && (rows || []).filter(r => r && Number(r.n) > 0).length >= 2) return { show: true, code: null };", "")],
     ["NODEAD: the cards ignore whether the blend has a range", "lib/variantRows.js", s => s.replace("showSplit(rows, !rangeTextOf(d))", "showSplit(rows, false)")],
-    ["NODEAD: a card with sales and no range has no too-few line", "lib/variantRows.js", s => s.replace('...(!range && n > 0 ? { fewText: reasonLine("variant.row_few") } : {}),', "")],
+    ["NODEAD: a card with sales and no range has no too-few line", "lib/variantRows.js", s => s.replace("...(!range && n > 0 ? { fewText: noRangeTextOf(raw, n) } : {}),", "")],
     ["NODEAD: one car alone is made a choice (any sales count)", "lib/variantRows.js", s => s.replace("filter(r => r && Number(r.n) > 0).length >= 2", "filter(r => r).length >= 2")],
     ["NODEAD: a card has no Sell address", "lib/variantRows.js", s => s.replace('sellAddress: "/sell?car=" + encodeURIComponent(st.token), ', "")],
     ["NODEAD: a card is stamped with the typed blend's name (Sell would sell the blend again)", "lib/variantRows.js", s => s.replace("...(fam.baseModel ? { canonicalLabel: words } : {}),", "")],
