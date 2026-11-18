@@ -6,7 +6,7 @@
 import fs from "node:fs"; import path from "node:path"; import crypto from "node:crypto"; import os from "node:os"; import { fileURLToPath } from "node:url";
 const args = process.argv.slice(2), here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(args.find(a => !a.startsWith("--")) || path.join(here, ".."));
-export const FILES = ["lib/onebox.js", "lib/variants.js", "data/variantFamilies.json"];
+export const FILES = ["lib/onebox.js", "lib/variants.js", "lib/variantRows.js", "data/variantFamilies.json"];
 export function stateOf(root) {
   const h = crypto.createHash("sha256");
   for (const f of FILES) { let t = fs.readFileSync(path.join(root, f), "utf8"); if (f === "lib/onebox.js") t = t.split("\n").filter(l => !/^(export )?const ENGINE_VERSION(_PREV)? = /.test(l)).join("\n"); h.update(f + "\n" + t + "\n"); }
@@ -27,6 +27,7 @@ if (args.includes("--mutants")) {
     ["lib/onebox.js changes, the stamp does not", "lib/onebox.js", s => s + "\n// a change\n", false],
     ["the variant data changes, the stamp does not", "data/variantFamilies.json", s => s.replace('"ferrari-330"', '"ferrari-330x"'), false],
     ["lib/variants.js changes, the stamp does not", "lib/variants.js", s => s + "\n// a change\n", false],
+    ["lib/variantRows.js changes, the stamp does not", "lib/variantRows.js", s => s + "\n// a change\n", false],
     ["the stamp moves and the record does not", "lib/onebox.js", s => s.replace(/^(export const ENGINE_VERSION = ")[^"]+/m, "$1e999-20990101-zz"), false],
     ["the stamp line alone is edited to its own value (no change: passes)", "lib/onebox.js", s => s, true],
   ]; let bad = 0;

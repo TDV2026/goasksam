@@ -26,13 +26,14 @@ if (process.argv.includes("--mutants")) {
     ["a question added", FILES.rows, "'<ul class=\"vrs-list\">'", "'<p class=\"vrs-q\">Which one?</p><ul class=\"vrs-list\">'"],
     ["the rows not under the range", FILES.rows, 'card.insertAdjacentHTML("afterend",h)', 'card.insertAdjacentHTML("beforebegin",h)'],
     ["the switch off: no module for a visitor", FILES.sw, "export const VARIANT_SPLIT_PUBLIC = true;", "export const VARIANT_SPLIT_PUBLIC = false;"],
-    ["the narrow strip stays while the split shows", FILES.rows, 'card.setAttribute("data-vrs-hid","1");narrow(true);', 'card.setAttribute("data-vrs-hid","1");'],
-    ["the narrow strip is not brought back", FILES.rows, 'if(!vs||vs.show!==true)narrow(false);return}', 'return}'],
+    ["the narrow strip stays while the split shows", FILES.rows, '}narrow(true);card=at;', '}card=at;'],
+    ["the narrow strip is not brought back", FILES.rows, 'narrow(false);hid(false)}return}', 'hid(false)}return}'],
     ["the mileage line is not printed under the list", FILES.rows, "(text(vs.mileageLine) ? '<p class=\"vrs-miline\">'", "(false ? '<p class=\"vrs-miline\">'"],
-    ["the module not wired into the page", FILES.bar, "return modelChoiceFinish(variantRowsFinish(carBarApply(", "return modelChoiceFinish((carBarApply("],
+    ["the module not wired into the page", FILES.bar, "modelChoiceFinish(variantRowsFinish(carBarApply(", "modelChoiceFinish((carBarApply("],
     ["a row wider than the phone", FILES.rows, ".vrs{margin:12px 0 0;max-width:100%}", ".vrs{margin:12px 0 0;min-width:700px}"],
-    ["the single range card is kept next to the cards", FILES.rows, 'card.style.display="none";card.setAttribute("data-vrs-hid","1");', ''],
+    ["the single range card is kept next to the cards", FILES.rows, 'else{card.style.display="none";card.setAttribute("data-vrs-hid","1")}', 'else{}'],
     ["the range card stays hidden after a later answer has no variants", FILES.rows, 'card.style.display="";card.removeAttribute("data-vrs-hid")', ''],
+    ["the too-few line is not printed", FILES.rows, "(!text(r.rangeText) && text(r.fewText) ?", "(false ?"],
     ["a variant's mileage note is not printed", FILES.rows, "(text(r.mileageNote) ? '<span class=\"vrs-mi\">'", "(false ? '<span class=\"vrs-mi\">'"],
     ["the set-aside line is not printed", FILES.rows, "(text(vs.asideLine) ? '<p class=\"vrs-aside\">'", "(false ? '<p class=\"vrs-aside\">'"],
     ["a refusal with the split is not given the rows (no card anchor)", FILES.rows, 'ref=card?null:document.querySelector(".refusal")', 'ref=null'],
@@ -60,6 +61,7 @@ const tok = (trim, extra = {}) => CT.encodeCar({ year: 1987, make: "Pontiac", mo
 const ROW = (label, rangeText, salesText, trim) => { const t = tok(trim); return { label, ...(rangeText ? { rangeText } : {}), salesText, car: { token: t, words: "1987 Pontiac Firebird " + trim, address: "/market-check?car=" + encodeURIComponent(t) } }; };
 // the engine's order is deliberately neither alphabetical nor by figure; the thin variant has no range
 const SPLIT = { show: true, line: "Five variants sold in the last 24 months, priced apart.", rows: [ROW("Trans Am", "$22,000 to $31,000", "14 sales", "Trans Am"), ROW("Formula", "$16,000 to $22,500", "9 sales", "Formula"), ROW("Firebird", "$9,500 to $14,000", "11 sales", "Base"), ROW("GTA", "$24,500 to $33,000", "6 sales", "GTA"), ROW("Firehawk", null, "2 sales", "Firehawk")] };
+SPLIT.rows[4].fewText = "Too few sales for a range.";   // the engine's too-few line on a card with sales and no range (lane-b-sell-nolump-3)
 SPLIT.mileageLine = "The range is for all mileages."; SPLIT.rows[2].mileageNote = "Narrowed to 50,000 to 100,000 miles."; SPLIT.asideLine = "Four replicas and tributes are set aside and counted in none of these.";   // the engine's words per row (the same mileage line its own page prints) and the one line for the set-aside replicas
 const base = loadFixtures("mc-1995-porsche-911"), KEY = Object.keys(base).find(k => /^POST \/api\/sellerDecision/.test(k));
 const withSplit = (vs, firebird = true) => { const f = { ...base }, j = JSON.parse(base[KEY].body); if (firebird) j.resolvedCar = { year: 1987, make: "Pontiac", model: "Firebird", trim: "Trans Am" }; if (vs === undefined) delete j.variantSplit; else j.variantSplit = vs; f[KEY] = { ...base[KEY], body: JSON.stringify(j) }; return f; };
@@ -84,7 +86,7 @@ async function call(handler, url, crew) { const res = { h: {}, code: 200, body: 
   ok(r.present && r.rows[4].label === "Firehawk" && r.rows[4].range === null && r.rows[4].sales === "2 sales", "the thin variant shows its label and salesText only");
   ok(r.present && r.under && r.inHero, "the rows sit directly under the price range card, in the answer's own column");
   ok(r.present && r.rows.every((x, i) => x.tag === "A" && x.href === want[i].car.address && x.href.includes(encodeURIComponent(want[i].car.token))), "each row is a real link to its own car address and the address carries that row's token :: " + JSON.stringify(r.rows && r.rows.map(x => x.tag)));
-  ok(r.present && r.text === SPLIT.line + want.map(w => w.label + (w.rangeText || "") + w.salesText + (w.mileageNote || "")).join("") + SPLIT.mileageLine + SPLIT.asideLine, "the block's text is the engine's words and no others (no total, no question, no chooser) :: " + (r.text || "").slice(0, 160));
+  ok(r.present && r.text === SPLIT.line + want.map(w => w.label + (w.rangeText || "") + (!w.rangeText && w.fewText ? w.fewText : "") + w.salesText + (w.mileageNote || "")).join("") + SPLIT.mileageLine + SPLIT.asideLine, "the block's text is the engine's words and no others (no total, no question, no chooser) :: " + (r.text || "").slice(0, 160));
   ok(r.present && r.hidden === true, "the single range card is not shown while the variants are (a card per variant takes its place) :: " + r.hidden);
   ok(r.present && r.mi.length === 1 && r.mi[0] === want[2].mileageNote && r.miline.length === 1 && r.miline[0] === SPLIT.mileageLine && r.miBelow && r.aside === SPLIT.asideLine, "the engine's mileage line is printed ONCE, under the list, a row that differs prints its own, and the one set-aside line is printed as sent :: " + JSON.stringify([r.mi, r.miline, r.aside]));
   ok(r.present && r.narrow.length > 0 && r.narrow.every(d => d === "none"), "the Narrow by pills and the mileage box (the narrow strip) are hidden while the split shows :: " + JSON.stringify(r.narrow));
