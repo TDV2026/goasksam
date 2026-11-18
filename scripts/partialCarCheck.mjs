@@ -41,7 +41,9 @@ globalThis.fetch = async (url, init) => {
   if (u.pathname.endsWith("/taxonomy_makes")) return new Response(JSON.stringify(["BMW", "Porsche", "Audi", "Mercedes-Benz"].map(name => ({ name }))), { status: 200 });   // the make list the resolver reads (the shared world answers every other table with nothing)
   return baseFetch(url, init);
 };
-const call = W.caller(SD), callBuy = W.caller(BS), callVI = W.caller(VI);
+process.env.CURTAIN_CREW_CODE = process.env.CURTAIN_CREW_CODE || "fixture-crew-code"; globalThis.__mintCrew = (await imp("lib/_crew.js")).mintCrewCookieValue;
+const call = W.caller(SD, { crew: true }), callBuy = W.caller(BS, { crew: true }), callVI = W.caller(VI, { crew: true });   // the partial car is crew only (PARTIAL_CAR_PUBLIC off): the cases below are the crew's; the visitor's are in their own block
+const callV = W.caller(SD), callBuyV = W.caller(BS);
 const mc = async (text, extra, query) => { try { return await call({ oneBox: true, search: text, ...(extra || {}) }, query); } catch (e) { return { error: String(e && e.message) }; } };
 const dec = t => CT.decodeCar(t), fullOf = c => { const d = dec(c.token); return d && d.model ? [d.year || null, d.make, d.model, d.mileage || null] : null; };
 const MKEYS = "address,label,token,words";
@@ -78,7 +80,7 @@ await section("token", async () => {
   ok("a full car's words are unchanged (line, short, label)", (() => { const w = CT.carWords(dec(OLD1)); return w.line === "2003 Mercedes-Benz SL-Class SL500 · 38,400 miles" && w.short === "2003 SL500" && w.label === "2003 Mercedes-Benz SL-Class SL500 38,400 miles"; })(), CT.carWords(dec(OLD1)));
   const OLD2 = "v1.TYsxCoBADMC-cmTu0rFd_YBfEBUU7xSqDiL-XUQHt0CSk8BRM0v1Ems79MlUU9VE9NEgHPhjhTLhfA1C6XBMFWHD-Q2Bz3vOQhlfum4.DUHzLJsb";
   ok("a second old full token (null year range, null mileage) is byte for byte too", CT.encodeCar({ raw: "1999 Porsche 911 Carrera", year: 1999, make: "Porsche", model: "911", trim: "Carrera", yearRange: null, mileage: null }) === OLD2 && dec(OLD2).model === "911");
-  ok("the car bar's door reads a partial token as its words", (() => { const i = CB.carInfo(tokenOf({ raw: "2009 BMW", year: 2009, make: "BMW" })); return !!i && i.label === "2009 BMW" && i.line === "2009 BMW" && i.short === "2009 BMW"; })());
+  ok("the car bar's door reads a partial token as its words", (() => { const i = CB.carInfo(tokenOf({ raw: "2009 BMW", year: 2009, make: "BMW" }), true); return !!i && i.label === "2009 BMW" && i.line === "2009 BMW" && i.short === "2009 BMW"; })());
 });
 
 // ===== 2 MARKET CHECK: the model choice instead of an answer =====
@@ -128,7 +130,7 @@ await section("market check", async () => {
 
 // ===== 3 SELL =====
 await section("sell", async () => {
-  const senv = { ...env, noStore: false }, tok = tokenOf({ raw: "2009 BMW", year: 2009, make: "BMW" });
+  const senv = { ...env, noStore: false, partialCar: true }, tok = tokenOf({ raw: "2009 BMW", year: 2009, make: "BMW" });
   for (const [L, carText, e] of [["words", "2009 BMW", senv], ["partial token as the car", tok, { ...senv, car: CT.decodeCar(tok) }]]) for (const step of ["buildRange", "buildResult"]) {
     const o = await SFLOW[step](e, { carText, state: "Texas", how: "self", rush: null }).catch(x => ({ error: "threw " + x.message }));
     choiceChecks(`Sell ${step}, ${L}`, { status: "one_box", tier: "model_choice", modelChoice: o.modelChoice, prompt: o.modelChoice && o.modelChoice.line, modelOptions: o.modelChoice && o.modelChoice.choices.map(c => c.label) }, { line: "Which 2009 BMW?", models: BMW_SOLD, make: "BMW", year: 2009, tool: "sell", partialLine: "2009 BMW" });
@@ -157,8 +159,8 @@ await section("find and tasks", async () => {
   ok("Find, a tampered token and no words: today's answer (an error status), no car", !(bt.car && bt.car.token), bt && [bt.status]);
   const ff = await callBuy({ q: "2003 Mercedes-Benz SL500" }); ok("Find, a full car: unchanged, full token", ff.status === "ok" && !!ff.car && !!fullOf(ff.car), ff && ff.car);
   // Tasks: the composer's box is filled with the engine's words for the token; the preview takes the words
-  ok("Tasks: the box is filled with the engine's words for a partial token", CB.carInfo(tok).label === "2009 BMW" && CB.carInfo(tokenOf({ year: null, yearRange: { start: 1960, end: 1969 }, make: "Porsche" })).label === "1960s Porsche");
-  const tp = await TK.emailPreview(env, "2009 BMW").catch(e => ({ threw: String(e.message) }));
+  ok("Tasks: the box is filled with the engine's words for a partial token", CB.carInfo(tok, true).label === "2009 BMW" && CB.carInfo(tokenOf({ year: null, yearRange: { start: 1960, end: 1969 }, make: "Porsche" }), true).label === "1960s Porsche");
+  const tp = await CT.withPartialCar({ headers: { cookie: "gas_crew=" + globalThis.__mintCrew() } }, () => TK.emailPreview(env, "2009 BMW")).catch(e => ({ threw: String(e.message) }));
   ok("Tasks: the preview takes the words without throwing, stamps the partial car and invents no model", typeof tp === "object" && !!tp.car && !!tp.car.token && CT.isPartialCar(dec(tp.car.token)) && tp.car.line === "2009 BMW" && !("model" in dec(tp.car.token)), tp && [tp.error, tp.car]);
 });
 
@@ -192,6 +194,25 @@ await section("class", async () => {
   ok("every use of env.car in api/ and lib/ guards on a model (or on isPartialCar): a partial car is never handed to an engine as a car", unguarded.length === 0, unguarded);
   ok("the model guards exist in Find (search.js) and in Sell's resolver", /env\.car\.make && env\.car\.model/.test(fs.readFileSync("lib/live/search.js", "utf8")) && /env\.car\.make && env\.car\.model/.test(fs.readFileSync("lib/sell/sellFacts.js", "utf8")));
 });
+// ---- THE PARTIAL CAR IS CREW ONLY (Lane C, Nov 17 2026, Sam's rule for this push): PARTIAL_CAR_PUBLIC is off. A visitor's answers for "2009 BMW" and "2009 Audi" carry no partial car and no modelChoice, a partial token in a visitor's request is read as no token, Sell's flow serves no choice; with the switch on, these fail.
+await section("visitor", async () => {
+  const partialIn = o => { let hit = false; const walk = (x, d) => { if (!x || typeof x !== "object" || d > 7 || hit) return; if (typeof x.token === "string" && /^v1\./.test(x.token)) { const c = CT.decodeCar(x.token); if (c && CT.isPartialCar(c)) hit = true; } for (const k in x) walk(x[k], d + 1); }; walk(o, 0); return hit; };
+  ok("the switch is off in the code", CT.PARTIAL_CAR_PUBLIC === false && CB.PARTIAL_CAR_PUBLIC === false);
+  for (const text of ["2009 BMW", "2009 Audi", "BMW", "1960s Porsche"]) {
+    const v = await callV({ oneBox: true, search: text });
+    ok("visitor, Market Check '" + text + "': no modelChoice (the crew's object), no partial car in the answer", !!v && !v.modelChoice && !partialIn(v), v && Object.keys(v).slice(0, 8));
+    if (text === "2009 Audi") ok("visitor, Market Check '2009 Audi': the answer it gave before this push (the title read names the A4, no choice)", !!v && !!v.resolvedCar && v.resolvedCar.model === "A4", v && v.resolvedCar);
+    const f = await callBuyV({ q: text });
+    ok("visitor, Find '" + text + "': no partial car in the answer", !partialIn(f), f && f.car);
+  }
+  const ptok = tokenOf({ raw: "2009 BMW", year: 2009, make: "BMW" });
+  const fp = await callBuyV({ car: ptok }), vp = await callV({ oneBox: true, car: ptok });
+  ok("visitor, a partial token in the request is read as no token (Find, Market Check): no partial car, no choice", !partialIn(fp) && !partialIn(vp) && !(vp && vp.modelChoice), [fp && fp.status, vp && vp.tier]);
+  ok("visitor, carFromRequest reads a partial token as no car; the crew's request reads it", CT.carFromRequest({ query: { car: ptok }, headers: { cookie: "" } }) === null && !!CT.carFromRequest({ query: { car: ptok }, headers: { cookie: "gas_crew=" + globalThis.__mintCrew() } }));
+  const sv = await SFLOW.buildRange({ ...env, noStore: false, partialCar: false }, { carText: "2009 BMW", state: "Texas", how: "self", rush: null });
+  ok("visitor, Sell '2009 BMW': no modelChoice, the old error words", !sv.modelChoice && sv.error === "car", sv && Object.keys(sv));
+  ok("visitor, the bar's door opens no partial car (carInfo without the crew flag is null, with it the car)", CB.carInfo(ptok) === null && !!CB.carInfo(ptok, true));
+});
 console.log = log; console.error = err;
 log(fails.slice(0, 80).map(f => "FAIL " + f).join("\n") + (fails.length ? "\n" : "") + `partialCarCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);
@@ -204,7 +225,14 @@ function mutants() {
     sub("lib/carToken.js", "if (!f || !valid(f[2], v)) return null; car[f[0]] = v;", "if (!f) return null; car[f[0]] = v;", "a field of the wrong type decodes"),
     sub("lib/carToken.js", "parts[2] !== sum(parts[1])", "false", "a tampered token decodes"),
     sub("lib/carToken.js", "return r.start % 10 === 0 && r.end === r.start + 9 ? `${r.start}s`", "return false ? `${r.start}s`", "a decade is not said as 1960s"),
-    sub("lib/onebox.js", "const part = partialOf(vehicle);", "const part = null;", "Find's answer carries no partial car (withServedCar ignores a make with no model)"),
+    sub("lib/carToken.js", "export const PARTIAL_CAR_PUBLIC = false;", "export const PARTIAL_CAR_PUBLIC = true;", "the partial car switched on for everyone"),
+    sub("lib/carToken.js", "return c && isPartialCar(c) && !partialCarOk(req) ? null : c;", "return c;", "a visitor's partial token is read as a car"),
+    sub("api/sellerDecision.js", "const mch = partialCarOk(req) ? await partialChoiceAnswer(", "const mch = true ? await partialChoiceAnswer(", "Market Check serves the choice to a visitor"),
+    sub("api/sellerDecision.js", "!(partialCarOk(req) && makeWithYearsOnly(rawSearch, resolution.vehicle))", "!makeWithYearsOnly(rawSearch, resolution.vehicle)", "a visitor's make and year skips the title read"),
+    sub("lib/sell/sellFlow.js", "if (!sc.car && sc.partial && env && env.partialCar === true) return done({", "if (!sc.car && sc.partial) return done({", "Sell serves the choice to a visitor"),
+    sub("lib/carBar.js", "const partial = !!car && !car.model; if (partial && !partialOk) car = null;", "const partial = !!car && !car.model;", "the bar's door opens a partial car for a visitor"),
+    sub("lib/onebox.js", "const part = partialCarActive() ? partialOf(vehicle) : null;", "const part = partialOf(vehicle);", "a visitor's answer carries the partial car"),
+    sub("lib/onebox.js", "const part = partialCarActive() ? partialOf(vehicle) : null;", "const part = null;", "Find's answer carries no partial car (withServedCar ignores a make with no model)"),
     sub("lib/carChoice.js", "catch { top = []; }", "catch { top = []; } if (!top.length) top = await deps.topModels(env, partial.make, CHOICE_MAX, null);", "a make and year with no sales is widened to the make's whole list"),
     sub("lib/carChoice.js", ".slice(0, CHOICE_MAX);\n  const years", ".reverse().slice(0, CHOICE_MAX);\n  const years", "the models are not most sold first"),
     sub("lib/carChoice.js", "export const CHOICE_MAX = 12;", "export const CHOICE_MAX = 30;", "more than 12 choices"),
@@ -214,7 +242,7 @@ function mutants() {
     sub("lib/carChoice.js", "typeLine: TYPE_LINE,", "typeLine: null,", "no line saying to type the model"),
     sub("api/sellerDecision.js", "if (mch) return res.status(200).json({ status: \"one_box\", ...(mc ||", "if (false) return res.status(200).json({ status: \"one_box\", ...(mc ||", "Market Check serves no modelChoice"),
     sub("api/sellerDecision.js", "const rawSearch0 = (tokenCar && isPartialCar(tokenCar) && carWords(tokenCar).label) ||", "const rawSearch0 =", "Market Check does not read a partial token as its words"),
-    sub("lib/sell/sellFlow.js", "if (!sc.car && sc.partial) return done({ modelChoice: await partialChoiceAnswer(sc.partial, env, \"sell\") || undefined, error: \"car\", couldNotLine: reasonLine(\"cold.missed\") });", "", "Sell serves no modelChoice"),
+    sub("lib/sell/sellFlow.js", "if (!sc.car && sc.partial && env && env.partialCar === true) return done({ modelChoice: await partialChoiceAnswer(sc.partial, env, \"sell\") || undefined, error: \"car\", couldNotLine: reasonLine(\"cold.missed\") });", "", "Sell serves no modelChoice"),
     sub("lib/sell/sellFacts.js", "if (env && isPartialCar(env.car) && /^v1\\./.test(String(text || \"\"))) text = carWords(env.car).label;", "", "Sell does not read a partial token as its words"),
     sub("api/buySearch.js", "String(b.q || (isPartialCar(env.car) ? carWords(env.car).label : \"\"))", "String(b.q || \"\")", "Find does not run the partial token's words"),
     sub("api/vehicleIdentity.js", "if (tokenCar && !isPartialCar(tokenCar)) {", "if (tokenCar) {", "vehicleIdentity returns a partial token as a valid car"),

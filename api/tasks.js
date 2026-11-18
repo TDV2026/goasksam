@@ -17,7 +17,7 @@
 //   GET  ?run=1                         -> the matching run after each live pull (Vercel cron, CRON_SECRET)
 // Probe-keyed tests (PROBE_KEY, in the x-ops-key or x-probe-key header): act as a test user, seed listing rows instead of the live table, mock
 // the clock; test runs never send email (email_status "test").
-import { carFromRequest } from "../lib/carToken.js";
+import { carFromRequest, withPartialCar } from "../lib/carToken.js";
 import { withTracking } from "../lib/track/log.js";
 import { supabaseEnv, supabaseSelect, supabaseBytesSoFar } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
@@ -656,4 +656,4 @@ async function handler(req, res) {
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
-export default withTracking("/api/tasks", handler, "tasks");
+export default withTracking("/api/tasks", (req, res) => withPartialCar(req, () => handler(req, res)), "tasks");   // the partial car is crew only: the engine asks partialCarActive() (lib/carToken.js)

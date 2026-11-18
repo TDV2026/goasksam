@@ -20,7 +20,7 @@ async function handlerCore(req, res) {
   const env0 = supabaseEnv();
   if (!env0) return res.status(503).json({ error: "unavailable" });
   // ?car=<v1 token>: the car the page already resolved, per request (a copy of env, never shared); a plain words ?car= is not a token and changes nothing
-  const env = { ...env0, car: carFromRequest(req) };
+  const env = { ...env0, car: carFromRequest(req), partialCar: partialCarOk(req) };
   const b = req.body || {};
   // The one-direction Sell (lib/sell/sellFlow.js). The car questions are Market Check's own (api/sellNext.js
   // serves its page); {action:"flow", step:"result", car, state, how} -> the result; step:"ask" -> follow-up.
@@ -82,4 +82,4 @@ async function handlerCore(req, res) {
 }
 
 // lane-b-archiveread step e: the entry names its work for caller attribution (lib/_caller.js)
-export default function handler(req, res) { return runAsCaller(callerFor("/api/sellChat", req), () => handlerCore(req, res)); }
+export default function handler(req, res) { return runAsCaller(callerFor("/api/sellChat", req), () => withPartialCar(req, () => handlerCore(req, res))); }

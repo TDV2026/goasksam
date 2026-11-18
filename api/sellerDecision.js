@@ -5,7 +5,7 @@ import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js"
 import { countNoun } from "../lib/countNoun.js";
 import { unusedFieldsFor } from "../lib/live/unusedWords.js";
 import { tryRefresh } from "../lib/refreshGate.js";
-import { carFromRequest, isPartialCar, carWords } from "../lib/carToken.js";
+import { carFromRequest, isPartialCar, carWords, partialCarOk, withPartialCar } from "../lib/carToken.js";
 import { partialChoiceAnswer, makeWithYearsOnly } from "../lib/carChoice.js";
 import { resolveVehicle, sanitizeResolvedVehicle, primeResolver } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
@@ -3314,7 +3314,7 @@ async function handler(req, res) {
         // Runs for BOTH One Box and /sell (Step 2): the wizard vehicle step gets the same archive
         // title resolution, so an unresolved make+token ("Eagle Talon", a pre-war marque) resolves
         // from the sale titles instead of a generic re-ask.
-        if (!(resolution.vehicle && resolution.vehicle.model) && !car.acceptModelLevel && typeof rawSearch === "string" && !makeWithYearsOnly(rawSearch, resolution.vehicle)) {   // a make and a year alone (a partial car) is never given a model from the titles: the model choice is served
+        if (!(resolution.vehicle && resolution.vehicle.model) && !car.acceptModelLevel && typeof rawSearch === "string" && !(partialCarOk(req) && makeWithYearsOnly(rawSearch, resolution.vehicle))) {   // a make and a year alone (a partial car) is never given a model from the titles: the model choice is served
           try {
             const tok = await archiveTitleModel(rawSearch, { supabaseUrl, supabaseKey });   // the one title read (lib/vehicle.js), the same the warm uses
             if (tok && tok.make && tok.model) {
@@ -3351,7 +3351,7 @@ async function handler(req, res) {
           // through to the normal re-ask only if the make has no usable archive models.
           const mc = await runOneBoxModelChoice(resolution.vehicle, { supabaseUrl, supabaseKey });
           // THE MODEL CHOICE (Lane D, lane-d-car-bar-partial, lib/carChoice.js): a make with no model is never answered; the engine serves modelChoice (the models of that make and year that have sold, each with its full car token), and the older prompt and modelOptions say the same list
-          const mch = await partialChoiceAnswer(resolution.vehicle, { supabaseUrl, supabaseKey }, "mc");
+          const mch = partialCarOk(req) ? await partialChoiceAnswer(resolution.vehicle, { supabaseUrl, supabaseKey }, "mc") : null;
           if (mch) return res.status(200).json({ status: "one_box", ...(mc || { tier: "model_choice", resolvedCar: { year: Number(resolution.vehicle.year) || null, make: resolution.vehicle.make, model: null, trim: null, bodyStyle: null, transmission: null } }), prompt: mch.line, modelOptions: mch.choices.map(c => c.label), modelChoice: mch });
           if (mc) return res.status(200).json({ status: "one_box", ...mc });
           return res.status(200).json({
@@ -3365,7 +3365,7 @@ async function handler(req, res) {
           });
         } else {
           const cl = resolution.clarification || { question: "What year, make and model are you selling?" };
-          const mchSell = !req.body?.oneBox ? await partialChoiceAnswer(resolution.vehicle, { supabaseUrl, supabaseKey }, "sell") : null;   // Sell's door: the same model choice, its addresses in Sell
+          const mchSell = !req.body?.oneBox && partialCarOk(req) ? await partialChoiceAnswer(resolution.vehicle, { supabaseUrl, supabaseKey }, "sell") : null;   // Sell's door: the same model choice, its addresses in Sell
           // Chassis exact-match (One Box, multi-token path): a chassis-shaped query that
           // resolved to nothing. Attach the separator-tolerant archive match (evidence only,
           // never ranking) so the frontend can lead with "I know this exact car" before
@@ -4767,4 +4767,4 @@ async function handler(req, res) {
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
-export default withTracking("/api/sellerDecision", handler, "sell");
+export default withTracking("/api/sellerDecision", (req, res) => withPartialCar(req, () => handler(req, res)), "sell");   // the partial car is crew only: the engine asks partialCarActive() (lib/carToken.js)

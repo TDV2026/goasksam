@@ -37,6 +37,9 @@ export function setEnv() {
   process.env.SUPABASE_URL = "https://fake.supabase.test"; process.env.SUPABASE_SERVICE_ROLE_KEY = "k"; process.env.SUPABASE_ANON_KEY = "k"; process.env.OLDCARSDATA_API_KEY = "x"; process.env.LAUNCH_STAGE = "2";
 }
 // the real Market Check / Sell handler, called as the page calls it
-export function caller(H) {
-  return async (body, query) => { let out = null; const res = { status(c) { this.code = c; return this; }, json(b) { out = b; return this; }, setHeader() {}, end() {}, getHeader() {} }; await H({ method: "POST", headers: { origin: "https://goasksam.com", cookie: "" }, query: query || {}, body, socket: { remoteAddress: "10.0." + Math.floor(Math.random() * 250) + "." + Math.floor(Math.random() * 250) } }, res); return out; };
+// crew: the request carries a signed crew cookie (a fixture secret), as the crew's browser does; without it the request is a visitor's
+import("../lib/_crew.js").then(m => { globalThis.__mintCrew = () => m.mintCrewCookieValue(); });
+export function caller(H, { crew = false } = {}) {
+  let cookie = ""; if (crew) { process.env.CURTAIN_CREW_CODE = process.env.CURTAIN_CREW_CODE || "fixture-crew-code"; cookie = "gas_crew=" + globalThis.__mintCrew(); }
+  return async (body, query) => { let out = null; const res = { status(c) { this.code = c; return this; }, json(b) { out = b; return this; }, setHeader() {}, end() {}, getHeader() {} }; await H({ method: "POST", headers: { origin: "https://goasksam.com", cookie }, query: query || {}, body, socket: { remoteAddress: "10.0." + Math.floor(Math.random() * 250) + "." + Math.floor(Math.random() * 250) } }, res); return out; };
 }
