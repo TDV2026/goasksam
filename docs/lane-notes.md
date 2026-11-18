@@ -3941,3 +3941,4 @@ alter table for_sale_listings enable row level security;
 revoke all on for_sale_listings from anon, authenticated;
 ```
 - Search check: no public page touched (a visitor's Find and Market Check answers and pages are byte for byte as before; the groups and the line reach the crew only behind FORSALE_PUBLIC, off).
+- READY D (Lane D, lane-d-forsale, code commit fc6526f2, the tip is the commit that carries this line; off origin/main b7a2e555; NOT pushed): forSaleCheck 134/0 (24 pass, 40 FAIL on main), 39 of 39 mutants killed in a copy, engineFieldsCheck 41/0, copyCheck 808/0, findResultsCheck 98/0 (same on main). The SQL is above and in docs/supabase-forsale.sql. Source types for Sam to correct are listed above (data/forsaleSources.json). FORSALE_PUBLIC is off.
