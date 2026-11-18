@@ -12,7 +12,7 @@ import fs from "node:fs"; import path from "node:path"; import { execFileSync } 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CHROME = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 if (!fs.existsSync(CHROME)) { console.log("variantRowsPageCheck: SKIP no Chrome"); process.exit(0); }
-const FILES = { rows: "lib/variantRowsPage.js", bar: "lib/carBar.js" };
+const FILES = { rows: "lib/variantRowsPage.js", bar: "lib/carBar.js", sw: "lib/variants.js" };
 if (process.argv.includes("--mutants")) {
   const MUT = [
     ["rows sorted by the page", FILES.rows, "var rows = vs.rows.filter(", "var rows = vs.rows.slice().sort(function (a, b) { return a.label < b.label ? -1 : 1; }).filter("],
@@ -25,7 +25,10 @@ if (process.argv.includes("--mutants")) {
     ["a total added", FILES.rows, 'return h + "</ul></div>";', 'return h + "</ul><p class=\\"vrs-total\\">" + rows.length + " variants</p></div>";'],
     ["a question added", FILES.rows, "'<ul class=\"vrs-list\">'", "'<p class=\"vrs-q\">Which one?</p><ul class=\"vrs-list\">'"],
     ["the rows not under the range", FILES.rows, 'card.insertAdjacentHTML("afterend",h)', 'card.insertAdjacentHTML("beforebegin",h)'],
-    ["the module added for a visitor", FILES.rows, "if (tool !== \"mc\" || isCrewRequest(req) !== true || ", "if (tool !== \"mc\" || "],
+    ["the switch off: no module for a visitor", FILES.sw, "export const VARIANT_SPLIT_PUBLIC = true;", "export const VARIANT_SPLIT_PUBLIC = false;"],
+    ["the narrow strip stays while the split shows", FILES.rows, 'card.setAttribute("data-vrs-hid","1");narrow(true);', 'card.setAttribute("data-vrs-hid","1");'],
+    ["the narrow strip is not brought back", FILES.rows, 'if(!vs||vs.show!==true)narrow(false);return}', 'return}'],
+    ["the mileage line is not printed under the list", FILES.rows, "(text(vs.mileageLine) ? '<p class=\"vrs-miline\">'", "(false ? '<p class=\"vrs-miline\">'"],
     ["the module not wired into the page", FILES.bar, "return variantRowsFinish(carBarApply(", "return (carBarApply("],
     ["a row wider than the phone", FILES.rows, ".vrs{margin:12px 0 0;max-width:100%}", ".vrs{margin:12px 0 0;min-width:700px}"],
     ["the single range card is kept next to the cards", FILES.rows, 'card.style.display="none";card.setAttribute("data-vrs-hid","1");', ''],
@@ -53,13 +56,13 @@ const tok = (trim, extra = {}) => CT.encodeCar({ year: 1987, make: "Pontiac", mo
 const ROW = (label, rangeText, salesText, trim) => { const t = tok(trim); return { label, ...(rangeText ? { rangeText } : {}), salesText, car: { token: t, words: "1987 Pontiac Firebird " + trim, address: "/market-check?car=" + encodeURIComponent(t) } }; };
 // the engine's order is deliberately neither alphabetical nor by figure; the thin variant has no range
 const SPLIT = { show: true, line: "Five variants sold in the last 24 months, priced apart.", rows: [ROW("Trans Am", "$22,000 to $31,000", "14 sales", "Trans Am"), ROW("Formula", "$16,000 to $22,500", "9 sales", "Formula"), ROW("Firebird", "$9,500 to $14,000", "11 sales", "Base"), ROW("GTA", "$24,500 to $33,000", "6 sales", "GTA"), ROW("Firehawk", null, "2 sales", "Firehawk")] };
-SPLIT.rows[0].mileageNote = "The range is for all mileages."; SPLIT.asideLine = "Four replicas and tributes are set aside and counted in none of these.";   // the engine's words per row (the same mileage line its own page prints) and the one line for the set-aside replicas
+SPLIT.mileageLine = "The range is for all mileages."; SPLIT.asideLine = "Four replicas and tributes are set aside and counted in none of these.";   // the engine's words per row (the same mileage line its own page prints) and the one line for the set-aside replicas
 const base = loadFixtures("mc-1995-porsche-911"), KEY = Object.keys(base).find(k => /^POST \/api\/sellerDecision/.test(k));
 const withSplit = (vs, firebird = true) => { const f = { ...base }, j = JSON.parse(base[KEY].body); if (firebird) j.resolvedCar = { year: 1987, make: "Pontiac", model: "Firebird", trim: "Trans Am" }; if (vs === undefined) delete j.variantSplit; else j.variantSplit = vs; f[KEY] = { ...base[KEY], body: JSON.stringify(j) }; return f; };
 const URL0 = "/market-check?q=1995%20Porsche%20911";
-const READ = () => { const v = document.getElementById("vrs"), card = document.querySelector(".hero-left .sfc-card"); if (!v) return { present: false, cards: !!card, hidden: !!card && getComputedStyle(card).display === "none" };
+const READ = () => { const v = document.getElementById("vrs"), card = document.querySelector(".hero-left .sfc-card"); if (!v) return { present: false, narrow: [...document.querySelectorAll(".narrow-strip")].map(n => getComputedStyle(n).display), cards: !!card, hidden: !!card && getComputedStyle(card).display === "none" };
   const r = v.getBoundingClientRect(), c = card && card.getBoundingClientRect(), rows = [...v.querySelectorAll(".vrs-row")];
-  return { present: true, cards: !!card, hidden: !!card && getComputedStyle(card).display === "none", mi: [...v.querySelectorAll(".vrs-mi")].map(x => x.textContent), aside: (v.querySelector(".vrs-aside") || {}).textContent || null, text: v.textContent, line: (v.querySelector(".vrs-line") || {}).textContent || null, under: !!card && v.previousElementSibling === card && r.top >= c.bottom - 1, inHero: !!v.closest(".hero-left"),
+  return { present: true, cards: !!card, hidden: !!card && getComputedStyle(card).display === "none", mi: [...v.querySelectorAll(".vrs-mi")].map(x => x.textContent), miline: [...v.querySelectorAll(".vrs-miline")].map(x => x.textContent), miBelow: !!v.querySelector(".vrs-miline") && v.querySelector(".vrs-miline").previousElementSibling === v.querySelector(".vrs-list"), narrow: [...document.querySelectorAll(".narrow-strip")].map(n => getComputedStyle(n).display), aside: (v.querySelector(".vrs-aside") || {}).textContent || null, text: v.textContent, line: (v.querySelector(".vrs-line") || {}).textContent || null, under: !!card && v.previousElementSibling === card && r.top >= c.bottom - 1, inHero: !!v.closest(".hero-left"),
     rows: rows.map(x => ({ tag: x.tagName, href: x.getAttribute("href"), label: (x.querySelector(".vrs-l") || {}).textContent, range: x.querySelector(".vrs-range") ? x.querySelector(".vrs-range").textContent : null, sales: x.querySelector(".vrs-sales") ? x.querySelector(".vrs-sales").textContent : null })),
     overflow: document.documentElement.scrollWidth - innerWidth, right: Math.round(r.right), vw: innerWidth }; };
 const b = await launch();
@@ -77,9 +80,10 @@ async function call(handler, url, crew) { const res = { h: {}, code: 200, body: 
   ok(r.present && r.rows[4].label === "Firehawk" && r.rows[4].range === null && r.rows[4].sales === "2 sales", "the thin variant shows its label and salesText only");
   ok(r.present && r.under && r.inHero, "the rows sit directly under the price range card, in the answer's own column");
   ok(r.present && r.rows.every((x, i) => x.tag === "A" && x.href === want[i].car.address && x.href.includes(encodeURIComponent(want[i].car.token))), "each row is a real link to its own car address and the address carries that row's token :: " + JSON.stringify(r.rows && r.rows.map(x => x.tag)));
-  ok(r.present && r.text === SPLIT.line + want.map(w => w.label + (w.rangeText || "") + w.salesText + (w.mileageNote || "")).join("") + SPLIT.asideLine, "the block's text is the engine's words and no others (no total, no question, no chooser) :: " + (r.text || "").slice(0, 160));
+  ok(r.present && r.text === SPLIT.line + want.map(w => w.label + (w.rangeText || "") + w.salesText + (w.mileageNote || "")).join("") + SPLIT.mileageLine + SPLIT.asideLine, "the block's text is the engine's words and no others (no total, no question, no chooser) :: " + (r.text || "").slice(0, 160));
   ok(r.present && r.hidden === true, "the single range card is not shown while the variants are (a card per variant takes its place) :: " + r.hidden);
-  ok(r.present && r.mi.length === 1 && r.mi[0] === want[0].mileageNote && r.aside === SPLIT.asideLine, "each variant shows the engine's mileage note and the one set-aside line is printed as sent :: " + JSON.stringify([r.mi, r.aside]));
+  ok(r.present && r.mi.length === 0 && r.miline.length === 1 && r.miline[0] === SPLIT.mileageLine && r.miBelow && r.aside === SPLIT.asideLine, "the engine's mileage line is printed ONCE, under the list, on no row, and the one set-aside line is printed as sent :: " + JSON.stringify([r.mi, r.miline, r.aside]));
+  ok(r.present && r.narrow.length > 0 && r.narrow.every(d => d === "none"), "the Narrow by pills and the mileage box (the narrow strip) are hidden while the split shows :: " + JSON.stringify(r.narrow));
   ok(!p._err.length, "no page error :: " + p._err.join("|")); await p.close(); }
 // following a row: Market Check already run for that variant, the car bar carrying that car
 { const row = SPLIT.rows[0], p = await open(b, row.car.address, { width: 1440, fixtures: base, settle: 2500 }), r = await p.evaluate(() => { const s = document.getElementById("gas-carbar"); return { bar: !!s && !s.hidden, line: (document.querySelector(".gcb-line") || {}).textContent || "", pills: [...document.querySelectorAll(".gcb-pill")].map(x => x.getAttribute("href")) }; });
@@ -89,6 +93,8 @@ async function call(handler, url, crew) { const res = { h: {}, code: 200, body: 
   fx["POST /api/sellerDecision " + NEXT] = { status: 200, contentType: "application/json", body: JSON.stringify(j1) }; fx["POST /api/sellerDecision " + NEXT2] = { status: 200, contentType: "application/json", body: JSON.stringify({ ...j1, variantSplit: SPLIT }) };
   const p = await open(b, URL0, { width: 1440, fixtures: fx, settle: 3000 }), ask = n => p.evaluate(b2 => fetch("/api/sellerDecision", { method: "POST", headers: { "content-type": "application/json" }, body: b2 }).then(r => r.json()).then(() => new Promise(r => setTimeout(r, 700))), n);
   const r0 = await p.evaluate(READ); await ask(NEXT); const r1 = await p.evaluate(READ); await ask(NEXT2); const r2 = await p.evaluate(READ);
+  const nb = x => x.narrow && x.narrow.length > 0 && x.narrow.every(d => d === "none"), nv = x => x.narrow && x.narrow.length > 0 && x.narrow.every(d => d !== "none");
+  ok(nb(r0) && nv(r1) && nb(r2), "the Narrow by strip is back once a later answer has no split (a trim chosen) and hidden again when the split returns :: " + JSON.stringify([r0.narrow, r1.narrow, r2.narrow]));
   ok(r0.present && !r1.present && r2.present && r2.rows.length === 5 && r0.hidden === true && r1.hidden === false && r2.hidden === true, "a later answer with no variantSplit removes the rows and one that carries it brings them back :: " + JSON.stringify([r0.present, r1.present, r2.present])); await p.close(); }
 // 3 the source computes nothing
 { const src = VR.variantRowsFactory.toString() + VR.VARIANT_ROWS_JS; ok(!/\.sort\(|\.reduce\(|Math\.|parseInt|parseFloat|Number\(|\.length\s*[-*\/]|\.length\s*\+\s*[\w(]|\+\+/.test(src), "the module has no sort, sum or arithmetic on the engine's figures"); }
@@ -100,10 +106,10 @@ for (const [name, vs] of [["show false (the rows sent anyway)", { ...SPLIT, show
   const html = f(SPLIT); ok((html.match(/class="vrs-range"/g) || []).length === 4 && (html.match(/<a class="vrs-row"/g) || []).length === 5, "the row builder: five links, four ranges (the thin variant has none)"); }
 // 5 a visitor
 { const vis = await call(MCH, URL0, false), crewRes = await call(MCH, URL0, true);
-  // THE CAR BAR IS PUBLIC (Nov 17 2026), THE ROWS ARE NOT: a visitor's Market Check page has the bar and NO variant rows module; the rows finish returns the page it was given, byte for byte, for a visitor
-  ok(vis.code === 200 && !/vrs-mod|vrs-css|variantSplit/.test(vis.body) && /id="gas-carbar"/.test(vis.body) && /GAS_CAR_BAR/.test(vis.body), "a visitor's Market Check page has the car bar and no variant rows module");
-  const req0 = { headers: { host: "goasksam.com" }, url: URL0 }; ok(VR.variantRowsFinish(vis.body, req0, "mc") === vis.body && !/vrs-mod/.test(CB.carBarFinish(vis.body, req0, "mc")), "for a visitor the rows finish returns the page byte for byte and the bar's finish adds no rows");
-  ok(/vrs-mod/.test(crewRes.body) && /id="gas-carbar"/.test(crewRes.body), "the crew's page carries the bar and the rows module (the rows are crew only)");
+  // THE SPLIT IS PUBLIC (lane-b-variant-split-4, VARIANT_SPLIT_PUBLIC): a visitor's Market Check page carries the bar AND the variant rows module, the same as the crew's; with the switch off the module is the crew's alone
+  ok(vis.code === 200 && /id="vrs-mod"/.test(vis.body) && /id="vrs-css"/.test(vis.body) && /id="gas-carbar"/.test(vis.body) && /GAS_CAR_BAR/.test(vis.body), "a visitor's Market Check page has the car bar and the variant rows module (the split is public)");
+  const req0 = { headers: { host: "goasksam.com" }, url: URL0 }; ok(/vrs-mod/.test(CB.carBarFinish(vis.body.replace(/<style id="vrs-css">[\s\S]*?<\/style><script id="vrs-mod">[\s\S]*?<\/script>/, ""), req0, "mc")) && VR.variantRowsFinish(vis.body, req0, "mc") === vis.body, "for a visitor the bar's finish adds the rows module once and the rows finish adds it only once");
+  ok(/vrs-mod/.test(crewRes.body) && /id="gas-carbar"/.test(crewRes.body), "the crew's page carries the bar and the rows module");
   ok(crewRes.body.replace(/<style id="vrs-css">[\s\S]*?<\/style><script id="vrs-mod">[\s\S]*?<\/script>/, "").replace(/<script>window\.GAS_CAR_BAR=[\s\S]*?<\/script><script>\(function\(\)\{\nvar C=window\.GAS_CAR_BAR[\s\S]*?<\/script>/, "").length > 0, "(the crew page differs only by the module)"); }
 // 6 phone and desktop
 for (const w of [390, 1440]) { const [p, r] = await view(withSplit(SPLIT), w); ok(r.present && r.overflow <= 0 && r.right <= r.vw, "at " + w + " px no sideways scroll and the rows inside the screen :: " + JSON.stringify([r.overflow, r.right, r.vw]));

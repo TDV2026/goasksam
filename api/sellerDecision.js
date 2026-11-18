@@ -24,6 +24,7 @@ import { isTesterRequest } from "../lib/_tester.js";
 import { supabaseBytesSoFar } from "../lib/_supabase.js";
 import { VARIANT_MARKETS } from "../lib/modelRules.js";
 import { variantSplitFor } from "../lib/variantRows.js";
+import { splitServed } from "../lib/variants.js";
 import { familyOf as variantFamilyOfCar } from "../lib/variants.js";
 import { variantKeyShape } from "../lib/variants.js";
 import { BODY_LABEL, isSingerPorsche, withReadFields, isStorableQuestion } from "../lib/onebox.js";
@@ -3599,7 +3600,7 @@ async function handler(req, res) {
       const qKey = wantsWarm ? questionRowKey(warmKey, oneBoxText) : null;
       // NO QUALIFYING QUESTION FOR THE CREW (lane-b-variant-split-3, Sam's rule): a car of a family with a variant list, its variant not stated, is answered with its variants as cards, never asked which trim it is. The stored question rows (trim_choice, kept for the visitor) are not read for it,
       // the engine is told not to ask a trim question (env.noTrimQuestion), and nothing this crew read computes is written to the shared stores (a visitor still reads the question as before).
-      const crewVariantCar = !!(isCrewRequest(req) && vehicle && vehicle.make && !exactSale && !vehicle.vin && !vehicle.chassis && !(obRefine && (obRefine.trim || obRefine.variant)) && variantFamilyOfCar(vehicle.make, vehicle.model, vehicle.year != null ? vehicle.year : vehicle.yearRange));
+      const crewVariantCar = !!(splitServed(req) && vehicle && vehicle.make && !exactSale && !vehicle.vin && !vehicle.chassis && !(obRefine && (obRefine.trim || obRefine.variant)) && variantFamilyOfCar(vehicle.make, vehicle.model, vehicle.year != null ? vehicle.year : vehicle.yearRange));
       const qP = (wantsWarm && !recompute && !crewVariantCar) ? readQuestionRow({ supabaseUrl, supabaseKey }, qKey).catch(() => null) : null;
       if (vehicle && vehicle.make && !obRefine) {
         const carKey = specKeyFor(vehicle, generation, null);
@@ -3888,7 +3889,7 @@ async function handler(req, res) {
       if (vinCtx) oneBox = applyVinOverlay(oneBox, vinCtx);   // the VIN car's own sales and option on the typed car's finished answer
       const unusedFields = unusedFieldsFor(typeof rawSearch0 === "string" ? rawSearch0 : oneBoxText, vehicle, oneBox);
       // NO QUALIFYING QUESTION (Sam, Nov 17 2026): a car of a family whose variants sell apart is answered with its variants as rows (variantSplit), never asked which one it is and never one blended range; the question (variantQuestionFor) is no longer asked here
-      if (!vinCtx && !exactSale && isCrewRequest(req)) oneBox = await variantSplitFor(oneBox, { asked: askedN, refine: obRefine, crew: isCrewRequest(req) }, vehicle, generation, { supabaseUrl, supabaseKey }, { deadlineMs: Math.max(4000, Math.min(14000, obRemaining() - 2000)) });   // the variants of an unstated car, as rows (lib/variantRows.js); each row is the engine's answer for its own car
+      if (!vinCtx && !exactSale && splitServed(req)) oneBox = await variantSplitFor(oneBox, { asked: askedN, refine: obRefine, crew: isCrewRequest(req) }, vehicle, generation, { supabaseUrl, supabaseKey }, { deadlineMs: Math.max(4000, Math.min(14000, obRemaining() - 2000)) });   // the variants of an unstated car, as rows (lib/variantRows.js); each row is the engine's answer for its own car
       oneBox = withServedCar(oneBox, vehicle, { supabaseUrl, supabaseKey });   // the car this answer is SERVED for, whatever row it came from (lib/onebox.js withServedCar)
       return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
     }
