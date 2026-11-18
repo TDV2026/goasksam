@@ -52,7 +52,7 @@ import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js
 import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.js";
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
-import { carFromRequest } from "../lib/carToken.js";
+import { carFromRequest, isPartialCar, carWords } from "../lib/carToken.js";
 import { runTurn, runFilters, runSearch, filtersFromText, suggestFor, BATCH_BUDGET_MS, useMarketRank, radiusOf } from "../lib/live/samChat.js";
 // The composer's suggestions (Stage 1c item 6), from the shaped cards (seen_before exists only after shaping).
 const withSuggest = (out, r) => ({ ...r, suggest: suggestFor({ meta: out.meta, filters: out.state && out.state.filters, seenAny: (r.cards || []).some(c => c && c.seen_before) }) });
@@ -698,7 +698,7 @@ async function handler(req, res) {
         return res.status(400).json({ ok: false });
       } catch (e) { if (isMissingTable(e)) return res.status(200).json({ ok: false, setup: true, items: [] }); throw e; }
     }
-    const q = String(b.q || "").slice(0, 200).trim();
+    const q = String(b.q || (isPartialCar(env.car) ? carWords(env.car).label : "")).slice(0, 200).trim();   // a partial car token (a make, no model) with no words of its own: Find runs the same search as the words ("2009 BMW")
     if (!q) return res.status(400).json({ status: "error" });
     const buyT0 = Date.now();
     const parsed = await parseQueryResolved(q, env);

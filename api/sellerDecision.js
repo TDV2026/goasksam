@@ -5,7 +5,8 @@ import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js"
 import { countNoun } from "../lib/countNoun.js";
 import { unusedFieldsFor } from "../lib/live/unusedWords.js";
 import { tryRefresh } from "../lib/refreshGate.js";
-import { carFromRequest } from "../lib/carToken.js";
+import { carFromRequest, isPartialCar, carWords } from "../lib/carToken.js";
+import { partialChoiceAnswer } from "../lib/carChoice.js";
 import { resolveVehicle, sanitizeResolvedVehicle, primeResolver } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
 import { withTypedMileage, withServedCar, variantQuestionFor, archiveTitleModel, mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
@@ -3248,7 +3249,8 @@ async function handler(req, res) {
   const car = typeof req.body?.car === "object" ? req.body.car : {};
   const tokenCar = carFromRequest(req);   // the car token (Lane B, Nov 17 2026, lib/carToken.js): ?car=<token> or body.car as a token string
   const sellerCriteria = getSellerCriteria(car);
-  const rawSearch0 = (tokenCar && tokenCar.raw) || req.body?.car?.raw || req.body?.car?.vehicle?.raw || req.body?.car || req.body?.search || req.body?.query;
+  const rawSearch0 = (tokenCar && isPartialCar(tokenCar) && carWords(tokenCar).label) || (tokenCar && tokenCar.raw) ||   // a PARTIAL car token (a make, no model) is read as its words ("2009 BMW"): the resolver says which model is missing and the engine serves the model choice
+     req.body?.car?.raw || req.body?.car?.vehicle?.raw || req.body?.car || req.body?.search || req.body?.query;
   // AN ANSWER TO SAM'S QUESTION (Sam, Oct 23 2026): the page clears its box when Sam asks and sends what was first typed as car.context
   // (a VIN, a chassis number, the words that did not pin a car down) next to the answer in car.raw; the engine reads them together,
   // the answer first. Only a string, only up to 200 characters, and only when the answer does not already contain it.
@@ -3348,6 +3350,9 @@ async function handler(req, res) {
           // real chips (mirrors the body-style follow-up), never a flat rejection. Falls
           // through to the normal re-ask only if the make has no usable archive models.
           const mc = await runOneBoxModelChoice(resolution.vehicle, { supabaseUrl, supabaseKey });
+          // THE MODEL CHOICE (Lane D, lane-d-car-bar-partial, lib/carChoice.js): a make with no model is never answered; the engine serves modelChoice (the models of that make and year that have sold, each with its full car token), and the older prompt and modelOptions say the same list
+          const mch = await partialChoiceAnswer(resolution.vehicle, { supabaseUrl, supabaseKey }, "mc");
+          if (mch) return res.status(200).json({ status: "one_box", ...(mc || { tier: "model_choice", resolvedCar: { year: Number(resolution.vehicle.year) || null, make: resolution.vehicle.make, model: null, trim: null, bodyStyle: null, transmission: null } }), prompt: mch.line, modelOptions: mch.choices.map(c => c.label), modelChoice: mch });
           if (mc) return res.status(200).json({ status: "one_box", ...mc });
           return res.status(200).json({
             status: "needs_clarification", vehicle: resolution.vehicle,
@@ -3360,6 +3365,7 @@ async function handler(req, res) {
           });
         } else {
           const cl = resolution.clarification || { question: "What year, make and model are you selling?" };
+          const mchSell = !req.body?.oneBox ? await partialChoiceAnswer(resolution.vehicle, { supabaseUrl, supabaseKey }, "sell") : null;   // Sell's door: the same model choice, its addresses in Sell
           // Chassis exact-match (One Box, multi-token path): a chassis-shaped query that
           // resolved to nothing. Attach the separator-tolerant archive match (evidence only,
           // never ranking) so the frontend can lead with "I know this exact car" before
@@ -3375,6 +3381,7 @@ async function handler(req, res) {
             // a Which model question (chips of cars for a make and year, no model yet) carries its way to type the model (lib/questionWayOut.js); the page renders it, the typed text is a normal search
             ...(cl && cl.wayOut ? { wayOut: cl.wayOut } : (Array.isArray(cl.chips) && cl.chips.length && !cl.kind && resolution.vehicle && resolution.vehicle.make && !resolution.vehicle.model ? { wayOut: wayOutFor("model", resolution.vehicle) } : {})),   // the question's way out at the top level too, as every engine question carries it
             vinArchiveMatch: obChassisMatch || undefined,
+            ...(mchSell ? { modelChoice: mchSell } : {}),
             // One Box rejected-chip tracking (Oct 2026, mirrors js/chat-core.js noteRejectedModel).
             invalidVehicle: resolution.status === "invalid_vehicle"
           });
