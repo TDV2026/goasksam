@@ -87,7 +87,7 @@ await FI.p.close();
 const RANGE_OK = /\$[\d,]+ to \$[\d,]+/;
 const RANGE = /\$[\d,]+ to \$[\d,]+/;
 const fb = await mcSearch(false, "1987 Pontiac Firebird");
-check("MC visitor: '1987 Pontiac Firebird' gives a range and its count, the whole generation", fb.ok && /MARKET CHECK \| 1987 Pontiac Firebird/.test(fb.text) && RANGE.test(fb.text) && /of the \d+ sales since/.test(fb.text), fb.text.slice(0, 300));
+check("MC visitor: '1987 Pontiac Firebird' gives the engine's line and a range for each variant (the cards are public since Nov 18 2026; the one range card stands aside)", fb.ok && /MARKET CHECK \| 1987 Pontiac Firebird/.test(fb.text) && /depends on which one it is/.test(fb.text) && (fb.text.match(/\$[\d,]+ to \$[\d,]+/g) || []).length >= 2, fb.text.slice(0, 300));
 check("MC visitor: ...with no variant question", !/Which (one|variant|Firebird)|Trans Am \([\d]+\) →|Formula \([\d]+\) →/.test(fb.text), fb.text.slice(0, 300));
 check("MC visitor: ...and no notice", !/didn't use/i.test(fb.text), (fb.text.match(/Sam didn't use[^|]*/) || [""])[0]);
 await fb.p.close();
@@ -223,7 +223,7 @@ await barSuite(false, "visitor");
   }
   { const p = await open(false); await p.goto(SITE + "/market-check", { waitUntil: "networkidle2" }); await p.type("#pq", "2009 BMW"); await p.keyboard.press("Enter");
     await poll(async () => (await gmc(p)).buttons.length > 0, 45000); await quiet(p); const g = await gmc(p), b2 = await barOf(p);
-    check("partial car (visitor): Market Check '2009 BMW' shows the choice once, 'Which 2009 BMW?', no older block, with the bar '2009 BMW' (the partial car is public), and no variant rows", g.blocks === 1 && g.line === "Which 2009 BMW?" && g.older === false && !!b2 && b2.line === "2009 BMW" && !(await p.evaluate(() => !!document.getElementById("vrs-mod"))), JSON.stringify([g.blocks, g.line, g.older, b2 && b2.line])); await p.close(); }
+    check("partial car (visitor): Market Check '2009 BMW' shows the choice once, 'Which 2009 BMW?', no older block, with the bar '2009 BMW' (the partial car is public), and no variant rows drawn (the variant rows are public since Nov 18 2026: the module is in the page, the rows are not drawn for a choice)", g.blocks === 1 && g.line === "Which 2009 BMW?" && g.older === false && !!b2 && b2.line === "2009 BMW" && !(await p.evaluate(() => !!document.getElementById("vrs"))), JSON.stringify([g.blocks, g.line, g.older, b2 && b2.line])); await p.close(); }
   { const p = await open(false); await p.goto(SITE + "/market-check", { waitUntil: "networkidle2" }); await p.type("#pq", "2009 BMW M3"); await p.keyboard.press("Enter"); const b2 = await poll(() => barOf(p), 45000);
     check("partial car (visitor): a full car '2009 BMW M3' keeps the public bar", !!b2 && b2.line === "2009 BMW M3" && b2.pills.length === 4, b2 && b2.line); await p.close(); }
 }
@@ -243,9 +243,17 @@ await barSuite(false, "visitor");
   }
   const v = await mcSearch(false, "1987 Pontiac Firebird"); await quiet(v.p);
   const rv = await rowsOf(v.p).catch(() => null);
-  check("rows (visitor): '1987 Pontiac Firebird' shows no variant rows", !rv && !/vrs-mod|vrs-css/.test(await v.p.content()), JSON.stringify(rv));
+  check("rows (visitor): '1987 Pontiac Firebird' shows the engine's line and a row per variant, the same as the crew (the split is public since Nov 18 2026)", !!rv && !!rv.line && rv.rows.length >= 2 && rv.rows.every(x => x.label && x.sales), JSON.stringify(rv));
   check("rows (visitor): ...and the car bar shows", !(await noBar(v.p)));
   await v.p.close();
+  // lane-b-sell-nolump-2 (Nov 18 2026): the cars whose blended answer has no range are cards, one per car; the exact car is named as itself; no other car sits in a pool
+  const g3 = await mcSearch(false, "Ferrari 330 GT"); await quiet(g3.p); const r3 = await waitRows(g3.p).catch(() => null);
+  check("rows (visitor): 'Ferrari 330 GT' shows a row per car with a range of its own (GT 2+2, GTC), not the 'different cars' refusal", !!r3 && r3.rows.length >= 2 && r3.rows.filter(x => x.range).length >= 2 && !/there is no one range for them/.test(await textOf(g3.p)), r3 && JSON.stringify(r3).slice(0, 300));
+  check("rows (visitor): ...and no sales list that mixes the cars (What has sold)", !/What has sold/.test(await textOf(g3.p)), (await textOf(g3.p)).slice(0, 200)); await g3.p.close();
+  const g4 = await mcSearch(false, "Ferrari 330 GT 2+2"); await quiet(g4.p);
+  check("MC visitor: 'Ferrari 330 GT 2+2' is named as itself and answers with a range", g4.ok && /MARKET CHECK \| Ferrari 330 GT 2\+2/.test(await textOf(g4.p)) && RANGE.test(await textOf(g4.p)), (await textOf(g4.p)).slice(0, 300)); await g4.p.close();
+  const g5 = await mcSearch(false, "Ferrari 365"); await quiet(g5.p);
+  check("MC visitor: 'Ferrari 365' lists no Ferrari 400i or 412 (a sale of another car is not in the pool)", !/Ferrari (400i|412|400 GT)/.test(await textOf(g5.p)), (await textOf(g5.p)).slice(0, 200)); await g5.p.close();
 }
 
 
