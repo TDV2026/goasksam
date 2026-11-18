@@ -37,6 +37,7 @@ if (process.argv.includes("--mutants")) {
   console.log(bad ? "sellRefusalCheck mutants: " + bad + " not caught" : "sellRefusalCheck mutants: all " + M.length + " caught"); process.exit(bad ? 1 : 0);
 }
 import { noRangeOf, refusalOf } from "../lib/sell/sellFacts.js";
+import { rangeFromAnswer } from "../lib/sell/sellFlow.js";
 import { SELL_MC_CLIENT } from "../lib/sell/sellMcClient.js";
 import { sellsForCardHtml } from "../lib/sellsForCard.js";
 let pass = 0, fail = 0;
@@ -68,7 +69,7 @@ ok(!/if \(first\.noRange\) return/.test(br), "buildResult: a no-range answer doe
 ok(/if \(first\.refusal\) return done\(\{ \.\.\.head, refusal: first\.refusal \}\)/.test(br), "buildResult: a builder car (the Singer rule) still returns its line alone");
 ok(/\.\.\.\(noRange \? \{ noRange, priceLine: noRange\.priceLine \} : \{\}\)/.test(br) && /marketAnswer: noRange \? null/.test(br), "buildResult: the result carries the engine's no-range card and the price line, and no range card");
 // THE PRICE LINE: Sam's voice, the engine's count, nothing invented
-for (const [code, total, re] of [["mixed_cars", 158, /158 sales on record are different cars at different prices/], ["varied", 12, /12 sales on record are too spread out/], ["few_sales", 3, /only 3 sales on record/], ["few_comparable", 9, /only 9 sales on record/], ["no_cluster", 20, /^I can't put a price range on this one\./], [null, null, /^I can't put a price range on this one\./]]) {
+for (const [code, total, re] of [["mixed_cars", 158, /158 sales on record are different cars at different prices/], ["varied", 12, /12 sales on record are too spread out/], ["few_sales", 3, /only 3 sales on record/], ["few_comparable", 9, /only 9 sales on record/], ["no_cluster", 20, /^I can't put a price range on this one\./], ["few_sales", null, /^I can't put a price range on this one\. Here/], [null, null, /^I can't put a price range on this one\./]]) {
   const nr = noRangeOf({ tier: "refusal", refusal: { kind: "varied" }, samLine: "x", noRangeCode: code, noRangeTotal: total, cards: [], rawPool: [] }), line = nr && nr.priceLine;
   ok(typeof line === "string" && re.test(line) && /Here is where I would sell it, from the sales I do have\./.test(line), `price line (${code}, ${total}): ${line}`);
   ok(!/[\u2013\u2014]|\$|worth|valu/i.test(line || "") && ((line || "").match(/\d+/g) || []).every(x => Number(x) === total), `price line (${code}): no dash, no dollar figure, no valuation word, and no number but the engine's count`);
@@ -126,6 +127,11 @@ for (const how of ["typed", "bar", "vin"]) for (const [k, d] of Object.entries(K
   listeners.submit({ preventDefault() {}, target: { closest: sel => sel === ".sell-ps" ? form : null } }); for (let i = 0; i < 4; i++) await tick();
   ok(sent.length === 1 && sent[0].seller.email === "buyer@example.com" && /Ferrari 330 GT/.test(sent[0].car.raw) && sent[0].choice.destinationType === "powerseller", "the email: one lead for the car, single destination, sent from a no-range result");
   globalThis.fetch = f0; }
+// WHILE THE REST LOADS the seller already has the engine's card and the one line about price (the rest step never answers here)
+{ calls.length = 0; new Function(SELL_MC_CLIENT)(); const nr = noRangeOf(KINDS.varied); replies = [{ label: "car", make: "Ferrari", noRange: nr }, new Promise(() => {})]; window.GAS_SELL.onCar({ resolvedCar: { year: null, make: "Ferrari", model: "330 GT" } }, "Ferrari 330 GT"); chip("California", "California"); chip("self", "x"); chip("none", "x"); for (let i = 0; i < 8; i++) await tick();
+  const h = OBX.root.innerHTML, text = h.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "); ok(text.includes(nr.priceLine) && text.includes(KINDS.varied.samLine) && !/pcard/.test(h), "while the rest loads: the price line and the engine's line are already on the page"); }
+// A STORED BLOCK from before this change carries no price line: the range step adds it
+{ const old = { kind: "varied", line: "x", card: null, code: "mixed_cars", total: 40 }, r = rangeFromAnswer({}, null, { noRange: old }, {}, null); ok(r.noRange && /40 sales on record are different cars at different prices/.test(r.noRange.priceLine), "the range step gives a stored no-range block its price line"); }
 // A BUILDER CAR (the Singer rule) still stops on its own line: no range, and nothing else is read
 { const { html } = await (async () => { calls.length = 0; new Function(SELL_MC_CLIENT)(); const S = window.GAS_SELL; replies = [{ label: "x", refusal: { kind: "builder_car", line: "Singer cars are not compared with standard 911s, so no range is shown." } }]; S.onCar({ resolvedCar: { year: 1990, make: "Porsche", model: "911" } }, "Singer 911"); chip("California", "California"); chip("self", "x"); chip("none", "x"); for (let i = 0; i < 6; i++) await tick(); return { html: OBX.root.innerHTML }; })();
   ok(html.includes("Singer cars are not compared") && !/pcard|sell-ps/.test(html) && calls.length === 1, "a builder car: the engine's line alone, one request, no pick and no partner"); }

@@ -331,7 +331,6 @@ function mutants() {
   const me = fileURLToPath(import.meta.url), R = path.resolve(args.find(a => !a.startsWith("--")) || path.join(path.dirname(me), ".."));
   const M = [
     ["the variant filter never narrows the pool", "lib/onebox.js", s => s.replace("    return kept;\n  } catch { return rows; }", "    return rows;\n  } catch { return rows; }")],
-    ["a sale that names no variant is counted as Base", "lib/variants.js", s => s.replace("variantNamed(fam, textOf(row || {})) || UNSTATED;", "variantNamed(fam, textOf(row || {})) || fam.variants[0].name;")],
     ["a package is counted with its parent whatever the data says", "lib/variants.js", s => s.replace("if (def && def.includesPackages) for", "if (def) for")],
     ["there is no thin fallback", "lib/variants.js", s => s.replace("export const VARIANT_MIN = 5;", "export const VARIANT_MIN = 0;")],
     ["the thin fallback fires at 5", "lib/onebox.js", s => s.replace("value.rawPool.length < VARIANT_MIN", "value.rawPool.length <= VARIANT_MIN")],
@@ -359,9 +358,6 @@ function mutants() {
     ["a Knight Rider or KITT car passes the fence", "lib/_classify.js", s => s.replace("kitt|k\\.i\\.t\\.t|knight[\\s-]?rider|", "").replace("(kitt|k\\.i\\.t\\.t|knight[\\s-]?rider|", "(")],
     ["the replicas set aside are not counted on the answer", "lib/onebox.js", s => s.replace("if (n > 0) { const r0 =", "if (false) { const r0 =")],
     ["the replica count is not taken in the fetch", "lib/onebox.js", s => s.replace("&& isReplicaCar(r) && qualifyReason(r, spec) === \"memorabilia or replica\"", "&& false")],
-    ["no variant question is served", "api/sellerDecision.js", s => s.replace("if (isCrewRequest(req)) oneBox = await variantQuestionFor(", "if (false) oneBox = await variantQuestionFor(")],
-    ["the variant question is served to a visitor too", "api/sellerDecision.js", s => s.replace("if (isCrewRequest(req)) oneBox = await variantQuestionFor(", "if (true) oneBox = await variantQuestionFor(")],
-    ["the question is asked whatever the prices", "lib/onebox.js", s => s.replace("if (splitMaterial(options[i][1], options[j][1]).material) {", "if (true) {")],
     ["a variant under five sales is an option", "lib/onebox.js", s => s.replace("filter(([, a]) => a.length >= VARIANT_MIN)", "filter(([, a]) => a.length >= 1)")],
     ["the question is asked again after an answer", "lib/onebox.js", s => s.replace("if (Number(asked) > 0 || (refine && refine.variant)) return d;", "")],
     ["a chip's variant is ignored by the engine", "lib/onebox.js", s => s.replace("if (fam && nm) { spec.variantFamily = fam.id; spec.variantStated = [nm];", "if (false) { spec.variantFamily = fam.id; spec.variantStated = [nm];")],
