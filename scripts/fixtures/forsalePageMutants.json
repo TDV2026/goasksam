@@ -138,8 +138,8 @@
 "file": "page",
 "edits": [
 [
-"'\"><span class=\"mv\">'+esc(c.askingLine)+'</span></span></a>'",
-"'\"><span class=\"mv\">Bid '+esc(c.askingLine)+'</span></span></a>'"
+"<span class=\"mlab\"><span class=\"mv\">'+esc(c.askingLine)+'</span></span></a>'",
+"<span class=\"mlab\"><span class=\"mv\">Bid '+esc(c.askingLine)+'</span></span></a>'"
 ]
 ]
 },
