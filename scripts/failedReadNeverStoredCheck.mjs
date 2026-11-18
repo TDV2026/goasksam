@@ -104,7 +104,7 @@ function mutants() {
   let survived = 0;
   for (const [name, file, fn, expect] of M) {
     const tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "frns-")); try {
-      for (const d of ["lib", "api", "scripts", "public"]) if (fs.existsSync(path.join(R, d))) fs.cpSync(path.join(R, d), path.join(tmp, d), { recursive: true, filter: s => !/node_modules/.test(s) });
+      for (const d of ["lib", "api", "scripts", "public", "data"]) if (fs.existsSync(path.join(R, d))) fs.cpSync(path.join(R, d), path.join(tmp, d), { recursive: true, filter: s => !/node_modules/.test(s) });
       for (const f of ["vercel.json", "package.json"]) if (fs.existsSync(path.join(R, f))) fs.copyFileSync(path.join(R, f), path.join(tmp, f));
       fs.symlinkSync(path.join(R, "node_modules"), path.join(tmp, "node_modules"));
       const fp = path.join(tmp, file), src = fs.readFileSync(fp, "utf8"), out = fn(src); if (out === src) { console.log("MUTANT BROKEN (no change): " + name); survived++; continue; }
