@@ -5,6 +5,7 @@
 // Rule: the pages compute nothing; every assertion reads what the page printed from the engine's answer. Waits are for a named condition, never a fixed pause (liveWaitsCheck).
 import { execFileSync } from "node:child_process";
 import puppeteer from "puppeteer-core";
+import { FIND_ANSWERED } from "./_findAnswered.mjs";
 
 const SITE = (process.argv.includes("--site") ? process.argv[process.argv.indexOf("--site") + 1] : process.env.SITE || "https://goasksam.com").replace(/\/$/, "");
 const CHROME = process.env.CHROME || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -139,9 +140,9 @@ async function barSuite(isCrew, who) {
   await c.p.close();
   if (findPill) {
     const p = await open(isCrew); await p.goto(new URL(findPill.href, SITE).href, { waitUntil: "networkidle2" });
-    await p.waitForFunction(() => /live match|No live|0 live/i.test(document.body.innerText), { timeout: 60000 }).catch(() => {});
+    await p.waitForFunction(re => new RegExp(re.source, re.flags).test(document.body.innerText), { timeout: 60000 }, { source: FIND_ANSWERED.source, flags: FIND_ANSWERED.flags }).catch(() => {});
     const t = await textOf(p);
-    check("Find pill (crew): opens already run for the SL500 (a result line, the car's chips, not the empty prompt)", /live match/i.test(t) && /SL500/.test(t) && !/What car are you looking for\?/.test(t), t.slice(0, 300));
+    check("Find pill (crew): opens already run for the SL500 (a result line, the car's chips, not the empty prompt)", FIND_ANSWERED.test(t) && /SL500/.test(t) && !/What car are you looking for\?/.test(t), t.slice(0, 300));
     check("Find pill (crew): the line above the cars names the mileage (the ones within 15,000 miles of 38,400, or none is within it and here is every one)", /None for sale right now is within 15,000 miles of 38,400, so here is every one\.|These are the ones within 15,000 miles of 38,400\./.test(t) && !/38,400 to 38,400/.test(t), t.slice(0, 700));
     check("Find pill (crew): the bar is kept on the Find page", /38,400 miles/.test(t), t.slice(0, 200));
     await p.close();
@@ -164,7 +165,7 @@ async function barSuite(isCrew, who) {
     check("Tasks pill (crew): the car bar shows above, with Tasks filled", !!tk && !!tk.line && /SL500/.test(tk.line) && tk.on.length === 1 && tk.on[0] === "Tasks", tk && JSON.stringify([tk.line, tk.on]));
     const tks = tk ? tk.pills.map(a => (/[?&]car=([^&]+)/.exec(a.href) || [])[1]).filter(Boolean) : [];
     check("Tasks pill (crew): the other three pills carry the same token as the Market Check bar", tks.length === 4 && tks.every(x => x === toks[0]), tks.length + " tokens");
-    for (const [label, ready, re] of [["Find", /live match/i, /SL500/], ["Market Check", null, /SL500/], ["Sell", /Which state is it in\?/, /SL500/]]) {
+    for (const [label, ready, re] of [["Find", FIND_ANSWERED, /SL500/], ["Market Check", null, /SL500/], ["Sell", /Which state is it in\?/, /SL500/]]) {
       const pill = tk && tk.pills.find(a => a.label === label); if (!pill) { check("Tasks to " + label + " (crew): the pill is on the Tasks bar", false, "missing"); continue; }
       const q = await open(isCrew); await q.goto(new URL(pill.href, SITE).href, { waitUntil: "networkidle2" });
       if (label === "Market Check") await answered(q); else await q.waitForFunction(r => new RegExp(r).test(document.body.innerText), { polling: 500, timeout: 60000 }, ready.source).catch(() => {});
@@ -181,7 +182,7 @@ await barSuite(false, "visitor");
 // ---- 3b. Find's one line about the mileage (lane-b-find-line): a search with no mileage keeps "That's everything", a typed ceiling still filters ---------------------------------------------------------------
 {
   const findText = async typed => { const p = await open(false); await p.goto(SITE + "/find", { waitUntil: "networkidle2" }); await p.type("#pq", typed); await p.keyboard.press("Enter");
-    const end = Date.now() + 60000; while (Date.now() < end) { await new Promise(r => setTimeout(r, 1000)); try { if (/live match|Nothing live|No .* live/i.test(await textOf(p))) break; } catch { /* moving */ } } await quiet(p); const t = await textOf(p), u = p.url(); await p.close(); return { t, u }; };
+    const end = Date.now() + 60000; while (Date.now() < end) { await new Promise(r => setTimeout(r, 1000)); try { if (FIND_ANSWERED.test(await textOf(p))) break; } catch { /* moving */ } } await quiet(p); const t = await textOf(p), u = p.url(); await p.close(); return { t, u }; };
   const nm = await findText("2003 Mercedes-Benz SL500");
   check("Find (visitor): a search with no mileage still reads \"That's everything matching your search right now.\"", /That.s everything matching your search right now\./.test(nm.t), nm.t.slice(0, 400));
   const un = await findText("2003 Mercedes-Benz SL500 under 40,000 miles");
@@ -211,7 +212,7 @@ await barSuite(false, "visitor");
     if (sp) { const q = await open(true); await q.goto(new URL(sp.h, SITE).href, { waitUntil: "networkidle2" }); const r = await poll(async () => { const t = await textOf(q), b2 = await barOf(q); return /Which state is it in\?/.test(t) && b2 ? { t, b2 } : null; }, 30000);
       check("partial car (crew): the Sell pill opens Sell with the bar '2009 BMW' at its first question", !!r && r.b2.line === "2009 BMW", r && r.b2.line); await q.close(); }
     const fp = pills.find(x => x.l === "Find");
-    if (fp) { const q = await open(true); await q.goto(new URL(fp.h, SITE).href, { waitUntil: "networkidle2" }); const r = await poll(async () => { const t = await textOf(q), b2 = await barOf(q); return /live match/i.test(t) && b2 ? { t, b2 } : null; }, 60000);
+    if (fp) { const q = await open(true); await q.goto(new URL(fp.h, SITE).href, { waitUntil: "networkidle2" }); const r = await poll(async () => { const t = await textOf(q), b2 = await barOf(q); return FIND_ANSWERED.test(t) && b2 ? { t, b2 } : null; }, 60000);
       check("partial car (crew): the Find pill opens the results with the bar '2009 BMW'", !!r && r.b2.line === "2009 BMW", r && r.b2.line); await q.close(); }
     { const q = await open(true); await q.goto(SITE + "/market-check", { waitUntil: "networkidle2" }); await q.type("#pq", "1950 Toyota"); await q.keyboard.press("Enter");
       const afterOf = t => t.slice(t.indexOf("Search a car") + 12, t.indexOf("Real sales only") > 0 ? t.indexOf("Real sales only") : undefined).replace(/[|→\s]+/g, " ").trim();
