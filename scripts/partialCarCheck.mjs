@@ -181,6 +181,20 @@ await section("sweep", async () => {
   ok("the VIN page takes a partial car as the words, never as a car (lib/vinAsTyped.js reads deps.car only when it is a full car)", (() => { const s = fs.readFileSync("lib/vinAsTyped.js", "utf8"); return /deps && deps\.car \?/.test(s); })());
 });
 
+// ---- THE BAR'S DOOR (lib/carBar.js prepareCarRequest and carFindRoute, the server side of a page opened with ?car=): a PARTIAL token opens the bar with the engine's words and Find's results already run, never stripped as a token that does not decode (Lane D, Nov 18 2026: the survivor "the bar's door opens no partial car" had no case that reached it) ----
+await section("bar door", async () => {
+  const tok = tokenOf({ raw: "2009 BMW", year: 2009, make: "BMW" }), crewC = "gas_crew=" + globalThis.__mintCrew();
+  const who = [["crew", { cookie: crewC }]]; if (CB.CAR_BAR_PUBLIC) who.push(["a visitor", { cookie: "" }]);
+  for (const [name, headers] of who) {
+    const req = CB.prepareCarRequest({ url: "/find?car=" + encodeURIComponent(tok), query: { car: tok }, headers }, "find");
+    ok("the bar's door, " + name + ": a partial token is read as a car for the bar (its words, its token), not stripped", !!req.__car && req.__car.line === "2009 BMW" && req.__car.token === tok && !req.__strip, [req.__car, req.__strip]);
+    ok("the bar's door, " + name + ": the tool's own search words are the car's words (Find's q)", /[?&]q=2009(\+|%20)BMW/.test(String(req.url)), req.url);
+    ok("Find's door, " + name + ": a request whose only query is a partial token opens the results already run (find-results)", CB.carFindRoute({ headers }, new URLSearchParams({ car: tok })) === "find-results", CB.carFindRoute({ headers }, new URLSearchParams({ car: tok })));
+  }
+  const bad = CB.prepareCarRequest({ url: "/find?car=v1.garbage.zzzzzzzz", query: { car: "v1.garbage.zzzzzzzz" }, headers: { cookie: crewC } }, "find");
+  ok("a token that does not decode is still stripped, not opened", !bad.__car && bad.__strip === true, [bad.__car, bad.__strip]);
+});
+
 // ===== 6 THE CLASS: every reader of a token, every use of env.car =====
 await section("class", async () => {
   const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? (["node_modules", ".git", "proofs", "scripts", "docs", "public"].includes(e.name) ? [] : walk(path.join(d, e.name))) : /\.js$/.test(e.name) ? [path.join(d, e.name)] : []);
@@ -236,7 +250,7 @@ function mutants() {
     sub("lib/carBar.js", "const crewOnly = req => partialCarOk(req);", "const crewOnly = req => false;", "the bar's door opens no partial car"),
     sub("lib/carToken.js", "return c && isPartialCar(c) && !partialCarOk(req) ? null : c;", "return c && isPartialCar(c) ? null : c;", "a partial token in a request is no car"),
     sub("api/sellerDecision.js", "const mch = partialCarOk(req) ? await partialChoiceAnswer(", "const mch = false ? await partialChoiceAnswer(", "Market Check serves no choice"),
-    sub("lib/sell/sellFlow.js", "if (!sc.car && sc.partial && env && env.partialCar === true) return done({", "if (false) return done({", "Sell serves no choice"),
+    sub("lib/sell/sellFlow.js", "if (!sc.car && sc.partial && env && env.partialCar === true) return done(choiceReply(", "if (false) return done(choiceReply(", "Sell serves no choice"),
     sub("lib/onebox.js", "const part = partialCarActive() ? partialOf(vehicle) : null;", "const part = null;", "Find's answer carries no partial car"),
     sub("lib/carChoice.js", "catch { top = []; }", "catch { top = []; } if (!top.length) top = await deps.topModels(env, partial.make, CHOICE_MAX, null);", "a make and year with no sales is widened to the make's whole list"),
     sub("lib/carChoice.js", ".slice(0, CHOICE_MAX);\n  const years", ".reverse().slice(0, CHOICE_MAX);\n  const years", "the models are not most sold first"),
