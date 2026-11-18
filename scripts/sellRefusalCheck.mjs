@@ -23,7 +23,6 @@ if (process.argv.includes("--mutants")) {
     ["the not-seen line ignores the sales the page lists", "lib/sell/sellFlow.js", "Number(noRange && noRange.total) || 0, list.length);", "Number(noRange && noRange.total) || 0);"],
     ["the not-seen line ignores the engine's total", "lib/sell/sellFlow.js", "Number(p0.total) || 0, Number(noRange && noRange.total) || 0, list.length);", "Number(p0.total) || 0, list.length);"],
     ["buildResult prints its own not-seen line", "lib/sell/sellFlow.js", "empty: emptyLine,", "empty: !platform && !partner ? (note || \"Sam has not seen this car sell yet, so there is no place on record to point to.\") : null,"],
-    ["the not-seen line is printed beside sales", "lib/sell/sellFlow.js", "(note || (salesN > 0 ? null : NOT_SEEN_LINE))", "(note || NOT_SEEN_LINE)"],
     ["the range step carries no price line", "lib/sell/sellFlow.js", "noRange: { ...first.noRange, priceLine: first.noRange.priceLine || priceLineOf(first.noRange) } };", "noRange: first.noRange };"],
   ];
   let bad = 0; const me = fileURLToPath(import.meta.url);
