@@ -103,8 +103,8 @@ await sec("porsche", async () => {
   ok(t.dealers.cards.length === FS.dealers.cards.length && t.dealers.cards.length >= 6 && t.dealers.grids === 1, "every dealer card the engine sent is drawn, in one grid :: " + t.dealers.cards.length + " of " + FS.dealers.cards.length);
   const same = (a, b) => a.length === b.length && a.every((x, i) => JSON.stringify(x) === JSON.stringify(b[i]));
   ok(same(t.dealers.cards.map(c => ({ chip: c.chip, mlab: c.mlab, title: c.title, meta: c.meta })), FS.dealers.cards.map(c => cardOf(c, "Dealer"))), "each dealer card prints the engine's label, Asking $X, name, miles and place, in the engine's order :: " + JSON.stringify(t.dealers.cards[0]));
-  ok(t.dealers.cards.every((c, i) => c.sl.endsWith(FS.dealers.cards[i].read) && c.sl.startsWith("Sam")), "the read is printed as served, under the car");
-  ok(t.dealers.cards.every((c, i) => c.hist === FS.dealers.cards[i].historyLine), "the earlier sale line is printed when served and only then :: " + JSON.stringify(t.dealers.cards.map(c => c.hist)));
+  ok(t.dealers.cards.every((c, i) => c.sl.includes(FS.dealers.cards[i].read) && c.sl.startsWith("Sam")), "the read is printed as served, under the car");
+  ok(t.dealers.cards.every((c, i) => c.hist === FS.dealers.cards[i].historyLine && c.sl.startsWith("Sam" + FS.dealers.cards[i].read)), "the earlier sale line is printed when served and only then :: " + JSON.stringify(t.dealers.cards.map(c => c.hist)));
   ok(t.dealers.cards.some(c => c.hist && /sold for/.test(c.hist)) && t.dealers.cards.some(c => c.hist === null), "(the real answer has cards with and without the line)");
   ok(t.dealers.cards.every(c => c.btn && /^View listing/.test(c.btn) && /^https:\/\//.test(c.href)), "the button reads View listing and goes to the listing");
   ok(t.dealers.cards.every((c, i) => c.href === FS.dealers.cards[i].url), "the link is the engine's url");
@@ -114,7 +114,7 @@ await sec("porsche", async () => {
   await click(p, '.fs-pill[data-fs-pill="classifieds"]'); t = await p.evaluate(READ);
   ok(t.mode === "classifieds" && t.classifieds.vis && !t.dealers.vis && t.classifieds.cards.length === FS.classifieds.cards.length, "Classifieds shows the classified cards :: " + t.classifieds.cards.length);
   ok(same(t.classifieds.cards.map(c => ({ chip: c.chip, mlab: c.mlab, title: c.title, meta: c.meta })), FS.classifieds.cards.map(c => cardOf(c, "Classified"))), "each classified card prints the engine's label and Asking $X :: " + JSON.stringify(t.classifieds.cards[0]));
-  ok(t.classifieds.cards.every((c, i) => c.btn && /^View listing/.test(c.btn) && c.sl.endsWith(FS.classifieds.cards[i].read)), "classified cards: View listing and the read");
+  ok(t.classifieds.cards.every((c, i) => c.btn && /^View listing/.test(c.btn) && c.sl.includes(FS.classifieds.cards[i].read)), "classified cards: View listing and the read");
   // ALL
   await click(p, '.fs-pill[data-fs-pill="all"]'); t = await p.evaluate(READ);
   ok(t.mode === "all" && t.grpVis && t.dealers.vis && t.classifieds.vis && !t.also.vis, "All shows the three sections and no line");
@@ -153,7 +153,7 @@ await sec("no auctions", async () => {
   await p.evaluate(() => document.querySelector('.fs-also a[data-fs-pill="dealers"]').click()); const t = await p.evaluate(READ);
   ok(t.mode === "dealers" && t.dealers.cards.length === FS.dealers.cards.length && t.dealers.cards.length >= 1, "the line's link opens the dealer cars :: " + t.mode);
   ok(await p.evaluate(() => { const n = document.querySelector(".nonel"); return !n || !(n.offsetWidth || n.offsetHeight); }), "the empty-auctions lines are away while the dealer cars show");
-  ok(t.dealers.cards.every(c => c.sl.endsWith(FS.dealers.cards.find(x => x.id === c.id).read)), "(the read as served)");
+  ok(t.dealers.cards.every(c => c.sl.includes(FS.dealers.cards.find(x => x.id === c.id).read)), "(the read as served)");
   await p.close();
 });
 await sec("remembered", async () => {

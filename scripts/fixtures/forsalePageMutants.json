@@ -148,8 +148,8 @@
 "file": "page",
 "edits": [
 [
-"'<div class=\"sl\"><span class=\"who\">Sam</span>'+esc(c.read)+'</div>'",
-"'<div class=\"sl\"><span class=\"who\">Sam</span></div>'"
+"'<div class=\"sl\"><span class=\"who\">Sam</span>'+esc(c.read)+(c.historyLine",
+"'<div class=\"sl\"><span class=\"who\">Sam</span>'+(c.historyLine"
 ]
 ]
 },
@@ -158,8 +158,8 @@
 "file": "page",
 "edits": [
 [
-"(c.historyLine?'<p class=\"fs-hist\">'+esc(c.historyLine)+'</p>':'')",
-"'<p class=\"fs-hist\">'+esc(c.historyLine)+'</p>'"
+"(c.historyLine?'<span class=\"fs-hist\">'+esc(c.historyLine)+'</span>':'')",
+"'<span class=\"fs-hist\">'+esc(c.historyLine)+'</span>'"
 ]
 ]
 },
