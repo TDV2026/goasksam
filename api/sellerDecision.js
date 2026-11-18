@@ -3876,7 +3876,7 @@ async function handler(req, res) {
       if (vinCtx) oneBox = applyVinOverlay(oneBox, vinCtx);   // the VIN car's own sales and option on the typed car's finished answer
       const unusedFields = unusedFieldsFor(typeof rawSearch0 === "string" ? rawSearch0 : oneBoxText, vehicle, oneBox);
       if (isCrewRequest(req)) oneBox = await variantQuestionFor(oneBox, { text: oneBoxText, asked: askedN, refine: obRefine }, vehicle, generation, { supabaseUrl, supabaseKey });   // the variant question, crew only for now (lib/onebox.js withVariantQuestion); never stored
-      if (!vinCtx && !exactSale) oneBox = await variantSplitFor(oneBox, { asked: askedN, refine: obRefine }, vehicle, generation, { supabaseUrl, supabaseKey });   // the variants of an unstated car, as rows (lib/variantRows.js); each row is the engine's answer for its own car
+      if (!vinCtx && !exactSale) oneBox = await variantSplitFor(oneBox, { asked: askedN, refine: obRefine, crew: isCrewRequest(req) }, vehicle, generation, { supabaseUrl, supabaseKey });   // the variants of an unstated car, as rows (lib/variantRows.js); each row is the engine's answer for its own car
       oneBox = withServedCar(oneBox, vehicle, { supabaseUrl, supabaseKey });   // the car this answer is SERVED for, whatever row it came from (lib/onebox.js withServedCar)
       return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
     }
