@@ -372,6 +372,7 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
         ok(m.bar && r.present && r.line === LINE && r.pills.every(x => x.h.endsWith("?car=" + enc(TOKEN))) && m.inputs.some(v => v.startsWith(LABEL)), "tasks signed out, a pill: the car bar and the filled request box are kept behind the card " + JSON.stringify([r.line, m.inputs]));
         if (process.env.SHOTS) { await p.screenshot({ path: path.join(ROOT, "docs/demo-run/bar-edges-tasks-signin-1440.png") }); const p3 = await open(url, 390, { live: LIVEMAP, signed: false }); await new Promise(r => setTimeout(r, 700)); await p3.screenshot({ path: path.join(ROOT, "docs/demo-run/bar-edges-tasks-signin-390.png") }); await p3.close(); }
         ok(ret && ret.path.includes("car=" + enc(TOKEN)), "tasks signed out, a pill: the way back after sign in carries the car " + JSON.stringify(ret && ret.path.slice(0, 90)));
+        if (!ret) { ok(false, "tasks signed out, a pill: no way back was remembered, so there is no signed in return to check"); await p.close(); continue; }
         // signed in return: the page the card sent them to, with the session now there
         await p.evaluate(SESSION); await p.goto("https://goasksam.com" + ret.path, { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 1800));
         const r2 = await p.evaluate(BAR);
@@ -388,6 +389,7 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
       const m = await p.evaluate(MODAL), ret = await RET(p), rp = ret && new URL(ret.path, "https://x");
       ok(m.open && m.covers && m.bar, tool + ": the card opens over the page and the bar stays behind it " + JSON.stringify(m));
       ok(rp && (tool === "sell" ? rp.searchParams.get("cb") === TOKEN && rp.searchParams.get("state") === "California" && rp.searchParams.get("how") === "unsure" : rp.searchParams.get("car") === TOKEN) && rp.pathname === base, tool + ": the way back after sign in is this page with the car's token in it " + JSON.stringify(ret && ret.path.slice(0, 110)));
+      if (!ret) { ok(false, tool + ": no way back was remembered, so there is no signed in return to check"); await p.close(); continue; }
       await p.evaluate(SESSION); await p.goto("https://goasksam.com" + ret.path, { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 1800));
       const r2 = await p.evaluate(BAR), m2 = await p.evaluate(MODAL);
       ok(r2.present && r2.line === LINE && r2.pills.every(x => x.h.endsWith("?car=" + enc(TOKEN))) && !m2.open && (tool !== "mc" || m2.inputs.some(v => v.startsWith(LABEL))), tool + ": the signed in return is the same page and car: the bar, and the box filled " + JSON.stringify([r2.line, m2.inputs]));
