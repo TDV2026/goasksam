@@ -38,6 +38,102 @@
         { "name": "Grand Sport", "words": ["grand[\\s-]?sport"] },
         { "name": "Collector Edition", "words": ["collector"] }
       ]
+    },
+    {
+      "id": "bmw-3-series-e30", "label": "BMW 3 Series (E30), 1984 to 1991", "make": "BMW", "models": ["3-Series"], "years": [1984, 1991], "vin": null,
+      "variants": [
+        {"name": "318i", "words": ["\\b318\\s?is?\\b"]},
+        {"name": "325e", "words": ["\\b325\\s?e\\b"]},
+        {"name": "325i", "words": ["\\b325\\s?i\\b"]},
+        {"name": "325is", "ask": "325 is", "words": ["\\b325\\s?is\\b"]}
+      ]
+    },
+    {
+      "id": "porsche-911-1984-1989", "label": "Porsche 911, 1984 to 1989", "make": "Porsche", "models": ["911"], "years": [1984, 1989], "vin": null, "unnamedIs": "Carrera Coupe",
+      "variants": [
+        {"name": "Carrera Coupe", "words": ["\\bcoupe\\b"]},
+        {"name": "Targa", "words": ["targa"], "matchFirst": true, "matchRank": 4},
+        {"name": "Cabriolet", "words": ["cabriolet", "cabrio", "convertible"], "matchFirst": true, "matchRank": 5},
+        {"name": "Turbo", "words": ["turbo", "\\b930\\b"], "matchFirst": true, "matchRank": 3},
+        {"name": "Club Sport", "words": ["club\\s?sport"], "matchFirst": true, "matchRank": 2},
+        {"name": "Speedster", "words": ["speedster"], "matchFirst": true, "matchRank": 1}
+      ]
+    },
+    {
+      "id": "mercedes-sl-r107", "label": "Mercedes-Benz SL (R107), 1972 to 1989", "make": "Mercedes-Benz", "models": ["SL-Class", "SL"], "years": [1972, 1989], "vin": null,
+      "variants": [
+        {"name": "280SL", "words": ["\\b280\\s?sl\\b"]},
+        {"name": "350SL", "words": ["\\b350\\s?sl\\b"]},
+        {"name": "380SL", "words": ["\\b380\\s?sl\\b"]},
+        {"name": "450SL", "words": ["\\b450\\s?sl\\b"]},
+        {"name": "500SL", "words": ["\\b500\\s?sl\\b"]},
+        {"name": "560SL", "words": ["\\b560\\s?sl\\b"]}
+      ]
+    },
+    {
+      "id": "mercedes-sl-w113", "label": "Mercedes-Benz SL (W113 Pagoda), 1963 to 1971", "make": "Mercedes-Benz", "models": ["SL-Class", "SL"], "years": [1963, 1971], "vin": null,
+      "variants": [
+        {"name": "230SL", "words": ["\\b230\\s?sl\\b"]},
+        {"name": "250SL", "words": ["\\b250\\s?sl\\b"]},
+        {"name": "280SL", "words": ["\\b280\\s?sl\\b"]}
+      ]
+    },
+    {
+      "id": "porsche-964", "label": "Porsche 964, 1989 to 1994", "make": "Porsche", "models": ["964"], "years": [1989, 1994], "vin": null,
+      "variants": [
+        {"name": "Carrera 2", "words": ["carrera\\s?2", "\\bc2\\b"]},
+        {"name": "Carrera 4", "words": ["carrera\\s?4", "\\bc4\\b"]},
+        {"name": "Targa", "words": ["targa"], "matchFirst": true, "matchRank": 3},
+        {"name": "Cabriolet", "words": ["cabriolet", "cabrio", "convertible"], "matchFirst": true, "matchRank": 4},
+        {"name": "Turbo", "words": ["turbo"], "matchFirst": true, "matchRank": 2},
+        {"name": "RS", "words": ["\\brs\\b"], "matchFirst": true, "matchRank": 1}
+      ]
+    },
+    {
+      "id": "porsche-993", "label": "Porsche 993, 1994 to 1998", "make": "Porsche", "models": ["993"], "years": [1994, 1998], "vin": null, "unnamedIs": "Carrera",
+      "variants": [
+        {"name": "Carrera", "words": ["carrera"]},
+        {"name": "Carrera 4", "words": ["carrera\\s?4(?!\\s?s)", "\\bc4\\b"], "matchFirst": true, "matchRank": 6},
+        {"name": "Carrera S", "words": ["carrera\\s?s\\b"], "matchFirst": true, "matchRank": 3},
+        {"name": "4S", "words": ["carrera\\s?4\\s?s\\b", "\\b4s\\b"], "matchFirst": true, "matchRank": 2},
+        {"name": "Targa", "words": ["targa"], "matchFirst": true, "matchRank": 4},
+        {"name": "Cabriolet", "words": ["cabriolet", "cabrio", "convertible"], "matchFirst": true, "matchRank": 5},
+        {"name": "Turbo", "words": ["turbo"], "matchFirst": true, "matchRank": 1}
+      ]
+    },
+    {
+      "id": "chevrolet-corvette-c5", "label": "Chevrolet Corvette (C5), 1997 to 2004", "make": "Chevrolet", "models": ["Corvette"], "years": [1997, 2004], "vin": null, "unnamedIs": "Base",
+      "variants": [
+        {"name": "Base", "words": ["\\bbase\\b"]},
+        {"name": "Z06", "words": ["\\bz[\\s-]?06\\b"]}
+      ]
+    },
+    {
+      "id": "chevrolet-corvette-c6", "label": "Chevrolet Corvette (C6), 2005 to 2013", "make": "Chevrolet", "models": ["Corvette"], "years": [2005, 2013], "vin": null, "unnamedIs": "Base",
+      "variants": [
+        {"name": "Base", "words": ["\\bbase\\b"]},
+        {"name": "Grand Sport", "words": ["grand[\\s-]?sport"]},
+        {"name": "Z06", "words": ["\\bz[\\s-]?06\\b"]},
+        {"name": "ZR1", "words": ["zr[\\s-]?1"]}
+      ]
+    },
+    {
+      "id": "ford-mustang-sn95", "label": "Ford Mustang (SN95), 1994 to 2004", "make": "Ford", "models": ["Mustang"], "years": [1994, 2004], "vin": null,
+      "variants": [
+        {"name": "GT", "words": ["\\bgt\\b"]},
+        {"name": "Cobra", "words": ["cobra"], "matchFirst": true},
+        {"name": "Mach 1", "words": ["mach\\s?1"], "matchFirst": true},
+        {"name": "Bullitt", "words": ["bullitt"], "matchFirst": true}
+      ]
+    },
+    {
+      "id": "ford-mustang-s197", "label": "Ford Mustang (S197), 2005 to 2014", "make": "Ford", "models": ["Mustang"], "years": [2005, 2014], "vin": null,
+      "variants": [
+        {"name": "GT", "words": ["\\bgt\\b"]},
+        {"name": "Shelby GT500", "words": ["gt\\s?500"], "matchFirst": true},
+        {"name": "Boss 302", "words": ["boss\\s?302"], "matchFirst": true},
+        {"name": "Bullitt", "words": ["bullitt"], "matchFirst": true}
+      ]
     }
   ]
 }
