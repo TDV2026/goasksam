@@ -55,10 +55,23 @@ if (process.argv.includes("--mutants")) {
     ["the choices not under the bar", 'bar.insertAdjacentHTML("afterend",h)', 'bar.insertAdjacentHTML("beforebegin",h)', "lib/modelChoicePage.js"],
     ["the choices not wrapping (a phone scrolls sideways)", "display:flex;flex-wrap:wrap;gap:8px}.gmc-list li", "display:flex;flex-wrap:nowrap;gap:8px}.gmc-list li", "lib/modelChoicePage.js"],
     ["the choices read from Market Check only (Sell's reply not read)", "(sellerDecision|buySearch|sellChat)(", "(sellerDecision|buySearch)(", "lib/modelChoicePage.js"],
+    ["the card asked for while the page loads (no wait for auth.js)", 'whenAuth(function(){ openSignInCard("Sign in to start your Task.', 'if (typeof openSignInCard === "function") (function(){ openSignInCard("Sign in to start your Task.', "lib/preview/tasksPreview.js", "edges"],
+    ["the wait for auth.js never made", 'document.addEventListener("DOMContentLoaded", function(){ if (typeof openSignInCard === "function") f(); });', 'void 0;', "lib/preview/tasksPreview.js", "edges"],
+    ["a car in hand not opening the card", '(P.get("signin") || P.get("words") || HAS_CAR)', '(P.get("signin") || P.get("words"))', "lib/preview/tasksPreview.js", "edges"],
+    ["the card opening on every Tasks landing", '(P.get("signin") || P.get("words") || HAS_CAR)', '(true)', "lib/preview/tasksPreview.js", "edges"],
+    ["the sign in card not handed the car", "function ready(){wrapSign();draw();", "function ready(){draw();", "lib/carBar.js", "edges"],
+    ["the way back without the car for Find, Market Check and Tasks", 'else u.searchParams.set("car",car.token);return u.pathname', 'else u.searchParams.set("x",car.token);return u.pathname', "lib/carBar.js", "edges"],
+    ["the way back without the token on Sell", 'if(C.tool==="sell")u.searchParams.set("cb",car.token);else u.searchParams.set("car"', 'if(C.tool==="sell")u.searchParams.set("x",car.token);else u.searchParams.set("car"', "lib/carBar.js", "edges"],
+    ["a caller's own destination overwritten", "if(!(opts&&opts.dest)){var d=dest();", "if(true){var d=dest();", "lib/carBar.js", "edges"],
+    ["Sell's step address without the token", 'u1.searchParams.set("cb",car.token);url=', 'u1.searchParams.set("x",car.token);url=', "lib/carBar.js", "edges"],
+    ["the address not refreshed when the answer brings the car", 'if(C.tool==="sell"&&/[?&]car=/.test(location.search)&&history.replaceState){try{history.replaceState(history.state,', 'if(false&&history.replaceState){try{history.replaceState(history.state,', "lib/carBar.js", "edges"],
+    ["a reload not reading cb on the server", 'if (tool === "sell" && u.searchParams.has("cb"))', 'if (false && tool === "sell" && u.searchParams.has("cb"))', "lib/carBar.js", "edges"],
+    ["a cb that does not decode accepted", 'const info = isCarToken(cb) ? carInfo(cb, crewOnly(req)) : null; if (info &&', 'const info = { token: cb, line: cb, short: cb, label: cb }; if (info &&', "lib/carBar.js", "edges"],
+    ["the step's history state dropped by the address refresh", 'history.replaceState(history.state,"",location.pathname+location.search+location.hash)', 'history.replaceState(null,"",location.pathname+location.search+location.hash)', "lib/carBar.js", "edges"],
     ["a car line built on the page from the token", "car={token:c.token,line:c.line,short:c.short||\"\"}", "car={token:c.token,line:\"\"+c.token,short:\"\"}"]
   ];
   let bad = 0;
-  for (const [name, from, to, file] of MUT.filter(m => !process.argv.includes("--partial") || m[3])) {
+  for (const [name, from, to, file] of MUT.filter(m => process.argv.includes("--edges") ? m[4] === "edges" : (!process.argv.includes("--partial") || (m[3] && !m[4])))) {
     const P = path.join(ROOT, file || f), orig = fs.readFileSync(P, "utf8");
     if (!orig.includes(from)) { console.log("MUTANT NOT APPLICABLE (source changed): " + name); bad++; continue; }
     let code = 0; try { fs.writeFileSync(P, orig.replace(from, () => to)); try { execFileSync("node", [fileURLToPath(import.meta.url)], { stdio: "pipe", timeout: 240000 }); } catch (e) { code = e.status || 1; } } finally { fs.writeFileSync(P, orig); }
@@ -122,7 +135,7 @@ for (const [tool, p0, idx, apiRe] of TOOLS) {
   ok(r.pills.every((x, i) => x.h === "/preview" + PATHS[i] + "?car=" + enc(TOKEN)), tool + ": every pill is a plain link carrying the same token " + JSON.stringify(r.pills.map(x => x.h.slice(-12))));
   ok(r.pills.filter(x => x.on).length === 1 && r.pills[idx].on && r.pills[idx].cur === "page" && r.pills.every((x, i) => i === idx || (!x.on && x.cur === null)) && r.pills[idx].bg !== r.pills[(idx + 1) % 4].bg, tool + ": the current tool is the one filled pill and marked");
   ok(r.change === "/preview" + PATHS[idx] + "?change=" + enc(TOKEN), tool + ": Change goes back to this tool's input with the car");
-  if (tool !== "tasks") { const want = tool === "sell" ? "car=" : "q="; ok(r.loc.replace(/\+/g, "%20").startsWith(p0 + "?" + want + enc(LABEL)) && !r.loc.includes("v1.") && !r.carfill, tool + ": opened already run: the tool's own address carries the car's words (no 302, no ct) " + r.loc); }
+  if (tool !== "tasks") { const want = tool === "sell" ? "car=" : "q="; ok(r.loc.replace(/\+/g, "%20").startsWith(p0 + "?" + want + enc(LABEL)) && (tool === "sell" ? r.loc.includes("cb=" + enc(TOKEN)) : !r.loc.includes("v1.")) && !r.carfill, tool + ": opened already run: the tool's own address carries the car's words (no 302, no ct) " + r.loc); }
   else ok(r.inputs.some(v => v.startsWith(LABEL)) && r.active === "tkq", "tasks: the composer opens with the car filled and the focus in the job field " + JSON.stringify([r.inputs, r.active]));
   const first = p._api.find(c => apiRe.test(c.u));
   ok(hasToken(first), tool + ": the tool's FIRST engine call carries ?car=<the token> " + JSON.stringify(first && first.u.slice(0, 90)));
@@ -369,6 +382,75 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
     // the builder, in Node: the engine's words only, a link only for an address that starts with "/", nothing for no choices
     try { const M = await imp("lib/modelChoicePage.js"), h = M.modelChoiceHtml;
       ok(h(null) === "" && h({}) === "" && h({ choices: [] }) === "" && h({ choices: [{ label: " " }] }) === "" && !/<a /.test(h({ choices: [{ label: "X", address: "https://evil.example/x" }, { label: "Y", address: "javascript:alert(1)" }, { label: "Z" }] })) && /<a class="gmc-btn" href="\/sell\?car=1">X<\/a>/.test(h({ choices: [{ label: "X", address: "/sell?car=1" }] })) && /Type the model/.test(h({ choices: [{ label: "X" }], typeLine: "Type the model." })) && !/<script/.test(h({ line: "<script>", choices: [{ label: "<b>" }] })), "model choices builder: nothing for no choices, a link only for an address of this site, the engine's text escaped"); } catch (e) { ok(false, "model choices builder: lib/modelChoicePage.js does not load (" + String(e && e.message).slice(0, 80) + ")"); }
+  }
+  // 9 THE BAR'S TWO ROUGH EDGES (Lane S, Nov 17 2026), public. (a) A signed out person who lands on Tasks with a car in hand (or ?signin=1) gets the sign in card on its own, over the page, the car bar and the filled box kept behind it; the card is asked for through
+  // the one helper that waits for the deferred auth.js (an event, no timer); every page that sends a person to sign in with a car in hand hands the car to the return address; a signed in return lands on the same page, same car. (b) Sell's step address carries the token (cb=),
+  // so a reload at every step keeps the bar and the step.
+  {
+    const MODAL = `(() => { const m = document.getElementById("auth-modal"), r = m && m.getBoundingClientRect(), bar = document.getElementById("gas-carbar"); return { open: !!m, covers: !!m && r.width >= document.documentElement.clientWidth - 2 && r.height >= 300, bar: !!bar && !bar.hidden, inputs: [...document.querySelectorAll("#pq,#tkq,#q,#ob-input,input[name=q],textarea")].map(e => e.value).filter(Boolean), n: document.querySelectorAll("#auth-modal").length }; })()`;
+    const RET = p => p.evaluate(() => { try { return JSON.parse(localStorage.getItem("gas_signin_return") || "null"); } catch (e) { return null; } });
+    const SESSION = () => localStorage.setItem("gas_auth_session", JSON.stringify({ access_token: "a.b.c", refresh_token: "r", expires_at: Math.floor(Date.now() / 1000) + 86400, email: "x@example.com", user: { email: "x@example.com" } }));
+    // Tasks, signed out
+    for (const [name, url, withCar] of [["a pill (?car=<token>)", "/tasks?car=" + enc(TOKEN), true], ["?signin=1", "/tasks?signin=1", false], ["a typed request (?words=)", "/tasks?words=" + enc("a 911 under 80k"), false]]) {
+      const p = await open(url, 1440, { live: LIVEMAP, signed: false }); await new Promise(r => setTimeout(r, 600)); const m = await p.evaluate(MODAL), r = await p.evaluate(BAR), ret = await RET(p);
+      ok(m.open && m.covers && m.n === 1, "tasks signed out, " + name + ": the sign in card opens on its own as a modal over the page " + JSON.stringify(m));
+      if (withCar) {
+        ok(m.bar && r.present && r.line === LINE && r.pills.every(x => x.h.endsWith("?car=" + enc(TOKEN))) && m.inputs.some(v => v.startsWith(LABEL)), "tasks signed out, a pill: the car bar and the filled request box are kept behind the card " + JSON.stringify([r.line, m.inputs]));
+        if (process.env.SHOTS) { await p.screenshot({ path: path.join(ROOT, "docs/demo-run/bar-edges-tasks-signin-1440.png") }); const p3 = await open(url, 390, { live: LIVEMAP, signed: false }); await new Promise(r => setTimeout(r, 700)); await p3.screenshot({ path: path.join(ROOT, "docs/demo-run/bar-edges-tasks-signin-390.png") }); await p3.close(); }
+        ok(ret && ret.path.includes("car=" + enc(TOKEN)), "tasks signed out, a pill: the way back after sign in carries the car " + JSON.stringify(ret && ret.path.slice(0, 90)));
+        if (!ret) { ok(false, "tasks signed out, a pill: no way back was remembered, so there is no signed in return to check"); await p.close(); continue; }
+        // signed in return: the page the card sent them to, with the session now there
+        await p.evaluate(SESSION); await p.goto("https://goasksam.com" + ret.path, { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 1800));
+        const r2 = await p.evaluate(BAR);
+        ok(r2.present && r2.line === LINE && r2.pills.every(x => x.h.endsWith("?car=" + enc(TOKEN))) && r2.inputs.some(v => v.startsWith(LABEL)) && r2.active === "tkq" && !(await p.evaluate(MODAL)).open, "tasks: the signed in return is Tasks with the same car, the bar and the box filled, no card " + JSON.stringify([r2.line, r2.inputs, r2.active]));
+      }
+      await p.close();
+    }
+    { const p = await open("/tasks", 1440, { live: LIVEMAP, signed: false }); await new Promise(r => setTimeout(r, 600)); ok(!(await p.evaluate(MODAL)).open, "tasks signed out with no car and no sign in request: no card on its own (the card is for a car in hand or a request to sign in)"); await p.close(); }
+    { const p = await open("/tasks/mine?app=1&car=" + enc(TOKEN), 1440, { live: LIVEMAP, signed: true }); await new Promise(r => setTimeout(r, 600)); const m = await p.evaluate(MODAL), r = await p.evaluate(BAR); ok(!m.open && r.present && r.line === LINE, "tasks signed in: no card, the page as it was"); await p.close(); }
+    // every other page that sends a person to sign in with a car in hand: the page's own handlers call openSignInCard with no destination (Sell's finish and Find's keep looking through lib/appShell.js, Market Check's watch in onebox.js, Find's save in api/buy.js); the card is opened here exactly so
+    for (const [tool, url, base, answers] of [["find", "/find?car=" + enc(TOKEN), "/find", []], ["mc", "/market-check?car=" + enc(TOKEN), "/market-check", []], ["sell", "/sell?car=" + enc(TOKEN) + SELLQ, "/sell", []]]) {
+      const p = await open(url, 1440, { live: LIVEMAP, signed: false, answers }); await new Promise(r => setTimeout(r, 400));
+      await p.evaluate(() => openSignInCard("Sign in so Sam can keep looking."));
+      const m = await p.evaluate(MODAL), ret = await RET(p), rp = ret && new URL(ret.path, "https://x");
+      ok(m.open && m.covers && m.bar, tool + ": the card opens over the page and the bar stays behind it " + JSON.stringify(m));
+      ok(rp && (tool === "sell" ? rp.searchParams.get("cb") === TOKEN && rp.searchParams.get("state") === "California" && rp.searchParams.get("how") === "unsure" : rp.searchParams.get("car") === TOKEN) && rp.pathname === base, tool + ": the way back after sign in is this page with the car's token in it " + JSON.stringify(ret && ret.path.slice(0, 110)));
+      if (!ret) { ok(false, tool + ": no way back was remembered, so there is no signed in return to check"); await p.close(); continue; }
+      await p.evaluate(SESSION); await p.goto("https://goasksam.com" + ret.path, { waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 1800));
+      const r2 = await p.evaluate(BAR), m2 = await p.evaluate(MODAL);
+      ok(r2.present && r2.line === LINE && r2.pills.every(x => x.h.endsWith("?car=" + enc(TOKEN))) && !m2.open && (tool !== "mc" || m2.inputs.some(v => v.startsWith(LABEL))), tool + ": the signed in return is the same page and car: the bar, and the box filled " + JSON.stringify([r2.line, m2.inputs]));
+      await p.close();
+    }
+    { const p = await open("/market-check", 1440, { live: LIVEMAP, signed: false }); await p.evaluate(() => openSignInCard("x")); const ret = await RET(p); ok(ret && ret.path === "/market-check", "no car in hand: the way back is the page as it was, nothing added " + JSON.stringify(ret && ret.path)); await p.close(); }
+    { const p = await open("/tasks?car=" + enc(TOKEN), 1440, { live: LIVEMAP, signed: false }); await new Promise(r => setTimeout(r, 500)); const n = await p.evaluate(() => document.querySelectorAll("#auth-modal").length); ok(n === 1, "tasks: the card is opened once, not twice (the bar's wrapper and the page's call are one call)"); await p.close(); }
+    // (b) Sell: a reload at every step keeps the bar and the step. Steps: state, how, rush, result; arrived by the token (boot) and by typed words (the bar comes from the answer)
+    const STEPS = [["state", ""], ["how", "&state=California"], ["rush", "&state=California&how=unsure"], ["result", "&state=California&how=unsure&rush=none"]];
+    // (the typed words reach a bar only when an engine answer carries the car, which is the result step; a question step opened from a bare address has no car in hand to keep)
+    for (const mode of ["token", "typed"]) for (const [step, q] of STEPS) {
+      if (mode === "typed" && step !== "result") continue;
+      const url = mode === "token" ? "/sell?car=" + enc(TOKEN) + q : "/sell?car=" + enc(LABEL) + q, ans = mode === "typed" ? [[/\/api\/sellChat/, { car: STAMP }]] : [];
+      const p = await open(url, 1440, { live: LIVEMAP, signed: false, answers: ans }); await new Promise(r => setTimeout(r, 800));
+      const a1 = await p.evaluate(() => ({ loc: location.pathname + location.search, text: document.body.innerText.replace(/\s+/g, " ").slice(0, 3000) })), r1 = await p.evaluate(BAR);
+      if (ans.length) ans[0][1] = {};   // after the reload the answer does not carry the car: the bar can only come from the address
+      await p.reload({ waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 1500));
+      const a2 = await p.evaluate(() => ({ loc: location.pathname + location.search, text: document.body.innerText.replace(/\s+/g, " ").slice(0, 3000) })), r2 = await p.evaluate(BAR), u2 = new URL(a2.loc, "https://x"), u1 = new URL(a1.loc, "https://x");
+      ok(r1.present && r1.line === LINE, "sell " + step + " (" + mode + "): the bar is there before the reload " + JSON.stringify(r1.line));
+      ok(u1.searchParams.get("cb") === TOKEN, "sell " + step + " (" + mode + "): the step address carries the token " + a1.loc.slice(0, 120));
+      ok(r2.present && r2.shown && r2.line === LINE && r2.pills.every(x => x.h.endsWith("?car=" + enc(TOKEN))), "sell " + step + " (" + mode + "): a reload keeps the bar " + JSON.stringify([r2.present, r2.line]));
+      ok(["state", "how", "rush"].every(k => u2.searchParams.get(k) === u1.searchParams.get(k)) && u2.searchParams.get("car") === u1.searchParams.get("car") && u2.searchParams.get("cb") === TOKEN, "sell " + step + " (" + mode + "): and the step address is the same " + a2.loc.slice(0, 120));
+      ok(a2.text.slice(0, 300) === a1.text.slice(0, 300) || mode === "typed", "sell " + step + " (" + mode + "): and the step on the page is the same");
+      if (process.env.SHOTS && step === "rush" && mode === "token") { await p.screenshot({ path: path.join(ROOT, "docs/demo-run/bar-edges-sell-reload-1440.png"), clip: { x: 0, y: 0, width: 1440, height: 600 } }); }
+      await p.close();
+    }
+    if (process.env.SHOTS) { const p = await open("/sell?car=" + enc(TOKEN) + "&state=California&how=unsure", 390, { live: LIVEMAP, signed: false }); await new Promise(r => setTimeout(r, 800)); await p.reload({ waitUntil: "domcontentloaded" }); await new Promise(r => setTimeout(r, 1500)); await p.screenshot({ path: path.join(ROOT, "docs/demo-run/bar-edges-sell-reload-390.png") }); await p.close(); }
+    // a car that arrives while the address holds no car= (the landing): the way back through sign in still carries the token; and a new car arriving mid step leaves Sell's own history state alone
+    { const p = await open("/sell", 1440, { live: LIVEMAP, signed: false }); await new Promise(r => setTimeout(r, 500)); await p.evaluate(c => window.gasCarBar.set(c), STAMP); await p.evaluate(() => openSignInCard("x")); const ret = await RET(p), rp = ret && new URL(ret.path, "https://x");
+      ok(rp && rp.pathname === "/sell" && rp.searchParams.get("cb") === TOKEN, "sell landing, a car in hand: the way back through sign in carries the token " + JSON.stringify(ret && ret.path)); await p.close(); }
+    { const p = await open("/sell?car=" + enc(TOKEN) + "&state=California&how=unsure", 1440, { live: LIVEMAP, signed: false }); await new Promise(r => setTimeout(r, 800));
+      const before = await p.evaluate(() => JSON.stringify(history.state)); await p.evaluate(c => window.gasCarBar.set(c), STAMP2); await new Promise(r => setTimeout(r, 200)); const after = await p.evaluate(() => ({ st: JSON.stringify(history.state), loc: location.search }));
+      ok(before && before !== "null" && after.st === before && after.loc.includes("cb=" + enc(TOKEN2)), "sell: a new car arriving mid step puts its token in the address and leaves the step's own history state as it was " + JSON.stringify([before && before.slice(0, 60), after.st === before, after.loc.slice(-40)])); await p.close(); }
+    { const t = TAMPERED, p = await open("/sell?car=" + enc(LABEL) + "&state=California&cb=" + enc(t), 1440, { live: LIVEMAP, signed: false }); await new Promise(r => setTimeout(r, 600)); const r = await p.evaluate(BAR); ok(!r.present || !r.shown, "sell: a cb that does not decode is no car (no bar) and the step is as it was"); await p.close(); }
+    { const x = await call(LH.sell, "/sell?car=" + enc(LABEL) + "&state=California&cb=" + enc(TOKEN)), y = await call(LH.sell, "/sell?car=" + enc(LABEL) + "&state=California"); ok(x.code === 200 && /GAS_CAR_BAR/.test(x.body) && !/GAS_CAR_BAR/.test(y.body) || /"car":null/.test(y.body), "sell: the served page for a step address with cb= has the bar's car in its config (server side), and without it has none"); }
   }
   globalThis.fetch = realFetch; delete process.env.NEW_DESIGN; delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 }
