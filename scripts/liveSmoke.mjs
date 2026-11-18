@@ -67,7 +67,8 @@ check("MC visitor: the notice names sunroof only", !!m3Notice && /sunroof/.test(
 await m3.p.close();
 
 const PO = await mcSearch(false, "1999 Porsche 45,911 miles");
-check("MC visitor: '1999 Porsche 45,911 miles' asks which Porsche", PO.ok && /Which Porsche\?/.test(PO.text) && /911/.test(PO.text) && /Boxster/.test(PO.text), PO.text.slice(0, 250));
+let poG = null; { const end = Date.now() + 25000; while (Date.now() < end && !(poG && poG.buttons.length)) { try { poG = await PO.p.evaluate(() => ({ line: (document.querySelector("#gmc .gmc-line") || {}).textContent || "", buttons: [...document.querySelectorAll("#gmc .gmc-btn")].map(a => a.textContent) })); } catch { /* moving */ } if (!(poG && poG.buttons.length)) await new Promise(r => setTimeout(r, 500)); } }
+check("MC visitor: '1999 Porsche 45,911 miles' asks which 1999 Porsche, with the models as buttons (the partial car is public)", !!poG && poG.line === "Which 1999 Porsche?" && poG.buttons.includes("911") && poG.buttons.includes("Boxster"), JSON.stringify(poG));
 check("MC visitor: ...and does not answer for a 911 (no range printed)", !/\$[\d,]+ to \$[\d,]+/.test(PO.text), PO.text.slice(0, 250));
 await PO.p.close();
 
@@ -221,8 +222,8 @@ await barSuite(false, "visitor");
       const t = (await poll(async () => { const x = await textOf(q); return /trouble|try again|couldn.t|could not|went wrong|not read|offline|failed/i.test(x) ? x : null; }, 15000)) || await textOf(q); check("partial car (crew): a request that breaks after the choices show still prints a failure line", /trouble|try again|couldn.t|could not|went wrong|not read|offline|failed/i.test(t), (await gmc(q)).buttons.length + " choices still drawn; " + t.slice(0, 160)); await q.setOfflineMode(false); await q.close(); }
   }
   { const p = await open(false); await p.goto(SITE + "/market-check", { waitUntil: "networkidle2" }); await p.type("#pq", "2009 BMW"); await p.keyboard.press("Enter");
-    await poll(async () => /Which BMW\?/.test(await textOf(p)), 45000); await quiet(p); const g = await gmc(p), b2 = await barOf(p);
-    check("partial car (visitor): Market Check '2009 BMW' is the older 'Which BMW?' question, no new choice block, no bar", g.blocks === 0 && g.older === true && !b2, JSON.stringify([g.blocks, g.older, b2 && b2.line])); await p.close(); }
+    await poll(async () => (await gmc(p)).buttons.length > 0, 45000); await quiet(p); const g = await gmc(p), b2 = await barOf(p);
+    check("partial car (visitor): Market Check '2009 BMW' shows the choice once, 'Which 2009 BMW?', no older block, with the bar '2009 BMW' (the partial car is public), and no variant rows", g.blocks === 1 && g.line === "Which 2009 BMW?" && g.older === false && !!b2 && b2.line === "2009 BMW" && !(await p.evaluate(() => !!document.getElementById("vrs-mod"))), JSON.stringify([g.blocks, g.line, g.older, b2 && b2.line])); await p.close(); }
   { const p = await open(false); await p.goto(SITE + "/market-check", { waitUntil: "networkidle2" }); await p.type("#pq", "2009 BMW M3"); await p.keyboard.press("Enter"); const b2 = await poll(() => barOf(p), 45000);
     check("partial car (visitor): a full car '2009 BMW M3' keeps the public bar", !!b2 && b2.line === "2009 BMW M3" && b2.pills.length === 4, b2 && b2.line); await p.close(); }
 }
