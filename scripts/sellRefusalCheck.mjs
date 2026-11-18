@@ -4,6 +4,7 @@
 // pick, partner, tiles or follow-up box. A normal range answer is unchanged. Checks noRangeOf (lib/sell/sellFacts.js),
 // buildResult's order (lib/sell/sellFlow.js) and the Sell client (lib/sell/sellMcClient.js) on a stubbed page. No network.
 //   node scripts/sellRefusalCheck.mjs     exit 1 on any failure.
+import { repoFiles } from "./_repoWalk.mjs";
 import fs from "node:fs";
 import { spawnSync } from "node:child_process"; import path from "node:path"; import { fileURLToPath, pathToFileURL } from "node:url";
 // MUTANTS (lane-b-sell-nolump): node scripts/sellRefusalCheck.mjs --mutants, in a COPY of the repo; each must fail the check.
@@ -37,7 +38,7 @@ if (process.argv.includes("--mutants")) {
     const tmp = fs.mkdtempSync(path.join(fs.realpathSync("/tmp"), "sr-"));
     try {
       for (const d of ["lib", "api", "data", "package.json"]) spawnSync("cp", ["-R", path.join(R, d), tmp]);
-      fs.mkdirSync(path.join(tmp, "scripts")); spawnSync("cp", [me, path.join(tmp, "scripts/")]); fs.symlinkSync(path.join(R, "node_modules"), path.join(tmp, "node_modules"));
+      fs.mkdirSync(path.join(tmp, "scripts")); spawnSync("cp", [me, path.join(R, "scripts/_repoWalk.mjs"), path.join(tmp, "scripts/")]); fs.symlinkSync(path.join(R, "node_modules"), path.join(tmp, "node_modules"));
       const f = path.join(tmp, file), src = fs.readFileSync(f, "utf8");
       if (src.split(from).length !== 2) { console.log("MISSED   " + name + " (target text not exactly once in " + file + ")"); bad++; continue; }
       fs.writeFileSync(f, src.replace(from, () => to));
@@ -188,7 +189,7 @@ const ROOTD = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
   ok(none.empty === SF2.NOT_SEEN_LINE, "a car with no sale at all: the not-seen line stands");
   ok(SF2.noPickFor({ platform: { slug: "x" }, partner: null, pl: { total: 0 }, noRange: { total: 5 }, recent: recent(5) }).empty === null && SF2.noPickFor({ platform: null, partner: { slug: "p" }, pl: { total: 0 }, noRange: { total: 5 }, recent: recent(5) }).empty === null, "a pick or a PowerSeller: no empty line");
   // the sweep: the sentence is written in ONE place and read from there; no page or email carries its own copy
-  const hits = []; const walk = d => { for (const f of fs.readdirSync(d, { withFileTypes: true })) { if (f.name === "node_modules" || f.name === ".git" || f.name === "scripts" || f.name === "docs" || f.name === "proofs") continue; const q = path.join(d, f.name); if (f.isDirectory()) walk(q); else if (/\.(js|mjs|html|json)$/.test(f.name)) { const t = fs.readFileSync(q, "utf8"); if (/has not seen this car sell|not seen this car sell/i.test(t.replace(/\/\/.*$/gm, ""))) hits.push(path.relative(ROOTD, q)); } } }; walk(ROOTD);
+  const hits = []; for (const rel of repoFiles(ROOTD, { exts: /\.(js|mjs|html|json)$/, skipTop: ["scripts", "docs", "proofs"] })) { const t = fs.readFileSync(path.join(ROOTD, rel), "utf8"); if (/has not seen this car sell|not seen this car sell/i.test(t.replace(/\/\/.*$/gm, ""))) hits.push(rel); }   // the files a clean checkout holds (scripts/_repoWalk.mjs), never local build output such as .vercel/output
   ok(hits.length === 1 && hits[0] === "lib/sell/sellFlow.js", "no page, client or email carries the not-seen sentence of its own: it is written once, in lib/sell/sellFlow.js :: " + hits.join(","));
   const src = fs.readFileSync(path.join(ROOTD, "lib/sell/sellFlow.js"), "utf8"); ok(/empty: emptyLine,/.test(src) && !/note \|\| "Sam has not seen/.test(src), "buildResult's empty line is noPickFor's"); }
 console.log(`sellRefusalCheck: ${pass} passed, ${fail} failed`);
