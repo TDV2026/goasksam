@@ -5,6 +5,7 @@
 //   node scripts/runChecks.mjs --list           say which checks would run and why, run nothing
 //   node scripts/runChecks.mjs --files a,b      use these as the changed files (no git)
 //   --depth N (how many import steps below a file a check names still count: 1 by default, set in the map as depth; the engine files run the full set whatever the depth)
+//   --trace FILE (write each check's start and end time, one JSON line each, to find checks that touch the same files)
 //   --workers N (default: the cores less one, at most 8)   --serial (one at a time)   --live (also the checks that call production; only in a gap the lanes name)   --only a,b   --json   --timeout S (per check, default 900)
 // THE MAP is scripts/checkMap.json (built from what each check imports and names by scripts/buildCheckMap.mjs, read by a person): each check with the paths it covers. A changed file selects a check when it is one of the check's paths, is directly under
 // one of its directories, or is imported, one step down by default (map.depth), by a file the check names. A change under the engine (map.engine: lib/onebox.js, lib/vehicle.js, lib/bareModel.js, lib/numberPhrases.js, lib/live/ and the data files the engine reaches) runs the full set.
@@ -65,7 +66,7 @@ function runOne(root, name, file, timeoutS, env) {
     const cap = d => { if (out.length < 2e6) out += d; };
     child.stdout.on("data", cap); child.stderr.on("data", cap);
     const timer = setTimeout(() => { killed = true; child.kill("SIGKILL"); }, timeoutS * 1000);
-    child.on("close", code => { clearTimeout(timer); const secs = (Date.now() - t0) / 1000, c = killed ? { pass: 0, fail: 1 } : parseCounts(out, code); resolve({ name, code: killed ? 124 : code, secs, ...c, skipped: /\bSKIP\b/.test(out) && code === 0, first: killed ? "timed out after " + timeoutS + " s" : (code !== 0 || c.fail ? firstFailure(out) : ""), out }); });
+    child.on("close", code => { clearTimeout(timer); const secs = (Date.now() - t0) / 1000, c = killed ? { pass: 0, fail: 1 } : parseCounts(out, code); resolve({ name, startedAt: t0, endedAt: Date.now(), code: killed ? 124 : code, secs, ...c, skipped: /\bSKIP\b/.test(out) && code === 0, first: killed ? "timed out after " + timeoutS + " s" : (code !== 0 || c.fail ? firstFailure(out) : ""), out }); });
     child.on("error", e => { clearTimeout(timer); resolve({ name, code: 1, secs: (Date.now() - t0) / 1000, pass: 0, fail: 1, first: String(e).slice(0, 200), out: "" }); });
   });
 }
@@ -106,6 +107,7 @@ async function main() {
   if (a.includes("--list")) { for (const n of names) console.log("  " + n.padEnd(40) + (sel.why.get(n) || []).slice(0, 2).join("; ")); process.exit(sel.uncovered.length ? 1 : 0); }
   const cpus = Math.max(1, os.cpus().length - 1), workers = Number(argOf(a, "--workers", Math.min(8, cpus))) || 1, t0 = Date.now();
   const results = await runAll(root, map, names, { workers, timeout: Number(argOf(a, "--timeout", 900)) || 900, serialAll: a.includes("--serial"), env: { ...process.env } });
+  if (typeof argOf(a, "--trace") === "string") fs.writeFileSync(argOf(a, "--trace"), [...results.values()].map(r => JSON.stringify({ name: r.name, start: r.startedAt, end: r.endedAt, code: r.code })).join("\n") + "\n");
   const rs = [...results.values()], failed = rs.filter(r => r.fail || r.code), pass = rs.reduce((x, r) => x + r.pass, 0), fail = rs.reduce((x, r) => x + r.fail, 0), wall = (Date.now() - t0) / 1000, cpu = rs.reduce((x, r) => x + r.secs, 0);
   try { const w = {}; for (const r of rs) w[r.name] = Math.round(r.secs); if (!a.includes("--files")) fs.writeFileSync(timesFile(root), JSON.stringify(w)); } catch { /* timing is a convenience */ }
   console.log(`\nTOTAL  ${rs.length} checks  pass ${pass}  fail ${fail}  ${failed.length} failing  wall ${wall.toFixed(1)} s (checks add up to ${cpu.toFixed(1)} s, ${a.includes("--serial") ? 1 : workers} at a time)${sel.uncovered.length ? "  UNCOVERED " + sel.uncovered.length : ""}`);
