@@ -20,7 +20,9 @@
   "LICENSE",
   "scripts/checkMap.json"
  ],
- "notes": {},
+ "notes": {
+  "clock": "expiredRowServedCheck and questionColdCheck fail between 00:00 and 03:00 UTC (a row 2 to 3 hours old is then from the earlier UTC day); that is the clock, not running beside other checks"
+ },
  "checks": {
   "amazonCarStateCheck": {
    "file": "scripts/amazonCarStateCheck.mjs",
@@ -1229,6 +1231,7 @@
   "deskCompsMinCheck": {
    "file": "scripts/deskCompsMinCheck.mjs",
    "kind": "offline",
+   "serial": "writes temporary mutant copies of lib, api and scripts files (names like __xxmut_*) into the repo tree while it runs, and some edit a real file in place; a check that reads or imports those folders at the same moment sees them (tasksCrewLimitCheck broke reasonWordsCheck, searchCheck and tierBandPoolCheck this way)",
    "covers": [
     "lib/deskV3.js",
     "lib/onebox.js",
@@ -1298,6 +1301,7 @@
   "deskDoorsCheck": {
    "file": "scripts/deskDoorsCheck.mjs",
    "kind": "offline",
+   "serial": "writes temporary mutant copies of lib, api and scripts files (names like __xxmut_*) into the repo tree while it runs, and some edit a real file in place; a check that reads or imports those folders at the same moment sees them (tasksCrewLimitCheck broke reasonWordsCheck, searchCheck and tierBandPoolCheck this way)",
    "covers": [
     "api/",
     "api/desk.js",
@@ -1742,6 +1746,7 @@
   "deskTrimAskCheck": {
    "file": "scripts/deskTrimAskCheck.mjs",
    "kind": "offline",
+   "serial": "writes temporary mutant copies of lib, api and scripts files (names like __xxmut_*) into the repo tree while it runs, and some edit a real file in place; a check that reads or imports those folders at the same moment sees them (tasksCrewLimitCheck broke reasonWordsCheck, searchCheck and tierBandPoolCheck this way)",
    "covers": [
     "lib/onebox.js",
     "lib/reasonWords.js",
@@ -1752,6 +1757,7 @@
   "deskTypedBodyCheck": {
    "file": "scripts/deskTypedBodyCheck.mjs",
    "kind": "offline",
+   "serial": "writes temporary mutant copies of lib, api and scripts files (names like __xxmut_*) into the repo tree while it runs, and some edit a real file in place; a check that reads or imports those folders at the same moment sees them (tasksCrewLimitCheck broke reasonWordsCheck, searchCheck and tierBandPoolCheck this way)",
    "covers": [
     "lib/sheetRead.js",
     "scripts/_deskOlderWorld.mjs"
@@ -5467,6 +5473,7 @@
   "retentionCheck": {
    "file": "scripts/retentionCheck.mjs",
    "kind": "offline",
+   "serial": "writes temporary mutant copies of lib, api and scripts files (names like __xxmut_*) into the repo tree while it runs, and some edit a real file in place; a check that reads or imports those folders at the same moment sees them (tasksCrewLimitCheck broke reasonWordsCheck, searchCheck and tierBandPoolCheck this way)",
    "covers": [
     "lib/desk/",
     "scripts/_deskDb.mjs",
@@ -6395,6 +6402,7 @@
   "taskLimitLiteralCheck": {
    "file": "scripts/taskLimitLiteralCheck.mjs",
    "kind": "offline",
+   "serial": "writes temporary mutant copies of lib, api and scripts files (names like __xxmut_*) into the repo tree while it runs, and some edit a real file in place; a check that reads or imports those folders at the same moment sees them (tasksCrewLimitCheck broke reasonWordsCheck, searchCheck and tierBandPoolCheck this way)",
    "covers": [
     "api/",
     "lib/",
@@ -6449,6 +6457,7 @@
   "tasksCrewExportCheck": {
    "file": "scripts/tasksCrewExportCheck.mjs",
    "kind": "offline",
+   "serial": "writes temporary mutant copies of lib, api and scripts files (names like __xxmut_*) into the repo tree while it runs, and some edit a real file in place; a check that reads or imports those folders at the same moment sees them (tasksCrewLimitCheck broke reasonWordsCheck, searchCheck and tierBandPoolCheck this way)",
    "covers": [
     "api/",
     "api/tasks.js",
@@ -6465,6 +6474,7 @@
   "tasksCrewLimitCheck": {
    "file": "scripts/tasksCrewLimitCheck.mjs",
    "kind": "offline",
+   "serial": "writes temporary mutant copies of lib, api and scripts files (names like __xxmut_*) into the repo tree while it runs, and some edit a real file in place; a check that reads or imports those folders at the same moment sees them (tasksCrewLimitCheck broke reasonWordsCheck, searchCheck and tierBandPoolCheck this way)",
    "covers": [
     "api/",
     "api/tasks.js",
@@ -6480,6 +6490,7 @@
   "tasksCriteriaCheck": {
    "file": "scripts/tasksCriteriaCheck.mjs",
    "kind": "offline",
+   "serial": "writes temporary mutant copies of lib, api and scripts files (names like __xxmut_*) into the repo tree while it runs, and some edit a real file in place; a check that reads or imports those folders at the same moment sees them (tasksCrewLimitCheck broke reasonWordsCheck, searchCheck and tierBandPoolCheck this way)",
    "covers": [
     "api/tasks.js",
     "lib/preview/tasksApp.js",
@@ -6574,6 +6585,7 @@
   "tasksLeftCheck": {
    "file": "scripts/tasksLeftCheck.mjs",
    "kind": "offline",
+   "serial": "writes temporary mutant copies of lib, api and scripts files (names like __xxmut_*) into the repo tree while it runs, and some edit a real file in place; a check that reads or imports those folders at the same moment sees them (tasksCrewLimitCheck broke reasonWordsCheck, searchCheck and tierBandPoolCheck this way)",
    "covers": [
     "api/tasks.js",
     "lib/_crew.js",
@@ -6606,6 +6618,7 @@
   "tasksMatcherReadCheck": {
    "file": "scripts/tasksMatcherReadCheck.mjs",
    "kind": "offline",
+   "serial": "writes temporary mutant copies of lib, api and scripts files (names like __xxmut_*) into the repo tree while it runs, and some edit a real file in place; a check that reads or imports those folders at the same moment sees them (tasksCrewLimitCheck broke reasonWordsCheck, searchCheck and tierBandPoolCheck this way)",
    "covers": [
     "api/tasks.js",
     "lib/tasks/",
@@ -6679,6 +6692,7 @@
   "tasksSendPaceCheck": {
    "file": "scripts/tasksSendPaceCheck.mjs",
    "kind": "offline",
+   "serial": "writes temporary mutant copies of lib, api and scripts files (names like __xxmut_*) into the repo tree while it runs, and some edit a real file in place; a check that reads or imports those folders at the same moment sees them (tasksCrewLimitCheck broke reasonWordsCheck, searchCheck and tierBandPoolCheck this way)",
    "covers": [
     "lib/tasks/"
    ]
