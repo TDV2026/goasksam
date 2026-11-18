@@ -3751,3 +3751,4 @@ Search check: no public page touched.
 - CHECK: carBarCheck section 9 (live handlers, Chrome), 211 pass. Screenshots: docs/demo-run/bar-edges-tasks-signin-{1440,390}.png, bar-edges-sell-reload-{1440,390}.png.
 - Search check: no indexable page changes (the card opens only for a signed out visitor with a car in hand or a sign in request; the address of the Sell step gains cb= on a page that is noindex already).
 - READY S lane-s-bar-edges d55a7c5e (Lane S): carBarCheck 211/0 on the branch, 179 pass / 32 FAIL on origin/main (the new cases fail without the fix); screenshots in docs/demo-run/bar-edges-*. The mutant run (13 mutants, in a copy) is still to come. Not pushed.
+- MUTANTS S lane-s-bar-edges (Lane S): 13 mutants, 2 survived (the sell way back without the token when the address holds no car=, and the address refresh dropping Sell's history state); both now have a case that kills them (verified in the copy). carBarCheck 213/0. New tip 9f0240cb. Not pushed.
