@@ -3750,3 +3750,4 @@ Search check: no public page touched.
 - NOT PROVED: Sell is not served to visitors at this launch stage, so a visitor's reload is untested (it is the same script behind the same public switch); the early Sell questions reached from a bare words address have no car in hand, so no bar until an answer carries one (unchanged).
 - CHECK: carBarCheck section 9 (live handlers, Chrome), 211 pass. Screenshots: docs/demo-run/bar-edges-tasks-signin-{1440,390}.png, bar-edges-sell-reload-{1440,390}.png.
 - Search check: no indexable page changes (the card opens only for a signed out visitor with a car in hand or a sign in request; the address of the Sell step gains cb= on a page that is noindex already).
+- READY S lane-s-bar-edges d55a7c5e (Lane S): carBarCheck 211/0 on the branch, 179 pass / 32 FAIL on origin/main (the new cases fail without the fix); screenshots in docs/demo-run/bar-edges-*. The mutant run (13 mutants, in a copy) is still to come. Not pushed.
