@@ -41,6 +41,25 @@ const plainOf = c => { const d = decode(c); return d ? [d.make, d.model, d.trim 
 let EXPECT = null;   // the car each name resolves to (make|model|trim), read from the resolver on the name alone
 const world = (rows) => W.install(CARS, rows);
 const expectOf = async () => { EXPECT = {}; for (const c of CARS) { const r = await V.resolveVehicle(c.name); EXPECT[c.name] = r.vehicle ? [r.vehicle.make, r.vehicle.model, r.vehicle.trim || null].join("|") : null; } };
+// ===== A PARTIAL CAR TYPED WITH ITS MILEAGE (lane-d-car-bar-partial; Sam's rule: a make carries through all four pills) =====
+// (FIRST in the run: the resolver reads its make list once, so the make list this block supplies is the one every later case reads too)
+// a make and a year with the mileage, no model: Market Check and Sell serve the model choice (not an answer), the model that was stated is among the choices as the FULL car with the typed mileage, and a full car typed the same way is unchanged (the loops above).
+{ const realFetch = globalThis.fetch;
+  const PW = W.install(CARS.concat([{ make: "Mercedes-Benz", model: "E-Class", title: "E500", year: 2003, price: 9000, n: 14 }, { make: "Porsche", model: "911", title: "911", year: 1999, price: 30000, n: 14 }, { make: "BMW", model: "3 Series", title: "325i", year: 2001, price: 8000, n: 14 }])), realFetch2 = globalThis.fetch;
+  globalThis.fetch = async (u, i) => {   // the make list the resolver reads, and a bare model list for a make (the shared world answers a bare model select with every model of every make)
+    const x = new URL(String(u)); if (x.pathname.endsWith("/taxonomy_makes")) return new Response(JSON.stringify([...new Set(PW.rows.map(r => r.make))].map(name => ({ name }))), { status: 200 });
+    if (x.pathname.endsWith("/sales_archive") && x.searchParams.get("select") === "model" && /^eq\./.test(x.searchParams.get("make") || "")) { const mk = x.searchParams.get("make").slice(3); return new Response(JSON.stringify(PW.rows.filter(r => r.make === mk).map(r => ({ model: r.model }))), { status: 200 }); }
+    return realFetch2(u, i); };
+  try {
+    for (const c of CARS) {
+      const words = `${c.year} ${c.make} 38,400 miles`, o = await mc(words), z = o && o.modelChoice, pick = z && z.choices.find(x => x.label === c.model);   // by the archive's own name for the model; its token is the car the resolver gives for those words
+      ok(`partial car, Market Check, "${words}": the model choice, not an answer`, !!z && o.status === "one_box" && o.tier === "model_choice" && z.line === `Which ${c.year} ${c.make}?`, o && [o.status, o.tier, z && z.line]);
+      ok(`partial car, Market Check, "${words}": the stated model is a choice, its token is the full car with the typed mileage and its address is Market Check's`, !!pick && CT.decodeCar(pick.token).mileage === 38400 && CT.decodeCar(pick.token).year === c.year && !!CT.decodeCar(pick.token).model && pick.address === "/market-check?car=" + encodeURIComponent(pick.token), z && z.choices.map(x => [x.label, CT.decodeCar(x.token)]));
+      const sf = await SFLOW.buildRange({ ...env, noStore: false }, { carText: words, state: "Texas", how: "self", rush: null }), sz = sf && sf.modelChoice;
+      ok(`partial car, Sell, "${words}": the model choice with Sell's addresses, no answer`, !!sz && sz.choices.length > 0 && sz.choices.every(x => x.address === "/sell?car=" + encodeURIComponent(x.token)) && !sf.noRange && !sf.refusal, sf && Object.keys(sf).slice(0, 8));
+    }
+  } finally { globalThis.fetch = realFetch; }
+}
 world(); await expectOf();
 const bandNames = d => !!(d && d.mileageBand && d.mileageBand.target);
 // the assertions every answer carries: car, mileage, line

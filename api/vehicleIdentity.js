@@ -20,7 +20,7 @@ import { hasServerCredential } from "../lib/_credential.js";
 import { routeLimit } from "../lib/_routeLimit.js";
 import { cors as gasCors } from "../lib/_cors.js";
 import { failBody } from "../lib/_fail.js";
-import { carFromRequest, carWords } from "../lib/carToken.js";
+import { carFromRequest, carWords, isPartialCar } from "../lib/carToken.js";
 // Privacy (VIN feature): a raw 17-char VIN must never land in a funnel/analytics
 // event or a log line. Replace any VIN run with a short truncated marker so the
 // event stays useful for debugging without storing the full identifier.
@@ -132,8 +132,8 @@ export default async function handler(req, res) {
   }
 
   // THE CAR TOKEN (Lane B, Nov 17 2026, lib/carToken.js): a v1 token in ?car= or the body is the car already resolved. It comes back as the valid car it holds, the resolver is not called, a page that calls this before sellerDecision resolves zero times.
-  { const tokenCar = carFromRequest(req); if (tokenCar) { const w = carWords(tokenCar); return res.status(200).json({ status: "valid", vehicle: tokenCar, clarification: null, corrections: [], archiveModelCount: null, car: { token: String((req.query && req.query.car) || req.body.car), line: w ? w.line : null, short: w ? w.short : null } }); } }
-  const raw = req.body?.text || req.body?.car || req.body?.search || req.body?.query;
+  { const tokenCar = carFromRequest(req); if (tokenCar && !isPartialCar(tokenCar)) { const w = carWords(tokenCar); return res.status(200).json({ status: "valid", vehicle: tokenCar, clarification: null, corrections: [], archiveModelCount: null, car: { token: String((req.query && req.query.car) || req.body.car), line: w ? w.line : null, short: w ? w.short : null } }); } }
+  const partialTok = carFromRequest(req), raw = (partialTok && isPartialCar(partialTok) && carWords(partialTok).label) || req.body?.text || req.body?.car || req.body?.search || req.body?.query;   // a partial car token is read as its words: the resolver says which model is missing
   if (!raw) return res.status(400).json({ error: "Missing text" });
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
