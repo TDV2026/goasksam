@@ -16,6 +16,7 @@
 // Query-string variants (?q=<car>, a prefilled search, or a legacy ?tester=/?crew= link) are noindex
 // with THIS canonical (bare /market-check) - rule 2, one URL per object.
 import { copy } from "../lib/copy.js";
+import { reasonLine } from "../lib/reasonWords.js";
 import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import { withTracking } from "../lib/track/log.js";
 import fs from "node:fs";
@@ -96,7 +97,7 @@ async function handler(req, res) {
       `<main class="wrap"><div id="ob">${landingHtml({ updated, h1Text: H1 })}</div></main>`)
     // Round D (app shell, Oct 2026): one shared rail/main/mobile-header, lib/appShell.js.
     .replace("<!--SHELL_RAIL-->", railOpenHtml({ active: "market-check", crew, req, analytics: true }))
-    .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>${SELLS_FOR_CARD_JS}</script>\n<script>${START_JS}</script>\n<script>window.GAS_START_CFG=${JSON.stringify(startCfg(updated)).replace(/</g, "\\u003c")};window.GAS_UPDATED=${JSON.stringify(updated ? shortDate(updated) : "")};</script>\n<script>\nfunction obToggleResults`)
+    .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>${SELLS_FOR_CARD_JS}</script>\n<script>${START_JS}</script>\n<script>window.GAS_START_CFG=${JSON.stringify(startCfg(updated)).replace(/</g, "\\u003c")};window.GAS_UPDATED=${JSON.stringify(updated ? shortDate(updated) : "")};window.GAS_COULDNOT=${JSON.stringify(reasonLine("cold.missed")).replace(/</g, "\\u003c")};</script>\n<script>\nfunction obToggleResults`)
     // Item 9 (shared top bar, Oct 2026): "Sign in" / the account control, one shared file
     // (lib/authBar.js) - the same markup/CSS Buy now uses, GAS_AUTH_MODE="topbar" so js/auth.js
     // runs its lighter boot (no /sell-wizard upfront gate check, no homepage_view funnel stamp).

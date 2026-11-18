@@ -37,7 +37,7 @@ const FAILED = { status: "one_box", tier: "unavailable", samLine: CM, resolvedCa
         if (u.host === "goasksam.com" && r.isNavigationRequest()) return r.respond({ status: 200, contentType: "text/html", body: html });
         const loc = /^\/obx\.[^/]+\/onebox\.js$/.test(u.pathname) ? "public/js/onebox.js" : (/^\/js(?:\.[^/]+)?\/([\w.-]+\.js)$/.exec(u.pathname) ? "public/js/" + /^\/js(?:\.[^/]+)?\/([\w.-]+\.js)$/.exec(u.pathname)[1] : null);
         if (u.host === "goasksam.com" && loc && fs.existsSync(loc)) return r.respond({ status: 200, contentType: "application/javascript", body: fs.readFileSync(loc, "utf8") });
-        if (u.host === "goasksam.com" && u.pathname === "/api/sellerDecision") { p._posts.push(Date.now()); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(answer(p._posts.length)) }); }
+        if (u.host === "goasksam.com" && u.pathname === "/api/sellerDecision") { p._posts.push(Date.now()); const a = answer(p._posts.length); if (a === null) return r.abort("connectionfailed"); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(a) }); }
         if (u.host === "goasksam.com" && u.pathname === "/api/watch") return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify({ ready: true }) });
         if (u.host === "goasksam.com" && /^\/api\//.test(u.pathname)) return r.respond({ status: 200, contentType: "application/json", body: "{}" });
         if (u.host !== "goasksam.com") return r.respond({ status: 204, body: "" }); r.continue(); });
@@ -73,6 +73,16 @@ const FAILED = { status: "one_box", tier: "unavailable", samLine: CM, resolvedCa
       ok(last.includes(CM) && !/try again|busy/i.test(last), "c. an engine failure prints the one plain line, not 'try again' or 'busy'");
       ok(await p.evaluate(() => !!document.getElementById("ob-samonit")), "c. with the Have Sam keep looking button");
       const ev = p._events.filter(e => e[0] === "cold_miss"); ok(ev.length === 1 && ev[0][1].reason === "failed", "c. one cold_miss, reason failed"); await p.close(); }
+    // d. THE REQUEST ITSELF FAILS (Lane C, Nov 18 2026, the smoke's "a request that breaks after the choices show"): no answer at all, so no engine words arrive with it. The page still prints ONE plain line, the engine's own cold.missed
+    //    line, which the page shell carries (window.GAS_COULDNOT from api/marketCheck.js, lib/reasonWords.js), never a line written in the page script; with the button, one cold_miss event, no "try again". The class: every road that ends in renderCouldNot with no answer.
+    { const p = await run(() => null, 1, 900);
+      const last = p._seen[p._seen.length - 1] || "";
+      ok(last.includes(CM) && !/try again|busy/i.test(last), "d. a request that fails with no answer prints the engine's one plain line (" + last.slice(0, 120) + ")");
+      ok(await p.evaluate(() => !!document.getElementById("ob-samonit")), "d. with the Have Sam keep looking button");
+      const ev = p._events.filter(e => e[0] === "cold_miss"); ok(ev.length === 1 && ev[0][1].reason === "failed", "d. one cold_miss, reason failed (" + JSON.stringify(ev) + ")");
+      ok(await p.evaluate(() => window.GAS_COULDNOT) === CM, "d. the page shell carries the engine's cold.missed line, word for word"); await p.close(); }
+    { const src = fs.readFileSync("public/js/onebox.js", "utf8"); const lines = src.split("\n").filter(l => /GAS_COULDNOT/.test(l)).join("\n");
+      ok(!/could not be read|still being read/i.test(src.replace(/\/\/.*$/gm, "")), "d. the page script holds no couldNot sentence of its own"); ok(lines.length > 0, "d. the page script reads the shell's line"); }
     await b.close();
   }
 }

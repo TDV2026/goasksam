@@ -2779,7 +2779,7 @@
     });
   }
   // The could-not line is the engine's: couldNotLine on a computing answer, samLine on the engine's own could-not answer (api/sellerDecision.js, lib/reasonWords.js).
-  function cnLine(d) { return (d && (d.couldNotLine || (d.computing !== true && d.status === "one_box" && d.tier === "unavailable" ? d.samLine : ""))) || ""; }
+  function cnLine(d) { return (d && (d.couldNotLine || (d.computing !== true && d.status === "one_box" && d.tier === "unavailable" ? d.samLine : ""))) || (!d && typeof window.GAS_COULDNOT === "string" ? window.GAS_COULDNOT : "") || ""; }   // no answer at all (the request itself failed): the engine's own cold.missed line, which the page shell carries (api/marketCheck.js), never a line written here
   function renderCouldNot(d, reason, waitedMs) {
     obAsk = null;
     var rc = (d && d.resolvedCar) || obResolvedCar || obLastVehicle || null;
