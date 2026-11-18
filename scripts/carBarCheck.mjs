@@ -39,7 +39,7 @@ if (process.argv.includes("--mutants")) {
     ["the pills keeping the old token after the car changes", "function take(c){if(!c||!c.token||(car&&car.token===c.token))return;", "function take(c){if(!c||!c.token||car)return;"],
     ["a partial car opened for a visitor", 'const info = tool === "vin" ? null : carInfo(v, crewOnly(req));', 'const info = tool === "vin" ? null : carInfo(v, true);', "lib/carBar.js"],
     ["a partial car not opened for the crew", 'const info = tool === "vin" ? null : carInfo(v, crewOnly(req));', 'const info = tool === "vin" ? null : carInfo(v, false);', "lib/carBar.js"],
-    ["Find's door not opening a partial car (the empty landing)", 'carInfo(car, crewOnly(req)) ? "find-results"', 'carInfo(car, false) ? "find-results"', "lib/carBar.js"],
+    // retired as equivalent: Find's door not opening a partial car (carInfo(car, false) in carFindRoute): the served page is byte for byte the same (the route is settled again once the car is turned into its words), so no case can tell them apart
     ["Change not carrying a partial car", 'const info = carInfo(ch, crewOnly(req));', 'const info = carInfo(ch, false);', "lib/carBar.js"],
     ["every API reading a make-only token as a car", '(!partial && (typeof car.model !== "string" || !car.model))', '(false && (typeof car.model !== "string" || !car.model))', "lib/carToken.js"],
     ["the make not the short words of a partial car", 'car.trim || car.model || car.make]', 'car.trim || car.model]', "lib/carToken.js"],
@@ -334,6 +334,11 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
         ok(hasToken(first3, FULLS[0].token), tool + ": and its first engine call carries the full token " + JSON.stringify(first3 && first3.u.slice(0, 80))); await p3.close();
       } else await p.close();
     } catch (e) { ok(false, "partial " + tool + ": the page did not do what the case needs (" + String(e && e.message).slice(0, 120) + ")"); }
+    // Change on a partial car opens the tool's landing with the car's words in its box (Find and Tasks), the focus in the field
+    for (const [tool, url, want] of [["find", "/find?change=" + enc(PART), "find"], ["tasks", "/tasks/mine?app=1&change=" + enc(PART), "tasks"]]) {
+      const p = await open(url, 1440, { live: LIVEMAP, signed: tool === "tasks" }), r = await p.evaluate(BAR);
+      ok(r.inputs.some(v => v.startsWith("2009 BMW")), "partial " + tool + ": Change opens the landing with the car's words in the box " + JSON.stringify(r.inputs)); await p.close();
+    }
     // THE RULE IS NARROW (the sweep): on Market Check the shared page prints "Sam is busy right now" for every reply that is not an answer and not one of its own questions: a modelChoice (held back above, crew only) and, unchanged, the real failures
     // { status: "ip_rate_limited", message } (the search ceiling), { status: "data_unavailable" } and an empty reply. Those stay as they are: the fallback is shown and no choices block is.
     for (const [name, reply] of [["ip_rate_limited", { status: "ip_rate_limited", message: "x" }], ["data_unavailable", { status: "data_unavailable", reason: "x" }], ["an empty reply", {}]]) {
