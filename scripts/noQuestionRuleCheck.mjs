@@ -8,8 +8,9 @@ import { fileURLToPath } from "url";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); };
 const walk = (dir, out = []) => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { if (/^(node_modules|\.git|proofs|docs|\.vercel)$/.test(e.name)) continue; const p = path.join(dir, e.name); if (e.isDirectory()) walk(p, out); else if (/\.(js|mjs|cjs|json|yml|yaml)$/.test(e.name)) out.push(p); } return out; };
+const RUNNER_DATA = new Set(["scripts/checkMap.json", "scripts/.checkTimes.json"]);
 const files = walk(root);
-const naming = files.filter(f => /noQuestionRule|GAS_TEST_NO_QUESTION_RULE|questionCapMs|GAS_TEST_QUESTION_CAP/.test(fs.readFileSync(f, "utf8"))).map(f => path.relative(root, f)).filter(f => f !== "scripts/prePush.mjs");   // prePush only names this check by file name
+const naming = files.filter(f => /noQuestionRule|GAS_TEST_NO_QUESTION_RULE|questionCapMs|GAS_TEST_QUESTION_CAP/.test(fs.readFileSync(f, "utf8"))).map(f => path.relative(root, f)).filter(f => f !== "scripts/prePush.mjs" && !RUNNER_DATA.has(f));   // prePush and the check runner's own data files (scripts/checkMap.json lists every check by file name, scripts/.checkTimes.json times them) only name this check by file name
 const ALLOWED = new Set(["lib/onebox.js", "scripts/generationChipCheck.mjs", "scripts/questionRuleCheck.mjs", "scripts/noQuestionRuleCheck.mjs", "scripts/questionSpeedCheck.mjs", "scripts/mixedRangeCheck.mjs"]);
 ok("the flag is named only in the engine and the checks that set it", naming.every(f => ALLOWED.has(f)), naming.filter(f => !ALLOWED.has(f)).join(", "));
 const src = fs.readFileSync(path.join(root, "lib/onebox.js"), "utf8");
