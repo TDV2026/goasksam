@@ -3796,7 +3796,7 @@ async function handler(req, res) {
       // would otherwise overwrite the card's base-spec row with a mileage/gearbox-filtered one.
       // e49: an identity-refined answer (body/trim/variant chip) is written under its OWN key (specKeyFor carries the
       // refine), never over the base spec's row; a mileage/gearbox/driver refine is still never written.
-      if (oneBox && oneBox.tier === "result" && (!obRefine || identityRefine) && vehicle && vehicle.make && vehicle.model) {
+      if (oneBox && oneBox.tier === "result" && !crewVariantCar && (!obRefine || identityRefine) && vehicle && vehicle.make && vehicle.model) {
         try {
           const cacheKey = specKeyFor(vehicle, generation, identityRefine);
           const core = coreOf(oneBox, { v: vehicle, generation, refine: null });
