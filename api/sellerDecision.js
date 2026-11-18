@@ -6,7 +6,7 @@ import { countNoun } from "../lib/countNoun.js";
 import { unusedFieldsFor } from "../lib/live/unusedWords.js";
 import { tryRefresh } from "../lib/refreshGate.js";
 import { carFromRequest, isPartialCar, carWords, partialCarOk, withPartialCar } from "../lib/carToken.js";
-import { partialChoiceAnswer, makeWithYearsOnly } from "../lib/carChoice.js";
+import { partialChoiceAnswer, makeWithYearsOnly, choiceReply } from "../lib/carChoice.js";
 import { resolveVehicle, sanitizeResolvedVehicle, primeResolver } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
 import { withTypedMileage, withServedCar, variantQuestionFor, archiveTitleModel, mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
@@ -3352,7 +3352,7 @@ async function handler(req, res) {
           const mc = await runOneBoxModelChoice(resolution.vehicle, { supabaseUrl, supabaseKey });
           // THE MODEL CHOICE (Lane D, lane-d-car-bar-partial, lib/carChoice.js): a make with no model is never answered; the engine serves modelChoice (the models of that make and year that have sold, each with its full car token), and the older prompt and modelOptions say the same list
           const mch = partialCarOk(req) ? await partialChoiceAnswer(resolution.vehicle, { supabaseUrl, supabaseKey }, "mc") : null;
-          if (mch) return res.status(200).json({ status: "one_box", ...(mc || { tier: "model_choice", resolvedCar: { year: Number(resolution.vehicle.year) || null, make: resolution.vehicle.make, model: null, trim: null, bodyStyle: null, transmission: null } }), prompt: mch.line, modelOptions: mch.choices.map(c => c.label), modelChoice: mch });
+          if (mch) return res.status(200).json(choiceReply({ status: "one_box", ...(mc || { tier: "model_choice", resolvedCar: { year: Number(resolution.vehicle.year) || null, make: resolution.vehicle.make, model: null, trim: null, bodyStyle: null, transmission: null } }), prompt: mch.line, modelOptions: mch.choices.map(c => c.label) }, mch));
           if (mc) return res.status(200).json({ status: "one_box", ...mc });
           return res.status(200).json({
             status: "needs_clarification", vehicle: resolution.vehicle,
@@ -3381,7 +3381,7 @@ async function handler(req, res) {
             // a Which model question (chips of cars for a make and year, no model yet) carries its way to type the model (lib/questionWayOut.js); the page renders it, the typed text is a normal search
             ...(cl && cl.wayOut ? { wayOut: cl.wayOut } : (Array.isArray(cl.chips) && cl.chips.length && !cl.kind && resolution.vehicle && resolution.vehicle.make && !resolution.vehicle.model ? { wayOut: wayOutFor("model", resolution.vehicle) } : {})),   // the question's way out at the top level too, as every engine question carries it
             vinArchiveMatch: obChassisMatch || undefined,
-            ...(mchSell ? { modelChoice: mchSell } : {}),
+            ...(mchSell ? choiceReply({}, mchSell) : {}),
             // One Box rejected-chip tracking (Oct 2026, mirrors js/chat-core.js noteRejectedModel).
             invalidVehicle: resolution.status === "invalid_vehicle"
           });

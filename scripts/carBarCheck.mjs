@@ -39,7 +39,7 @@ if (process.argv.includes("--mutants")) {
     ["the pills keeping the old token after the car changes", "function take(c){if(!c||!c.token||(car&&car.token===c.token))return;", "function take(c){if(!c||!c.token||car)return;"],
     ["a partial car opened for a visitor", 'const info = tool === "vin" ? null : carInfo(v, crewOnly(req));', 'const info = tool === "vin" ? null : carInfo(v, true);', "lib/carBar.js"],
     ["a partial car not opened for the crew", 'const info = tool === "vin" ? null : carInfo(v, crewOnly(req));', 'const info = tool === "vin" ? null : carInfo(v, false);', "lib/carBar.js"],
-    ["Find's door not opening a partial car (the empty landing)", 'carInfo(car, crewOnly(req)) ? "find-results"', 'carInfo(car, false) ? "find-results"', "lib/carBar.js"],
+    // retired as equivalent: Find's door not opening a partial car (carInfo(car, false) in carFindRoute): the served page is byte for byte the same (the route is settled again once the car is turned into its words), so no case can tell them apart
     ["Change not carrying a partial car", 'const info = carInfo(ch, crewOnly(req));', 'const info = carInfo(ch, false);', "lib/carBar.js"],
     ["every API reading a make-only token as a car", '(!partial && (typeof car.model !== "string" || !car.model))', '(false && (typeof car.model !== "string" || !car.model))', "lib/carToken.js"],
     ["the make not the short words of a partial car", 'car.trim || car.model || car.make]', 'car.trim || car.model]', "lib/carToken.js"],
@@ -50,11 +50,11 @@ if (process.argv.includes("--mutants")) {
     ["the choices sorted", "var cs = mc.choices.filter(", "var cs = mc.choices.slice().sort(function (a, b) { return String(a.label) < String(b.label) ? -1 : 1; }).filter(", "lib/modelChoicePage.js"],
     ["stale choices left after a later answer", "draw(f===undefined?null:f)", "if(f!==undefined)draw(f)", "lib/modelChoicePage.js"],
     ["words of the page's own on the line", "esc(mc.line) + \"</p>\"", "esc(mc.line) + \" Choose one.</p>\"", "lib/modelChoicePage.js"],
-    ["the closing words dropped", "if (text(m)) h +=", "if (false) h +=", "lib/modelChoicePage.js"],
-    ["an address from outside the site made a link", 'c.car.address.charAt(0) === "/" ? c.car.address : ""', 'c.car.address ? c.car.address : ""', "lib/modelChoicePage.js"],
+    ["the closing words dropped", "if (text(mc.typeLine)) h +=", "if (false) h +=", "lib/modelChoicePage.js"],
+    ["an address from outside the site made a link", 'c.address.charAt(0) === "/" ? c.address : ""', 'c.address ? c.address : ""', "lib/modelChoicePage.js"],
     ["the choices not under the bar", 'bar.insertAdjacentHTML("afterend",h)', 'bar.insertAdjacentHTML("beforebegin",h)', "lib/modelChoicePage.js"],
     ["the choices not wrapping (a phone scrolls sideways)", "display:flex;flex-wrap:wrap;gap:8px}.gmc-list li", "display:flex;flex-wrap:nowrap;gap:8px}.gmc-list li", "lib/modelChoicePage.js"],
-    ["the choices read from Market Check only", "API=/\\/api\\/(sellerDecision|buySearch|sellChat)(", "API=/\\/api\\/(sellerDecision)(", "lib/modelChoicePage.js"],
+    ["the choices read from Market Check only (Sell's reply not read)", "(sellerDecision|buySearch|sellChat)(", "(sellerDecision|buySearch)(", "lib/modelChoicePage.js"],
     ["a car line built on the page from the token", "car={token:c.token,line:c.line,short:c.short||\"\"}", "car={token:c.token,line:\"\"+c.token,short:\"\"}"]
   ];
   let bad = 0;
@@ -287,13 +287,13 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
   {
     const PART = CT.encodeCar({ raw: "2009 BMW", year: 2009, make: "BMW", confidence: "low" }, { partial: true }), PSTAMP = { token: PART, line: "2009 BMW", short: "2009 BMW" }, PQ = "?car=" + enc(PART);
     const MODELS = ["3 Series", "M3", "5 Series"], FULLS = MODELS.map(m => CT.carStamp({ raw: "2009 BMW " + m, year: 2009, make: "BMW", model: m, confidence: "high" }));
-    const CHOICES = path => MODELS.map((m, i) => ({ label: "2009 BMW " + m, car: { token: FULLS[i].token, words: "2009 BMW " + m, address: path + "?car=" + enc(FULLS[i].token) + (path === "/sell" ? SELLQ : "") } }));
+    const CHOICES = path => MODELS.map((m, i) => ({ label: "2009 BMW " + m, token: FULLS[i].token, words: "2009 BMW " + m, address: path + "?car=" + enc(FULLS[i].token) + (path === "/sell" ? SELLQ : "") }));   // the engine's own choice shape (lib/carChoice.js); the join with the real handlers is scripts/partialCarJoinCheck.mjs
     const LINE_MC = "BMW built several models in 2009. Pick one to read.", MORE = "More models are on the engine's list.";
-    const MCANS = { car: PSTAMP, modelChoice: { line: LINE_MC, choices: CHOICES("/market-check"), more: MORE } }, SELLANS = { car: PSTAMP, modelChoice: { line: LINE_MC, choices: CHOICES("/sell"), more: MORE } };
+    const MCANS = { car: PSTAMP, complete: true, modelChoice: { line: LINE_MC, partial: PSTAMP, choices: CHOICES("/market-check"), typeLine: MORE, box: true, empty: false, complete: true } }, SELLANS = { car: PSTAMP, complete: true, modelChoice: { line: LINE_MC, partial: PSTAMP, choices: CHOICES("/sell"), typeLine: MORE, box: true, empty: false, complete: true } };
     process.env.CURTAIN_CREW_CODE = process.env.CURTAIN_CREW_CODE || "fixture-crew-code"; const CREWCK = "gas_crew=" + (await import(pathToFileURL(path.join(ROOT, "lib/_crew.js")).href)).mintCrewCookieValue();
     ok(CT.isPartialCar(CT.decodeCar(PART)) && CT.decodeCar(PART).make === "BMW" && CT.carFromRequest({ query: { car: PART }, headers: { cookie: "" } }) === null && !!CT.carFromRequest({ query: { car: PART }, headers: { cookie: CREWCK } }) && CB.carInfo(PART) === null && CB.carInfo(PART, true) && CB.carInfo(PART, true).partial === true && CB.carInfo(PART, true).short === "2009 BMW" && CB.carInfo(PART, true).line === "2009 BMW" && CB.carInfo(TOKEN, false).partial === false, "partial car (crew only, PARTIAL_CAR_PUBLIC off): a visitor's request reads a make-only token as no car, the crew's reads it, the bar's door opens it for the crew only, and its words are the make's");
     const GMC = `(() => { const g = document.getElementById("gmc"), W = document.documentElement.clientWidth; if (!g) return { present: false }; const bar = document.getElementById("gas-carbar"), r = g.getBoundingClientRect();
-      return { present: true, line: (g.querySelector(".gmc-line") || {}).textContent || null, btns: [...g.querySelectorAll(".gmc-btn")].map(x => ({ t: x.textContent, tag: x.tagName, h: x.getAttribute("href") })), more: (g.querySelector(".gmc-more") || {}).textContent || null, text: g.innerText.replace(/\\s+/g, " ").trim(), afterBar: !!bar && bar.nextElementSibling === g, overflowX: document.documentElement.scrollWidth - W, right: Math.round(r.right), W,
+      return { present: true, line: (g.querySelector(".gmc-line") || {}).textContent || null, btns: [...g.querySelectorAll(".gmc-btn")].map(x => ({ t: x.textContent, tag: x.tagName, h: x.getAttribute("href") })), more: (g.querySelector(".gmc-more") || {}).textContent || null, text: g.innerText.replace(/\\s+/g, " ").trim(), afterBar: !!bar && bar.nextElementSibling === g, btnH: Math.max(0, ...[...g.querySelectorAll(".gmc-btn")].map(x => Math.round(x.getBoundingClientRect().height))), overflowX: document.documentElement.scrollWidth - W, right: Math.round(r.right), W,
         box: [...document.querySelectorAll("input[type=text],input:not([type]),textarea")].some(e => !e.disabled && e.offsetWidth > 0 && e.offsetHeight > 0) }; })()`;
     const PAGES = [["find", "/find" + PQ, 0, /\/api\/buySearch/, false, [[/\/api\/buySearch/, { car: PSTAMP }]]], ["mc", "/market-check" + PQ, 1, /\/api\/sellerDecision/, false, [[/\/api\/sellerDecision/, MCANS]]],
       ["sell", "/sell" + PQ + SELLQ, 2, /\/api\/sellChat/, false, [[/\/api\/sellChat/, SELLANS]]], ["tasks", "/tasks/mine?app=1&car=" + enc(PART), 3, /\/api\/tasks/, true, []]];
@@ -308,17 +308,27 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
       if (tool === "mc" || tool === "sell") {
         const g = await p.evaluate(GMC), want = CHOICES(tool === "mc" ? "/market-check" : "/sell");
         ok(g.present && g.line === LINE_MC && g.more === MORE, tool + ": the engine's line and its closing words are printed as served " + JSON.stringify([g.line, g.more]));
-        ok(g.btns.length === 3 && g.btns.every((x, i) => x.tag === "A" && x.t === want[i].label && x.h === want[i].car.address), tool + ": each choice is a tap button that is a real link to its address, in the engine's order " + JSON.stringify(g.btns.map(x => x.t)));
+        ok(g.btns.length === 3 && g.btns.every((x, i) => x.tag === "A" && x.t === want[i].label && x.h === want[i].address), tool + ": each choice is a tap button that is a real link to its address, in the engine's order " + JSON.stringify(g.btns.map(x => x.t)));
         ok(g.text === [LINE_MC, ...want.map(c => c.label), MORE].join(" ") && g.afterBar, tool + ": nothing is printed that the engine did not send (no count, no wording of the page's own), and the block sits under the bar " + g.text);
         ok(g.box, tool + ": the box stays available to type a model");
+        
+        { const fb = await p.evaluate(() => { const g = document.getElementById("gmc"), t = document.body.innerText.replace(/\s+/g, " "), m = /busy right now|try again in a minute|having trouble|something went wrong|couldn.t|could not/i.exec(t); return { hit: m ? m[0] : null, ctx: m ? t.slice(Math.max(0, m.index - 30), m.index + 60) : "", inGmc: !!(g && m && g.innerText.indexOf(m[0]) >= 0) }; });
+          ok(!fb.hit, tool + ": a modelChoice reply leaves no fallback line under the choices (the shared page's own busy line) " + JSON.stringify(fb)); }
         if (process.env.SHOTS) await p.screenshot({ path: path.join(ROOT, "docs/demo-run/car-bar-partial-" + tool + "-1440.png"), clip: { x: 0, y: 0, width: 1440, height: 520 } });
+        { const left = await p.evaluate(() => ({ cards: document.querySelectorAll(".samonit,.sam").length, keep: /Have Sam keep looking/.test(document.body.innerText) }));
+          ok(left.cards === 0 && !left.keep, tool + ": no Sam bubble and no Have Sam keep looking card is left under the choices " + JSON.stringify(left));
+          // a later reply that is a real failure (not complete) shows the page's own line again; typed through Market Check's box. Sell has no in-page box to type a model into after the choices (its search box opens a new page), so its case is the join check's: a Sell reply that is not a complete choice keeps the shell's own line
+          if (tool === "mc") { answers[0][1] = {}; const typed = await p.evaluate(() => { const i = document.getElementById("ob-input") ||  [...document.querySelectorAll("#ob input,#ob textarea")].find(e => !e.disabled && e.offsetWidth > 0); if (!i) return false; i.focus(); i.value = "2009 BMW M3"; return document.activeElement === i; });
+          if (typed) { await p.keyboard.press("Enter"); await new Promise(r => setTimeout(r, 1200)); }
+          ok(typed && await p.evaluate(() => /busy right now|could not be read/.test(document.body.innerText)), tool + ": a real failure after the choices still shows the page's own line (a complete reply draws none, a failure is not complete)"); }
+          answers[0][1] = tool === "mc" ? MCANS : SELLANS; await p.evaluate(u => fetch(u, { method: "POST", body: "{}" }).then(r => r.json()), tool === "mc" ? "/api/sellerDecision?x=9" : "/api/sellChat?x=9"); await new Promise(r => setTimeout(r, 400)); }
         // a later answer without modelChoice takes the block away (the person typed a model)
         answers[0][1] = { car: FULLS[0] }; await p.evaluate(u => fetch(u, { method: "POST", body: "{}" }).then(r => r.json()), tool === "mc" ? "/api/sellerDecision?x=1" : "/api/sellChat?x=1"); await new Promise(r => setTimeout(r, 500));
         ok(!(await p.evaluate(GMC)).present, tool + ": an answer without modelChoice removes the choices");
         answers[0][1] = tool === "mc" ? MCANS : SELLANS;
         await p.close();
         const p2 = await open(url, 390, { live: LIVEMAP, signed, answers }), g2 = await p2.evaluate(GMC), b2 = await p2.evaluate(BAR); if (process.env.SHOTS) await p2.screenshot({ path: path.join(ROOT, "docs/demo-run/car-bar-partial-" + tool + "-390.png"), clip: { x: 0, y: 0, width: 390, height: 700 } });
-        ok(g2.present && g2.overflowX <= 0 && b2.overflowX <= 0 && g2.right <= g2.W, tool + ": at 390 nothing runs sideways " + JSON.stringify([g2.overflowX, b2.overflowX, g2.right])); await p2.close();
+        ok(g2.present && g2.btnH <= 44 && g2.overflowX <= 0 && b2.overflowX <= 0 && g2.right <= g2.W, tool + ": at 390 nothing runs sideways " + JSON.stringify([g2.overflowX, b2.overflowX, g2.right])); await p2.close();
         // tapping one runs the tool for the full car and the bar then carries the full car
         const p3 = await open(url, 1440, { live: LIVEMAP, signed, answers }); answers[0][1] = { car: FULLS[0] }; await Promise.all([p3.waitForNavigation({ waitUntil: "domcontentloaded" }), p3.click(".gmc-btn")]); await new Promise(r => setTimeout(r, 1500));
         const r3 = await p3.evaluate(BAR), first3 = p3._api.filter(c => apiRe.test(c.u)).pop();
@@ -326,6 +336,22 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
         ok(hasToken(first3, FULLS[0].token), tool + ": and its first engine call carries the full token " + JSON.stringify(first3 && first3.u.slice(0, 80))); await p3.close();
       } else await p.close();
     } catch (e) { ok(false, "partial " + tool + ": the page did not do what the case needs (" + String(e && e.message).slice(0, 120) + ")"); }
+    // Change on a partial car opens the tool's landing with the car's words in its box (Find and Tasks), the focus in the field
+    for (const [tool, url, want] of [["find", "/find?change=" + enc(PART), "find"], ["tasks", "/tasks/mine?app=1&change=" + enc(PART), "tasks"]]) {
+      const p = await open(url, 1440, { live: LIVEMAP, signed: tool === "tasks" }), r = await p.evaluate(BAR);
+      ok(r.inputs.some(v => v.startsWith("2009 BMW")), "partial " + tool + ": Change opens the landing with the car's words in the box " + JSON.stringify(r.inputs)); await p.close();
+    }
+    // THE RULE IS NARROW (the sweep): on Market Check the shared page prints "Sam is busy right now" for every reply that is not an answer and not one of its own questions: a modelChoice (held back above, crew only) and, unchanged, the real failures
+    // { status: "ip_rate_limited", message } (the search ceiling), { status: "data_unavailable" } and an empty reply. Those stay as they are: the fallback is shown and no choices block is.
+    for (const [name, reply] of [["ip_rate_limited", { status: "ip_rate_limited", message: "x" }], ["data_unavailable", { status: "data_unavailable", reason: "x" }], ["an empty reply", {}]]) {
+      const p = await open("/market-check" + PQ, 1440, { live: LIVEMAP, answers: [[/\/api\/sellerDecision/, reply]] }), t = await p.evaluate(() => ({ busy: /busy right now/.test(document.body.innerText), gmc: !!document.getElementById("gmc") }));
+      ok(t.busy && !t.gmc, "market check: " + name + " is a real failure, so the page's own fallback still shows and no choices do " + JSON.stringify(t)); await p.close();
+    }
+    // and the same sweep on Sell ("This one could not be read yet" and the Have Sam keep looking card) and Find ("Sam is still finding the sales for ... Try again in a minute."): a reply with no answer in it that is not a modelChoice keeps the page's own line, as today
+    for (const [tool, url, re, line] of [["sell", "/sell" + PQ + SELLQ, /\/api\/sellChat/, /could not be read/], ["find", "/find" + PQ, /\/api\/buySearch/, /Try again in a minute/]]) for (const reply of [{}, { status: "data_unavailable" }]) {
+      const p = await open(url, 1440, { live: LIVEMAP, answers: [[re, reply]] }), t = await p.evaluate(() => ({ t: document.body.innerText.replace(/\s+/g, " "), gmc: !!document.getElementById("gmc") }));
+      ok(line.test(t.t) && !t.gmc, tool + ": a reply with no answer in it and no modelChoice (" + JSON.stringify(reply) + ") keeps the page's own line and draws no choices"); await p.close();
+    }
     // a typed partial search (no token in the address): the bar comes from the answer's car; a full car's pages draw no choices
     { const p = await open("/preview/find?q=" + enc("2009 BMW"), 1440, { answers: [[/\/api\/buySearch/, { car: PSTAMP }]] }); const r = await p.evaluate(BAR); ok(r.present && r.shown && r.line === "2009 BMW" && r.pills.every((x, i) => x.h === "/preview" + PATHS[i] + PQ), "partial: a typed search the engine answered with a partial car draws the bar from that answer"); await p.close(); }
     { const p = await open("/market-check?car=" + enc(TOKEN), 1440, { live: LIVEMAP, answers: [[/\/api\/sellerDecision/, { car: STAMP }]] }); const g = await p.evaluate(GMC), r = await p.evaluate(BAR); ok(!g.present && r.line === LINE, "a full car is unchanged: the bar as before and no choices block"); await p.close(); }
@@ -342,7 +368,7 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
     { const c = await call(LH.sell, "/sell?car=" + enc(TOKEN) + SELLQ); ok(c.code === 200 && /gmc-mod/.test(c.body), "crew sell: the choices module is on the Sell page"); }
     // the builder, in Node: the engine's words only, a link only for an address that starts with "/", nothing for no choices
     try { const M = await imp("lib/modelChoicePage.js"), h = M.modelChoiceHtml;
-      ok(h(null) === "" && h({}) === "" && h({ choices: [] }) === "" && h({ choices: [{ label: " " }] }) === "" && !/<a /.test(h({ choices: [{ label: "X", car: { address: "https://evil.example/x" } }, { label: "Y", car: { address: "javascript:alert(1)" } }, { label: "Z" }] })) && /<a class="gmc-btn" href="\/sell\?car=1">X<\/a>/.test(h({ choices: [{ label: "X", car: { address: "/sell?car=1" } }] })) && /<a href="\/find">More<\/a>/.test(h({ choices: [{ label: "X" }], more: { label: "More", address: "/find" } })) && !/<script/.test(h({ line: "<script>", choices: [{ label: "<b>" }] })), "model choices builder: nothing for no choices, a link only for an address of this site, the engine's text escaped"); } catch (e) { ok(false, "model choices builder: lib/modelChoicePage.js does not load (" + String(e && e.message).slice(0, 80) + ")"); }
+      ok(h(null) === "" && h({}) === "" && h({ choices: [] }) === "" && h({ choices: [{ label: " " }] }) === "" && !/<a /.test(h({ choices: [{ label: "X", address: "https://evil.example/x" }, { label: "Y", address: "javascript:alert(1)" }, { label: "Z" }] })) && /<a class="gmc-btn" href="\/sell\?car=1">X<\/a>/.test(h({ choices: [{ label: "X", address: "/sell?car=1" }] })) && /Type the model/.test(h({ choices: [{ label: "X" }], typeLine: "Type the model." })) && !/<script/.test(h({ line: "<script>", choices: [{ label: "<b>" }] })), "model choices builder: nothing for no choices, a link only for an address of this site, the engine's text escaped"); } catch (e) { ok(false, "model choices builder: lib/modelChoicePage.js does not load (" + String(e && e.message).slice(0, 80) + ")"); }
   }
   globalThis.fetch = realFetch; delete process.env.NEW_DESIGN; delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 }
