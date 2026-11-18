@@ -58,7 +58,7 @@ if (process.argv.includes("--mutants")) {
     ["the fallback hold not set (the busy line stays under the choices)", "h);held=true;sweep()}", "h);sweep()}", "lib/modelChoicePage.js"],
     ["the Have Sam keep looking card left under the choices", 'querySelectorAll(".sam,.samonit")', 'querySelectorAll(".sam")', "lib/modelChoicePage.js"],
     ["the Sam bubble left under the choices", 'querySelectorAll(".sam,.samonit")', 'querySelectorAll(".samonit")', "lib/modelChoicePage.js"],
-    ["the hold kept after a later reply (a real failure loses its line)", "if(old)old.remove();held=false;if(!mc)return;", "if(old)old.remove();if(!mc)return;", "lib/modelChoicePage.js"],
+    ["the hold kept when a later request is made (a real failure loses its line)", "if(API.test(u)){held=false;p.then(", "if(API.test(u)){p.then(", "lib/modelChoicePage.js"],
     ["the sweep never run when the page redraws", "new MutationObserver(sweep).observe(", "new MutationObserver(function(){}).observe(", "lib/modelChoicePage.js"],
     ["the hold applied on Find too (a Find line taken off for every reply)", "var held=false;", "var held=true;", "lib/modelChoicePage.js"],
     ["a car line built on the page from the token", "car={token:c.token,line:c.line,short:c.short||\"\"}", "car={token:c.token,line:\"\"+c.token,short:\"\"}"]
@@ -320,6 +320,16 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
         { const fb = await p.evaluate(() => { const g = document.getElementById("gmc"), t = document.body.innerText.replace(/\s+/g, " "), m = /busy right now|try again in a minute|having trouble|something went wrong|couldn.t|could not/i.exec(t); return { hit: m ? m[0] : null, ctx: m ? t.slice(Math.max(0, m.index - 30), m.index + 60) : "", inGmc: !!(g && m && g.innerText.indexOf(m[0]) >= 0) }; });
           ok(!fb.hit, tool + ": a modelChoice reply leaves no fallback line under the choices (the shared page's own busy line) " + JSON.stringify(fb)); }
         if (process.env.SHOTS) await p.screenshot({ path: path.join(ROOT, "docs/demo-run/car-bar-partial-" + tool + "-1440.png"), clip: { x: 0, y: 0, width: 1440, height: 520 } });
+        { const left = await p.evaluate(() => ({ cards: document.querySelectorAll(".samonit,.sam").length, keep: /Have Sam keep looking/.test(document.body.innerText) }));
+          ok(left.cards === 0 && !left.keep, tool + ": no Sam bubble and no Have Sam keep looking card is left under the choices " + JSON.stringify(left));
+          // while the choices are the latest reply, a fallback the page draws later (a redraw) goes too
+          await p.evaluate(() => { (document.getElementById("ob") || document.body).insertAdjacentHTML("beforeend", '<div class="sam big"><p>x fallback</p></div><section class="samonit">y fallback</section>'); }); await new Promise(r => setTimeout(r, 300));
+          ok(await p.evaluate(() => !/fallback/.test(document.body.innerText)), tool + ": a fallback the page draws after the choices is taken off too");
+          // a later reply that is a real failure ends the hold: the page's own line shows again (typed through the box)
+          answers[0][1] = {}; const typed = await p.evaluate(() => { const i = document.getElementById("ob-input") || [...document.querySelectorAll("#ob input,#ob textarea")].find(e => !e.disabled && e.offsetWidth > 0); if (!i) return false; i.focus(); i.value = "2009 BMW M3"; return document.activeElement === i; });
+          if (typed) { await p.keyboard.press("Enter"); await new Promise(r => setTimeout(r, 1200)); }
+          ok(typed && await p.evaluate(() => /busy right now|could not be read/.test(document.body.innerText)), tool + ": a failure reply after the choices shows the page's own line again (the hold ends with the next reply)");
+          answers[0][1] = tool === "mc" ? MCANS : SELLANS; await p.evaluate(u => fetch(u, { method: "POST", body: "{}" }).then(r => r.json()), tool === "mc" ? "/api/sellerDecision?x=9" : "/api/sellChat?x=9"); await new Promise(r => setTimeout(r, 400)); }
         // a later answer without modelChoice takes the block away (the person typed a model)
         answers[0][1] = { car: FULLS[0] }; await p.evaluate(u => fetch(u, { method: "POST", body: "{}" }).then(r => r.json()), tool === "mc" ? "/api/sellerDecision?x=1" : "/api/sellChat?x=1"); await new Promise(r => setTimeout(r, 500));
         ok(!(await p.evaluate(GMC)).present, tool + ": an answer without modelChoice removes the choices");
