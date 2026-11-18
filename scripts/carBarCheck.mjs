@@ -296,7 +296,7 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
         box: [...document.querySelectorAll("input[type=text],input:not([type]),textarea")].some(e => !e.disabled && e.offsetWidth > 0 && e.offsetHeight > 0) }; })()`;
     const PAGES = [["find", "/find" + PQ, 0, /\/api\/buySearch/, false, [[/\/api\/buySearch/, { car: PSTAMP }]]], ["mc", "/market-check" + PQ, 1, /\/api\/sellerDecision/, false, [[/\/api\/sellerDecision/, MCANS]]],
       ["sell", "/sell" + PQ + SELLQ, 2, /\/api\/sellChat/, false, [[/\/api\/sellChat/, SELLANS]]], ["tasks", "/tasks/mine?app=1&car=" + enc(PART), 3, /\/api\/tasks/, true, []]];
-    for (const [tool, url, idx, apiRe, signed, answers] of PAGES) {
+    for (const [tool, url, idx, apiRe, signed, answers] of PAGES) try {
       const p = await open(url, 1440, { live: LIVEMAP, signed, answers }), r = await p.evaluate(BAR);
       ok(r.present && r.shown && r.below && r.line === "2009 BMW", "partial " + tool + ": the bar shows with the engine's short words " + JSON.stringify(r.line));
       ok(r.pills.length === 4 && r.pills.every((x, i) => x.h === PATHS[i] + PQ) && r.pills.filter(x => x.on).length === 1 && r.pills[idx].on && r.pills[idx].cur === "page" && r.change === PATHS[idx] + "?change=" + enc(PART), "partial " + tool + ": the current tool is filled and the other three pills carry the same token " + JSON.stringify(r.pills.map(x => x.h.slice(-10))));
@@ -324,7 +324,7 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
         ok(r3.present && r3.line === FULLS[0].line && r3.pills.length === 4 && r3.pills.every(x => x.h.endsWith("?car=" + enc(FULLS[0].token))) && !(await p3.evaluate(GMC)).present, tool + ": tapping a model runs the tool for the full car and the bar carries the full token " + JSON.stringify([r3.line]));
         ok(hasToken(first3, FULLS[0].token), tool + ": and its first engine call carries the full token " + JSON.stringify(first3 && first3.u.slice(0, 80))); await p3.close();
       } else await p.close();
-    }
+    } catch (e) { ok(false, "partial " + tool + ": the page did not do what the case needs (" + String(e && e.message).slice(0, 120) + ")"); }
     // a typed partial search (no token in the address): the bar comes from the answer's car; a full car's pages draw no choices
     { const p = await open("/preview/find?q=" + enc("2009 BMW"), 1440, { answers: [[/\/api\/buySearch/, { car: PSTAMP }]] }); const r = await p.evaluate(BAR); ok(r.present && r.shown && r.line === "2009 BMW" && r.pills.every((x, i) => x.h === "/preview" + PATHS[i] + PQ), "partial: a typed search the engine answered with a partial car draws the bar from that answer"); await p.close(); }
     { const p = await open("/market-check?car=" + enc(TOKEN), 1440, { live: LIVEMAP, answers: [[/\/api\/sellerDecision/, { car: STAMP }]] }); const g = await p.evaluate(GMC), r = await p.evaluate(BAR); ok(!g.present && r.line === LINE, "a full car is unchanged: the bar as before and no choices block"); await p.close(); }
@@ -340,8 +340,8 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
     }
     { const c = await call(LH.sell, "/sell?car=" + enc(TOKEN) + SELLQ); ok(c.code === 200 && /gmc-mod/.test(c.body), "crew sell: the choices module is on the Sell page"); }
     // the builder, in Node: the engine's words only, a link only for an address that starts with "/", nothing for no choices
-    { const M = await imp("lib/modelChoicePage.js"), h = M.modelChoiceHtml;
-      ok(h(null) === "" && h({}) === "" && h({ choices: [] }) === "" && h({ choices: [{ label: " " }] }) === "" && !/<a /.test(h({ choices: [{ label: "X", car: { address: "https://evil.example/x" } }, { label: "Y", car: { address: "javascript:alert(1)" } }, { label: "Z" }] })) && /<a class="gmc-btn" href="\/sell\?car=1">X<\/a>/.test(h({ choices: [{ label: "X", car: { address: "/sell?car=1" } }] })) && /<a href="\/find">More<\/a>/.test(h({ choices: [{ label: "X" }], more: { label: "More", address: "/find" } })) && !/<script/.test(h({ line: "<script>", choices: [{ label: "<b>" }] })), "model choices builder: nothing for no choices, a link only for an address of this site, the engine's text escaped"); }
+    try { const M = await imp("lib/modelChoicePage.js"), h = M.modelChoiceHtml;
+      ok(h(null) === "" && h({}) === "" && h({ choices: [] }) === "" && h({ choices: [{ label: " " }] }) === "" && !/<a /.test(h({ choices: [{ label: "X", car: { address: "https://evil.example/x" } }, { label: "Y", car: { address: "javascript:alert(1)" } }, { label: "Z" }] })) && /<a class="gmc-btn" href="\/sell\?car=1">X<\/a>/.test(h({ choices: [{ label: "X", car: { address: "/sell?car=1" } }] })) && /<a href="\/find">More<\/a>/.test(h({ choices: [{ label: "X" }], more: { label: "More", address: "/find" } })) && !/<script/.test(h({ line: "<script>", choices: [{ label: "<b>" }] })), "model choices builder: nothing for no choices, a link only for an address of this site, the engine's text escaped"); } catch (e) { ok(false, "model choices builder: lib/modelChoicePage.js does not load (" + String(e && e.message).slice(0, 80) + ")"); }
   }
   globalThis.fetch = realFetch; delete process.env.NEW_DESIGN; delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 }
