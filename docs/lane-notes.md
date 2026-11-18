@@ -1,3 +1,5 @@
+**BEFORE YOU POST READY (every lane), and before every push (Lane C): `node scripts/runChecks.mjs`** runs the checks that cover the files your branch changed against main, side by side, and prints one line per check, a total and the failures (`--all` runs every offline check, `--list` says what it would run, `--help` in its first lines). A changed file no check covers prints UNCOVERED and fails the run: add a check or name the path in `ignore` in scripts/checkMap.json, then `node scripts/buildCheckMap.mjs`. Post its TOTAL line in your READY.
+
 # Lane coordination notes
 
 Append a line; lanes read this file in a few hundred lines. Everything through Oct 21 is in docs/archive/lane-notes-through-oct-21.md (verbatim). Launch gates and their state: docs/launch-checklist.md. Staged send, rollback and freeze: docs/launch-runbook.md. Summary kept by Lane F, last refreshed Oct 24 2026 after e82 was live.
