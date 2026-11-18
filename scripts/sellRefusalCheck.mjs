@@ -23,6 +23,13 @@ if (process.argv.includes("--mutants")) {
     ["the not-seen line ignores the sales the page lists", "lib/sell/sellFlow.js", "Number(noRange && noRange.total) || 0, list.length);", "Number(noRange && noRange.total) || 0);"],
     ["the not-seen line ignores the engine's total", "lib/sell/sellFlow.js", "Number(p0.total) || 0, Number(noRange && noRange.total) || 0, list.length);", "Number(p0.total) || 0, list.length);"],
     ["buildResult prints its own not-seen line", "lib/sell/sellFlow.js", "empty: emptyLine,", "empty: !platform && !partner ? (note || \"Sam has not seen this car sell yet, so there is no place on record to point to.\") : null,"],
+    ["the client ignores the cards of the way in", "lib/sell/sellMcClient.js", "if (d && d.variantSplit && d.variantSplit.show === true) {", "if (false) {"],
+    ["the client ignores the cards of the range step", "lib/sell/sellMcClient.js", "if (j && j.split && j.split.show === true) {", "if (false) {"],
+    ["the cards link to the Market Check address, not Sell's", "lib/sell/sellMcClient.js", 'CARDS(vs, "sellAddress")', 'CARDS(vs)'],
+    ["the range step drops the cards", "lib/sell/sellFlow.js", "  if (first && first.split) return { ...head, split: first.split };", ""],
+    ["the rest of Sell builds the blend's decision beside the cards", "lib/sell/sellFlow.js", "  if (first.split) return done({ ...head, split: first.split });", ""],
+    ["Sell never reads the cards", "lib/sell/sellBlock.js", "if (!VARIANT_SPLIT_PUBLIC || !d ||", "if (true || !d ||"],
+    ["the cards of a block are not kept", "lib/sell/sellBlock.js", "if (sp) first.split = sp; }\n  const base", "}\n  const base"],
     ["the range step carries no price line", "lib/sell/sellFlow.js", "noRange: { ...first.noRange, priceLine: first.noRange.priceLine || priceLineOf(first.noRange) } };", "noRange: first.noRange };"],
   ];
   let bad = 0; const me = fileURLToPath(import.meta.url);
@@ -149,6 +156,24 @@ const plain = await run("1992 Porsche 911 Carrera 4", { label: "1992 Porsche 911
 const plainText = plain.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 ok(plainText.includes("$70,000 to $95,000") && plain.includes("Based on 24 sales, the latest in September 2026.") && !plain.includes("Ask Sam about this") && !plain.includes("sell-ask") && /pcard/.test(plain), "normal range answer: unchanged (pick card, the shared card), no Ask Sam section");
 
+// THE CARDS ON SELL (lane-b-sell-nolump-3, Nov 18 2026; Sam: "Sell must know which car is being sold ... tapping a card starts Sell for that exact car with the car bar carrying it. No mixed list"). Live, Sell for "Ferrari 330 GT" printed the engine's "different cars" line and ten sales of both cars in one list. THE SHAPE is the live variantSplit of "Ferrari 330 GT" (Nov 18 2026: GT 2+2 $268,000 to $314,000 ten sales; GTC $479,000 to $600,000 12 sales; GTS seven sales, too few) with the engine's Sell address on each car.
+// CAUSE: Sell read the blended answer's own card (noRange) and the pool's sales; the cards (variantSplit) were computed only in the way in's request (api/sellerDecision.js), never in Sell's. EVERY ENTRY: the typed words and a partial car's chosen model (the way in's answer carries the cards: shown before any question), the car bar token or a pasted address (the range step carries them), the finish and the email (a result is only ever for ONE car: the cards carry no pick, partner or email form; the tapped car's Sell is the normal result, which has them).
+const mk = (label, rangeText, salesText, n, fewText) => ({ label, name: label, priced: !!rangeText, rangeText, salesText, n, ...(fewText ? { fewText } : {}), mileageNote: null, car: { token: "v1.tok" + label.replace(/\W/g, ""), words: "Ferrari 330 " + label, address: "/market-check?q=" + encodeURIComponent("Ferrari 330 " + label), sellAddress: "/sell?car=v1.tok" + label.replace(/\W/g, ""), line: "Ferrari 330 " + label, short: "330" } });
+const SPLIT330 = { show: true, line: "A 330 GT's price depends on which one it is.", rows: [mk("GT 2+2", "$268,000 to $314,000", "ten sales", 10), mk("GTC", "$479,000 to $600,000", "12 sales", 12), mk("GTS", null, "seven sales", 7, "Too few sales for a range.")], mileageLine: "The range is for all mileages.", asideLine: null };
+for (const how of ["typed", "bar", "partial"]) {
+  calls.length = 0; globalThis.location = { search: "", pathname: "/sell" }; new Function(SELL_MC_CLIENT)(); const S3 = window.GAS_SELL;
+  let h3;
+  if (how === "bar") { replies = [{ label: "Ferrari 330 GT", make: "Ferrari", split: SPLIT330 }, restFor(noRangeOf(KINDS.varied))]; globalThis.location = { search: "?car=Ferrari%20330%20GT&state=California&how=self&rush=none", pathname: "/sell" }; new Function(SELL_MC_CLIENT)(); window.GAS_SELL.homeHtml(() => "<inbox>"); for (let i = 0; i < 10; i++) await tick(); h3 = OBX.root.innerHTML; }
+  else { replies = []; if (how === "partial") S3.homeHtml(() => "<inbox>"); S3.onCar({ resolvedCar: { year: null, make: "Ferrari", model: "330 GT" }, variantSplit: SPLIT330 }, "Ferrari 330 GT"); for (let i = 0; i < 6; i++) await tick(); h3 = OBX.root.innerHTML; }
+  const t3 = h3.replace(/<[^>]+>/g, " ").replace(/&#39;/g, "'").replace(/\s+/g, " ");
+  ok(SPLIT330.rows.every(r => h3.includes('href="' + r.car.sellAddress + '"') && t3.includes(r.label) && t3.includes(r.salesText)), `${how}: Sell shows one card per car, each a link to Sell for that exact car (its token), each with its count`);
+  ok(t3.includes("$268,000 to $314,000") && t3.includes("$479,000 to $600,000") && t3.includes("Too few sales for a range.") && t3.includes(SPLIT330.line), `${how}: the engine's own words (the line, each range, the too-few line), none of the page's`);
+  ok(!/<q>|pcard|sell-ps|<sale>|sfc-row|Latest sales|The latest sales|different cars at different prices/.test(h3), `${how}: no question yet, no mixed sales list, no pick, no PowerSeller, no email form, no engine card for the blend`);
+  ok(h3.includes("<inbox>") && h3.includes("<foot>"), `${how}: the search bar stays`);
+  ok(how !== "bar" || calls.length === 1 && calls[0].step === "range", `${how}: the cards come from the range step alone (no request for the rest of a blend) (${calls.map(c => c.step).join(",")})`);
+}
+// the VIN names its car: no cards, the questions as before; a card tapped is a Sell address with the car token that the page's server reads (carBar cb)
+{ calls.length = 0; globalThis.location = { search: "", pathname: "/sell" }; new Function(SELL_MC_CLIENT)(); replies = []; window.GAS_SELL.onCar({ resolvedCar: { year: 1990, make: "Porsche", model: "911" } }, "WP0AB0912LS450001"); await tick(); ok(/<q>/.test(OBX.root.innerHTML) && !/vrs-row/.test(OBX.root.innerHTML), "a VIN (the car is named): no cards, the first question as before"); }
 const ROOTD = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 // THE NOT-SEEN LINE IS FOR A CAR WITH NO SALE (lane-b-sell-nolump-2, Nov 18 2026; live: Sell for the 1991 Lamborghini LM002 printed "Sam has not seen this car sell yet, so there is no place on record to point to." under "only 5 sales on record" with the five sales listed).
 // CAUSE: buildResult printed the line whenever the result had no pick and no PowerSeller and the places read (pl.total) was 0; on a no-range car the places read holds nothing while the engine's own total (noRange.total) and the sales the page lists do. THE CLASS: every Sell result with no pick (typed words, the car bar, a VIN, the finish) and every page or email that prints the line.
