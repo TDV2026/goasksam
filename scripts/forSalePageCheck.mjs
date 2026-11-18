@@ -129,7 +129,7 @@ await sec("porsche", async () => {
   ok(JSON.stringify(geo.dealer) === JSON.stringify(geo.auc) && JSON.stringify(geo.cl) === JSON.stringify(geo.auc), "a dealer card and a classified card are the auction card: classes, children, photo shape, title, meta, read and button type :: " + JSON.stringify(geo));
   if (SHOTS) { await p.evaluate(() => window.scrollTo(0, 0)); await click(p, '.fs-pill[data-fs-pill="dealers"]'); await new Promise(r => setTimeout(r, 600)); await p.screenshot({ path: path.join(ROOT, "docs/demo-run/for-sale-dealers-desktop-1440.png"), fullPage: false });
     await click(p, '.fs-pill[data-fs-pill="auctions"]'); await new Promise(r => setTimeout(r, 400)); await p.screenshot({ path: path.join(ROOT, "docs/demo-run/for-sale-auctions-desktop-1440.png"), fullPage: false });
-    await click(p, '.fs-pill[data-fs-pill="all"]'); await new Promise(r => setTimeout(r, 400)); await p.screenshot({ path: path.join(ROOT, "docs/demo-run/for-sale-all-desktop-1440.png"), fullPage: true }); }
+    await click(p, '.fs-pill[data-fs-pill="all"]'); await p.evaluate(() => document.querySelector('.fs-sec[data-fs="dealers"] .fs-h').scrollIntoView({ block: "start" })); await new Promise(r => setTimeout(r, 500)); await p.screenshot({ path: path.join(ROOT, "docs/demo-run/for-sale-all-desktop-1440.png") }); }
   await p.close();
 });
 
@@ -200,7 +200,7 @@ await sec("phone", async () => {
   const w = await p.evaluate(() => { const a = document.querySelector('.fs-sec[data-fs="dealers"] article.car'), r = a.getBoundingClientRect(); return { w: Math.round(r.width), cols: new Set([...document.querySelectorAll('.fs-sec[data-fs="dealers"] article.car')].map(x => Math.round(x.getBoundingClientRect().left))).size }; });
   ok(w.cols === 1 && w.w <= 390, "cards in one column inside the screen :: " + JSON.stringify(w));
   if (SHOTS) { await click(p, '.fs-pill[data-fs-pill="dealers"]'); await p.evaluate(() => window.scrollTo(0, 0)); await new Promise(r => setTimeout(r, 500)); await p.screenshot({ path: path.join(ROOT, "docs/demo-run/for-sale-dealers-phone-390.png") });
-    await click(p, '.fs-pill[data-fs-pill="all"]'); await new Promise(r => setTimeout(r, 400)); await p.screenshot({ path: path.join(ROOT, "docs/demo-run/for-sale-all-phone-390.png"), fullPage: true }); }
+    await click(p, '.fs-pill[data-fs-pill="all"]'); await p.evaluate(() => document.querySelector('.fs-sec[data-fs="classifieds"] .fs-h').scrollIntoView({ block: "start" })); await new Promise(r => setTimeout(r, 500)); await p.screenshot({ path: path.join(ROOT, "docs/demo-run/for-sale-all-phone-390.png") }); }
   await p.close();
 });
 // ================= the page computes nothing, the class, a visitor =================
