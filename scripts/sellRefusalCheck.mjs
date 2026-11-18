@@ -28,7 +28,7 @@ if (process.argv.includes("--mutants")) {
     ["the cards link to the Market Check address, not Sell's", "lib/sell/sellMcClient.js", 'CARDS(vs, "sellAddress")', 'CARDS(vs)'],
     ["the page never asks for the cards before the first question", "lib/sell/sellMcClient.js", "    if (!key || S.cardsFor === key) { next(); return; }", "    next(); return;"],
     ["the cards are asked again and again", "lib/sell/sellMcClient.js", "S.cardsFor = key; S.busy = true;", "S.busy = true;"],
-    ["a failed cards read blocks Sell", "lib/sell/sellMcClient.js", "ask().catch(function(){ if (seq0 === S.seq) { stopWait(); S.busy = false; next(); } });", "ask().catch(function(){});"],
+    ["a cards read that fails blocks Sell (no first question)", "lib/sell/sellMcClient.js", "      next();\n    }); };", "    }); };"],
     ["a VIN is asked for its cards", "lib/sell/sellMcClient.js", "S.cardsFor = engineCar();   // a VIN names its car", "   // a VIN names its car"],
     ["the cards step is not in the server", "api/sellChat.js", 'if (b.step === "cards")', 'if (b.step === "cardsX")'],
     ["the range step carries no price line", "lib/sell/sellFlow.js", "noRange: { ...first.noRange, priceLine: first.noRange.priceLine || priceLineOf(first.noRange) } };", "noRange: first.noRange };"],
@@ -189,6 +189,8 @@ for (const how of ["typed", "bar", "partial"]) {
   calls.length = 0; cardCalls.length = 0; cardsReply = { split: null }; globalThis.location = { search: "?car=Ferrari%20330%20GTC", pathname: "/sell" }; new Function(SELL_MC_CLIENT)(); window.GAS_SELL.homeHtml(() => "<inbox>"); for (let i = 0; i < 8; i++) await tick();
   ok(/Which state is it in/.test(OBX.root.innerHTML) && cardCalls.length === 1 && !/vrs-row/.test(OBX.root.innerHTML), `${how}: one variant (no cards): the state question, exactly as before`);
 }
+// the server answers the cards step (api/sellChat.js reads it and buildCards builds it)
+{ const sc = fs.readFileSync(path.join(ROOTD, "api/sellChat.js"), "utf8"); ok(/b\.step === "cards"/.test(sc) && /buildCards\(env/.test(sc), "api/sellChat.js answers the step cards with buildCards"); }
 // the cards are asked for once per car: the same car again (the state question already shown) is not asked a second time
 { calls.length = 0; cardCalls.length = 0; cardsReply = { split: null }; globalThis.location = { search: "", pathname: "/sell" }; new Function(SELL_MC_CLIENT)(); replies = []; const S5 = window.GAS_SELL; S5.onCar({ resolvedCar: { year: 1987, make: "Porsche", model: "911" } }, "1987 Porsche 911"); for (let i = 0; i < 6; i++) await tick(); S5.onCar({ resolvedCar: { year: 1987, make: "Porsche", model: "911" } }, "1987 Porsche 911"); for (let i = 0; i < 6; i++) await tick(); ok(cardCalls.length === 1, "the cards are asked for once for the same car (" + cardCalls.length + ")"); }
 // a failed cards read never blocks Sell: the first question comes
