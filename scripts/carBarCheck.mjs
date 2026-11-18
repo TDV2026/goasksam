@@ -54,7 +54,7 @@ if (process.argv.includes("--mutants")) {
     ["an address from outside the site made a link", 'c.car.address.charAt(0) === "/" ? c.car.address : ""', 'c.car.address ? c.car.address : ""', "lib/modelChoicePage.js"],
     ["the choices not under the bar", 'bar.insertAdjacentHTML("afterend",h)', 'bar.insertAdjacentHTML("beforebegin",h)', "lib/modelChoicePage.js"],
     ["the choices not wrapping (a phone scrolls sideways)", "display:flex;flex-wrap:wrap;gap:8px}.gmc-list li", "display:flex;flex-wrap:nowrap;gap:8px}.gmc-list li", "lib/modelChoicePage.js"],
-    ["the choices read from Market Check only", "API=/\\/api\\/(sellerDecision|buySearch|sellChat)(", "API=/\\/api\\/(sellerDecision)(", "lib/modelChoicePage.js"],
+    ["the choices read from Market Check only (Sell's reply not read)", "(sellerDecision|buySearch|sellChat)(", "(sellerDecision|buySearch)(", "lib/modelChoicePage.js"],
     ["the fallback hold not set (the busy line stays under the choices)", "h);held=true;sweep()}", "h);sweep()}", "lib/modelChoicePage.js"],
     ["the Have Sam keep looking card left under the choices", 'querySelectorAll(".sam,.samonit")', 'querySelectorAll(".sam")', "lib/modelChoicePage.js"],
     ["the Sam bubble left under the choices", 'querySelectorAll(".sam,.samonit")', 'querySelectorAll(".samonit")', "lib/modelChoicePage.js"],
@@ -298,7 +298,7 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
     const MCANS = { car: PSTAMP, modelChoice: { line: LINE_MC, choices: CHOICES("/market-check"), more: MORE } }, SELLANS = { car: PSTAMP, modelChoice: { line: LINE_MC, choices: CHOICES("/sell"), more: MORE } };
     ok(CT.decodeCar(PART) === null && CT.decodeCar(PART, { partial: true }) && CT.decodeCar(PART, { partial: true }).make === "BMW" && CB.carInfo(PART) === null && CB.carInfo(PART, true) && CB.carInfo(PART, true).partial === true && CB.carInfo(PART, true).short === "2009 BMW" && CB.carInfo(PART, true).line === "2009 BMW" && CB.carInfo(TOKEN, false).partial === false, "partial car: every API reads a make-only token as it does today (decodeCar null); only the crew pages ask for it, and its words are the make's");
     const GMC = `(() => { const g = document.getElementById("gmc"), W = document.documentElement.clientWidth; if (!g) return { present: false }; const bar = document.getElementById("gas-carbar"), r = g.getBoundingClientRect();
-      return { present: true, line: (g.querySelector(".gmc-line") || {}).textContent || null, btns: [...g.querySelectorAll(".gmc-btn")].map(x => ({ t: x.textContent, tag: x.tagName, h: x.getAttribute("href") })), more: (g.querySelector(".gmc-more") || {}).textContent || null, text: g.innerText.replace(/\\s+/g, " ").trim(), afterBar: !!bar && bar.nextElementSibling === g, overflowX: document.documentElement.scrollWidth - W, right: Math.round(r.right), W,
+      return { present: true, line: (g.querySelector(".gmc-line") || {}).textContent || null, btns: [...g.querySelectorAll(".gmc-btn")].map(x => ({ t: x.textContent, tag: x.tagName, h: x.getAttribute("href") })), more: (g.querySelector(".gmc-more") || {}).textContent || null, text: g.innerText.replace(/\\s+/g, " ").trim(), afterBar: !!bar && bar.nextElementSibling === g, btnH: Math.max(0, ...[...g.querySelectorAll(".gmc-btn")].map(x => Math.round(x.getBoundingClientRect().height))), overflowX: document.documentElement.scrollWidth - W, right: Math.round(r.right), W,
         box: [...document.querySelectorAll("input[type=text],input:not([type]),textarea")].some(e => !e.disabled && e.offsetWidth > 0 && e.offsetHeight > 0) }; })()`;
     const PAGES = [["find", "/find" + PQ, 0, /\/api\/buySearch/, false, [[/\/api\/buySearch/, { car: PSTAMP }]]], ["mc", "/market-check" + PQ, 1, /\/api\/sellerDecision/, false, [[/\/api\/sellerDecision/, MCANS]]],
       ["sell", "/sell" + PQ + SELLQ, 2, /\/api\/sellChat/, false, [[/\/api\/sellChat/, SELLANS]]], ["tasks", "/tasks/mine?app=1&car=" + enc(PART), 3, /\/api\/tasks/, true, []]];
@@ -326,7 +326,7 @@ for (const [tool, p0] of TOOLS) { const p = await open(p0 + "?car=" + enc(LONG),
         answers[0][1] = tool === "mc" ? MCANS : SELLANS;
         await p.close();
         const p2 = await open(url, 390, { live: LIVEMAP, signed, answers }), g2 = await p2.evaluate(GMC), b2 = await p2.evaluate(BAR); if (process.env.SHOTS) await p2.screenshot({ path: path.join(ROOT, "docs/demo-run/car-bar-partial-" + tool + "-390.png"), clip: { x: 0, y: 0, width: 390, height: 700 } });
-        ok(g2.present && g2.overflowX <= 0 && b2.overflowX <= 0 && g2.right <= g2.W, tool + ": at 390 nothing runs sideways " + JSON.stringify([g2.overflowX, b2.overflowX, g2.right])); await p2.close();
+        ok(g2.present && g2.btnH <= 44 && g2.overflowX <= 0 && b2.overflowX <= 0 && g2.right <= g2.W, tool + ": at 390 nothing runs sideways " + JSON.stringify([g2.overflowX, b2.overflowX, g2.right])); await p2.close();
         // tapping one runs the tool for the full car and the bar then carries the full car
         const p3 = await open(url, 1440, { live: LIVEMAP, signed, answers }); answers[0][1] = { car: FULLS[0] }; await Promise.all([p3.waitForNavigation({ waitUntil: "domcontentloaded" }), p3.click(".gmc-btn")]); await new Promise(r => setTimeout(r, 1500));
         const r3 = await p3.evaluate(BAR), first3 = p3._api.filter(c => apiRe.test(c.u)).pop();
