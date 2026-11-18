@@ -290,6 +290,37 @@ process.env.OLDCARSDATA_API_KEY = "x"; process.env.CURTAIN_CREW_CODE = "fixture-
   }
   ok("no page builds its own mileage chip (it prints appliedFilters as sent)", !/Cars within/.test(read("public/js/onebox.js").replace(/\/\/[^\n]*/g, "")));
 }
+
+// ===== THE LUMPING CLASS (lane-b-sell-nolump, Nov 18 2026): live, Sam's "Ferrari 330 GT" pooled the 330 GTC ($791,000, $502,000) with the 330 GT 2+2 ($270,000, $216,330) and called the pool "too spread out"; "Ferrari 330 GT 2+2" answered not tracked. =====
+// THE CLASS: a model the archive holds as several distinct cars at different money (variants whose medians differ by more than two times). Recorded live for three models (scripts/fixtures/lumpShapes.json, counts, tokens, years, ages and prices only): the Ferrari 330, the Ferrari 365 and the Aston Martin DB6, each rebuilt as an archive and read through the real handler.
+//   1 typed words that name no car of the list: the answer carries the cards (variantSplit show true), one per car, each the answer of its own page; no answer says "too spread out" while the pool holds two or more of the list's cars
+//   2 typed words that name one: the car is that one on the family's own pool (a result), and it is the cars of that variant only
+{ const LUMP = JSON.parse(read("scripts/fixtures/lumpShapes.json")), { mintCrewCookieValue } = await imp("lib/_crew.js"), CREWC = "gas_crew=" + mintCrewCookieValue(), HH = (await imp("api/sellerDecision.js")).default; let nn2 = 0;
+  const hit2 = async (body, crew = true) => { let out = null; const res = { status(c) { this.code = c; return this; }, json(b) { out = b; return this; }, setHeader() {}, end() {}, getHeader() {} }; await HH({ method: "POST", headers: { origin: "https://goasksam.com", cookie: crew ? CREWC : "" }, query: {}, body, socket: { remoteAddress: "10.9." + Math.floor(++nn2 / 250) + "." + (nn2 % 250) } }, res); return out; };
+  const CN = await imp("lib/countNoun.js"), VV2 = await imp("lib/variants.js"), money2 = x => "$" + Math.round(Number(x)).toLocaleString("en-US");
+  const TF = OB.RANGE_RULES.trimFirst; OB.RANGE_RULES.trimFirst = false;
+  for (const L of LUMP.families) {
+    const fam = VV2.familiesOf().find(f => f.id === L.id); if (!fam) { ok(`${L.id}: the list is in the data (the lumping class has a list for the model)`, false); continue; }
+    const rows = L.sales.map((r, i) => { const id = "lc" + (seq++), title = `${r.y} ${L.make} ${fam.baseModel} ${L.title[r.v]}`;
+      return { id, source_id: id, sale_price: r.p + i, sale_date: new Date(Date.now() - r.ago * DAY).toISOString().slice(0, 10), platform: i % 3 === 0 ? "RM Sotheby's" : "Bring a Trailer", listing_title: title, year: r.y, make: L.make, model: r.token, vin_norm: null, stated_mileage: null, project_flag: null, desc_facts: null, has_reserve: false, vehicle_type: "car",
+        raw_record: { id, title, featured_image_url: "https://img.example/" + id + ".jpg", mileage: String(20000 + i * 97), body_style: "Coupe", modifications: null, currency: "USD", transmission: "Manual (4-Speed)", exterior_color: "Red", title_status: "Clean", url: "https://bat.example/" + id, source_url: "https://src.example/" + id, city: "Austin", state: "TX", country_code: "US", auction_end_precision: "day" } }; });
+    install(L.resolvedModel, rows);
+    const car = (text, model) => ({ raw: text, vehicle: { raw: text, make: L.make, model, year: null, trim: null, confidence: "high", canonicalLabel: text } });
+    const a = await hit2({ oneBox: true, search: L.typed, car: car(L.typed, L.resolvedModel) }), vs = a && a.variantSplit, names = Object.keys(L.exact);
+    ok(`${L.id}: "${L.typed}" is answered with the cards, one per car of the list that has sales, in the list's order (live it was one blended pool)`, !!vs && vs.show === true && JSON.stringify(vs.rows.map(r => r.label)) === JSON.stringify(fam.variants.map(v => v.name).filter(n => names.includes(n))), vs && [vs.show, (vs.rows || []).map(r => r.label), vs.why]);
+    const said = [a && a.samLine, a && a.refusal_line, a && a.noRangeLine, a && a.thinLine, a && a.refusal && a.refusal.line].filter(Boolean).join(" | ");
+    ok(`${L.id}: no line of the blended answer says "too spread out" while its pool holds two or more of the list's cars (tier ${a && a.tier})`, !!a && !/too spread out/i.test(said), said);
+    if (a && a.tier === "refusal" && a.refusal && a.refusal.kind === "varied") ok(`${L.id}: a blended refusal names the cars as different cars at different prices (refusal.mixed)`, Array.isArray(a.refusal.mixed) && a.refusal.mixed.length > 1 && /different cars/.test(said) && a.noRangeCode === "mixed_cars", [a.refusal, a.noRangeCode]);
+    const med = x => { const m = /\$([\d,]+) to \$([\d,]+)/.exec(x || ""); return m ? (Number(m[1].replace(/,/g, "")) + Number(m[2].replace(/,/g, ""))) / 2 : null; };
+    const priced = (vs && vs.rows || []).filter(r => r.priced);
+    ok(`${L.id}: the cards have ranges of their own and the dearest card is more than two times the cheapest (the cars price apart)`, priced.length >= 2 && Math.max(...priced.map(r => med(r.rangeText))) > 2 * Math.min(...priced.map(r => med(r.rangeText))), priced.map(r => r.rangeText));
+    for (const [vn, [words, model]] of Object.entries(L.exact)) {
+      const e = await hit2({ oneBox: true, search: words, car: car(words, model) }), row = vs && (vs.rows || []).find(r => r.label === vn), cl = e && Array.isArray(e.cluster) ? money2(e.cluster[0]) + " to " + money2(e.cluster[1]) : null;
+      const alone = e && (e.rawPool || []).length > 0 && (e.rawPool || []).every(r => VV2.variantOfSale(fam, r) === vn), nPage = e ? (Number.isFinite(Number(e.poolN)) && e.poolN != null ? Number(e.poolN) : (Number(e.noRangeTotal) || (e.rawPool || []).length)) : 0;
+      ok(`${L.id}: "${words}" is the ${vn} alone: a range on the ${vn} sales only (a car with a spread of its own may show no range, but never the mixed-cars line), no split (live: "${vn}" ${L.id === "ferrari-330" && vn === "GT 2+2" ? "answered not tracked" : "read on the blended pool"})`, !!e && ["result", "refusal", "thin"].includes(e.tier) && !(e.refusal && e.refusal.mixed) && (!e.variantSplit || e.variantSplit.show !== true) && alone, e && [e.tier, (e.rawPool || []).length, e.variantSplit && e.variantSplit.show, String(e.samLine || "").slice(0, 80), e.variants && [e.variants.stated, e.variants.applied, e.variants.thin, e.variants.pooled], e.rungLabel, [...new Set((e.rawPool || []).map(r => VV2.variantOfSale(fam, r)))]]);
+      ok(`${L.id}: the ${vn} card is exactly what its own page shows (range and count)`, !!row && !!e && row.rangeText === cl && row.salesText === CN.countNoun(nPage, "sale"), [row && row.rangeText, cl, row && row.salesText, nPage]);
+    } }
+  OB.RANGE_RULES.trimFirst = TF; }
 console.error = err;
 for (const f of fails.slice(0, +(process.env.SHOW || 40))) console.log("FAIL " + f);
 console.log(`variantSplitCheck: ${pass} passed, ${fail} failed`);
