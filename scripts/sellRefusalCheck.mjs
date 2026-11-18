@@ -5,6 +5,37 @@
 // buildResult's order (lib/sell/sellFlow.js) and the Sell client (lib/sell/sellMcClient.js) on a stubbed page. No network.
 //   node scripts/sellRefusalCheck.mjs     exit 1 on any failure.
 import fs from "node:fs";
+import { spawnSync } from "node:child_process"; import path from "node:path"; import { fileURLToPath } from "node:url";
+// MUTANTS (lane-b-sell-nolump): node scripts/sellRefusalCheck.mjs --mutants, in a COPY of the repo; each must fail the check.
+if (process.argv.includes("--mutants")) {
+  const R = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+  const M = [
+    ["a no-range answer stops Sell on the server again", "lib/sell/sellFlow.js", "  const noRange = first.noRange ? {", "  if (first.noRange) return done({ ...head, noRange: first.noRange });\n  const noRange = first.noRange ? {"],
+    ["the client stops on the engine's card again", "lib/sell/sellMcClient.js", "if (nrj) j.marketAnswer = nrj.card || {};", "if (nrj) { stopWait(); S.result = j; refusalScreen(nrj.line || \"\"); return; }"],
+    ["the result drops the price line", "lib/sell/sellFlow.js", "...(noRange ? { noRange, priceLine: noRange.priceLine } : {}),", "...(noRange ? { noRange } : {}),"],
+    ["the client does not print the price line in the result", "lib/sell/sellMcClient.js", "    if (j && j.priceLine) h += x.samMsgHtml", "    if (false) h += x.samMsgHtml"],
+    ["the price line is not printed while the rest loads", "lib/sell/sellMcClient.js", "(nrj && nrj.priceLine ? X().samMsgHtml([e(nrj.priceLine)], \"\", \"big\") : \"\") + (nrj && nrj.line", "\"\" + (nrj && nrj.line"],
+    ["the price line counts a number of its own", "lib/sell/sellFacts.js", "const n = Number(nr.total) || 0,", "const n = Number(nr.total) || 7,"],
+    ["the price line states a dollar figure", "lib/reasonWords.js", "only ${p.total} on record. Here is where", "only ${p.total} on record, about $50,000. Here is where"],
+    ["the engine's card is not where the range card stands", "lib/sell/sellMcClient.js", "if (nrj) j.marketAnswer = nrj.card || {};", "if (nrj) j.marketAnswer = {};"],
+    ["a builder car is let through to the pick", "lib/sell/sellFlow.js", "  if (first.refusal) return done({ ...head, refusal: first.refusal });\n  if (first.question)", "  if (first.question)"],
+    ["the range step carries no price line", "lib/sell/sellFlow.js", "noRange: { ...first.noRange, priceLine: first.noRange.priceLine || priceLineOf(first.noRange) } };", "noRange: first.noRange };"],
+  ];
+  let bad = 0; const me = fileURLToPath(import.meta.url);
+  for (const [name, file, from, to] of M) {
+    const tmp = fs.mkdtempSync(path.join(fs.realpathSync("/tmp"), "sr-"));
+    try {
+      for (const d of ["lib", "api", "data", "package.json"]) spawnSync("cp", ["-R", path.join(R, d), tmp]);
+      fs.mkdirSync(path.join(tmp, "scripts")); spawnSync("cp", [me, path.join(tmp, "scripts/")]); fs.symlinkSync(path.join(R, "node_modules"), path.join(tmp, "node_modules"));
+      const f = path.join(tmp, file), src = fs.readFileSync(f, "utf8");
+      if (src.split(from).length !== 2) { console.log("MISSED   " + name + " (target text not exactly once in " + file + ")"); bad++; continue; }
+      fs.writeFileSync(f, src.replace(from, () => to));
+      const r = spawnSync(process.execPath, [path.join(tmp, "scripts/sellRefusalCheck.mjs")], { encoding: "utf8", timeout: 240000, cwd: tmp }); const caught = r.status !== 0;
+      console.log((caught ? "caught   " : "MISSED   ") + name); if (!caught) bad++;
+    } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  }
+  console.log(bad ? "sellRefusalCheck mutants: " + bad + " not caught" : "sellRefusalCheck mutants: all " + M.length + " caught"); process.exit(bad ? 1 : 0);
+}
 import { noRangeOf, refusalOf } from "../lib/sell/sellFacts.js";
 import { SELL_MC_CLIENT } from "../lib/sell/sellMcClient.js";
 import { sellsForCardHtml } from "../lib/sellsForCard.js";
