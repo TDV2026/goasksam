@@ -35,6 +35,10 @@ if (process.argv.includes("--mutants")) {
     ["the range card stays hidden after a later answer has no variants", FILES.rows, 'card.style.display="";card.removeAttribute("data-vrs-hid")', ''],
     ["a variant's mileage note is not printed", FILES.rows, "(text(r.mileageNote) ? '<span class=\"vrs-mi\">'", "(false ? '<span class=\"vrs-mi\">'"],
     ["the set-aside line is not printed", FILES.rows, "(text(vs.asideLine) ? '<p class=\"vrs-aside\">'", "(false ? '<p class=\"vrs-aside\">'"],
+    ["a refusal with the split is not given the rows (no card anchor)", FILES.rows, 'ref=card?null:document.querySelector(".refusal")', 'ref=null'],
+    ["the mixed sales list stays under the rows", FILES.rows, 'var os=document.getElementById("ob-sales");if(os){os.style.display="none";os.setAttribute("data-vrs-also","1")}', ''],
+    ["the refusal block stays beside the rows", FILES.rows, 'ref.style.display="none";ref.setAttribute("data-vrs-also","1");', ''],
+    ["the refusal and the list are not brought back when the split goes", FILES.rows, 'narrow(false);hid(false)}return}', 'narrow(false)}return}'],
     ["the old answer's rows kept when a new answer has none", FILES.rows, "else if(isAnswer(j)||(j&&isAnswer(j.answer)))vs=null;place()", "place()"],
   ];
   let bad = 0;
@@ -96,6 +100,19 @@ async function call(handler, url, crew) { const res = { h: {}, code: 200, body: 
   const nb = x => x.narrow && x.narrow.length > 0 && x.narrow.every(d => d === "none"), nv = x => x.narrow && x.narrow.length > 0 && x.narrow.every(d => d !== "none");
   ok(nb(r0) && nv(r1) && nb(r2), "the Narrow by strip is back once a later answer has no split (a trim chosen) and hidden again when the split returns :: " + JSON.stringify([r0.narrow, r1.narrow, r2.narrow]));
   ok(r0.present && !r1.present && r2.present && r2.rows.length === 5 && r0.hidden === true && r1.hidden === false && r2.hidden === true, "a later answer with no variantSplit removes the rows and one that carries it brings them back :: " + JSON.stringify([r0.present, r1.present, r2.present])); await p.close(); }
+// THE BLENDED REFUSAL (lane-b-sell-nolump-2, Nov 18 2026; live: "Ferrari 330 GT" said "GT 2+2 and GTC are different cars at different prices, so there is no one range for them", drew no card per car and listed both cars' sales together): when the engine's answer is a refusal and carries the split, the rows are the answer: no refusal block, no mixed sales list, and the rows sit where the refusal was.
+const withRefusal = vs => { const f = { ...base }, j = JSON.parse(base[KEY].body); j.tier = "refusal"; j.refusal = { kind: "varied", variants: ["GTC", "GT 2+2"], mixed: ["GT 2+2", "GTC"] }; j.cluster = null; j.samLine = "GT 2+2 and GTC are different cars at different prices, so there is no one range for them."; j.resolvedCar = { year: null, make: "Ferrari", model: "330", trim: "" }; if (vs) j.variantSplit = vs; else delete j.variantSplit; f[KEY] = { ...base[KEY], body: JSON.stringify(j) }; return f; };
+const READR = () => { const v = document.getElementById("vrs"), vis = el => !!el && getComputedStyle(el).display !== "none" && !(el.closest("[data-vrs-also]") && getComputedStyle(el.closest("[data-vrs-also]")).display === "none"); const rf = document.querySelector(".refusal"), os = document.getElementById("ob-sales");
+  return { present: !!v, rows: v ? [...v.querySelectorAll(".vrs-row")].map(x => (x.querySelector(".vrs-l") || {}).textContent) : [], refusal: !!rf, refusalShown: vis(rf), salesShown: vis(os), text: document.body.innerText, narrow: [...document.querySelectorAll(".narrow-strip")].map(n => getComputedStyle(n).display), after: !!v && !!rf && rf.nextElementSibling === v }; };
+{ const p = await open(b, URL0, { width: 1440, fixtures: withRefusal(SPLIT), settle: 3500 }), r = await p.evaluate(READR);
+  ok(r.refusal && r.present && r.rows.length === 5, "a refusal that carries the split draws the rows, one per car :: " + JSON.stringify([r.refusal, r.present, r.rows]));
+  ok(r.present && r.refusal && !r.refusalShown, "the refusal block (the \"different cars\" line and the chips) is not shown beside the rows :: " + r.refusalShown);
+  ok(r.present && !r.salesShown, "the mixed sales list (What has sold) is not shown while the rows are :: " + r.salesShown);
+  ok(r.present && !/there is no one range for them/.test(r.text.split("\n").filter(l => l.length).join(" ").replace(/\s+/g, " ")) || r.present && !r.refusalShown, "the page does not print the refusal line next to the cards");
+  ok(r.present && r.after, "the rows sit where the refusal was");
+  ok(!p._err.length, "no page error :: " + p._err.join("|")); await p.close(); }
+{ const p = await open(b, URL0, { width: 1440, fixtures: withRefusal(null), settle: 3000 }), r = await p.evaluate(READR);
+  ok(!r.present && r.refusal && r.refusalShown && r.salesShown, "a refusal with no split is unchanged: the refusal block and the sales list show, no rows :: " + JSON.stringify([r.present, r.refusalShown, r.salesShown])); await p.close(); }
 // 3 the source computes nothing
 { const src = VR.variantRowsFactory.toString() + VR.VARIANT_ROWS_JS; ok(!/\.sort\(|\.reduce\(|Math\.|parseInt|parseFloat|Number\(|\.length\s*[-*\/]|\.length\s*\+\s*[\w(]|\+\+/.test(src), "the module has no sort, sum or arithmetic on the engine's figures"); }
 // 4 nothing to draw

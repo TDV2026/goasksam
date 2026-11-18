@@ -5,7 +5,7 @@
 // buildResult's order (lib/sell/sellFlow.js) and the Sell client (lib/sell/sellMcClient.js) on a stubbed page. No network.
 //   node scripts/sellRefusalCheck.mjs     exit 1 on any failure.
 import fs from "node:fs";
-import { spawnSync } from "node:child_process"; import path from "node:path"; import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process"; import path from "node:path"; import { fileURLToPath, pathToFileURL } from "node:url";
 // MUTANTS (lane-b-sell-nolump): node scripts/sellRefusalCheck.mjs --mutants, in a COPY of the repo; each must fail the check.
 if (process.argv.includes("--mutants")) {
   const R = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -19,6 +19,11 @@ if (process.argv.includes("--mutants")) {
     ["the price line states a dollar figure", "lib/reasonWords.js", "only ${p.total} on record. Here is where", "only ${p.total} on record, about $50,000. Here is where"],
     ["the engine's card is not where the range card stands", "lib/sell/sellMcClient.js", "if (nrj) j.marketAnswer = nrj.card || {};", "if (nrj) j.marketAnswer = {};"],
     ["a builder car is let through to the pick", "lib/sell/sellFlow.js", "  if (first.refusal) return done({ ...head, refusal: first.refusal });\n  if (first.question)", "  if (first.question)"],
+    ["the not-seen line counts only the places read", "lib/sell/sellFlow.js", "const salesN = Math.max(Number(p0.total) || 0, Number(noRange && noRange.total) || 0, list.length);", "const salesN = Number(p0.total) || 0;"],
+    ["the not-seen line ignores the sales the page lists", "lib/sell/sellFlow.js", "Number(noRange && noRange.total) || 0, list.length);", "Number(noRange && noRange.total) || 0);"],
+    ["the not-seen line ignores the engine's total", "lib/sell/sellFlow.js", "Number(p0.total) || 0, Number(noRange && noRange.total) || 0, list.length);", "Number(p0.total) || 0, list.length);"],
+    ["buildResult prints its own not-seen line", "lib/sell/sellFlow.js", "empty: emptyLine,", "empty: !platform && !partner ? (note || \"Sam has not seen this car sell yet, so there is no place on record to point to.\") : null,"],
+    ["the not-seen line is printed beside sales", "lib/sell/sellFlow.js", "(note || (salesN > 0 ? null : NOT_SEEN_LINE))", "(note || NOT_SEEN_LINE)"],
     ["the range step carries no price line", "lib/sell/sellFlow.js", "noRange: { ...first.noRange, priceLine: first.noRange.priceLine || priceLineOf(first.noRange) } };", "noRange: first.noRange };"],
   ];
   let bad = 0; const me = fileURLToPath(import.meta.url);
@@ -145,5 +150,22 @@ const plain = await run("1992 Porsche 911 Carrera 4", { label: "1992 Porsche 911
 const plainText = plain.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 ok(plainText.includes("$70,000 to $95,000") && plain.includes("Based on 24 sales, the latest in September 2026.") && !plain.includes("Ask Sam about this") && !plain.includes("sell-ask") && /pcard/.test(plain), "normal range answer: unchanged (pick card, the shared card), no Ask Sam section");
 
+const ROOTD = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+// THE NOT-SEEN LINE IS FOR A CAR WITH NO SALE (lane-b-sell-nolump-2, Nov 18 2026; live: Sell for the 1991 Lamborghini LM002 printed "Sam has not seen this car sell yet, so there is no place on record to point to." under "only 5 sales on record" with the five sales listed).
+// CAUSE: buildResult printed the line whenever the result had no pick and no PowerSeller and the places read (pl.total) was 0; on a no-range car the places read holds nothing while the engine's own total (noRange.total) and the sales the page lists do. THE CLASS: every Sell result with no pick (typed words, the car bar, a VIN, the finish) and every page or email that prints the line.
+{ const SF2 = await import(pathToFileURL(path.join(ROOTD, "lib/sell/sellFlow.js")).href), recent = n => Array.from({ length: n }, (_, i) => ({ title: "1991 Lamborghini LM002", date: "2026-0" + (9 - i) + "-10", price: 360000 + i * 1000 }));
+  const lm = SF2.noPickFor({ platform: null, partner: null, pl: { total: 0 }, noRange: { total: 5 }, recent: recent(5) });
+  ok(!!lm.empty && !/has not seen/.test(lm.empty) && /^Five sales/.test(lm.empty) && lm.note === lm.empty, "LM002 (five sales, no range, the places read empty): the line is the count, never the not-seen line :: " + lm.empty);
+  const onlyList = SF2.noPickFor({ platform: null, partner: null, pl: { total: 0 }, noRange: null, recent: recent(3) });
+  ok(!/has not seen/.test(onlyList.empty || "") && !!onlyList.empty, "sales listed on the page and nothing else: still never the not-seen line :: " + onlyList.empty);
+  const onlyEngine = SF2.noPickFor({ platform: null, partner: null, pl: {}, noRange: { total: 12 }, recent: [] });
+  ok(!/has not seen/.test(onlyEngine.empty || "") && /12 sales/.test(onlyEngine.empty || ""), "the engine's count alone (no rows listed): the count line :: " + onlyEngine.empty);
+  const none = SF2.noPickFor({ platform: null, partner: null, pl: { total: 0 }, noRange: { total: 0 }, recent: [] });
+  ok(none.empty === SF2.NOT_SEEN_LINE, "a car with no sale at all: the not-seen line stands");
+  ok(SF2.noPickFor({ platform: { slug: "x" }, partner: null, pl: { total: 0 }, noRange: { total: 5 }, recent: recent(5) }).empty === null && SF2.noPickFor({ platform: null, partner: { slug: "p" }, pl: { total: 0 }, noRange: { total: 5 }, recent: recent(5) }).empty === null, "a pick or a PowerSeller: no empty line");
+  // the sweep: the sentence is written in ONE place and read from there; no page or email carries its own copy
+  const hits = []; const walk = d => { for (const f of fs.readdirSync(d, { withFileTypes: true })) { if (f.name === "node_modules" || f.name === ".git" || f.name === "scripts" || f.name === "docs" || f.name === "proofs") continue; const q = path.join(d, f.name); if (f.isDirectory()) walk(q); else if (/\.(js|mjs|html|json)$/.test(f.name)) { const t = fs.readFileSync(q, "utf8"); if (/has not seen this car sell|not seen this car sell/i.test(t.replace(/\/\/.*$/gm, ""))) hits.push(path.relative(ROOTD, q)); } } }; walk(ROOTD);
+  ok(hits.length === 1 && hits[0] === "lib/sell/sellFlow.js", "no page, client or email carries the not-seen sentence of its own: it is written once, in lib/sell/sellFlow.js :: " + hits.join(","));
+  const src = fs.readFileSync(path.join(ROOTD, "lib/sell/sellFlow.js"), "utf8"); ok(/empty: emptyLine,/.test(src) && !/note \|\| "Sam has not seen/.test(src), "buildResult's empty line is noPickFor's"); }
 console.log(`sellRefusalCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
