@@ -50,6 +50,9 @@ create table if not exists topic_map (
   primary key (family, map_version, raw_topic)
 );
 
+-- Lane D, Nov 18 2026 (lane-d-factmine-3): the kind of a canonical topic (set at factmap; factreport and factprice set equipment aside by default). RUN ONCE; safe to run again. Rows written before this have no kind and are asked once by the next factmap call.
+alter table topic_map add column if not exists kind text check (kind in ('condition','history','work_done','modification','paperwork','equipment','other'));
+
 -- STANDING RULE (CLAUDE.md, Database security): locked down from creation.
 alter table listing_mining_runs enable row level security;
 alter table listing_mentions    enable row level security;
