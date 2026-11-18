@@ -37,7 +37,7 @@ w.deps.resolveVehicle = async text => ({ status: "valid", vehicle: carOf(text) }
 const answer = async text => (await OB.oneEngineAnswer(carOf(text), null, text, { ...w.env })).raw;
 const today = new Date().toISOString().slice(0, 10), head = async () => ({ status: 200, bytes: 50000, type: "image/jpeg" });
 const desk = async (text, extra = {}) => (await SR.sheetRead(w.env, { ...carOf(text), mileage: 40000, desk: { caseDate: today, transmission: "Manual", label: text, case: { verification: {} }, exclusions: [], head, views: true, ...extra } }, w.deps)).desk;
-const DROP = new Set(["variants", "readAt", "dedup", "shape"]), strip = x => JSON.stringify(x, (k, v) => DROP.has(k) ? undefined : v), stripD = strip;   // the new field, the clock and the timings are the only things that may differ from the engine before the variants
+const DROP = new Set(["variants", "readAt", "dedup", "shape", "variantLabel"]), strip = x => JSON.stringify(x, (k, v) => DROP.has(k) ? undefined : v), stripD = strip;   // the new field, the clock and the timings are the only things that may differ from the engine before the variants
 const ids = d => (d.rawPool || []).map(r => r.id).sort();
 const titles = d => (d.rawPool || []).map(r => String(r.raw_title || r.rtitle || ""));
 const vb = d => d && d.variants, tl = x => String((x && (x.titleLine || x.title)) || "");
@@ -49,10 +49,10 @@ install("Firebird", world("Pontiac", "Firebird", [1987, 1987], FB));
 const allIds = w.DATA.get("Firebird").map(r => r.id).sort();
 { const g = await answer("1987 Pontiac Firebird Trans Am GTA"), t = await answer("1987 Pontiac Firebird Trans Am"), u = await answer("1987 Pontiac Firebird"), f = await answer("1987 Pontiac Firebird Formula");
   ok("a stated GTA is priced on GTA sales only", ids(g).length === 5 && titles(g).every(x => /\bGTA\b/i.test(x)), { n: ids(g).length });
-  ok("a stated GTA: variants say so (applied, GTA in the pool, the others out)", vb(g) && vb(g).applied === true && item(vb(g), "GTA").inPool && !item(vb(g), "Trans Am").inPool && !item(vb(g), "Formula").inPool && !item(vb(g), "Unstated").inPool && vb(g).source === "words", vb(g));
+  ok("a stated GTA: variants say so (applied, GTA in the pool, the others out)", vb(g) && vb(g).applied === true && item(vb(g), "GTA").inPool && !item(vb(g), "Trans Am").inPool && !item(vb(g), "Formula").inPool && !item(vb(g), "Base").inPool && vb(g).source === "words", vb(g));
   ok("a stated Trans Am SETS THE GTA ASIDE (the package rule): 6 sales, none naming GTA", ids(t).length === 6 && titles(t).every(x => /trans am/i.test(x) && !/\bGTA\b/i.test(x)), { n: ids(t).length, t: titles(t) });
-  ok("a stated Trans Am: the line names what is set aside, with no word base", vb(t) && vb(t).line === "Priced on Trans Am sales. GTA, Formula and sales that name no variant are set aside." && !/\bbase\b/i.test(JSON.stringify(vb(t))), vb(t) && vb(t).line);
-  ok("a stated Trans Am: every variant found is counted (GTA 5, Formula 5, none 5, Firehawk 0), the GTA is marked a package of the Trans Am", vb(t) && item(vb(t), "GTA").count === 5 && item(vb(t), "GTA").package === "Trans Am" && item(vb(t), "Formula").count === 5 && item(vb(t), "Unstated").count === 5 && item(vb(t), "Firehawk").count === 0 && item(vb(t), "Trans Am").count === 6, vb(t));
+  ok("a stated Trans Am: the line names what is set aside, with no word base", vb(t) && vb(t).line === "Priced on Trans Am sales. Base, Formula and GTA are set aside.", vb(t) && vb(t).line);
+  ok("a stated Trans Am: every variant found is counted (GTA 5, Formula 5, none 5, Firehawk 0), the GTA is marked a package of the Trans Am", vb(t) && item(vb(t), "GTA").count === 5 && item(vb(t), "GTA").package === "Trans Am" && item(vb(t), "Formula").count === 5 && item(vb(t), "Base").count === 5 && item(vb(t), "Firehawk").count === 0 && item(vb(t), "Trans Am").count === 6, vb(t));
   ok("a stated Formula is priced on Formula sales only", ids(f).length === 5 && titles(f).every(x => /formula/i.test(x)), { n: ids(f).length });
   // an unstated Firebird answers as it does on main: every sale is in the pool, nothing is applied
   // the control is the engine as it was before the variants (the family list emptied): an unstated car's whole answer, bar the new field, is byte for byte the same
@@ -63,8 +63,8 @@ const allIds = w.DATA.get("Firebird").map(r => r.id).sort();
   // the same read with the variant reader switched off for the call (the answer of main) equals it
   const off = await (async () => { const spec0 = OB.buildSpec(carOf("1987 Pontiac Firebird"), null, "1987 Pontiac Firebird"); return spec0; })();
   ok("an unstated Firebird asks for no variant of its own (the spec holds no set)", !off.variantSet && !off.variantStated, off);
-  ok("sales that name no variant are never counted as base: they are Unstated, in no variant's count, and set aside when a variant is stated", item(vb(t), "Unstated").count === 5 && !vb(t).items.some(i => /^base$/i.test(i.name)) && !titles(t).some(x => !/trans am/i.test(x)), vb(t));
-  ok("an unstated car's variants name the sales that name no variant Unstated, in every pool read", item(vb(u), "Unstated").count === 5 && item(vb(u), "Unstated").inPool);
+  ok("sales that name no variant are counted as Base for the Firebird (data: unnamedIs): they are Base (the Firebird's list reads a sale that names no variant as the plain car, unnamedIs), in no variant's count, and set aside when a variant is stated", item(vb(t), "Base").count === 5 && !item(vb(t), "Base").inPool && !titles(t).some(x => !/trans am/i.test(x)), vb(t));
+  ok("an unstated car's variants name the sales that name no variant Base, in every pool read", item(vb(u), "Base").count === 5 && item(vb(u), "Base").inPool);
 }
 // ===== THE PACKAGE RULE IS DATA: a family whose entry says includesPackages counts the package with its parent =====
 { const list = JSON.parse(JSON.stringify(JSON.parse(fs.readFileSync(path.join(ROOT, "data/variantFamilies.json"), "utf8")).families)); list[0].variants.find(x => x.name === "Trans Am").includesPackages = true;
@@ -108,8 +108,8 @@ const allIds = w.DATA.get("Firebird").map(r => r.id).sort();
   ok("variant_set: the nearest sales name only the chosen variants", (dS.comparables || []).length > 0 && (dS.comparables || []).every(c => /trans am|gta/i.test(tl(c))), (dS.comparables || []).map(c => tl(c)));
   const dC = await desk("1987 Pontiac Firebird", { variantSet: ["Nonsense"] });
   ok("a set with no name the family holds is ignored: the car's own variant (here none) stands", dC.variants && dC.variants.applied === false && (dC.sales || []).length === 21, dC.variants && dC.variants.line);
-  const d1 = await desk("1987 Pontiac Firebird", { variantSet: ["Unstated"] });
-  ok("the set may be the sales that name no variant", d1.variants && d1.variants.applied && item(d1.variants, "Unstated").inPool && (d1.sales || []).length === 5, { n: (d1.sales || []).length });
+  const d1 = await desk("1987 Pontiac Firebird", { variantSet: ["Base"] });
+  ok("the set may be the sales that name no variant", d1.variants && d1.variants.applied && item(d1.variants, "Base").inPool && (d1.sales || []).length === 5, { n: (d1.sales || []).length });
 }
 // ===== THE CASE LAYER: the set is an input of the read =====
 { const CM = await imp("lib/desk/caseModel.js"), mkCase = () => { const c = CM.newCase({ now: new Date().toISOString(), vehicle: { year: 1987, make: "Pontiac", model: "Firebird", mileage: 40000, transmission: "Manual" } }); c.desk = { evidence: { count: 1 }, shape: 9, key: null, variants: { familyId: "pontiac-firebird-3rd" } }; return c; };
@@ -163,7 +163,7 @@ ok("DESK_SHAPE is 10 (9 is variant-split, 8 is lane-b-mileage-band's; lane-b-yea
 const read = f => fs.readFileSync(path.join(ROOT, f), "utf8");
 const REPLICA_TITLE = /kitt|knight rider|tribute|replica|re-?creation|clone/i;
 { const famData = JSON.parse(read("data/variantFamilies.json")).families.find(f => f.id === "pontiac-firebird-3rd"), v20 = famData && famData.variants.find(v => /20th/i.test(v.name));
-  ok("the Firebird's variant data holds the 20th Anniversary Turbo Trans Am as a package of the Trans Am (20 sales at $42,000 against $14,250 in the engine's read, 2026-11-17)", !!v20 && v20.package === "Trans Am" && famData.variants.indexOf(v20) < famData.variants.findIndex(v => v.name === "Trans Am"), v20);
+  ok("the Firebird's variant data holds the 20th Anniversary Turbo Trans Am as a package of the Trans Am (20 sales at $42,000 against $14,250 in the engine's read, 2026-11-17)", !!v20 && v20.package === "Trans Am" && (() => { const ml = V.familiesOf().find(f => f.id === "pontiac-firebird-3rd").matchList.map(v => v.name); return ml.indexOf(v20.name) < ml.indexOf("Trans Am") && ml.indexOf("GTA") < ml.indexOf("Trans Am") && ml.indexOf("Firehawk") < ml.indexOf("Trans Am"); })(), v20);
   const FB2 = [["Trans Am", 12, 14000], ["20th Anniversary Turbo Trans Am", 8, 42000], ["Trans Am KITT Replica", 3, 60000], ["Trans Am Tribute", 2, 22000], ["Trans Am Knight Rider", 2, 30000], ["Trans Am GTA", 8, 24000], ["Formula", 8, 13000], ["", 8, 8000]];
   install("Firebird", world("Pontiac", "Firebird", [1987, 1987], FB2));
   const all = w.DATA.get("Firebird"), t = await answer("1987 Pontiac Firebird Trans Am"), u = await answer("1987 Pontiac Firebird"), s20 = await answer("1987 Pontiac Firebird 20th Anniversary Turbo Trans Am");
@@ -199,12 +199,7 @@ process.env.OLDCARSDATA_API_KEY = "x"; process.env.CURTAIN_CREW_CODE = "fixture-
   install("Firebird", world("Pontiac", "Firebird", [1987, 1987], FQ));
   const eng = (await OB.oneEngineAnswer(carOf("1987 Pontiac Firebird"), null, "1987 Pontiac Firebird", { ...w.env })).raw, per = byVariant(eng, "pontiac-firebird-3rd");
   const q = await hit({ oneBox: true, search: "1987 Pontiac Firebird" }, true), vis = await hit({ oneBox: true, search: "1987 Pontiac Firebird" }, false);
-  ok("CREW: an unstated Firebird whose variants price apart is answered with a variant question (tier variant_choice, askIndex 1)", q && q.status === "one_box" && q.tier === "variant_choice" && q.askIndex === 1 && q.variantQuestion === true, q && [q.tier, q.error]);
-  const ch = (q && q.variantChoices) || [];
-  ok("the options are the variants with five or more sales in the pool, with the engine's own counts, most sales first", ch.length >= 2 && ch.every(c => c.count >= 5) && ch.every(c => (c.key === "fv-unstated" ? per.Unstated : per[c.label]) === c.count) && ch.every((c, i) => i === 0 || ch[i - 1].count >= c.count), [ch.map(c => c.label + ":" + c.count), per]);
-  ok("a variant under five sales is not an option (the GTA is 4 here, set aside by the halo rule or too thin either way)", ch.every(c => c.label !== "GTA"));
-  ok("the question has the shape of the other identity questions: prompt, variantOptions as 'Name (N sales)', optionCounts, variantChoices of key, label, count, query and refine.variant", typeof q.prompt === "string" && /^Which .+\? The .+ sell in different markets\.$/.test(q.prompt) && q.variantOptions.length === ch.length && q.variantOptions.every((x, i) => x === `${ch[i].label} (${ch[i].count} sales)`) && q.optionCounts.join() === ch.map(c => c.count).join() && ch.every(c => /^fv-[a-z0-9-]+$/.test(c.key) && c.query === "1987 Pontiac Firebird" && c.refine && c.refine.variant === c.key), q.prompt);
-  ok("the sales that name no variant are an option in the engine's words ('Cars that name no variant')", ch.some(c => c.key === "fv-unstated" && c.label === "Cars that name no variant"), ch.map(c => c.label));
+  ok("NO QUESTION (Sam, Nov 17 2026): a crew read of an unstated Firebird whose variants price apart is a result, never a variant_choice; the variants are rows (variantSplit), not a question", !!q && q.status === "one_box" && q.tier === "result" && !q.variantQuestion && !(q.variantChoices || []).length, q && q.tier);
   ok("VISITOR: the same search reads as it did before (a range, no question): visitors see today's behaviour", vis && vis.tier === "result" && !("variantChoices" in vis) && !vis.variantQuestion, vis && vis.tier);
   ok("the question is never stored: after the crew's ask a visitor still reads the range", (await hit({ oneBox: true, search: "1987 Pontiac Firebird" }, false)).tier === "result");
   const pick = await hit({ oneBox: true, search: "1987 Pontiac Firebird", refine: { variant: "fv-formula", label: "Formula" }, asked: 1 }, true);
@@ -233,12 +228,12 @@ process.env.OLDCARSDATA_API_KEY = "x"; process.env.CURTAIN_CREW_CODE = "fixture-
   for (const [id, make, model, year, names] of [["chevrolet-camaro-3rd", "Chevrolet", "Camaro", 1987, ["Z28", "RS", ""]], ["ford-mustang-fox", "Ford", "Mustang", 1987, ["GT", "LX", ""]]]) {
     install(model, world(make, model, [year, year], [[names[0], 14, 20000], [names[1], 12, 16000], [names[2], 12, 12800]]));
     const r = await hit({ oneBox: true, search: `${year} ${make} ${model}` }, true), rv = await hit({ oneBox: true, search: `${year} ${make} ${model}` }, false);
-    ok(`${id}: crew is asked which variant, a visitor reads the range`, (r.tier === "variant_choice" ? r.variantChoices.length >= 2 : /_choice$/.test(String(r.tier))) && rv.tier !== "variant_choice", [r.tier, rv.tier]);
+    ok(`${id}: no question for crew or a visitor (the variants are rows for the crew, the range for a visitor)`, r.tier === "result" && rv.tier === "result" && !r.variantQuestion, [r.tier, rv.tier]);
   }
   OB.RANGE_RULES.trimFirst = TRIM_FIRST0; UNIQ = false;
   // pages compute nothing: the page file has no variant reader and prints the engine's chips
   const pg = read("public/js/onebox.js"); ok("the page reads no variant of a sale and builds no variant key (it prints variantChoices as sent)", !/variantOfSale|variantKey\(|fv-/.test(pg) && /data-variantopt/.test(pg));
-  ok("the question is served for a crew request only (the one call site)", /if \(isCrewRequest\(req\)\) oneBox = await variantQuestionFor\(oneBox,/.test(read("api/sellerDecision.js")));
+  ok("the variant question is not asked by the handler any more (no call site); the rows are the answer", !/variantQuestionFor\(oneBox,/.test(read("api/sellerDecision.js")));
 }
 
 // ===== VARIANT 3 (lane-b-variant-3, Nov 17 2026; Lane C's live report on the variants push): scope of the counts, the question from the census, the Desk's window, the spelling, the chip =====
@@ -254,9 +249,7 @@ process.env.OLDCARSDATA_API_KEY = "x"; process.env.CURTAIN_CREW_CODE = "fixture-
   ok("a visitor's answer is a range (unchanged)", mcAns.tier === "result" && !mcAns.variantQuestion, mcAns.tier);
   const per = {}; { const fam = V.familiesOf().find(f => f.id === "pontiac-firebird-3rd"); for (const r of (mcAns.rawPool || [])) { const k = V.variantOfSale(fam, r); per[k] = (per[k] || 0) + 1; } }
   ok("the answer's own pool holds under five sales of every variant (that is why the question did not appear: it counted the pool)", Object.values(per).length > 0 && Object.values(per).every(n => n < 5), per);
-  ok("CREW: the variant question appears all the same, counted over the generation", mcCrew.tier === "variant_choice" && mcCrew.variantChoices.length >= 2 && mcCrew.variantChoices.every(c => c.count >= 5), [mcCrew.tier, (mcCrew.variantChoices || []).map(c => c.label + ":" + c.count)]);
-  ok("its counts are the census (every year of the family in the read), not the pool: 80 and 83 and 83", (mcCrew.variantChoices || []).every(c => c.count > 20), (mcCrew.variantChoices || []).map(c => c.count));
-  ok("and it says what it counted (the engine's scope line: the years and the window)", typeof mcCrew.variantScopeLine === "string" && /^Counted over 1982 to 1992, in the last five years\.$/.test(mcCrew.variantScopeLine), mcCrew.variantScopeLine);
+  ok("CREW: no question, the generation's census is not asked either (the rows read each variant's own page)", mcCrew.tier === "result" && !mcCrew.variantQuestion, mcCrew.tier);
   // 5: ONE FACT, TWO COUNTS, EACH SAYS WHAT IT COVERS
   const vbm = mcAns.variants, dk = await desk("1987 Pontiac Firebird"), vbd = dk.variants;
   ok("every answer's variants say what the census counts and what the figures are read on (Market Check)", !!vbm && vbm.poolTotal === (mcAns.rawPool || []).length && typeof vbm.scopeLine === "string" && vbm.scopeLine.includes(`${vbm.total} sales`) && vbm.scopeLine.includes(`the ${vbm.poolTotal} in this read`), vbm && vbm.scopeLine);
@@ -273,7 +266,7 @@ process.env.OLDCARSDATA_API_KEY = "x"; process.env.CURTAIN_CREW_CODE = "fixture-
   ok("the floor is five: a line never says 'too few' of a count of five or more", [tv].concat([vb(await answer("1987 Pontiac Firebird Formula"))]).filter(x => x && x.thin).every(x => Number((/Only (\d+)/.exec(x.thinLine) || [0, 99])[1]) < V.VARIANT_MIN), tv && tv.thinLine);
   // 2: THE TICKS MOVE THE FIGURES (the Desk's range and rungs are the engine's read of the ticked variants, every time)
   install("Firebird", world("Pontiac", "Firebird", [1987, 1987], [["Trans Am", 14, 14000], ["Trans Am GTA", 12, 24000], ["Formula", 12, 9000], ["", 12, 6500]]));
-  const sets = [["Trans Am"], ["Trans Am", "GTA"], ["Formula"], ["Unstated"], ["Trans Am", "Formula"]], reads = [];
+  const sets = [["Trans Am"], ["Trans Am", "GTA"], ["Formula"], ["Base"], ["Trans Am", "Formula"]], reads = [];
   for (const set of sets) { const d = await desk("1987 Pontiac Firebird", { variantSet: set }); reads.push({ set, d, e: d.evidence, r: JSON.stringify((d.rungs || []).map(x => [x.low, x.high])) }); }
   ok("every tick set changes the range's count and the rungs: five different sets, five different reads", new Set(reads.map(x => x.e.count + "|" + x.e.low + "|" + x.e.high + "|" + x.r)).size === sets.length, reads.map(x => [x.set.join("+"), x.e.count, x.e.low, x.e.high]));
   ok("each read equals the read of an archive that holds only the ticked sales (the engine's, not a page's)", true);
