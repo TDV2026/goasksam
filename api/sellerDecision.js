@@ -6,7 +6,7 @@ import { countNoun } from "../lib/countNoun.js";
 import { unusedFieldsFor } from "../lib/live/unusedWords.js";
 import { tryRefresh } from "../lib/refreshGate.js";
 import { carFromRequest, isPartialCar, carWords } from "../lib/carToken.js";
-import { partialChoiceAnswer } from "../lib/carChoice.js";
+import { partialChoiceAnswer, makeWithYearsOnly } from "../lib/carChoice.js";
 import { resolveVehicle, sanitizeResolvedVehicle, primeResolver } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
 import { withTypedMileage, withServedCar, variantQuestionFor, archiveTitleModel, mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
@@ -3314,7 +3314,7 @@ async function handler(req, res) {
         // Runs for BOTH One Box and /sell (Step 2): the wizard vehicle step gets the same archive
         // title resolution, so an unresolved make+token ("Eagle Talon", a pre-war marque) resolves
         // from the sale titles instead of a generic re-ask.
-        if (!(resolution.vehicle && resolution.vehicle.model) && !car.acceptModelLevel && typeof rawSearch === "string") {
+        if (!(resolution.vehicle && resolution.vehicle.model) && !car.acceptModelLevel && typeof rawSearch === "string" && !makeWithYearsOnly(rawSearch, resolution.vehicle)) {   // a make and a year alone (a partial car) is never given a model from the titles: the model choice is served
           try {
             const tok = await archiveTitleModel(rawSearch, { supabaseUrl, supabaseKey });   // the one title read (lib/vehicle.js), the same the warm uses
             if (tok && tok.make && tok.model) {
