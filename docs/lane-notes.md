@@ -4252,3 +4252,75 @@ Search check: rule 3 (hub still server rendered, same title, H1, lead, links and
 - READY (Lane C, Nov 19 2026): lane-d-forsale-sync d2175ff2 pushed as main e801ba4b (docs conflict only; no stamp change, ENGINE_VERSION e105-20261118-cardsfirst2; schedule off: pull_on and prepare_on false, no pullForSale cron, FORSALE_PUBLIC false), then 0e683b09 (scripts/checkMap.json). Vercel Ready. forSaleCheck 307/0, partialCarCheck 215/0, partialCarJoinCheck 132/0, findShowMoreCheck 189/0, findResultsCheck 98/0, findAnswerCheck 14/0, findMilesNearCheck 101/0, findSortsCheck 227/0, findNoSaleLineCheck 22/0, findCardShapeCheck 138/0, engineFieldsCheck 41/0, hiddenCrewCheck 476/0, mcSellShellCheck 123/0, engineStampCheck 1/0; findExcludedCheck 47/1 (red on main already). liveSmoke 89 pass, 2 FAIL (Sell "bmw" order; crew failure line after the choices show; both known). Crew Find "1987 Porsche 911" via buySearch: {all 4, auctions 4, dealers 0, classifieds 0}; a visitor's answer carries no forSale field.
   - CHECK MAP: scripts/checkMap.json rebuilt (694 checks, 655 offline, 38 live) and forSaleCheck is in it. The builder had labelled it LIVE (it names goasksam.com and PROBE_KEY as fixture values), so the default run skipped it ("0 checks" with --only); it is now kindFixed offline with the reason, and runs by default (307/0). Class sweep: three other checks the builder calls live import handlers and name no production address (liveGearboxCheck, marketWaitCheck, sellCutoffCheck); I have not read them and did not change them.
   - lane-c-checks-clean is 9b110a71, pushed as a BRANCH only (origin/lane-c-checks-clean), NOT on main. scripts/runChecks.mjs itself is already on main; the branch holds the clean-up (repoFiles, buildOutputCheck, stampPinCheck, the stamp and SPEC_V fixes, clock annotations).
+- READY (Lane C, Nov 19 2026): lane-c-checks-clean 9b110a71 merged on main as 4ee981d2 (conflict only in scripts/checkMap.json, rebuilt with buildOutputCheck serial and searchCheck and forSaleCheck fixed; no product file changed, no stamp change). Full list through scripts/runChecks.mjs on the merged tree: 656 checks, 47,316 pass, 233 fail lines, 69 failing (before the merge 85 failing on the same list); nothing new red against main's set. Two reds that are not from the merge: coldResolverCheck (a timing comparison, 582 ms against 499 ms; it fails 1 run in 3 on main itself and passed 1 of 3 on the tree) and buildOutputCheck (one run under load, "tasksCrewLimitCheck: same count and exit with build folders present 7/2 exit 1"; alone it is 72 pass 0 FAIL, 69 sweepers). Vercel Ready; liveSmoke 89 pass, 2 FAIL (Sell "bmw" order; the crew failure line after the choices show; both known).
+  - TABLE of the checks still red on main after this merge (67; owner = the lane whose code or copy the check judges; Lane S has the clean up of the rest, per Sam). Cause is each check's own first failing line:
+    | check | owner | cause |
+    |---|---|---|
+    | amazonCarsCheck | Lane B | warmDemoCheck: exactly 1 of the pre-Amazon lines widened (4: const { runOneBox, ENGINE_VERSION } = await  |
+    | appliedAllCheck | Lane B | too few sales near the miles (engine, seeded gap): the answer is NOT narrowed and the line is the engine' |
+    | bareModelCheck | Lane B | every bare model name in the generation table finds its car on Find, Market Check, the chat and Tasks (74 |
+    | basisPoolCheck | Lane B | the card prints the basis line and the unchanged typical-range wording |
+    | bidPlaceCheck | Lane B | no surface compares a bid or price with a range on its own  lib/deskV3.js:498, lib/onebox.js:8941, lib/on |
+    | buyCardAskCheck | Lane B | red BMW: the model question (got {"dim":"model","q":"Which BMW?","chips":[{"label":"M3","n":8,"patch":{"m |
+    | buyStage1cCheck | Lane B | a not-tracked card is not pending, so the page never waits or asks again for it |
+    | clockCheck | Lane G/E (clock) | every check that reads the real clock imports _fakeClock.mjs or says why not (// clock: real-ok <reason>) |
+    | clockShiftCheck | Lane D | featuredHistoryCheck.mjs gives the same passing answer with the clock at +0, +3, +60 days (exit 1, 1, 1)  |
+    | containedReadCheck | Lane B | (5) the walk's generation read is served from the rows the ladder holds (no archive request for it)  ["mo |
+    | countNounCheck | Lane B | no count word or counted expression is glued to a plural noun without a one-case (2 found) |
+    | crossProductCheck | Lane C | the map runs scripts/crossProductCheck.mjs, the file is scripts/crossProductCheck.js (runner path, not a product fault) |
+    | deskBlockersCheck | Lane D | a VIN whose decode says Cabriolet preselects Cabriolet (and says so) |
+    | deskCasePhotosCheck | Lane D | a photo row that fails after the case is stored takes the case out again: no case, no photo row :: [null, |
+    | deskDemoCheck | Lane D | a sheet takes no more than 20 photos |
+    | deskDryrun2Check | Lane D | 1 a second photo could be added afterwards: the strip shows 2 pictures that loaded ([true]) |
+    | deskFactorsCheck | Lane D | transmission is in the population (a manual car was asked) and has an effect |
+    | deskFormatCheck | Lane D | reportPdfV3 defines no usd and takes every dollar string from moneyWords |
+    | deskOlderCarsCheck | Lane D | (demo) every older car is demo ready offline, or is named with its reason  13:REFUSED |
+    | deskRecomputeCheck | Lane D | report_comps: the evidence, original, quarters, factors, outside, condition are unchanged |
+    | deskReserveModeCheck | Lane D | #13 1967 Mercedes-Benz 250SL: the Desk answers |
+    | deskRungsCheck | Lane D | the tiered counts are the engine's own (Good 5, Excellent 3, Fair 0 on this archive) |
+    | deskSalesCheck | Lane D | (1) the shape is exactly id, price, priceLine, dateLine, tier, titleLine, milesLine, platform, url, photo |
+    | deskShapesCheck | Lane D | with a tier picked the market line is the tier pool's, not the any condition pool's: it is the stored tie |
+    | deskTypedSentenceCheck | Lane D | lib/desk/sheetShape.js types no engine sentence and joins no count by hand (lib/desk/sheetShape.js types  |
+    | deskV3ClickCheck | Lane D | upload does not use case_edit photo_add |
+    | deskV3DemoFlowCheck | Lane D | Create case did not open the case (https://goasksam.com/preview/desk; The case could not be created: the  |
+    | deskV3ShellCheck | Lane D | Error [TypeError]: Cannot read properties of null (reading 'getBoundingClientRect') |
+    | deskV4RereadCheck | Lane D | a second read adds nothing and says so in the server's words |
+    | deskV4ThirdRunCheck | Lane D | the report's first page fetches the case's cover photo (the real report builder, the cover just set) |
+    | deskWindowCheck | Lane D | 911 6: market.meter equals the chosen window (count, low, q1, median, q3, high)  [8,8] |
+    | featuredHistoryCheck | Lane D | (8) the crew page route answers the platform's 404 before it renders the preview that reads the field |
+    | featuredWireCheck | Lane D | TypeError: Cannot read properties of undefined (reading 'current') |
+    | findExcludedCheck | Lane B | the chat path carries the search's excluded[] into meta.excluded |
+    | functionBundleCheck | Lane B | 13: lib/variantRows.js (loaded by variable path from sellBlock) is not in the bundles' includeFiles (vercel.json) |
+    | intakeToSheetCheck | Lane D | 1440: the sheet opens (the page printed 0 characters) |
+    | landingExampleCheck | Lane S | lib/preview/mcSellPreview.js: reads an example's range, so it also prints headlineLines when the range is |
+    | leftoverPageCheck | Lane B | the engine reads the typed message and puts unusedLine into Buy's searchMeta |
+    | mileageBandNearCheck | Lane B | no engine stamp bump: the stamp is still the one of 60cfa555  e103-20261118-nodead |
+    | namedModelCheck | Lane B | the page prints "N live matches" and "That's everything matching your search" only in the branch that has |
+    | nonVehicleCheck | Lane B | an engine (BaT): not counted in a sales pool (qualifyReason)  a different model (the title names another  |
+    | notTrackedCardCheck | Lane B | listingMarket returns the not-tracked market only when the caller passes opts.notTracked |
+    | numberSentenceCheck | Lane B | the only words-plus-number builds left on the page are the five value labels  "Current bid " |
+    | pageReasonCopyCheck | Lane B | 58 pages carry a literal copy of a REASON_TABLE line (api/buy.js, marketCheck.js, public/js, lib/preview/desk*): product duplicates |
+    | pageSliceCheck | Lane S | no check finds page code by a pinned signature or a typed-out line (findVoiceCheck.mjs, mcExamplesCheck.m |
+    | pageWaitCheck | Lane B | Find: waitMaxMs 20000 and the answer at 30 s: the card gives up at the ENGINE's 20 s (not at a number of  |
+    | pdfLayoutCheck | Lane D | the report's parts are the ten in the spec's order, with the note to the seller between the decision and  |
+    | pendingCardFillCheck | Lane B | the answer never arrives (the engine keeps computing) at 1440: past the engine's limit no card keeps the  |
+    | previewCopyCheck | Lane D | preview-desk: figures (a typed figure outside the approved lines: "1999") |
+    | questionColdCheck | Lane B | the handler reads the question row beside the answer row and serves it first |
+    | rangeRulesCheck | Lane B | warmDemo refreshes the demo's stored answer for thin answers as well as ranges |
+    | readRacerCheck | Lane B | every Promise.race in api/ and lib/ is classified (aborts, on-purpose or not-archive); a new one fails un |
+    | reasonWordsCheck | Lane B | 8 lines: new table lines use the banned words 'set aside', two sentences with no ruling, or interpolate lists (product copy for Sam) |
+    | sellResultLinksCheck | Lane B | in order: reading (until the range), then checking, then nearly there |
+    | sellSpeedCheck | Lane B | the car-only block is stored under sell/v13/<stamp>/<specKey> with no day and no label  MCWARM:["Datsun", |
+    | setAsideLineCheck | Lane B | the not-tracked body branch carries the set-aside count |
+    | standingNoticesCheck | Lane D | every sentence that promises an email or a notice names its sender in standingNoticesCheck (unnamed: lib/ |
+    | startPagesCheck | Lane S | Home: the headline is Sam's (200) |
+    | storedReadNeedsNoFxCheck | Lane B | oneEngineAnswer arms the table first, bounded, before anything converts |
+    | taskLimitLiteralCheck | Lane D | 8 hard coded limit literal(s): |
+    | taskSingerCheck | Lane D | email preview: the builder answer before the spec or the stored line is read |
+    | tierBandPoolCheck | Lane B | (2) generations of one family are different pools  Alfa Romeo/Spider: 3 generations share one pool |
+    | toolRetryCheck | Lane D | caller lib/tasks/tasks.js calls oneEngineAnswer and neither routes a failed read nor is reviewed |
+    | typicalRangeWordsCheck | Lane B | api/partnerDemo.js: no reader-facing "The middle half of", "middle half landed", "edge of the middle half |
+    | vinSettleCheck | Lane B | api/sellerDecision.js reads the archive record of the exact VIN for the plan |
+    | warmMarketCheck | Lane C | the map runs scripts/warmMarketCheck.mjs, the file is scripts/warmMarketCheck.js (runner path, not a product fault) |
+    | warmStoresFullAnswerCheck | Lane B | scripts/epochMatchCheck.mjs:48: the answer written to the stored row comes from oneEngineAnswer (found no |
+    
