@@ -1118,7 +1118,9 @@
   },
   "crossProductCheck": {
    "file": "scripts/crossProductCheck.js",
-   "kind": "offline",
+   "kind": "live",
+   "kindFixed": "live",
+   "why": "run as a command it reads the shared archive through SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (exit 2 without them); prePush imports only its pure fixture functions, which is a different use. Without the credentials treat it as SKIPPED, never red or green.",
    "covers": [
     "api/buySearch.js",
     "api/sellerDecision.js",
@@ -5842,7 +5844,9 @@
   },
   "searchCheck": {
    "file": "scripts/searchCheck.js",
-   "kind": "offline",
+   "kind": "live",
+   "kindFixed": "live",
+   "why": "fetches the live public pages and sitemaps at https://goasksam.com (and reads vin_summary through Supabase); behind Vercel bot protection it needs VERCEL_AUTOMATION_BYPASS_SECRET or GAS_BYPASS, and it goes red under load without it. Without them treat it as SKIPPED; scripts/searchCheckBrowser.mjs is the browser twin.",
    "covers": [
     "api/_usage.js",
     "lib/_supabase.js"
@@ -7708,7 +7712,9 @@
   },
   "warmMarketCheck": {
    "file": "scripts/warmMarketCheck.js",
-   "kind": "offline",
+   "kind": "live",
+   "kindFixed": "live",
+   "why": "run as a command it reads and writes the warm cache through SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (exit 1 without them). Without the credentials treat it as SKIPPED, never red or green.",
    "covers": [
     "lib/_caller.js",
     "lib/_supabase.js",
