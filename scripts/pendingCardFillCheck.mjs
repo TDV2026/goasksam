@@ -10,6 +10,8 @@ import { startBrowser, pageHtml, ROOT } from "./e98Render.mjs";
 import { buildCards } from "./e98FindRender.mjs";
 import { reasonLine } from "../lib/reasonWords.js";
 const READING = [reasonLine("cold.reading"), reasonLine("cold.still")], MISSED = reasonLine("cold.missed");
+// Nov 19 2026 (stale wording): a Find card past the engine's wait now prints the engine's card line (cold.card_missed, bcaf5945), the page's bar line stays cold.missed. Both are the engine's own lines from the reason table.
+const MISSED_FIND = [MISSED, reasonLine("cold.card_missed")];
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 console.log("pendingCardFillCheck reading " + ROOT);
 const B0 = await startBrowser(); await B0.close();   // sets the stage the pages are built under
@@ -53,7 +55,7 @@ async function run(name, sc, width) {
     ok(early.length === defs.length, `${name} at ${width}: ${defs.length} cards drawn at once (${early.length})`);
     // the clock is scaled by 0.01: 2 s asks run at 20 ms and the 6 s limit at 60 ms; give it a real moment for the page to settle
     await new Promise(r => setTimeout(r, 4000)); const late = await read();
-    const pending = late.filter(t => READING.some(x => t.includes(x))), missed = late.filter(t => t.includes(MISSED)), range = late.filter(t => /\$[\d,]+ to \$[\d,]+/.test(t));
+    const pending = late.filter(t => READING.some(x => t.includes(x))), missed = late.filter(t => MISSED_FIND.some(x => t.includes(x))), range = late.filter(t => /\$[\d,]+ to \$[\d,]+/.test(t));
     if (sc.fills) ok(!pending.length && range.length === defs.length, `${name} at ${width}: after the answer arrived no card still shows the pending line and each card has its range (${pending.length} pending, ${range.length} of ${defs.length} with a range)`);
     else ok(!pending.length && missed.length === defs.length, `${name} at ${width}: past the engine's limit no card keeps the pending line; each prints the engine's own line (${pending.length} pending, ${missed.length} of ${defs.length} with it)`);
     ok(Object.values(asks).every(n => n >= 2) || !sc.fills, `${name} at ${width}: every card was asked for again (${JSON.stringify(Object.values(asks))})`);
