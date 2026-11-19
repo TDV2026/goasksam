@@ -387,7 +387,7 @@ await section("the range does not move with the asking price", async () => {
 // ================= 4. AN ASKING PRICE IS IN NO SOLD RANGE, POOL OR COUNT =================
 await section("asking never in sold", async () => {
   const ASK = 48123, spy = s => s.replace(/\\"/g, '"');
-  const strip = o => { const c = JSON.parse(JSON.stringify(o || {})); for (const k of ["forSaleLine", "forSaleCounts", "forSaleLink", "forSale"]) delete c[k]; for (const k of ["timings", "snapshotId", "readAt", "cached", "ms"]) delete c[k]; if (c.dedup && typeof c.dedup === "object") { for (const k of ["t0", "marks", "ms"]) delete c.dedup[k]; for (const x of (c.dedup.fetches || [])) if (x && typeof x === "object") delete x.ms; } return c; };   // the engine's own timing marks differ on every fresh read; everything else of dedup is compared
+  const strip = o => { const c = JSON.parse(JSON.stringify(o || {})); for (const k of ["forSaleLine", "forSaleCounts", "forSaleLink", "forSale"]) delete c[k]; for (const k of ["timings", "snapshotId", "readAt", "cached", "ms"]) delete c[k]; if (c.dedup && typeof c.dedup === "object") { const noTime = o => { if (Array.isArray(o)) o.forEach(noTime); else if (o && typeof o === "object") for (const k of Object.keys(o)) { if (typeof o[k] === "number" && /(^t\d|ms$|at$|time|wait|age|elapsed)/i.test(k) || k === "marks") delete o[k]; else noTime(o[k]); } }; noTime(c.dedup); } return c; };   // the engine's own timing instrumentation (any number named like a time) is not the sales part   // the engine's own timing marks differ on every fresh read; everything else of dedup is compared
   await mc("1987 Porsche 911 Carrera");   // the first call stores the answer; the two that are compared are both read the same way
   const withRows = json(await mc("1987 Porsche 911 Carrera")), saved = TABLE.splice(0, TABLE.length);
   const without = json(await mc("1987 Porsche 911 Carrera"));
@@ -658,6 +658,17 @@ await section("sync", async () => {
     SYNC.rows.set(key, JSON.parse(keep)); ok("restored, served again", await isServed(r));
     SYNC.down = true; SERVE.forSaleReset(); const g = await SERVE.servableRows(ENV).then(() => "served", () => "refused"); const calls0 = VENDOR_CALLS.length, w0 = DB_WRITES.length; const z = await runPull(); SYNC.down = false; SERVE.forSaleReset();
     ok("the state of the sync unreadable: nothing is served, the run makes no vendor query, writes nothing, and says why", g === "refused" && z.calls.length === 0 && DB_WRITES.length === w0 && z.o.stopped && z.o.stopped.reason === "state_unreadable", [g, z.calls.length, z.o.stopped]); }
+
+  // ---- THE BUDGET AND THE AUCTION FEED'S RESERVE bind the POLLS exactly as they bind a load (the run is the same run) ----
+  { const RES = () => Math.ceil(300000 * Math.min(1, BUD.daysLeft(Date.now(), 25) / 30));
+    setCfg({ plan_monthly: 1000000, auction_reserve_monthly: 300000, forsale_monthly_budget: 900000, forsale_run_cap: 400 }); setSpent(0);
+    setRemain(RES() + 5); let x = await runPull();
+    ok("everything loaded, the vendor's count left 5 above what the auction feed is kept for: the polls make exactly 5 queries, change polls first, and stop on the reserve", x.calls.length === 5 && x.calls.every(c => c.changed_since) && x.o.binding === "auction_reserve" && x.o.stopped && x.o.stopped.reason === "allowance" && x.o.stopped.phase === "change", [x.calls.length, x.o.binding, x.o.stopped]);
+    setRemain(RES()); x = await runPull();
+    ok("at the reserve itself the polls make no query and say so", x.calls.length === 0 && x.o.skipped === "auction_reserve", [x.calls.length, x.o.skipped]);
+    setSpent(0); setCfg({ forsale_monthly_budget: 7, forsale_run_cap: 400 }); setRemain(90000); x = await runPull();
+    ok("a monthly budget of 7: the polls make 7 queries and no more", x.calls.length === 7 && x.o.binding === "monthly_budget", [x.calls.length, x.o.binding]);
+    setCfg({}); setSpent(0); setRemain(90000); }
 
   // ---- THE STAND-IN IS THE VENDOR'S: every request of every phase used only parameters the docs list, and the stand-in refused none ----
   { const used = new Set(VENDOR_CALLS.flatMap(c => Object.keys(c).filter(k => k !== "auth")));
