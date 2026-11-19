@@ -52,8 +52,12 @@ for (const l of LOTS) ok(`${l.label}: isNonVehicleLot, not a vehicle`, C.isNonVe
 for (const c of CARS) ok(`${c.label}: still a car`, C.isNonVehicleLot(c) === false && C.nonVehicleSignals(c).verdict === "car", JSON.stringify(C.nonVehicleSignals(c)));
 // 2. no sales pool counts them: the pool filter (Market Check, Sell, the sales lists) gives the reason
 const spec = { make: "Porsche", model: "911", year: 1986 };
-for (const l of LOTS) { let why = null; try { why = E.qualifyReason({ raw_title: l.listing_title, rtitle: l.listing_title, mileage: l.mileage, vin_norm: l.vin_norm, year: l.year, make: l.make, model: l.model, srcurl: l.url || null, price: Math.max(4000, l.current_bid_usd), _usd: Math.max(4000, l.current_bid_usd), image: "https://img.test/x.jpg" }, spec); } catch (e) { why = "threw " + e.message; }
-  ok(`${l.label}: not counted in a sales pool (qualifyReason)`, /part or automobilia/.test(String(why)), String(why)); }
+// The pool filter has two guards that each keep a lot out: the variant fence ("a different model", lib/onebox.js, added Nov 18 by sell-nolump-2) runs BEFORE the non-vehicle guard ("part or automobilia"), so for a 911 spec the fence names the lot first.
+// Both are checked: (a) with the make's own spec the lot is NOT COUNTED (any reason), (b) with a spec the fence has no family for (make and year, no model) the non-vehicle guard itself names it, so the guard cannot rot behind the fence.
+const rowOf = l => ({ raw_title: l.listing_title, rtitle: l.listing_title, mileage: l.mileage, vin_norm: l.vin_norm, year: l.year, make: l.make, model: l.model, srcurl: l.url || null, price: Math.max(4000, l.current_bid_usd), _usd: Math.max(4000, l.current_bid_usd), image: "https://img.test/x.jpg" });
+for (const l of LOTS) { let why = null, why2 = null; try { why = E.qualifyReason(rowOf(l), spec); why2 = E.qualifyReason(rowOf(l), { make: "Porsche", year: 1986 }); } catch (e) { why = why2 = "threw " + e.message; }
+  ok(`${l.label}: not counted in a sales pool (qualifyReason gives a reason)`, !!why && !/^threw/.test(String(why)), String(why));
+  ok(`${l.label}: the non-vehicle guard itself names it (spec with no model, so the variant fence is not in front of it)`, /part or automobilia/.test(String(why2)), String(why2)); }
 for (const c of CARS.filter(x => x.make === "Porsche")) { let why = null; try { why = E.qualifyReason({ raw_title: c.listing_title, rtitle: c.listing_title, mileage: c.mileage, vin_norm: c.vin_norm, year: c.year, make: c.make, model: c.model, price: 50000, _usd: 50000, image: "https://img.test/x.jpg" }, spec); } catch (e) { why = "threw " + e.message; }
   ok(`${c.label}: not removed from a pool as a part`, !/part or automobilia/.test(String(why)), String(why)); }
 // 3. not shown as a car and not matched to a spec: liveRows (every live surface reads it) leaves them out
