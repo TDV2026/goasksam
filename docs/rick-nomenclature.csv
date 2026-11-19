@@ -1,0 +1,591 @@
+Body,Type,Marque,Model
+Zagato,Coupe,Ferrari,166 MM
+Pinin Farina,,Ferrari,166 Inter
+Pinin Farina,2-Dr. Hardtop,Ferrari,195 Inter
+Farina,2-Dr. Sedan,Ferrari,340 America
+Stablimenti Farina,Cabriolet,Ferrari,342 America
+Bertone,Convertible,Ferrari,212 Export
+Ghia,Cabriolet A,Ferrari,212 Inter
+Boano,Cabriolet B,Ferrari,250 MM
+Ellena,Cabriolet C,Ferrari,250 Europa
+Scaglietti,Cabriolet D,Ferrari,410 Superamerica
+Reutter,Roadster,Ferrari,250 GT Boano
+Karmann,Sports,Ferrari,250 GT Ellena
+d'Ieteren Freres,Sports Racer,Ferrari,250 GT TdF
+Touring,Formula 1,Ferrari,250 GT
+Ghia Aigle,Formula 2,Ferrari,250 GT SWB
+Graber,Formula 3,Ferrari,250 GT LWB
+Figoni & Falaschi,Formula Jr.,Ferrari,250 GTO
+Bugatti,Formula Libre,Ferrari,250 GT/L Lusso
+James Young,4-Dr. Sedan,Ferrari,330 America
+H.J. Mulliner,Phaeton,Ferrari,330 GT 2+2
+Mulliner Park Ward,Landaulette,Ferrari,275 GTB
+Park Ward,Speedster,Ferrari,275 GTB/4
+Gurney Nutting,Berlinetta,Ferrari,212
+Waterhouse,Drophead Coupe,Ferrari,275 GTS
+Vignale,Fixed Head Coupe,Ferrari,330 GTC
+Allemano,Shooting Brake,Ferrari,330 GTS
+Frua,Station Wagon,Ferrari,365 GT
+Locke,Pickup,Ferrari,206 GT Dino
+Dietrich,Touring,Ferrari,246 GT Dino
+Darrin,Spyder,Ferrari,246 GTS Dino
+Mann Egerton,Limousine,Ferrari,365 GTC
+Radford,Sprint,Ferrari,365 GT 2+2
+Harold Radford,Sedanca deVille,Ferrari,365 GTB/4 Daytona
+Vanden Plas,Sedanca coupe,Ferrari,365 GTS
+Van den Plas,Gullwing,Ferrari,365 GTC/4
+Whittingham & Mitchell,Pillarless sedan,Ferrari,365 GT4 2+2
+Chapron,4-Dr. Hardtop,Ferrari,365 GT4 BB
+Marazzi,Town Car,Ferrari,308 GT4 Dino
+Drauz,2 + 2,Ferrari,308 GTB
+Holbrook,Sportsman's Coupe,Ferrari,308 GTS
+Windovers,Sport Sedan,Ferrari,512 BB
+Murphy,Can-Am,Ferrari,400
+De Villars,Endurance racer,Ferrari,400i
+Brewster,Bugeye Roadster,Ferrari,400iA
+Harrington,Volante,Ferrari,308 GTBi
+Paul Ostruk,Corniche Coupe,Ferrari,308 GTSi
+Pininfarina-Scaglietti,Corniche Convertible,Ferrari,Mondial 8
+Merrimack,Camargue,Ferrari,308 GTBi QV
+Barker,Competition Roadster,Ferrari,308 GTSi QV
+Carlton,Competition Coupe,Ferrari,Mondial QV
+Tickford,Competition,Ferrari,288 GTO
+Papler,Group B Rally,Ferrari,Testarossa
+Kellner,Rally Coupe,Ferrari,412
+Hibbard & Darrin,Le Mans Replica,Ferrari,Mondial 3.2
+Darrin,Le Mans,Ferrari,328 GTB
+Drauz,Scooter,Ferrari,328 GTS
+LeBaron,Motorcycle,Ferrari,Mondial t
+Freestone & Webb,Bubble,Ferrari,348ts
+Abbott of Farnham,Targa,Ferrari,348tb
+Fantuzzi,Phaeton,Ferrari,F40
+De Mola,Sport Phaeton,Ferrari,F40LM
+Castagna,Brougham,Ferrari,512 TR
+Hooper,NART Spyder,Mercedes-Benz,300SL
+Mulliner,,Mercedes-Benz,190SL
+Inskip,Spider,Mercedes-Benz,230SL
+J.S. Inskip,Sprint,Mercedes-Benz,250SL
+Drogo,Sprint Speciale,Mercedes-Benz,280SL
+Gangloff,Sprint GT,Mercedes-Benz,350SL
+Ital Design,Sprint GTV,Mercedes-Benz,450SLC
+Thrupp & Maberly,Spider,Mercedes-Benz,450SL
+Cockshoot,Dos-a-dos,Mercedes-Benz,170S
+Brunn & Co.,Spyder,Mercedes-Benz,220
+Rollston,GP Monoposto,Mercedes-Benz,300
+Rollson,GP 2-Seater,Mercedes-Benz,300S
+Fleetwood,Convertible Sedan,Mercedes-Benz,300b
+Norrmalm,Grand Prix,Mercedes-Benz,300Sc
+Saoutchik,California Spyder,Mercedes-Benz,220S
+Sala,Indy Car,Mercedes-Benz,300d
+Derham,Sports Tourer,Mercedes-Benz,220SE
+LeTourneur & Marchand,Convertible Coupe,Mercedes-Benz,220SEb
+Lavocat & Marsaud,3-pos. Drophead Coupe,Mercedes-Benz,300SE
+Fisher,Pf Cabriolet Se I,Mercedes-Benz,250SE
+Corsica,Pf Cabriolet Se II,Mercedes-Benz,300SEL 6.3
+Million-Guiet,SWB Berlinetta,Mercedes-Benz,450SEL 6.3
+Woodall-Nicholson,Coupe Roadster,Mercedes-Benz,280SE
+Sindelfingen,Convertible Victoria,Mercedes-Benz,280SE 3.5
+Guillore,Hatchback,Jaguar,XK 120
+Binder,Custom,Jaguar,XK 140
+Michelotti,Street Rod,Jaguar,XK 120SE
+Pourtout,Notchback,Jaguar,XK 140MC
+Pennock,Fastback,Jaguar,XK 150
+Erdmann & Rossi,Sport Coupe,Jaguar,XK 150S
+Erdmann & Rossi-J.Neuss,Sedan Delivery,Jaguar,XK 150 3.8
+Coachcraft,Taxi,Jaguar,XK 150S 3.8
+Willoughby,Suburban,Jaguar,XK 150S 3.4
+Judkins,Club Coupe,Jaguar,Mark IV
+Weymann,Kombi,Jaguar,Mark V
+Franay,Commercial Roadster,Jaguar,Mark VII
+Bohman & Schwartz,Depot Hack,Jaguar,Mark VIII
+,Collapsible,Jaguar,Mark IX
+,Estate Wagon,Jaguar,Mark X
+,Victoria Coupe,Jaguar,420
+,Berline,Jaguar,420G
+,Boattail,Jaguar,Mk 2
+,Business Coupe,Jaguar,Mk 2 2.4
+,Carryall,Jaguar,Mk 2 3.4
+,Club Sedan,Jaguar,Mk 2 3.8
+,Landau,Jaguar,C-type
+,Runabout,Jaguar,D-type
+,SUV,Jaguar,XKSS
+,Torpedo,Jaguar,XKE
+,Tourster,Jaguar,XKE SI
+,Town & Country,Jaguar,XKE SI 4.2
+,Transformable,Jaguar,XKE SI flat floor
+,Tudor,Jaguar,XKE SII
+,Utility,Jaguar,XKE SIII V12
+,Fordor,Jaguar,XJ 220
+,Formal Sedan,Jaguar,XJS
+,Dual Cowl Phaeton,Jaguar,C-type Replica
+,Barchetta,Jaguar,D-type Replica
+,Vis-a-vis,Jaguar,XKSS Replica
+,Tonneau,Jaguar,XK8
+Rippon Brothers,Child's Car,Abarth,
+R-RCCW,Skyliner,AC,
+,,Alfa Romeo,Giulia
+,,Allard,
+,Roi-des-Belges,Alpine,
+,Cabriolet Series I,Alvis,
+,Cabriolet Series II,Amphicar,
+,,Armstrong Siddeley,
+,,Arnolt-Bristol,
+,,Arnolt,
+,,Aston Martin,
+,,Audi,
+,,Austin,
+,,Austin-Healey,100-4
+,,Bentley,3-Liter
+,,Berkeley,
+,,Bizzarrini,
+,,BMW,
+,,BMW-Isetta,
+,,Bond,
+,,Borgward,
+,,Bristol,
+Labourdette,,Bugatti,
+,,Cisitalia,
+,,Daimler,
+,,Connaught,
+,Decapotable,Citroen,
+,,DAF,
+,,Daihatsu,
+,,Daimler,
+,,Datsun,
+,,Nissan,
+,,Delage,
+,,Delahaye,
+,,Dellow,
+,,DeLorean,DMC-12
+,,Denzel,
+,,Deutsch-Bonnet,
+,,DKW,
+,,Dodge,
+,,Doretti,
+,,Dual-Ghia,
+,,Elva,
+,,Facel Vega,
+,,Fairthorpe,
+,,Fiat,
+,,Fiat-Abarth,
+,Two-Seater,Ford,
+,,Frazer-Nash,
+,,Geo,
+,,Glas,
+,,Goggomobil,
+,,Goliath,
+,,Gordon-Keeble,
+,,Healey,
+,,Hillman,
+,,Honda,
+Ionia,Rear Entrance Tonneau,Acura,
+,,Hotchkiss,
+,,HRG,
+,,Humber,
+,,Hyundai,
+,,Iso,
+,,Iso Rivolta,
+,,Isotta-Fraschini,
+,,Isuzu,
+,,Jensen,
+,,Jowett,
+,,Lagonda,
+,,Lamborghini,
+,,Lanchester,
+,,Lancia,
+,,Land Rover,
+,,Lea-Francis,
+,,Lloyd,
+,,Lotus,
+,,Maico,
+,,Marathon,
+,,Marauder,
+,,Marcos,
+,,Maserati,Quattroporte
+,,Matra,
+,,Mazda,
+,,Merkur,
+,,Messerschmitt,
+,,Metropolitan,
+,,MG,
+,,Mitsubishi,
+,,Monteverdi,
+,,Moretti,
+,,Morgan,
+,,Morris,
+,,Moskvich,
+,,Nardi,
+,,Nash-Healey,
+,,NSU,
+,,Opel,
+,,OSCA,
+,,Panhard,
+,,Panther,
+,,Peerless,
+,,Pegaso,
+,,Peugeot,
+,,Plymouth,Road Runner
+,,Porsche,
+,,Reliant,
+,,Renault,
+,,Riley,
+,,Rolls-Royce,Phantom I
+,,Rover,
+,,Saab,
+,,Sabra,
+,,Salmson,
+,,Siata,
+,,Simca,
+,,Singer,
+,,Skoda,
+,,Standard,
+,,Sterling,
+,,Subaru,
+,,Sunbeam,
+,,Sunbeam-Talbot,
+,,Suzuki,
+,,Talbot-Lago,
+,,Tatra,
+,,Toyota,
+,,Triumph,TR3
+,,Turner,
+,,TVR,
+,,Vauxhall,
+,,Vespa,
+,,Volkswagen,
+,,Volga,
+,,Volvo,
+,,Wartburg,
+,,Veritas,
+,,Wolseley,
+,,Yugo,
+,,Zim,
+,,Zundapp,
+,,Chevrolet,
+,,Cooper,
+,,McLaren,
+,,Chevron,
+,,Shelby,Cobra 289
+,,Shelby,Cobra 427
+,,Shelby,Cobra 427 S/C
+,,Shelby,Mustang GT350
+,,Shelby,Mustang GT350H
+,,Shelby,Mustang GT500
+,,Shelby,Mustang GT500KR
+,,Chevrolet,Impala
+,,Chevrolet,Camaro
+,,Chevrolet,Camaro SS
+,,Chevrolet,Camaro Z/28
+,,Chevrolet,Camaro SS 396
+,,Chevrolet,Malibu
+,,Chevrolet,Chevelle
+,,Porsche,356
+,,Packard,
+,,Buick,
+,,Cadillac,
+,,Chrysler,
+,,Ferrari,512 BBi
+,,Alfa Romeo,Giulietta
+,,Lincoln,
+,,Aston Martin,DB4GT
+,,Aston Martin,DB2
+,,Aston Martin,DB2/4
+,,Aston Martin,DB4
+,,Aston Martin,DB5
+,,De Tomaso,Mangusta
+,,Jaguar,XK 120M
+,,Stevens-Duryea,
+,,Lozier,
+,,Stutz,
+,,Pope-Hartford,
+,,Marmon,
+,,Pierce-Arrow,
+,,Locomobile,
+,,Chalmers,
+,,American,
+,,Hispano-Suiza,
+,,Oldsmobile,
+,,Simplex,
+,,Harley-Davidson,
+,,Auburn,
+,,Ferrari,275 GTB/C
+,,Duesenberg,
+,Competizione Berlinetta,Intermeccanica,Italia
+,,Alfa Romeo,8C 2900A
+,,Alfa Romeo,8C 2900B
+,,Alfa Romeo,Tipo B (P3)
+,,Lamborghini,Miura SV
+,,Lamborghini,Miura S
+,,Cord,810
+,,Cord,812
+,,Cord,812 Supercharged
+,,Porsche,356
+,,Porsche,356A
+,,Porsche,356B
+,,Porsche,356C
+,,Porsche,"356 ""Pre-A"""
+,,Porsche,356 SC
+,,Not Cataloged,
+,,Ford,Fairlane
+,,Ford,Fairlane 500
+,,Ford,Galaxie
+,,Ford,Thunderbird
+,,Ford,Galaxie 500
+,,Ford,Galaxie 500XL
+,,Ford,Falcon
+,,Ford,Falcon Sprint
+,,Ford,Mustang
+,,Ford,Mustang Boss 302
+,,Ford,Mustang Mach 1
+,,Ford,Mustang GT
+,,Ford,Mustang Boss 351
+,,Ford,Torino
+,,Ford,Torino Cobra
+,,Ford,LTD
+,,Pontiac,Bonneville
+,,Pontiac,Firebird
+,,Pontiac,Catalina
+,,Pontiac,GTO
+,,Pontiac,Grand Prix
+,,Pontiac,Tempest
+,,Austin-Healey,100-6
+,,Austin-Healey,100/M Le Mans
+,,Austin-Healey,100/S
+,,Austin-Healey,3000
+,,Austin-Healey,3000 Mk I
+,,Austin-Healey,3000 Mk II
+,,Austin-Healey,3000 Mk III
+,,Austin-Healey,Bugeye Sprite
+,,Austin-Healey,Sprite
+,,DeSoto,
+,,Maserati,Ghibli
+,,Maserati,Ghibli SS
+,,Maserati,Indy
+,,Maserati,Khamsin
+,,Maserati,3500 GT
+,,Maserati,Sebring
+,,Maserati,Mistral
+,,Maserati,Mexico
+,,Maserati,5000 GT
+,,Maserati,Bora
+,,Maserati,Merak
+,,Maserati,Merak SS
+,,Maserati,Kyalami
+,,Mercury,
+,,Hudson,
+,,Porsche,911
+,,Porsche,911SC
+,,Porsche,911S
+,,Porsche,911L
+,,Porsche,911E
+,,Porsche,911T
+,,Porsche,911 Carrera
+,,Porsche,911 Turbo
+,,Porsche,930 Turbo
+,,Porsche,Carrera
+,,Porsche,914
+,,Porsche,914-6
+,,Porsche,914-6 GT
+,,Porsche,914 R
+,,Porsche,928
+,,Porsche,928S
+,,Porsche,928S-4
+,,Rolls-Royce,Phantom II
+,,Rolls-Royce,Silver Ghost 40/50hp
+,,Rolls-Royce,Silver Cloud
+,,Rolls-Royce,Silver Cloud II
+,,Rolls-Royce,Silver Cloud III
+,,Rolls-Royce,20/25hp
+,,Rolls-Royce,25/30hp
+,,Rolls-Royce,Silver Shadow
+,,Rolls-Royce,Silver Shadow II
+,,Rolls-Royce,Wraith
+,,Rolls-Royce,Silver Wraith
+,,Rolls-Royce,Phantom III
+,,Chevrolet,Corvette
+,,Bentley,R-Type
+,Roadster,Bentley,4 1/2 Liter
+,Convertible,Bentley,4 Liter
+,,Bentley,4 1/4 Liter
+,,Aston Martin,DB3S
+,,Aston Martin,DBR2
+,,Alfa Romeo,8C 2300
+,,Alfa Romeo,8C 2300 Corto
+,,Alfa Romeo,8C 2300 Lungo
+,,Alfa Romeo,6C 2500
+,,Alfa Romeo,6C 2300
+,,Alfa Romeo,6C 1750
+Carozzeria Sport,,Alfa Romeo,6C 1500
+,,Alfa Romeo,6C 2500 SS
+,,Cadillac,Eldorado
+,,Cadillac,Coupe deVille
+,,Cadillac,Eldorado Biarritz
+,,Cadillac,62
+,,Cadillac,60
+Shapiro-Schebera,,Alfa Romeo,33TT12
+,,Ferrari,365 GTS/4 Daytona
+,,Ferrari,275 GTB/6C
+,,Maserati,Bora 4.7
+,,Maserati,Bora 4.9
+,,March,
+Pininfarina,,Ferrari,250 GTE
+,,Lamborghini,Espada
+,,Ford,Mustang Boss 429
+,,Lamborghini,Urraco P250
+,,Lamborghini,LM002
+,,Chevrolet,Corvette FI
+,,Bentley,R-Type Continental
+,,Studebaker,
+,,Rolls-Royce,Corniche
+,,Franklin,
+,,De Tomaso,Pantera
+,,Cord,Front Drive L-29
+,,Lamborghini,Countach
+,,Pontiac,Chieftain
+,,Lamborghini,Miura
+,,Ferrari,365 BB
+,,Shelby Replica,Cobra 289
+,,Porsche,911 Carrera RS 2.7
+,,Porsche,911 Carrera RS 2.7
+,,Dodge,Viper RT/10
+,,Dodge,Viper
+,,Edsel,
+,,LaSalle,
+,,Rolls-Royce,Silver Spur
+,,Chevrolet,Impala SS
+,,Lamborghini,400 GT 2+2
+,,Lamborghini,400 GT
+,,Lamborghini,350 GT
+,,Austin-Healey,3000 Mk III Phase 2
+,,Ford,Model T
+,,Ford,Model A
+,,Buick,Roadmaster
+,,Buick,Super
+,Sedan,Buick,Century
+,,Buick,Special
+,,Ford,F-1
+,,Ford,F-100
+,,Triumph,TR4
+,,Triumph,TR4A
+,,Triumph,TR4A-IRS
+,,Triumph,TR6
+,,Triumph,TR2
+,,Triumph,TR2 Long Door
+,,Ferrari,F355 GTB
+,,Ferrari,F355 GTS
+,,Cadillac,355-B V-8 1932
+,,Cadillac,370-B V-12
+,,Cadillac,452-B V-16
+,,Cadillac,355-A V-8 1931
+,,Cadillac,370-A V-12 1931
+,,Cadillac,452 V-16 1930-31
+,,Cadillac,355-C V-8 1933
+,,Cadillac,370-C V-12
+,,Cadillac,452-C V-16
+,,Cadillac,355-D V-8 1934
+,,Cadillac,370-D V-12
+,,Cadillac,452-D V-16
+,,Ford,Crestline
+,,Toyota,2000GT
+,,Ford,GT40
+,,Ford,GT40 Replica
+,,Cadillac,60 Special
+,,Chevrolet,Bel Air
+,,Chevrolet,Corvette 427/435
+,2-Dr. Station Wagon,Chevrolet,Bel Air Nomad
+,,Buick,Skylark
+,,Plymouth,'Cuda
+,,Chevrolet,El Camino
+,,AMC,SC/Rambler
+,,Dodge,Challenger
+,,Chevrolet,Corvette ZR-1
+,,Lancia,DiLambda
+,,Wills Sainte Claire,
+,,Oldsmobile,Starfire
+,,Chevrolet,Chevelle SS
+,,Oldsmobile,Cutlass 4-4-2
+,Riviera 4-Dr. Hardtop,Buick,
+,,Bentley,6 1/2 Liter Speed Six
+,,Panhard-Levassor,
+,,Chevrolet,Camaro RS
+,,Chevrolet,Camaro RS/SS
+,,Bentley,3 1/2 Liter
+,,deDion Bouton,
+,,Rolls-Royce,Silver Dawn
+,,Volkswagen,Karmann-Ghia
+,,Dodge,Coronet
+,,Dodge,Coronet R/T
+,,Dodge,Charger
+,,Dodge,Charger Daytona
+,,Dodge,Polara
+,,AMC,Javelin
+,,AMC,Javelin SST
+,,AMC,Javelin AMX
+,,Lincoln,Continental
+,,Lincoln,Capri
+,,Lincoln,Premier
+,,Lincoln,Continental Mark II
+,,Lincoln,Continental Mark III
+,,Lincoln,Continental Mark IV
+,,Lincoln,Continental Mark V
+,,Ferrari,456 GT
+,,Ferrari,456M GT
+,,Oldsmobile,Toronado
+,,Pontiac,Firebird Trans Am
+,,Pontiac,LeMans
+,,Pontiac,LeMans GTO
+,,Ford,1934 Model 40
+,,Ford,1935 Model 48
+,,Ford,1936 Model 68
+,,Ford,1937 Model 78
+,,Ford,1938 Model 81A DeLuxe
+,,Ford,1938 Model 82A Standard
+,,Ford,1939 Model 81A DeLuxe
+,,Ford,1939 Model 922A Standard
+,,Ford,1933 Model 40
+,,Ford,1932 Model 18 V-8
+,,Ford,Model B
+,,Ford,1940 Model 01A DeLuxe
+,,Ford,1940 Model 022A Standard
+,,Ford,1941 DeLuxe
+,,Ford,1941 Super DeLuxe
+,,Ford,1941 Series 11A Standard
+,,Ford,1942 Series 21A DeLuxe
+,,Ford,1942 Series 2GA Special
+,,Ford,1942 Super DeLuxe
+,,Pontiac,Trans Am
+,,Willys-Knight,
+,,Chevrolet,Chevelle SS 396
+,,Chevrolet,Chevelle SS 454
+,,SS Jaguar,100
+,,SS Jaguar,1
+,,SS Jaguar,2
+,,SS Jaguar,90
+,,SS Jaguar,100 2 1/2 Liter
+,,SS Jaguar,100 3 1/2 Liter
+,,Avions Voisin,
+,,Kaiser-Darrin,
+,,Duesenberg,Model J
+,,Cadillac,341 V-8 1928
+,,Cadillac,341-B V-8 1929
+,,Aston Martin,DB Mark III
+,Highboy Roadster,Ford,
+,,GMC,
+,,Bentley,8 Liter
+,,Oldsmobile,4-4-2 [from 1968]
+,,Chenard et Walcker,
+,,Chris-Craft,
+,,Cobra Replica,
+,,Dallara,
+,,Delaunay-Belleville,
+,,Brewster-Ford,
+,,Frazer,
+,,Waverley,
+,,Pope-Waverley,
+,,Chevrolet,Corvette L88
+,,Plymouth,'Cuda AAR
+,,Chrysler,"Town & Country
+"
+,Utility,Toyota,FJ40 Land Cruiser
+,,Jaguar,XK 120 Alloy
+,,Ford,GT

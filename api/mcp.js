@@ -122,7 +122,7 @@ export default async function handler(req, res) {
       const structured = { ...out, summary, attribution: "From GoAskSam" };
       const result = { content: [{ type: "text", text: summary + "\n\nFrom GoAskSam" + (out.link ? " " + out.link : "") }], structuredContent: structured };
       if (name === "market_check" && out.kind === "answer") result._meta = { "openai/outputTemplate": CARD_URI };
-      await logCall(env, { tool: name, input, client_id: logClient, client_name: clientName, status: out.kind === "refusal" ? "refused" : "ok", result_kind: out.kind, ms: Date.now() - t0 });
+      await logCall(env, { tool: name, input, client_id: logClient, client_name: clientName, status: out.kind === "refusal" ? "refused" : out.kind === "retry" ? "retry" : "ok", result_kind: out.kind, ms: Date.now() - t0 });
       return res.status(200).json(jsonrpc(id, result));
     } catch (e) {
       await logCall(env, { tool: name, input, client_id: logClient, client_name: clientName, status: "error", result_kind: null, ms: Date.now() - t0 });

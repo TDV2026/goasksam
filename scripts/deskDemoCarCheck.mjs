@@ -1,0 +1,55 @@
+// The demonstration car is a real archive sale: its VIN, listing address and photo come from one record read with the ops task deskcars, every desk file takes the VIN from lib/desk/demoCar.js, and the recorded rung counts match the figures posted in docs/lane-notes.md.
+import fs from "node:fs"; import path from "node:path"; import { fileURLToPath, pathToFileURL } from "node:url";
+const ROOT = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
+const U = f => import(pathToFileURL(path.join(ROOT, f)).href);
+let pass = 0, fail = 0; const ok = (n, c) => { if (c) pass++; else { fail++; console.log("FAIL " + n); } };
+const src = f => fs.readFileSync(path.join(ROOT, f), "utf8");
+const { DEMO_CAR, DEMO_VIN, DEMO_RUNGS } = await U("lib/desk/demoCar.js"), { demoCase } = await U("lib/desk/caseDemo.js"), F = await U("lib/preview/deskV3Fixture.js");
+ok("the VIN is 17 characters, a 1999 Porsche (WP0, year code X)", /^WP0[A-Z0-9]{6}X[A-Z0-9]{7}$/.test(DEMO_VIN) && DEMO_VIN === DEMO_CAR.vin);
+ok("the listing is a Bring a Trailer address and the photo an https image from the same site", /^https:\/\/bringatrailer\.com\/listing\//.test(DEMO_CAR.listingUrl) && /^https:\/\/bringatrailer\.com\/wp-content\/uploads\/.+\.(jpe?g|png|webp)/i.test(DEMO_CAR.photoUrl));
+ok("the archive id is a uuid", /^[0-9a-f-]{36}$/.test(DEMO_CAR.archiveId));
+const c = demoCase();
+ok("the case carries the archive VIN", c.fields.vin.value === DEMO_VIN);
+const PH = F.DEMO_PHOTOS;
+ok("the demo car has up to six photos, at least two, every one an https image of the listing's own site", PH.length >= 2 && PH.length <= 6 && PH.every(p => /^https:\/\/bringatrailer\.com\/wp-content\/uploads\/.+\.(jpe?g|png|webp)/i.test(p.url)));
+ok("every photo was under the 600 KB photo rule when it was read, and credits the listing", PH.every(p => p.bytes > 0 && p.bytes <= 600 * 1024 && p.from === DEMO_CAR.listingUrl && /Bring a Trailer listing/.test(p.credit || "")));
+ok("the first photo is the archive's own picture of the sale and is the case cover", PH[0].url.split("?")[0] === DEMO_CAR.photoUrl.split("?")[0] && c.photos.coverId === PH[0].id);
+ok("the case holds exactly these photos, in this order, and every one is selected for the report", c.photos.items.map(p => p.id).join() === PH.map(p => p.id).join() && c.photos.reportIds.join() === PH.map(p => p.id).join());
+ok("no stand-in remains on the demo case or in the demo files: no drawn image, no standIn mark, no placeholder name", !PH.some(p => /^data:/.test(p.url || "") || p.standIn) && !c.photos.items.some(p => /stand|placeholder|front\.jpg|rear\.jpg/i.test(p.name || "")) && ["lib/desk/caseDemo.js", "lib/preview/deskV3Fixture.js"].every(f => !/image\/svg|\bstandIn\b|front\.jpg|rear\.jpg/i.test(src(f))));
+ok("photos are distinct", new Set(PH.map(p => p.url.split("?")[0])).size === PH.length);
+ok("no desk file types the old sample VIN", ["lib/desk/caseDemo.js", "lib/preview/deskV3Fixture.js", "lib/preview/deskPreview.js", "lib/preview/deskV3.js"].every(f => !src(f).includes("WP0AA2990XS620481")));
+ok("the case mileage is the listing's mileage (72,000) and keeps the seller as its source", DEMO_CAR.miles === 72000 && c.fields.mileage.value === DEMO_CAR.miles && c.fields.mileage.source === "seller");
+const demoLines = f => src(f).split("\n").filter(l => f.includes("caseDemo") || f.includes("Fixture") || /Hal Moreau|DEMO_ID/.test(l)).join("\n");
+ok("every demo surface takes its mileage from demoCar.js: no typed mileage on a demo line", ["lib/desk/caseDemo.js", "lib/preview/deskV3Fixture.js", "lib/preview/deskPreview.js", "lib/preview/deskV3.js"].every(f => !/(mileage|miles)\s*[:=]\s*\d{4,}/.test(demoLines(f).replace(/miles,? ?\d+\]/g, ""))));
+const notes = src("docs/lane-notes.md");
+ok("the recorded any-condition count and median are in the lane notes", notes.includes(String(DEMO_RUNGS.any.count)) && notes.includes(DEMO_RUNGS.any.median.toLocaleString("en-US")));
+ok("the VIN and archive id are the ones the deskcars read posted in the lane notes", notes.split("\n").some(l => l.includes("DEMO CAR FROM THE ARCHIVE") && l.includes(DEMO_VIN) && l.includes(DEMO_CAR.archiveId)));
+const fmt = n => n.toLocaleString("en-US");
+ok("the recorded Excellent and Good rungs are in the lane notes", [DEMO_RUNGS.excellent, DEMO_RUNGS.good].every(g => [g.q1, g.median, g.q3].every(n => notes.includes(fmt(n)))));
+ok("the rung read was made at the case's own mileage", DEMO_RUNGS.miles === DEMO_CAR.miles);
+ok("every recorded range has q1 below the median below q3", [DEMO_RUNGS.any, DEMO_RUNGS.excellent, DEMO_RUNGS.good].every(g => g.q1 < g.median && g.median < g.q3 && g.count >= 5));
+
+// STAGE 6 (Nov 11 2026): THE PREVIEW READS THE ENGINE, NOT A STAND-IN. The demonstration case is read through the recorded engine answer (lib/preview/recordedRead.js); its market line, range, count and median are that read, its assessment starts at the engine's median and its reserve at the engine's start, and no sample sale or typed figure remains in the preview files.
+{ const Rec = await U("lib/preview/deskRecordedReads.js"), V = await U("lib/desk/caseView.js"), RR = await U("lib/preview/recordedRead.js"), kase = await F.demoCaseRecord(), ev = kase.desk && kase.desk.evidence, A = DEMO_RUNGS, rec = t => Rec.RECORDED.find(r => r.tier === t && r.spec.vin === DEMO_VIN);
+  ok("the recorded read of the demonstration car holds the any condition read and each of the four rungs, all asked at the case's mileage", [null, 1, 2, 3, 4].every(t => rec(t) && rec(t).spec.mileage === DEMO_CAR.miles && rec(t).spec.transmission === "Manual"));
+  ok("the recorded any condition and rung figures are the ones DEMO_RUNGS and the lane notes post", ["q1", "median", "q3", "count"].every(k => rec(null).answer.desk.evidence[k] === A.any[k] && rec(2).answer.desk.evidence[k] === A.excellent[k] && rec(3).answer.desk.evidence[k] === A.good[k]) && rec(4).answer.desk.evidence.count === A.fairCount && rec(4).answer.desk.evidence.insufficient === true && rec(1).answer.desk.evidence.count === 0);
+  ok("the case's market reference is the recorded read: count, q1, median, q3 (39 sales, $27,460 to $38,300, median $32,500)", !!ev && ev.count === A.any.count && ev.q1 === A.any.q1 && ev.median === A.any.median && ev.q3 === A.any.q3 && ev.insufficient === false);
+  const line = V.caseView({ id: "x", case: kase, submission: { typed: true } }, [], new Date().toISOString()).marketLine, fm = n => "$" + n.toLocaleString("en-US");
+  ok("the market line carries the recorded range and count", line.includes(fm(A.any.q1) + " to " + fm(A.any.q3)) && line.includes(A.any.count + " sales"), line);
+  ok("the assessment starts at the engine's median with the middle half as its range, source engine (nothing typed)", kase.assessment.source === "engine" && kase.assessment.figure === A.any.median && kase.assessment.low === A.any.q1 && kase.assessment.high === A.any.q3, JSON.stringify(kase.assessment));
+  ok("the reserve starts at the engine's start, source engine, with the engine's own reached count", kase.reserve.source === "engine" && kase.reserve.figure === kase.desk.reserveStart.figure && kase.desk.reserveCheck && kase.desk.reserveCheck.of === A.any.count);
+  ok("the recorded read answers only the question it recorded: another window, another mileage, a set aside sale and another car are not read", RR.recordedRead({ vin: DEMO_VIN, mileage: 72000, bodyStyle: "Coupe", desk: { transmission: "Manual", windowMonths: 24 } }) === null && RR.recordedRead({ vin: DEMO_VIN, mileage: 61200, bodyStyle: "Coupe", desk: { transmission: "Manual" } }) === null && RR.recordedRead({ vin: DEMO_VIN, mileage: 72000, bodyStyle: "Coupe", desk: { transmission: "Manual", exclusions: [{ saleId: "x" }] } }) === null && RR.recordedRead({ year: 1970, make: "Chevrolet", model: "Corvette", mileage: 72000, bodyStyle: "Coupe", desk: { transmission: "Manual" } }) === null);
+  { const PV = await U("lib/preview/deskPreview.js"), q = { vin: DEMO_VIN, mileage: 72000, bodyStyle: "Coupe", desk: { transmission: "Manual", windowMonths: 12 } }, f0 = globalThis.fetch; let asked = 0; globalThis.fetch = async () => { asked++; throw new Error("no network in a check"); };
+    let offline = null, online = null; try { offline = await PV.previewReadSheet({}, q); try { online = await PV.previewReadSheet({ supabaseUrl: "https://archive.invalid", supabaseKey: "k" }, q); } catch { online = null; } } finally { globalThis.fetch = f0; }
+    ok("with no archive the preview door answers the recorded read; with the archive reachable it asks the engine and never the recording", !!offline && offline.desk.evidence.count === A.any.count && asked > 0 && !(online && online.desk && online.desk.evidence && online.desk.evidence.count === A.any.count && online.desk.key === offline.desk.key && JSON.stringify(online) === JSON.stringify(offline)), "asked " + asked); }
+  // THE CLASS (Lane C's question on the 24 month switch, Nov 11 2026): an edit that changes what the sales are read for (the period, a field the engine reads, a sale set aside), with no read made, must not be saved over the earlier read: the case would say 24 months and print the 12 month figures. Every such op is refused whole with the table's line.
+  { const PV = await U("lib/preview/deskPreview.js"), RWm = await U("lib/reasonWords.js"), want = RWm.reasonLine("desk4.edit_unread"), get = async () => (await PV.previewDeskApi({ action: "case_get", id: "pv_hm" })).case, before = await get();
+    const ops = [{ op: "window", months: 24 }, { op: "window", months: 6 }, { op: "field", field: "mileage", value: 70000 }, { op: "exclude", saleId: (before.desk.comparables.find(x => x.url) || {}).id, scope: "market_calc", reason: "Not the same car" }, { op: "exclude", saleId: (before.desk.comparables.find(x => x.url) || {}).id, scope: "report_comps", reason: "Not the same car" }];
+    const outs = []; for (const o of ops) outs.push(await PV.previewDeskApi({ action: "case_edit", id: "pv_hm", ...o }));
+    const after = await get();
+    ok("an edit the engine could not read is refused with the table's line: the period (24 and 6), the mileage and a sale set aside in either scope", outs.every(r => r.ok === false && r.why === want), JSON.stringify(outs.map(r => r.ok)));
+    ok("and the case is as it was: the period, the mileage, the exclusions and the figures are the earlier read's", after.windowMonths === before.windowMonths && after.fields.mileage.value === before.fields.mileage.value && after.exclusions.length === 0 && after.desk.evidence.count === A.any.count && after.version === before.version); }
+  const strip = t => t.replace(/\/\/[^\n]*/g, "");
+  ok("no sample sale, sample price list or typed assessment remains in the preview files (no stand-in engine)", ["lib/preview/deskV3Fixture.js", "lib/preview/deskPreview.js", "lib/preview/deskV3.js", "lib/preview/recordedRead.js"].every(f => !/\bDEMO_ROWS\b|\bDEMO_TIERS\b|\bdemoDesk\b|\bdemoRead\b|example\.test\/sale|setAssessment\s*\(/.test(strip(src(f)))));
+}
+console.log(`deskDemoCarCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

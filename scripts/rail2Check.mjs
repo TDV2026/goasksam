@@ -1,10 +1,12 @@
 // GOASKSAM 2.0 STAGE 1, THE ONE RAIL (Sam's block, Oct 23 2026; Lane C): every shell page and the server-rendered history/VIN/spec pages
 // draw the same rail: the GoAskSam wordmark (Home), the tagline, Home / Find / Market Check / Sell / Tasks in that order, RECENT SEARCHES
 // (empty and hidden for a new visitor, drawn from this browser's own list, never samples, Tasks never in it), then the quiet links
-// (For business when released, The Daily Vroom, How Sam decides, About, Feedback, Privacy, Privacy choices; no Terms page exists, so no
+// (For business when released, The Daily Vroom, How Sam decides, About, What's new, Feedback, Privacy, Privacy choices; no Terms page exists, so no
 // dead Terms link); no "Keep looking"; Buy is Find and /buy is a 301 to /find with the query kept. No network.
 //   node scripts/rail2Check.mjs   (from the repo root)
 import fs from "node:fs";
+import { copyData as COPY_DATA } from "../lib/copy.js";
+const C = COPY_DATA(), rxEsc = x => String(x).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");   // the page words come from data/copy.json: one edit changes the page and this check together
 import path from "node:path";
 import vm from "node:vm";
 import { pathToFileURL } from "node:url";
@@ -19,12 +21,31 @@ const noSvg = html.replace(/<svg[\s\S]*?<\/svg>/g, "");
 const nav = [...noSvg.matchAll(/<a class="gas-navitem(?: active)?" href="([^"]+)"[^>]*>([^<]+)/g)].map(m => m[2] + "=" + m[1]);
 const items = nav.slice(0, 5);
 ok(JSON.stringify(items) === JSON.stringify(["Home=/", "Find=/find", "Market Check=/market-check", "Sell=/sell", "Tasks=/tasks"]), "the five products in order: " + items.join(", "));
-ok(/<p class="gas-tag">Enthusiast car market intelligence<\/p>/.test(html) && !/collector/i.test(html.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script>[\s\S]*?<\/script>/g, "")), "the tagline is 'Enthusiast car market intelligence' and 'collector' appears nowhere in the rail");
+ok(new RegExp('<p class="gas-tag">' + rxEsc(C.rail.RAIL_TAGLINE) + "<\\/p>").test(html) && !/collector/i.test(html.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script>[\s\S]*?<\/script>/g, "")), "the tagline is 'Find, check, sell.' and 'collector' appears nowhere in the rail");
 ok(/<a class="gas-logo" href="\/">GoAskSam<\/a>/.test(html), "the wordmark is Home");
+// ONE WORDMARK ON EVERY PAGE (Sam, Oct 24 2026): the wordmark is set in the serif webfont, and a page that does not load it drew a wider fallback and pushed the
+// Beta pill under it (Sell and Market Check did). Every page that draws the shared rail carries the font links, and the Tasks badge script has no per-page skip.
+{
+  const src = f => fs.readFileSync(path.join(ROOT, f), "utf8");
+  for (const f of ["api/sellPage.js", "api/marketCheck.js", "api/publicConfig.js", "api/sellNext.js", "api/home.js", "api/buy.js", "api/tasksPage.js", "api/howSamDecides.js", "api/business.js"]) ok(/FONT_LINKS/.test(src(f)) && /railOpenHtml/.test(src(f)), f + " loads the rail's fonts (FONT_LINKS) where it draws the shared rail");
+  ok(!/getAttribute\("data-active"\) === "sell"\) return/.test(src("lib/appShell.js")), "the Tasks badge script does not skip Sell");
+}
 ok(/id="gas-recent" hidden><div class="gas-rail-head">Recent searches<\/div><div id="gas-recent-list"><\/div>/.test(html), "Recent searches is empty and hidden until this browser has a search (never samples)");
 const foot = noSvg.slice(noSvg.indexOf('class="gas-rail-foot"'), noSvg.indexOf("</aside>"));
 const labels = [...foot.matchAll(/<a class="gas-navitem[^"]*"[^>]*>([^<]+)/g)].map(m => m[1]);
-ok(JSON.stringify(labels.filter(l => l !== "For business")) === JSON.stringify(["The Daily Vroom", "How Sam decides", "About", "Feedback", "Privacy", "Privacy choices"]), "the quiet links in order: " + labels.join(", "));
+ok(JSON.stringify(labels.filter(l => l !== "For business")) === JSON.stringify(["The Daily Vroom", "How Sam decides", "About", "What's new", "Feedback"]), "the quiet links in order (What's new between About and Feedback, Sam, Oct 31 2026), no Privacy items (they moved off the rail): " + labels.join(", "));
+// THE CLASS (Lane E, Oct 31 2026, What's new): a check that spells out the quiet-link list goes red the day a link is added. No check may carry a list that
+// runs "How Sam decides" ... "About" ... "Feedback" without What's new between About and Feedback, and the live rail, the phone menu (same function) and
+// the About page must all draw the one list from shellFoot.
+{
+  const dir = path.join(ROOT, "scripts"), stale = [];
+  for (const f of fs.readdirSync(dir).filter(x => /\.(mjs|js)$/.test(x) && x !== "rail2Check.mjs")) {
+    const t = fs.readFileSync(path.join(dir, f), "utf8");
+    for (const m of t.matchAll(/How Sam decides[^\n]{0,60}?About[^\n]{0,30}?Feedback/g)) if (!/What's new/.test(m[0])) stale.push(f);
+  }
+  ok(stale.length === 0, "no check pins the quiet-link list without What's new between About and Feedback: " + [...new Set(stale)].join(", "));
+  ok(/a\("about", "\/about", [^\n]*?\) \+ a\("whatsnew", "\/whats-new", [^\n]*?\) \+\s*a\("feedback", "\/feedback"/.test(fs.readFileSync(path.join(ROOT, "lib/appShell.js"), "utf8")), "shellFoot (the rail's quiet links and the phone menu, one function) lists About, What's new, Feedback in that order");
+}
 ok(/href="https:\/\/thedailyvroom\.com" target="_blank" rel="noopener"/.test(foot), "The Daily Vroom opens thedailyvroom.com in a new tab");
 ok(!/Terms/.test(foot) && !fs.existsSync(path.join(ROOT, "public/terms.html")), "no Terms link while no Terms page exists (no dead links)");
 ok(!/Keep looking|gas-watching-rail|Your searches|Your results/.test(html), "no Keep looking, Your searches or Your results in the rail");
@@ -84,8 +105,8 @@ ok(store.gas_ob_anon === "keep" && store.gas_first_touch === "keep", "anonymous 
 const vj = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
 ok(vj.redirects.some(r => r.source === "/buy" && r.destination === "/find" && r.statusCode === 301), "/buy is a permanent redirect to /find (Vercel keeps the query string)");
 ok(vj.rewrites.filter(r => r.source === "/find").length === 2 && !vj.rewrites.some(r => r.source === "/buy"), "/find is served (crew and public); /buy is not served");
-const sm = fs.readFileSync(path.join(ROOT, "public/sitemap.xml"), "utf8");
-ok(/goasksam\.com\/find</.test(sm) && !/goasksam\.com\/buy</.test(sm), "the sitemap lists /find, not /buy");
+const sm = fs.readFileSync(path.join(ROOT, "api/sitemapPages.js"), "utf8");  // /sitemap.xml now answers the index; the pages list is api/sitemapPages.js
+ok(/loc: "\/find"/.test(sm) && !/loc: "\/buy"/.test(sm), "the sitemap lists /find, not /buy");
 const buy = fs.readFileSync(path.join(ROOT, "api/buy.js"), "utf8");
 ok(/rel="canonical" href="https:\/\/goasksam\.com\/find"/.test(buy) && /og:url" content="https:\/\/goasksam\.com\/find"/.test(buy), "Find's canonical and og:url are /find");
 console.log(`rail2Check: ${pass} passed, ${fail} failed`);

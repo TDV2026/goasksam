@@ -14,6 +14,8 @@
 import fs from "node:fs";
 import { partnerShape, venueLeak, historyOf, PILL_SLOT, PARTNER_CARD_OPTS, demoCard, basisLine } from "../api/partnerAnswer.js";
 import { sellsForCardHtml } from "../lib/sellsForCard.js";
+import { reasonLine } from "../lib/reasonWords.js";
+const CR = reasonLine("cold.reading"), CS = reasonLine("cold.still"), CM = reasonLine("cold.missed");   // the engine's own wording (lib/reasonWords.js), never a copy here
 // The card Market Check draws for an answer (public/js/onebox.js: window.sellsForCardHtml(d, {})); the partner card is
 // the same card with the pill slot and without the sale rows (the partner page lists those same sales itself, e63), so
 // with the slot taken out it must be byte-identical to Market Check's card with its rows list taken out.
@@ -25,7 +27,7 @@ const noRows = h => String(h || "").replace(/<ul class="sfc-rows">[\s\S]*?<\/ul>
 // footer is checked on its own to be one of the two engine forms (never invented, never empty of its brand).
 const FOOTER_LEFT = /<span class="sfc-footer-left">([\s\S]*?)<\/span>/;
 const noTime = h => String(h || "").replace(FOOTER_LEFT, '<span class="sfc-footer-left">(read time)</span>');
-const footerOk = h => { const m = FOOTER_LEFT.exec(String(h || "")); return !!m && /^Powered by GoAskSam( &middot; (Updated [A-Z][a-z]+ \d{1,2}(, \d{4})?|Sales read [^<]*refreshing now\.|Sales read on [A-Z][a-z]+ \d{1,2}\. Sales since then are not in yet\. Updating now\.))?$/.test(m[1]); };
+const footerOk = h => { const m = FOOTER_LEFT.exec(String(h || "")); return !!m && /^Powered by GoAskSam\.( [^<]*?)?( Updated [A-Z][a-z]+ \d{1,2}(, \d{4})?\.)?$/.test(m[1]) && !/Sales read|Updating now|not in yet/.test(m[1]); };   // E98: one line, the stale line never prints
 const firstDiff = (a, b) => { a = String(a || ""); b = String(b || ""); let i = 0; while (i < a.length && a[i] === b[i]) i++; return i >= a.length && i >= b.length ? null : `at ${i}: endpoint "${a.slice(Math.max(0, i - 40), i + 80)}" / Market Check "${b.slice(Math.max(0, i - 40), i + 80)}"`; };
 let lastCardDiff = null;
 const sameCard = (partnerCard, d) => {
@@ -70,12 +72,12 @@ for (const [name, d] of Object.entries(FIX)) {
     ok(out.count === mc.count, `${name}: count ${out.count} vs ${mc.count}`);
     ok(out.window === mc.window, `${name}: window ${out.window} vs ${mc.window}`);
     ok(same(asKeys(out.sales), mc.sales), `${name}: the same sales as Market Check`);
-    ok(out.sales.every((s, i, a) => !i || a[i - 1].price <= s.price), `${name}: sales lowest price first`);
+    ok(out.sales.every((s, i, a) => !i || String(a[i - 1].date || "") >= String(s.date || "")), `${name}: sales newest first`);
     ok(out.sales.every(s => Object.keys(s).sort().join() === "date,miles,name,photo,price" && (s.photo === null || /^(\d{1,15}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.test(s.photo)) && !venueLeak({ n: s.name }).length), `${name}: a sale is its price, date, mileage, the engine row's own name (venue-safe) and its archive id for the photo only`);
     ok(sameCard(out.card, d), `${name}: the shared card, byte-identical to Market Check's card for the same answer`);
     // cardWithRows (Oct 20 2026, additive, the Amazon demo's tab c): Market Check's own card WITH its sale rows, in the engine's
     // order, with only the photo address (the gated ?photo= path) and venue-naming titles swapped; no venue anywhere
-    const mcRows = demoCard(sellsForCardHtml(d, {}), d) || "";
+    const mcRows = demoCard(sellsForCardHtml(d, { poweredBy: true }), d) || "";
     const norm = h => String(h || "").replace(/<img class="sfc-row-img" src="[^"]*"/g, '<img class="sfc-row-img" src=""').replace(/<span class="sfc-row-title">[^<]*<\/span>/g, "");
     ok(typeof out.cardWithRows === "string" && /<ul class="sfc-rows">/.test(out.cardWithRows) === /<ul class="sfc-rows">/.test(mcRows), `${name}: cardWithRows carries the sale rows exactly when Market Check's card does`);
     ok(norm(out.cardWithRows) === norm(mcRows), `${name}: cardWithRows is Market Check's card (same lines, prices, dates, miles, order), photo address and titles aside`);
@@ -93,7 +95,7 @@ for (const [name, d] of Object.entries(FIX)) {
     ok(sameCard(out.card, staleDay), "thin: the same card served stale with the dated line still matches");
     // the engine's own stale line (api/sellerDecision.js staleLine, Oct 15 2026), as the 14:05Z FULL run met it live
     const engStale = String(out.card).replace(/<span class="sfc-footer-left">[\s\S]*?<\/span>/, '<span class="sfc-footer-left">Powered by GoAskSam &middot; Sales read on October 20. Sales since then are not in yet. Updating now.</span>');
-    ok(sameCard(engStale, d), "thin: the card with the engine's own stale line ('Sales read on <date>. Sales since then are not in yet. Updating now.') still matches");
+    ok(!sameCard(engStale, d), "E98: a card that prints the engine's stale line ('Sales read on <date>. Sales since then are not in yet. Updating now.') is a failure, it never prints to a visitor");
     ok(!sameCard(engStale.replace(d.latestSaleLine, "Latest sale: May 2021."), d), "thin: with the engine's stale line, a changed line is still a difference");
     ok(!sameCard(String(out.card).replace(d.latestSaleLine, "Latest sale: May 2021."), d), "thin: a changed line is still a difference");
     ok(!sameCard(String(out.card).replace(/<span class="sfc-footer-left">[\s\S]*?<\/span>/, '<span class="sfc-footer-left">Powered by GoAskSam &middot; Updated whenever</span>'), d), "thin: a footer that is not an engine form is a difference");
@@ -130,11 +132,11 @@ for (const [name, d] of Object.entries(FIX)) {
 // A stale answer (the engine's stored row past its day, served with stale: true and its dated line while it recomputes)
 // renders like any engine answer: ok, the range, the card with the engine's own staleLine, never an error.
 { const st = partnerShape({ ...FIX.range, stale: true, staleLine: "Sales read October 15, 2026, refreshing now." }, "fixture stale", 0, {});
-  ok(st.ok === true && st.answerType === "range" && st.range && /Sales read October 15, 2026, refreshing now\./.test(st.card || "") && venueLeak(st).length === 0, "a stale answer renders as the engine's answer with its own dated line, not an error"); }
+  ok(st.ok === true && st.answerType === "range" && st.range && !/Sales read|refreshing now/.test(st.card || "") && venueLeak(st).length === 0, "a stale answer renders as the engine's answer, the footer one line with no stale line, not an error"); }
 // Any car (Sam, Oct 18 2026): every demo read, the six and any other car, uses the demo's own per-device ceiling only.
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
   ok(!/checkCeiling\(env, req, "partner_cars"/.test(apiSrc) && !/"partner_answer"/.test(apiSrc) && (apiSrc.match(/checkCeiling\(env, req, "partner_demo"/g) || []).length === 1, "any car reads under the demo's per-device ceiling only; no daily car cap and no per-address window on the demo");
-  ok(/That is today's limit for other cars here\./.test(pageSrc) && /a && a\.error === "car_limit" \? LIMIT/.test(pageSrc) && !/setTimeout\(runs\[view\], (?!a\.retryAfterMs)/.test(pageSrc), "over the limit the page says so (no retry), never that the car has no sales"); }
+  ok(/That is today's limit for other cars here\./.test(pageSrc) && /a && a\.error === "car_limit" \? LIMIT/.test(pageSrc), "over the limit the page says so (the limit answer is not a still-reading answer, so it is never asked again), never that the car has no sales"); }
 // A refused or failed read never claims the car has no history, and the per-minute ceiling never applies to the demo's
 // own six cars (Oct 17 2026: ten view loads in a minute tripped it on the GT3 and the page said two wrong things).
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
@@ -144,8 +146,8 @@ for (const [name, d] of Object.entries(FIX)) {
   const pd = CEILINGS.partner_demo, minute = pd && (pd.device || []).find(([w]) => w === 60e3);
   ok(pd && minute && minute[1] >= 90, "partner_demo allows a cold walk of the views and six cars (about 30 reads) three times in a minute per device");
   ok(pd && pd.address && pd.device.every(([w, n]) => { const a = pd.address.find(([x]) => x === w); return a && a[1] >= 10 * n; }), "partner_demo's address backstop is at least ten times the device window in every window (Sam, Oct 18 2026)");
-  ok(/const who = demo \? \{\} : \{ "user-agent": base\["user-agent"\], "x-forwarded-for": base\["x-forwarded-for"\] \}/.test(apiSrc) && /r = await marketCheckAnswer\(req, text, refine, asked, true\);/.test(apiSrc), "no demo read carries a visitor address or browser into Market Check, so its visitor ceilings are untouched");
-  ok(/const lk = !refine \? demoKey\(text\) : null;/.test(apiSrc) && /out = vinIn \? \{ \.\.\.last\.out, history, lastGood: true \}/.test(apiSrc) && /if \(!vinIn && \(fullResult\(out\) \|\| \(questionResult\(out\) && !\(Number\(asked\) > 0\)\)\)\) writeLast/.test(apiSrc), "the VIN views fall back to the car's last good answer with their own VIN history; only plain reads write it"); }
+  ok(/const who = demo \? \{\} : \{ "user-agent": base\["user-agent"\], "x-forwarded-for": base\["x-forwarded-for"\] \}/.test(apiSrc) && /r = await marketCheckAnswer\(req, text, (?:refine|engineRefine), asked, true(?:, vinFacts)?\);/.test(apiSrc), "no demo read carries a visitor address or browser into Market Check, so its visitor ceilings are untouched");
+  ok(/const lk = !engineRefine \? demoKey\(text\) : null;/.test(apiSrc) && /out = vinIn \? \{ \.\.\.last\.out, history, lastGood: true \}/.test(apiSrc) && /if \(!vinIn && \(fullResult\(out\) \|\| \(questionResult\(out\) && !\(Number\(asked\) > 0\)\)\)\) writeLast/.test(apiSrc), "the VIN views fall back to the car's last good answer with their own VIN history; only plain reads write it"); }
 // Neither side waits for good (Sam, Oct 18 2026): the endpoint has no deadline of its own (the engine's whole-path bound
 // answers still reading, with its retry); the page's abort is a safety net only, later than the engine's bound.
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8"), apiSrc = fs.readFileSync(new URL("../api/partnerAnswer.js", import.meta.url), "utf8");
@@ -176,9 +178,9 @@ for (const [name, d] of Object.entries(FIX)) {
   const c = pageHtml("c"), d = pageHtml("d");
   ok(((c.match(/<nav class="tabs"[\s\S]*?<\/nav>/) || [""])[0].match(/href="\?view=/g) || []).length === 3 && !/Under the listing/.test(c) && /id="view-c"(?! hidden)/.test(d), "three tabs; the old d address opens the merged listing");
   ok(!/Placeholder description/.test(c) && /<dt>Year<\/dt>/.test(c) && !/<dt>VIN<\/dt>/.test(c) && /<dt>Mileage<\/dt>/.test(c), "no placeholder description; About this car keeps Year and Mileage (the VIN shows once, under the title)");
-  ok((c.match(/id="d-hist"/g) || []).length === 1 && /\$\("c-rail"\)\.innerHTML = \(D \? priorPanel\(a, true\) : ""\) \+ rangePanel\(a, D \? \{ price: D\.price, slot: "c", lines: "c" \} : \{ slot: "c", lines: "c" \}\);/.test(c) && /class="below-gal"/.test(c), "the card in the rail, the list and This car before under the gallery, once");
-  ok(/function reserveList\(rows, opts\)/.test(c) && /body \+= saleRow\(s, null, opts\.keys\)/.test(c) && /reserveList\(last, \{ reserve: v, keys: keysOf\(a\) \}\)/.test(c) && !/salesTable\(/.test(c), "view b: the same rows, highest price first, the reserve line at its place, no Show more");
-  ok((c.match(/function placing\(/g) || []).length === 1 && /placing\(opts\.price, a, opts\.who\)/.test(c) && /"Your reserve is " : "Asking price is "/.test(c) && /who: "reserve"/.test(c), "one comparison against the engine's range, shared by views b and c"); }
+  ok((c.match(/id="d-hist"/g) || []).length === 1 && /\$\("c-rail"\)\.innerHTML = \(D \? priorPanel\(a, true\) : ""\) \+ rangePanel\(a, D \? \{ pos: posOf\(a, "item_price"\), slot: "c", lines: "c" \} : \{ slot: "c", lines: "c" \}\);/.test(c) && /class="below-gal"/.test(c), "the card in the rail, the list and This car before under the gallery, once");
+  ok(/function bSales\(a\)/.test(c) && /var rows = a\.placedSales \|\| \[\]/.test(c) && !/reserveList|salesTable\(|\.sort\(/.test(c.slice(c.indexOf("function bSales"), c.indexOf("function drawB"))), "view b (the listing form): the five placed sales are drawn in the engine's order, never sorted or placed on the page");
+  ok(!/\bplacing\s*\(/.test(c) && (c.match(/function posPill\(/g) || []).length === 1 && /posPill\(opts\.pos, opts\.who\)/.test(c) && /"Your reserve is " : "Asking price is "/.test(c), "no placing() on the page: the pill words the engine's position, shared by views b and c"); }
 // The narrowing lines (Sam, Oct 18 2026: "2001 bmw", M3): Market Check's own lines from the engine's fields, same
 // filters, same order, each option the refine Market Check sends; the page draws them under the card in a, b and c.
 { const { linesOf, partnerShape: ps } = await import("../api/partnerAnswer.js");
@@ -191,22 +193,22 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(linesOf({ tier: "identity_question", bodyOptions: m3.bodyOptions }).length === 0 && linesOf({ ...m3, bodyOptions: [m3.bodyOptions[0]] }).length === 0, "no line on a question, none with a single option");
   ok(venueLeak(ps(m3, "2001 bmw M3", 1, {})).length === 0 && ps(m3, "2001 bmw M3", 1, {}).lines.length === 1, "the lines ride the answer and pass the venue-leak guard");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
-  ok(/send\.refine = \{\}; send\.refine\[key\] = val;/.test(pageSrc) && /rangePanel\(a, \{ lines: "a" \}\)/.test(pageSrc) && /lines: "b", who: "reserve"/.test(pageSrc) && /Any \(' \+ Number\(l\.any\)/.test(pageSrc), "views a, b and c draw the lines; an option reruns the same query with its refine; Any goes back"); }
+  ok(/send\.refine = \{\}; send\.refine\[key\] = val;/.test(pageSrc) && /rangePanel\(a, \{ lines: "a" \}\)/.test(pageSrc) && /rangePanel\(a, \{ slot: "b" \}\)/.test(pageSrc) && /Any \(' \+ Number\(l\.any\)/.test(pageSrc), "views a, b and c draw the lines; an option reruns the same query with its refine; Any goes back"); }
 // Sam's demo wording (Oct 18 2026): the pills name whose figure it is; the reserve line under the pill is counted from
 // exactly the rows the page shows; the thin card carries no middle-half line.
 { const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
-  ok(/w \+ "below the usual range"/.test(pageSrc) && /w \+ "above the usual range"/.test(pageSrc) && /w \+ "inside the usual range"/.test(pageSrc) && !/good deal|great price|bargain|overpriced/i.test(pageSrc), "the pills: Asking price is / Your reserve is inside, above or below the usual range; no deal words");
-  ok(/var at = v > 0 \? last\.filter\(function\(s\)\{ return s\.price >= v; \}\)\.length : null;/.test(pageSrc) && /"None of the " \+ last\.length \+ " most recent sales reached " \+ usd\(v\) \+ "\."/.test(pageSrc) && /at \+ " of the " \+ last\.length \+ " most recent sales reached " \+ usd\(v\) \+ " or more\."/.test(pageSrc) && /underPill: resLine/.test(pageSrc), "the reserve line is counted from the rows shown, under the pill, None when zero");
+  ok(/text: "below the usual range"/.test(pageSrc) && /text: "above the usual range"/.test(pageSrc) && /text: "inside the usual range"/.test(pageSrc) && !/good deal|great price|bargain|overpriced/i.test(pageSrc), "the pills: Asking price is / Your reserve is inside, above or below the usual range; no deal words");
+  ok(!/most recent sales reached|Your reserve " \+ usd|res-line/.test(pageSrc), "the page counts no sales against a reserve and places no reserve line (the engine places typed prices)");
   const { demoCard: dc } = await import("../api/partnerAnswer.js");
   ok(!/sfc-howline/.test(dc('<div class="sfc-card"><p class="sfc-thin">3 sales found, not enough for a range.</p><div class="sfc-footer"><span>x</span><a class="sfc-footer-link" href="/how-sam-decides">How Sam decides</a></div></div>', { poolN: 3 })), "a thin card carries no middle-half line"); }
 // THE ENGINE'S STILL-READING ANSWER and the retry (Sam, Oct 18 2026; Lane B's shape: tier "unavailable", stillReading,
 // samLine, retry, retryAfterMs): passed through as it is; the page draws the engine's line and asks again only after the
 // engine's own retryAfterMs; with no wait named it offers Try again. No timeout, retry rule or number of the page's own.
 { const { partnerShape: ps, fullResult, refreshDemoAnswer, DEMO_CARS } = await import("../api/partnerAnswer.js");
-  const sr = ps({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one.", retry: true, retryAfterMs: 15000 }, "2015 Porsche 911 GT3", 0, {});
-  ok(sr.ok === false && sr.error === "unavailable" && sr.stillReading === true && sr.line === "Sam is still reading the sales for this one." && sr.retryAfterMs === 15000, "the engine's still-reading answer passes through with its line and its wait");
+  const sr = ps({ status: "one_box", tier: "unavailable", stillReading: true, samLine: CS, retry: true, retryAfterMs: 15000 }, "2015 Porsche 911 GT3", 0, {});
+  ok(sr.ok === false && sr.error === "unavailable" && sr.stillReading === true && sr.line === CS && sr.retryAfterMs === 15000, "the engine's still-reading answer passes through with its line and its wait");
   const sr2 = ps({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "x" }, "q", 0, {});
-  ok(sr2.stillReading === true && sr2.retryAfterMs === null, "no retry asked by the engine: no wait, the page offers Try again");
+  ok(sr2.stillReading === true && sr2.retryAfterMs === null, "no retry asked by the engine: no wait named (the page then asks at the 2 second default, never offers Try again)");
   ok(ps({ status: "one_box", tier: "rate_limited" }, "q", 0, {}).stillReading === undefined, "a refusal is not a still-reading answer");
   ok(fullResult({ ok: true, answerType: "range" }) && fullResult({ ok: true, answerType: "not_enough_data" }) && fullResult({ ok: true, answerType: "zero_result" }), "a range, a thin answer and the engine's zero answer are full results");
   ok(!fullResult({ ok: true, answerType: "identity_question" }) && !fullResult(sr) && !fullResult({ ok: false, error: "unavailable" }) && !fullResult(null), "a question, a still-reading answer and a failed read are never stored");
@@ -217,8 +219,8 @@ for (const [name, d] of Object.entries(FIX)) {
   const lastBlock = apiSrc.slice(apiSrc.indexOf("req.query.last != null"), apiSrc.indexOf("req.query.photo != null"));
   ok(lastBlock.length > 0 && /readLast\(env, lk\)/.test(lastBlock) && !/marketCheckAnswer|writeLast|partnerShape/.test(lastBlock), "GET ?last= returns the stored answer only: no engine read, no write");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
-  ok(/if \(a && a\.stillReading && a\.retryAfterMs > 0\) setTimeout\(runs\[view\], a\.retryAfterMs\);/.test(pageSrc) && (pageSrc.match(/setTimeout\(runs\[view\]/g) || []).length === 1, "the page asks again only after the engine's own retryAfterMs");
-  ok(/esc\(a\.line \|\| STILL_LINE\)/.test(pageSrc) && /data-retry>Try again<\/button>/.test(pageSrc), "the still-reading state draws the engine's line, and Try again when no wait is named");
+  ok(/else if \(a\.retryAfterMs > 0\) setTimeout\(runs\[view\], a\.retryAfterMs \* \(Number\(window\.GAS_WAIT_SCALE\) \|\| 1\)\)/.test(pageSrc) && (pageSrc.match(/setTimeout\(runs\[view\]/g) || []).length === 1 && /a\.waitMaxMs > 0 && Date\.now\(\) - coldAt\[view\] >= a\.waitMaxMs \*/.test(pageSrc) && !/\b(45000|85000|90000)\b|retryAfterMs :\s*\d|retryAfterMs \|\| \d|waitMaxMs \|\| \d/.test(pageSrc.replace(/\/\/[^\n]*/g, "")), "the page asks again at the engine's own retryAfterMs and gives up at the engine's own waitMaxMs; it carries no wait or retry number of its own (cold spec, Oct 28 2026; the 85 second wait is the engine's)");
+  ok(/esc\(a\.line \|\| STILL_LINE\)/.test(pageSrc) && !/data-retry>Try again<\/button>/.test(pageSrc) && /reasonLine\("cold\.missed"\)/.test(pageSrc), "the still-reading state draws the engine's line; at the engine's waitMaxMs the one plain line; never Try again");
   ok(/fetch\("\/api\/partnerAnswer\?last=" \+ encodeURIComponent\(body\.q\)/.test(pageSrc) && /if \(!a \|\| !a\.aborted\) return a;/.test(pageSrc), "after the page's abort (a safety net only): the stored last good answer, else the still-reading state");
   // ONE CAR ACROSS THE VIEWS, ANY CAR (Sam, Oct 18 2026): the car box takes any year, make and model, the six are quick
   // picks; every view reads the same car; only the 2015 GT3 has listing detail; nothing invented for any other car.
@@ -234,12 +236,12 @@ for (const [name, d] of Object.entries(FIX)) {
       ok(h.includes('<input id="car-in" name="car" value="' + escH(car) + '"') && !/class="qp|class="picks/.test(h) && !/<a [^>]*>(2015 Porsche 911 GT3|2005 Porsche 911|1965 Ford Mustang|1957 Porsche 356 Speedster|1966 Ferrari 275 GTB|2023 Porsche 911 GT3)<\/a>/.test(main0(h)), `${car}, view ${v}: the car box holds this car; no example car chips at any width`);
       ok((h.match(/<a href="\?view=[abc][^"]*"/g) || []).every(t => car === DEMO_CARS[0] ? !t.includes("car=") : t.includes("&amp;car=" + encodeURIComponent(car))), `${car}, view ${v}: every tab keeps the car`);
       if (car === DUMMY.q) ok(j.listing && (v === "b" || (/US \$139,900/.test(main) && /<dd>30,400<\/dd>/.test(main) && /<dd>2014<\/dd>/.test(main) && (main.match(/WP0AC2A9XES183617/g) || []).length === 1)) && !/hero-img|img=hero|Black|clean title|Time left|Condition/.test(main) && /id="own-gal"|id="b-photo"/.test(main), `${car}, view ${v}: the 2014 GT3's own listing detail (30,400 miles, $139,900), its own photos only, nothing invented`);
-      else ok(!j.listing && !/\$\d/.test(main) && !/hero-img|thumb-img/.test(main) && !/<dt>VIN<\/dt>|\bmiles\b|Buy It Now/.test(main) && (v === "a" || v === "b" || (/Sample listing/.test(main) && !/WP0AC2A9XES183617/.test(main))), `${car}, view ${v}: no invented listing, price, mileage or photo in the page itself (the sample frame says "Sample listing"; its sample price is drawn from the engine range by the client, scripts/demoFrameCheck.mjs); it says what it is`);
+      else ok(!j.listing && !/\$\d/.test(main) && !/hero-img|thumb-img/.test(main) && !/<dt>VIN<\/dt>|\bmiles\b|Buy It Now/.test(main.replace(/<section class="sec-view wrap" id="view-b"[\s\S]*?<\/section>/, "")) && (v === "a" || v === "b" || (/Sample listing/.test(main) && !/WP0AC2A9XES183617/.test(main))), `${car}, view ${v}: no invented listing, price, mileage or photo in the page itself (the sample frame says "Sample listing"; its sample price is drawn from the engine range by the client, scripts/demoFrameCheck.mjs); it says what it is`);
       return JSON.stringify(j); });
     ok(seen.every(x => x === seen[0]), `${car}: the same car identically in every view`);
   });
   ok(carOf("9") === DEMO_CARS[0] && carOf("") === DEMO_CARS[0] && carOf("<script>") === DEMO_CARS[0] && carOf("x".repeat(80)) === DEMO_CARS[0] && carOf("1965 ford mustang") === "1965 Ford Mustang", "an unknown or unsafe car= opens the 2015 GT3; a quick pick in any case is that car");
-  ok(!/Sam is reading the sales\.</.test(pageHtml("c", "1")) && /Sam is reading the sales for this one\./.test(pageHtml("c", "1")), "the loading line reads \"Sam is reading the sales for this one.\""); }
+  ok(!/Sam is reading the sales\.</.test(pageHtml("c", "1")) && pageHtml("c", "1".includes(CR)), "the loading line reads the engine's cold.reading line"); }
 // THE TYPED PATH (Sam, Oct 18 2026: a car typed into the first screen's own box did not reach the second screen). In a
 // local browser with every request answered here (no network, fake answers): type a car into view a's box, submit, then
 // open view b by its tab, at 1440 and 390; the address, the tab, the car bar and view b's read all carry the typed car.
@@ -265,7 +267,7 @@ for (const [name, d] of Object.entries(FIX)) {
       ok(a.shown === "SHOWN " + typed, `typed "${typed}" ${w}: the first screen keeps the typed car's answer when the default car's first read lands later (${a.shown})`);
       asked.length = 0;
       await Promise.all([pg.waitForNavigation({ waitUntil: "domcontentloaded" }), pg.click('.tabs a[href*="view=b"]')]); await new Promise(r => setTimeout(r, 300));
-      const b = await pg.evaluate(() => ({ sub: document.querySelector("#view-b .sub").textContent, bar: document.getElementById("car-in").value }));
+      const b = await pg.evaluate(() => ({ sub: document.getElementById("b-name").textContent, bar: document.getElementById("car-in").value }));
       ok(b.sub === typed && b.bar === typed && asked.length >= 1 && asked.every(q => q === typed), `typed "${typed}" ${w}: the second screen opens on it and reads it (${JSON.stringify({ ...b, asked })})`);
       await pg.close();
     }
@@ -353,8 +355,8 @@ for (const [name, d] of Object.entries(FIX)) {
   ok(DUMMY.q === "2014 Porsche 911 GT3" && DUMMY.vin === "WP0AC2A9XES183617" && DUMMY.miles === 30400 && DUMMY.price === 139900 && DUMMY.miles >= 29000, "the listing car is the 2014 GT3 at 30,400 miles (not below its last sale at 29,000) and $139,900");
   const pageSrc = fs.readFileSync(new URL("../api/partnerDemo.js", import.meta.url), "utf8");
   ok(/var ownSold = function\(a\)\{ return \(\(a && a\.history\) \|\| \[\]\)\.filter\(function\(r\)\{ return r\.result === "sold" && r\.photo; \}\); \};/.test(pageSrc) && /'<div class="own-main">' \+ mainPhotoHtml\(a\)/.test(pageSrc) && !/_partnerHero|HERO_JPEG_B64|img === "hero"/.test(pageSrc), "the listing car's photos are its own sales' photos, the newest first; the old studio photo is gone");
-  ok(/rangePanel\(a, D \? \{ price: D\.price, slot: "c", lines: "c" \}/.test(pageSrc) && (pageSrc.match(/function placing\(/g) || []).length === 1, "the asking price's pill is the one placing() against the engine's range");
-  ok(/run\("b", D \? \{ q: CAR, vin: D\.vin \} : \{ q: CAR \}, gotB\);/.test(pageSrc), "the reserve view reads the listing car with its VIN, so its own sale photo shows there too"); }
+  ok(/rangePanel\(a, D \? \{ pos: posOf\(a, "item_price"\), slot: "c", lines: "c" \}/.test(pageSrc) && !/\bplacing\s*\(/.test(pageSrc), "the asking price's pill words the engine's item_price position; the page has no placing()");
+  ok(/function plainBody\(\)\{ var b = \{ q: CAR \}; if \(D\) b\.vin = D\.vin;/.test(pageSrc) && /bRead\(\);/.test(pageSrc), "the listing form reads the listing car with its VIN (the same first body as view c)"); }
 // A CAR GIVEN BY VIN (Sam, Oct 18 2026): the engine's name as the heading with the VIN small beneath (the VIN alone
 // when it cannot name the car); the main photo is this car's own newest sale photo captioned with its month and year,
 // else a car like it captioned as such; the sales-list rows that are this car's own sales carry "This car".
@@ -453,7 +455,7 @@ for (const [name, d] of Object.entries(FIX)) {
         ok(m.vin === 1 && m.miles === 2 && !m.specsUnderPrice, `listing view ${w}: the VIN once, the mileage only in the title line and About this car, no Mileage block under the price (${JSON.stringify(m)})`);
       } else {
         const m = await pg.evaluate(() => { const pn = document.querySelector("#view-b .prior"), sub = document.getElementById("b-name"), res = document.querySelector("#view-b .reserve"); return { panel: !!pn, head: pn ? (pn.querySelector("h3") || {}).textContent : "", afterHeading: !!(pn && sub && (sub.compareDocumentPosition(pn) & 4)), beforeReserve: !!(pn && res && (pn.compareDocumentPosition(res) & 4)), none: !!document.querySelector("#view-b .prior-none") }; });
-        ok(withHist ? m.panel && m.head === "This car last sold for $124,000 in July 2025." && m.afterHeading && m.beforeReserve && !m.none : !m.panel && !m.none, `reserve view ${w}, ${withHist ? "the 2014 GT3" : "a car with no earlier sale"}: ${withHist ? "the panel under the heading line, above the reserve box" : "no panel and no line"} (${JSON.stringify(m)})`);
+        ok(!m.panel && !m.none, `listing form ${w}, ${withHist ? "the 2014 GT3" : "a car with no earlier sale"}: view b (the eBay form of the mock) carries no "This car last sold for" panel; the earlier sale stays on views a and c (${JSON.stringify(m)})`);
       }
       await pg.close();
     }

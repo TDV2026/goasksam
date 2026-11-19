@@ -64,7 +64,7 @@ export default async function handler(req, res) {
   lines.push("", leadLine);
 
   let sent;
-  try { sent = await sendTaskEmail({ to, subject: "New Sam Desk request", text: lines.join("\n") }); }
+  try { sent = await sendTaskEmail({ to, subject: "New Sam Desk request", text: lines.join("\n"), always: true }); }
   catch (e) { sent = { ok: false, error: (e && e.message) || "threw" }; }
 
   if (leadId) {

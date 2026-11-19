@@ -12,6 +12,7 @@ const grab = (from, to) => { const a = src.indexOf(from), b = src.indexOf(to, a)
 const env = "var obDistSeq = 0; function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\"/g,'&quot;'); } function usd(n){ return '$' + Math.round(Number(n)).toLocaleString('en-US'); } function lint(s){ return s; } function obNumWordLow(n){ return String(n); } function heroPoolSizeNum(d){ return d.poolN; } function capCardsHtml(){ return ''; } function poolCardHtml(){ return ''; }\n" + grab("  function distBucketLabel(", "  // ORDER AND NOTHING ELSE") + "\nwindow.__dist = distributionHtml;";
 const vm = await import("node:vm"); const ctx = vm.createContext({ window: {}, Math, Number, Array, String, Object });
 vm.runInContext(env, ctx);
+vm.runInContext(grab("function obCount(", "function classEraHtml"), ctx);   // the page's own count and noun helper (lib/countNoun.js twin)
 const B = (low, high, count, share, typical) => ({ low, high, count, share, typicalBucket: !!typical, receipts: [] });
 const withShare = ctx.window.__dist({ poolN: 42, distribution: { buckets: [B(40000, 50000, 6, 14), B(50000, 60000, 13, 31, true), B(60000, 70000, 12, 29), B(70000, 80000, 7, 17), B(80000, 90000, 4, 9)] } });
 const noShare = ctx.window.__dist({ poolN: 12, distribution: { buckets: [B(40000, 50000, 3, null), B(50000, 60000, 5, null, true), B(60000, 70000, 4, null)] } });
@@ -24,10 +25,10 @@ const noTyp = ctx.window.__dist({ poolN: 30, distribution: { buckets: [B(1, 2, 5
 ok(!/dist-legend/.test(noTyp) && !/dist-bar typical/.test(noTyp), "no typical bucket from the engine: no legend and one colour");
 ok(/\.distrows\{display:flex;flex-direction:column;margin-top:0\}/.test(page) && /\.distrows \.distrow:first-child \.distrowbtn\{padding-top:4px\}/.test(page), "no empty gap between the subtitle and the first bar");
 // ---- Live right now rows
-const live = grab("      var rows = j.rows.map(function (l) {", "      var q = (m && m.displayName)");
+const live = grab("j.rows.map(function (l) {", "m.displayName");
 ok(!/Current bid/.test(live) && /var amountText = l\.fixedPriceUsd \? "Asking " \+ usd\(l\.fixedPriceUsd\) : \(amt \? amt : "No bids yet"\);/.test(live), "the live row never says 'Current bid': '$X', 'Asking $X' or 'No bids yet'");
 ok(/\(!l\.fixedPriceUsd && amt && l\.bid_at\) \? \("at " \+ bidTimePT\(l\.bid_at\)\)/.test(live), "the time is the bid's own, 'at 11:21am PT', through bidTimePT");
-const bt = new Function(grab("  function bidTimePT(at) {", "  // LIVE RIGHT NOW") + "\nreturn bidTimePT;")();
+const bt = new Function(grab("  function bidTimePT(", "  // LIVE RIGHT NOW") + "\nreturn bidTimePT;")();
 const now = new Date(), today = new Date(now.getTime() - 3600e3), old = new Date(now.getTime() - 3 * 86400e3);
 ok(/^\d{1,2}:\d\d(am|pm) PT$/.test(bt(today)) || /^\d{1,2}:\d\d(am|pm) PT on \w+day$/.test(bt(today)), "today's bid: 'at 11:21am PT' (" + bt(today) + ")");
 ok(/^\d{1,2}:\d\d(am|pm) PT on (Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$/.test(bt(old)), "an older bid names the day (" + bt(old) + ")");

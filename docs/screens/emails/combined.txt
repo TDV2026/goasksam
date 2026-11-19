@@ -1,0 +1,59 @@
+Subject: Two updates from your Tasks
+
+Live right now
+
+2025 Porsche 911 Carrera
+bringatrailer · 29 min left
+Last bid seen $30,000 at 7:50am PT
+Carrera $118,000 to $139,000, 9 sales
+Carrera S $141,000 to $154,000, 11 sales
+View auction: https://example.com/listing/101
+Market Check: https://goasksam.com/market-check?car=undefined
+Matches your Task: 911.
+
+Sam is looking for a 2025 Porsche 911.
+Open the Task: https://goasksam.com/tasks/mine?task=00000000-0000-4000-8000-0000000000a1
+Pause: https://goasksam.com/api/tasks?a=pause&t=00000000-0000-4000-8000-0000000000a1.wKRYwIZqVHvOtRaWdIyUlv
+Stop: https://goasksam.com/api/tasks?a=stop&t=00000000-0000-4000-8000-0000000000a1.W5-A7xrx-4HovlWhsH1RL6
+
+· · ·
+
+Three Porsche 911 Carrera Targas sold since October 22.
+
+1987 Porsche 911 Carrera Targa 4
+Sold $104,000 October 24, 2026 · Bring a Trailer
+43,800 miles
+This one was set aside as modified, so it does not sit in the range.
+View the sale: https://example.com/sale/4
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-4
+
+1987 Porsche 911 Carrera Targa 3
+Sold $102,500 October 23, 2026 · Bring a Trailer
+43,100 miles
+View the sale: https://example.com/sale/3
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-3
+
+1987 Porsche 911 Carrera Targa 2
+Sold $101,000 October 22, 2026 · Bring a Trailer
+42,400 miles
+$88,000 to $121,000
+The typical range for cars like this.
+The sale was inside the range.
+View the sale: https://example.com/sale/2
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-2
+
+You asked Sam to tell you when the next Porsche 911 Carrera Targa sells.
+
+Open the Task: https://goasksam.com/tasks/mine
+Pause: https://goasksam.com/api/task-link?a=pause&t=00000000-0000-4000-8000-0000000000b2.glQwhFvjvUIK0T0zzDh88m
+Stop: https://goasksam.com/api/task-link?a=stop&t=00000000-0000-4000-8000-0000000000b2.Hx6H8VxkjD_iFZj1Kqq0Q6
+
+· · ·
+
+No Ferrari 308 GTS has sold since you started this Task. Sam keeps looking.
+
+Sam sends one email a day with everything new from your Tasks. Change how often on your Tasks page. Before it ends emails always come two hours before bidding ends. Open your Tasks: https://goasksam.com/tasks/mine Stop all Task emails: https://goasksam.com/api/tasks?a=emails_off&t=aaaaaaaa-0000-4000-8000-000000000001.PN7OcNTzMVrJhqBB55itUA
+
+If this landed in your junk folder, mark it as not junk so the next one reaches your inbox.
+
+GoAskSam

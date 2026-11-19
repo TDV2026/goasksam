@@ -178,28 +178,19 @@ await identityCase("identity: 67 corvette", "67 corvette", "valid", /1967 Chevro
     (alfa.body.ladder || []).some(r => r.key === "near_years_model" && r.label === "Spider sales 1972 to 1976" && r.maxYearGap === 2),
     JSON.stringify((alfa.body.ladder || []).map(r => r.label)));
 
-  // One real run: a mapped model with a thin exact year must land on the
-  // generation rung, never skip past it. Costs a few metered requests until
-  // the market-fetch cache table is applied; a cache hit costs zero.
+  // Oct 25 2026: this case was a full decision (a market-fetch cache miss spent OldCarsData credits). It is now a ladderPreview:
+  // a mapped model with a thin exact year must have its generation rung walked BEFORE the cross-generation rung. Zero fetches, zero writes.
   const real = await post("/api/sellerDecision", {
+    ladderPreview: true,
     car: { vehicle: { raw: "2017 Porsche 911 GTS", year: 2017, make: "Porsche", model: "911", trim: "Carrera GTS", confidence: "high" }, region: "US", state: "California" }
   });
-  const ladder = real.body.evidence?.ladder;
-  const rung1 = (ladder?.rungs || []).find(r => r.rung === 1);
-  const rung2 = (ladder?.rungs || []).find(r => r.rung === 2); // generation_trim for a mapped year
-  const thinExactYear = rung1 && !rung1.met;
-  check("generations: real run returns a decision", real.status === 200 && real.body.status === "decision_ready", `status=${real.status} ${real.body.status}`);
-  // The invariant is rung-primary, window-secondary: a thin exact year must WIDEN WITHIN
-  // the generation before the cross-generation pool, i.e. never SKIP a MET generation rung.
-  // If the generation rung is itself thin (not met in the recency windows), widening on to
-  // any_year_trim is correct, not a regression - so the check only bites when rung2 is met.
-  check("generations: thin exact year never skips a met generation rung",
-    !thinExactYear || !rung2 || !rung2.met || ladder?.landed?.key === "generation_trim",
-    `rung1.met=${rung1?.met} rung2(gen).met=${rung2?.met} landed=${ladder?.landed?.key} (${ladder?.landed?.label})`);
-  // Whenever the run DOES land on the generation rung, the evidence label must name it.
-  check("generations: landed evidence names the generation when it lands there",
-    ladder?.landed?.key !== "generation_trim" || /991\.2-generation/.test(ladder?.landed?.label || ""),
-    ladder?.landed?.label);
+  const rungs = real.body.ladder || [];
+  const idx = k => rungs.findIndex(r => r.key === k);
+  check("generations: preview returns a ladder", real.status === 200 && real.body.status === "ladder_preview" && rungs.length >= 3, `status=${real.status} ${real.body.status}`);
+  check("generations: generation rung is walked before the cross-generation rung",
+    idx("generation_trim") !== -1 && (idx("any_year_trim") === -1 || idx("generation_trim") < idx("any_year_trim")),
+    JSON.stringify(rungs.map(r => r.key)));
+  check("generations: generation rung names 991.2", /991\.2-generation/.test(rungs.find(r => r.key === "generation_trim")?.label || ""), rungs.find(r => r.key === "generation_trim")?.label);
 }
 
 // Price-step transparency (#68): the price probe is ARCHIVE-ONLY and returns THE RECORD (a real

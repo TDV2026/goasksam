@@ -1,0 +1,175 @@
+import { optionProblems } from "../lib/optionProblems.js";
+// The DOM rules of the number rule, shared by underlineCheck.mjs (fixtures) and e98LiveCheck.mjs (production): read the COMPUTED styles of every answer card on a page.
+export const inPage = () => {
+  const out = { under: [], small: [], tiny: [], text: [], lines: [], bigLinks: [], contradict: [], keep: [], sale: [], classes: [], specs: [], panels: [], strip: null, pillsInCard: [], slots: [], chipWrap: [], findBad: [], footers: [], slotRows: 0, counts: null, sales: null, ranges: [], yearNo: null, chartText: [], linkPos: [], metaBad: [], single: null, gaps: 0, bidWords: [], printed: null, pointerDup: [], noband: [], updated: [], footNotes: [], footWrap: [] };
+  const vis = e => { const r = e.getBoundingClientRect(), s = getComputedStyle(e); return r.width > 2 && r.height > 2 && s.visibility !== "hidden" && s.display !== "none"; };
+  const cards = [...document.querySelectorAll(".sfc-card, .car .sl")];
+  const underlined = e => { for (let n = e; n && n !== document.body; n = n.parentElement) { if (/underline/.test(getComputedStyle(n).textDecorationLine || "")) return true; } return false; };
+  const inAnchor = e => !!e.closest("a[href]");
+  for (const card of cards) {
+    out.text.push(card.innerText);
+    let cardBig = false; const cardTiny = [];   // a range set 20px or larger is the card's headline range; a small one in the footer is a note only when the card has a headline range
+    const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
+    for (let t; (t = walker.nextNode());) {
+      if (!/\$\s?\d/.test(t.nodeValue)) continue;
+      const e = t.parentElement; if (!e || !vis(e) || e.closest(".sfc-sr")) continue;
+      if (underlined(e) || inAnchor(e)) out.under.push(t.nodeValue.trim().slice(0, 60) + (inAnchor(e) ? " [in a link]" : " [underlined]"));
+      if (/\$[\d,]+\s*(?:to)\s*\$[\d,]+/.test(t.nodeValue)) { const fs = parseFloat(getComputedStyle(e).fontSize);
+        if (fs >= 20) cardBig = true;
+        else if (!e.closest(".fx-sales, .md-opts, .fx-near, .fx-count, .sfc-small")) cardTiny.push({ text: t.nodeValue.trim(), fs, foot: !!e.closest(".sfc-footer-left") }); }
+    }
+    // a small range in the footer is tagged a note (judge() accepts it only when it is the engine's own rangeSentence); with no headline range in the card it is a small range like any other
+    if (!cardBig) for (const e of card.querySelectorAll("*")) { if (!vis(e) || e.closest(".sfc-footer-left, .sfc-sr")) continue; const tx = e.textContent.replace(/\s+/g, " "); if (tx.length < 80 && /\$\s?[\d,]+\s*(?:to|-|\u2013)\s*\$\s?[\d,]+/.test(tx) && parseFloat(getComputedStyle(e).fontSize) >= 20) { cardBig = true; break; } }   // the headline range may be split over several elements
+    for (const u of card.querySelectorAll(".sfc-updated")) { if (!vis(u)) continue; const cs = getComputedStyle(u), left = u.closest(".sfc-footer-left"), r = u.getBoundingClientRect();
+      let bg = "rgb(255, 255, 255)"; for (let n = u; n; n = n.parentElement) { const c = getComputedStyle(n).backgroundColor; if (c && !/rgba\(0, 0, 0, 0\)|transparent/.test(c)) { bg = c; break; } }
+      let own = true; if (left) { const w = document.createTreeWalker(left, NodeFilter.SHOW_TEXT); for (let t; (t = w.nextNode());) { if (u.contains(t) || !t.nodeValue.trim()) continue; const rg = document.createRange(); rg.selectNodeContents(t); for (const q of rg.getClientRects()) if (q.bottom > r.top + 1 && q.height > 2) own = false; } }
+      out.updated.push({ text: u.innerText.trim(), block: cs.display === "block", fs: parseFloat(cs.fontSize), footFs: left ? parseFloat(getComputedStyle(left).fontSize) : 0, color: cs.color, bg, own, wide: r.right <= innerWidth + 1 && r.left >= -1 }); }
+    for (const x of cardTiny) out.tiny.push(x.text.slice(0, 60) + " @" + x.fs + "px" + (x.foot && cardBig ? " [footer note]" : "")); out.tinyFull = (out.tinyFull || []).concat(cardTiny.map(x => x.text)); if (cardBig) for (const x of cardTiny) if (x.foot) out.footNotes.push(x.text.replace(/\s+/g, " "));
+    // the small lines under the figures: a visible text block under 15px that is not a label (uppercase), a count under a block, a pill, the footer, the spec, a sale line or a button
+    let n = 0;
+    for (const e of card.querySelectorAll("p, div")) {
+      if (!vis(e) || e.closest(".sfc-footer, .sfc-pill, .sfc-block, .acts, .fx-sales, button, .sfc-rows, .sfc-narrow") || e.querySelector("p, div, button")) continue;
+      const s = getComputedStyle(e);
+      if (s.textTransform === "uppercase" || e.classList.contains("fx-spec") || e.classList.contains("fx-bid") && false || e.classList.contains("who") || /^SAM$/i.test(e.innerText.trim())) continue;
+      if (parseFloat(s.fontSize) < 15 && e.innerText.trim()) n++;
+    }
+    out.lines.push(n);
+  }
+  // a link in a Find card that is larger than body text AND underlined (the old "See the bid on {platform}" heading above the car's name): the card's one link to the auction is the View auction button
+  for (const a of document.querySelectorAll("article.car a[href]")) if (vis(a) && parseFloat(getComputedStyle(a).fontSize) > 16.5 && underlined(a)) out.bigLinks.push(a.innerText.trim().slice(0, 50) + " @" + getComputedStyle(a).fontSize);
+  // a header line that says there is nothing while cards are drawn below it; and the "Have Sam keep looking" button's colour (never red: it reads as a delete button), against View auction's own green
+  const drawn = document.querySelectorAll("article.car:not(.skel)").length, bodyText = document.body.innerText;
+  out.drawn = drawn; out.hasNothingLine = /No live matches right now|Nothing live fits yet|Nothing live right now/.test(bodyText);
+  if (drawn > 0 && out.hasNothingLine) out.contradict.push((bodyText.match(/No live matches right now|Nothing live fits yet|Nothing live right now/) || [""])[0] + " over " + drawn + " cards");
+  const rgb = c => (/rgba?\((\d+), (\d+), (\d+)/.exec(c) || []).slice(1, 4).map(Number), v = document.querySelector("a.vauc");
+  for (const b of document.querySelectorAll(".kl-btn, .gas-kl-btn")) if (vis(b)) { const c = rgb(getComputedStyle(b).backgroundColor), g = v ? rgb(getComputedStyle(v).backgroundColor) : null; out.keep.push({ bg: c.join(","), red: c[0] > c[1] + 60 && c[0] > c[2] + 60, sameAsView: g ? c.join() === g.join() : null }); }
+  // one visual weight for the sale lines: every sale line in a Find card is the same size, weight and family, none underlined (the underline itself is caught above); the spec chips row is read for the chips-unaffected rule
+  for (const s of document.querySelectorAll("article.car .fx-sale")) if (vis(s)) { const cs = getComputedStyle(s); out.sale.push(cs.fontSize + "|" + cs.fontWeight + "|" + cs.fontFamily.split(",")[0]); }
+  for (const s of document.querySelectorAll("article.car .specs .spec")) if (vis(s)) out.specs.push(s.innerText.trim() + (/underline/.test(getComputedStyle(s).textDecorationLine) ? " [underlined]" : ""));
+  out.classes = [...new Set([...document.querySelectorAll("article.car *")].flatMap(e => [...e.classList]))];
+  // THE NARROW STRIP AND THE CHART PANEL (e98 narrow strip). A pill or the mileage box inside the answer card; the strip's place and heading; every chart panel's heading, kind and, for dots, any line that is not a gridline.
+  for (const e of document.querySelectorAll(".sfc-card .sfc-pill, .sfc-card .sfc-chip, .sfc-card .sfc-narrow, .sfc-card #ob-miles, .sfc-card .hero-miles")) if (vis(e)) out.pillsInCard.push((e.className || e.id || e.tagName) + "");
+  const strip = document.querySelector(".narrow-strip"), card0 = document.querySelector(".sfc-card");
+  if (strip) { const sr = strip.getBoundingClientRect(), cr = card0 ? card0.getBoundingClientRect() : null; out.strip = { labels: [...strip.querySelectorAll(".sfc-label")].map(e => e.innerText.trim()), pills: strip.querySelectorAll(".sfc-pill, .sfc-chip, .sfc-opt-btn").length, miles: !!strip.querySelector("#ob-miles"), below: cr ? sr.top >= cr.bottom - 1 && sr.top - cr.bottom < 90 : null, gap: cr ? Math.round(sr.top - cr.bottom) : null }; }
+  for (const pn of document.querySelectorAll(".hero-chart")) { const svg = pn.querySelector("svg.hc-svg");
+    out.panels.push({ kind: pn.getAttribute("data-chart"), heading: (pn.querySelector("h2") || {}).innerText || "", scope: (pn.querySelector(".hc-scope") || {}).innerText || "", note: (pn.querySelector(".hc-note") || {}).innerText || "",
+      paths: svg ? svg.querySelectorAll("polyline, path, polygon").length : 0, loose: svg ? [...svg.querySelectorAll("line")].filter(l => !l.classList.contains("hc-grid") && !l.closest(".hc-candle")).length : 0, flat: svg ? [...svg.querySelectorAll("line.hc-grid")].every(l => l.getAttribute("y1") === l.getAttribute("y2")) : true, circles: svg ? svg.querySelectorAll("circle.hc-dot").length : 0 }); }
+  // THE FIND CARD'S SLOTS (Sam, Oct 28 2026): cards in the same row have identical slot tops (source line, title, answer, small line, buttons) within 1px; the chip row is one row; no sale line, no "pick one", no second range, no near-miles or band line; the Sam box is the spec, the answer and ONE small line.
+  const rowsOf = {}; for (const c of document.querySelectorAll(".cgrid > article.car")) if (vis(c)) (rowsOf[Math.round(c.getBoundingClientRect().top)] = rowsOf[Math.round(c.getBoundingClientRect().top)] || []).push(c);
+  // Oct 30 2026: the count and bid lines follow the answer line by line (normal line spacing), so only the answer, the source, the title and the buttons are compared across a row (cardLevelCheck holds the Sam block height and the line gaps)
+  const SLOTS = { source: ".tx > .src", title: ".tx > .trow", answer: ".tx > .sl > .fx-ans", buttons: ".tx > .acts" };
+  for (const row of Object.values(rowsOf)) { if (row.length < 2) continue; out.slotRows++;
+    for (const [k, sel] of Object.entries(SLOTS)) { const tops = row.map(c => { const e = c.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().top * 10) / 10 : null; }).filter(v => v !== null); if (tops.length > 1 && Math.max(...tops) - Math.min(...tops) > 1) out.slots.push(k + " tops " + tops.join("/")); } }
+  for (const p of document.querySelectorAll("article.car .specs")) { const ch = [...p.querySelectorAll(".spec")].filter(vis); if (ch.length && (new Set(ch.map(e => Math.round(e.getBoundingClientRect().top))).size > 2 || p.scrollWidth > p.clientWidth + 1 || p.scrollHeight > p.clientHeight + 1)) out.chipWrap.push(ch.map(e => e.innerText).join(" | ")); }
+  for (const c of document.querySelectorAll("article.car")) { const sl = c.querySelector(".sl"); if (!sl) continue; const txt = sl.innerText.replace(/\s+/g, " "), kids = [...sl.children].filter(e => !e.classList.contains("who") && !e.classList.contains("reading") && !e.classList.contains("nt"));
+    if (sl.querySelector(".fx-sale, .fx-sales, .fx-near, .fx-lab, .same")) out.findBad.push("sale line, near line, option label or exact-car line in the Sam box");
+    if (/pick one|Pick one/i.test(txt)) out.findBad.push('a "pick one" line');
+    if ((txt.match(/\$[\d,]+ to \$[\d,]+/g) || []).length > 1) out.findBad.push("a second range: " + txt.slice(0, 80));
+    if (/Near [\d,]+ miles|miles near|near [\d,]+ miles/i.test(txt)) out.findBad.push("a near-miles or mileage band line: " + txt.slice(0, 80));
+    if (kids.length && (kids.length !== 3 || !kids.every((e, i) => new RegExp(["fx-ans", "fx-count", "fx-bid"][i]).test(e.className)))) out.findBad.push("the Sam box is not answer, count line, bid line: " + kids.map(e => e.className).join(",")); }
+  for (const c of document.querySelectorAll("article.car")) { const btn = [...c.querySelectorAll("button[data-mc]")].find(b => /See the sales/.test(b.innerText)), sl = (c.querySelector(".sl") || {}).innerText || ""; if (btn && /See the sales for all/i.test(sl)) out.pointerDup.push(sl.replace(/\s+/g, " ").slice(0, 80)); }
+  // the Market Check card's footer
+  for (const f of document.querySelectorAll(".sfc-footer-left")) out.footers.push(f.innerText.replace(/\s+/g, " ").trim());
+  for (const f of document.querySelectorAll(".sfc-footer-left")) { const u = f.querySelector(".sfc-updated"), lh = parseFloat(getComputedStyle(f).lineHeight) || 16, cl = f.closest(".sfc-card").getBoundingClientRect(); out.footWrap.push({ over: f.scrollWidth - f.clientWidth, outside: Math.round(Math.max(0, f.getBoundingClientRect().right - cl.right)), lines: Math.round(f.getBoundingClientRect().height / lh), updLines: u ? Math.round(u.getBoundingClientRect().height / ((parseFloat(getComputedStyle(u).lineHeight) || 15))) : 0 }); }
+  // COUNTS AND SALES (Sam's review, Oct 28 2026). Every number on a Market Check screen is read here and compared by judge: a pill never exceeds the headline count; a split's blocks add up to the footer count; "for all N" is the headline count;
+  // the hero, the footer, "All N comparable sales" and the table agree; each of the three sales behind the answer sits inside a shown range; every listed sale belongs to the page's car; no row has a year the page says there are no sales of.
+  const W = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 }, N = s => { const k = String(s).toLowerCase(); return k in W ? W[k] : Number(k.replace(/,/g, "")); }, firstN = (s, re) => { const m = re.exec(s || ""); return m ? N(m[1]) : null; }, hero = document.querySelector(".hero-scope");
+  if (hero) {
+    out.heroText = hero.innerText.replace(/\s+/g, " ").trim(); out.counts = { hero: firstN(hero.innerText, /(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten) sales?/i), footer: firstN((document.querySelector(".sfc-footer-left") || {}).innerText, /(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten) sales?/i), allH: firstN([...document.querySelectorAll("h2")].map(e => e.innerText).find(x => /^All \d/.test(x)), /^All (\d[\d,]*)/),
+      rows: document.querySelectorAll(".allsales-table tbody tr").length, pills: [...document.querySelectorAll(".narrow-strip .sfc-pn")].map(e => N(e.innerText)), blockLabels: [...document.querySelectorAll(".sfc-card .sfc-block .sfc-label")].map(e => e.innerText.replace(/\s+/g, " ").trim().toLowerCase()), pillNames: [...document.querySelectorAll(".narrow-strip .sfc-pill")].map(e => (e.firstElementChild || e).innerText.replace(/\s+/g, " ").trim()), blocks: [...document.querySelectorAll(".sfc-card .sfc-block .sfc-count")].map(e => firstN(e.innerText, /(\d[\d,]*)/)), optPills: [...document.querySelectorAll(".narrow-strip .sfc-opt-btn .sfc-pn")].map(e => N(e.innerText)), remainder: firstN([...document.querySelectorAll(".sfc-remainder, .sfc-card .sfc-small")].map(e => e.innerText).join(" "), /(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten) sales? (?:do|does) not/i) || 0,
+      seeAll: firstN([...document.querySelectorAll("#more-sales ~ *, .linkbtn")].map(e => e.innerText).find(x => /^See all (\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten) sales/i.test(x)), /^See all (\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten|\w+) sales/i), forAll: firstN((document.querySelector(".hero-miles") || {}).innerText, /for all (\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten)/i) };
+    const rg = txt => [...String(txt).matchAll(/\$([\d,]+) to \$([\d,]+)/g)].map(m => [N(m[1]), N(m[2])]);
+    out.ranges = rg([...document.querySelectorAll(".sfc-card .sfc-range")].map(e => e.innerText).join(" "));
+    out.sales = { trio: [...document.querySelectorAll(".salescard")].map(e => ({ price: N(((e.querySelector(".salescard-price") || {}).innerText || "").replace(/[^\d]/g, "")), title: (e.querySelector(".salescard-title") || {}).innerText || "" })),
+      rows: [...document.querySelectorAll(".allsales-table tbody tr")].map(r => ({ title: (r.children[1] || {}).innerText || "", price: N(((r.lastElementChild || {}).innerText || "").replace(/[^\d]/g, "")) })) };
+    const yn = /No (\d{4}) sales/.exec(document.querySelector(".sfc-card") ? document.querySelector(".sfc-card").innerText : ""); out.yearNo = yn ? yn[1] : null;
+  }
+  out.gaps = document.querySelectorAll(".hero-chart .hc-gap").length;
+  out.noband = [...document.querySelectorAll(".hero-left .hero-noband, .hero-held .hw-cap")].map(e => e.innerText.replace(/\s+/g, " ").trim());
+  // THE OPTIONS AS THE PAGE PRINTED THEM, for lib/optionProblems.js (the one rule, Lane B's): each option's engine line (the screen-reader copy of the whole line) gives its label, count and window; what is VISIBLE on its block or pill is what the page printed of it.
+  if (hero) { const pr = { options: [], optionLines: [], refineOptions: [], optionsRemainder: null, poolN: null, windowWords: null };
+    const sw = /since [A-Z][a-z]+ \d{4}/, cnt = s => firstN(s, /(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten) sales?/i);
+    const optEls = [...document.querySelectorAll(".sfc-card .sfc-block, .narrow-strip .sfc-opt-btn")];
+    for (const e of optEls) { const full = (e.querySelector(".sfc-sr") || {}).innerText || "", vis = Array.from((e.querySelector(".sfc-vis, span[aria-hidden]") || e).querySelectorAll("span")).map(x => x.childElementCount ? "" : x.textContent).join(" ").replace(/\s+/g, " ").trim() || (e.querySelector(".sfc-vis, span[aria-hidden]") || e).textContent.replace(/\s+/g, " ").trim(), label = (/^(.+?)(?:\s+\$|,\s+\d)/.exec(full) || [])[1] || vis.split(" ")[0];
+      pr.options.push({ dimension: "opt", value: label.toLowerCase(), label, n: cnt(full), windowWords: (sw.exec(full) || [null])[0] }); pr.optionLines.push(vis.toLowerCase().includes(String(label).toLowerCase()) ? vis : label + " " + vis); }
+    for (const e of document.querySelectorAll(".narrow-strip .sfc-chip")) { const label = ((e.firstElementChild || e).innerText || "").replace(/\s+\d[\d,]*$/, "").trim(); pr.refineOptions.push({ dimension: "opt", value: label.toLowerCase(), label, ofOptions: false }); }
+    const rm = [...document.querySelectorAll(".sfc-remainder, .sfc-card .sfc-small")].map(e => e.innerText).join(" "), rn = firstN(rm, /(\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten) sales? (?:do|does) not/i);
+    if (rn) pr.optionsRemainder = { n: rn, dimension: "opt", line: rm.trim() };
+    const ft = (document.querySelector(".sfc-footer-left") || {}).innerText || ""; pr.poolN = out.counts ? (out.counts.footer != null ? out.counts.footer : out.counts.allH) : null; pr.windowWords = (sw.exec(ft) || [null])[0]; out.printed = pr; }
+  for (const pn of document.querySelectorAll(".hero-chart")) out.chartText.push(pn.innerText.replace(/\s+/g, " ").trim());
+  for (const card of document.querySelectorAll(".sfc-card")) { const l = card.querySelector(".sfc-footer-left"), k = [...card.querySelectorAll(".sfc-footer-link")].find(a => /How Sam decides/.test(a.innerText)); if (l && k && vis(k)) { const lr = l.getBoundingClientRect(), kr = k.getBoundingClientRect(); out.linkPos.push(Math.abs(kr.left - lr.left) <= 1 && kr.top >= lr.bottom - 1 ? "ok" : "left " + Math.round(kr.left - lr.left) + " top " + Math.round(kr.top - lr.bottom)); } }
+  for (const c of document.querySelectorAll("article.car")) { const m = c.querySelector(".tx > .meta"); if (!m) out.metaBad.push("no meta slot"); else { if (/not listed|not stated|unknown/i.test(m.innerText)) out.metaBad.push(m.innerText.trim().slice(0, 60)); if (m.getBoundingClientRect().height < 14) out.metaBad.push("meta slot has no height"); } }
+  out.bidWords = []; for (const c of document.querySelectorAll("article.car")) { const mv = c.querySelector(".mlab .mv"), r = c.querySelector(".sl .fx-range"), w = c.querySelector(".sl .fx-bid") || c.querySelector(".sl .fx-count"); if (!mv || !r || !w) continue; const bid = N(mv.innerText.replace(/[^\d]/g, "")), rr = /\$([\d,]+) to \$([\d,]+)/.exec(r.innerText), word = /The bid is (below|within|inside|above)/.exec(w.innerText); if (rr && word) out.bidWords.push({ bid, lo: N(rr[1]), hi: N(rr[2]), word: word[1] }); }
+  { const g = document.querySelector(".cgrid"), cs = [...document.querySelectorAll(".cgrid > article.car")].filter(vis); if (g && cs.length === 1) out.single = { w: Math.round(cs[0].getBoundingClientRect().width), g: Math.round(g.getBoundingClientRect().width), vw: innerWidth }; }
+  out.cards = cards.length;
+  out.figure = [...document.querySelectorAll(".sfc-range, .fx-range")].filter(e => vis(e) && !e.closest(".sfc-sr") && parseFloat(getComputedStyle(e).fontSize) >= 20).length;
+  return out;
+};
+
+export const printedProblems = r => (r && r.printed ? optionProblems(r.printed) : []);
+export const judge = (ok, name, r, needs) => {
+  ok(r.cards > 0, `${name}: an answer card is on the page`);
+  ok(!r.under.length, `${name}: no currency figure is underlined or a link${r.under.length ? " (" + r.under.slice(0, 3).join(" | ") + ")" : ""}`);
+  ok(!r.bigLinks.length, `${name}: no link in a Find card is larger than body text and underlined${r.bigLinks.length ? " (" + r.bigLinks.slice(0, 2).join(" | ") + ")" : ""}`);
+  ok(new Set(r.sale).size <= 1, `${name}: the sale lines carry one visual weight (${[...new Set(r.sale)].join(" ; ") || "none on the page"})`);
+  ok(!r.specs.some(s => /underlined/.test(s)), `${name}: the spec chips row is not underlined`);
+  ok(!r.pillsInCard.length, `${name}: no pill and no mileage box inside the answer card${r.pillsInCard.length ? " (" + r.pillsInCard.slice(0, 2).join(", ") + ")" : ""}`);
+  if (r.strip) { ok(r.strip.pills > 0 ? (r.strip.labels.length === 1 && /^narrow by$/i.test(r.strip.labels[0])) : r.strip.labels.length === 0, `${name}: the strip has one heading NARROW BY over its chips, and none over the mileage box alone (${r.strip.pills} chips, ${r.strip.labels.join(" | ") || "no heading"})`); ok(r.strip.below !== false, `${name}: the strip sits directly below the card (${r.strip.gap}px)`); }
+  ok(r.panels.every(q => /How this market has moved/.test(q.heading)), `${name}: every chart panel carries the heading "How this market has moved" (${r.panels.map(q => q.kind + ":" + (q.heading ? "heading" : "NO HEADING")).join(", ") || "no panel"})`);
+  ok(r.panels.every(q => q.circles === 0 && q.kind !== "dots"), `${name}: NEVER a dot: no per-sale point in any chart panel (${r.panels.map(q => q.circles + " points").join(", ") || "no panel"})`);
+  ok(!r.slots.length, `${name}: cards in a row share their slot tops within 1px (${r.slotRows} rows read${r.slots.length ? "; " + r.slots.slice(0, 3).join(" ; ") : ""})`);
+  ok(!r.chipWrap.length, `${name}: the chip row is at most two lines (a fixed two-line height) and nothing is cut off${r.chipWrap.length ? " (" + r.chipWrap[0] + ")" : ""}`);
+  ok(!r.findBad.length, `${name}: a Find card prints no sale line, no pick one line, no second range, no near-miles or band line, and its Sam box is three slots${r.findBad.length ? " (" + r.findBad.slice(0, 2).join(" ; ") + ")" : ""}`);
+  { const withOpts = !!(r.printed && r.printed.options.length > 0), single = /^\d[\d,]* sales,? since [A-Z][a-z]+ \d{4}\. Updated [A-Z][a-z]{2} \d{1,2}, \d{4}\.$/, E = r.engine, upd = /Updated [A-Z][a-z]{2} \d{1,2}, \d{4}\.$/;
+    // THE FOOTER CONTRACT (Lane B, Oct 29 2026): the footer is the engine's own sentences and nothing else: its rangeSentence, its windowLine (the total count and the since date: sent for a single range and for options that all share the window, null when options are split or apart, each option then printing its own), and "Updated <date>.". Never "null", never a dangling since.
+    const want = E ? (E.rangeSentence || E.windowLine || "") : null;   // the range sentence states the count and the window itself (Lane B, b87e02e4): the footer prints it, not the windowLine, when both are present
+    ok(r.footers.every(f => !/Powered by|null|undefined|\(\)|since\s*[.,]/.test(f) && (E ? (f.startsWith(want) && upd.test(f) && (!E.updatedLine || f.endsWith(E.updatedLine)) && f.replace(want, "").replace(upd, "").trim() === "") : (withOpts ? upd.test(f) : single.test(f)))), `${name}: the card footer is the engine's own sentences and the update date${E && !E.windowLine ? " (no total count or total since date: the engine sent none)" : ""}, no Powered by, no null (${r.footers.join(" | ") || "no footer"})`); }
+  if (r.counts) { const c = r.counts, h = c.hero;
+    { const bad = r.printed ? optionProblems(r.printed) : []; ok(!bad.length, `${name}: the options the page printed obey lib/optionProblems.js, the one rule (add up to the footer or print a remainder, or each prints its own since date; no pill twice; no repeat across lists)${bad.length ? ": " + bad.join("; ") : ""}`); }
+    const h2 = c.allH != null ? c.allH : c.seeAll;   // the engine's total is printed by the All-sales caption and the see all link (the hero scope line and the footer print none with options)
+    if (c.forAll != null) ok(c.forAll === h2, `${name}: "for all N" is the engine's total (${c.forAll} against ${h2})`);
+    ok(c.seeAll == null || c.seeAll === h2, `${name}: the see all link, the All-sales caption and the table count agree (${c.seeAll} / ${c.allH} / ${c.rows} rows)`);
+    ok(r.heroText == null || (!/\d[\d,]* sales?\b/i.test(r.heroText) && !/null|undefined|\(\)|since\s*[.,]?$/i.test(r.heroText)), `${name}: the title line carries no count and no null (${r.heroText})`);
+    { const E = r.engine, noTotal = E ? !E.windowLine : !!(r.printed && r.printed.options.length > 0), tot = h != null ? h : h2;
+      ok(h2 != null && (c.rows === 0 || c.rows === h2) && (noTotal ? c.footer == null && h == null : (c.footer === h2 && (h == null || h === h2))), `${name}: ${noTotal ? "the engine sent no window line: the footer and the title line print no total; the All-sales caption and the table agree" : "the footer total, the All-sales caption and the table agree"} (${h} / ${c.footer} / ${c.allH} / ${c.rows} rows)`); }
+    const inRange = p => r.ranges.length === 0 || r.ranges.some(([lo, hi]) => p >= lo && p <= hi), trio = r.sales ? r.sales.trio : [];
+    ok(trio.every(s => inRange(s.price)), `${name}: each sale behind the answer sits inside a shown range (${trio.map(s => "$" + s.price).join(", ") || "none"} against ${r.ranges.map(x => x.join("-")).join(" and ") || "no range"})`);
+    const listed = r.sales ? [...trio, ...r.sales.rows] : [];
+    if (needs && needs.length) ok(listed.every(s => needs.every(w => s.title.toLowerCase().includes(w.toLowerCase()))), `${name}: every listed sale belongs to the page's car (${needs.join(" ")}): ${listed.filter(s => !needs.every(w => s.title.toLowerCase().includes(w.toLowerCase()))).slice(0, 2).map(s => s.title).join(" | ") || "all of them"}`);
+    if (r.yearNo) ok(listed.every(s => !s.title.includes(r.yearNo)), `${name}: no listed sale is from ${r.yearNo} where the page says there are no ${r.yearNo} sales`); }
+  ok(r.chartText.every(tx => { const lines = tx.split(/(?<=[.!?])\s+/).map(x => x.trim().toLowerCase()).filter(Boolean); return new Set(lines).size === lines.length && (tx.match(/sales only/gi) || []).length <= 1; }), `${name}: the chart panel says nothing twice ("sales only" at most once)`);
+  ok(r.linkPos.every(x => x === "ok"), `${name}: How Sam decides sits in the same place in every card footer, under the footer line and flush left (${r.linkPos.join(", ") || "no footer"})`);
+  ok(!r.metaBad.length, `${name}: every Find card keeps its miles-and-place slot, with its height, and never prints a not-listed label${r.metaBad.length ? " (" + r.metaBad[0] + ")" : ""}`);
+  ok(r.bidWords.every(b => (b.word === "below" ? b.bid < b.lo : b.word === "above" ? b.bid > b.hi : b.bid >= b.lo && b.bid <= b.hi)), `${name}: each card's bid sentence agrees with its last bid and its range (${r.bidWords.map(b => "$" + b.bid + " " + b.word + " " + b.lo + "-" + b.hi).join("; ") || "none to read"})`);
+  if (r.single) ok(r.single.vw < 700 || r.single.w <= r.single.g * 0.5 + 2, `${name}: a single Find card is sized like the others, not full width (${r.single.w}px of ${r.single.g}px)`);
+  ok(!r.pointerDup.length, `${name}: no Find card prints "See the sales for all N." next to its See the sales button${r.pointerDup.length ? " (" + r.pointerDup[0] + ")" : ""}`);
+  ok(!r.contradict.length, `${name}: no header line says there is nothing over drawn cards${r.contradict.length ? " (" + r.contradict[0] + ")" : ""}`);
+  ok(r.keep.every(k => !k.red && k.sameAsView !== false), `${name}: the Have Sam keep looking button is not red and is View auction's green (${r.keep.map(k => k.bg).join(" | ") || "none on the page"})`);
+  // A FOOTER THAT WRAPS WELL (checked at 390): the footer text never runs past its card, the updated line is one line, and the sentences stay within a few lines
+  for (const fw of r.footWrap || []) ok(fw.over <= 1 && fw.outside <= 1 && fw.updLines <= 1 && fw.lines <= 8, `${name}: the footer wraps inside its card, the updated line is one line (overflow ${fw.over}, outside ${fw.outside}, ${fw.lines} lines, updated line ${fw.updLines})`);
+  { // THE FOOTER NOTE is the engine's range sentence ("... The rest ran from $139,000 to $355,500."), a caption under a headline range at note size: a small range in the footer passes only when it is the engine's own rangeSentence and the card has a headline range set large (any other small range still fails)
+    const E = r.engine, notes = r.tiny.filter(x => / \[footer note\]$/.test(x)), bad = r.tiny.filter(x => !/ \[footer note\]$/.test(x)), fnotes = r.footNotes || [], rs = E && E.rangeSentence ? E.rangeSentence.replace(/\s+/g, " ") : "";
+    const noteOk = E ? fnotes.every(t => rs && t.startsWith(rs) && t.replace(rs, "").replace(/Updated .*$/, "").trim() === "") : fnotes.length <= 1;
+    ok(!bad.length && noteOk, `${name}: every range is set large${rs ? " except the engine's range sentence, a note under the headline range" : ""}${bad.length ? " (" + bad.slice(0, 2).join(" | ") + ")" : !noteOk ? " (a small footer range that is not the engine's rangeSentence: " + fnotes.join(" | ") + ")" : ""}`);
+    // THE UPDATED LINE (Sam, Oct 29 2026): the engine's updatedLine, on its own line, smaller than the footer sentences, in a quiet grey that still reads (4.5:1 against its background), inside the viewport
+    const lum = c => { const m = String(c).match(/[\d.]+/g) || [0, 0, 0], f = v => { v = +v / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(m[0]) + 0.7152 * f(m[1]) + 0.0722 * f(m[2]); }, cr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    if (E) { const u = r.updated || []; ok(E.updatedLine ? (u.length === 1 && u[0].text === E.updatedLine) : u.length <= 1, `${name}: the updated line ${E.updatedLine ? "prints as the engine sent it, once" : "is the page's own date line or absent (the engine sent none)"} (${u.map(x => x.text).join(" | ") || "none"})`);
+      for (const x of u) { ok(x.own && x.block, `${name}: the updated line is on its own line (a block of its own, nothing of the footer sentences beside it)`); ok(x.fs < x.footFs && x.fs >= 11, `${name}: the updated line is smaller than the footer sentences and still 11px or more (${x.fs} against ${x.footFs})`); ok(cr(x.color, x.bg) >= 4.5 && x.color !== (r.footColor || ""), `${name}: the updated line is in the quiet grey and reads (contrast ${cr(x.color, x.bg).toFixed(2)})`); ok(x.wide, `${name}: the updated line sits inside the viewport`); } } }
+  ok(r.lines.every(n => n <= 2), `${name}: at most two small lines under the figures (${r.lines.join(", ")})`);
+  const all = r.text.join(" ");
+  ok(!/Sales read on|Sales since then are not in yet|Updating now/.test(all), `${name}: the stale line never prints`);
+  ok(!/Latest sale: [A-Z]/.test(all), `${name}: no "Latest sale: Month Year" line`);
+};
+
+// RUN DIRECTLY (Lane E, Nov 1 2026): this file is the DOM rules module that underlineCheck.mjs (fixtures) and e98LiveCheck.mjs (production) import, so run on its own
+// it printed nothing and exited 0, and a check that prints no result cannot fail. Run directly it now runs underlineCheck, the check that applies these rules to every
+// fixture card, and prints its pass and fail count as its own, exiting non-zero on any failure or on a run that printed no count.
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  const r = spawnSync(process.execPath, [fileURLToPath(new URL("./underlineCheck.mjs", import.meta.url))], { encoding: "utf8", maxBuffer: 1 << 26 });
+  const m = String(r.stdout || "").match(/underlineCheck: (\d+) pass, (\d+) FAIL/);
+  if (!m) { console.log("e98DomCheck: 0 pass, 1 FAIL (underlineCheck printed no pass and fail count, exit " + r.status + ")"); process.exit(1); }
+  console.log(`e98DomCheck: ${m[1]} pass, ${m[2]} FAIL (the DOM rules, applied by underlineCheck)`);
+  process.exit(Number(m[2]) || r.status ? 1 : 0);
+}

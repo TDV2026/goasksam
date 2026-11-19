@@ -1,0 +1,108 @@
+// Desk v3 stage 3: every report sentence is built from the case, changes when its case field changes, and a draft never claims what the case cannot support. node scripts/deskStateCheck.mjs [rootDir]
+import path from "node:path"; import fs from "node:fs"; import { pathToFileURL } from "node:url"; import { setup } from "./_deskCaseWorld.mjs";
+const root = path.resolve(process.argv[2] || "."), { M, K, read, readyCase, T, today } = await setup(root);
+const R = await import(pathToFileURL(path.join(root, "lib/desk/reportState.js")).href);
+let pass = 0, fail = 0; const ok = (n, c, d) => { if (c) pass++; else { fail++; console.log("FAIL " + n + (d ? "  " + d : "")); } }; const J = x => JSON.stringify(x), cl = x => structuredClone(x);
+const base = await readyCase(), ev = base.desk.evidence, rs = c => R.reportState(c);
+// a case that speaks of IMS work, with the invoices outstanding
+let ims = M.setField(cl(base), "service_history", "Seller reports the IMS bearing was replaced", "seller", { by: "intake", now: T }); ims.documents = [{ id: "d1", name: "IMS invoice", kind: "service", status: "outstanding" }];
+const imsDone = (() => { const c = cl(ims); c.documents[0].status = "received"; return c; })();
+// 1. documents received
+ok("IMS reads seller reported with the invoices outstanding", /reported by the seller/.test(rs(ims).imsLine) && /outstanding/.test(rs(ims).imsLine));
+ok("IMS reads documented once the documents are received, and not before", /documented by the service invoices/.test(rs(imsDone).imsLine) && !/documented/.test(rs(ims).imsLine));
+ok("the invoices step is in the next steps while outstanding and gone when received", rs(ims).nextSteps.includes("Send us the service invoice.") && !rs(imsDone).nextSteps.includes("Send us the service invoice."));
+ok("a car whose case never speaks of IMS gets no IMS line", rs(M.newCase({ now: T, vehicle: { year: 1999, make: "Porsche", model: "911" } })).imsLine === null);
+// 2. mileage verified
+const unv = cl(base); unv.fields.mileage.verified = false; unv.fields.mileage.source = "seller"; const ver = cl(base); ver.fields.mileage.verified = true;
+ok("mileage reads as stated by the seller until verified", /as stated by the seller/.test(rs(unv).mileageLine) && /is verified/.test(rs(ver).mileageLine) && rs(unv).mileageLine !== rs(ver).mileageLine);
+ok("the next steps are the case's own list: the call and the agree steps print whatever the mileage says (the old confirm-the-mileage step is gone with desk v3)", [rs(unv), rs(ver)].every(x => x.nextSteps.includes("We will call you to talk through this report.") && !x.nextSteps.includes("Confirm the mileage.")));
+ok("the mileage in the sentence is the case's mileage", rs(K.correctField(ver, "mileage", 70000, { now: T })).mileageLine.includes("70,000"));
+// 3. reserve across q1 and q3
+// the position is the ENGINE's answer for the reserve it was asked about, so each case is read for its own figure
+const at = async f => (await K.refreshEvidence(K.setReserve(base, { figure: f }, T), read, { caseDate: today, now: T })).case, bc = await at(ev.q1 - 1), ic = await at(Math.round((ev.q1 + ev.q3) / 2)), ac = await at(ev.q3 + 1), below = rs(bc), inside = rs(ic), above = rs(ac);
+ok("a reserve below q1 reads below, inside reads inside, above q3 reads above", below.reservePosition === "below" && inside.reservePosition === "inside" && above.reservePosition === "above" && /below the typical range/.test(below.reservePositionLine) && /inside the typical range/.test(inside.reservePositionLine) && /above the typical range/.test(above.reservePositionLine));
+ok("the three sentences differ", new Set([below.reservePositionLine, inside.reservePositionLine, above.reservePositionLine]).size === 3);
+ok("exactly at q1 and at q3 reads inside", rs(await at(ev.q1)).reservePosition === "inside" && rs(await at(ev.q3)).reservePosition === "inside");
+ok("a reserve the engine has not checked has no position (a stale check of another figure is never read)", K.reservePosition(K.setReserve(bc, { figure: bc.reserve.figure + 9 }, T)) === null);
+{ const CV = await import(pathToFileURL(path.join(root, "lib/desk/caseView.js")).href), view = c => CV.caseView({ id: "s", case: c, submission: { typed: true } }, [], T);
+  ok("the case view's position and reached lines are the engine's, for each position", [bc, ic, ac].every(c => view(c).reserve.positionLine === c.desk.reserveCheck.positionLine && view(c).reserve.reachedLine === c.desk.reserveCheck.reachedLine && view(c).reserve.position === c.desk.reserveCheck.position));
+  // THE REPORT'S REACHED LINE IS THE SELLER'S WORDS (Sam, Nov 12 2026: the report printed the analyst's short line "29 of 39 sales reached this figure"): since then the report says it in two sentences from the table, built from the engine's two counts (of, reached) and the reserve; the engine's short line is kept
+  // beside it for the analyst's panel (reachedShortLine). The old expectation (the report's line equals the engine's short line) went stale that day and this check was red from then on. NOW: the position line and the short line are the engine's, and the report's own line is exactly the table's two sentences over the engine's counts.
+  const win = c => K.windowOf(c), words = (c, ck) => `Over the last ${win(c)} months ${ck.of === 1 ? "1 of these cars" : ck.of + " of these cars"} sold at auction. ${ck.of === 1 ? (ck.reached ? "It sold" : "It did not sell") : ck.reached === 0 ? "None of them sold" : ck.reached === ck.of ? "All of them sold" : ck.reached + " of them sold"} for ${"$" + Math.round(ck.reserve).toLocaleString("en-US")} or more.`;
+  ok("and so are the report state's position line and the analyst's short line", [bc, ic, ac].every(c => rs(c).reservePositionLine === c.desk.reserveCheck.positionLine && rs(c).reachedShortLine === c.desk.reserveCheck.reachedLine));
+  ok("the report's reached line is the seller's two sentences over the engine's counts, for each position", [bc, ic, ac].every(c => rs(c).reachedLine === words(c, c.desk.reserveCheck) && rs(c).v4.reachedLine === rs(c).reachedLine && rs(c).reachedLine !== c.desk.reserveCheck.reachedLine), [bc, ic, ac].map(c => rs(c).reachedLine).join(" | "));
+  // the counts' edges, through the report state: none reached, all reached, some, and one sale only
+  for (const [of, reached] of [[18, 0], [18, 18], [18, 7], [1, 1], [1, 0]]) { const c = cl(ic), ck = { ...c.desk.reserveCheck, of, reached }; c.desk.reserveCheck = ck; ok(`REACHED ${reached} of ${of}: the report's line follows the engine's counts and says it in the table's words`, rs(c).reachedLine === words(c, ck), rs(c).reachedLine); }
+}
+ok("the workspace and the report use one comparison", K.reservePosition(bc) === below.reservePosition && K.reservePosition(ac) === above.reservePosition);
+ok("the reserve sentence names the engine's quartiles", inside.reservePositionLine.includes("$" + ev.q1.toLocaleString("en-US")) && inside.reservePositionLine.includes("$" + ev.q3.toLocaleString("en-US")));
+// 4. seller agreement
+const ag = K.setReserve(base, { seller_agreed: true }, T), nag = K.setReserve(base, { seller_agreed: false }, T);
+ok("seller agreement appears only when seller_agreed is true", /seller has agreed/.test(rs(ag).sellerLine) && rs(nag).sellerLine === null && rs(base).sellerLine === null);
+ok("the agree step is in the list as the analyst left it, whether or not the seller agreed", [rs(nag), rs(ag)].every(x => x.nextSteps.some(t => /agree the reserve/i.test(t))));
+ok("a seller_agreed that is not exactly true prints nothing", ["yes", 1, "true"].every(v => rs({ ...base, reserve: { ...base.reserve, seller_agreed: v } }).sellerLine === null));
+// 5. a comparable excluded from the market calculation changes the evidence sentence
+{ let ex = base; for (const c of base.desk.comparables.filter(x => x.inPopulation).slice(0, 3)) ex = M.excludeSale(ex, { saleId: c.id, scope: "market_calc", reason: "Salvage title", now: T });
+  const after = (await K.refreshEvidence(ex, read, { caseDate: today, now: T })).case;
+  ok("excluding comparables from the calculation changes the typical-range sentence", rs(after).typicalLine !== rs(base).typicalLine && rs(after).typicalLine.includes(String(after.desk.evidence.count)) && !rs(base).typicalLine.includes("from " + after.desk.evidence.count + " "), rs(after).typicalLine); }
+
+// LANE E'S LINES: the assessment against the market reference, the reserve position line, the mileage in words
+{ const med = ev.median, asg = f => K.setAssessment(base, { figure: f, explanation: "x".repeat(70) }, T), cs = f => R.reportState(asg(f));
+  ok("the difference line says above, below or at the market reference, with the dollar difference", /\$500 above the market reference of/.test(cs(med + 500).differenceLine) && /\$1,200 below the market reference of/.test(cs(med - 1200).differenceLine) && /at the market reference of/.test(cs(med).differenceLine));
+  ok("the three difference lines differ and name the engine's median", new Set([cs(med + 500).differenceLine, cs(med - 500).differenceLine, cs(med).differenceLine]).size === 3 && cs(med).differenceLine.includes("$" + med.toLocaleString("en-US")));
+  ok("the difference line moves with the figure and with the engine's median", cs(med + 500).differenceLine !== cs(med + 900).differenceLine && R.reportState(await (async () => { let ex = asg(med + 500); for (const c of base.desk.comparables.filter(x => x.inPopulation).slice(0, 3)) ex = M.excludeSale(ex, { saleId: c.id, scope: "market_calc", reason: "Salvage title", now: T }); return (await K.refreshEvidence(ex, read, { caseDate: today, now: T })).case; })()).differenceLine !== cs(med + 500).differenceLine);
+  ok("no figure or no evidence means no difference line", R.reportState(K.setAssessment(base, { figure: null }, T)).differenceLine === null && R.reportState({ ...asg(med), desk: { ...base.desk, evidence: { ...base.desk.evidence, insufficient: true, median: null } } }).differenceLine === null);
+  const V = await import(pathToFileURL(path.join(root, "lib/desk/caseView.js")).href), view = c => V.caseView({ id: "x", created_at: T, submission: { typed: true, photos: [], documents: [] }, case: c }, [], T);
+  ok("the workspace prints the report's own lines: caseView and reportState agree for every figure", [med - 900, med, med + 900].every(f => view(asg(f)).assessment.differenceLine === cs(f).differenceLine) && [ev.q1 - 1, ev.median, ev.q3 + 1].every(f => view(K.setReserve(base, { figure: f }, T)).reserve.positionLine === R.reportState(K.setReserve(base, { figure: f }, T)).reservePositionLine));
+  const mi = n => R.reportState(K.correctField(base, "mileage", n, { now: T })).mileageWords;
+  ok("the mileage in words goes through countNoun: plural, singular, thousands", mi(61400) === "61,400 miles" && mi(1) === "1 mile" && mi(950) === "950 miles" && mi(125000) === "125,000 miles");
+  ok("the mileage sentence uses the same words", R.reportState(base).mileageLine.includes("61,400 miles") && view(base).vehicle.mileageLine === "61,400 miles");
+  // the class: the files that build these lines format nothing and type nothing
+  const build = ["lib/desk/caseView.js", "lib/desk/caseWorkflow.js", "lib/desk/reportState.js", "lib/desk/caseModel.js"].map(f => [f, fs.readFileSync(path.join(root, f), "utf8").split("\n").map(l => l.replace(/(^|\s)\/\/.*$/, "")).join("\n")]);
+  const bad = build.filter(([f, t]) => /toLocaleString\(|\+\s*["'`] ?miles|miles["'`]\s*\+|\$\{[^}]*\}\s*miles/.test(t)).map(([f]) => f);
+  ok("no file that builds the case's lines formats a number or joins miles itself", bad.length === 0, bad.join(", ")); }
+// 6. condition per rung
+const lines = [1, 2, 3, 4].map(t => rs(K.setCondition(base, { tier: t, name: "x" }, T)).conditionLine);
+ok("each rung of the condition ladder has its own sentence", new Set(lines).size === 4 && lines.every(Boolean) && /Concours/.test(lines[0]) && /Fair/.test(lines[3]), J(lines));
+ok("no selected condition, no condition sentence (the engine's suggestion is not the report's)", rs(K.setCondition(base, null, T)).conditionLine === null);
+// 7. limitations from open or waived items
+{ let c = K.syncNeeds(cl(base)); c.fields.mileage.verified = false; c = K.syncNeeds(c); const open = rs(c).limitations;
+  ok("an open item is a limitation", open.some(l => /^Open: Mileage is not confirmed/.test(l)));
+  const w = rs(K.setNeed(c, "mileage_unconfirmed", "waived", "Odometer photo accepted")).limitations; ok("a waived item is a limitation with its reason", w.some(l => /^Waived: Mileage is not confirmed, reason given: Odometer photo accepted\.$/.test(l)));
+  ok("a done item is not a limitation", base.needs_review.some(n => n.state === "done") && !base.needs_review.some(n => n.state === "open") && rs(base).limitations.length === 0); }
+// 8. no prior auction record
+const withVin = cl(base); withVin.fields.vin = { value: "WP0AA2995XS626785", source: "seller", verified: false, candidates: [] };
+ok("a VIN with no earlier auction record puts the one sentence in the note", J(rs({ ...withVin, record: { appearances: 0, none: "x" } }).noteLines) === J(["No prior auction record for this VIN."]));
+ok("a VIN with an earlier record has no such line, and neither has a case with no VIN", rs({ ...withVin, record: { appearances: 2, none: null } }).noteLines.length === 0 && rs({ ...base, record: { appearances: 0 } }).noteLines.length === 0);
+// the engine's own record line is the table's, not a typed one
+{ const sr = fs.readFileSync(path.join(root, "lib/sheetRead.js"), "utf8"); ok("the engine's no-prior-record line is the reasonWords line", !/"No prior auction record for this VIN\."/.test(sr) && /reasonLine\("desk\.no_prior_vin"\)/.test(sr)); }
+// THE DRAFT NEVER CLAIMS WHAT THE CASE CANNOT SUPPORT: every combination of the state, each claim against the independent fact
+let combos = 0, bad = 0;
+for (const docs of [null, "outstanding", "received"]) for (const mv of [false, true]) for (const agreed of [false, true]) for (const figure of [null, ev.q1 - 100, ev.median, ev.q3 + 100]) for (const speaks of [false, true]) {
+  let c = cl(base); c.fields.mileage.verified = mv; c.fields.mileage.source = mv ? "analyst_verified" : "seller"; c.reserve = { figure, rationale: "r", why: "r", seller_agreed: agreed }; c.desk = { ...c.desk, reserveCheck: figure == null ? null : { reserve: figure, position: figure < ev.q1 ? "below" : figure > ev.q3 ? "above" : "inside", positionLine: "This figure is " + (figure < ev.q1 ? "below" : figure > ev.q3 ? "above" : "inside") + " the typical range of $" + ev.q1.toLocaleString("en-US") + " to $" + ev.q3.toLocaleString("en-US") + ".", reachedLine: "n of m sales reached this figure." } };   /* the engine's answer for this reserve, from the independent fact */ c.fields.service_history = { value: speaks ? "IMS bearing replaced, per the seller" : null, source: speaks ? "seller" : "missing", verified: false, candidates: [] };
+  c.documents = docs ? [{ id: "d", name: "service invoice", kind: "service", status: docs }] : [];
+  const s = rs(c), txt = J(s), exp = figure == null ? null : figure < ev.q1 ? "below" : figure > ev.q3 ? "above" : "inside"; combos++;
+  const wrong = [
+    /documented by the service/.test(txt) !== (speaks && docs === "received"),
+    /reported by the seller/.test(txt) !== (speaks && docs !== "received"),
+    /seller has agreed/.test(txt) !== (agreed && true),
+    /is verified/.test(txt) !== mv,
+    s.reservePosition !== exp,
+    /Send us the service invoice/.test(txt) !== (docs !== "received" && (docs === "outstanding" || !!speaks)),
+    !/Together we agree the reserve/.test(txt)
+  ];
+  if (wrong.some(Boolean)) { bad++; if (bad < 4) console.log("  claim mismatch", J({ docs, mv, agreed, figure, speaks }), wrong.map(Number).join("")); }
+}
+ok(`${combos} case states: every claim is exactly as true as the case says`, bad === 0, bad + " mismatches");
+// an empty draft says nothing it cannot support
+{ const s = rs(M.newCase({ now: T })); ok("an empty case claims nothing: no range, reserve, position, agreement, mileage, IMS, condition or note, and only the plain seeded next steps", ["rangeLine", "reserveLine", "typicalLine", "reservePositionLine", "sellerLine", "mileageLine", "imsLine", "conditionLine"].every(k => s[k] === null) && s.noteLines.length === 0 && s.nextSteps.join("|") === ["We will call you to talk through this report.", "Book a pre sale inspection.", "Together we agree the reserve and schedule your listing for a date that suits you."].join("|")); }
+// the finalized row carries the wording, the same wording
+{ const A = await import(pathToFileURL(path.join(root, "lib/desk/sheetActions.js")).href), { memoryStore } = await import(pathToFileURL(path.join(root, "lib/desk/sheetStore.js")).href), store = memoryStore();
+  await store.insert("t", { id: "w1", owner_seat: "crew", status: "In progress", created_at: T, submission: { typed: true, photos: [], documents: [] }, state: {}, case: base, version: 1 });
+  const f = await A.handleSheetAction("case_finalize", { id: "w1" }, { org: "t", seat: "crew", store, now: T, env: {} });
+  ok("the finalized version row carries the wording built from the case", f.ok && J(f.row.wording) === J(rs(base)) && f.row.wording.rangeLine && f.row.wording.reserveLine, f.why); }
+// the class: no Desk file types a claim about the case
+{ const claims = /seller has agreed|documented by the service|as stated by the seller|invoices are outstanding|sits (below|inside|above) the typical|No prior auction record/i, hits = [];
+  for (const d of ["lib/desk", "public/js", "lib/crewPages"]) for (const f of fs.existsSync(path.join(root, d)) ? fs.readdirSync(path.join(root, d)) : []) { const p = path.join(root, d, f); if (fs.statSync(p).isFile() && claims.test(fs.readFileSync(p, "utf8").split("\n").map(l => l.replace(/(^|\s)\/\/.*$/, "")).join("\n"))) hits.push(d + "/" + f); }
+  ok("no Desk file, page script or template types a report claim (they live in lib/reasonWords.js)", hits.length === 0, hits.join(", ")); }
+console.log(`deskStateCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);

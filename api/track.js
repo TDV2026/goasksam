@@ -10,7 +10,7 @@ import { identity } from "../lib/track/consent.js";
 import { trackFromBrowser } from "../lib/track/log.js";
 import { beaconAllowed } from "../lib/_ceilings.js";
 import { supabaseEnv } from "../lib/_supabase.js";
-import { UTM_FIELDS } from "../lib/track/privacy.js";
+import { UTM_READ } from "../lib/track/privacy.js";
 
 export const config = { api: { bodyParser: { sizeLimit: "16kb" } } };
 
@@ -25,7 +25,7 @@ export function helperJs() {
   return `/* GoAskSam analytics helper, schema ${SCHEMA_VERSION}. Built from lib/track/catalog.js; see docs/analytics-events.md. */
 (function(){
 if(window.gasTrack)return;
-var CAT=${JSON.stringify(browserCatalog())},PRODUCTS=${JSON.stringify(PRODUCTS)},SURFACES=${JSON.stringify(SURFACES)},UTM=${JSON.stringify(UTM_FIELDS)};
+var CAT=${JSON.stringify(browserCatalog())},PRODUCTS=${JSON.stringify(PRODUCTS)},SURFACES=${JSON.stringify(SURFACES)},UTM=${JSON.stringify(UTM_READ)};
 var q=[],state="unknown",timer=null,strict=!!window.GAS_TRACK_STRICT;
 function where(){var p=location.pathname,d=document.documentElement.dataset||{};
  var product=d.gasProduct||(/^\\/(?:buy|find)/.test(p)?"buy":/^\\/(market-check|onebox|o\\/)/.test(p)?"market_check":/^\\/sell/.test(p)?"sell":/^\\/tasks/.test(p)?"tasks":"site");

@@ -17,15 +17,18 @@
 //   POST { action:"arm"|"disarm", listing_id } / { action:"alerts" } (signed in) -> Before it ends (lib/live/buyAlerts.js)
 //   GET  ?alerts=run                    -> the Before it ends probe run (the probe key in the x-ops-key header only)
 //   GET|POST ?alert=stop&t=<signed>     -> the message's stop link: GET shows a confirm page, only a POST acts
+import { cardSlotsOf, printedRangeOf } from "../lib/live/cardSlots.js";
+import { cardPhotoOf } from "../lib/heroPhoto.js";
 import { mcUrlOf } from "../lib/mcLink.js";
 import { track, withTracking } from "../lib/track/log.js";
 import { historyEnv, houseName, normVin } from "./_historyData.js";
 import { isAbroadRow, parseQuery, parseQueryResolved, emptyFilters, gensNamed, resolveForBuy, searchLive, listingFacts, listingMarket, seenBefore, nounFor, liveForFamily, liveRows, familyMarket, COUNTRY_NAME, COLOURS } from "../lib/live/search.js";
-import { placingFor, ENGINE_VERSION } from "../lib/onebox.js";
+import { placingFor, bidPlaceOf, timeLeftWords, ENGINE_VERSION, withServedCar } from "../lib/onebox.js";
+import { photoOrNull } from "../lib/photoHosts.js";
 import { asideRowsFor, asideMatch, setAsideLabel } from "../lib/tasks/setAside.js";
 import { findGeneration } from "../lib/generations.js";
-import { converse } from "../lib/live/converse.js";
-import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, ladderSteps, walkLadder, panelOf } from "../lib/live/search.js";
+import { reasonLine } from "../lib/reasonWords.js";
+import { listingDetail, facetsOf, cardFlag, seenCount, listingSays, listingSamFacts, specOf, prefetchSpecs, stillReadingMarket, ladderSteps, walkLadder, panelOf } from "../lib/live/search.js";
 import { vinAppearances } from "./_historyData.js";
 import { applyRung, askedName, countText } from "../lib/live/rung.js";
 // A card's market with the rung applied (lib/live/rung.js). On the sibling rung the Task door follows the car asked
@@ -41,7 +44,7 @@ async function rungMarket(env, r, facts, m) {
 const CountText = n => { const s = countText(n); return s.charAt(0).toUpperCase() + s.slice(1); };
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential, hasHeaderKey, keyInAddress, ADDRESS_KEY_REFUSED } from "../lib/_credential.js";
-import { checkCeiling, testLimits, CALM, buyModelGuard, recordBuyModelTurn, noteBuySearch, BUY_MODEL_PAUSED } from "../lib/_ceilings.js";
+import { checkCeiling, testLimits, CALM, buyModelGuard, recordBuyModelTurn, noteBuySearch } from "../lib/_ceilings.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 import { logEvent, EVENTS } from "../lib/events.js";
 import { readVisitorId } from "../lib/_visitor.js";
@@ -49,12 +52,16 @@ import { freshnessOn, underReserve, ocdWithRetry } from "../lib/live/ocdGuard.js
 import { callOldCarsData, configureOcdUsage, flushOcdUsage } from "../lib/_ocd.js";
 import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
-import { runTurn, runFilters, runSearch, suggestFor } from "../lib/live/samChat.js";
+import { carFromRequest, isPartialCar, carWords, withPartialCar } from "../lib/carToken.js";
+import { runTurn, runFilters, runSearch, filtersFromText, suggestFor, BATCH_BUDGET_MS, useMarketRank, radiusOf } from "../lib/live/samChat.js";
 // The composer's suggestions (Stage 1c item 6), from the shaped cards (seen_before exists only after shaping).
 const withSuggest = (out, r) => ({ ...r, suggest: suggestFor({ meta: out.meta, filters: out.state && out.state.filters, seenAny: (r.cards || []).some(c => c && c.seen_before) }) });
 import { humanTitle } from "../lib/carTitle.js";
 import { supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
+import { routeLimit } from "../lib/_routeLimit.js";
+import { TOGGLE_LINE } from "../lib/live/buyAlerts.js";
+import { armOutcome, logArm, ARM_LINES } from "../lib/live/looking.js";
 import { armAlert, cancelAlert, listAlerts, runAlerts, stopAll, verifyStop, verifyItem, stopOne, itemLabel, testSend, isMissingTable, alertsReady, useNamer } from "../lib/live/buyAlerts.js";
 
 const FIRST = 10, MAX = 200;
@@ -115,10 +122,31 @@ export function bidPlacing(c, now = Date.now()) {
   if (c.bid_unknown || !(Number(c.current_bid_usd) > 0) || (c.end_time && Date.parse(c.end_time) <= now)) return null;
   return placingFor(Number(c.current_bid_usd), [Number(m.low), Number(m.high)]);
 }
+// The same judgement as an object that carries the pair it compared (lib/onebox.js bidPlaceOf), so the sentence and the figures it judges go out together.
+export function bidPlaceObj(c, now = Date.now()) {
+  const m = c && c.market;
+  if (!bidPlacing(c, now)) return null;
+  return bidPlaceOf(c.current_bid_usd, m.low, m.high, "range", timeLeftWords(c.end_time, now));
+}
+// The bid against the sales themselves when no range is shown (Oct 29 2026, the Find card's count line): below every sale, above every sale, or within them, against the span of the sales the engine counted
+// (m.saleSpan). Same conditions as bidPlacing; null with no span or no bid.
+export function bidSalesObj(c, now = Date.now()) {
+  const m = c && c.market, sp = m && m.saleSpan;
+  if (!m || m.kind === "range" || !Array.isArray(sp) || sp.length !== 2 || !(sp[0] > 0) || !(sp[1] > 0) || m.rung === "sibling" || m.rung === "not_enough_data" || m.bodyScoped === false) return null;
+  if (c.bid_unknown || !(Number(c.current_bid_usd) > 0) || (c.end_time && Date.parse(c.end_time) <= now)) return null;
+  // the sales spanned are all the sales counted; when the card's large figure is ONE option's range (the engine split the sales into options priced apart) the bid is not placed against the whole span (e100)
+  if (m.optionsState === "split" || m.optionsState === "apart") return null;
+  return bidPlaceOf(c.current_bid_usd, sp[0], sp[1], "sales", timeLeftWords(c.end_time, now));
+}
+export function bidAgainstSales(c, now = Date.now()) { const o = bidSalesObj(c, now); return o ? o.line : null; }   // null with no time left: a live car never gets a bid comparison without it
 export function samLines(c, now = Date.now()) {
   if (!c || c.swap) return [];
   const out = [], m = c.market;
-  if (m && m.kind !== "pending" && m.soldLine) {
+  if (m && m.findAnswer) {
+    // ENGINE READY 10: a Find card prints the engine's findAnswer lines and nothing else about the market (one range, no sale lines, no pick one, no mileage band the car is not in)
+    const fa = m.findAnswer;
+    out.push({ kind: "range", rung: [], text: fa.lines.join(" "), lines: fa.lines, state: fa.state, range: fa.range, option: fa.option, ...(fa.bid ? { placing: fa.bid, bidPlace: fa.bidPlace || null } : {}) });
+  } else if (m && m.kind !== "pending" && m.soldLine) {
     const pl = bidPlacing(c, now);
     // e71b (Sam, Oct 19 2026): until the grid card lists the sales the engine found (Lane C's build, the market flag m.cardListsSales), a
     // no-range answer prints only the FIRST sentence of the engine's own thin line ("Not enough sales of this exact car to
@@ -126,7 +154,7 @@ export function samLines(c, now = Date.now()) {
     // never new wording; the full line returns once the card lists the sales.
     const firstOnly = m.noCluster && m.thinLine && m.soldLine === m.thinLine && !m.cardListsSales;
     const said = firstOnly ? (String(m.thinLine).match(/^.*?\.(?=\s|$)/) || [String(m.thinLine)])[0] : m.soldLine;
-    out.push({ kind: "range", rung: m.rungLines || [], text: said + (pl ? ` The bid is ${pl}.` : ""), ...(pl ? { placing: pl } : {}) });   // placing: the same word, as its own field (Buy redesign 1b)
+    out.push({ kind: "range", rung: m.rungLines && m.rungLines.length ? m.rungLines : (m.rungLabel ? [m.rungLabel] : []), text: said + (bidPlaceObj(c, now) && bidPlaceObj(c, now).line ? " " + bidPlaceObj(c, now).line : ""), ...(pl ? { placing: pl, bidPlace: bidPlaceObj(c, now) } : {}), bidLine: pl ? (bidPlaceObj(c, now) ? bidPlaceObj(c, now).line : null) : bidAgainstSales(c, now), ...(!pl && bidSalesObj(c, now) ? { bidPlace: bidSalesObj(c, now) } : {}) });   // placing: the same word, as its own field (Buy redesign 1b)
   }
   const t = (c.timeline || []).filter(a => a && a.date);
   const s0 = c.seen_before;
@@ -138,16 +166,20 @@ export function samLines(c, now = Date.now()) {
   }
   return out;
 }
+// THE FIND CARD'S THREE SLOTS (lane-e-cardsize): the engine's label, headline and line for the Sam box, and the band the headline shows (lib/live/cardSlots.js); carried wherever a card or its refresh carries sam_lines.
+// A live car with no photo of its own takes the photo of its most recent earlier appearance (lib/heroPhoto.js cardPhotoOf), never a grey box while the archive holds one.
+export const withSlots = c => ({ ...c, photo_url: cardPhotoOf(c.photo_url, c.timeline), ...cardSlotsOf(c) });
 export function cardOf(x) {
   const r = x.r, facts = x.facts, cc = String(r.country || "").toUpperCase();
-  return { id: r.id, source: houseName(r.source), sourceSlug: r.source, title: r.listing_title, url: r.url, photo_url: r.photo_url, swap: !!x.swap,
+  return { id: r.id, source: houseName(r.source), sourceSlug: r.source, title: r.listing_title, url: r.url, photo_url: photoOrNull(r.photo_url), swap: !!x.swap,
     // Bids through liveTrust: a dollar figure only when it is dollars; a "USD" price on a lot priced
     // abroad, or a bid the feed reports without an amount, shows nothing (never "No bids yet").
     current_bid_usd: facts.priceUsd || null, current_bid: (facts.priceState === "usd" || facts.priceState === "converted") && r.current_bid != null ? Math.round(Number(r.current_bid)) : null, currency: r.currency || "USD",
     bid_unknown: facts.priceState === "suspect" || facts.priceState === "unconverted" || (!facts.priceUsd && Number(r.bid_count) > 0),
     // The bid's own time only (bid_at), never when we last read the row: the page shows a bid by it (lib/tasks/bidTime.js).
     bid_at: r.bid_at || null, end_time: r.end_time, year: r.year, make: r.make || null,
-    miles: cardMiles(facts), km: facts.km || null, colour: facts.colour, colourSrc: facts.colourSrc || null, body: facts.body, gearbox: facts.gearboxLabel,
+    miles: cardMiles(facts), km: facts.km || null, kmMiles: facts.km && Number(facts.miles) > 0 ? Math.round(Number(facts.miles)) : null,   // a km listing: the engine's own miles (the unit its mileage bands and lines are in), beside the km the listing states
+    colour: facts.colour, colourSrc: facts.colourSrc || null, body: facts.body, gearbox: facts.gearboxLabel,
     location: titleCaseIfShouting(r.location) || null, country: cc || null, countryName: COUNTRY_NAME[cc] || cc || null, abroad: isAbroadRow(r),
     vin_norm: r.vin_norm || null, mc_url: mcUrlOf(r, facts, x.market && x.market.query ? x.market : null), generation: x.gen ? x.gen.code : null, unknown: x.unknown, flag: cardFlag(r),
     reserve: r.has_reserve === true ? "reserve" : r.has_reserve === false ? "none" : null, says: listingSays(r), sam_facts: listingSamFacts(r, facts), chips: specChips(r, facts) };
@@ -180,7 +212,7 @@ export async function timelineOf(env, x, opts = {}) {
 }
 // The card's name from the resolved spec: year, make, model, trim, body. Never the seller's copy
 // ("With Less Than 73k Miles", "Restored", "No Reserve"); null when the title doesn't resolve.
-const BODY_WORD = { coupe: "Coupe", cabriolet: "Cabriolet", convertible: "Convertible", targa: "Targa", roadster: "Roadster", sedan: "Sedan", spider: "Spider", spyder: "Spyder", speedster: "Speedster", wagon: "Wagon", suv: "", hatchback: "Hatchback",
+const BODY_WORD = { convertiblesedan: "Convertible Sedan", touring: "Touring Car", towncar: "Town Car", phaeton: "Phaeton", victoria: "Victoria", coupe: "Coupe", cabriolet: "Cabriolet", convertible: "Convertible", targa: "Targa", roadster: "Roadster", sedan: "Sedan", spider: "Spider", spyder: "Spyder", speedster: "Speedster", wagon: "Wagon", suv: "", hatchback: "Hatchback",
   // Every body word the shared resolver can give (lib/vehicle.js BODY_STYLE_WORDS) and the engine's own fastback: a body
   // missing here was silently left off the card's name, so "1965 Ford Mustang V8" read every body in Market Check while
   // its card's market read the hardtops (Lane E's buyEngineMatch find, Oct 16 2026).
@@ -225,14 +257,58 @@ async function enrich(env, x, deadlineAt) {   // deadlineAt (e61, Sam's item 3):
   market = await rungMarket(env, x.r, x.facts, market);   // the engine's fallback rung, when it names one; else unchanged
   const c = { ...cardOf(x), market, seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name: await nameOf(env, x) };
   c.mc_url = mcUrlOf(x.r, x.facts, market && market.query ? market : null);
-  return { ...c, sam_lines: samLines(c) };
+  return withSlots({ ...c, sam_lines: samLines(c) });
 }
 export async function enrichFast(env, x) {
   const [market, seen, timeline, name] = await Promise.all([x.market !== undefined ? x.market : listingMarket(env, x.r, x.facts, { noBlock: true, notTracked: true }), seenBefore(env, x.r.vin_norm), timelineOf(env, x, { asideWaitMs: 1500 }), nameOf(env, x)]);
   const c = { ...cardOf(x), market: await rungMarket(env, x.r, x.facts, market), seen_before: seen, timeline, history_url: timeline && timeline.length ? "/vin/" + encodeURIComponent(x.r.vin_norm) : null, name };
   c.mc_url = mcUrlOf(x.r, x.facts, c.market && c.market.query ? c.market : null);
-  return { ...c, sam_lines: samLines(c) };
+  return withSlots({ ...c, sam_lines: samLines(c) });
 }
+// A SHOW MORE BATCH UNDER ITS OWN CLOCK (Nov 2 2026, Sam's live click on "Show 24 more" that took a very long time with no sign of work): the batch returns within budgetMs whatever the cards' reads are doing. A card whose
+// read is back is drawn whole (its range and Sam line); a card whose read is not is drawn at once with the engine's being-read line (stillReadingMarket) and no range, the read keeps running behind the response, and the page asks for it
+// card by card exactly as it does for the first batch (action enrich, the engine's own retry and wait). Nothing is computed here beyond the engine's own reads.
+export async function moreBatch(items, { enrichOne, pendingOf, budgetMs = BATCH_BUDGET_MS }) {
+  const LATE = Symbol("late"); let timer; const clock = new Promise(res => { timer = setTimeout(() => res(LATE), budgetMs); });
+  try {
+    return await Promise.all((items || []).map(async x => {
+      const got = await Promise.race([Promise.resolve().then(() => enrichOne(x)).catch(() => LATE), clock]);
+      const c = got === LATE || !got ? pendingOf(x) : got;
+      if (x.distance != null) c.distance = x.distance;
+      return c;
+    }));
+  } finally { clearTimeout(timer); }
+}
+const pendingCardOf = x => { const c = { ...cardOf(x), market: stillReadingMarket(), name: null }; return withSlots({ ...c, sam_lines: samLines(c) }); };
+// THE BID AGAINST THE RANGE, AS AN ORDER (Nov 2 2026, Find's "Furthest below the range"): every match's market is read the way its card reads it (stored reads only: a market still being read, or none, stays unranked and sorts last),
+// then the SAME judgement the card prints (bidPlaceObj, lib/onebox.js bidPlaceOf) gives its place: x.rank 0 ending within 24 hours / 1 later, x.rankKey the share of the range's low end the bid sits from it (the biggest share below first), on the range the card prints. lib/live/samChat.js
+// orders by those and slices the batch; the page draws the order it is given. A request's own clock bounds the read (RANK_BUDGET_MS): what it did not reach is still being read and sorts last.
+const RANK_BUDGET_MS = 25000;
+// the card has no bid to place: not a live car with a real bid in dollars, a sibling or count-only rung, or a range the engine says is not body-scoped
+const bidPlacingOff = (c, now) => { const m = c && c.market; return !m || m.rung === "sibling" || m.rung === "not_enough_data" || m.bodyScoped === false || c.bid_unknown || !(Number(c.current_bid_usd) > 0) || (c.end_time && Date.parse(c.end_time) <= now); };
+export const ENDING_SOON_MS = 24 * 3600e3;   // the day an auction has left that puts it first under "Furthest below the range"
+export async function rankByBid(env, matches, now = Date.now()) {
+  const t0 = Date.now(), STEP = 60;
+  for (const x of matches) { delete x.rank; delete x.rankKey; }
+  for (let i = 0; i < matches.length; i += STEP) {
+    if (Date.now() - t0 > RANK_BUDGET_MS) break;
+    const part = matches.slice(i, i + STEP);
+    try { const specs = await Promise.all(part.filter(x => x.market === undefined).map(x => specOf(env, x.r, x.facts).catch(() => null))); const keys = specs.filter(Boolean).map(sp => sp.key); if (keys.length) await prefetchSpecs(env, keys); } catch {}
+    await Promise.all(part.map(async x => {
+      if (x.market === undefined) { const m = await listingMarket(env, x.r, x.facts, { noBlock: true, notTracked: true }).catch(() => null); x.market = m && m.kind === "pending" ? undefined : m; }
+      if (!x.market) return;
+      const market = await rungMarket(env, x.r, x.facts, x.market).catch(() => null);
+      // the range the card PRINTS (cardSlots printedRangeOf: the answer's own figures, a mileage band's included), judged against the live bid on the same conditions the card's bid line has
+      const c = { ...cardOf(x), market }, pr = market && !bidPlacingOff(c, now) ? printedRangeOf(c) : null;
+      const bp = pr ? bidPlaceOf(c.current_bid_usd, pr.low, pr.high, "range", null) : null;
+      if (!bp) return;
+      // two parts, in this order (Nov 3 2026): ending within 24 hours first (x.rank 0, exactly 24 hours counts as inside), then the share below the low end of the range the card prints, biggest first (x.rankKey: the bid's distance from the low end over the low end, so the most negative is first)
+      x.rank = Date.parse(c.end_time) - now <= ENDING_SOON_MS ? 0 : 1;
+      x.rankKey = (bp.bid - bp.low) / bp.low;
+    }));
+  }
+}
+useMarketRank(rankByBid);
 async function logSearch(env, v, anonId) {
   try {
     const r = await fetch(`${env.supabaseUrl}/rest/v1/search_events`, {
@@ -246,16 +322,17 @@ async function logSearch(env, v, anonId) {
 function cleanFilters(raw) {
   const f = emptyFilters(); if (!raw || typeof raw !== "object") return null;
   const arr = (k, re) => Array.isArray(raw[k]) ? raw[k].map(String).filter(s => re.test(s)).slice(0, 12) : [];
-  f.bodies = arr("bodies", /^[a-z ]{3,20}$/); f.colours = arr("colours", /^[a-z]{3,10}$/); f.notColours = arr("notColours", /^[a-z]{3,10}$/);
+  f.bodies = arr("bodies", /^[a-z ]{3,20}$/); f.colours = arr("colours", /^[a-z]{3,10}$/); f.notColours = arr("notColours", /^[a-z]{3,10}$/); f.notWords = arr("notWords", /^not:[a-z0-9_]{2,28}$/);
   f.countries = arr("countries", /^[A-Z]{2}$/); f.houses = arr("houses", /^[a-z]{2,24}$/); f.gens = arr("gens", /^[A-Za-z0-9.]{1,8}$/);
   f.kind = typeof raw.kind === "string" && /^[A-Za-z0-9 .\-]{1,30}$/.test(raw.kind) ? raw.kind : null;
   f.gearbox = raw.gearbox === "manual" || raw.gearbox === "auto" ? raw.gearbox : null; f.gearboxLabel = typeof raw.gearboxLabel === "string" ? raw.gearboxLabel.slice(0, 20) : null;
+  f.attrWords = arr("attrWords", /^[a-z0-9]{2,16}$/);
   for (const k of ["miMax", "miMin", "priceMax", "priceMin", "yearMin", "yearMax"]) f[k] = Number(raw[k]) > 0 ? Number(raw[k]) : null;
   return f;
 }
 
 async function handler(req, res) {
-  const env = historyEnv();
+  const env0 = historyEnv(), env = env0 ? { ...env0, car: carFromRequest(req) } : env0;   // the car token (?car=, lib/carToken.js): Find runs on the car it carries and does not resolve again; a copy, never the shared env
   if (!env) return res.status(500).json({ status: "error" });
   res.setHeader("Cache-Control", "no-store");
   // Search results are private and endless: no result response is ever indexable (the landing /buy is).
@@ -313,13 +390,17 @@ async function handler(req, res) {
       // position/positions (job 3): computed once in the engine (lib/live/search.js liveForFamily),
       // over the SAME fenced live-match set the count itself reports - this route only renders what
       // it returns, never a second placingFor call of its own.
-      const live = await liveForFamily(env, vehicle, generation, null, 3, band);
+      // A VIN's OWN live listing is never one of the "comparable cars" (Nov 11 2026): a Market Check of a VIN that is live now passes ?vin=, and this row is left out of the rows and the count (the answer's ownLive line speaks of it)
+      const ownVin = String(q.vin || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const live0 = await liveForFamily(env, vehicle, generation, null, ownVin.length === 17 ? 12 : 3, band);
+      const ownIn = ownVin.length === 17 ? (live0.rows || []).filter(r => String(r.vin_norm || "").toUpperCase() === ownVin) : [];
+      const live = ownIn.length ? { ...live0, total: Math.max(0, live0.total - ownIn.length), rows: live0.rows.filter(r => !ownIn.includes(r)).slice(0, 3) } : { ...live0, rows: ownVin.length === 17 ? live0.rows.slice(0, 3) : live0.rows };
       res.setHeader("Cache-Control", "public, s-maxage=300");
       // source_slug + id (Round 6 Job 1, tracking fix): the panel only ever sent the display name
       // (source, via houseName) and no row identifier at all - Lane A's auction_clickout needs the
       // real platform slug, never the display name, and a listing id for which car was clicked.
       // Both are already on the row; this just carries them through, nothing computed.
-      return res.status(200).json({ count: live.total, positions: live.positions, rows: live.rows.map(r => ({ id: r.id, source: houseName(r.source), source_slug: r.source || null, title: r.listing_title, url: r.url, photo_url: r.photo_url || null, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: r.position, miles: cardMiles(listingFacts(r)) })) });
+      return res.status(200).json({ count: live.total, positions: live.positions, rows: live.rows.map(r => ({ id: r.id, source: houseName(r.source), source_slug: r.source || null, title: r.listing_title, url: r.url, photo_url: r.photo_url || null, current_bid_usd: r.current_bid_usd != null ? Math.round(Number(r.current_bid_usd)) : null, current_bid: r.current_bid, currency: r.currency, end_time: r.end_time, bid_at: r.bid_at || r.last_seen || null, placing: r.position, vsRangeLine: r.position ? reasonLine("live.vs_range", { placing: r.position }) : null, miles: cardMiles(listingFacts(r)) })) });
     }
     if (req.method !== "POST") return res.status(405).json({ status: "error" });
     // Everything from here down is Buy's own endpoint (search, chat, saved searches, alerts) - gated
@@ -329,21 +410,15 @@ async function handler(req, res) {
     const b = req.body || {};
     const deadlineAt = Date.now() + Number(process.env.ONEBOX_DEADLINE_MS || 20000);   // e61 (Sam): the whole Buy request's clock, the same 20 s bound Market Check has; the shared card read (lib/live/search.js listingMarket) bounds itself against it
     if (b.action === "watch") {
-      const raw = String(b.key || "").trim();
-      const key = /^(family|live):/i.test(raw) ? raw.toLowerCase().replace(/[^a-z0-9:._-]/g, "").slice(0, 120) : normVin(raw);
-      const email = String(b.email || "").trim().toLowerCase().slice(0, 200);
-      if (!key || key.length < 5 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ ok: false });
-      const r = await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?on_conflict=vin_norm,email`, {
-        method: "POST", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "resolution=ignore-duplicates,return=minimal" },
-        body: JSON.stringify([{ vin_norm: key, email }])
-      });
-      return res.status(r.ok ? 200 : 500).json({ ok: r.ok });
+      // RETIRED (Oct 29 2026): an address typed with no account was written to watch_requests and nothing ever read it. No page offered it. It writes nothing now.
+      logArm(null, "address_watch", { outcome: "refused", reason: "retired" });
+      return res.status(200).json({ ok: false, reason: "retired", line: ARM_LINES.retired });
     }
     if (b.action === "enrich") {
       const ids = (Array.isArray(b.ids) ? b.ids : []).map(Number).filter(Number.isFinite).slice(0, 60);
       if (!ids.length) return res.status(200).json({ cards: [] });
       const rows = await liveRows(env, `id=in.(${ids.join(",")})`);
-      const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts, { notTracked: true }), seenBefore(env, r.vin_norm), timelineOf(env, { r })]).then(async ([market, seen, timeline]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); const c = { ...cardOf({ r, facts, gen: null, unknown: [] }), market: await rungMarket(env, r, facts, market), seen_before: seen, timeline }; return { id: r.id, market: c.market, seen_before: seen, timeline, sam_lines: samLines(c) }; }); }));
+      const cards = await Promise.all(rows.map(r => { const facts = listingFacts(r); return Promise.all([listingMarket(env, r, facts, { notTracked: true }), seenBefore(env, r.vin_norm), timelineOf(env, { r })]).then(async ([market, seen, timeline]) => { if (market && market.kind === "pending") market = await listingMarket(env, r, facts); const c = { ...cardOf({ r, facts, gen: null, unknown: [] }), market: await rungMarket(env, r, facts, market), seen_before: seen, timeline }; if (c.market && c.market.kind === "unmatched") { console.error(`unmatched lot ${r.id}: ${String(r.listing_title || "").slice(0, 120)}`); return { id: r.id, unmatched: true, market: c.market, seen_before: seen, timeline, sam_lines: [] }; } const sl = samLines(c); return { id: r.id, market: c.market, seen_before: seen, timeline, sam_lines: sl, ...cardSlotsOf({ ...c, sam_lines: sl }) }; /* the Sam box (label, headline, line, band) travels with the market it was made from: a card that was pending lands whole */ }); }));
       // engineVersion: the engine this deploy reads, so a check can tie each card to the engine read it compares with.
       return res.status(200).json({ cards, engineVersion: ENGINE_VERSION });
     }
@@ -353,17 +428,19 @@ async function handler(req, res) {
       if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ ok: false });
       const rows = await liveRows(env, `id=eq.${id}`);
       const r = rows && rows[0]; if (!r) return res.status(200).json({ market: null, representative: null });
+      // A pick of one of an apart answer's options (the popup's chips): only that option's own engine answer comes back (lib/live/search.js panelOf).
+      if (b.option && typeof b.option === "object") return res.status(200).json((await panelOf(env, r, listingFacts(r), { dimension: String(b.option.dimension || ""), value: String(b.option.value == null ? "" : b.option.value) })) || { market: null, representative: null, engineAnswer: null });
       const p = (await panelOf(env, r, listingFacts(r))) || { market: null, representative: null };
       // The rung (lib/live/rung.js): a not_enough_data answer is count-only, so its three priced sales are not shown.
       const pm = await rungMarket(env, r, listingFacts(r), p.market);
       // The card's two Sam lines from this same answer, so the card and its panel never disagree on screen.
       const [seen, timeline] = await Promise.all([seenBefore(env, r.vin_norm), timelineOf(env, { r })]);
-      const sl = samLines({ ...cardOf({ r, facts: listingFacts(r), gen: null, unknown: [] }), market: pm, seen_before: seen, timeline });
-      return res.status(200).json({ ...p, market: pm, representative: pm && pm.rung === "not_enough_data" ? null : p.representative, sam_lines: sl });
+      const pc = { ...cardOf({ r, facts: listingFacts(r), gen: null, unknown: [] }), market: pm, seen_before: seen, timeline }, sl = samLines(pc);
+      return res.status(200).json({ ...p, market: pm, representative: pm && pm.rung === "not_enough_data" ? null : p.representative, sam_lines: sl, ...cardSlotsOf({ ...pc, sam_lines: sl }) });
     }
     // Probe (PROBE_KEY): live listings for the card tests (repeat VINs, no photo, no reserve, long titles).
     // Probe: the landing's example pick (chips, example, and what each candidate search returned).
-    if (b.action === "landing" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
+    if (b.action === "landing" && hasHeaderKey(req)) {
       const { exampleBand } = await import("../lib/live/buyExample.js");
       return res.status(200).json(await exampleBand(env, 60000, { fresh: !!b.fresh }));
     }
@@ -371,9 +448,9 @@ async function handler(req, res) {
     // and the make, model and year it is filed under, for the check that every live car draws a card with a market.
     if (b.action === "liveaudit" && hasServerCredential(req)) {
       const rows = (await liveRows(env, "id=gt.0")) || [];
-      return res.status(200).json({ live: rows.length, rows: rows.map(r => ({ id: r.id, title: r.listing_title, make: r.make || null, model: r.model || null, year: r.year || null, abroad: isAbroadRow(r), source: r.source || null })) });
+      return res.status(200).json({ live: rows.length, rows: rows.map(r => ({ id: r.id, end_time: r.end_time || null, title: r.listing_title, make: r.make || null, model: r.model || null, year: r.year || null, abroad: isAbroadRow(r), source: r.source || null })) });
     }
-    if (b.action === "finds" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
+    if (b.action === "finds" && hasHeaderKey(req)) {
       const rows = (await liveRows(env, "id=gt.0")) || [];
       const us = rows.filter(r => !isAbroadRow(r));
       const vins = [...new Set(us.map(r => r.vin_norm).filter(v => v && String(v).length >= 11))];
@@ -404,7 +481,7 @@ async function handler(req, res) {
     // Probe (PROBE_KEY, header only; read only): the email's middle-half line next to the engine range it is built from,
     // for live listings of one make and model, with the Market Check question for the same car (m.query), so a check
     // can open Market Check for it and compare.
-    if (b.action === "rangeproof" && process.env.PROBE_KEY && req.headers["x-probe-key"] === process.env.PROBE_KEY) {
+    if (b.action === "rangeproof" && hasHeaderKey(req)) {
       const { liveRows, listingMarket, listingFacts } = await import("../lib/live/search.js");
       const { middleHalfLine } = await import("../lib/live/buyAlerts.js");
       const mk = String(b.make || "Porsche").replace(/[^A-Za-z0-9 -]/g, ""), md = String(b.model || "911").replace(/[^A-Za-z0-9 -]/g, "");
@@ -418,7 +495,7 @@ async function handler(req, res) {
       }
       return res.status(200).json({ rows: out });
     }
-    if (b.action === "limits" && process.env.PROBE_KEY && req.headers["x-probe-key"] === process.env.PROBE_KEY) {
+    if (b.action === "limits" && hasHeaderKey(req)) {
       const days = Math.min(60, Number(b.days) || 30), since = new Date(Date.now() - days * 864e5).toISOString();
       const pct = (arr, q) => { if (!arr.length) return null; const s2 = arr.slice().sort((x, y) => x - y); return s2[Math.min(s2.length - 1, Math.floor(q * (s2.length - 1)))]; };
       const spread = (rows, keyOf, cut) => { const m = {}; for (const r of rows) { const k = keyOf(r); if (!k) continue; const kk = k + "|" + String(r.created_at).slice(0, cut); m[kk] = (m[kk] || 0) + 1; } const v = Object.values(m); return { buckets: v.length, p50: pct(v, 0.5), p90: pct(v, 0.9), p99: pct(v, 0.99), max: pct(v, 1), top: v.sort((x, y) => y - x).slice(0, 5) }; };
@@ -464,7 +541,7 @@ async function handler(req, res) {
           modelTurns: { rows: tm.length, byKind: tm.reduce((o, r) => { const k = r.event_type + ":" + ((r.metadata && r.metadata.kind) || "?"); o[k] = (o[k] || 0) + 1; return o; }, {}), costUsd: Math.round(tm.reduce((a, r) => a + (Number(r.anthropic_cost_usd) || 0), 0) * 1000) / 1000,
             cache: tm.filter(r => r.event_type === "tasks_model_turn").map(r => ({ at: r.created_at, kind: r.metadata && r.metadata.kind, calls: r.metadata && r.metadata.calls, read: r.metadata && r.metadata.cache_read, write: r.metadata && r.metadata.cache_write, input: r.anthropic_input_tokens, output: r.anthropic_output_tokens, usd: r.anthropic_cost_usd })).slice(-20) } } });
     }
-    if (b.action === "traffic" && process.env.PROBE_KEY && req.headers["x-probe-key"] === process.env.PROBE_KEY) {
+    if (b.action === "traffic" && hasHeaderKey(req)) {
       const days = Math.min(60, Number(b.days) || 30), since = new Date(Date.now() - days * 864e5).toISOString(), since7 = new Date(Date.now() - 7 * 864e5).toISOString();
       const pct = (arr, q) => { if (!arr.length) return null; const s = arr.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(q * (s.length - 1)))]; };
       const dist = (rows, keyOf) => {
@@ -504,7 +581,7 @@ async function handler(req, res) {
     }
     // Probe (PROBE_KEY): which live listings a search shows, and for every live listing whose title carries
     // `like` (any make field), why it is or is not shown (the search's own stage that left it out).
-    if (b.action === "explain" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
+    if (b.action === "explain" && hasHeaderKey(req)) {
       const trace = [], sr = await runSearch(env, b.p || {}, { trace });
       const shown = new Set(sr.matches.map(x => x.r.id)), why = {};
       for (const t of trace) if (!why[t.id]) why[t.id] = t.why;
@@ -514,7 +591,7 @@ async function handler(req, res) {
       return res.status(200).json({ resolved: sr.v ? { make: sr.v.make, model: sr.v.model, trim: sr.v.trim || null } : null, shown: sr.matches.length, abroadHidden: sr.abroadHidden, unstated: sr.unstated, cutByBudget: sr.cutByBudget, titleMatches: all.map(row) });
     }
     // Probe (PROBE_KEY): what the range ladder returns at each rung for one live listing.
-    if (b.action === "ladder" && process.env.PROBE_KEY && b.key === process.env.PROBE_KEY) {
+    if (b.action === "ladder" && hasHeaderKey(req)) {
       const rows = await liveRows(env, `id=eq.${Number(b.id) || 0}`);
       const r = rows && rows[0]; if (!r) return res.status(200).json({ error: "not live" });
       const facts = listingFacts(r), spec = await specOf(env, r, facts), trace = [];
@@ -526,23 +603,23 @@ async function handler(req, res) {
       return res.status(200).json({ title: r.listing_title, key: spec.key, steps, refine: spec.refine || null, chosen: chosen && { step: chosen.step, family: chosen.family, refinedNote: chosen.refinedNote || null, kind: chosen.kind, count: chosen.count, low: chosen.low, high: chosen.high, span: chosen.span } });
     }
     if (b.action === "geocoverage") return res.status(200).json(await geoCoverage(env));
-    if (b.action === "converse") { const cv = await converseOut(env, b); await noteBuySearch(env, req, cv && cv.filters); return res.status(200).json(cv); }
+    // The old conversation action ("converse") is retired (lane-b-find-retire, Nov 11 2026): the page asks the written answer or, without it, action rerun with the typed words. scripts/converseRetiredCheck.mjs asserts nothing calls it.
     // The invisible ceiling on every search path (lib/_ceilings.js, the one guard Buy and Sell share): a
     // calm reply when hit, never a sign in demand. Our own jobs (credential) skip it unless a test ceiling
     // is sent with them (x-ceiling-test), which is how the ceiling is tested without touching real numbers.
-    const searching = b.action === "chat" || b.action === "rerun" || b.action === "converse" || (!b.action && b.q);
+    const searching = b.action === "chat" || b.action === "rerun" || (!b.action && b.q);
     if (searching) {
       const cred = hasServerCredential(req), lim = testLimits(req, cred);
       if (!cred || lim) {
         const ce = await checkCeiling(env, req, b.action === "chat" ? "buy_chat" : "buy_search", { tool: "buy", limits: lim });
-        if (!ce.ok) return res.status(200).json(b.action === "chat" || b.action === "rerun" || b.action === "converse" ? { reply: CALM.search, cards: [], limited: true, turns: Number(b.turns) || 0 } : { status: "unresolved", message: CALM.search, limited: true });
+        if (!ce.ok) return res.status(200).json(b.action === "chat" || b.action === "rerun" ? { reply: CALM.search, cards: [], limited: true, turns: Number(b.turns) || 0 } : { status: "unresolved", message: CALM.search, limited: true });
       }
     }
     if (b.action === "chat") {
       // The model's own ceilings (lib/_ceilings.js buyModelGuard: 20 model turns per device a day, a nuisance
       // guard; $50 of Buy chat model cost a day, the authoritative one). Past either: the page's no-model search.
       const mg = await buyModelGuard(env, req);
-      if (!mg.ok) return res.status(200).json({ fallback: true, capped: mg.why, note: BUY_MODEL_PAUSED });
+      if (!mg.ok) return res.status(200).json({ fallback: true, capped: mg.why });   // no sentence: a visitor never reads that the written answer is paused, the page runs the scripted search alone
       return await buyChat(res, env, b, readVisitorId(req), req);
     }
     // The searching state's "what has been understood so far": the words parsed and the car resolved (the
@@ -570,29 +647,58 @@ async function handler(req, res) {
     }
     // A result address reloaded or pasted (/buy?q=...&make=...): the same search from its filters, no model call.
     if (b.action === "rerun") {
+      // THE NO-MODEL SEARCH (lane-b-find-paths): the typed words, searched by the same engine call the written answer ends in (filtersFromText, then runFilters with the words as lastUser). The page asks for it when the written answer is paused or failed.
+      let byWords = null;
+      if (!b.filters && b.text) {
+        const text = String(b.text).slice(0, 400), pw = await filtersFromText(env, text);
+        if (!pw) return res.status(200).json({ reply: "Tell Sam a car and Sam will find what's live.", cards: [], meta: null, state: { filters: {} }, turns: (Number(b.turns) || 0) + 1 });
+        byWords = { filters: pw, lastUser: text };
+      }
       // zip: the buyer's zip for the distance question (kept by the page for the session), never a filter by itself.
-      const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null });
+      const out = await runFilters(env, (byWords && byWords.filters) || b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, radius: radiusOf(b.radius), lastUser: (byWords && byWords.lastUser) || "" });
       const cards = await Promise.all(out.cards.map(async x => { const c = await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; }));
-      return res.status(200).json({ reply: out.reply, searchNote: out.searchNote || null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
+      return res.status(200).json({ ...(out.car ? { car: out.car } : {}), reply: out.reply, searchNote: out.searchNote || null, cards, noun: out.noun, meta: out.meta, state: out.state, turns: (Number(b.turns) || 0) + 1 });
+    }
+    // SHOW MORE (Nov 2 2026, a dealer buyer's "all live sales this week": 1,669 matches, 24 cards, no way to the rest): the next batch of the SAME search, in the engine's own order.
+    // The page sends the search's filters (its sort and chips are among them) and how many cars it already draws; the engine reads the search again and answers with the cars after those,
+    // each enriched like the first batch (a car whose sales are not read yet comes with the engine's "being read" market), and the counts (shown, remaining, nextN, countLine) written
+    // in lib/live/samChat.js. Nothing is sorted, counted or sliced here or on the page.
+    if (b.action === "more") {
+      const offset = Math.max(0, Math.min(100000, Math.floor(Number(b.offset) || 0)));
+      const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, radius: radiusOf(b.radius), offset, batchOnly: true });
+      // one stored-row read for the batch's spec keys, inside the same clock (a failure here only means each card reads as it would have)
+      const pre = Promise.all(out.cards.map(x => specOf(env, x.r, x.facts).catch(() => null))).then(sp => { const keys = sp.filter(Boolean).map(z => z.key); return keys.length ? prefetchSpecs(env, keys) : null; }).catch(() => null);
+      const cards = await moreBatch(out.cards, { enrichOne: async x => { await pre; return enrichFast(env, x); }, pendingOf: pendingCardOf });
+      const m = out.meta || {};
+      return res.status(200).json({ ...(out.car ? { car: out.car } : {}), cards, meta: { live: m.live, shown: m.shown, remaining: m.remaining, nextN: m.nextN, countLine: m.countLine || null, liveLine: m.liveLine || null, within: m.within || null, offset: m.offset } });
     }
     // The detail's live bid refresh can meter one upstream call: only our own jobs may trigger it, never a
     // public visitor (open-search policy: public answers come from the cache and the archive only).
     if (b.action === "detail") return res.status(200).json(await detailOut(env, b, { fresh: hasServerCredential(req) }));
     if (b.action === "save" || b.action === "list" || b.action === "watchsearch" || b.action === "remove" || b.action === "visit" || b.action === "hide" || b.action === "hideall") return await savedSearches(env, req, res, b);
-    if (b.action === "alerts_ready") return res.status(200).json({ ready: await alertsReady(env) });
+    if (b.action === "alerts_ready") return res.status(200).json({ ready: await alertsReady(env), rule: TOGGLE_LINE });   // rule: what the toggle prints (lib/live/buyAlerts.js), never a sentence of the page's own
     if (b.action === "arm" || b.action === "disarm" || b.action === "alerts" || b.action === "alert_test") {
       const user = await validateBearer(req.headers.authorization || "").catch(() => null);
-      if (!user || !user.userId) return res.status(401).json({ ok: false, needSignIn: true });
+      if (!user || !user.userId) { if (b.action === "arm") logArm(null, "alert", { outcome: "refused", reason: "signed_out" }, { listing: b.listing_id }); return res.status(401).json({ ok: false, needSignIn: true, reason: "signed_out", line: ARM_LINES.signed_out }); }
       try {
         if (b.action === "alerts") return res.status(200).json(await listAlerts(env, user));
-        if (b.action === "arm") return res.status(200).json(await armAlert(env, user, b.listing_id));
+        if (b.action === "arm") {
+          const lim = await routeLimit(env, req, "watch_arm", { route: "/api/buySearch" });
+          if (!lim.ok) { logArm(user.userId, "alert", { outcome: "refused", reason: "limited" }, { listing: b.listing_id }); return res.status(429).json({ ok: false, limited: true, reason: "limited", line: ARM_LINES.limited, retryAfter: lim.retryAfter }); }
+          let out;
+          try { out = await armAlert(env, user, b.listing_id); }
+          catch (e) { logArm(user.userId, "alert", { outcome: "refused", reason: "failed" }, { listing: b.listing_id }); return res.status(500).json({ ok: false, reason: "failed", line: ARM_LINES.failed }); }
+          const oc = armOutcome("alert", out);
+          logArm(user.userId, "alert", oc, { listing: b.listing_id });
+          return res.status(200).json(oc.outcome === "refused" ? { ...out, ok: false, reason: oc.reason, line: out.line || oc.line } : out);
+        }
         if (b.action === "disarm") return res.status(200).json(await cancelAlert(env, user, b.listing_id));
         // Probe only: this signed-in buyer's armed car, its message now, to a disposable test inbox.
-        if (process.env.PROBE_KEY && b.key === process.env.PROBE_KEY && /^[^@\s]+@[^@\s]+$/.test(String(b.to || ""))) return res.status(200).json(await testSend(env, user.userId, b.listing_id, String(b.to), { freshBid, noMark: !!b.noMark }));
+        if (hasHeaderKey(req) && /^[^@\s]+@[^@\s]+$/.test(String(b.to || ""))) return res.status(200).json(await testSend(env, user.userId, b.listing_id, String(b.to), { freshBid, noMark: !!b.noMark }));
         return res.status(400).json({ ok: false });
       } catch (e) { if (isMissingTable(e)) return res.status(200).json({ ok: false, setup: true, items: [] }); throw e; }
     }
-    const q = String(b.q || "").slice(0, 200).trim();
+    const q = String(b.q || (isPartialCar(env.car) ? carWords(env.car).label : "")).slice(0, 200).trim();   // a partial car token (a make, no model) with no words of its own: Find runs the same search as the words ("2009 BMW")
     if (!q) return res.status(400).json({ status: "error" });
     const buyT0 = Date.now();
     const parsed = await parseQueryResolved(q, env);
@@ -606,7 +712,7 @@ async function handler(req, res) {
     if (!v) return res.status(200).json({ status: "unresolved", message: "Sam couldn’t tell which car that is. Try a make and model, like Porsche 911 or Ferrari 812." });
     const f = cleanFilters(b.filters) || parsed.filters;
     if (!b.filters) { const named = gensNamed(parsed.text, v.make); if (named.length > 1 || (named.length === 1 && !v.genCode)) f.gens = named; }
-    const { rows, facets } = await searchLive(env, v, f, parsed.text);
+    const { rows, facets, excluded, milesNear } = await searchLive(env, v, f, parsed.text);
     // The market (the US and Canada, lib/live/search.js isAbroadRow) first, then abroad; inside each, every-filter-confirmed before "may match".
     const ordered = [...rows.filter(x => !isAbroadRow(x.r)), ...rows.filter(x => isAbroadRow(x.r))]
       .sort((a, b2) => { const ab = c => (isAbroadRow(c.r) ? 2 : 0) + (c.unknown.length ? 1 : 0); return ab(a) - ab(b2); });
@@ -622,11 +728,12 @@ async function handler(req, res) {
     // visitor_id/admin-dashboard join, this one does. Resolved make|model key only, never the typed q.
     if (v && v.make) logEvent(env, { event: EVENTS.SEARCH, tool: "buy", visitorId: readVisitorId(req), props: { key: `${v.make}|${v.model || ""}` } }).catch(() => {});
     const familyKey = ["family", v.make, v.parentModel || v.model, v.trim, (f.gens || []).join("-"), (f.bodies || []).join("-")].filter(Boolean).join(":").toLowerCase().replace(/[^a-z0-9:-]+/g, "-");
-    return res.status(200).json({
+    // THE CAR ON THE ANSWER (lane-b-typed-through): the car Find read, with the mileage the typed words carried, as token, line and short (lib/onebox.js withServedCar), the same words every tool's answer carries
+    return res.status(200).json(withServedCar({
       status: "ok",
       understood: { make: v.make, model: v.parentModel || v.model || null, trim: v.trim || null, year: v.year || null, noun: nounFor(v, f), filters: f },
-      total: rows.length, shownCap: capped.length, cards: first.concat(rest), facets, familyKey, emptyMarket
-    });
+      total: rows.length, shownCap: capped.length, cards: first.concat(rest), facets, familyKey, emptyMarket, excluded: excluded && excluded.length ? excluded : undefined, milesNear: milesNear || undefined
+    }, v, env));
   } catch (e) {
     console.error("buySearch failed:", (e && e.stack) || e);
     return res.status(500).json({ status: "error" });
@@ -642,7 +749,7 @@ function cleanState(s) {
     answered: (Array.isArray(s.answered) ? s.answered : []).map(String).filter(k => /^(generation|body|mileage|budget|location|zip|kind|travel)$/.test(k)),
     travel: /^(100|500|any)$/.test(String(s.travel || "")) ? String(s.travel) : null,
     asked: Math.max(0, Math.min(4, Number(s.asked) || 0)),
-    zip: /^\d{5}$/.test(String(s.zip || "")) ? String(s.zip) : null,
+    zip: /^\d{5}$/.test(String(s.zip || "")) ? String(s.zip) : null, radius: radiusOf(s.radius),
     place: typeof s.place === "string" && /^[A-Za-z .,'-]{3,60}$/.test(s.place) ? s.place.trim() : null,
     showNow: !!s.showNow,
     // The chat's filters (what the page's address is built from), so a saved search reopens at its own
@@ -662,49 +769,8 @@ function cleanChatFilters(f) {
   }
   return Object.keys(out).length ? out : null;
 }
-async function converseOut(env, b) {
-  const st = cleanState(b.state);
-  if (!st.messages.length) return { type: "nonsense", say: "Tell Sam a car, a budget or a type of car and Sam will find what's live.", options: ["a black manual BMW M3", "Porsches under $50k", "anything ending today"] };
-  const r = await converse(env, st);
-  if (r.type === "question" || r.type === "nonsense") return r;
-  const seenN = r.vins && r.vins.length ? await seenCount(env, r.vins).catch(() => 0) : 0;
-  if (r.type === "groups") {
-    // Each group: its cards (the first four enriched here, so every card a buyer can see renders WITH
-    // its Sam line) and its set-aside cars (modified, engine-swapped, project), which are not cards.
-    // The heading is a plain Sam line; each card carries its own exact-spec range.
-    const shape = list => Promise.all((list || []).map(async g => {
-      const { keep, aside } = splitAside(g.items);
-      const cards = await Promise.all(keep.slice(0, 40).map((x, i) => i < 4 ? enrich(env, x) : cardOf(x)));
-      cards.forEach((c, i) => { if (keep[i] && keep[i].distance != null) c.distance = keep[i].distance; });
-      return { label: g.label, n: keep.length, cards, setAside: await setAsideOf(env, aside) };
-    })).then(gs => gs.filter(g => g.n || g.setAside.length));
-    const [groups, maybeGroups] = await Promise.all([shape(r.groups), shape(r.maybeGroups)]);
-    const total = groups.concat(maybeGroups).reduce((k, g) => k + g.n, 0);
-    const say = r.near ? r.say : total && seenN ? `${CountText(total)} live, grouped by model. ${sauce(seenN)}` : (r.say || null);
-    logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
-    return { type: "groups", say, groups, maybeGroups, maybeKeys: r.maybeKeys || [], filters: r.filters || null, geo: !!r.geo, footnote: !!r.footnote, perCard: !!r.perCard };
-  }
-  const matches = (r.matches || []).slice(0, MAX);
-  // Stated matches first, then the ones whose listing doesn't say; nearest first within each.
-  const ordered = [...matches].sort((a, x) => { const k = c => (c.unknown.length ? 10 : 0) + (c.distance != null ? 0 : (isAbroadRow(c.r) ? 2 : 1)); return k(a) - k(x) || ((a.distance == null ? 1e9 : a.distance) - (x.distance == null ? 1e9 : x.distance)); });
-  const split = splitAside(ordered);
-  // Fill every card drawn first: the first 10 confirmed matches and the first 4 unconfirmed ones.
-  let unsureSeen = 0, sureSeen = 0;
-  const cards = await Promise.all(split.keep.map(x => { const un = (x.unknown || []).length; const k = un ? unsureSeen++ : sureSeen++; return (un ? k < 4 : k < FIRST) ? enrich(env, x) : cardOf(x); }));
-  cards.forEach((c, i) => { if (split.keep[i].distance != null) c.distance = split.keep[i].distance; });
-  const setAside = await setAsideOf(env, split.aside);
-  logSearch(env, null, typeof b.anonId === "string" ? b.anonId.slice(0, 64) : null);
-  // The opener carries what only Sam knows: how many of these have an auction history.
-  let say = r.say;
-  // Count only the confirmed matches; the ones whose listing doesn't say are named as such.
-  const allM = r.matches || [], unsure = allM.filter(x => (x.unknown || []).length).length, sureN = allM.length - unsure;
-  const countLine = (unsure && sureN) ? `${CountText(sureN)} live, and ${countText(unsure)} more whose listing doesn't say.` : `${CountText(allM.length)} live.`;
-  // A nearest-years result keeps the shared sentence (lib/live/search.js nearLine) as its opener.
-  if (r.near) say = r.say;
-  else if (!r.closest && !r.outOfScope && /^There are [\w,]+ live right now\./.test(r.say || "") && (seenN || (unsure && sureN))) say = countLine + (seenN ? " " + sauce(seenN) : "") + (r.geo ? " Closest first." : "");
-  else if (seenN && !r.closest && !r.outOfScope) say = allM.length === 1 ? r.say + " It has been through auction before, and Sam has its history." : (r.say || "") + " " + sauce(seenN);
-  return { type: "results", say: say, near: r.near || null, market: applyRung(r.market) || null, outOfScope: !!r.outOfScope, geo: !!r.geo, closest: !!r.closest, total: cards.length, cards, setAside, facets: r.closest ? null : facetsOf(ordered), filters: r.filters || null };
-}
+// near_me_zip (round 2): the five-digit zip a buyer gave for "near me", logged when this turn's filters carry a zip the
+// turn before did not. A coarse place, counted once per new zip; never blocks the answer.
 // Set-aside cars (modified, engine-swapped, project) are never cards: one quiet line each, with a thumbnail.
 const ASIDE_KINDS = { engine_swap: "engine-swapped", modified: "modified", project: "a project car" };
 function splitAside(items) {
@@ -731,7 +797,7 @@ async function detailOut(env, b, opts = {}) {
 // ---------------------------------------------------------------- saved searches (signed in)
 async function savedSearches(env, req, res, b) {
   const user = await validateBearer(req.headers.authorization || "").catch(() => null);
-  if (!user || !user.userId) return res.status(401).json({ ok: false, needSignIn: true });
+  if (!user || !user.userId) { if (b.action === "watchsearch") logArm(null, "saved_search", { outcome: "refused", reason: "signed_out" }); return res.status(401).json({ ok: false, needSignIn: true, ...(b.action === "watchsearch" ? { reason: "signed_out", line: ARM_LINES.signed_out } : {}) }); }
   const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" };
   const base = `${env.supabaseUrl}/rest/v1/buy_conversations`;
   // ONE LIST (Sam, Oct 9 2026): "Your searches" is the account's list when signed in, these rows: each search
@@ -784,12 +850,10 @@ async function savedSearches(env, req, res, b) {
   }
   // Remove hides the row (never a delete; see ONE LIST above).
   if (b.action === "remove" && /^[0-9a-f-]{36}$/.test(String(b.id))) return res.status(200).json({ ok: await hideRows([b.id]) });
-  if (b.action === "watchsearch" && /^[0-9a-f-]{36}$/.test(String(b.id))) {
-    const email = user.email || String(b.email || "").toLowerCase();
-    if (!email) return res.status(400).json({ ok: false });
-    await fetch(`${base}?id=eq.${b.id}&user_id=eq.${user.userId}`, { method: "PATCH", headers: H, body: JSON.stringify({ watch: true, updated_at: new Date().toISOString() }) });
-    const r = await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?on_conflict=vin_norm,email`, { method: "POST", headers: { ...H, Prefer: "resolution=ignore-duplicates,return=minimal" }, body: JSON.stringify([{ vin_norm: "search:" + b.id, email }]) });
-    return res.status(r.ok ? 200 : 500).json({ ok: r.ok });
+  if (b.action === "watchsearch") {
+    // RETIRED (Sam, Oct 29 2026): "Tell me when one comes up" promised an email that nothing sends; a Task does that job. No row is written; the refusal is logged and answered in plain words.
+    logArm(user.userId, "saved_search", { outcome: "refused", reason: "retired" });
+    return res.status(200).json({ ok: false, reason: "retired", line: ARM_LINES.retired });
   }
   return res.status(400).json({ ok: false });
 }
@@ -852,8 +916,8 @@ function buyChat(res, env, b, visitorId, req) {
     // its prepared result only by its own listing id, never by position, so a re-sort or a second search can never
     // give one car another's market; anything not prepared is enriched here as before.
     prepare: x => enrichFast(env, x),
-    shape: async out => withSuggest(out, { cards: await Promise.all(out.cards.map(async x => { const pre = out.prepared instanceof Map && x && x.r ? out.prepared.get(x.r.id) : null; const c = (pre ? await pre.catch(() => null) : null) || await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun, meta: out.meta || null, searchNote: out.searchNote }) });
+    shape: async out => withSuggest(out, { ...(out.car ? { car: out.car } : {}), cards: await Promise.all(out.cards.map(async x => { const pre = out.prepared instanceof Map && x && x.r ? out.prepared.get(x.r.id) : null; const c = (pre ? await pre.catch(() => null) : null) || await enrichFast(env, x); if (x.distance != null) c.distance = x.distance; return c; })), noun: out.noun, meta: out.meta || null, searchNote: out.searchNote }) });
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
-export default withTracking("/api/buySearch", handler, "buy");
+export default withTracking("/api/buySearch", (req, res) => withPartialCar(req, () => handler(req, res)), "buy");   // the partial car is crew only: the engine asks partialCarActive() (lib/carToken.js)

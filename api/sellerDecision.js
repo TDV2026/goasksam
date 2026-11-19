@@ -1,8 +1,17 @@
+import { debugLogOn } from "../lib/_debugLog.js";
+import { reasonLine } from "../lib/reasonWords.js";
+import { isNum } from "../lib/_num.js";
 import { oldCarsDataCost, recordUsageEvent, requestMetadata } from "./_usage.js";
-import { unusedWordsOf } from "../lib/live/unusedWords.js";
-import { resolveVehicle, sanitizeResolvedVehicle } from "../lib/vehicle.js";
+import { countNoun } from "../lib/countNoun.js";
+import { unusedFieldsFor } from "../lib/live/unusedWords.js";
+import { tryRefresh } from "../lib/refreshGate.js";
+import { carFromRequest, isPartialCar, carWords, partialCarOk, withPartialCar } from "../lib/carToken.js";
+import { partialChoiceAnswer, makeWithYearsOnly, choiceReply } from "../lib/carChoice.js";
+import { resolveVehicle, sanitizeResolvedVehicle, primeResolver } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
-import { mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
+import { withTypedMileage, withServedCar, variantQuestionFor, archiveTitleModel, mapEngineAnswer, oneEngineAnswer, runOneBox, runOneBoxModelChoice, runOneBoxProof, assessThinForVehicle, priceBandForVehicle, listSalesForVehicle, reserveInsightForVehicle, reserveDayInsightForVehicle, venueScopedSalesForVehicle, archiveResolveToken, houseReceiptsForVehicle, ENGINE_VERSION } from "../lib/onebox.js";
+import { timedShareId } from "../lib/shareId.js";
+import { typedAttributesIn, typedAttributeByKey } from "../lib/typedAttributes.js";
 import { supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { hasServerCredential } from "../lib/_credential.js";
@@ -14,7 +23,14 @@ import { callOldCarsData } from "../lib/_ocd.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { supabaseBytesSoFar } from "../lib/_supabase.js";
 import { VARIANT_MARKETS } from "../lib/modelRules.js";
-import { BODY_LABEL, isSingerPorsche } from "../lib/onebox.js";
+import { variantSplitFor } from "../lib/variantRows.js";
+import { splitServed } from "../lib/variants.js";
+import { familyOf as variantFamilyOfCar } from "../lib/variants.js";
+import { variantKeyShape } from "../lib/variants.js";
+import { BODY_LABEL, isSingerPorsche, withReadFields, isStorableQuestion } from "../lib/onebox.js";
+import { casedChips } from "../lib/chipLabel.js";
+import { lastUpdatedDate } from "../lib/asOf.js";
+import { settleVinAnswer, vinSearchPlan, applyVinOverlay, decodeTrimRerun, ruledOutLineOf } from "../lib/vinAsTyped.js";
 // Every variant value a chip may carry (e51): the M-car pair plus each variant market's key and its other side.
 // Restoration is never an option or a question (e52, Sam's decision): the generic entries' keys (restoration,
 // unrestored) are not accepted from a client, so a stale refine for them is ignored and the base page answers.
@@ -25,7 +41,8 @@ import { sourceCoverage } from "../lib/desk/coverage.js";
 import { isMaterialVariant } from "../lib/materialVariants.js";
 import { buildHouseComparison } from "../lib/houseCalendar.js";
 import { isHouseSource } from "../lib/_houseComps.js";
-import { vinFeatureActive, findVinArchiveMatch } from "../lib/_flags.js";
+import { vinFeatureActive, findVinArchiveMatch, looksLikeChassisId } from "../lib/_flags.js";
+import { findVinLiveMatch, liveVehicleOf, liveFactsOf } from "../lib/vinLiveMatch.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
 import { MODEL_SEGMENTS } from "../lib/vehicleData.js";
 import { poolTrimFor } from "../lib/modelFamilies.js";
@@ -51,11 +68,21 @@ import {
 } from "../lib/_classify.js";
 import { hammerUsd, ensureFxReady } from "../lib/_houseComps.js";
 import { buildSharedAnalysis, isRoutableVenue, ROUTABLE_VENUES, SHORT_AUCTION_VENUES, US_ROUTE_VENUES } from "../lib/platformPick.js";
-import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable, markRecomputing } from "../lib/live/search.js";
+import { specKeyFor, coreOf, persistCore, warmAnswerKeyFor, readWarmAnswer, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable, markRecomputing, questionRowKey, readQuestionRow, writeQuestionRow, deleteQuestionRow, markComputing, readComputing, clearComputing, COLD_WAIT_MS } from "../lib/live/search.js";
+import { keepAlive } from "../lib/keepAlive.js";
+import { wayOutFor } from "../lib/questionWayOut.js";
+// COLD SPEC WORDS (Sam, Oct 28 2026): the computing answer and the one plain line when the read cannot finish. No page says "try again"; the page keeps asking
+// (retryAfterMs, up to waitMaxMs) while computing is true.
+export const COMPUTING_LINE = reasonLine("cold.reading");
+export const COULD_NOT_LINE = reasonLine("cold.missed");
+const carStubOf = v => v ? { year: v.year || null, make: v.make || null, model: v.model || null, trim: v.trim || null, bodyStyle: v.bodyStyle || null } : null;
+export { COLD_WAIT_MS };   // defined with COMPUTING_MS in lib/live/search.js: the one wait every page reads from the engine's waitMaxMs
+export const computingAnswer = v => ({ status: "one_box", tier: "unavailable", stillReading: true, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: COLD_WAIT_MS, samLine: COMPUTING_LINE, couldNotLine: COULD_NOT_LINE, resolvedCar: carStubOf(v) });
 
 import { isCrewRequest } from "../lib/_crew.js";
 import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { failBody } from "../lib/_fail.js";
 // Powerseller referrals are gated (locked product rule): estimated value from
 // actual comps must clear this threshold before a partner can lead.
 // PowerSeller eligibility floor (business decision, Aug 2026): lowered 75000 -> 40000.
@@ -726,7 +753,7 @@ function premiumLandedScopeTags(landed) {
 }
 
 export function buildLadder(vehicle, generation = null) {
-  const year = Number.isFinite(Number(vehicle.year)) ? Number(vehicle.year) : null;
+  const year = isNum(vehicle.year) ? Number(vehicle.year) : null;
   const trim = asText(vehicle.trim) || null;
   const baseModel = asText(vehicle.model);
   // Market-spec + wheelbase are part of the market identity, not a trim: name them
@@ -790,7 +817,7 @@ export function buildLadder(vehicle, generation = null) {
 }
 
 function rungYearBounds(rung, vehicle) {
-  const year = Number.isFinite(Number(vehicle.year)) ? Number(vehicle.year) : null;
+  const year = isNum(vehicle.year) ? Number(vehicle.year) : null;
   if (rung.yearMin != null && rung.yearMax != null) return { year_min: rung.yearMin, year_max: rung.yearMax };
   if (rung.maxYearGap !== null && year) return { year_min: year - rung.maxYearGap, year_max: year + rung.maxYearGap };
   return null;
@@ -1289,7 +1316,7 @@ export async function fetchRecordsFromStore(vehicle, supabaseUrl, supabaseKey, g
   const yearReads = [];
   if (orClause && Number.isFinite(yr) && yr > 1900) {
     yearReads.push(supabaseSelect(env, `vehicle_market_records?make=ilike.${mkq}&or=(${orClause})&year=eq.${yr}&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=1000`));
-    if (generation && Number.isFinite(Number(generation.yearStart)) && Number.isFinite(Number(generation.yearEnd))) {
+    if (generation && isNum(generation.yearStart) && isNum(generation.yearEnd)) {
       yearReads.push(supabaseSelect(env, `vehicle_market_records?make=ilike.${mkq}&or=(${orClause})&year=gte.${generation.yearStart}&year=lte.${generation.yearEnd}&auction_end_date=gte.${cutoff}&select=raw_record&order=auction_end_date.desc&limit=1000`));
     } else {
       // No generation mapping: fall back to a +/-2 year band (matches the calendar rungs).
@@ -1462,7 +1489,7 @@ export function analyze(records, classifications, ladder, vehicle, debug, txFilt
 
   const totalEvidenceSales = evidenceSetAllowed.length;
   const strongestSales = [...evidenceSetAllowed]
-    .filter(item => Number.isFinite(Number(item.classification.price)))
+    .filter(item => isNum(item.classification.price))
     .sort((a, b) => Number(b.classification.price) - Number(a.classification.price))
     .slice(0, 3);
 
@@ -1785,7 +1812,7 @@ export function analyze(records, classifications, ladder, vehicle, debug, txFilt
           .filter(Number.isFinite)),
         ...weekdayInsight,
         highestResultWeekday: weekdayName([...items]
-          .filter(item => Number.isFinite(Number(item.classification.price)))
+          .filter(item => isNum(item.classification.price))
           .sort((a, b) => Number(b.classification.price) - Number(a.classification.price))[0]?.record?.auction_end_date),
         latestSaleDate: items
           .map(item => item.record.auction_end_date)
@@ -2190,7 +2217,7 @@ export function decide(analysis, criteria, vehicle) {
     powerSellerReferral,
     routeFit,
     limitations: analysis.thinMarket
-      ? [`Evidence at this rung is thin (${analysis.evidenceSales} sales); treat the decision as directional, not definitive.`]
+      ? [`Evidence at this rung is thin (${countNoun(analysis.evidenceSales, "sale", { words: false })}); treat the decision as directional, not definitive.`]
       : []
   };
 }
@@ -2760,9 +2787,15 @@ function coarseDayKey() {
   const d = new Date(Date.now() - 5 * 3600 * 1000); // rough US-eastern shift; dedup tolerance only
   return d.toISOString().slice(0, 10);
 }
-async function persistSavedResult(accountId, payload, supabaseUrl, supabaseKey) {
+// THE SHARE SNAPSHOT IS WRITTEN AFTER THE RESPONSE ON A STORED HIT (Lane B, Oct 31 2026). The awaited insert of the whole answer was the largest part of a stored read. The id is made here, the response carries it at once, and the insert runs under waitUntil (once more if it fails).
+// The link /o/<id> waits for its row (api/publicConfig.js, up to 6 s) rather than showing a dead page. Without waitUntil in this runtime the write stays awaited, so a link never goes out with no row coming.
+function requestWaitUntil() {
+  try { const ctx = globalThis[Symbol.for("@vercel/request-context")]; const got = ctx && typeof ctx.get === "function" ? ctx.get() : null; if (got && typeof got.waitUntil === "function") return pr => got.waitUntil(pr); } catch { /* none */ }
+  return null;
+}
+async function persistSavedResult(accountId, payload, supabaseUrl, supabaseKey, id = null) {
   try {
-    const ins = await supabaseInsert("saved_results", [{ user_id: accountId || null, payload }],
+    const ins = await supabaseInsert("saved_results", [{ ...(id ? { id } : {}), user_id: accountId || null, payload }],
       supabaseUrl, supabaseKey, "return=representation", "");
     return (ins.rows && ins.rows[0] && ins.rows[0].id) || null;
   } catch { return null; }
@@ -2839,7 +2872,7 @@ async function handler(req, res) {
     const sealCookies = parseCookies(req.headers.cookie);
     const internalSeal = req.body?.warm === true || req.body?.bypassCache === true;
     const testerSeal = isTesterRequest(req); // the signed tester cookie only; an expired or plain one is re-sealed
-    if (!isCrewRequest(req) && !testerSeal && !internalSeal) {
+    if (!isCrewRequest(req) && !testerSeal && !internalSeal && !credentialed) {   // credentialed: a keyed server job (the probe key header), never an address or a cookie
       return res.status(403).json({ status: "sealed", error: "Not open yet." });
     }
   }
@@ -2858,7 +2891,13 @@ async function handler(req, res) {
   // bounded (FX_WAIT_MS, 6 s): this read ran before every deadline and, on a stalled connection, held the request to
   // Vercel's 60 s kill. On a stall the load keeps going in the background and arms the instance for the next request;
   // this request converts on the static table, as every request did before dated FX existed.
-  try { await Promise.race([ensureFxReady({ supabaseUrl, supabaseKey }), new Promise(r => setTimeout(r, Number(process.env.FX_WAIT_MS || 6000)))]); } catch (e) {}
+  if (req.body?.oneBox && !req.body?.oneBoxProof) primeResolver({ supabaseUrl, supabaseKey }, { needNames: !(req.body?.car && typeof req.body.car === "object" && req.body.car.vehicle), text: req.body?.car?.raw || req.body?.search || req.body?.query || "" });   // cold resolver: the name and generation tables load beside the exchange rates, not after them
+  // Lane B, Oct 31 2026 (cold resolver): a Market Check read that is only looking up a STORED answer converts nothing, so it starts the load and does not wait for it; every live compute waits for it
+  // itself (oneEngineAnswer and runOneBox open with ensureFxReady). Every other request waits here as before.
+  const fxLoad = ensureFxReady({ supabaseUrl, supabaseKey });
+  const fxLazy = !!req.body?.oneBox && !req.body?.oneBoxProof && !req.body?.priceProbe;
+  if (fxLazy) fxLoad.catch(() => {});
+  else try { await Promise.race([fxLoad, new Promise(r => setTimeout(r, Number(process.env.FX_WAIT_MS || 6000)))]); } catch (e) {}
   // One Box empty-state proof line: recent real sales for the storefront. Archive-only,
   // no OCD, no gate, no car needed -> answered before every other check.
   if (req.body?.oneBoxProof) {
@@ -3210,14 +3249,16 @@ async function handler(req, res) {
   }
 
   const car = typeof req.body?.car === "object" ? req.body.car : {};
+  const tokenCar = carFromRequest(req);   // the car token (Lane B, Nov 17 2026, lib/carToken.js): ?car=<token> or body.car as a token string
   const sellerCriteria = getSellerCriteria(car);
-  const rawSearch0 = req.body?.car?.raw || req.body?.car?.vehicle?.raw || req.body?.car || req.body?.search || req.body?.query;
+  const rawSearch0 = (tokenCar && isPartialCar(tokenCar) && carWords(tokenCar).label) || (tokenCar && tokenCar.raw) ||   // a PARTIAL car token (a make, no model) is read as its words ("2009 BMW"): the resolver says which model is missing and the engine serves the model choice
+     req.body?.car?.raw || req.body?.car?.vehicle?.raw || req.body?.car || req.body?.search || req.body?.query;
   // AN ANSWER TO SAM'S QUESTION (Sam, Oct 23 2026): the page clears its box when Sam asks and sends what was first typed as car.context
   // (a VIN, a chassis number, the words that did not pin a car down) next to the answer in car.raw; the engine reads them together,
   // the answer first. Only a string, only up to 200 characters, and only when the answer does not already contain it.
   const askContext = typeof req.body?.car?.context === "string" ? req.body.car.context.trim().slice(0, 200) : "";
   const rawSearch = (askContext && typeof rawSearch0 === "string" && !rawSearch0.toLowerCase().includes(askContext.toLowerCase())) ? `${rawSearch0} ${askContext}` : rawSearch0;
-  if (!rawSearch && !car.vehicle) return res.status(400).json({ error: "Missing car/search field" });
+  if (!rawSearch && !car.vehicle && !tokenCar) return res.status(400).json({ error: "Missing car/search field" });
 
   // 2C: an authenticated reservation to refund if the search fails server-side.
   let reservationEventId = null;
@@ -3242,7 +3283,8 @@ async function handler(req, res) {
     // The frontend validates with vehicleIdentity and passes the resolved
     // vehicle object through; parsing happens once. Raw text is only re-resolved
     // (same shared resolver) when a caller skips that step.
-    let vehicle = sanitizeResolvedVehicle(car.vehicle);
+    // THE CAR TOKEN (Lane B, Nov 17 2026, lib/carToken.js): ?car=<token> or body.car as a token string is the car already resolved, for Market Check and Sell alike; it is read as car.vehicle is, and the resolver is not asked
+    let vehicle = sanitizeResolvedVehicle(tokenCar || car.vehicle);
     if (!vehicle) {
       // One Box: turn on VIN/chassis detection so a chassis-shaped query the reader typed
       // with a space ("1E 31588", the way BaT shows it) resolves to a chassis_hint we can
@@ -3254,7 +3296,7 @@ async function handler(req, res) {
       // e60 timing contract: a resolver lookup that timed out is the deadline card (the same words as the 20-second
       // card), never a car resolved from the typed words alone.
       if (resolution && resolution.status === "lookup_timeout") {
-        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one. Try again in a minute.", retry: true, retryAfterMs: 15000 });
+        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: COMPUTING_LINE, couldNotLine: COULD_NOT_LINE, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: COLD_WAIT_MS });
       }
       if (resolution.status !== "valid") {
         // The caller already accepted a model-level read (the seller declined
@@ -3274,12 +3316,9 @@ async function handler(req, res) {
         // Runs for BOTH One Box and /sell (Step 2): the wizard vehicle step gets the same archive
         // title resolution, so an unresolved make+token ("Eagle Talon", a pre-war marque) resolves
         // from the sale titles instead of a generic re-ask.
-        if (!(resolution.vehicle && resolution.vehicle.model) && !car.acceptModelLevel && typeof rawSearch === "string") {
-          const cleaned = rawSearch.replace(/\b(19|20)\d\d\b/g, " ").replace(/\s+/g, " ").trim();
-          const toks = cleaned.split(/\s+/).filter(t => t.length >= 2);
-          const phrases = [cleaned, ...toks.filter(t => t.length >= 3)].filter((v, i, a) => v && a.indexOf(v) === i);
+        if (!(resolution.vehicle && resolution.vehicle.model) && !car.acceptModelLevel && typeof rawSearch === "string" && !(partialCarOk(req) && makeWithYearsOnly(rawSearch, resolution.vehicle))) {   // a make and a year alone (a partial car) is never given a model from the titles: the model choice is served
           try {
-            const tok = await archiveResolveToken(phrases, { supabaseUrl, supabaseKey }, toks);
+            const tok = await archiveTitleModel(rawSearch, { supabaseUrl, supabaseKey });   // the one title read (lib/vehicle.js), the same the warm uses
             if (tok && tok.make && tok.model) {
               // Trust the archive-resolved make (issue 1): a typed make that exists in the titles must
               // win over the resolver's fuzzy guess ("Eagle Talon" -> Eagle Talon, never "Talbot").
@@ -3313,10 +3352,14 @@ async function handler(req, res) {
           // real chips (mirrors the body-style follow-up), never a flat rejection. Falls
           // through to the normal re-ask only if the make has no usable archive models.
           const mc = await runOneBoxModelChoice(resolution.vehicle, { supabaseUrl, supabaseKey });
+          // THE MODEL CHOICE (Lane D, lane-d-car-bar-partial, lib/carChoice.js): a make with no model is never answered; the engine serves modelChoice (the models of that make and year that have sold, each with its full car token), and the older prompt and modelOptions say the same list
+          const mch = partialCarOk(req) ? await partialChoiceAnswer(resolution.vehicle, { supabaseUrl, supabaseKey }, "mc") : null;
+          if (mch) return res.status(200).json(choiceReply({ status: "one_box", ...(mc || { tier: "model_choice", resolvedCar: { year: Number(resolution.vehicle.year) || null, make: resolution.vehicle.make, model: null, trim: null, bodyStyle: null, transmission: null } }), prompt: mch.line, modelOptions: mch.choices.map(c => c.label) }, mch));
           if (mc) return res.status(200).json({ status: "one_box", ...mc });
           return res.status(200).json({
             status: "needs_clarification", vehicle: resolution.vehicle,
             clarification: resolution.clarification || { question: "What year, make and model are you selling?" },
+            ...(resolution.clarification && resolution.clarification.wayOut ? { wayOut: resolution.clarification.wayOut } : {}),
             // One Box rejected-chip tracking (Oct 2026, mirrors js/chat-core.js noteRejectedModel):
             // the frontend needs to know the underlying resolver status was invalid_vehicle, not a
             // generic re-ask, to record that this model never comes back as a chip for this year+make.
@@ -3324,19 +3367,23 @@ async function handler(req, res) {
           });
         } else {
           const cl = resolution.clarification || { question: "What year, make and model are you selling?" };
+          const mchSell = !req.body?.oneBox && partialCarOk(req) ? await partialChoiceAnswer(resolution.vehicle, { supabaseUrl, supabaseKey }, "sell") : null;   // Sell's door: the same model choice, its addresses in Sell
           // Chassis exact-match (One Box, multi-token path): a chassis-shaped query that
           // resolved to nothing. Attach the separator-tolerant archive match (evidence only,
           // never ranking) so the frontend can lead with "I know this exact car" before
           // asking for the year/make/model. No hit -> just the honest chassis line.
           let obChassisMatch = null;
-          if (obVinActive && cl.kind === "chassis_hint") {
+          if (obVinActive && (cl.kind === "chassis_hint" || looksLikeChassisId(rawSearch))) {
             try { obChassisMatch = await findVinArchiveMatch({ supabaseUrl, supabaseKey }, { vin: rawSearch }); } catch { obChassisMatch = null; }
           }
           return res.status(200).json({
             status: "needs_clarification",
             vehicle: resolution.vehicle,
             clarification: cl,
+            // a Which model question (chips of cars for a make and year, no model yet) carries its way to type the model (lib/questionWayOut.js); the page renders it, the typed text is a normal search
+            ...(cl && cl.wayOut ? { wayOut: cl.wayOut } : (Array.isArray(cl.chips) && cl.chips.length && !cl.kind && resolution.vehicle && resolution.vehicle.make && !resolution.vehicle.model ? { wayOut: wayOutFor("model", resolution.vehicle) } : {})),   // the question's way out at the top level too, as every engine question carries it
             vinArchiveMatch: obChassisMatch || undefined,
+            ...(mchSell ? choiceReply({}, mchSell) : {}),
             // One Box rejected-chip tracking (Oct 2026, mirrors js/chat-core.js noteRejectedModel).
             invalidVehicle: resolution.status === "invalid_vehicle"
           });
@@ -3356,6 +3403,26 @@ async function handler(req, res) {
 
     // Generation mapping (Phase 4): null is safe and means the ladder keeps
     // its calendar +/- 2 rungs, exactly as unmapped models behave today.
+    // A VIN SEARCH IS A TYPED SEARCH OF THE CAR IT NAMES (lib/vinAsTyped.js): the VIN names the car, the car goes through the same stored-answer path a typed search takes, and the VIN car's own sales and option are put on the finished answer
+    let vinCtx = null;
+    if (req.body?.oneBox && vehicle && (vehicle.vin || vehicle.chassis)) {
+      let vinArchive = null; try { vinArchive = await findVinArchiveMatch({ supabaseUrl, supabaseKey }, { vin: vehicle.vin || vehicle.chassis }); } catch { vinArchive = null; }   // what the archive holds for this exact VIN: a question it already answers is not asked (lib/vinAsTyped.js settleVinAnswer)
+      // THE VIN'S OWN LIVE LISTING, read the way every door reads it (lib/vinLiveMatch.js): the car it names is the car (the same step api/vehicleIdentity takes: this door is reached with the VIN as typed), its title words and mileage are the typed search's facts,
+      // and the listing itself rides on the answer (vinLiveMatch, ownLive) so a page says "This car is live now" and never counts it as a comparable car
+      const vinIdLive = String(vehicle.vin || vehicle.chassis || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      let liveMatch = null; try { liveMatch = vinIdLive ? await findVinLiveMatch({ supabaseUrl, supabaseKey }, { vin: vinIdLive }) : null; } catch { liveMatch = null; }   // a chassis number or short identifier is read too (lib/vinLiveMatch.js): the function itself says which identifiers it takes
+      const vinLive = liveFactsOf(liveMatch);
+      if (liveMatch && !vinArchive) { const lv = await liveVehicleOf(liveMatch, vehicle, resolveVehicle).catch(() => null); if (lv) vehicle = { ...vehicle, ...lv, trim: lv.trim || null }; }
+      const plan = await vinSearchPlan(vehicle, { car: tokenCar || null, resolveVehicle, archive: vinArchive, live: vinLive, liveMatch, rerunWords: req.body.vinTrimRun ? req.body.vinRerunWords : null });
+      if (plan && plan.unresolved) return res.status(200).json({ status: "one_box", tier: "not_tracked", resolvedCar: null, samLine: plan.line, refusal_line: plan.line });
+      if (plan) { vinCtx = { ...plan.ctx, text: plan.text }; vehicle = plan.vehicle; }
+    }
+    // THE PARTNER DEMO'S VIN CAR (Lane B, Nov 2 2026): the demo reads the car's words with the VIN's own facts beside them (api/partnerAnswer.js); only its server-credential read is believed. Same settle as a VIN search.
+    if (!vinCtx && req.body?.oneBox && req.body?.demoRead === true && hasServerCredential(req) && car && car.vinFacts && typeof car.vinFacts === "object" && vehicle && vehicle.make && vehicle.model) {
+      const f = car.vinFacts, str = (x, n) => (typeof x === "string" && x.trim() ? x.trim().slice(0, n) : null);
+      vinCtx = { vehicle: { ...vehicle, vin: str(f.vin, 24) }, vf: { year: Number(f.year) || Number(vehicle.year) || null, decodeTrim: str(f.decodeTrim, 60), decodeBody: str(f.decodeBody, 30), decodeTx: null, archiveTrim: str(f.archiveTrim, 80), archiveTitle: str(f.archiveTitle, 120), archiveTx: null },
+        title: "", year: Number(vehicle.year) || null, body: null, gearbox: null, miles: null, fields: [], text: typeof car.raw === "string" ? car.raw : "" };
+    }
     const generation = await findGeneration(vehicle, { supabaseUrl, supabaseKey });
     if (obTimes.resolveStart) obTimes.resolveMs = Date.now() - obTimes.resolveStart;
 
@@ -3379,7 +3446,7 @@ async function handler(req, res) {
       const obStillReading = () => {
         console.error(`One Box deadline on the path before the engine, ${Date.now() - obStart}ms.`);
         mcRun({ answer_type: "failed", failure_state: "still_reading" });
-        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one. Try again in a minute.", retry: true, retryAfterMs: 15000 });
+        return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: COMPUTING_LINE, couldNotLine: COULD_NOT_LINE, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: COLD_WAIT_MS });
       };
       // Graceful failure (reliability pass): if Supabase is slow or DOWN, fail FAST to one calm line
       // rather than a hung spinner or a misleading "not enough sales" from empty reads. A cheap probe
@@ -3405,14 +3472,14 @@ async function handler(req, res) {
           return r.ok;
         } catch { return false; }
       };
-      const OB_CALM = "Sam’s catching his breath, try again in a minute.";
+      const OB_CALM = COULD_NOT_LINE;   // cold spec (Oct 28 2026): one plain line, never "try again"
       // search_run (docs/analytics-events.md): one per Market Check search, from Lane B's one engine result
       // object (mapEngineAnswer), failures included. Never on a refine tap (that is refinement_applied).
       const mcText = typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || "");
       const mcRefine = !!(req.body?.refine || (car && car.refine));
       const mcRun = (props, engineVersion) => {
         if (mcRefine) return;
-        track(req, "search_run", { query_text: mcText || "-", latency_ms: Date.now() - obStart, vehicle_key: vehicle && vehicle.make ? `${vehicle.make}|${vehicle.model || ""}`.toLowerCase() : undefined,
+        track(req, "search_run", { query_text: mcText || "-", search_id: /^[A-Za-z0-9]{6,40}$/.test(String(req.body?.searchId || "")) ? String(req.body.searchId) : undefined, latency_ms: Date.now() - obStart, vehicle_key: vehicle && vehicle.make ? `${vehicle.make}|${vehicle.model || ""}`.toLowerCase() : undefined,
           year: Number(vehicle && vehicle.year) || undefined, model_used: false, cost_usd: 0, ...props },
           { product: "market_check", surface: "market_check_page", engine_version: engineVersion || ENGINE_VERSION, vin: vehicle && (vehicle.vin || null) });
       };
@@ -3445,22 +3512,22 @@ async function handler(req, res) {
         mcRun({ answer_type: "failed", failure_state: "rate_limited" });
         return res.status(200).json({ status: "one_box", tier: "rate_limited", resolvedCar: null, samLine: CALM.search });
       }
-      const oneBoxText = typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || "");
+      const oneBoxText = vinCtx ? vinCtx.text : (typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || ""));
       // Round-4 earned question: an inline refinement (mileage band / transmission) narrows the
       // same pool without a re-typed query. Sanitized to numbers + a known transmission token.
       const rawRefine = req.body?.refine || (car && car.refine) || null;
       let obRefine = rawRefine ? {
-        miMin: Number.isFinite(Number(rawRefine.miMin)) ? Number(rawRefine.miMin) : null,
-        miMax: Number.isFinite(Number(rawRefine.miMax)) ? Number(rawRefine.miMax) : null,
+        miMin: isNum(rawRefine.miMin) ? Number(rawRefine.miMin) : null,
+        miMax: isNum(rawRefine.miMax) ? Number(rawRefine.miMax) : null,
         // Nearest-sales fallback (Part 3): the band center, so a too-thin band shows the closest sales.
-        miTarget: Number.isFinite(Number(rawRefine.miTarget)) ? Number(rawRefine.miTarget) : null,
+        miTarget: isNum(rawRefine.miTarget) ? Number(rawRefine.miTarget) : null,
         tx: rawRefine.tx === "manual" ? "manual" : rawRefine.tx === "auto" ? "auto" : null,
         // Body style refine (Oct 2026, Market Check): same small, known vocabulary lib/onebox.js's
         // detectBodyStyle()/BODY_LABEL use - anything else is dropped, never passed through raw.
         // e53 (Sam's table run): every body word the engine's own options can name (BODY_LABEL: the old list lacked
         // "fastback", so the Mustang's Fastback chip reached the engine as no refine and opened the base page), plus
         // "unspecified", the option for the sales whose titles name no body.
-        body: (Object.prototype.hasOwnProperty.call(BODY_LABEL, String(rawRefine.body || "")) || rawRefine.body === "unspecified") ? String(rawRefine.body) : null,
+        body: (Object.prototype.hasOwnProperty.call(BODY_LABEL, String(rawRefine.body || "")) || /^pw_(roadster|cabriolet|convertible)$/.test(String(rawRefine.body || "")) || rawRefine.body === "unspecified") ? String(rawRefine.body) : null,
         // Trim question refine (item 2, Oct 2026, Market Check): a slug lib/onebox.js's own
         // trimSlug() produced (e.g. "carrera-s", "turbo-s") - shape-checked only, the engine itself
         // looks it up against the family's real fence names and ignores anything that doesn't match.
@@ -3469,26 +3536,42 @@ async function handler(req, res) {
         // so that chip read the whole pool (Lane C's check, Oct 20 2026). Same shape check as trim: a comma list (or an
         // array) of up to 12 such words; anything else is dropped.
         notTrims: (() => { const a = (Array.isArray(rawRefine.notTrims) ? rawRefine.notTrims : String(rawRefine.notTrims || "").split(",")).map(x => String(x).trim()).filter(x => /^[a-z0-9-]{1,30}$/.test(x)).slice(0, 12); return a.length ? a.join(",") : null; })(),
+        // The trims a VIN's own code rules out (lib/vinTrimCodes.js; server-built by the VIN paths): trim slugs only, up to 12
+        allowTrims: (() => { const a = (Array.isArray(rawRefine.allowTrims) ? rawRefine.allowTrims : String(rawRefine.allowTrims || "").split(",")).map(x => String(x).trim()).filter(x => /^[a-z0-9-]{1,30}$/.test(x)).slice(0, 12); return a.length ? a.join(",") : null; })(),
+        exceptTrims: (() => { const a = (Array.isArray(rawRefine.exceptTrims) ? rawRefine.exceptTrims : String(rawRefine.exceptTrims || "").split(",")).map(x => String(x).trim()).filter(x => /^[a-z0-9-]{1,30}$/.test(x)).slice(0, 12); return a.length ? a.join(",") : null; })(),
         // Competition-variant refine (Part 1 change 1): Competition Package vs standard.
         // Variant refine (e51, Lane A's find): any variant-market key or its other side (lib/modelRules.js
         // VARIANT_MARKETS: carrera, competizione, lightweight, gta, restoration/unrestored...) plus the M-car
         // competition/standard pair. The old line kept only competition/standard, so a variant-market chip reached
         // the engine as no refine and the base page came back for every zero-count option.
-        variant: VARIANT_REFINE_VALUES.has(String(rawRefine.variant || "")) ? String(rawRefine.variant) : null,
+        variant: (VARIANT_REFINE_VALUES.has(String(rawRefine.variant || "")) || variantKeyShape(String(rawRefine.variant || ""))) ? String(rawRefine.variant) : null,
+        // Modified and Original (Nov 9 2026): the two sides of the pool the wide line names
+        mods: rawRefine.mods === "modified" ? "modified" : rawRefine.mods === "original" ? "original" : null,
         // Item 7/8 dictionary-driver refine + item 9 observable-fact refine (both re-scope the pool).
         driver: typeof rawRefine.driver === "string" ? rawRefine.driver.slice(0, 40) : null,
         driverVal: rawRefine.driverVal === "no" ? "no" : rawRefine.driverVal === "yes" ? "yes" : null,
         observe: typeof rawRefine.observe === "string" ? rawRefine.observe.slice(0, 40) : null,
+        // typed gearbox and engine words (lib/typedAttributes.js): the keys the engine read, and the keys a removed chip turns off; shape-checked keys only
+        attrs: (() => { const a = (Array.isArray(rawRefine.attrs) ? rawRefine.attrs : []).map(String).filter(x => typedAttributeByKey(x)).slice(0, 12); return a.length ? a : null; })(),
+        attrsOff: (() => { const a = (Array.isArray(rawRefine.attrsOff) ? rawRefine.attrsOff : []).map(String).filter(x => typedAttributeByKey(x)).slice(0, 12); return a.length ? a : null; })(),
         label: typeof rawRefine.label === "string" ? rawRefine.label.slice(0, 40) : null
       } : null;
       // An emptied refine (every field dropped by the sanitizer, e.g. a stale restoration chip) is NO refine, so the
       // stored row is read and written as for the bare page (it had forced a live compute and, under load, the
       // 20-second card).
       if (obRefine && !Object.values(obRefine).some(v => v != null && v !== "")) obRefine = null;
+      // TYPED GEARBOX AND ENGINE WORDS (Oct 30 2026, lib/typedAttributes.js): a stored row is keyed by the car, not the words, so a "6-speed" or "V8" typed beside a stored car was dropped. The words are read here and ride as refine.attrs: the row they key is its own
+      // (specKeyFor), the engine applies or announces them, and a chip removed (attrsOff) turns them off.
+      if (vehicle && vehicle.make && !vinCtx && !(obRefine && obRefine.attrs)) {
+        const tk = typedAttributesIn(oneBoxText, vehicle, obRefine && obRefine.attrsOff).map(a => a.key);
+        if (tk.length) obRefine = { ...(obRefine || {}), attrs: tk };
+      }
+      // TYPED MILES ARE THE BOX'S MILES (lane-b-typed-through, lib/onebox.js withTypedMileage): a mileage the resolver set aside is read as the refine the page's box sends, BEFORE the stored row is chosen, so it is never answered from (or stored as) the mileage-free row
+      if (vehicle && vehicle.make && !vinCtx) obRefine = withTypedMileage(vehicle, obRefine);
       // #1 divergence rule: the exact-car sale is fetched by the frontend (vehicleIdentity ->
       // vinAnchor) and passed back in car.exactSale; the engine compares it to the cluster.
       const rawES = car && typeof car.exactSale === "object" ? car.exactSale : null;
-      const exactSale = rawES && Number(rawES.price) > 0 ? {
+      const exactSale = !vinCtx && rawES && Number(rawES.price) > 0 ? {   // a VIN search reads the typed car's answer; its own sale rides on top (ownSales)
         price: Number(rawES.price),
         mileage: Number.isFinite(Number(rawES.mileage)) && Number(rawES.mileage) > 0 ? Number(rawES.mileage) : null,
         soldDate: typeof rawES.soldDate === "string" ? rawES.soldDate.slice(0, 10) : null
@@ -3499,8 +3582,8 @@ async function handler(req, res) {
       // identity key reuses lib/live/search.js specKeyFor, the SAME key the spec cache already
       // builds from this vehicle/generation pair, so a device that looks up the identical car twice
       // today (even via two separate fresh searches, not a UI refine) never spends a second slot.
-      const identityRefine = obRefine && (obRefine.body || obRefine.trim || obRefine.variant || obRefine.tx) && !(obRefine.miMin != null || obRefine.miMax != null || obRefine.driver || obRefine.observe || obRefine.docHistory)
-        ? { body: obRefine.body || null, trim: obRefine.trim || null, variant: obRefine.variant || null, tx: obRefine.tx || null } : null;
+      const identityRefine = obRefine && (obRefine.body || obRefine.trim || obRefine.variant || obRefine.tx || obRefine.attrs) && !(obRefine.miMin != null || obRefine.miMax != null || obRefine.driver || obRefine.observe || obRefine.docHistory)
+        ? { body: obRefine.body || null, trim: obRefine.trim || null, variant: obRefine.variant || null, tx: obRefine.tx || null, ...(obRefine.attrs ? { attrs: obRefine.attrs } : {}) } : null;
       const askedN = Math.max(0, Math.min(9, Number(req.body?.asked) || 0));
       // The bare page's stored row is the asked-0 answer; a refined market's row is read whatever the ask count (the
       // refine answered the question), so a chip page reads its stored row too.
@@ -3513,6 +3596,12 @@ async function handler(req, res) {
       // e59: the stored-row read starts here, alongside the car-limit read; the hit is evaluated below in the same order.
       const tWarm0 = Date.now();
       const warmP = (wantsWarm && !recompute) ? readWarmAnswerDetailed({ supabaseUrl, supabaseKey }, warmKey).catch(() => null) : null;
+      // THE QUESTION AS ITS OWN ROW (Nov 1 2026, lib/live/search.js): a text the engine asks about before it answers (which body, generation, trim, model) is read from its stored question, beside the answer row, and wins over it
+      const qKey = wantsWarm ? questionRowKey(warmKey, oneBoxText) : null;
+      // NO QUALIFYING QUESTION FOR THE CREW (lane-b-variant-split-3, Sam's rule): a car of a family with a variant list, its variant not stated, is answered with its variants as cards, never asked which trim it is. The stored question rows (trim_choice, kept for the visitor) are not read for it,
+      // the engine is told not to ask a trim question (env.noTrimQuestion), and nothing this crew read computes is written to the shared stores (a visitor still reads the question as before).
+      const crewVariantCar = !!(splitServed(req) && vehicle && vehicle.make && !exactSale && !vehicle.vin && !vehicle.chassis && !(obRefine && (obRefine.trim || obRefine.variant)) && variantFamilyOfCar(vehicle.make, vehicle.model, vehicle.year != null ? vehicle.year : vehicle.yearRange));
+      const qP = (wantsWarm && !recompute && !crewVariantCar) ? readQuestionRow({ supabaseUrl, supabaseKey }, qKey).catch(() => null) : null;
       if (vehicle && vehicle.make && !obRefine) {
         const carKey = specKeyFor(vehicle, generation, null);
         let carLimit;
@@ -3525,7 +3614,7 @@ async function handler(req, res) {
           // caller of). No product name, no sign-in demand: an email handles it.
           return res.status(200).json({
             status: "one_box", tier: "business_limit", resolvedCar: null,
-            samLine: "That is today’s limit of " + marketCheckDailyCarCap() + " cars on Market Check. If you would like more searches, email feedback@goasksam.com and we will get you set up."
+            samLine: "That’s " + marketCheckDailyCarCap() + " cars checked today, the most Market Check shows one visitor in a day while Sam is in beta. It starts fresh tomorrow, so come back then. Find and Sell are still open. If this got in your way, tell us at feedback@goasksam.com."
           });
         }
       }
@@ -3568,14 +3657,19 @@ async function handler(req, res) {
       let staleInfo = null;   // { storedAt } when a stale stored answer is being served; the recompute is a self-call
       if (wantsWarm && !recompute) {
         try {
-          const w = await obWithin(warmP);
+          const q = qP ? await obWithin(qP) : null;
+          const w = q && q.raw ? null : await obWithin(warmP);
           obTimes.warmReadMs = Date.now() - tWarm0;
-          if (w && w.raw) {
+          if (q && q.raw) {
+            oneBox = casedChips(q.raw); warmHit = true; obTimes.questionRow = true;
+            if (q.stale) staleInfo = { storedAt: q.storedAt, recomputingSince: null, question: true };
+          } else if (w && w.raw) {
             if (w.stale && w.recomputingSince && (Date.now() - Date.parse(w.recomputingSince)) > 90000) {
               // a recompute started over 90 s ago never landed: compute live now (one cold read), never serve stale twice
               console.error(`stale row recompute did not land in 90s (${warmKey.slice(0, 80)}); computing live`);
             } else {
-              oneBox = w.raw; warmHit = true;
+              await lastUpdatedDate({ supabaseUrl, supabaseKey }).catch(() => null);   // primes the date updatedLine prints (cached an hour)
+              oneBox = withReadFields(w.raw, oneBoxText, vehicle); warmHit = true;   // matched option and chart, read from the stored answer's own options and sales
               if (w.stale) {
                 staleInfo = { storedAt: w.storedAt, recomputingSince: w.recomputingSince || null };
                 // the marker is written once per recompute window, never on every stale serve (that reset the 90 s clock)
@@ -3585,18 +3679,55 @@ async function handler(req, res) {
           }
         } catch (e) { if (e && e.message === "onebox_deadline") return obStillReading(); /* otherwise fall through to the live path below */ }
       }
+      let engineP = null;   // the compute, kept alive past this response when the page's clock beats it (COLD SPEC, below)
+      // finishStore: the one place a computed answer is stored (inline, or after the response by keepAlive)
+      const finishStore = async (ans) => {
+        const raw = ans && ans.raw;
+        if (crewVariantCar) return;   // what the crew's no-question read computes is never stored: the visitor's rows stay the visitor's
+        if (wantsWarm && !poolSeed && raw && isStorableQuestion(raw)) { await writeQuestionRow({ supabaseUrl, supabaseKey }, qKey, slimAnswerForWire(raw)).catch(() => {}); return; }   // a question is stored as itself, never as an answer row
+        if (wantsWarm && !poolSeed && raw && answerCacheable(raw) && !/_choice$/.test(String(raw.tier || ""))) {   // a recompute self-call lands here too and writes the fresh row
+          { const ts = Date.now(); await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(raw)).catch(() => {}); if (debugLogOn()) console.log(JSON.stringify({ tag: "stage_ms", stage: "store", ms: Date.now() - ts, key: String(warmKey).slice(0, 80) })); }
+          // the nightly warm's own credentialed call also stores the car-only Sell block beside the answer (lib/sell/sellBlock.js)
+          if (req.body?.warm === true && credentialed) { try { await (await import("../lib/sell/sellBlock.js")).warmSellBlock({ supabaseUrl, supabaseKey }, oneBoxText, raw, warmKey); } catch (e) { /* the block is optional */ } }
+        }
+      };
+      // e97 (Sam, Oct 28 2026): a refine of a market whose bare answer is stored (mileage band, body, gearbox, variant, year, edition, a chip) is computed from that
+      // stored answer's own pool in this same request: the engine reads the stored rawPool, never the archive, never starts a cold compute, marks no computing row
+      // and stores no second row per refine. No stored bare row (or not a result) falls through to the compute below, as before.
+      let poolSeed = null;
+      if (!warmHit && obRefine && !exactSale && vehicle && vehicle.make && !vehicle.vin && !vehicle.chassis && !req.body?.fresh && !recompute && !isSingerPorsche(oneBoxText, vehicle)) {
+        try {
+          const bare = await obWithin(readWarmAnswerDetailed({ supabaseUrl, supabaseKey }, warmAnswerKeyFor(vehicle, generation, null)));
+          const br = bare && bare.raw;
+          if (br && br.tier === "result" && Array.isArray(br.rawPool) && br.rawPool.length) poolSeed = { rows: br.rawPool, storedAt: bare.storedAt || null };
+        } catch (e) { if (e && e.message === "onebox_deadline") return obStillReading(); }
+      }
+      const coldStore = wantsWarm && !poolSeed && !crewVariantCar;   // a crew variant car computes inline (nothing is stored for it, so there is nothing to hand off)
       try {
         if (!warmHit) {
           const te = Date.now();
+          // COLD SPEC (Sam, Oct 28 2026, no dead ends): a spec whose answer is not stored is computed behind the first response. After ONEBOX_HANDOFF_MS the
+          // page gets the computing answer (it keeps asking every 2 seconds), the compute is handed to keepAlive and writes the row when it finishes, and a
+          // marker row keeps those asks from starting a second compute. Only a stored market (wantsWarm) can be asked for again, so only it hands off.
+          if (coldStore && !recompute && await readComputing({ supabaseUrl, supabaseKey }, warmKey)) {
+            // an ask while the compute runs is the same search asking again (every 2 s): it writes no search_run row, so the day's "still reading" rows count searches, not asks.
+            // The first ask wrote the one row (below); the ask that finally finds the stored answer writes the answered one under the same search id.
+            return res.status(200).json(computingAnswer(vehicle));
+          }
+          if (coldStore) markComputing({ supabaseUrl, supabaseKey }, warmKey).catch(() => {});
+          // The deadline stops the read it gave up on (lane-b-archiveread step d), EXCEPT on the cold-store path: there the compute keeps running after the handoff and stores its row
+          // (keepAlive below), so it must never be aborted.
+          const engineAc = coldStore ? null : new AbortController();
+          engineP = oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, ...(crewVariantCar ? { noTrimQuestion: true } : {}), ...(poolSeed ? { poolSeed } : {}), ...(engineAc ? { signal: engineAc.signal } : {}), asked: crewVariantCar ? 2 : Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine);   // a car whose variants are the answer asks no question of any kind (lane-b-sell-nolump: the Porsche 356 asked which generation before it could show its bodies); the engine answers on the broader family and says so
+          const handoffMs = coldStore ? Math.min(obRemaining(), Number(process.env.ONEBOX_HANDOFF_MS || 8000)) : obRemaining();
           const engineAnswer = await Promise.race([
-            oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: Math.max(0, Math.min(9, Number(req.body?.asked) || 0)) }, obRefine),
-            new Promise((_, rej) => setTimeout(() => rej(new Error("onebox_deadline")), obRemaining()))   // the remainder of the whole-path clock
+            engineP,
+            new Promise((_, rej) => setTimeout(() => { if (engineAc) engineAc.abort(); rej(new Error("onebox_deadline")); }, handoffMs))   // the handoff, or the remainder of the whole-path clock
           ]);
           oneBox = engineAnswer.raw;
           obTimes.engineMs = Date.now() - te;
-          if (wantsWarm && answerCacheable(oneBox) && !/_choice$/.test(String(oneBox && oneBox.tier || ""))) {   // a recompute self-call lands here too and writes the fresh row
-            await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(oneBox)).catch(() => {});
-          }
+          await finishStore(engineAnswer);
+          if (coldStore) await clearComputing({ supabaseUrl, supabaseKey }, warmKey);
         }
       } catch (e) {
         console.error(`One Box unavailable (${(e && e.message) || e}), ${Date.now() - obStart}ms.`);
@@ -3605,8 +3736,13 @@ async function handler(req, res) {
         // written on this path). The health-probe failure keeps its own line below.
         if (e && e.message === "onebox_deadline") {
           mcRun({ answer_type: "failed", failure_state: "still_reading" });
-          return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, samLine: "Sam is still reading the sales for this one. Try again in a minute.", retry: true, retryAfterMs: 15000 });
+          if (engineP && coldStore) {   // the compute finishes and stores its row after this response; the page's next ask is a stored read
+            keepAlive(engineP.then(finishStore).finally(() => clearComputing({ supabaseUrl, supabaseKey }, warmKey)));
+            return res.status(200).json(computingAnswer(vehicle));
+          }
+          return res.status(200).json({ status: "one_box", tier: "unavailable", stillReading: true, computing: false, samLine: COULD_NOT_LINE, retry: false, resolvedCar: carStubOf(vehicle) });
         }
+        if (engineP && coldStore) clearComputing({ supabaseUrl, supabaseKey }, warmKey).catch(() => {});
         mcRun({ answer_type: "failed", failure_state: "catching_breath" });
         return res.status(200).json({ status: "one_box", tier: "unavailable", samLine: OB_CALM });
       }
@@ -3624,7 +3760,7 @@ async function handler(req, res) {
         mcRun({ answer_type: a.answerType, pool_size: a.poolSize ?? undefined, result_count: Array.isArray(oneBox.cards) ? oneBox.cards.length : undefined,
           range_low: a.low ?? undefined, range_high: a.high ?? undefined, year_widened: !!a.yearWidened,
           fallback_rung: a.fallbackRung ? String(a.fallbackRung).slice(0, 60) : undefined, reason_flag: a.reasonFlag ? String(a.reasonFlag).slice(0, 60) : undefined,
-          transmission: obRefine && obRefine.tx ? obRefine.tx : undefined }, a.engineVersion);
+          transmission: obRefine && obRefine.tx ? obRefine.tx : undefined, cache: warmHit ? "warm" : "cold" }, a.engineVersion);
         // Lane A render job (Oct 2026): expose Lane B's already-computed standard-shape fields on the
         // SAME response the Market Check page reads (previously `a` was computed only for the search_run
         // event above and discarded) - never a second computation, no number changes, just the existing
@@ -3661,7 +3797,7 @@ async function handler(req, res) {
       // would otherwise overwrite the card's base-spec row with a mileage/gearbox-filtered one.
       // e49: an identity-refined answer (body/trim/variant chip) is written under its OWN key (specKeyFor carries the
       // refine), never over the base spec's row; a mileage/gearbox/driver refine is still never written.
-      if (oneBox && oneBox.tier === "result" && (!obRefine || identityRefine) && vehicle && vehicle.make && vehicle.model) {
+      if (oneBox && oneBox.tier === "result" && !crewVariantCar && (!obRefine || identityRefine) && vehicle && vehicle.make && vehicle.model) {
         try {
           const cacheKey = specKeyFor(vehicle, generation, identityRefine);
           const core = coreOf(oneBox, { v: vehicle, generation, refine: null });
@@ -3683,10 +3819,12 @@ async function handler(req, res) {
       if (oneBox && oneBox.tier === "result" && !obRefine && !demoRead) {
         const tSnap = Date.now();
         try {
-          snapshotId = await persistSavedResult(null, {
-            obShare: true, savedAt: new Date().toISOString(),
-            query: oneBoxText, oneBox
-          }, supabaseUrl, supabaseKey);
+          const snap = { obShare: true, savedAt: new Date().toISOString(), query: oneBoxText, oneBox };
+          const wu = warmHit ? requestWaitUntil() : null;
+          if (wu) {   // a stored hit answers now; the row lands under waitUntil and the link waits for it
+            const sid = timedShareId(); snapshotId = sid;
+            wu((async () => { if (!(await persistSavedResult(null, snap, supabaseUrl, supabaseKey, sid))) await persistSavedResult(null, snap, supabaseUrl, supabaseKey, sid); })());
+          } else snapshotId = await persistSavedResult(null, snap, supabaseUrl, supabaseKey);
         } catch { snapshotId = null; }
         obTimes.snapshotMs = Date.now() - tSnap;
       } else if (demoRead) obTimes.snapshotMs = 0;
@@ -3695,7 +3833,7 @@ async function handler(req, res) {
       // STALE STORED ANSWER (stage 4): served exactly as stored (its counts, range and cards), with the dated line in
       // Sam's exact form; the recompute starts the moment this response is sent (awaited after it, so the function
       // stays alive to finish and write the fresh row), and the line is gone on the next read.
-      const staleFields = staleInfo ? { stale: true, storedAt: staleInfo.storedAt, recomputingSince: staleInfo.recomputingSince || null, staleLine: `Sales read on ${new Date(staleInfo.storedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" })}. Sales since then are not in yet. Updating now.` } : {};
+      const staleFields = staleInfo && !staleInfo.question ? { stale: true, storedAt: staleInfo.storedAt, recomputingSince: staleInfo.recomputingSince || null, staleLine: reasonLine("stale.line", { date: new Date(staleInfo.storedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" }) }) } : {};
       if (staleInfo) {
         // THE RECOMPUTE RUNS IN THIS PROCESS, after the response, under Vercel's waitUntil (stage 4, Oct 16 2026). An HTTP
         // self-call cannot land: the site's bot protection answers a server-side POST to this endpoint with a challenge
@@ -3709,19 +3847,50 @@ async function handler(req, res) {
           try {
             const fresh = await oneEngineAnswer(vehicle, generation, oneBoxText, { supabaseUrl, supabaseKey, exactSale, asked: askedN }, obRefine);
             const fr = fresh && fresh.raw;
-            if (fr && answerCacheable(fr) && !/_choice$/.test(String(fr.tier || ""))) {
+            if (fr && isStorableQuestion(fr)) await writeQuestionRow({ supabaseUrl, supabaseKey }, qKey, slimAnswerForWire(fr));
+            else if (staleInfo.question && fr && !/_choice$/.test(String(fr.tier || ""))) await deleteQuestionRow({ supabaseUrl, supabaseKey }, qKey);   // the engine no longer asks: the stale question is removed
+            if (fr && !isStorableQuestion(fr) && answerCacheable(fr) && !/_choice$/.test(String(fr.tier || ""))) {
               await writeWarmAnswer({ supabaseUrl, supabaseKey }, warmKey, slimAnswerForWire(fr));
               if (fr.tier === "result" && vehicle.model) { const core = coreOf(fr, { v: vehicle, generation, refine: null }); if (core) await persistCore({ supabaseUrl, supabaseKey }, specKeyFor(vehicle, generation, identityRefine), core).catch(() => {}); }
             }
           } catch (e) { console.error(`stale recompute failed: ${(e && e.message) || e}`); }
         };
-        if (waitUntil) { obTimes.recompute = "waitUntil"; waitUntil(recomputeNow()); }
-        else obTimes.recompute = "none_live_on_next_visit";
+        // ONE REFRESH PER ROW, A FEW AT ONCE (Nov 1 2026, lib/refreshGate.js): a marker younger than 90 s means a refresh is already running (this or another instance); this instance runs at most REFRESH_CAP at once.
+        // A refused row is served as stored and tried again on its next read.
+        if (!waitUntil) obTimes.recompute = "none_live_on_next_visit";
+        else if (staleInfo.recomputingSince && (Date.now() - Date.parse(staleInfo.recomputingSince)) <= 90000) obTimes.recompute = "running_elsewhere";
+        else { const g = tryRefresh(warmKey, recomputeNow); obTimes.recompute = g.state === "started" ? "waitUntil" : g.state; if (g.promise) waitUntil(g.promise); }
       }
       const timings = { ...obTimes, warmHit, stale: !!staleInfo, totalMs: Date.now() - reqStart, dbBytes: supabaseBytesSoFar() - obTimes.dbBytes0, marks: dd && Array.isArray(dd.marks) ? dd.marks : null, fetchMs: dd && Array.isArray(dd.fetches) ? dd.fetches.map(f => Number(f.ms) || 0) : null };
       // the words Sam did not use in this search (lib/live/unusedWords.js): the engine names them, the page prints the line
-      let unusedFields = {};
-      try { const u = unusedWordsOf(typeof rawSearch0 === "string" ? rawSearch0 : oneBoxText, vehicle, null); if (u.unused.length) unusedFields = { unusedWords: u.unused, unusedLine: u.line }; } catch {}
+      // A VIN NEVER ASKS WHAT IT ALREADY ANSWERS (Lane B, Nov 2 2026): a question tier on a VIN car is read against the decode and the archive record of that exact VIN; a settled attribute is answered with the option a chip tap would send
+      // (the handler runs again with that refine, the same path), an unsettled one is asked about that attribute only with the engine's line saying why.
+      if (vinCtx && !req.body.vinSettledRun && /_choice$/.test(String(oneBox && oneBox.tier || ""))) {
+        let again = null;
+        const settledOut = await settleVinAnswer(oneBox, vinCtx, async (rf, o) => {
+          const body2 = { ...req.body, vinSettledRun: true, refine: { ...(req.body.refine || {}), ...rf }, ...(o && o.openWhole ? { asked: 9 } : {}) };
+          let out2 = null; const res2 = { statusCode: 200, headersSent: false, setHeader() {}, getHeader() { return undefined; }, removeHeader() {}, status(c) { this.statusCode = c; return this; }, json(x) { if (out2 == null) out2 = x; this.headersSent = true; return this; }, send(x) { if (out2 == null) out2 = x; this.headersSent = true; return this; }, end() { this.headersSent = true; return this; } };
+          await handler({ ...req, body: body2 }, res2);
+          again = out2; return out2;
+        });
+        if (again) return res.status(200).json({ ...again, ...(settledOut && settledOut.vinSettled ? { vinSettled: settledOut.vinSettled } : {}) });
+        oneBox = settledOut;
+      }
+      // THE DECODED TRIM IS PART OF THE TYPED SEARCH (lib/vinAsTyped.js decodeTrimRerun): a finished answer for the bare model, on a VIN whose decode names a trim the resolver knows, is answered again as the typed search of that trim
+      if (vinCtx && !req.body.vinTrimRun) {
+        const tr = await decodeTrimRerun(oneBox, vinCtx, { resolveVehicle }).catch(() => null);
+        if (tr) {
+          const body3 = { ...req.body, ...(tr.refine ? { refine: { ...(req.body.refine || {}), ...tr.refine } } : {}), vinSettledRun: true, vinTrimRun: true, vinRerunWords: [tr.trim, tr.body].filter(Boolean).join(" "), ...(req.body.car && typeof req.body.car === "object" ? { car: { ...req.body.car, ...(req.body.car.vinFacts ? { raw: tr.text } : {}) } } : {}) };
+          let out3 = null; const res3 = { statusCode: 200, headersSent: false, setHeader() {}, getHeader() { return undefined; }, removeHeader() {}, status(c) { this.statusCode = c; return this; }, json(x) { if (out3 == null) out3 = x; this.headersSent = true; return this; }, send(x) { if (out3 == null) out3 = x; this.headersSent = true; return this; }, end() { this.headersSent = true; return this; } };
+          await handler({ ...req, body: body3 }, res3);
+          if (out3 && out3.status === "one_box" && /^(result|thin)$/.test(String(out3.tier || ""))) return res.status(200).json({ ...out3, ...(tr.ruling ? { vinRuling: { allowed: tr.ruling.allowed, ruledOut: tr.ruling.ruledOut, source: tr.ruling.source }, vinRuledOutLine: ruledOutLineOf(tr.ruling) } : {}), vinSettled: [...(Array.isArray(out3.vinSettled) ? out3.vinSettled : []), ...(tr.trim ? [{ dimension: "trim", label: tr.trim, source: "decode" }] : []), ...(tr.body ? [{ dimension: "body", label: tr.body, source: "decode" }] : [])] });
+        }
+      }
+      if (vinCtx) oneBox = applyVinOverlay(oneBox, vinCtx);   // the VIN car's own sales and option on the typed car's finished answer
+      const unusedFields = unusedFieldsFor(typeof rawSearch0 === "string" ? rawSearch0 : oneBoxText, vehicle, oneBox);
+      // NO QUALIFYING QUESTION (Sam, Nov 17 2026): a car of a family whose variants sell apart is answered with its variants as rows (variantSplit), never asked which one it is and never one blended range; the question (variantQuestionFor) is no longer asked here
+      if (!vinCtx && !exactSale && splitServed(req)) oneBox = await variantSplitFor(oneBox, { asked: askedN, refine: obRefine, crew: isCrewRequest(req), text: oneBoxText }, vehicle, generation, { supabaseUrl, supabaseKey }, { deadlineMs: Math.max(4000, Math.min(14000, obRemaining() - 2000)) });   // the variants of an unstated car, as rows (lib/variantRows.js); each row is the engine's answer for its own car
+      oneBox = withServedCar(oneBox, vehicle, { supabaseUrl, supabaseKey });   // the car this answer is SERVED for, whatever row it came from (lib/onebox.js withServedCar)
       return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
     }
 
@@ -4294,7 +4463,7 @@ async function handler(req, res) {
         // The closest sales (Oct 2026, follow-up chat): Market Check's own sale cards from this SAME runOneBox
         // call (closest first), never a new query. The follow-up chat may name only these.
         if (pbResult && Array.isArray(pbResult.cards) && pbResult.cards.length) {
-          decision.closestSales = pbResult.cards.slice(0, FOLLOWUP_SALES).map(c => ({ date: c.date || null, price: Number(c.price) || null, platform: c.platform || null, miles: Number.isFinite(Number(c.mi)) ? Number(c.mi) : null, title: c.title || null })).filter(c => c.price && c.date);
+          decision.closestSales = pbResult.cards.slice(0, FOLLOWUP_SALES).map(c => ({ date: c.date || null, price: Number(c.price) || null, platform: c.platform || null, miles: isNum(c.mi) ? Number(c.mi) : null, title: c.title || null })).filter(c => c.price && c.date);
         }
       }
     } catch (e) { /* additive */ }
@@ -4379,6 +4548,8 @@ async function handler(req, res) {
         && vehicle && vehicle.make && vehicle.model) {
       try {
         const hr = await houseReceiptsForVehicle(vehicle, generation, thinEnv);
+        // A house read that FAILED is "could not read", never "no house sales" (lane-b-archiveread step f): the normal pick below is not a statement that the car has no house record.
+        if (hr && hr.readFailed) { decision.houseReadFailed = true; decision.houseReadFailedLine = reasonLine("cold.missed"); }
         if (req.body && req.body.debug === true) decision._houseDbg = { pref: car && car.sellerPreference, hr: hr ? { houseN: hr.houseN, onlineN: hr.onlineN, onlineReceiptsN: hr.onlineReceiptsN, totalN: hr.totalN } : null };
         if (hr && hr.houseN >= 1) {
           const _tl = String((car && car.timeline) || ""); const asap = /\b(asap|rush|hurry|urgent|fast|quick|soon)\b|right away|this week/i.test(_tl) && !/\bno\s+(rush|hurry)\b/i.test(_tl);
@@ -4514,7 +4685,8 @@ async function handler(req, res) {
       track(req, "search_run", { query_text: typeof rawSearch === "string" ? rawSearch : (vehicle?.raw || vehicle?.canonicalLabel || "-"),
         answer_type: decision && decision.evidenceBasis === "regional_policy" ? "not_enough_data" : "range",
         latency_ms: Date.now() - reqStart, vehicle_key: vk, year: Number(vehicle && vehicle.year) || undefined,
-        pool_size: Number(analysis.recordsAnalyzed) || 0, model_used: false, cost_usd: costEstimate.plan1k }, sellCtx);
+        pool_size: Number(analysis.recordsAnalyzed) || 0, model_used: false, cost_usd: costEstimate.plan1k,
+        cache: fetchResult && fetchResult.fromCache ? "warm" : "cold" }, sellCtx);
       if (decision && decision.recommendedPath) track(req, "sell_answer_shown", { recommended_platform: String(decision.recommendedPath).slice(0, 60),
         evidence_basis: decision.evidenceBasis || undefined, confidence: typeof decision.confidence === "string" ? decision.confidence.slice(0, 60) : undefined, vehicle_key: vk }, sellCtx);
       if (decision && decision.partnerReferral && (decision.partnerReferral.eligible || decision.partnerReferral.secondary))
@@ -4596,9 +4768,9 @@ async function handler(req, res) {
   } catch (err) {
     // 2C: a server-side failure consumes nothing - refund the reservation (11b).
     if (reservationEventId) { try { await supabaseRpc("release_search", { p_event_id: reservationEventId }, supabaseUrl, supabaseKey); } catch (e) {} }
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json(failBody("sellerDecision", err));
   }
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
-export default withTracking("/api/sellerDecision", handler, "sell");
+export default withTracking("/api/sellerDecision", (req, res) => withPartialCar(req, () => handler(req, res)), "sell");   // the partial car is crew only: the engine asks partialCarActive() (lib/carToken.js)

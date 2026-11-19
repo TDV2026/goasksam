@@ -5,11 +5,14 @@
 // result-claiming (2C) attach to this same endpoint later.
 import { withTracking, track, linkAnonToUser } from "../lib/track/log.js";
 import { validateBearer } from "../lib/_auth.js";
+import { isAdminEmail, isInternalRequest, mintInternalCookieValue, INTERNAL_COOKIE, CREW_MAX_AGE_S } from "../lib/_crew.js";
 import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
 import { beehiivTier } from "../lib/_beehiiv.js";
+import { maybeSubscribeAfterSignin, waitBounded } from "../lib/newsletterSignup.js";
 import { readVisitorId } from "../lib/_visitor.js";
 import { logEvent, stitchVisitorToAccount, EVENTS } from "../lib/events.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { failBody } from "../lib/_fail.js";
 
 // How stale a tier check may be before we re-check on ensure. Moves into
 // app_config with the other operational dials in 2C; a constant for now.
@@ -123,6 +126,14 @@ async function handler(req, res) {
   const auth = await validateBearer(req.headers.authorization);
   if (!auth) { res.status(401).json({ status: "auth_required" }); return; }
 
+  // An ADMIN_EMAILS account counts as internal for every event, like the crew cookie (Oct 2026): mark this
+  // browser once so Sam's and Pat's signed-in tests never count as visitors. Grants no access.
+  const adminAcct = isAdminEmail(auth.email);
+  if (adminAcct && !isInternalRequest(req)) {
+    const v = mintInternalCookieValue();
+    if (v) { try { const ex = res.getHeader("Set-Cookie"); res.setHeader("Set-Cookie", [...(ex ? (Array.isArray(ex) ? ex : [ex]) : []), `${INTERNAL_COOKIE}=${v}; Max-Age=${CREW_MAX_AGE_S}; Path=/; HttpOnly; Secure; SameSite=Lax`]); } catch {} }
+  }
+
   const env = supabaseEnv();
   if (!env) { res.status(500).json({ error: "storage not configured" }); return; }
 
@@ -143,7 +154,8 @@ async function handler(req, res) {
     const src = typeof req.body.attributionSource === "string" ? req.body.attributionSource.slice(0, 40) : null;
     logEvent(env, { event: EVENTS.SIGN_IN_COMPLETED, userId: auth.userId, visitorId, props: src ? { source: src } : null });
     // Analytics (docs/analytics-events.md): signin, and this browser's earlier events linked to the account.
-    track(req, "signin", {}, { product: "site", surface: "api", user_id: auth.userId });
+    // newsletter: the sign-in card's Daily Vroom box as sent with this call (ticked or not); absent when the client sent no state. A flag only, never the address.
+    track(req, "signin", { ...(typeof req.body.marketingConsent === "boolean" ? { newsletter: req.body.marketingConsent } : {}), ...(req.body.signInMethod === "google" || req.body.signInMethod === "email" ? { method: req.body.signInMethod } : {}) }, { product: "site", surface: "api", user_id: auth.userId, internal: adminAcct });
     linkAnonToUser(req, auth.userId);
   }
 
@@ -151,17 +163,21 @@ async function handler(req, res) {
   // a per-result stale flag (age > saved_result_stale_days, default 14).
   if (req.body && req.body.action === "savedResults") {
     try { return await handleSavedResults(req, res, env, auth); }
-    catch (err) { return res.status(500).json({ error: err.message }); }
+    catch (err) { return res.status(500).json(failBody("account", err)); }
   }
   if (req.body && req.body.action === "savedResult") {
     try { return await handleSavedResult(req, res, env, auth); }
-    catch (err) { return res.status(500).json({ error: err.message }); }
+    catch (err) { return res.status(500).json(failBody("account", err)); }
   }
 
   // Consent is only meaningful when the client explicitly sends it (captured at
   // the sign-in card, applied once the account exists per 11d). Absent => leave
   // whatever is stored; never silently flip an existing opt-in back off.
   const consent = req.body && typeof req.body.marketingConsent === "boolean" ? req.body.marketingConsent : undefined;
+  // The sign-in card's Daily Vroom box (Sam, Oct 26 2026): ticked and signed in (the token is verified above) adds the email to the list, in the background,
+  // registered with the platform's keep-alive (waitUntil) so the response never cuts it off; with no keep-alive it is awaited here, bounded by its own 3 second
+  // timeout. Whatever Beehiiv answers, the sign-in below is not blocked (lib/newsletterSignup.js).
+  await waitBounded(maybeSubscribeAfterSignin(req, env, auth.email, consent));
 
   try {
     const existing = await supabaseSelect(env,
@@ -184,7 +200,7 @@ async function handler(req, res) {
       const created = (insert.rows && insert.rows[0]) ||
         { email: auth.email, tier: newTier, bonus_searches: 0, marketing_consent: consent === true };
       await funnel(env, "signup_completed", { user_id: auth.userId, dedup_key: `signup:${auth.userId}` });
-      track(req, "signup_completed", {}, { product: "site", surface: "api", user_id: auth.userId });
+      track(req, "signup_completed", {}, { product: "site", surface: "api", user_id: auth.userId, internal: adminAcct });
       linkAnonToUser(req, auth.userId);
       const claimedNew = await claimResultIfAny(req, env, auth.userId);
       const respNew = publicAccount(created); if (claimedNew !== undefined) respNew.claimed = claimedNew;
@@ -223,7 +239,7 @@ async function handler(req, res) {
     resp.daily = await dailyQuota(env, auth.userId, resp.tier);
     res.status(200).json(resp);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json(failBody("account", err));
   }
 }
 

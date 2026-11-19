@@ -14,6 +14,7 @@ import { hasServerCredential } from "../lib/_credential.js";
 import { gaBootstrapHtml } from "../lib/analytics.js";
 import { AUTH_SIGNBAR_CSS } from "../lib/authBar.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
+import { heldFor, withCalm } from "../lib/_hold.js";
 
 const SITE = "https://goasksam.com";
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -88,6 +89,7 @@ async function sitemapSpecs(req, res) {
 }
 
 async function handler(req, res) {
+  if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
   const crew = isCrewRequest(req);
   // In-content links to Market Check/Buy (Job 1, Oct 2026: "spec and car pages link to Market
   // Check and Buy: both must follow the stage") - these used to be unconditional for every visitor.
@@ -176,4 +178,5 @@ ${railHtml("history", undefined, crew, req)}
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
-export default withTracking("/api/specPage", handler, "site");
+// A database failure answers the calm page (503, Retry-After, one plain sentence), never the platform's generic 500 (Lane S review, Oct 27 2026).
+export default withTracking("/api/specPage", withCalm(handler, "specPage"), "site");

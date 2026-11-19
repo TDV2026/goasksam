@@ -1,0 +1,90 @@
+// SETUP QUESTIONS AND DRAFTS, SERVER SIDE (Lane D, Oct 24 2026): "red porsche", "porsche", "a manual 911" never stall; a typed
+// answer in any form or with a small typo counts; at most two questions per draft (the third reads as Any); a draft older than a
+// day, or with no stamp, is dropped by the server. The REAL draftTurn and startDraft with the Anthropic stream stubbed.
+//   node scripts/tasksDraftCheck.mjs
+const { readAnswer, matchOption } = await import("../lib/live/answerWords.js");
+const { draftTurn, startDraft, draftFresh, memStore } = await import("../lib/tasks/tasks.js");
+let fails = 0, passes = 0;
+const ok = (c, what) => { if (c) passes++; else { fails++; console.log("FAIL  " + what); } };
+// 2. A Tasks setup conversation (the reported one: red Porsches, "Which Porsche model?", "all").
+let calls = 0, script = [];
+const sse = events => new Response(new ReadableStream({ start(c) { for (const e of events) c.enqueue(new TextEncoder().encode(`event: x\ndata: ${JSON.stringify(e)}\n\n`)); c.close(); } }), { status: 200 });
+const toolTurn = input => [{ type: "message_start", message: { usage: { input_tokens: 1 } } }, { type: "content_block_start", index: 0, content_block: { type: "tool_use", id: "t" + calls, name: "propose_task" } }, { type: "content_block_delta", index: 0, delta: { type: "input_json_delta", partial_json: JSON.stringify(input) } }, { type: "message_delta", delta: { stop_reason: "tool_use" }, usage: { output_tokens: 1 } }];
+const textTurn = text => [{ type: "message_start", message: { usage: { input_tokens: 1 } } }, { type: "content_block_start", index: 0, content_block: { type: "text", text: "" } }, { type: "content_block_delta", index: 0, delta: { type: "text_delta", text } }, { type: "message_delta", delta: { stop_reason: "end_turn" }, usage: { output_tokens: 1 } }];
+globalThis.fetch = async (url) => { if (String(url).includes("api.anthropic.com")) { calls++; return sse(script.shift() || textTurn("")); } return new Response("[]", { status: 200 }); };
+const env = { mem: memStore() }, user = { userId: "aaaaaaaa-0000-4000-8000-000000000009", email: "fixture@example.invalid" };
+const Q = "Which Porsche model should Sam look for?";
+const turn = (draft, text) => draftTurn(env, user, { draft, text, apiKey: "stub", model: "stub" });
+// "red porsche" and "porsche": one question, with choices and the Any option, stamped, counted.
+for (const w of ["red porsche", "porsche"]) {
+  script = [toolTurn({ kind: "hunt", make: "Porsche", ...(w.startsWith("red") ? { colour: "red" } : {}) }), textTurn(Q)];
+  const r = await turn(null, w);
+  ok(r.draft && r.draft.question === Q && r.draft.qkind === "model" && r.draft.any === "Any Porsche" && r.draft.asks === 1 && !!r.draft.at, `"${w}": one model question with the Any option, counted and stamped`);
+}
+// "a manual 911": no question at all, read back.
+script = [toolTurn({ kind: "hunt", make: "Porsche", model: "911", gearbox: "manual" }), textTurn("Sam will look for manual Porsche 911s. Start?")];
+let r = await turn(null, "a manual 911");
+ok(r.draft && !r.draft.question && !!r.draft.summary && (r.draft.asks || 0) === 0, `"a manual 911": read back, no question`);
+// Typed answers in any form, and a small typo.
+script = [toolTurn({ kind: "hunt", make: "Porsche", colour: "red" }), textTurn(Q)];
+const open = (await turn(null, "red porsche")).draft; open.options = ["Panamera", "Cayenne"];
+for (const said of ["any", "Any", "ANY PORSCHE", "any porsche", "doesn't matter", "no preference", "either"]) {
+  const a = await turn(open, said); ok(a.draft && !a.draft.question && a.draft.filters.any_model === "1", `"${said}" chooses Any Porsche`);
+}
+for (const [said, want] of [["panamera", "Panamera"], ["PANAMERA", "Panamera"], ["Panamara", "Panamera"], ["cayen", null], ["cayene", "Cayenne"], ["the panamera please", "Panamera"]]) {
+  const m = matchOption(said, ["Panamera", "Cayenne"]); ok((m && m) === want || (want === null && m === null), `"${said}" reads as ${want}`);
+}
+ok(readAnswer("banana", ["Panamera"], "Any Porsche").kind === "unknown", "an answer that is neither is not understood");
+// Not understood: said once, the question stays open with its choices, flagged for the page.
+script = [toolTurn({ kind: "hunt", make: "Porsche", colour: "red" }), textTurn(Q)];
+r = await turn(open, "banana");
+ok(r.miss === true && /^Sam didn't understand that answer\. The choices are Panamera, Cayenne or Any Porsche\.$/.test(r.reply) && r.draft.question === Q && r.draft.asks === 1, "not understood: said once, flagged, the question and its choices stay, not counted again");
+// The cap: a third question is never asked.
+const capped = { ...open, asks: 2 };
+script = [toolTurn({ kind: "hunt", make: "Porsche", colour: "red" }), textTurn("Sam will look for red Porsches. Start?")];
+r = await turn({ ...capped, question: null, qkind: null }, "red porsche again");
+ok(r.draft && !r.draft.question && r.draft.filters.any_model === "1" && r.draft.asks === 2, "after two questions, a make with no model reads as Any, not a third question");
+// Never narrow silently: "manual" is no BMW model, so the model the setup turn guessed is taken back out and the question stays open.
+const bmw = { at: new Date().toISOString(), asks: 1, words: "black manual bmw with less than 50k miles", kind: "hunt", filters: { make: "BMW", colour: "black", gearbox: "manual", miles_max: 50000 }, question: "Which BMW model should Sam look for?", qkind: "model", options: ["M3", "M5"], any: "Any BMW", thread: [] };
+script = [toolTurn({ kind: "hunt", make: "BMW", colour: "black", gearbox: "manual", miles_max: 50000, model: "M3" }), textTurn("Sam will look for black manual BMW M3s. Start?")];
+r = await turn(bmw, "manual");
+ok(r.miss === true && r.draft.question === bmw.question && !r.draft.filters.model && r.draft.filters.gearbox === "manual" && /^Sam didn't understand that answer\. The choices are M3, M5 or Any BMW\.$/.test(r.reply), `"manual" to a model question picks no model: said once, the question and buttons stay (${JSON.stringify(r.reply)})`);
+// ...but a real model named in the answer still goes through.
+script = [toolTurn({ kind: "hunt", make: "BMW", colour: "black", gearbox: "manual", miles_max: 50000, model: "M3" }), textTurn("Sam will look for black manual BMW M3s. Start?")];
+r = await turn(bmw, "the m3 please");
+ok(!r.draft.question && r.draft.filters.model === "M3", "an answer naming the M3 chooses it");
+r = await turn(bmw, "Any BMW");
+ok(!r.draft.question && r.draft.filters.any_model === "1", "the Any BMW button reads as Any");
+// THE MODEL CHOICES ARE THE ENGINE'S (Lane D, Oct 25 2026, Lane B's modelChoicesForBrand): "red porsche" offers the engine's six and Any Porsche,
+// never only the models of red cars on sale; the years go through only when the person typed them; Tasks neither ranks nor filters.
+{ const calls2 = [], six = ["911", "Boxster", "Cayenne", "356", "Cayman", "944"];
+  const env2 = { mem: memStore(), modelChoices: async (e, make, years) => { calls2.push({ make, years }); return { make, options: six.map(m => ({ label: m, value: m, n: 10, any: false })).concat([{ label: `Any ${make}`, value: null, n: null, any: true }]) }; } };
+  script = [toolTurn({ kind: "hunt", make: "Porsche", colour: "red" }), textTurn(Q)];
+  let q = await draftTurn(env2, user, { draft: null, text: "red porsche", apiKey: "stub", model: "stub" });
+  ok(q.draft && q.draft.options.join() === six.join() && q.draft.any === "Any Porsche" && q.draft.qkind === "model", `"red porsche" offers the engine's six and Any Porsche, in the engine's order (${q.draft && q.draft.options})`);
+  ok(calls2.length === 1 && calls2[0].make === "Porsche" && calls2[0].years === undefined, "no years typed: none passed to the engine");
+  script = [toolTurn({ kind: "hunt", make: "Porsche", year_min: 1995, year_max: 1995 }), textTurn(Q)];
+  await draftTurn(env2, user, { draft: null, text: "a 1995 porsche", apiKey: "stub", model: "stub" });
+  ok(calls2[1] && calls2[1].years && calls2[1].years.yearMin === 1995 && calls2[1].years.yearMax === 1995, "years typed: passed to the engine as yearMin and yearMax");
+  // the engine read failing or empty still leaves the Any button and the box
+  const env3 = { mem: memStore(), modelChoices: async () => { throw new Error("down"); } };
+  script = [toolTurn({ kind: "hunt", make: "Porsche" }), textTurn(Q)];
+  q = await draftTurn(env3, user, { draft: null, text: "porsche", apiKey: "stub", model: "stub" });
+  ok(q.draft && q.draft.options.length === 0 && q.draft.any === "Any Porsche" && q.draft.question === Q, "engine read fails: no models, the Any button, the question stays");
+  // a typed choice against the engine's list, with a typo
+  script = [toolTurn({ kind: "hunt", make: "Porsche", colour: "red" }), textTurn(Q)];
+  q = await draftTurn(env2, user, { draft: null, text: "red porsche", apiKey: "stub", model: "stub" });
+  script = [toolTurn({ kind: "hunt", make: "Porsche", colour: "red", model: "Boxster" }), textTurn("Sam will look for red Porsche Boxsters. Start?")];
+  const bx = await draftTurn(env2, user, { draft: q.draft, text: "boxter", apiKey: "stub", model: "stub" });
+  ok(bx.draft && !bx.draft.question && bx.draft.filters.model === "Boxster", "a typo in an engine choice ('boxter') still chooses Boxster"); }
+// A draft older than a day, or never stamped, is dropped by the server.
+const old = { ...open, at: new Date(Date.now() - 25 * 3600e3).toISOString() };
+ok(draftFresh(open) === open && !draftFresh(old) && !draftFresh({ ...open, at: undefined }) && !draftFresh(null), "draftFresh: under a day kept, over a day or unstamped dropped");
+script = [toolTurn({ kind: "hunt", make: "Porsche", colour: "red" }), textTurn(Q)];
+r = await turn(old, "any");
+ok(r.draft_dropped === true && r.draft.question === Q && !r.draft.filters.any_model, "a stale draft is not used: the answer starts over and the server says it dropped the old one");
+r = await startDraft(env, user, { ...readBackOf(), at: old.at }, {});
+ok(r.draft_dropped === true && !r.task, "Start on a stale draft starts nothing");
+function readBackOf() { return { words: "red porsches", kind: "hunt", filters: { make: "Porsche", colour: "red", any_model: "1" }, question: null, summary: "Sam is looking for red Porsches." }; }
+console.log(`tasksDraftCheck: ${passes} passed, ${fails} failed`);
+process.exit(fails ? 1 : 0);

@@ -1,0 +1,18 @@
+# Copy of record for a NIGHTLY step Sam adds (the CI PAT lacks workflow scope, so workflow files are added by Sam).
+# It fails the night when the Tasks matcher's run time passed 60% of the function limit (300 s, lib/tasks/runBudget.js and vercel.json)
+# or when runs are deferring Tasks, and prints the real numbers (runs, Tasks per run, slowest run). Add it as a job in .github/workflows/nightly.yml
+# (it needs the repo secrets nightly.yml's ingest job already uses: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY).
+#
+#   tasks-run-time:
+#     name: Tasks matcher run time
+#     runs-on: ubuntu-latest
+#     needs: ingest
+#     if: github.event_name == 'schedule'
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: actions/setup-node@v4
+#         with: { node-version: 22 }
+#       - run: node scripts/tasksRunTimeCheck.mjs
+#         env:
+#           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+#           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

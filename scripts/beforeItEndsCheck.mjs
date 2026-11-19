@@ -84,7 +84,7 @@ ok(digests.length === 0, "the daily email carries none of them (nothing else was
 ok(sends.filter(s => s.text.includes("/listing/103")).length === 2, "car 103's end moved later: still one email each, nothing extra");
 const one = sends.find(s => s.text.includes("/listing/101") && who(s.to) === U.daily);
 ok(one && /ends today at 6:30am PT\./.test(one.text) && /The last bid seen was \$[\d,]+ at 4:30am PT\./.test(one.text) && !/current bid/i.test(one.text) && /middle half of 911 Carrera Coupes/.test(one.text), "the email carries the end time in Pacific, 'The last bid seen was {amount} at {time}.' (Sam's decision 8), and the middle-half line");
-ok(one && /two hours before bidding ends, once for each car/.test(one.text) && /Stop all Task emails: /.test(one.text), "the email says when it comes and carries the stop link");
+ok(one && /about two hours before bidding ends, once for each car/.test(one.text) && /Stop all Task emails: /.test(one.text), "the email says when it comes and carries the stop link");
 
 // A stored bid by its own time (Oct 2026, lib/tasks/bidTime.js), on every email that prints a live bid: within the hour
 // as before; 61 minutes and 5 hours old, only with its own time in Pacific ("Last bid seen: $61,500 at 9:29am PT."),

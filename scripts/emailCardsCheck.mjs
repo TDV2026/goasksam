@@ -1,11 +1,12 @@
 // THE TASK EMAIL'S CARD (Sam, Oct 23 2026, stage 3): the same card as Find, laid out for a mail client. Offline.
+import { REASON_TABLE as RT_TABLE } from "../lib/reasonWords.js"; const RT_NEAR = RT_TABLE["find.near_band"];
 import { emailCardHtml, emailCardText, emailCardData, EMAIL_CARD_STYLE } from "../lib/tasks/emailCards.js";
 import { taskEmailBody } from "../lib/tasks/tasks.js";
 import { messageFor as soldMessage } from "../lib/live/watches.js";
 import { messageFor as endsMessage } from "../lib/live/buyAlerts.js";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const now = Date.now();
-const l = { id: 1, title: "2011 BMW 1M", make: "BMW", url: "https://a.test/1", source: "Bring a Trailer", photo_url: "https://i.test/a.jpg", end_time: new Date(now + 5.3 * 3600e3).toISOString(), current_bid_usd: 52000, bid_at: new Date(now - 1200e3).toISOString(), miles: 34000, location: "Alpharetta, GA", country: "US", chips: ["Manual", "Alpine White"], mc_url: "/market-check?vin=WBSUR9C58BC123456", market: { kind: "range", low: 55000, high: 78000, count: 24, query: "2011 BMW 1M", basisLine: "Based on 24 sales, the latest in October 2026." }, sam_lines: [{ kind: "range", rung: [], placing: "below the range", text: "x" }], timeline: [{ date: "2024-03-12", result: "sold", price: 61000, miles: 29000, house: "Bring a Trailer" }], seen_before: { n: 1 }, history_url: "/vin/ABC" };
+const l = { id: 1, title: "2011 BMW 1M", make: "BMW", url: "https://a.test/1", source: "Bring a Trailer", photo_url: "https://i.test/a.jpg", end_time: new Date(now + 5.3 * 3600e3).toISOString(), current_bid_usd: 52000, bid_at: new Date(now - 1200e3).toISOString(), miles: 34000, location: "Alpharetta, GA", country: "US", chips: ["Manual", "Alpine White"], mc_url: "/market-check?vin=WBSUR9C58BC123456", market: { kind: "range", low: 55000, high: 78000, count: 24, query: "2011 BMW 1M", specLabel: "2011 BMW 1M", countLine: "24 sales since October 2025." }, sam_lines: [{ kind: "range", rung: [], placing: "below the range", bidLine: "The bid is below the range.", text: "x" }], timeline: [{ date: "2024-03-12", result: "sold", price: 61000, miles: 29000, house: "Bring a Trailer" }], seen_before: { n: 1 }, history_url: "/vin/ABC" };
 const h = emailCardHtml(l), t = emailCardText(l), d = emailCardData(l);
 ok(/^<table role="presentation"/.test(h) && !/<(div|section|flex)/i.test(h) && !/display:\s*(flex|grid)/.test(h), "table layout, no flex or grid");
 ok(/style="/.test(h) && !/<style/.test(h), "inline styles on the card");
@@ -13,7 +14,9 @@ ok(h.includes('<img src="https://i.test/a.jpg" alt="2011 BMW 1M"'), "the photo i
 ok(h.includes('max-width:600px') && h.includes('@media') === false, "600 pixels fluid, the media rules live in the head block");
 ok(/prefers-color-scheme: dark/.test(EMAIL_CARD_STYLE) && /max-width:480px/.test(EMAIL_CARD_STYLE), "a dark twin and a phone width");
 ok(h.includes("LAST BID SEEN") && h.includes("$52,000") && d.bid.time, "the last bid seen strip with its time");
-ok(h.includes("The typical range for cars like this.") && h.includes("$55,000 to $78,000") && h.includes("Based on 24 sales, the latest in October 2026."), "Sam's panel, the same words as Find");
+// one visual weight for a number (e98): the range, the count and the bid placing are each their own line of the card, in that order
+const at = x => h.indexOf(x);
+ok(h.includes("2011 BMW 1M") && at("$55,000 to $78,000") > 0 && at("24 sales since October 2025.") > at("$55,000 to $78,000") && at("The bid is below the range.") > at("24 sales since October 2025.") && !h.includes("The typical range for cars like this."), "Sam's box, the same lines as Find (spec, range, count, then the bid)");
 ok(h.includes("Bring a Trailer") && /hours? left/.test(h), "the dark source and time label");
 const hrefs = [...h.matchAll(/href="([^"]+)"/g)].map(m => m[1]);
 ok(hrefs.filter(u => u === "https://a.test/1").length === 2, "photo and View auction go to the auction");
@@ -21,7 +24,7 @@ ok(hrefs.filter(u => u === "https://goasksam.com/market-check?vin=WBSUR9C58BC123
 ok([...h.matchAll(/<a [^>]*>/g)].every(m => /target="_blank" rel="noopener"/.test(m[0])), "every link opens in a new tab with noopener");
 ok(d.hist === "Sold before", "Sold before comes from the engine's timeline");
 ok(!/[–—]/.test(h + t) && !/\bSam (found|thinks|says)\b/i.test(h + t) && !/Hagerty|Hemmings|Desk|Task email|sources?\b/i.test(h + t), "no dashes, no first person, no other tools, no source counts");
-ok(/View auction: https:\/\/a\.test\/1/.test(t) && /Market Check: https:\/\/goasksam\.com\/market-check\?vin=/.test(t) && /typical range/.test(t), "the plain-text twin carries the same facts and both links");
+ok(/View auction: https:\/\/a\.test\/1/.test(t) && /Market Check: https:\/\/goasksam\.com\/market-check\?vin=/.test(t) && /\$55,000 to \$78,000/.test(t) && /24 sales since October 2025/.test(t), "the plain-text twin carries the same facts and both links");
 const body = taskEmailBody({ id: 9, summary: "BMW 1M", filters: {} }, [{ id: 1, car: "x", url: l.url, venue: "BaT", cardHtml: h, cardText: t, cardHead: EMAIL_CARD_STYLE }], { first: true });
 ok(body.html.includes("prefers-color-scheme") && body.html.includes("max-width:600px") && /Open the Task/.test(body.html) && /Pause/.test(body.html) && /Stop/.test(body.html), "the Task email keeps its Open, Pause and Stop links around the cards");
 ok(body.text.includes("View auction: https://a.test/1") && /Open the Task:/.test(body.text) && /Stop:/.test(body.text), "the text version keeps them too");
@@ -41,6 +44,20 @@ ok(!/junk folder/.test(sm.html + sm.text) && /junk folder/.test(smFirst.text) &&
 const aside = soldMessage(w, [{ ...ev, band: null, setAside: "modified" }], { first: false });
 ok(!aside.html.includes("The typical range") && /set aside/.test(aside.html), "a set-aside sale prints its reason and no range");
 const em = endsMessage({ name: "1987 Porsche 911", house: "Bring a Trailer", bid: 52000, bidAt: null, url: "https://a.test/1", cardHtml: h, cardText: t, cardHead: EMAIL_CARD_STYLE }, { end_time: new Date(now + 2 * 3600e3).toISOString() }, { first: false, userId: "u1" });
-ok(em.html.includes("The typical range for cars like this.") && em.html.includes("LAST BID SEEN") && /Open the Task/.test(em.html) && !em.html.includes("View on Bring a Trailer"), "Before it ends is the same card");
+ok(em.html.includes("$55,000 to $78,000") && em.html.includes("LAST BID SEEN") && /Open the Task/.test(em.html) && !em.html.includes("View on Bring a Trailer"), "Before it ends is the same card");
 ok(em.text.includes("View auction: https://a.test/1") && /Open the Task:/.test(em.text) && /Stop all Task emails:/.test(em.text), "its text twin keeps the links");
+// the band contract (Lane B, Oct 30 2026, the live 1995 M3 at 61,000 km): the nearest band with a range headlines with the engine's sentence, the option list never restates it, the bands ascend, the reason names the car
+{ const E = await import("../lib/onebox.js"), { samLines } = await import("../api/buySearch.js"), BASE = JSON.parse((await import("node:fs")).readFileSync(new URL("./fixtures/m3Answer.json", import.meta.url), "utf8"));
+  const row = (mi, p, i) => ({ id: "r" + i, _usd: p, mileage: mi, year: 1995, auction_end_date: "2026-0" + (1 + i % 9) + "-10", rtitle: "1995 BMW M3 Coupe", raw_title: "1995 BMW M3 Coupe" }), rows = []; let i = 0;
+  for (let k = 0; k < 4; k++) rows.push(row(20000 + k * 2500, 38000 + k * 1500, i++)); for (let k = 0; k < 9; k++) rows.push(row(55000 + k * 2500, 26000 + k * 1500, i++)); for (let k = 0; k < 5; k++) rows.push(row(110000 + k * 2500, 20000 + k * 1500, i++));
+  const O = (label, value, n, lo, hi) => ({ dimension: "mileage", label, value, n, low: lo, high: hi, median: 30000, rangeFloor: n < 8, ownWindow: false, windowWords: "since June 2025" }), opts = [O("Under 50,000 miles", "lt50", 4, null, null), O("50,000 to 100,000 miles", "50to100", 9, 26000, 38000), O("Over 100,000 miles", "gt100", 5, null, null)];
+  const ln = o => o.rangeFloor ? `${o.label}, ${o.n} sales, too few for a range` : `${o.label} $${o.low.toLocaleString("en-US")} to $${o.high.toLocaleString("en-US")}, ${o.n} sales since June 2025`;
+  const d = { ...BASE, tier: "result", optionsState: "split", headlineDimension: "mileage", poolN: 18, soldCount: 18, cluster: null, windowWords: "since June 2025", rawPool: rows, options: opts, refineOptions: [], thinReason: "pooled_apart", headlineLines: opts.map(ln), optionLines: opts.map(ln) };
+  const sv = E.withReadFields(d, "1995 BMW M3 Coupe", { year: 1995, listingMiles: 38000 }), fa = E.findAnswerOf(sv, { title: "1995 BMW M3 Coupe", year: 1995, miles: 38000, bid: 7000 });
+  const market = { kind: "range", low: fa.range && fa.range.low, high: fa.range && fa.range.high, count: fa.n, emailMode: "range_with_options", optionLines: sv.optionLines, options: sv.options, findAnswer: fa };
+  const lm = { ...l, market, miles: 38000, sam_lines: samLines({ market }) }, th = emailCardHtml(lm), tt = emailCardText(lm), tl = tt.split("\n");
+  ok(!/Four sales under 50,000 miles, too few for a range/.test(th + tt) && tl.filter(x => x === RT_NEAR.text({ thin: "under 50,000 miles" })).length === 1 && !/so this is the 50,000 to 100,000 mile range/.test(tt) && !/\$26,000 to \$38,000\s*$/m.test(tl.filter(x => !/^50,000 to 100,000 miles/.test(x)).join("\n")), "a car in a thin mileage band: the card has no range, names the thin band in full, and borrows no neighbour's figure (lane-b-mileageband)");
+  ok(!tl.some(x => /^Under 50,000 miles/.test(x)) && tl.filter(x => /^50,000 to 100,000 miles \$26,000 to \$38,000/.test(x)).length === 1 && tl.filter(x => /^Over 100,000 miles/.test(x)).length === 1, "the other bands are the option lines, each once, with its own figures");
+  const bandsAt = tl.map(x => ["Under 50,000", "50,000 to", "Over 100,000"].findIndex(w => x.startsWith(w))).filter(x => x >= 0); ok(bandsAt.every((x, k) => k === 0 || bandsAt[k - 1] < x), "mileage bands print ascending");
+  const tm = await import("../lib/tasks/tasks.js"); ok(typeof tm.matchReasonLine === "function" && tm.matchReasonLine({ make: "BMW", year_min: 1995, year_max: 1995 }, { year: 1995 }, null) === "Matches your Task: a BMW from 1995.", "the match reason names the car in words, never a bare year"); }
 console.log(`emailCardsCheck: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

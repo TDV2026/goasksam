@@ -1,0 +1,406 @@
+{
+ "status": "one_box",
+ "thin": {
+  "span": null,
+  "cards": [
+   {
+    "id": "c9e0e69c-edde-4d18-8c90-72a97c878374",
+    "mi": 8100,
+    "url": "https://bringatrailer.com/listing/2001-lamborghini-diablo-vt-6-0-se-2/",
+    "date": "2026-10-26",
+    "make": "Lamborghini",
+    "image": "https://bringatrailer.com/wp-content/uploads/2026/09/036A7277-scaled-copy-2026-09-17-4od-78555.jpg?w=940",
+    "model": "Diablo",
+    "month": "Oct 2026",
+    "price": 1063000,
+    "title": "2001 Lamborghini Diablo Vt 6.0 SE",
+    "hollow": false,
+    "country": "US",
+    "vinNorm": "ZA9DC01A01LA12888",
+    "platform": "Bring a Trailer",
+    "mileageText": "8,100 mi",
+    "countryBasis": "country_code",
+    "platformName": "Bring a Trailer",
+    "platformSlug": "bringatrailer",
+    "transmission": null
+   }
+  ],
+  "pairs": [],
+  "houseN": 0,
+  "intake": null,
+  "isThin": true,
+  "totalN": 1,
+  "onlineN": 1,
+  "rawPool": [
+   {
+    "cc": "US",
+    "id": "c9e0e69c-edde-4d18-8c90-72a97c878374",
+    "mi": {
+     "stated": null,
+     "capable": true,
+     "structured": 8100
+    },
+    "ts": "clean",
+    "_usd": 1063000,
+    "body": "Coupe",
+    "city": "Costa Mesa",
+    "make": "Lamborghini",
+    "mods": "[]",
+    "year": 2001,
+    "color": "Marrone Eklipsis",
+    "image": "https://bringatrailer.com/wp-content/uploads/2026/09/036A7277-scaled-copy-2026-09-17-4od-78555.jpg?w=940",
+    "model": "Diablo",
+    "price": 1063000,
+    "state": "CA",
+    "value": 1063000,
+    "_allin": 1063000,
+    "rtitle": "13k-Kilometer 2001 Lamborghini Diablo VT 6.0 SE",
+    "source": "Bring a Trailer",
+    "srcurl": "https://bringatrailer.com/listing/2001-lamborghini-diablo-vt-6-0-se-2/",
+    "_hammer": 1063000,
+    "country": "US",
+    "mileage": 8100,
+    "srcurl2": null,
+    "currency": "USD",
+    "vin_norm": "ZA9DC01A01LA12888",
+    "mileageKm": "13000",
+    "precision": "exact",
+    "raw_title": "13k-Kilometer 2001 Lamborghini Diablo VT 6.0 SE",
+    "source_id": "19490132",
+    "desc_facts": {
+     "markers": [],
+     "transmission": "Manual",
+     "stated_mileage": null
+    },
+    "has_reserve": true,
+    "countryBasis": "country_code",
+    "project_flag": null,
+    "transmission": null,
+    "stated_mileage": null,
+    "auction_end_date": "2026-10-26"
+   }
+  ],
+  "receipts": [
+   {
+    "id": "c9e0e69c-edde-4d18-8c90-72a97c878374",
+    "url": "https://bringatrailer.com/listing/2001-lamborghini-diablo-vt-6-0-se-2/",
+    "city": null,
+    "date": "2026-10-26",
+    "slug": "bringatrailer",
+    "year": 2001,
+    "allIn": null,
+    "color": null,
+    "image": "https://bringatrailer.com/wp-content/uploads/2026/09/036A7277-scaled-copy-2026-09-17-4od-78555.jpg?w=940",
+    "title": "2001 Lamborghini Diablo Vt 6.0 SE",
+    "venue": "Bring a Trailer",
+    "hammer": 1063000,
+    "chassis": null,
+    "isHouse": false,
+    "markers": [],
+    "mileage": 8100,
+    "vinNorm": "ZA9DC01A01LA12888",
+    "currency": "USD",
+    "nativeCur": null,
+    "soldLabel": "Sold October 2026",
+    "chassisTail": null,
+    "nativeAllIn": null,
+    "nativeHammer": null,
+    "transmission": null
+   }
+  ],
+  "setAsideN": 0,
+  "houseSteer": false,
+  "pairsCount": 0,
+  "medianHammer": 1063000,
+  "setAsideRows": [],
+  "variantAside": null,
+  "windowMonths": 60,
+  "variantAsides": [],
+  "onlineReceiptsN": 1,
+  "pairPctEligible": false,
+  "variantOptionsLine": null
+ },
+ "tier": "thin",
+ "cards": [
+  {
+   "id": "c9e0e69c-edde-4d18-8c90-72a97c878374",
+   "mi": 8100,
+   "url": "https://bringatrailer.com/listing/2001-lamborghini-diablo-vt-6-0-se-2/",
+   "date": "2026-10-26",
+   "make": "Lamborghini",
+   "image": "https://bringatrailer.com/wp-content/uploads/2026/09/036A7277-scaled-copy-2026-09-17-4od-78555.jpg?w=940",
+   "model": "Diablo",
+   "month": "Oct 2026",
+   "price": 1063000,
+   "title": "2001 Lamborghini Diablo Vt 6.0 SE",
+   "hollow": false,
+   "country": "US",
+   "vinNorm": "ZA9DC01A01LA12888",
+   "platform": "Bring a Trailer",
+   "mileageText": "8,100 mi",
+   "countryBasis": "country_code",
+   "platformName": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "transmission": null
+  }
+ ],
+ "dedup": {
+  "ms": 200,
+  "t0": 1793119074640,
+  "marks": [
+   [
+    "thin_checked",
+    230
+   ],
+   [
+    "done",
+    230
+   ]
+  ],
+  "fetches": [
+   {
+    "ms": 136,
+    "raw": 21,
+    "since": "2024-10-27",
+    "filter": "sales_archive?make=ilike.Lamborghini&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.2024-10-27&year=gte.1999&year=lte.2003&order=sale_date.desc,id.asc",
+    "byModel": "Diablo",
+    "byTitle": null,
+    "yearMax": 2003,
+    "yearMin": 1999,
+    "houseTier": false,
+    "queryError": false,
+    "titleContains": "SE"
+   },
+   {
+    "ms": 90,
+    "raw": 39,
+    "since": "2021-10-28",
+    "filter": "sales_archive?make=ilike.Lamborghini&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.2021-10-28&year=gte.1999&year=lte.2003&order=sale_date.desc,id.asc",
+    "byModel": "Diablo",
+    "byTitle": null,
+    "yearMax": 2003,
+    "yearMin": 1999,
+    "houseTier": true,
+    "queryError": false,
+    "titleContains": "SE"
+   }
+  ],
+  "queries": 2,
+  "deltaReads": 2,
+  "fetchedRaw": 60,
+  "accentUnion": true,
+  "fetchedDeduped": 39,
+  "collectExcluded": false
+ },
+ "strip": {
+  "sales": [
+   {
+    "id": "c9e0e69c-edde-4d18-8c90-72a97c878374",
+    "date": "2026-10-26",
+    "miles": 8100,
+    "price": 1063000,
+    "venue": "Bring a Trailer"
+   }
+  ],
+  "latestSale": {
+   "id": "c9e0e69c-edde-4d18-8c90-72a97c878374",
+   "date": "2026-10-26",
+   "miles": 8100,
+   "price": 1063000,
+   "venue": "Bring a Trailer"
+  }
+ },
+ "trend": null,
+ "htMeta": {
+  "span": null,
+  "houseN": 0,
+  "intake": null,
+  "isThin": true,
+  "totalN": 1,
+  "onlineN": 1,
+  "setAsideN": 0,
+  "houseSteer": false,
+  "pairsCount": 0,
+  "medianHammer": 1063000,
+  "setAsideRows": [],
+  "variantAside": null,
+  "windowMonths": 60,
+  "variantAsides": [],
+  "onlineReceiptsN": 1,
+  "pairPctEligible": false,
+  "variantOptionsLine": null
+ },
+ "readAt": "2026-10-27T16:37:54.870Z",
+ "refine": {
+  "body": "coupe",
+  "typedBody": true
+ },
+ "recent3": [
+  {
+   "id": "c9e0e69c-edde-4d18-8c90-72a97c878374",
+   "mi": 8100,
+   "url": "https://bringatrailer.com/listing/2001-lamborghini-diablo-vt-6-0-se-2/",
+   "date": "2026-10-26",
+   "make": "Lamborghini",
+   "image": "https://bringatrailer.com/wp-content/uploads/2026/09/036A7277-scaled-copy-2026-09-17-4od-78555.jpg?w=940",
+   "model": "Diablo",
+   "month": "Oct 2026",
+   "price": 1063000,
+   "title": "2001 Lamborghini Diablo Vt 6.0 SE",
+   "hollow": false,
+   "country": "US",
+   "vinNorm": "ZA9DC01A01LA12888",
+   "platform": "Bring a Trailer",
+   "mileageText": "8,100 mi",
+   "countryBasis": "country_code",
+   "platformName": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "transmission": null
+  }
+ ],
+ "vehicle": {
+  "make": "Lamborghini",
+  "trim": "SE",
+  "year": 2001,
+  "model": "Diablo"
+ },
+ "best_day": null,
+ "genYears": null,
+ "ownSales": null,
+ "thinLine": "Not enough sales of this exact car to give a reliable range. These are the sales on record.",
+ "basisLine": "Based on one sale, in October 2026.",
+ "exactSale": null,
+ "freshness": {
+  "mode": "online",
+  "through": "2026-10-26",
+  "lastNight": true,
+  "archiveThrough": "2026-10-26"
+ },
+ "liveScope": "Comparing live listings to 2001 Diablo SE.",
+ "poolYears": [
+  2001,
+  2001
+ ],
+ "rungLabel": "2001 Diablo SE",
+ "scopeLabel": "2001 Diablo SE",
+ "thinReason": "few_sales",
+ "thin_sales": {
+  "count": 1,
+  "sales": [
+   {
+    "url": "https://bringatrailer.com/listing/2001-lamborghini-diablo-vt-6-0-se-2/",
+    "month": "October 2026",
+    "price": 1063000,
+    "venue": "Bring a Trailer"
+   }
+  ],
+  "scope_label": "2001 Diablo SE",
+  "latest_month": "October 2026"
+ },
+ "lowestSaleN": 1063000,
+ "resolvedCar": {
+  "make": "Lamborghini",
+  "trim": "SE",
+  "year": 2001,
+  "badge": null,
+  "model": "Diablo",
+  "genCode": null,
+  "bodyStyle": null,
+  "nameModel": "Diablo",
+  "familyLabel": "SE",
+  "transmission": null
+ },
+ "windowStart": "2026-10-26",
+ "windowWords": "since October 2026",
+ "contextRoles": {
+  "roles": [
+   {
+    "role": "the lowest sale on record",
+    "sale": {
+     "id": "c9e0e69c-edde-4d18-8c90-72a97c878374",
+     "mi": 8100,
+     "url": "https://bringatrailer.com/listing/2001-lamborghini-diablo-vt-6-0-se-2/",
+     "date": "2026-10-26",
+     "make": "Lamborghini",
+     "image": "https://bringatrailer.com/wp-content/uploads/2026/09/036A7277-scaled-copy-2026-09-17-4od-78555.jpg?w=940",
+     "model": "Diablo",
+     "month": "Oct 2026",
+     "price": 1063000,
+     "title": "2001 Lamborghini Diablo Vt 6.0 SE",
+     "hollow": false,
+     "country": "US",
+     "vinNorm": "ZA9DC01A01LA12888",
+     "platform": "Bring a Trailer",
+     "mileageText": "8,100 mi",
+     "countryBasis": "country_code",
+     "platformName": "Bring a Trailer",
+     "platformSlug": "bringatrailer",
+     "transmission": null
+    }
+   }
+  ],
+  "sentence": "These three sales were chosen because the pool is too thin to mark a typical range, not for symmetry."
+ },
+ "distribution": null,
+ "fallbackRung": "year_widened",
+ "highestSaleN": 1063000,
+ "inlineSplits": [],
+ "refusal_line": null,
+ "resolvedSpec": "Comparing the 2001 Diablo SE with equivalent 1999 to 2003 Diablo SE Coupe sales.",
+ "scope_reason": null,
+ "setAsideRows": [],
+ "windowMonths": 1,
+ "reserve_split": null,
+ "setAsideCount": 0,
+ "variantAsides": [],
+ "latestSaleDate": "2026-10-26",
+ "latestSaleLine": "Latest sale: October 2026.",
+ "subjectMileage": null,
+ "qualifyingTotal": 1,
+ "referenceFigure": null,
+ "identityQuestion": null,
+ "includesFromLine": null,
+ "familyCoverageNote": null,
+ "variantOptionsLine": null,
+ "referenceFigureReason": "too few online sales for a volume range, so there is no typical band to build a figure from",
+ "oldestIncludedSaleDate": "2026-10-26",
+ "answerType": "not_enough_data",
+ "factsBlock": {
+  "count": 1,
+  "window": null,
+  "lowest": null,
+  "highest": null,
+  "latestPrice": null,
+  "latestMonth": "2026-10",
+  "onlineLiquidityN": 1
+ },
+ "reasonFlag": "too_few_online_for_a_range",
+ "siblingName": null,
+ "queryMileage": null,
+ "timings": {
+  "reqStart": 1793126645303,
+  "dbBytes0": 1360804,
+  "resolveStart": 1793126645333,
+  "resolveMs": 358,
+  "warmReadMs": 73,
+  "mapMs": 1,
+  "warmHit": true,
+  "stale": false,
+  "totalMs": 523,
+  "dbBytes": 10687,
+  "marks": [
+   [
+    "thin_checked",
+    230
+   ],
+   [
+    "done",
+    230
+   ]
+  ],
+  "fetchMs": [
+   136,
+   90
+  ]
+ }
+}

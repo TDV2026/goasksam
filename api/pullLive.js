@@ -19,7 +19,7 @@ import { historyEnv } from "./_historyData.js";
 import { recordUsageEvent } from "./_usage.js";
 import { ocdWithRetry, readRemaining, reserveFloor } from "../lib/live/ocdGuard.js";
 import { pullFor, dayPlan, PAGES, ENDING_AHEAD_MS } from "../lib/live/pullSchedule.js";
-import { mapLiveRecord, upsertLive, markVanished, fillFinalPrices, liveStats } from "../lib/live/feed.js";
+import { mapLiveRecord, upsertLive, markVanished, markEndedPast, fillFinalPrices, liveStats } from "../lib/live/feed.js";
 
 async function handler(req, res) {
   const cronSecret = process.env.CRON_SECRET;
@@ -88,7 +88,17 @@ async function handler(req, res) {
     if (mode === "auto") {
       if (req.query.dryrun) return res.status(200).json({ ok: true, dryrun: true, ocdRequests: 0, now: pullFor(new Date()), plan: dayPlan(String(req.query.date || new Date().toISOString().slice(0, 10)).slice(0, 10)) });
       const slot = pullFor(new Date());
-      if (!slot.mode) return res.status(200).json({ ok: true, slot, nothing: true, ocdRequests: 0 });
+      // A quarter hour with no pull (the evening, after the last ending-soonest pull at 14:30 Pacific, until the 22:15 full walk) still marks over any lot whose end time passed more than an hour ago: ZERO OCD, database only.
+      // A lot wrongly marked (an auction extended past an hour) is made live again by the next pull that lists it (the upsert sets status live).
+      if (!slot.mode) {
+        const endedPast = await markEndedPast(env, new Date().toISOString(), 60 * 60e3).catch(e => ({ error: String(e && e.message).slice(0, 120) }));
+        // THE HOURLY REVALIDATION (Nov 8 2026): the first quarter of every hour, day and night, the Find examples and the watching card are confirmed live by keyed reads and an ended one is replaced. Zero OCD (database only), the existing every-15-minute cron.
+        let examplesRefresh = "skipped";
+        let revalidated = "skipped";
+        let entryExamples = "skipped";
+        if (new Date().getUTCMinutes() < 15) { examplesRefresh = await refreshExamplesWord(env); revalidated = await revalidateCrewWord(env); entryExamples = await refreshEntryWord(env); }
+        return res.status(200).json({ ok: true, slot, nothing: true, ocdRequests: 0, endedPast, examplesRefresh, revalidated, entryExamples });
+      }
       mode = slot.mode === "full" ? "" : slot.mode;
       if (starter.by === "scheduled") { starter.detail = `${slot.mode === "full" ? "full walk" : "ending soonest"} ${slot.hhmm} ${slot.zone}`; configureOcdUsage({ job: "pull_live", startedBy: starter.by, startedDetail: starter.detail }); }
     }
@@ -145,10 +155,16 @@ async function handler(req, res) {
       const order = { field, sent: params.sort ? params.sort + " " + params.direction : "default order", asked: mode === "new" ? "desc" : "asc", values: seq.length, outOfOrder: wrong, honoured: seq.length > 1 && wrong === 0, first: seq.length ? new Date(seq[0]).toISOString() : null, last: seq.length ? new Date(seq[seq.length - 1]).toISOString() : null, futureEnds: mode === "ending" ? seq.filter(t => t > Date.now()).length : undefined, createdAge };
       const fresh = await newCount(env, rows);
       const up = await upsertLive(env, rows);
+      // the lots this short pull shows over: end time passed and not listed again (feed.js markEndedPast); only after a pull that read at least one page to its end
+      const endedPast = mode === "ending" && pagesRead > 0 && rows.length > 0 ? await markEndedPast(env, seenAt).catch(e => ({ error: String(e && e.message).slice(0, 120) })) : null;
       await flushOcdUsage();
       const lastEndAt = rows.length ? Date.parse(rows[rows.length - 1].end_time) : null;
-      const out = { mode, pages: pagesRead, ocdRequests: used(), fetched: rows.length, newListings: fresh, upserted: up, order, coveredHoursAhead: lastEndAt ? Math.round((lastEndAt - Date.now()) / 360e3) / 10 : null, cappedShort: mode === "ending" && pagesRead >= cap && lastEndAt != null && lastEndAt < Date.now() + ENDING_AHEAD_MS, started_by: starter.by, started_detail: starter.detail };
+      const out = { mode, pages: pagesRead, ocdRequests: used(), fetched: rows.length, newListings: fresh, upserted: up, endedPast, order, coveredHoursAhead: lastEndAt ? Math.round((lastEndAt - Date.now()) / 360e3) / 10 : null, cappedShort: mode === "ending" && pagesRead >= cap && lastEndAt != null && lastEndAt < Date.now() + ENDING_AHEAD_MS, started_by: starter.by, started_detail: starter.detail };
       await recordUsageEvent({ event_type: "pull_live_mode", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: out }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+      out.featuredRefresh = await refreshFeatured(env);
+      out.tasksDemoRefresh = await refreshTasksDemoWord(env);
+      out.examplesRefresh = await refreshExamplesWord(env);
+      out.entryExamples = await refreshEntryWord(env, true);
       return res.status(200).json({ ok: true, ...out });
     }
     // 1. Walk every page of the live feed, bounded by --max-requests.
@@ -192,13 +208,59 @@ async function handler(req, res) {
     // The run's summary also lands in app_usage_events (pull_live_summary), so a cron run's timings and
     // backlog are readable afterwards (the cron's own HTTP response is not kept anywhere).
     await recordUsageEvent({ event_type: "pull_live_summary", route: "pull_live", status: "ok", oldcarsdata_metered_requests: 0, metadata: { started_by: starter.by, started_detail: starter.detail, stepMs, fetched: rows.length, ocdRequests: used(), newListings: fresh, upserted: up, ended, finals, stats: { withVin: stats.withVin, vinsChecked: stats.vinsChecked, vinsLeft: stats.vinsLeft, budgetHit: stats.budgetHit } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
-    return res.status(200).json({ ok: true, ocdRequests: used(), maxRequests: maxReq, truncated, stoppedForReserve, feedTotal: total, fetched: rows.length, newListings: fresh, perSource, upserted: up, ended, finals, stepMs, ...stats });
+    const featuredRefresh = await refreshFeatured(env);
+    const tasksDemoRefresh = await refreshTasksDemoWord(env);
+    const examplesRefresh = await refreshExamplesWord(env);
+    const entryExamples = await refreshEntryWord(env, true);
+    return res.status(200).json({ ok: true, featuredRefresh, tasksDemoRefresh, examplesRefresh, entryExamples, ocdRequests: used(), maxRequests: maxReq, truncated, stoppedForReserve, feedTotal: total, fetched: rows.length, newListings: fresh, perSource, upserted: up, ended, finals, stepMs, ...stats });
   } catch (e) {
     await flushOcdUsage().catch(() => {});
     return res.status(500).json({ ok: false, ocdRequests: used(), error: String((e && e.message) || e).slice(0, 300) });
   }
 }
 
+
+// The crew-only Homepage feature's stored pick (lib/live/featuredHistory.js): kept while it passes, replaced when its auction ends. Zero OCD, best effort, bounded; the result is a word, never the car (this response is not crew gated).
+async function refreshFeatured(env, mode) {
+  try {
+    if (process.env.FEATURED_HISTORY === "0") return "off";
+    const { refreshFeaturedHistory, revalidateFeaturedHistory } = await import("../lib/live/featuredHistory.js");
+    const r = await Promise.race([mode === "revalidate" ? revalidateFeaturedHistory(env) : refreshFeaturedHistory(env), new Promise(res => setTimeout(() => res({ why: "timeout" }), 40000))]);
+    return (r && r.why || "done") + (r && r.stats ? ` (eligible ${r.stats.eligible}, with a trim ${r.stats.withTrim})` : "");   // counts only: never the car
+  } catch { return "error"; }
+}
+
+// The crew-only Tasks centrepiece's stored pick (lib/live/tasksDemo.js): kept while every rule passes again, replaced when its auction ends or a check fails. Zero OCD, best effort, bounded; a word, never the car.
+async function refreshTasksDemoWord(env) {
+  try {
+    if (process.env.TASKS_DEMO === "0") return "off";
+    const { refreshTasksDemo } = await import("../lib/live/tasksDemo.js");
+    const r = await Promise.race([refreshTasksDemo(env), new Promise(res => setTimeout(() => res({ why: "timeout" }), 40000))]);
+    return (r && r.why || "done") + (r && r.tried != null ? ` (tried ${r.tried}${r.history ? ", with an earlier record" : ""})` : "");
+  } catch { return "error"; }
+}
+
+// The hourly revalidation of the Tasks example and the Homepage pick (Nov 8 2026): keyed reads only (lib/live/tasksDemo.js revalidateTasksDemo, lib/live/featuredHistory.js revalidateFeaturedHistory), no matcher, no search, zero OCD; a word, never a car.
+async function revalidateCrewWord(env) {
+  const run = async (off, mod, fn) => { try { if (process.env[off] === "0") return "off"; const m = await import(mod); const r = await Promise.race([m[fn](env), new Promise(res => setTimeout(() => res({ why: "timeout" }), 20000))]); return (r && r.why) || "done"; } catch { return "error"; } };
+  return { tasksExample: await run("TASKS_DEMO", "../lib/live/tasksDemo.js", "revalidateTasksDemo"), homepagePick: await refreshFeatured(env, "revalidate") };
+}
+
+// The crew-only Find examples and Tasks watching card (lib/live/findExamples.js, lib/live/watchingDemo.js): kept while they pass, replaced when an auction ends. Zero OCD, best effort, bounded; a word, never a car.
+async function refreshExamplesWord(env) {
+  const run = async (off, mod, fn) => { try { if (process.env[off] === "0") return "off"; const m = await import(mod); const r = await Promise.race([m[fn](env), new Promise(res => setTimeout(() => res({ why: "timeout" }), 40000))]); return (r && r.why || "done") + (r && r.funnel && r.funnel.chosen != null ? ` (${r.funnel.kept} kept, ${r.funnel.chosen} new)` : ""); } catch { return "error"; } };
+  return { findExamples: await run("FIND_EXAMPLES", "../lib/live/findExamples.js", "refreshFindExamples"), watchingDemo: await run("WATCHING_DEMO", "../lib/live/watchingDemo.js", "refreshWatchingDemo") };
+}
+
+// The entry page examples' daily picks (lib/live/publicExamples.js): the ONLY place they are built for the public read (PUBLIC_EXAMPLES). Kept while they are today's, else built, one at a time; zero OCD; a word each, never a car.
+async function refreshEntryWord(env, ensure = false) {
+  // ensure: a pull slot. It only makes sure today's pick exists (a stored-today read first; the engine is called only when a pick is missing; no photo re-check). The quiet hourly slot runs the full refresh.
+  try { const { refreshEntryExamples } = await import("../lib/live/publicExamples.js"); return await refreshEntryExamples(env, ensure ? { recheck: false } : {}); } catch { return "error"; }
+}
+
+// OPS, KEYED AND READ ONLY (Lane B, Nov 6 2026): what the two crew keys hold now, and (funnel=1) the counts the refresh finds on the live pool, without writing. api/usageDashboard.js task=crewkeys calls this behind the ops key; no cron
+// branch, route or page does. It names the cars of the stored picks (the ops key is the only way in), never anything to the cron response.
+export async function crewKeysReport(env, opts) { return (await import("../lib/live/tasksDemo.js")).crewKeysReport(env, opts); }
 
 // The starter of one call (see the handler). The endpoint keeps only the named parameters, so the key never lands in a row.
 const ENDPOINT_PARAMS = ["mode", "max-requests", "maxRequests", "probe", "probePage", "limit", "sort", "direction", "fromEnd", "dryrun", "date"];

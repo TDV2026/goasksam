@@ -8,8 +8,8 @@
 //   POST {action:"start", draft}                 -> the only way a task row is written (the read-back confirmed)
 //   POST {action:"apply", task_id, pending}      -> a confirmed change to a task
 //   POST {action:"control", task_id, act}        -> pause | resume | stop | keep_looking
-// One task per account holds the slot (running, needs you, or paused): a new task while it is held
-// returns { blocked: { task_id, state, summary } } and creates nothing, wherever the request came from.
+// An account has FREE_TASK_LIMIT working Tasks at most (lib/tasks/limit.js, the one place): a new Task, or a resume,
+// past it returns { blocked: { task_id, state, summary, max, line, tasks } } and creates nothing, wherever the request came from.
 //   GET  ?a=pause|stop|keep_looking|resume&t=<signed token> -> the confirm page for an email link (changes
 //                                          nothing: email scanners open every link); HEAD likewise
 //   POST ?a=...&t=<signed token>        -> the confirm page's button, or a mail provider's one-click
@@ -17,11 +17,16 @@
 //   GET  ?run=1                         -> the matching run after each live pull (Vercel cron, CRON_SECRET)
 // Probe-keyed tests (PROBE_KEY, in the x-ops-key or x-probe-key header): act as a test user, seed listing rows instead of the live table, mock
 // the clock; test runs never send email (email_status "test").
+import { carFromRequest, withPartialCar } from "../lib/carToken.js";
 import { withTracking } from "../lib/track/log.js";
 import { supabaseEnv, supabaseSelect, supabaseBytesSoFar } from "../lib/_supabase.js";
 import { validateBearer } from "../lib/_auth.js";
 import { readVisitorId } from "../lib/_visitor.js";
-import { jobPhrase, notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, startDraft, applyEdit, slotTask, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
+import { limitFacts, taskMaxOf } from "../lib/tasks/limit.js";
+import { taskUserFor, tapUser, badgeCount, badgeFor } from "../lib/tasks/crewGate.js";
+import { TASKS_MAX_DURATION_S, budgetMs } from "../lib/tasks/runBudget.js";
+import { makePace } from "../lib/tasks/sendPace.js";
+import { criteriaOf, jobPhrase, notifyPrefs, setNotifyPrefs, taskTurn, draftTurn, draftFresh, startDraft, applyEdit, slotTask, firstRun, controlTask, userTasks, taskUpdates, getTask, saveTask, runTasks, suggestions, verifyTap, memStore, notify, oneTap, sendStartEmail } from "../lib/tasks/tasks.js";
 import crypto from "node:crypto";
 import { CHAT_MODEL } from "../lib/live/chatHttp.js";
 import { recordUsageEvent } from "./_usage.js";
@@ -29,9 +34,10 @@ import { isReleased, notReleasedJson } from "../lib/_launchStage.js";
 import { tasksAllowance } from "../lib/_ceilings.js";
 import { signupTicket } from "../lib/_signup.js";
 import { othersRunning, othersLine } from "../lib/tasks/othersRunning.js";
-import { hasServerCredential } from "../lib/_credential.js";
+import { hasServerCredential, cronOk } from "../lib/_credential.js";
 import { testInbox } from "../lib/tasks/delivery.js";
 import { isCrewRequest } from "../lib/_crew.js";
+import { failBody } from "../lib/_fail.js";
 // The per-account daily limits (Tasks setup chat turns, research started), crew exempt: what -> ok.
 const gateOf = (req, user) => what => tasksAllowance(supabaseEnv(), req, user.userId, what).then(r => r.ok, () => true);
 
@@ -54,11 +60,12 @@ async function who(req) {
   // Probe test users only: a fixed id prefix, so a probe call can never act as a real account.
   if (probeOk(req) && TEST_USER.test(String(req.headers["x-test-user"] || ""))) return { userId: String(req.headers["x-test-user"]), email: null, test: true };
   const u = await validateBearer(req.headers.authorization || "").catch(() => null);
-  return u && u.userId ? { userId: u.userId, email: u.email || null } : null;
+  // THE CREW GATE for the Task limit (Nov 5 2026, NOT live): lib/tasks/crewGate.js taskUserFor, behind isCrewRequest(req). Nothing else sets taskMax.
+  return taskUserFor(req, u);
 }
 
 async function handler(req, res) {
-  const env = supabaseEnv();
+  const env0 = supabaseEnv(), env = env0 ? { ...env0, car: carFromRequest(req) } : env0;   // the car token (?car=, lib/carToken.js): the Tasks composer reads the car it carries and does not resolve again; a copy, never the shared env
   if (!env) return res.status(503).json({ error: "unavailable" });
   const q = req.query || {};
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -100,7 +107,10 @@ async function handler(req, res) {
           <form method="post" action="/api/tasks?a=${encodeURIComponent(act)}&t=${encodeURIComponent(String(q.t))}"><button type="submit">${tapEsc(w.button)}</button></form>
           <p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the Task instead</a></p>`);
       }
-      const out = await controlTask(env, { userId: task.user_id }, id, act, { via: "email_link" });
+      // An email tap is ALWAYS the free limit (tapUser carries no crew limit), whatever cookie the tapping browser holds.
+      const out = await controlTask(env, tapUser(task), id, act, { via: "email_link" });
+      // At the limit the tap changes nothing, and the page says so (it used to say "Searching again." over a Task that stayed paused).
+      if (out && out.blocked) return page(200, "Still paused", `<h1>Still paused.</h1><p class="task">${tapEsc(task.summary || "")}</p><p>Sam can't start it yet. ${tapEsc(out.blocked.line)}</p><p><a href="/tasks/mine">Open your Tasks</a></p>`);
       const after = (out && out.task) || task;
       const restart = act === "pause" && after.state === "paused" ? oneTap(id, "resume") : null;
       return page(200, w.done, `<h1>${tapEsc(w.done)}</h1><p class="task">${tapEsc(task.summary || "")}</p>${restart ? `<p>You can start it again <a href="${restart}">here</a>.</p>` : act === "stop" ? `<p>You can start a new search <a href="/buy">here</a>.</p>` : ""}<p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the Task</a></p>`);
@@ -109,7 +119,7 @@ async function handler(req, res) {
     // The combined Task email (lib/tasks/digest.js): the cron every quarter hour sends each person's email when their
     // setting says it is due, under the six a day cap. A probe may ask for a dry run (&dry=1): nothing sent or marked.
     if (req.method === "GET" && q.send) {
-      const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
+      const isCron = process.env.CRON_SECRET && cronOk(req);
       if (!isCron && !probeOk(req)) return res.status(401).json({ error: "Unauthorized." });
       const { runDigest, runBeforeItEnds, digestBytesSoFar } = await import("../lib/tasks/digest.js");
       // bytesRead (Lane D, Oct 2026): the PostgREST bodies this run pulled (lib/_supabase.js reads plus the digest's own
@@ -118,17 +128,20 @@ async function handler(req, res) {
       // The limits ledger keeps nothing past 24 hours (its address keys are daily salted hashes, lib/_addr.js).
       if (isCron) { const { pruneLedger } = await import("../lib/_ceilings.js"); await pruneLedger(env).catch(() => {}); }
       // Before it ends first: its own email two hours before the end, never waiting on the daily email.
+      const t0s = Date.now();
       const dry = !isCron && q.dry === "1";
       // &legacy=1 (dry runs only): the reads as they were before the Tasks read reductions, for the before/after bytes.
       const legacy = dry && q.legacy === "1";
-      const bie = await runBeforeItEnds(env, { dry, legacy }).catch(e => ({ error: String(e && e.message || e).slice(0, 120), sent: 0, ended: 0, failed: 0 }));
-      const out = await runDigest(env, { dry, legacy });
+      // One pace for the whole run (lib/tasks/sendPace.js): a gap between sends, backoff on a rate limit, and a deadline at 80% of the function limit; what it cannot send waits queued for the next run.
+      const pace = dry ? null : makePace({ deadlineAt: Date.now() + budgetMs() });
+      const bie = await runBeforeItEnds(env, { dry, legacy, pace }).catch(e => ({ error: String(e && e.message || e).slice(0, 120), sent: 0, ended: 0, failed: 0 }));
+      const out = await runDigest(env, { dry, legacy, pace });
       const bytesRead = supabaseBytesSoFar() + digestBytesSoFar() - b0;
-      if (!dry) await recordUsageEvent({ event_type: "task_email_run", route: "tasks_send", status: "ok", oldcarsdata_metered_requests: 0, metadata: { bytesRead, people: out.people, sent: out.sent + (bie.sent || 0), capped: out.capped, notDue: out.notDue, emailOff: out.emailOff, matches: out.matches + (bie.sent || 0), endedBeforeSend: bie.ended || 0, failed: out.failed + (bie.failed || 0), beforeItEnds: { sent: bie.sent || 0, off: bie.off || 0, ended: bie.ended || 0, failed: bie.failed || 0, error: bie.error } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+      if (!dry) await recordUsageEvent({ event_type: "task_email_run", route: "tasks_send", status: "ok", oldcarsdata_metered_requests: 0, metadata: { bytesRead, people: out.people, sent: out.sent + (bie.sent || 0), capped: out.capped, notDue: out.notDue, emailOff: out.emailOff, matches: out.matches + (bie.sent || 0), endedBeforeSend: bie.ended || 0, failed: out.failed + (bie.failed || 0), deferred: (out.deferred || 0) + (bie.deferred || 0), rateLimited: !!out.rateLimited || !!(pace && pace.stopReason === "rate_limited"), retried: pace ? pace.retried : 0, ms: Date.now() - t0s, beforeItEnds: { sent: bie.sent || 0, off: bie.off || 0, ended: bie.ended || 0, failed: bie.failed || 0, error: bie.error } } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json({ ...out, beforeItEnds: bie, bytesRead, legacy: legacy || undefined });
     }
     if (req.method === "GET" && q.run) {
-      const isCron = process.env.CRON_SECRET && req.headers.authorization === `Bearer ${process.env.CRON_SECRET}`;
+      const isCron = process.env.CRON_SECRET && cronOk(req);
       if (!isCron && !probeOk(req)) return res.status(401).json({ error: "Unauthorized." });
       const t0 = Date.now();
       // &ifnew=1 (THE cron, 5 minutes after every quarter-hour pull slot, lib/live/pullSchedule.js): exits at once
@@ -140,17 +153,19 @@ async function handler(req, res) {
         const fresh = since ? await supabaseSelect(env, `live_listings?first_seen=gt.${encodeURIComponent(since)}&select=id&limit=1`).catch(() => null) : [1];
         // ...unless the last full run is over 4 hours old: the periodic work (still-looking notes) keeps its pace.
         const stale = !l || Date.now() - Date.parse(l.created_at) > 4 * 3600e3;
-        if (fresh && !fresh.length && !stale) return res.status(200).json({ ran: 0, nothingNew: true, since });
+        // ...and never when the last run ran out of time and deferred Tasks: those are still waiting for their turn.
+        const waiting = !!(l && Number(l.metadata && l.metadata.deferred) > 0);
+        if (fresh && !fresh.length && !stale && !waiting) return res.status(200).json({ ran: 0, nothingNew: true, since });
       }
       let out;
       const b0 = supabaseBytesSoFar();
-      try { out = await runTasks(env, { apiKey, model: CHAT_MODEL }); }
+      try { out = await runTasks(env, { apiKey, model: CHAT_MODEL, budgetMs: budgetMs() }); }
       catch (e) {   // a failed run leaves a row too, so a silent cron failure is queryable
         await recordUsageEvent({ event_type: "tasks_run", route: "tasks_run", status: "error", oldcarsdata_metered_requests: 0, metadata: { error: String((e && e.message) || e).slice(0, 300), ms: Date.now() - t0 } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
         throw e;
       }
       const bytesRead = supabaseBytesSoFar() - b0;
-      await recordUsageEvent({ event_type: "tasks_run", route: "tasks_run", status: "ok", oldcarsdata_metered_requests: 0, metadata: { ran: out.ran, matched: out.report.reduce((k, r) => k + (r.matched || 0), 0), ms: Date.now() - t0, bytesRead } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
+      await recordUsageEvent({ event_type: "tasks_run", route: "tasks_run", status: "ok", oldcarsdata_metered_requests: 0, metadata: { ran: out.ran, matched: out.report.reduce((k, r) => k + (r.matched || 0), 0), ms: Date.now() - t0, bytesRead, tasks: out.read, deferred: out.deferred || 0, limit_ms: TASKS_MAX_DURATION_S * 1000 } }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json({ ...out, bytesRead });
     }
     // Probe: how many accounts carry a stored Task email address (accounts.task_email, no longer read since Task emails
@@ -163,6 +178,22 @@ async function handler(req, res) {
       const rows = await r.json().catch(() => []);
       const norm = x => String(x || "").trim().toLowerCase();
       return res.status(200).json({ accounts_with_task_email: rows.length, differing_from_account_email: rows.filter(x => norm(x.task_email) !== norm(x.email)).length });
+    }
+    // THE TASK EMAIL KILL SWITCH (Sam, Oct 24 2026; lib/_email.js taskEmailsOff): probe key only. ?emailswitch=status reads it, =off stops
+    // every Task email (sign-in codes are not Task emails), =on sends again. Writes ONLY the app_config row task_emails_enabled.
+    if (req.method === "GET" && q.emailswitch && probeOk(req)) {
+      const mode = String(q.emailswitch);
+      if (!["status", "on", "off"].includes(mode)) return res.status(400).json({ error: "emailswitch is status, on or off" });
+      const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json" };
+      if (mode !== "status") {
+        const w = await fetch(`${env.supabaseUrl}/rest/v1/app_config?on_conflict=key`, { method: "POST", headers: { ...H, Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify([{ key: "task_emails_enabled", value: mode === "on" ? "1" : "0" }]) });
+        if (!w.ok) return res.status(500).json({ error: "could not write the switch: " + w.status });
+      }
+      const r = await fetch(`${env.supabaseUrl}/rest/v1/app_config?key=eq.task_emails_enabled&select=value&limit=1`, { headers: H });
+      const rows = r.ok ? await r.json() : null;
+      const { taskSwitchValueIsOff, resetTaskEmailSwitchCache } = await import("../lib/_email.js"); resetTaskEmailSwitchCache();
+      res.setHeader("Cache-Control", "private, no-store");
+      return res.status(200).json({ task_emails: rows == null ? "unreadable" : (rows[0] && taskSwitchValueIsOff(rows[0].value)) ? "OFF" : "on", row: rows && rows[0] ? rows[0].value : "(no row, which means on)", note: "each running instance holds the answer for up to 5 seconds" });
     }
     // Crew-only preview of the real-car emails (Sam, Oct 23 2026): the real builders on real live cars, never sent (lib/tasks/carMailPreview.js).
     if (req.method === "GET" && q.carmails && (probeOk(req) || isCrewRequest(req))) {
@@ -472,21 +503,53 @@ async function handler(req, res) {
       res.setHeader("Cache-Control", "private, no-store");
       if (!user) return res.status(200).json({ signedIn: false });
       const tasks = await userTasks(env, user.userId);
-      const active = tasks.find(t => ["running", "needs_you", "paused"].includes(t.state)) || null;
-      return res.status(200).json({ signedIn: true, active: active ? { id: active.id, state: active.state, summary: active.summary } : null, unread: tasks.reduce((k, t) => k + (t.unread || 0), 0) });
+      const open = tasks.filter(t => ["running", "needs_you", "paused"].includes(t.state));
+      const active = open.find(t => ["running", "needs_you"].includes(t.state)) || open[0] || null;
+      const working = open.filter(t => ["running", "needs_you"].includes(t.state)).length;
+      // count: everything active, the ONE number behind the Tasks badge on every page (Sam, Oct 29 2026): open Tasks + watches + before-it-ends emails that are on (lib/live/looking.js badgeFacts).
+      // CREW ONLY (Nov 5 2026, not live): the signed crew cookie gets the sum of tasks.unread instead (lib/tasks/crewGate.js badgeCount); everyone else, a forged cookie included, gets the count above.
+      const { standingCounts, badgeFacts } = await import("../lib/live/looking.js");
+      const bf = badgeFacts(working, open.length, await standingCounts(env, user.userId), taskMaxOf(user));
+      return res.status(200).json({ signedIn: true, active: active ? { id: active.id, state: active.state, summary: active.summary } : null, count: badgeCount(isCrewRequest(req) === true, bf.total, tasks.reduce((k, t) => k + (t.unread || 0), 0)), counts: bf, limit: limitFacts(working, taskMaxOf(user)), unread: tasks.reduce((k, t) => k + (t.unread || 0), 0) });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
     if (!user) return res.status(401).json({ needSignIn: true });
     const b = req.body || {};
+    // WHAT FIND'S TOGGLES AND BUTTONS MADE (Oct 29 2026, lib/live/looking.js): the person's own watches and before-it-ends alerts, each with what it watches and a way to stop it, counted apart from the Task limit.
+    if (b.action === "looking") {
+      const { lookingList } = await import("../lib/live/looking.js");
+      const working = (await userTasks(env, user.userId).catch(() => [])).filter(t => ["running", "needs_you"].includes(t.state)).length;
+      const openN = (await userTasks(env, user.userId).catch(() => [])).filter(t => ["running", "needs_you", "paused"].includes(t.state)).length;
+      return res.status(200).json(await lookingList(env, user, working, openN, taskMaxOf(user)));
+    }
+    if (b.action === "looking_stop") {
+      const { lookingStop } = await import("../lib/live/looking.js");
+      return res.status(200).json(await lookingStop(env, user, b.ref));
+    }
     if (b.action === "list") {
       const tasks = await userTasks(env, user.userId);
       const withThreads = await Promise.all(tasks.map(async t => ({ ...t, updates: await taskUpdates(env, t.id) })));
       // Find's own cards for the cars an update lists (lib/tasks/fullCards.js), and the engine's one-line count in place of the model's paragraph.
-      { const { attachFullCards, updateLine } = await import("../lib/tasks/fullCards.js"); await attachFullCards(env, withThreads).catch(() => {});
+      { const { attachFullCards, updateLine } = await import("../lib/tasks/fullCards.js"); if (!b.fast) await attachFullCards(env, withThreads).catch(() => {});   // b.fast: the page asks for the full cards next (action "cards") and fills them in
         for (const t of withThreads) for (const u of t.updates || []) if (u && u.role === "sam" && u.kind === "match" && u.data && Array.isArray(u.data.cards) && u.data.cards.length) u.data.line = updateLine(u); }
+      { const { overviewFacts, matchCarIds, withoutRestCount } = await import("../lib/tasks/overview.js");
+        // The cars the threads list that are still live, from the listing rows' own end times (one bounded read; a failed read counts the thread's cars as they stand).
+        let liveIds = null;
+        try { const all = [...new Set(withThreads.flatMap(matchCarIds))];
+          if (all.length && all.length <= 1000) { const now = Date.now(), keep = new Set(); let good = true;
+            for (let i = 0; i < all.length && good; i += 200) { const rows = await supabaseSelect(env, `live_listings?id=in.(${all.slice(i, i + 200).join(",")})&select=id,end_time`); if (!Array.isArray(rows)) { good = false; break; } for (const r of rows) if (!r.end_time || Date.parse(r.end_time) > now) keep.add(Number(r.id)); }
+            if (good) liveIds = keep; } } catch (e) { liveIds = null; }
+        for (const t of withThreads) t.overview = overviewFacts(t, liveIds);
+        for (const t of withThreads) for (const u of t.updates || []) if (u && typeof u.text === "string") u.text = withoutRestCount(u.text); }
+      // Each Task's criteria in the engine's words (lib/tasks/tasks.js criteriaOf), for the signed in owner's own Tasks only: userTasks reads this user's rows and no other
+      for (const t of withThreads) t.criteria = criteriaOf(t);
       // Opening the list is an interaction; the open thread's updates are read.
       if (b.open && /^[0-9a-f-]{36}$/.test(String(b.open))) { const t = tasks.find(x => x.id === b.open); if (t) await saveTask(env, t.id, { unread: 0, last_interaction_at: new Date().toISOString() }); }
-      return res.status(200).json({ tasks: withThreads, suggestions: await suggestions(env, user.userId).catch(() => []), notify: await notifyPrefs(env, user).catch(() => null) });
+      const working = tasks.filter(t => ["running", "needs_you"].includes(t.state)).length;
+      const { standingCounts, badgeFacts } = await import("../lib/live/looking.js");
+      const bf = badgeFacts(working, tasks.filter(t => ["running", "needs_you", "paused"].includes(t.state)).length, await standingCounts(env, user.userId), taskMaxOf(user));
+      { const badge = badgeFor(isCrewRequest(req) === true, tasks, /^[0-9a-f-]{36}$/.test(String(b.open || "")) ? b.open : null);   // crew only; the key is absent for everyone else and at zero
+      return res.status(200).json({ tasks: withThreads, count: bf.total, counts: bf, ...(badge ? { badge } : {}), limit: limitFacts(working, taskMaxOf(user)), ...(b.draft ? { draft_ok: !!draftFresh(b.draft) } : {}), suggestions: await suggestions(env, user.userId).catch(() => []), notify: await (async () => { const n = await notifyPrefs(env, user).catch(() => null); if (!n) return n; const { firstAlertPending } = await import("../lib/_email.js"); return { ...n, junk: !!(n.on && working && !env.mem && await firstAlertPending(env, n.email || user.email).catch(() => false)) }; })() }); }
     }
     if (b.action === "say") {
       const text = String(b.text || "").trim().slice(0, 2000);
@@ -495,11 +558,11 @@ async function handler(req, res) {
       // Per account per day (lib/_ceilings.js tasksAllowance, crew exempt): past it, the turn is answered with the
       // paused sentence and nothing else changes (lib/tasks/tasks.js modelTurn).
       const paused = !(await gateOf(req, user)("setup"));
-      if (/^[0-9a-f-]{36}$/.test(String(b.task_id || ""))) return res.status(200).json(await taskTurn(env, user, { taskId: b.task_id, text, pending: b.pending || null, apiKey, model: CHAT_MODEL, paused }));
+      if (/^[0-9a-f-]{36}$/.test(String(b.task_id || ""))) return res.status(200).json(await taskTurn(env, user, { taskId: b.task_id, text, pending: b.pending || null, apiKey, model: CHAT_MODEL, paused, crew: isCrewRequest(req) }));
       // No task_id: this is the START of a brand-new task's conversation (nothing is written until
       // "start" below confirms it) - gated the same as "start" itself (Job 3: "Task creation").
       if (!isReleased("tasks", req)) return notReleasedJson(res);
-      return res.status(200).json(await draftTurn(env, user, { draft: b.draft || null, text, seed: b.seed || null, apiKey, model: CHAT_MODEL, paused, gate: gateOf(req, user) }));
+      return res.status(200).json(await draftTurn(env, user, { draft: b.draft || null, text, seed: b.seed || null, apiKey, model: CHAT_MODEL, paused, gate: gateOf(req, user), crew: isCrewRequest(req) }));
     }
     // On or off and how often only: the address is the sign-in address, never a setting (b.email is ignored).
     if (b.action === "notify") return res.status(200).json(await setNotifyPrefs(env, user, { on: typeof b.on === "boolean" ? b.on : undefined, every: typeof b.every === "string" ? b.every : undefined }));
@@ -518,24 +581,40 @@ async function handler(req, res) {
     // must always be able to use it" principle the task-email Pause/Stop/confirm/resume pages follow.
     if (b.action === "start") {
       if (!isReleased("tasks", req)) return notReleasedJson(res);
-      return res.status(200).json(await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req), gate: gateOf(req, user) }));
+      // defer: true (the Tasks page): the Task is created and running at once; the first match run is action "first".
+      { const { logArm, taskOutcome } = await import("../lib/live/looking.js");
+        const r = await startDraft(env, user, b.draft || {}, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req), gate: gateOf(req, user), defer: b.defer === true, crew: isCrewRequest(req) });
+        logArm(user.userId, "task", taskOutcome(r)); return res.status(200).json(r); }
     }
-    // One task at a time (beta): the page shows the choice when a second task is attempted. Every showing
-    // and every button is logged as task_limit_hit (the user, the running task, the attempted job, the
-    // button). "swap" pauses the running task, then resumes the paused one asked for, or starts the
-    // draft; a seeded attempt is drafted by the page once the slot is free. "keep" changes nothing.
+    // The first match run of a deferred start (the start email, then the cars live right now). Managing an existing Task: never gated.
+    if (b.action === "first") return res.status(200).json(await firstRun(env, user, String(b.task_id || ""), { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req) }));
+    // One Task's cars as Find's full cards (the slow read, apart from the list): { updates: [{ id, full }] } in the order of each update's cards.
+    if (b.action === "cards") {
+      const t = await getTask(env, String(b.task_id || ""), user.userId);
+      if (!t) return res.status(200).json({ updates: [] });
+      const one = [{ ...t, updates: await taskUpdates(env, t.id) }];
+      const { attachFullCards } = await import("../lib/tasks/fullCards.js"); await attachFullCards(env, one).catch(() => {});
+      return res.status(200).json({ updates: one[0].updates.filter(u => u.data && Array.isArray(u.data.full)).map(u => ({ id: u.id, full: u.data.full })) });
+    }
+    // At the limit: the page shows one card with the working Tasks and "Stop and start this one". Every showing and
+    // every button is logged as task_limit_hit (the user, the Task, the attempted job, the button). "stop" stops the
+    // Task the buyer chose (the slot is free at once), then resumes the paused Task asked for or starts the draft; a
+    // typed or seeded attempt is drafted by the page once the slot is free. "keep" changes nothing. ("close" and "swap", the
+    // earlier button names, are read as "stop".)
     if (b.action === "limit") {
-      const ev = ["seen", "swap", "keep"].includes(b.event) ? b.event : null;
+      const ev = ["seen", "stop", "close", "swap", "keep"].includes(b.event) ? (b.event === "close" || b.event === "swap" ? "stop" : b.event) : null;
       if (!ev) return res.status(400).json({ error: "bad event" });
       const running = /^[0-9a-f-]{36}$/.test(String(b.task_id || "")) ? await getTask(env, b.task_id, user.userId).catch(() => null) : null;
-      await recordUsageEvent({ event_type: "task_limit_hit", route: "tasks", status: ev, metadata: { user_id: user.userId, running_task_id: running ? running.id : null, running_task: running ? running.summary : null, attempted_job: String(b.attempted || "").slice(0, 300) || null, mode: ["seed", "draft", "resume"].includes(b.mode) ? b.mode : null, button: ev === "seen" ? null : ev } }, env.supabaseUrl, env.supabaseKey).catch(e => console.error("task_limit_hit log:", e && e.message));
-      if (ev !== "swap") return res.status(200).json({ ok: true });
-      if (running && ["running", "needs_you"].includes(running.state)) await controlTask(env, user, running.id, "pause", { apiKey, model: CHAT_MODEL });
+      await recordUsageEvent({ event_type: "task_limit_hit", route: "tasks", status: ev, metadata: { user_id: user.userId, running_task_id: running ? running.id : null, running_task: running ? running.summary : null, attempted_job: String(b.attempted || "").slice(0, 300) || null, mode: ["seed", "draft", "resume", "typed"].includes(b.mode) ? b.mode : null, button: ev === "seen" ? null : ev } }, env.supabaseUrl, env.supabaseKey).catch(e => console.error("task_limit_hit log:", e && e.message));
+      if (ev !== "stop") return res.status(200).json({ ok: true });
+      if (running && ["running", "needs_you"].includes(running.state)) await controlTask(env, user, running.id, "stop", { apiKey, model: CHAT_MODEL });
       if (b.mode === "resume" && /^[0-9a-f-]{36}$/.test(String(b.resume_id || ""))) return res.status(200).json({ ok: true, ...(await controlTask(env, user, String(b.resume_id), "resume", { apiKey, model: CHAT_MODEL })) });
-      if (b.mode === "draft" && b.draft) return res.status(200).json({ ok: true, ...(await startDraft(env, user, b.draft, { apiKey, model: CHAT_MODEL, gate: gateOf(req, user) })) });
-      return res.status(200).json({ ok: true, paused: running ? running.id : null });
+      if (b.mode === "draft" && b.draft) { const { logArm, taskOutcome } = await import("../lib/live/looking.js");
+        const r = await startDraft(env, user, b.draft, { apiKey, model: CHAT_MODEL, visitorId: readVisitorId(req), gate: gateOf(req, user), defer: b.defer === true, crew: isCrewRequest(req) });
+        logArm(user.userId, "task", taskOutcome(r)); return res.status(200).json({ ok: true, ...r }); }
+      return res.status(200).json({ ok: true, closed: running ? running.id : null });
     }
-    if (b.action === "apply") return res.status(200).json(await applyEdit(env, user, String(b.task_id || ""), b.pending || null, { apiKey, model: CHAT_MODEL }));
+    if (b.action === "apply") return res.status(200).json(await applyEdit(env, user, String(b.task_id || ""), b.pending || null, { apiKey, model: CHAT_MODEL, crew: isCrewRequest(req) }));
     if (b.action === "control") {
       return res.status(200).json(await controlTask(env, user, String(b.task_id || ""), String(b.act || ""), { apiKey, model: CHAT_MODEL }));
     }
@@ -572,9 +651,9 @@ async function handler(req, res) {
     return res.status(400).json({ error: "unknown action" });
   } catch (e) {
     console.error("tasks failed:", (e && e.stack) || e);
-    return res.status(500).json({ error: String((e && e.message) || e).slice(0, 300) });
+    return res.status(500).json(failBody("tasks", e));
   }
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
-export default withTracking("/api/tasks", handler, "tasks");
+export default withTracking("/api/tasks", (req, res) => withPartialCar(req, () => handler(req, res)), "tasks");   // the partial car is crew only: the engine asks partialCarActive() (lib/carToken.js)

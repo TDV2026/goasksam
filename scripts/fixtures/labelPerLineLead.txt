@@ -1,0 +1,19 @@
+Name: Hal Moreau
+Email: hal.moreau@example.com
+Phone: (555) 010-0199
+Year: 1999
+Make: Porsche
+Model: 911
+Trim: Carrera
+VIN: WP0AA2995XS626785
+Mileage: 61,200
+Transmission: Manual
+Body: Coupe
+Exterior colour: Silver
+Interior colour: Black
+Location: Austin, TX
+Asking price: $58,000
+Describe your car: One owner since 2004, garaged, always serviced at the dealer.
+Known flaws and imperfections: Small stone chip on the nose, driver seat bolster worn.
+What has been replaced or upgraded: IMS bearing replaced in 2023, new tyres in 2025.
+Documentation: Full service book and the IMS invoice.

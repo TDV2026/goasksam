@@ -192,6 +192,23 @@ function datesOf(recent) { return (recent || []).map(r => r.date).filter(Boolean
 // every existing caller in this file (checkOneSpec below) needs no changes.
 export const checkOutputInvariants = runOutputInvariants;
 
+// NOT READ (Lane B, Nov 12 2026, from Lane F's nightly finding): a read that FAILED is not a result. An answer with tier read_failed
+// (lib/onebox.js: "the archive read did not finish"; oneEngineAnswer, the entry the lanes read, answers it as tier unavailable with readFailed and stillReading), a not_tracked answer carrying dedup.queryError, or a lane that threw a database
+// or timeout fault says nothing about whether the products agree, so the spec is listed as NOT READ: one warning line naming it, never
+// a mismatch, never an error, and the exit status is the same as with that spec left out. CAUSE: the script had no read_failed handling,
+// so a failed read on a compared lane was compared as if it were a read (a zero count against a real one is a disagreement). The same
+// class: every per-spec reader below that compares lanes (checkOneSpec is the spec reader; the case checks catch a throw as row.error).
+export const readFailedOf = a => !!a && typeof a === "object" && (a.tier === "read_failed" || a.readFailed === true || (a.tier === "unavailable" && a.stillReading === true) || (a.tier === "not_tracked" && !!(a.dedup && a.dedup.queryError)));
+export const DB_FAULT_RE = /read_failed|archive read|did not finish|did not answer|timed? ?out|timeout|fetch failed|ECONN|ETIMEDOUT|HTTP 5\d\d|\b5\d\d\b (?:from|error)|statement timeout/i;
+export const laneFault = e => { const m = String(e && e.message || e); return DB_FAULT_RE.test(m) ? { ok: false, notRead: true, reason: "not read: " + m.slice(0, 160) } : { ok: false, reason: m }; };
+export function notReadOf(lanes) { const bad = Object.entries(lanes || {}).filter(([, l]) => l && l.notRead).map(([n]) => n); return bad.length ? bad : null; }
+
+// the spec is NOT READ when any lane's read failed: no comparison at all, so no mismatch (exported so the check can feed it lanes of every shape)
+export function markNotRead(row, lanes) {
+  const notRead = notReadOf(lanes); if (!notRead) return false;
+  row.notRead = true; row.notReadLanes = notRead; row.notReadWhy = Object.values(lanes).filter(l => l && l.notRead).map(l => l.reason)[0]; row.lanes = lanes; row.compare = []; row.countsCompare = []; row.anyMismatch = false;
+  return true;
+}
 // ---- Lane 1: Market Check (runOneBox direct) ----
 // asked:2 (Oct 2026, one-engine-entry-point job): this lane used to call with asked:0 (a fresh
 // query's FIRST read), which correctly surfaces a generation_choice/body_choice/variant_choice
@@ -205,11 +222,12 @@ export const checkOutputInvariants = runOutputInvariants;
 // product can actually reach, which is what "one engine, one answer" means here. The *_choice
 // question itself is Market Check's frontend's own concern (already live, confirmed elsewhere in
 // this session) and is intentionally NOT what this harness is checking.
-async function marketCheckLane(vehicle, generation, searchText, env) {
+export async function marketCheckLane(vehicle, generation, searchText, env) {
   // THE PUBLIC PATH (Oct 15 2026, the e53 Camaro split): read through oneEngineAnswer, the shared entry the public API,
   // Buy, Sell and Tasks all use, which applies the output gate; runOneBox alone had hidden a gate refusal from this lane.
   const d = (await oneEngineAnswer(vehicle, generation, searchText, { ...env, exactSale: null, asked: 2 }, null)).raw;
   if (!d || !d.tier) return { ok: false, reason: "no tier" };
+  if (readFailedOf(d)) return { ok: false, notRead: true, reason: "not read: the engine answered " + d.tier };
   // Part 4, the five output checks: run against the raw answer before anything below reduces it.
   const outputInvariants = checkOutputInvariants(d, vehicle);
   const tier = d.tier;
@@ -254,7 +272,7 @@ async function buyLane(env, v, f) {
 
 // ---- Lane 3: Sell (fetchOnlinePool, the shared pool buildSharedAnalysis aggregates from) ----
 async function sellLane(vehicle, generation, env) {
-  const { spec, pool, cluster, referenceFigure, recent3, windowLabel, poolYears } = await fetchOnlinePool(vehicle, generation, env);
+  const { spec, pool, cluster, referenceFigure, recent3, windowLabel, poolYears, fallbackRung: engFallbackRung, rungLabel: engRungLabel, siblingName: engSiblingName, counts: engCounts } = await fetchOnlinePool(vehicle, generation, env);
   if (!spec) return { ok: false, reason: "no spec (vehicle did not resolve to a buildable spec)" };
   if (!pool.length) return { ok: false, reason: "empty pool (genuinely zero online sales on record)" };
   const priced = pool.map(r => ({ ...r, _usd: Number.isFinite(r._usd) ? r._usd : hammerUsd(r) })).filter(r => Number.isFinite(r._usd) && r._usd > 0);
@@ -286,11 +304,13 @@ async function sellLane(vehicle, generation, env) {
   // file) does not surface runOneBox's new `counts` field, so this reuses the SAME askingResult
   // call just above (a second runOneBox invocation that already exists for the asking-line
   // verification) rather than adding a third call or editing platformPick.js.
-  const counts = (askingResult && askingResult.counts) || null;
+  // (Nov 5 2026, nightly #132) the rung and its label come from the engine ANSWER Sell reads (fetchOnlinePool passes them through), never from this second runOneBox call: that call never sees oneEngineAnswer's
+  // trim-dropped suffix, so the Cobra Roadster read as a mismatch that Sell never printed. scripts/sellLabelCheck.mjs pins both.
+  const counts = engCounts || (askingResult && askingResult.counts) || null;
   // fallbackRung/rungLabel/siblingName (Round 5 Lane B job, Oct 2026): fetchOnlinePool
   // (lib/platformPick.js, Lane C's file) does not surface these either, same gap as counts above -
   // reuses the SAME askingResult call rather than adding a third runOneBox invocation.
-  return { ok: true, label, low, high, span, count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent, referenceFigure: referenceFigure || null, askingLineLow, askingLineHigh, counts, window: windowLabel || null, poolYears: Array.isArray(poolYears) ? poolYears : null, fallbackRung: (askingResult && askingResult.fallbackRung) || null, rungLabel: (askingResult && askingResult.rungLabel) || null, siblingName: (askingResult && askingResult.siblingName) || null };
+  return { ok: true, label, low, high, span, count: priced.length, latest: (sorted[0]?.auction_end_date || "").slice(0, 10) || null, recent, referenceFigure: referenceFigure || null, askingLineLow, askingLineHigh, counts, window: windowLabel || null, poolYears: Array.isArray(poolYears) ? poolYears : null, fallbackRung: engFallbackRung || null, rungLabel: engRungLabel || null, siblingName: engSiblingName || null };
 }
 
 // ---- comparison ----
@@ -378,7 +398,7 @@ function compareField(name, values) {
 // Best-effort "why" for a mismatching spec, grounded in the actual code paths (not guessed) -
 // per Sam's ask: "Print the reason where you can tell". Each reason names the file and function
 // on each side so the mismatch can be assigned. Silent when no known pattern explains it.
-function diagnoseReasons(row, { marketCheck, buy, sell, tasks }) {
+export function diagnoseReasons(row, { marketCheck, buy, sell, tasks }) {
   const out = [];
   const countMismatch = row.compare.find(c => c.field === "count" && c.status === "MISMATCH");
   const lowHighMismatch = row.compare.some(c => (c.field === "low" || c.field === "high") && c.status === "MISMATCH");
@@ -403,10 +423,13 @@ function diagnoseReasons(row, { marketCheck, buy, sell, tasks }) {
   // (specOf's resolvedVehicle param -> enrichForBuy, never resolveVehicle a second time). A mismatch
   // still landing on this branch after that fix is a NEW regression, not this historical class.
   if ((!buy.ok || !tasks.ok) && (marketCheck.ok || sell.ok)) {
-    out.push("Buy/Tasks (lib/live/search.js specOf, via familyMarket's resolvedVehicle param) failed " +
-      "to resolve this spec while resolveVehicle (lib/vehicle.js, used directly by Market Check/Sell, " +
-      "and by Buy/Tasks' own first resolve) did - since the one-resolver fix this should no longer be " +
-      "a lossy double-resolve; check specOf/enrichForBuy directly for what dropped the car.");
+    // Say what each failing lane ITSELF reported (Nov 2026, nightly #132 item 4): a cold stored row ("pending") was worded as a failed resolve, which sent the 1985 Ferrari 308 GTS Spider
+    // reading to the resolver when the spec had simply not been stored yet. The resolver sentence is kept for a lane that really did not resolve.
+    const failing = [["Buy", buy], ["Tasks", tasks]].filter(([, l]) => !l.ok);
+    const pending = failing.filter(([, l]) => /^pending\b/.test(String(l.reason || ""))), unresolved = failing.filter(([, l]) => /no spec|did not resolve|unresolved|no market read/i.test(String(l.reason || ""))), other = failing.filter(x => !pending.includes(x) && !unresolved.includes(x));
+    if (pending.length) out.push(`${pending.map(([n]) => n).join(" and ")} (lib/live/search.js listingMarket) found no stored spec_market_cache row for this spec yet and started the engine behind the response: a COLD STORED ROW, not a resolver failure. The same spec read again after the row is written; the nightly spec-market warm is what fills it.`);
+    if (unresolved.length) out.push(`${unresolved.map(([n]) => n).join(" and ")} (lib/live/search.js specOf, via familyMarket's resolvedVehicle param) did not resolve this spec while resolveVehicle (lib/vehicle.js, used directly by Market Check/Sell) did; check specOf/enrichForBuy directly for what dropped the car. A miss is no longer pinned past a minute (lib/_negCache.js).`);
+    for (const [n, l] of other) out.push(`${n} reported: ${String(l.reason || "no reason given").slice(0, 200)}`);
   }
 
   // Sell diverging on count/latest (rare after the Oct 2026 "one engine ladder" fix - fetchOnlinePool
@@ -472,7 +495,12 @@ export async function checkOneSpec(q, env) {
   const row = { q };
   const rv = await resolveVehicle(q, {}).catch(e => ({ error: e }));
   const vehicle = rv && rv.vehicle;
-  if (!vehicle || !vehicle.make) { row.error = "unresolved: " + (rv && (rv.status || rv.error?.message) || "?"); return row; }
+  if (!vehicle || !vehicle.make) {
+    // the resolver's own "Sam is still reading" (status lookup_timeout, or a thrown database fault) is a read that failed: NOT READ, never an error
+    const why = rv && (rv.status || rv.error?.message) || "?";
+    if ((rv && rv.status === "lookup_timeout") || DB_FAULT_RE.test(String(why))) { row.notRead = true; row.notReadLanes = ["resolver"]; row.notReadWhy = "resolver: " + why; row.anyMismatch = false; return row; }
+    row.error = "unresolved: " + why; return row;
+  }
   row.resolved = `${vehicle.year || ""} ${vehicle.make} ${vehicle.model || ""}${vehicle.trim ? " " + vehicle.trim : ""}`.trim();
   const generation = await findGeneration(vehicle, env).catch(() => null);
   // searchText is the TYPED words, exactly as the pages pass them (Sam, Oct 14 2026): building it from
@@ -495,13 +523,15 @@ export async function checkOneSpec(q, env) {
   const buyVehicle = await resolveForBuy(q, env).catch(() => null) || vehicle;
 
   const [marketCheck, buy, sell] = await Promise.all([
-    marketCheckLane(vehicle, generation, searchText, env).catch(e => ({ ok: false, reason: String(e && e.message || e) })),
-    buyLane(env, buyVehicle, f).catch(e => ({ ok: false, reason: String(e && e.message || e) })),
-    sellLane(vehicle, generation, env).catch(e => ({ ok: false, reason: String(e && e.message || e) }))
+    marketCheckLane(vehicle, generation, searchText, env).catch(laneFault),
+    buyLane(env, buyVehicle, f).catch(laneFault),
+    sellLane(vehicle, generation, env).catch(laneFault)
   ]);
   // Tasks: the same empty-state fallback Buy uses (see header note) - a second, independent call
   // (not reusing buy's object) so a future divergence between the two call SITES still shows up.
-  const tasks = await buyLane(env, buyVehicle, f).catch(e => ({ ok: false, reason: String(e && e.message || e) }));
+  const tasks = await buyLane(env, buyVehicle, f).catch(laneFault);
+  // a lane whose read failed makes the whole spec NOT READ: no comparison, no mismatch (see readFailedOf above)
+  if (markNotRead(row, { marketCheck, buy, sell, tasks })) return row;
 
   const sellFacts = await sellFactsLane(q, vehicle, env, marketCheck.ok ? marketCheck.count : null).catch(e => ({ ok: false, reason: String(e && e.message || e).slice(0, 120) }));
   row.lanes = { marketCheck, buy, sell, tasks, sellFacts };
@@ -672,7 +702,14 @@ export function checkRefineKeyIsolation() {
     { name: "2005 911: plain, coupe, carrera-s, carrera, manual, coupe+manual are six specKeyFor keys", pass: distinct(keys), keys },
     { name: "2005 911: the same six are six warm rows", pass: distinct(warm) },
     { name: "1965 Mustang: the Coupe chip's key is not the bare key", pass: specKeyFor(m, mg, { body: "coupe" }) !== specKeyFor(m, mg, null) },
-    { name: "a refine with none of the four fields keys as plain", pass: specKeyFor(v, gen, { miMin: 20000 }) === specKeyFor(v, gen, null) }
+    { name: "a refine with no refine field keys as plain", pass: specKeyFor(v, gen, {}) === specKeyFor(v, gen, null) && specKeyFor(v, gen, { label: "Under 50,000 miles" }) === specKeyFor(v, gen, null) },
+    { name: "a refine with a mileage band keys its own row (min only, max only, both, and each band differs)", pass: (() => { const ks = [{ miMin: 20000 }, { miMax: 50000 }, { miMin: 20000, miMax: 50000 }, { miMin: 50000, miMax: 100000 }].map(r => specKeyFor(v, gen, r)); return new Set(ks.concat(specKeyFor(v, gen, null))).size === 5; })() },
+    { name: "a refine with a year keys its own row, and two years differ", pass: specKeyFor(v, gen, { year: 2006 }) !== specKeyFor(v, gen, null) && specKeyFor(v, gen, { year: 2006 }) !== specKeyFor(v, gen, { year: 2007 }) },
+    { name: "a mileage pick never produces the plain key (specKeyFor and the Market Check warm key), on any mileage band the engine offers", pass: (() => { const bands = [[null, 50000], [50000, 100000], [100000, null], [0, 25000], [25000, 50000]]; return bands.every(([a, b]) => { const r = { ...(a != null ? { miMin: a } : {}), ...(b != null ? { miMax: b } : {}) }; return specKeyFor(v, gen, r) !== specKeyFor(v, gen, null) && warmAnswerKeyFor(v, gen, r) !== warmAnswerKeyFor(v, gen, null); }); })() },
+    { name: "a mileage pick on a body or gearbox chip keys apart from that chip alone", pass: specKeyFor(v, gen, { body: "coupe", miMax: 50000 }) !== specKeyFor(v, gen, { body: "coupe" }) && specKeyFor(v, gen, { tx: "manual", miMin: 50000 }) !== specKeyFor(v, gen, { tx: "manual" }) },
+    // THE CLASS: every field the engine reads from a refine changes the key (or is wording only). Scanned from the source, so a new refine field
+    // that the key forgets fails here, not in a collision on the live site.
+    { name: "every refine.<field> the engine reads keys its own row or is listed as wording only", pass: (() => { const names = new Set(); for (const f of ["lib/live/search.js", "lib/onebox.js", "api/sellerDecision.js", "api/buySearch.js", "lib/sell/sellFacts.js", "lib/sell/sellBlock.js"]) for (const m of fs.readFileSync(new URL("../" + f, import.meta.url), "utf8").matchAll(/\brefine\.([a-zA-Z]+)\b/g)) names.add(m[1]); const sample = { miMin: 20000, miMax: 50000, miTarget: 30000, miBand: "a", year: 2006, attrs: ["w_x"], attrsOff: ["w_x"] }; const bad = [...names].filter(k => k !== "label" && specKeyFor(v, gen, { [k]: sample[k] !== undefined ? sample[k] : "x" }) === specKeyFor(v, gen, null)); if (bad.length) console.log("  refine fields the key does not carry: " + bad.join(", ")); return bad.length === 0; })() }
   ];
   return { ok: cases.every(c => c.pass), cases };
 }
@@ -796,6 +833,37 @@ export function checkDepthWinsFixtures() {
   return { ok: cases.every(c => c.pass), cases };
 }
 
+// PICK FIXTURES (Nov 5 2026): synthetic engine answers handed to the REAL pickPlatform, buildSharedAnalysis and decide (their `answer` pass-through), so the rush, tie and depth rules are exercised on every run whatever the archive holds.
+// Each case names the venue both pages must show. A rush pool where the short-auction venue differs from the standard venue shows a speed pick; where they are the same venue, no distinct speed pick exists and both show it.
+export async function checkPickFixtures() {
+  const veh = { year: 1965, make: "Chevrolet", model: "Corvette" }, k = x => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const pool = spec => spec.flatMap(([src, n, base, day]) => Array.from({ length: n }, (_, i) => ({ source: src, _usd: base + i * 500, year: 1965, auction_end_date: day, id: src + i })));
+  const answer = spec => ({ tier: "result", resolvedCar: { make: "Chevrolet", model: "Corvette", year: 1965 }, windowLabel: "the last 3 years", cluster: [60000, 90000], rawPool: pool(spec) });
+  const CASES = [
+    { name: "rush, the short-auction venue differs from the standard venue: both show the speed pick", rush: true, spec: [["bringatrailer", 20, 70000, "2026-10-01"], ["hagerty", 12, 68000, "2026-10-02"], ["hemmings", 4, 60000, "2026-09-01"]], want: "hagerty", speed: true },
+    { name: "rush, the standard venue already is a short-auction venue: no distinct speed pick, both show the standard pick", rush: true, spec: [["hagerty", 20, 70000, "2026-10-01"], ["bringatrailer", 5, 68000, "2026-10-02"]], want: "hagerty", speed: false },
+    { name: "no rush: both show the standard pick, never the speed pick", rush: false, spec: [["bringatrailer", 20, 70000, "2026-10-01"], ["hagerty", 12, 68000, "2026-10-02"]], want: "bringatrailer", speed: false },
+    { name: "a tie on sales: the more recent sale wins on both pages", rush: false, spec: [["bringatrailer", 6, 70000, "2026-09-01"], ["carsandbids", 6, 70000, "2026-10-10"]], want: "carsandbids", speed: false },
+    { name: "depth: the venue with more sales wins on both pages", rush: false, spec: [["carsandbids", 9, 70000, "2026-10-10"], ["bringatrailer", 4, 70000, "2026-10-01"]], want: "carsandbids", speed: false }
+  ];
+  const cases = [];
+  for (const c of CASES) {
+    const ans = answer(c.spec), criteria = getSellerCriteria({ raw: "1965 Chevrolet Corvette", region: "US", state: "California", timeline: c.rush ? "As soon as possible" : "No rush" });
+    const shared = await pickPlatform(veh, null, {}, criteria, ans), analysis = await buildSharedAnalysis(veh, null, {}, criteria, ans), dec = analysis ? decide(analysis, criteria, veh) : null;
+    const sellVenue = c.rush ? (dec && (dec.speedPick || dec.recommendedPath)) : (dec && dec.recommendedPath), sharedVenue = shared && (shared.platformDisplay || shared.platform);
+    const pass = !!sellVenue && !!sharedVenue && (k(sellVenue) === k(sharedVenue) || k(sellVenue) === k(shared.platform)) && (k(sharedVenue) === k(c.want) || k(shared.platform) === k(c.want)) && (!c.rush || (!!(dec && dec.speedPick) === c.speed && (shared.reasonCode === "speed") === c.speed));
+    cases.push({ name: c.name, want: c.want, sell: sellVenue || null, shared: sharedVenue || null, speedPick: dec ? dec.speedPick || null : null, pass });
+  }
+  return { ok: cases.every(c => c.pass), cases };
+}
+// How a live pick case reads (pure, covered by scripts/onePickFixtureCheck.mjs): two empty picks AGREE (there is nothing to show, and that is what both pages do) but prove nothing, so they are UNEXERCISED; a pick on one side only, or two
+// different venues, is a DISAGREE. altShared: the shared pick's platform slug, accepted as the same venue as its display name.
+export function pickRowState(row, altShared) {
+  const k = x => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const none = !row.sell && !row.shared;
+  const agree = none || (!!row.sell && !!row.shared && (k(row.sell) === k(row.shared) || k(row.sell) === k(altShared)));
+  return { agree, state: !agree ? "DISAGREE" : none ? "UNEXERCISED (no pick on either side: no pool)" : row.exercised ? "PASS" : "UNEXERCISED (the archive no longer holds this shape; the rule is proved by the fixtures)" };
+}
 export async function checkSinglePick(env) {
   const out = { ok: true, tieBreakCopies: [], cases: [] };
   out.depthWinsFixtures = checkDepthWinsFixtures();
@@ -808,6 +876,13 @@ export async function checkSinglePick(env) {
   }
   if (out.tieBreakCopies.length) out.ok = false;
   const k = x => String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  // ONE PICK, MEANINGFUL (Lane B, Nov 5 2026, nightly #132 "ONE PICK FAIL": the 1993 Carrera RS Targa and the 1965 Corvette rush both read sell:null, shared:null, agree:false).
+  // CAUSE, proven on production: (1) rush. pickPlatform returns the SPEED pick when one differs from the standard pick and the standard pick otherwise, and decide() shows speedPick only when it differs, so on a 1965 Corvette
+  // where the rush venue IS the standard venue both sides are rightly null for "a different rush pick"; the old code compared "speed pick or null" and called two agreeing nulls a disagreement. (2) the 1993 Carrera RS Targa
+  // is not a car the engine can read today (Market Check: not_tracked, a question; Sell: zero online sales), so no pick exists to compare; "agree" needed a pick on both sides, so it failed every night. SELL DOES RETURN A PICK for the
+  // 1965 Corvette rush (its standard venue); the check could not see it. NOW: rush compares what each page SHOWS (the speed pick, else the standard pick); two empty picks agree and the case is reported UNEXERCISED, never passed as if
+  // it had proved the rule; a real disagreement (a pick on one side only, or two different venues) fails. The rules themselves are proved on synthetic pools through the real pickPlatform, buildSharedAnalysis and decide
+  // (checkPickFixtures), which cannot drift with the archive. scripts/onePickFixtureCheck.mjs runs the fixtures offline.
   for (const c of PICK_CASES) {
     const row = { q: c.q, kind: c.kind };
     try {
@@ -819,24 +894,23 @@ export async function checkSinglePick(env) {
       const dec = analysis ? decide(analysis, criteria, vehicle) : null;
       const shared = await pickPlatform(vehicle, generation, env, criteria);
       if (c.kind === "rush") {
-        row.sell = dec && dec.speedPick; row.shared = shared && shared.reasonCode === "speed" ? (shared.platformDisplay || shared.platform) : null;
-        row.exercised = !!row.shared;
+        row.sell = (dec && (dec.speedPick || dec.recommendedPath)) || null; row.shared = (shared && (shared.platformDisplay || shared.platform)) || null;
+        row.exercised = !!(dec && dec.speedPick) && !!shared && shared.reasonCode === "speed";
       } else {
-        row.sell = dec && dec.recommendedPath; row.shared = shared && (shared.platformDisplay || shared.platform);
+        row.sell = (dec && dec.recommendedPath) || null; row.shared = (shared && (shared.platformDisplay || shared.platform)) || null;
         const sp = analysis && analysis.sharedPick && analysis.sharedPick.baseline;
         if (c.kind === "specialist") row.exercised = !!(sp && sp.reasonCode !== "specialist" && k(sp.platform) !== k(c.notVenue));
         if (c.kind === "tie") { const top = (analysis.platformPerformance || []).filter(v => v.evidenceSales > 0).sort((a, b) => b.evidenceSales - a.evidenceSales); row.exercised = top.length > 1 && top[0].evidenceSales === top[1].evidenceSales; }
       }
-      row.agree = !!row.sell && !!row.shared && (k(row.sell) === k(row.shared) || k(row.sell) === k(shared && shared.platform));
-    } catch (e) { row.error = String(e && e.message || e); }
-    // Gate on agree alone (job 11): whether Sell's real decide() and the shared pickPlatform land on
-    // the same venue for a real car is a genuine invariant. Whether today's live archive happens to
-    // still hold the exact tie/specialist/rush shape named for this car (`exercised`) is reported for
-    // visibility but no longer gates ok - the archive moves nightly and a broken tie is not a
-    // regression. The tie-break LOGIC itself is covered deterministically by depthWinsFixtures above.
+      Object.assign(row, pickRowState(row, shared && shared.platform));
+    } catch (e) { row.error = String(e && e.message || e); row.agree = false; row.state = "ERROR"; }
+    // Gate on a real disagreement or an error. A case that cannot exercise its rule today is REPORTED as unexercised (out.unexercised) and never counted as a pass of that rule.
     if (!row.agree) out.ok = false;
     out.cases.push(row);
   }
+  out.unexercised = out.cases.filter(r => /^UNEXERCISED/.test(r.state || "")).map(r => r.q);
+  out.fixtures = await checkPickFixtures();
+  if (!out.fixtures.ok) out.ok = false;
   return out;
 }
 
@@ -915,30 +989,65 @@ export const LIVE_LISTING_CASES = [
   { q: "1989 BMW", url: "https://bringatrailer.com/listing/1989-bmw-325i-230/", expectAbroadMention: true },
   { q: "2021 BMW X3 M40i", url: "https://carsandbids.com/auctions/rj0VnZW2/2021-bmw-x3-m40i", expectAbroadMention: false }
 ];
-export async function checkLiveListingDisclosure(env, cases = LIVE_LISTING_CASES) {
+// A live_listings row is LIVE only while its status is live AND its end time has not passed (the engine's own rule: lib/live/search.js
+// skips "ended" rows). The pull marks a row ended up to a quarter hour late, so a row can read status "live" past its end; that car
+// is ended, and a search must never be expected to show it (Nov 2026: the two named BMWs had ended, the check expected them live).
+export function liveStateOf(row, now = Date.now()) {
+  if (!row) return "absent";
+  if (String(row.status || "").toLowerCase() !== "live") return "ended";
+  if (row.end_time && Date.parse(row.end_time) <= now) return "ended";
+  return "live";
+}
+// deps: { select, converse, now } so the check runs offline. The two rules: a LIVE car is found or disclosed (abroad) and never reported
+// as not live; an ENDED or absent car is never shown as a live match.
+export async function checkLiveListingDisclosure(env, cases = LIVE_LISTING_CASES, deps = {}) {
+  const select = deps.select || (q => supabaseSelect(env, q)), say = deps.converse || (a => converse(env, a)), now = deps.now ? deps.now() : Date.now();
   const out = { ok: true, cases: [] };
   for (const c of cases) {
     const row = { q: c.q, url: c.url };
     try {
-      const inPool = await supabaseSelect(env, `live_listings?url=eq.${encodeURIComponent(c.url)}&select=id,status&limit=1`).catch(() => null);
-      row.inPool = Array.isArray(inPool) && inPool.length > 0;
-      const r = await converse(env, { messages: [c.q] });
+      const got = await select(`live_listings?url=eq.${encodeURIComponent(c.url)}&select=id,status,end_time&limit=1`).catch(() => null);
+      row.state = liveStateOf(Array.isArray(got) ? got[0] : null, now);
+      row.inPool = row.state !== "absent";
+      const r = await say({ messages: [c.q] });
       row.say = (r && r.say) || null;
       row.near = (r && r.near) || null;
-      if (!row.inPool) {
-        // A listing genuinely absent from our own pool can never be asserted as found - that is a
-        // pull/vendor question, not an engine-logic one (see the job's lane-notes entry). Only check
-        // that the engine never CLAIMS a found-but-filtered car does not exist, which needs no live
-        // row to verify (the sentence shape itself is what regressed before).
-        row.note = "not in live_listings - pull/vendor gap, not asserted as found (see lane-notes)";
-      } else if (r && r.type === "results" && (r.matches || []).some(x => x && x.r && x.r.url === c.url)) {
-        row.found = true;
-      } else if (c.expectAbroadMention) {
-        const mentionsAbroad = /\babroad\b/i.test(String(row.say || ""));
-        row.foundViaAbroadDisclosure = mentionsAbroad;
-        if (!mentionsAbroad) { row.ok = false; out.ok = false; }
-      } else {
-        row.ok = false; out.ok = false; row.reason = "expected to find the car (in pool, no abroad fence expected) but it was not in matches";
+      const shown = !!(r && r.type === "results" && (r.matches || []).some(x => x && x.r && x.r.url === c.url));
+      if (row.state === "live") {
+        if (shown) row.found = true;
+        else if (c.expectAbroadMention) {
+          row.foundViaAbroadDisclosure = /\babroad\b/i.test(String(row.say || ""));
+          if (!row.foundViaAbroadDisclosure) { row.ok = false; out.ok = false; row.reason = "a live car was reported as not live: no match and no abroad disclosure"; }
+        } else { row.ok = false; out.ok = false; row.reason = "a live car was reported as not live: in the pool, live, no abroad fence expected, and not in matches"; }
+      } else if (shown) {
+        row.ok = false; out.ok = false; row.reason = row.state === "ended" ? "an ended auction was shown as a live match" : "a car that is not in the pool was shown as a live match";
+      } else row.note = row.state === "ended" ? "ended: correctly not shown as live (the check no longer expects it)" : "not in live_listings: a pull/vendor gap, not asserted as found";
+    } catch (e) { row.error = String(e && e.message || e); out.ok = false; }
+    out.cases.push(row);
+  }
+  return out;
+}
+
+// LIVE CARS ARE FOUND (Nov 2026): n real live cars (status live, ending in the future), each searched as "year make model" through the same
+// converse entry the page uses; every one must be in the matches, or its search must say why (abroad). A miss names the engine's reason
+// when the injected `why` can (searchLive's trace). deps: { select, converse, why, now }.
+export async function checkLiveCarsFound(env, { n = 12 } = {}, deps = {}) {
+  const select = deps.select || (q => supabaseSelect(env, q)), say = deps.converse || (a => converse(env, a)), now = deps.now ? deps.now() : Date.now();
+  const rows = await select(`live_listings?status=eq.live&end_time=gt.${encodeURIComponent(new Date(now + 3600e3).toISOString())}&year=not.is.null&model=not.is.null&select=id,url,listing_title,year,make,model,end_time&order=id.desc&limit=${Math.max(n * 6, 60)}`);
+  if (!Array.isArray(rows)) return { ok: false, error: "live_listings could not be read", cases: [] };
+  // one per make, so the sample spans the pool instead of one dealer's batch
+  const seen = new Set(), pick = [];
+  for (const r of rows) { const k = String(r.make || "").toLowerCase(); if (!k || seen.has(k) && pick.length < n - 3) continue; seen.add(k); pick.push(r); if (pick.length >= n) break; }
+  const out = { ok: true, checked: pick.length, found: 0, cases: [] };
+  for (const r of pick) {
+    const q = [r.year, r.make, r.model].filter(Boolean).join(" "), row = { q, url: r.url, title: r.listing_title };
+    try {
+      const res = await say({ messages: [q] });
+      row.found = !!(res && res.type === "results" && (res.matches || []).some(x => x && x.r && x.r.url === r.url));
+      if (row.found) out.found++;
+      else {
+        row.disclosed = /\babroad\b/i.test(String((res && res.say) || ""));
+        if (!row.disclosed) { row.ok = false; out.ok = false; row.reason = deps.why ? await deps.why(r, q).catch(() => null) : null; }
       }
     } catch (e) { row.error = String(e && e.message || e); out.ok = false; }
     out.cases.push(row);
@@ -1239,32 +1348,38 @@ export async function checkIdentityCounts(env, specs = DEFAULT_SPECS) {
   }
   return { ok: cases.every(c => c.ok), cases };
 }
+// e100 (run 127, Oct 28: this check ran 35 minutes against an 80 minute job and was cancelled with it): the check has its own cap. opts.deadlineMs is the most time it may take; past it every spec and
+// every sub-check not yet started is SKIPPED and named in the result (skippedSpecs, skippedChecks, capHit). A cap is never a finding: it changes no exit status.
 export async function runEngineCheck(env, specs = DEFAULT_SPECS, opts = {}) {
+  const t0 = Date.now(), deadline = Number(opts.deadlineMs) > 0 ? t0 + Number(opts.deadlineMs) : Infinity, over = () => Date.now() > deadline;
+  const skippedSpecs = [], skippedChecks = [];
   const rows = [];
-  for (const q of specs) rows.push(await checkOneSpec(q, env));
-  const totalMismatches = rows.filter(r => r.anyMismatch).length;
-  const singlePick = opts.singlePick === false ? null : await checkSinglePick(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const buyPaths = opts.buyPaths === false ? null : await checkBuyPaths(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const liveFences = opts.liveFences === false ? null : await checkLiveComparableFences(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const representative = opts.representative === false ? null : await checkRepresentativeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const splitPools = opts.splitPools === false ? null : await checkSplitPoolInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const overTime = opts.overTime === false ? null : await checkOverTimeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const liveListing = opts.liveListing === false ? null : await checkLiveListingDisclosure(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const urgentOct2026 = opts.urgentOct2026 === false ? null : await checkUrgentOct2026Guards(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const cacheConsistency = opts.cacheConsistency === false ? null : await checkCacheConsistency(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  for (const q of specs) { if (over()) { skippedSpecs.push(q); continue; } rows.push(await checkOneSpec(q, env)); }
+  const notRead = rows.filter(r => r.notRead).map(r => r.q);
+  const totalMismatches = rows.filter(r => r.anyMismatch && !r.notRead).length;
+  const singlePick = opts.singlePick === false ? null : over() ? (skippedChecks.push("singlePick"), null) : await checkSinglePick(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const buyPaths = opts.buyPaths === false ? null : over() ? (skippedChecks.push("buyPaths"), null) : await checkBuyPaths(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const liveFences = opts.liveFences === false ? null : over() ? (skippedChecks.push("liveFences"), null) : await checkLiveComparableFences(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const representative = opts.representative === false ? null : over() ? (skippedChecks.push("representative"), null) : await checkRepresentativeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const splitPools = opts.splitPools === false ? null : over() ? (skippedChecks.push("splitPools"), null) : await checkSplitPoolInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const overTime = opts.overTime === false ? null : over() ? (skippedChecks.push("overTime"), null) : await checkOverTimeInvariants(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const liveListing = opts.liveListing === false ? null : over() ? (skippedChecks.push("liveListing"), null) : await checkLiveListingDisclosure(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const urgentOct2026 = opts.urgentOct2026 === false ? null : over() ? (skippedChecks.push("urgentOct2026"), null) : await checkUrgentOct2026Guards(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const cacheConsistency = opts.cacheConsistency === false ? null : over() ? (skippedChecks.push("cacheConsistency"), null) : await checkCacheConsistency(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
   const specKeyYearIsolation = opts.specKeyYearIsolation === false ? null : checkSpecKeyYearIsolation();
   const refineKeyIsolation = opts.refineKeyIsolation === false ? null : checkRefineKeyIsolation();
-  const refineIsolation = opts.refineIsolation === false ? null : await checkRefineIsolation(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const formPairs = opts.formPairs === false ? null : await checkFormPairs(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  const identityCounts = opts.identityCounts === false ? null : await checkIdentityCounts(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
-  return { task: "crossproductcheck", formPairs, identityCounts, total: rows.length, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, cacheConsistency, refineKeyIsolation, refineIsolation, specKeyYearIsolation, rows };
+  const refineIsolation = opts.refineIsolation === false ? null : over() ? (skippedChecks.push("refineIsolation"), null) : await checkRefineIsolation(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const formPairs = opts.formPairs === false ? null : over() ? (skippedChecks.push("formPairs"), null) : await checkFormPairs(env).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  const identityCounts = opts.identityCounts === false ? null : over() ? (skippedChecks.push("identityCounts"), null) : await checkIdentityCounts(env, specs).catch(e => ({ ok: false, error: String(e && e.message || e) }));
+  return { task: "crossproductcheck", capHit: skippedSpecs.length + skippedChecks.length > 0, checked: rows.length, skippedSpecs, skippedChecks, ms: Date.now() - t0, formPairs, identityCounts, total: rows.length, notRead, mismatchSpecs: totalMismatches, singlePick, buyPaths, liveFences, representative, splitPools, overTime, liveListing, urgentOct2026, cacheConsistency, refineKeyIsolation, refineIsolation, specKeyYearIsolation, rows };
 }
 
 // ---- CLI ----
-function printTable(result) {
+export function printTable(result) {
   for (const row of result.rows) {
     console.log(`\n=== ${row.q}` + (row.resolved ? `  (resolved: ${row.resolved})` : ""));
     if (row.error) { console.log("  ERROR:", row.error); continue; }
+    if (row.notRead) { console.log(`::warning::not read, the database did not answer: ${row.q} (${row.notReadWhy || "read failed"})`); continue; }
     for (const [name, lane] of Object.entries(row.lanes)) {
       if (!lane.ok) console.log(`  ${name.padEnd(12)} NO READ - ${lane.reason}`);
     }
@@ -1279,7 +1394,7 @@ function printTable(result) {
     if (row.abroad) console.log(`  abroad   live matches=${row.abroad.liveMatches ?? "?"} (${row.abroad.note || row.abroad.error})`);
     for (const r of (row.reasons || [])) console.log(`  reason:  ${r}`);
   }
-  console.log(`\nTOTAL: ${result.mismatchSpecs}/${result.total} specs had at least one field mismatch`);
+  console.log(`\nTOTAL: ${result.mismatchSpecs}/${result.total} specs had at least one field mismatch` + ((result.notRead || []).length ? `, ${result.notRead.length} not read` : ""));
   if (result.singlePick) console.log(`ONE PICK: ${result.singlePick.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.singlePick)}`);
   if (result.buyPaths) console.log(`BUY PATHS: ${result.buyPaths.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.buyPaths)}`);
   if (result.liveFences) console.log(`LIVE FENCES: ${result.liveFences.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.liveFences)}`);
@@ -1292,15 +1407,34 @@ function printTable(result) {
   if (result.refineIsolation) console.log(`REFINE ISOLATION (live): ${result.refineIsolation.ok ? "PASS" : "FAIL"} ${JSON.stringify(result.refineIsolation)}`);
 }
 
+// THE CAP (e100). A nightly run samples DEFAULT_SPECS (CROSS_MAX_SPECS a night, default 12, a window that moves one window a day so every spec is read within a week or two) and stops starting work after
+// CROSS_MAX_MINUTES (default 8). A hard stop 3 minutes later ends the process even when one read hangs. Neither is a failure: the check says what it read and what it skipped, and exits on findings only.
+// --specs= (an explicit list) and CROSS_MAX_SPECS=all read everything, still under the time cap.
+export function sampleSpecs(all, max, day = Math.floor(Date.now() / 864e5)) {
+  if (!(max > 0) || max >= all.length) return { picked: all.slice(), skipped: [] };
+  const start = (day * max) % all.length, picked = [];
+  for (let k = 0; k < max; k++) picked.push(all[(start + k) % all.length]);
+  return { picked, skipped: all.filter(x => !picked.includes(x)) };
+}
+export function capSettings(envv = process.env) {
+  const mins = Number(envv.CROSS_MAX_MINUTES); const maxRaw = String(envv.CROSS_MAX_SPECS || "").toLowerCase();
+  return { minutes: mins > 0 ? mins : 8, hardMs: ((mins > 0 ? mins : 8) + 3) * 60e3, maxSpecs: maxRaw === "all" ? 0 : (Number(maxRaw) > 0 ? Number(maxRaw) : 12) };
+}
 const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
   const argSpecs = process.argv.find(a => a.startsWith("--specs="));
   const asJson = process.argv.includes("--json");
-  const specs = argSpecs ? argSpecs.slice("--specs=".length).split("|").filter(Boolean) : DEFAULT_SPECS;
+  const cap = capSettings();
+  const all = argSpecs ? argSpecs.slice("--specs=".length).split("|").filter(Boolean) : DEFAULT_SPECS;
+  const { picked, skipped: notPicked } = argSpecs ? { picked: all, skipped: [] } : sampleSpecs(all, cap.maxSpecs);
   const env = supabaseEnv();
   if (!env) { console.error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set."); process.exit(2); }
-  const result = await runEngineCheck(env, specs);
-  if (asJson) console.log(JSON.stringify(result));
+  const hard = setTimeout(() => { console.log(`CAP: hard stop after ${cap.hardMs / 60e3} minutes; the check ended without a result. This is not a finding.`); console.error(`::warning::crossProductCheck hit its hard stop (${cap.hardMs / 60e3} minutes) and was ended; not a finding.`); process.exit(0); }, cap.hardMs); hard.unref && hard.unref();
+  const result = await runEngineCheck(env, picked, { deadlineMs: cap.minutes * 60e3 });
+  clearTimeout(hard);
+  const skippedAll = [...notPicked, ...result.skippedSpecs];
+  if (asJson) console.log(JSON.stringify({ ...result, specsTotal: all.length, specsSkipped: skippedAll.length }));
   else printTable(result);
+  console.log(`CAP: read ${result.checked} of ${all.length} specs (${notPicked.length} not in tonight's sample, ${result.skippedSpecs.length} skipped at the ${cap.minutes} minute cap), ${result.skippedChecks.length} sub-check(s) skipped${result.skippedChecks.length ? ": " + result.skippedChecks.join(", ") : ""}, ${Math.round(result.ms / 1000)} s. A cap is not a finding.`);
   process.exit(result.mismatchSpecs > 0 || (result.singlePick && !result.singlePick.ok) || (result.buyPaths && !result.buyPaths.ok) || (result.liveFences && !result.liveFences.ok) || (result.representative && !result.representative.ok) || (result.splitPools && !result.splitPools.ok) || (result.overTime && !result.overTime.ok) || (result.liveListing && !result.liveListing.ok) || (result.cacheConsistency && !result.cacheConsistency.ok) ? 1 : 0);
 }

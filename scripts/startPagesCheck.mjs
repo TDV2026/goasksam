@@ -4,6 +4,8 @@
 // until Find is released; nothing says "collector"; no first-person Sam beyond Sam's own ordered placeholder; no Daily Vroom section in
 // Home's body; the dated lead sentence search rule 1 asks for is on every page. No network.   node scripts/startPagesCheck.mjs
 import fs from "node:fs";
+import { copyData as COPY_DATA } from "../lib/copy.js";
+const C = COPY_DATA(), rxEsc = x => String(x).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");   // the page words come from data/copy.json: one edit changes the page and this check together
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 process.env.LAUNCH_STAGE = "2";
@@ -18,26 +20,30 @@ const text = h => h.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script[\s
 const home = await call("home", "/"), find = await call("buy", "/find"), mc = await call("marketCheck", "/market-check"), sell = await call("sellNext", "/api/sellNext", { cookie: "" });
 // Home
 ok(home.code === 200 && /<h1 class="gst-h">Find the car you&#39;re looking for\.<\/h1>/.test(home.body) || /<h1 class="gst-h">Find the car you're looking for\.<\/h1>/.test(home.body), "Home: the headline is Sam's (" + home.code + ")");
-ok(/Welcome to GoAskSam/.test(home.body) && /Tell Sam what you want\. Search live enthusiast car auctions in your own words\./.test(home.body) && /Speak or type naturally\./.test(home.body), "Home: eyebrow, sub and helper are Sam's");
+const homeMarkup = home.body.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script[\s\S]*?<\/script>/g, "");
+ok(!/Welcome to GoAskSam/i.test(homeMarkup) && !/class="gst-eye"/.test(homeMarkup) && /Tell Sam what you want\. Search live enthusiast car auctions in your own words\./.test(home.body) && !/Speak or type naturally/.test(home.body), "Home: no eyebrow, no helper line, the sub is Sam's");
 ok(/Market Check<\/b><span>See what similar cars have actually sold for\.<\/span>/.test(home.body) && /Sell a car<\/b><span>Discover where and how to sell\.<\/span>/.test(home.body), "Home: the two cards are Sam's");
-ok(!/Daily Vroom/.test(text(home.body.slice(home.body.indexOf("<main"), home.body.indexOf("</main>")))), "Home: no Daily Vroom section in the body (it stays in the rail)");
+// (Oct 25 2026: the one quiet bottom line "(c) GoAskSam, from The Daily Vroom" with Privacy links is Sam's order and is the only mention allowed in the body.)
+const homeMain = home.body.slice(home.body.indexOf("<main"), home.body.indexOf("</main>")).replace(/<div class="hm-legal">[\s\S]*?<\/div>/, "");
+ok(!/Daily Vroom/.test(text(homeMain)), "Home: no Daily Vroom section in the body (it stays in the rail)");
+ok(new RegExp('<div class="hm-legal"><span>&copy; GoAskSam, from The Daily Vroom<\\/span><a href="\\/terms">' + rxEsc(C.home.LEGAL_TERMS) + '<\\/a><a href="\\/privacy">' + rxEsc(C.home.LEGAL_PRIVACY) + "<\\/a><a [^>]*>" + rxEsc(C.home.LEGAL_CHOICES) + "<\\/a><\\/div>").test(home.body), "Home: one quiet bottom line with the copyright and the Privacy and Privacy choices links");
 ok(/location\.href="\/find\?q="\+encodeURIComponent\(v\)/.test(home.body), "Home: submit goes straight to /find?q= (populated results)");
 ok(/data-gst-enter/.test(home.body) && /data-ph="/.test(home.body), "Home: Enter submits and the examples rotate");
-ok(/<p class="gst-asof" data-lead-sentence>Sam reads live and completed enthusiast car auctions/.test(home.body), "Home: the dated lead sentence (rule 1)");
+ok(/<p class="gst-asof" data-lead-sentence>Live auctions(?: now| updated [^<]*?)?\.( Sales to [^<]*)?</.test(home.body), "Home: the dated lead sentence (rule 1)");
 const closed = await call("home", "/", { cookie: "" });
 { const prev = process.env.LAUNCH_STAGE; process.env.LAUNCH_STAGE = "0"; const c0 = await call("home", "/"); process.env.LAUNCH_STAGE = prev; ok(c0.code === 302 && c0.hd.location === "/sell", "Home: while Find is not released, '/' answers as before (302 to /sell), not a permanent redirect"); }
 // Find
 ok(/<h1 class="gst-h">What car are you looking for\?<\/h1>/.test(find.body) && /Find · Live auctions/.test(find.body) && /Describe it naturally\. Sam searches live enthusiast car auctions for you\./.test(find.body), "Find: eyebrow, headline, sub are Sam's");
-ok(/Type it or say it\. No complicated filters\./.test(find.body) && /Live auctions across platforms\. Real bids, real listings\./.test(find.body) && /id="hq"/.test(find.body) && /id="hgo"/.test(find.body) && /id="hmic"/.test(find.body), "Find: helper and line are Sam's; the box keeps ids hq, hgo, hmic (its own engine path)");
-ok(/data-lead-sentence>Sam (is following|follows) /.test(find.body) && !/collector/i.test(text(find.body)), "Find: the dated lead sentence is there and nothing says collector");
+ok(!/Type it or say it/.test(find.body) && !/Live auctions across platforms/.test(find.body) && /id="hq"/.test(find.body) && /id="hgo"/.test(find.body) && /id="hmic"/.test(find.body), "Find: helper and line are Sam's; the box keeps ids hq, hgo, hmic (its own engine path)");
+ok(/data-lead-sentence>Live auctions(?: now| updated [^<]*?)?\.( Sales to [A-Z][a-z]{2} \d{1,2}, \d{4}\.)?</.test(find.body) && /<meta name="description" content="Live auctions[^"]*\. (Sales to [A-Z][a-z]{2} \d{1,2}, \d{4}\. )?Each car is shown with what cars like it have actually sold for\.">/.test(find.body) && !/Sam follows the enthusiast/.test(find.body) && !/collector/i.test(text(find.body)), "Find: the dated lead sentence is there and nothing says collector");
 ok(!/lk-chip|Put Sam on it|ls-step|One search\. Every live/.test(find.body.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script>[\s\S]*?<\/script>/g, "")), "Find: the old landing (hero, feature cards, Put Sam on it, example band) is gone");
 // Market Check
-ok(/<h1 class="gst-h">What have cars like yours sold for\?<\/h1>/.test(mc.body) && /Market Check · Completed sales/.test(mc.body) && /Real completed sales\. A typical sold range\. The evidence behind it\./.test(mc.body), "Market Check: eyebrow, headline, sub are Sam's");
-ok(/1995 Porsche 911 Carrera/.test(mc.body) && /Describe the car, enter a VIN, or use your voice\./.test(mc.body) && /Completed sales only\. Every result links to its source\./.test(mc.body) && /id="ob-input"/.test(mc.body) && /id="ob-go"/.test(mc.body), "Market Check: placeholder, helper and line are Sam's; the box keeps ob-input and ob-go");
-ok(/data-lead-sentence>Market Check\./.test(mc.body) && !/collector/i.test(text(mc.body.slice(mc.body.indexOf('id="mc-landing"'), mc.body.indexOf("</main>")))), "Market Check: the dated lead is there and the start page says nothing about collector");
+ok(/<h1 class="gst-h">What have cars like yours sold for\?<\/h1>/.test(mc.body) && /Market Check · Completed sales/.test(mc.body) && /See what cars like yours actually sold for\./.test(mc.body), "Market Check: eyebrow, headline, sub are Sam's");
+ok(/1995 Porsche 911 Carrera/.test(mc.body) && !/Describe the car, enter a VIN, or use your voice/.test(mc.body) && /Completed sales only\. Every result links to its source\./.test(mc.body) && /id="ob-input"/.test(mc.body) && /id="ob-go"/.test(mc.body), "Market Check: placeholder, helper and line are Sam's; the box keeps ob-input and ob-go");
+ok(/data-lead-sentence>Completed sales( \u00b7 Updated [A-Z][a-z]{2} \d{1,2}, \d{4})?</.test(mc.body) && !/collector/i.test(text(mc.body.slice(mc.body.indexOf('id="mc-landing"'), mc.body.indexOf("</main>")))), "Market Check: the dated lead is there and the start page says nothing about collector");
 // Sell
 ok(/<h1 class="gst-h">Where should you sell your car\?<\/h1>/.test(sell.body) || sell.code !== 200 || /SELL_NEXT/.test(sell.body), "Sell (new): the headline is Sam's (or the page is switched off)");
-if (sell.code === 200) ok(/Tell Sam what you&#39;re selling|Tell Sam what you're selling/.test(sell.body) && /Type your car, or paste a VIN\./.test(sell.body) && /Platform performance · Selling strategy · PowerSeller matching/.test(sell.body) && /id="ob-input"/.test(sell.body), "Sell (new): sub, placeholder and line are Sam's; the box keeps ob-input and ob-go");
+if (sell.code === 200) ok(/Tell Sam what you&#39;re selling|Tell Sam what you're selling/.test(sell.body) && /2004 Porsche 911 Carrera/.test(sell.body) && /Auction data/.test(sell.body) && !/Real completed sales\. Evidence behind the recommendations/.test(sell.body) && /Platform performance · Selling strategy · PowerSeller matching/.test(sell.body) && /id="ob-input"/.test(sell.body), "Sell (new): sub, placeholder and line are Sam's; the box keeps ob-input and ob-go");
 // the palette bar is for the crew cookie only: none of its markup, stylesheet or script reaches a visitor without it
 for (const [n, b] of [["Home", home.body], ["Find", find.body], ["Market Check", mc.body]]) ok(!/class="gas-pal-bar"|data-pal-btn|class="gas-pal-lbl"|\.gas-pal-bar\{/.test(b), n + ": no palette bar in a public page's HTML");
 // GoAskSam 2.0 Stage 4: server-rendered, own titles and descriptions, structured data
@@ -49,7 +55,7 @@ ok(!/collector/i.test(metas.map(([, b]) => ttl(b) + " " + dsc(b)).join(" ")), "n
 const ld = (/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(home.body) || [])[1];
 let ldj = null; try { ldj = JSON.parse(ld); } catch {}
 const g = ldj && ldj["@graph"] || [];
-ok(g.some(x => x["@type"] === "Organization" && x.name === "GoAskSam" && x.founder && x.founder.name === "Sam Gold") && g.some(x => x["@type"] === "WebSite" && x.potentialAction && x.potentialAction["@type"] === "SearchAction" && x.potentialAction.target.urlTemplate === "https://goasksam.com/find?q={search_term_string}" && x.potentialAction["query-input"] === "required name=search_term_string"), "Home carries Organization and WebSite structured data with the site search action pointing at /find");
+ok(g.some(x => x["@type"] === "Organization" && x.name === "GoAskSam" && !x.founder && x.parentOrganization && x.parentOrganization.name === "The Daily Vroom" && !/Sam Gold/.test(JSON.stringify(x))) && g.some(x => x["@type"] === "WebSite" && x.potentialAction && x.potentialAction["@type"] === "SearchAction" && x.potentialAction.target.urlTemplate === "https://goasksam.com/find?q={search_term_string}" && x.potentialAction["query-input"] === "required name=search_term_string"), "Home carries Organization and WebSite structured data with the site search action pointing at /find");
 if (sell.code === 200) ok(/<main class="wrap"><div id="ob"><div id="sell-landing"/.test(sell.body) && /<h1 class="gst-h">Where should you sell your car\?<\/h1>/.test(sell.body), "Sell (new): the start page is in the first HTML, not drawn afterwards by the browser");
 for (const [n, b] of [["Home", home.body], ["Find", find.body], ["Market Check", mc.body]]) ok(/<h1 class="gst-h">/.test(b) && /class="gst-sub"/.test(b) && /class="gst-in"/.test(b) && /data-lead-sentence/.test(b), n + ": headline, sub, box and dated lead are all in the first HTML");
 // shared

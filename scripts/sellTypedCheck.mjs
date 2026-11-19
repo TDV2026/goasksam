@@ -10,14 +10,14 @@ let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const listeners = {}, calls = [], addr = [];
 let replies = [], popstate = null;
-const OBX = { root: { innerHTML: "" }, esc: s => String(s), inboxHtml: v => `<inbox ${v}>`, footHtml: () => "<foot>", wire() {}, renderError(t) { OBX.root.innerHTML = "ERR " + t; }, renderEmpty() {},
+const OBX = { root: { innerHTML: "" }, esc: s => String(s), inboxHtml: v => `<inbox ${v}>`, footHtml: () => "<foot>", wire() {}, renderError(t) { OBX.root.innerHTML = "ERR " + t; }, renderCouldNot() { OBX.root.innerHTML = "ERR Sam couldn't read this one yet."; }, renderEmpty() {},
   qscreenHtml: (p, c) => `<q>${p}</q>${c}`, samMsgHtml: (a, x, size) => `<sam ${size}>${a.join(" ")}</sam>`, saleCardHtml: () => "<sale>" };
 globalThis.window = { OBX, addEventListener: (k, f) => { if (k === "popstate") popstate = f; }, matchMedia: () => ({ matches: false }), scrollTo() {}, sellsForCardHtml };
 globalThis.location = { search: "", pathname: "/sell" };
 const states = [];
 globalThis.history = { pushState: (s, t, u) => { states.push(s); addr.push(u); }, replaceState: (s, t, u) => { states.push(s); addr.push("R " + u); } };
 globalThis.localStorage = { getItem: () => null, setItem() {} };
-globalThis.document = { addEventListener: (k, f) => { listeners[k] = f; }, getElementById: () => null, createElement: () => ({}), head: { appendChild() {} } };
+globalThis.document = { addEventListener: (k, f) => { listeners[k] = f; }, getElementById: id => id === "sell-slot" ? { set innerHTML(v) { OBX.root.innerHTML = OBX.root.innerHTML.replace(/<div id="sell-slot">[\s\S]*?<\/div><\/div>/, () => '<div id="sell-slot">' + v + "</div>"); } } : id === "sell-sales" ? { set innerHTML(v) { OBX.root.innerHTML = OBX.root.innerHTML.replace(/<div id="sell-sales">[\s\S]*?<\/div>/, () => '<div id="sell-sales">' + v + "</div>"); } } : null, createElement: () => ({}), head: { appendChild() {} } };
 globalThis.fetch = (u, o) => { calls.push(JSON.parse(o.body)); return Promise.resolve({ json: () => Promise.resolve(replies.shift() || {}) }); };
 new Function(SELL_MC_CLIENT)();
 const S = window.GAS_SELL, tick = async () => { for (let i = 0; i < 4; i++) await new Promise(r => setTimeout(r, 0)); };
@@ -33,7 +33,7 @@ const RANGE = (lo, hi, n) => ({ label: "x", make: "Ford", order: ["platform"], p
 //    and the result reads the Fastback's own range with no question repeated.
 S.onCar({ resolvedCar: { year: 1965, make: "Ford", model: "Mustang" } }, "1965 ford mustang");
 three(); replies = [{ question: BODYQ }]; await tick();
-ok(last().step === "result" && last().car === "1965 ford mustang", "typed Mustang: the engine reads the visitor's own words");
+ok(last().step === "range" && last().car === "1965 ford mustang", "typed Mustang: the engine reads the visitor's own words");
 ok(OBX.root.innerHTML.includes(`<q>${PROMPT}</q>`), "typed Mustang: the engine's body question");
 replies = [RANGE(43500, 56500, 11)]; chip("2", "Fastback"); await tick();
 ok(last().car === "1965 ford mustang Fastback", "typed Mustang: Fastback joins the typed words");
@@ -57,9 +57,9 @@ ok(OBX.root.innerHTML.includes("<inbox 2004 Porsche 911 Carrera GT>"), "typed Ca
 
 // 3. A typed Singer: the engine's line at the hand-over, nothing read.
 const n0 = calls.length;
-S.onCar({ tier: "refusal", refusal: { kind: "builder_car" }, samLine: "Singer cars are not compared with standard 911s, so Sam shows no range for this car.", resolvedCar: { year: 1992, make: "Porsche", model: "911", trim: "Carrera 4" } }, "1992 Porsche 911 Carrera 4 by Singer");
+S.onCar({ tier: "refusal", refusal: { kind: "builder_car" }, samLine: "Singer cars are not compared with standard 911s, so no range is shown.", resolvedCar: { year: 1992, make: "Porsche", model: "911", trim: "Carrera 4" } }, "1992 Porsche 911 Carrera 4 by Singer");
 await tick();
-ok(calls.length === n0 && text().includes("Singer cars are not compared with standard 911s, so Sam shows no range for this car."), "typed Singer: the engine's line, no Sell read");
+ok(calls.length === n0 && text().includes("Singer cars are not compared with standard 911s, so no range is shown."), "typed Singer: the engine's line, no Sell read");
 
 // 4. An unchanged plain car: typed words the same as the resolver's name read exactly as before.
 S.onCar({ resolvedCar: { year: 1992, make: "Porsche", model: "911", trim: "Carrera 4" } }, "1992 Porsche 911 Carrera 4");

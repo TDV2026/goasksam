@@ -9,7 +9,7 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); }
 const src = fs.readFileSync(new URL("../public/js/onebox.js", import.meta.url), "utf8");
 const fnBody = name => { const i = src.indexOf("function " + name + "("); if (i < 0) return ""; const j = src.indexOf("\n  function ", i + 1); return src.slice(i, j < 0 ? undefined : j); };
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-const draw = new Function("esc", "lint", "carLabel", fnBody("idqScreenHtml") + "\n" + fnBody("trimChoiceTakeoverHtml") + "\nreturn trimChoiceTakeoverHtml;")(esc, s => s, c => [c.year, c.make, c.model].filter(Boolean).join(" "));
+const draw = new Function("esc", "lint", "carLabel", fnBody("wayOutButtonHtml") + "\n" + fnBody("idqScreenHtml") + "\n" + fnBody("trimChoiceTakeoverHtml") + "\nreturn trimChoiceTakeoverHtml;")(esc, s => s, c => [c.year, c.make, c.model].filter(Boolean).join(" "));
 // The engine's own shape (lib/onebox.js, the TRIM QUESTION FIRST branch), as the Mustang Coupe answered it.
 const d = { tier: "trim_choice", askIndex: 1, resolvedCar: { year: 1965, make: "Ford", model: "Mustang" }, prompt: "These sold as 3Speed and 4Speed, and they price differently. Which one is it?",
   trimOptions: [{ value: "3speed", label: "3Speed", n: 5 }, { value: "4speed", label: "4Speed", n: 4 }, { value: "other", label: "Other trims", n: 2, notTrims: ["3speed", "4speed"] }],

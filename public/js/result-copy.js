@@ -645,7 +645,7 @@ function outboundGo(slug,card){
   // anchor click during the user gesture opens the new tab reliably and never
   // touches the current tab, with no return-value guessing.
   const a=document.createElement("a");
-  a.href=url;a.target="_blank";a.rel="noopener noreferrer";
+  a.href=url;a.target="_blank";a.rel="noopener";
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -844,7 +844,7 @@ function powerSellerProofItems(profile){
   const rows=[];
   if(v.belowCareerMinimum)return rows;
   rows.push(["Tracked sales on record",`${v.trackedSales} completed sale${v.trackedSales===1?"":"s"}${v.latestSaleDate&&dateShort(v.latestSaleDate)?`, most recent ${dateShort(v.latestSaleDate)}`:""}`]);
-  if(v.medianSaleValue)rows.push(["Median sale across those records",`${moneyShort(v.medianSaleValue.value)} over ${v.medianSaleValue.sample} sales`]);
+  if(v.medianSaleValue)rows.push(["Median sale across those records",`${moneyShort(v.medianSaleValue.value)} over ${v.medianSaleValue.sample} ${Number(v.medianSaleValue.sample)===1?"sale":"sales"}`]);
   if((v.makeMix||[]).length)rows.push(["Make mix in those records",v.makeMix.map(m=>`${m.make} ${m.percent}%`).join(", ")]);
   return rows;
 }
@@ -1880,8 +1880,6 @@ function homeHeroHTML(){
   // input, label and reassurance live in #input-area (centered under this on the
   // home state), so submitting runs the existing send() flow unchanged.
   const supporting=(typeof HERO_SUPPORTING!=="undefined")?HERO_SUPPORTING:"";
-  return `<div class="hero" id="hero"><div class="hp-hero">
-    <div class="hp-script">Go ahead, ask Sam.</div>
-    <h1>Tell Sam the car you're selling.<br>Sam will show you where to sell it, <br class="hero-br2">and why.</h1>
-  </div></div>`;
+  // Same pieces as lib/sell/sellEntry.js (Find, Market Check and Home's heading component): eyebrow, serif headline, sans sub. No script font.
+  return `<div id="hero"><section class="gst gst-entry"><p class="gst-eye">Sell \u00b7 Selling intelligence</p><h1 class="gst-h">Tell Sam the car you're selling.</h1><p class="gst-sub">Sam will show you where to sell it, and why.</p></section></div>`;
 }

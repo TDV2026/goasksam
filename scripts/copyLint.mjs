@@ -196,8 +196,9 @@ check("1d lint: detects a removed house name", lintText("records from RM Sotheby
 // The dash exemption is REMOVED: the global no-dash rule now has zero exceptions.
 // The hero supporting line is the approved dash-free copy and is linted like the
 // rest of the homepage copy.
+// (Nov 17 2026, Lane C: the line has spoken of Sam in the third person since d3179ea2, Oct 20; the check still pinned the older first person line.)
 check("homepage: hero supporting line is the approved dash-free copy",
-  HERO_SUPPORTING === "I'll recommend where I'd sell your car and show you exactly why.", JSON.stringify(HERO_SUPPORTING));
+  HERO_SUPPORTING === "Sam will recommend where to sell your vehicle and show you exactly why." && !/[–—]/.test(HERO_SUPPORTING) && !/\b(I|I'll|I'd|my)\b/.test(HERO_SUPPORTING), JSON.stringify(HERO_SUPPORTING));
 // ALL homepage copy, hero supporting line INCLUDED: no dashes, standard lint clean.
 const homepageCopy = [
   HERO_SUPPORTING,
@@ -208,7 +209,9 @@ const homepageCopy = [
 check("homepage: no en/em dashes in ANY homepage copy (zero exceptions, hero line included)", !/[–—]/.test(homepageCopy), (homepageCopy.match(/[^\n]*[–—][^\n]*/) || [""])[0]);
 check("homepage: all non-hero homepage copy passes standard lint", lintText(homepageCopy).length === 0, lintText(homepageCopy).join(" ; "));
 check("homepage: Selling Platforms names no REMOVED auction houses (SOMO permitted)", !/\bGooding\b|\bSotheby'?s\b(?!\s+Motorsport)/i.test(homepageCopy), (homepageCopy.match(/\bGooding\b|\bSotheby'?s\b(?!\s+Motorsport)/i) || ["none"])[0]);
-check("homepage: placeholder examples are real cars (year + make)", PLACEHOLDER_EXAMPLES.every(e => /^\d{4}\s+[A-Z]/.test(e)), JSON.stringify(PLACEHOLDER_EXAMPLES));
+// (Nov 17 2026, Lane C: the example is a sentence today, "e.g. 2004 Porsche 911 Carrera, or paste a VIN."; the car inside it is what must be real: a year and a make.)
+const exampleCar = e => String(e).replace(/^e\.g\.\s+/i, "").replace(/,?\s+or\s+paste a VIN\.?$/i, "").trim();
+check("homepage: placeholder examples are real cars (year + make)", PLACEHOLDER_EXAMPLES.length > 0 && PLACEHOLDER_EXAMPLES.every(e => /^(19|20)\d{2}\s+[A-Z][A-Za-z-]+\s+\S+/.test(exampleCar(e))), JSON.stringify(PLACEHOLDER_EXAMPLES));
 // (Polish round, July 2026) The three newly-tracked platforms appear on the
 // Selling Platforms page; SOMO is always named in full.
 for (const name of ["Hemmings", "Sotheby's Motorsport (SOMO)"]) {
@@ -278,7 +281,8 @@ check("plausibility: a sane 34% premium still renders (unchanged)", /34% higher 
     check(`start page ${name}: lint-clean (no dashes, banned phrases)`, lintText(text).length === 0, lintText(text).join(" ; "));
     check(`start page ${name}: no "collector", no "AI" label`, !/collector/i.test(text) && !/\bAI\b/.test(text), text.slice(0, 120));
     check(`start page ${name}: the dated line is a date only (no source, sale or live-car count)`, !/\b\d[\d,]*\s+(?:sales?|sources?|listings?|cars|auctions)\b/i.test(text), text.slice(-220));
-    check(`start page ${name}: no Daily Vroom section in the body`, !/Daily Vroom/i.test(text), "");
+    // (Nov 17 2026, Lane C: the Home body carries the credit "from The Daily Vroom" in its free line and its legal line since cb8e2ab9, Oct 25; that credit is allowed, a Daily Vroom SECTION or any other mention is not.)
+    check(`start page ${name}: no Daily Vroom section in the body (the credit "from The Daily Vroom" is the only mention)`, !/Daily Vroom/i.test(text.replace(/from The Daily Vroom/gi, "")), (text.replace(/from The Daily Vroom/gi, "").match(/.{0,40}Daily Vroom.{0,40}/i) || [""])[0]);
     // THE BETA PILL (Sam, Oct 23 2026): beside the wordmark in the rail and the mobile header on every shared-rail page; a label, never a control
     // (a span: no link, button, hover or focus state); never in the title, meta, headings or structured data.
     const pills = html.match(/<span class="(?:gas-)?beta">Beta<\/span>/g) || [];
@@ -287,9 +291,24 @@ check("plausibility: a sane 34% premium still renders (unchanged)", /34% higher 
     const head = ((html.match(/<title[\s\S]*?<\/title>/i) || []).concat(html.match(/<meta\b[^>]*>/gi) || [])).join(" "), heads = (html.match(/<h[1-6][\s\S]*?<\/h[1-6]>/gi) || []).join(" "), ld = (html.match(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g) || []).join(" ");
     check(`start page ${name}: Beta is not in the title, meta, headings or structured data`, !/\bbeta\b/i.test(head) && !/\bbeta\b/i.test(heads) && !/\bbeta\b/i.test(ld), "");
   }
+  // "All Collector Cars" is never named in public page text or in a loading line (Sam, Oct 23 2026): the four start pages, Find's searching line
+  // (its LIVE_SITES list) and every static public page. (A result card's own venue label is the source of a real sale and is not this.)
+  for (const [name, mod, url] of [["Home", "home", "/"], ["Find", "buy", "/find"], ["Market Check", "marketCheck", "/market-check"], ["Sell (new)", "sellNext", "/api/sellNext"]]) {
+    const html = await render(mod, url);
+    const sites = (html.match(/var LIVE_SITES = \[[^\]]*\]/) || [""])[0];
+    check(`public page ${name}: "All Collector Cars" is not in the text or the searching line`, !/All Collector Cars/i.test(strip(html)) && !/All Collector Cars/i.test(sites) && (name !== "Find" || sites.length > 0), sites.slice(0, 120));
+  }
+  for (const f of fs.readdirSync("public").filter(x => x.endsWith(".html"))) check(`static public page ${f}: no "All Collector Cars"`, !/All Collector Cars/i.test(strip(fs.readFileSync("public/" + f, "utf8"))), "");
   // Every start-page placeholder runs through the same lint (no dashes, no banned phrases, no "collector").
   const { PLACEHOLDERS } = await import(pathToFileURL(pathMod.resolve("lib", "startPlaceholders.js")).href);
   for (const [k, v] of Object.entries(PLACEHOLDERS)) for (const t of (v.examples || [v.text])) check(`placeholder ${k}: "${t}" is lint-clean`, lintText(t).length === 0 && !/collector/i.test(t), lintText(t).join(" ; "));
+  // The LIVE run (Sam, Oct 23 2026): every approved placeholder must still give a populated result with no leftover-words line and no question on the
+  // live engine; the lint FAILS the moment one stops passing. Needs PROBE_KEY and the crew cookie (GAS_CREW_COOKIE); without them it says so and skips.
+  if (process.env.PROBE_KEY && (process.env.GAS_CREW_COOKIE || process.env.CREW)) {
+    const { spawnSync } = await import("node:child_process");
+    const r = spawnSync(process.execPath, ["scripts/placeholderCheck.mjs", "--live"], { encoding: "utf8", env: process.env });
+    check("placeholders: every approved placeholder passes the live engine (populated, no leftover line, no question)", r.status === 0, (r.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).join(" ; ").slice(0, 400));
+  } else console.log("SKIP  placeholders live engine run: needs PROBE_KEY and GAS_CREW_COOKIE");
   // Emails never carry the Beta pill.
   for (const f of ["lib/tasks/emailCards.js", "lib/_email.js", "lib/tasks/tasks.js", "lib/live/buyAlerts.js", "lib/live/watches.js"]) if (fs.existsSync(f)) check(`email code ${f}: no Beta pill`, !/class="(?:gas-)?beta"/.test(fs.readFileSync(f, "utf8")), "");
 }

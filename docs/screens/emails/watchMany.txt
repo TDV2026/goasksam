@@ -1,0 +1,35 @@
+Subject: Sam saw three sell: Porsche 911 Carrera Targas
+
+Three Porsche 911 Carrera Targas sold since October 22.
+
+1987 Porsche 911 Carrera Targa 4
+Sold $104,000 October 24, 2026 · Bring a Trailer
+43,800 miles
+This one was set aside as modified, so it does not sit in the range.
+View the sale: https://example.com/sale/4
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-4
+
+1987 Porsche 911 Carrera Targa 3
+Sold $102,500 October 23, 2026 · Bring a Trailer
+43,100 miles
+View the sale: https://example.com/sale/3
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-3
+
+1987 Porsche 911 Carrera Targa 2
+Sold $101,000 October 22, 2026 · Bring a Trailer
+42,400 miles
+$88,000 to $121,000
+The typical range for cars like this.
+The sale was inside the range.
+View the sale: https://example.com/sale/2
+Market Check: https://goasksam.com/market-check?car=1987-porsche-911-carrera-targa-2
+
+You asked Sam to tell you when the next Porsche 911 Carrera Targa sells.
+
+Open the Task: https://goasksam.com/tasks/mine
+Pause: https://goasksam.com/api/task-link?a=pause&t=00000000-0000-4000-8000-0000000000b2.glQwhFvjvUIK0T0zzDh88m
+Stop: https://goasksam.com/api/task-link?a=stop&t=00000000-0000-4000-8000-0000000000b2.Hx6H8VxkjD_iFZj1Kqq0Q6
+
+Sam sends one email a day with everything new from your Tasks. Change how often on your Tasks page. Before it ends emails always come two hours before bidding ends. Open your Tasks: https://goasksam.com/tasks/mine Stop all Task emails: https://goasksam.com/api/tasks?a=emails_off&t=aaaaaaaa-0000-4000-8000-000000000001.PN7OcNTzMVrJhqBB55itUA
+
+GoAskSam

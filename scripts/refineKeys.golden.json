@@ -1,0 +1,258 @@
+{
+ "p997/plain": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null]"
+ ],
+ "p997/empty": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null]"
+ ],
+ "p997/body": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,\"coupe\",null,null]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,\"coupe\",null,null]"
+ ],
+ "p997/trim": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,\"carrera-s|pool2\",null]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,\"carrera-s|pool2\",null]"
+ ],
+ "p997/variant": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,\"carrera\"]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,\"carrera\"]"
+ ],
+ "p997/tx": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,\"manual\",null,null,null]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,\"manual\",null,null,null]"
+ ],
+ "p997/bodyTx": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,\"manual\",\"coupe\",null,null]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,\"manual\",\"coupe\",null,null]"
+ ],
+ "p997/miMin": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"mi:20000-\"]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"mi:20000-\"]"
+ ],
+ "p997/miBand": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"mi:20000-50000\"]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"mi:20000-50000\"]"
+ ],
+ "p997/miTarget": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"miTarget:40000\",\"miBand:15000\"]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"miTarget:40000\",\"miBand:15000\"]"
+ ],
+ "p997/year": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"yr:2006\"]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"yr:2006\"]"
+ ],
+ "p997/driver": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"driver:\\\"mileage\\\"\"]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"driver:\\\"mileage\\\"\"]"
+ ],
+ "p997/docHistory": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"docHistory:\\\"yes\\\"\"]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"docHistory:\\\"yes\\\"\"]"
+ ],
+ "p997/observe": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"observe:\\\"x\\\"\"]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"observe:\\\"x\\\"\"]"
+ ],
+ "p997/notTrims": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"notTrims:[\\\"base\\\"]\"]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"notTrims:[\\\"base\\\"]\"]"
+ ],
+ "p997/attrsOff": [
+  "[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"attrsOff:[\\\"x\\\"]\"]",
+  "MCWARM:[\"Porsche\",\"911\",\"\",2005,\"997.1\",null,null,null,null,null,null,null,null,\"attrsOff:[\\\"x\\\"]\"]"
+ ],
+ "mus65/plain": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null]"
+ ],
+ "mus65/empty": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null]"
+ ],
+ "mus65/body": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,\"coupe\",null,null]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,\"coupe\",null,null]"
+ ],
+ "mus65/trim": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,\"carrera-s|pool2\",null]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,\"carrera-s|pool2\",null]"
+ ],
+ "mus65/variant": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,\"carrera\"]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,\"carrera\"]"
+ ],
+ "mus65/tx": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,\"manual\",null,null,null]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,\"manual\",null,null,null]"
+ ],
+ "mus65/bodyTx": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,\"manual\",\"coupe\",null,null]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,\"manual\",\"coupe\",null,null]"
+ ],
+ "mus65/miMin": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"mi:20000-\"]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"mi:20000-\"]"
+ ],
+ "mus65/miBand": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"mi:20000-50000\"]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"mi:20000-50000\"]"
+ ],
+ "mus65/miTarget": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"miTarget:40000\",\"miBand:15000\"]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"miTarget:40000\",\"miBand:15000\"]"
+ ],
+ "mus65/year": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"yr:2006\"]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"yr:2006\"]"
+ ],
+ "mus65/driver": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"driver:\\\"mileage\\\"\"]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"driver:\\\"mileage\\\"\"]"
+ ],
+ "mus65/docHistory": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"docHistory:\\\"yes\\\"\"]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"docHistory:\\\"yes\\\"\"]"
+ ],
+ "mus65/observe": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"observe:\\\"x\\\"\"]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"observe:\\\"x\\\"\"]"
+ ],
+ "mus65/notTrims": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"notTrims:[\\\"base\\\"]\"]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"notTrims:[\\\"base\\\"]\"]"
+ ],
+ "mus65/attrsOff": [
+  "[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"attrsOff:[\\\"x\\\"]\"]",
+  "MCWARM:[\"Ford\",\"Mustang\",\"\",1965,\"first\",null,null,null,null,null,null,null,null,\"attrsOff:[\\\"x\\\"]\"]"
+ ],
+ "pk34/plain": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null]"
+ ],
+ "pk34/empty": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null]"
+ ],
+ "pk34/body": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,\"coupe\",null,null]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,\"coupe\",null,null]"
+ ],
+ "pk34/trim": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,\"carrera-s|pool2\",null]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,\"carrera-s|pool2\",null]"
+ ],
+ "pk34/variant": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,\"carrera\"]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,\"carrera\"]"
+ ],
+ "pk34/tx": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,\"manual\",null,null,null]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,\"manual\",null,null,null]"
+ ],
+ "pk34/bodyTx": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,\"manual\",\"coupe\",null,null]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,\"manual\",\"coupe\",null,null]"
+ ],
+ "pk34/miMin": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"mi:20000-\"]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"mi:20000-\"]"
+ ],
+ "pk34/miBand": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"mi:20000-50000\"]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"mi:20000-50000\"]"
+ ],
+ "pk34/miTarget": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"miTarget:40000\",\"miBand:15000\"]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"miTarget:40000\",\"miBand:15000\"]"
+ ],
+ "pk34/year": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"yr:2006\"]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"yr:2006\"]"
+ ],
+ "pk34/driver": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"driver:\\\"mileage\\\"\"]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"driver:\\\"mileage\\\"\"]"
+ ],
+ "pk34/docHistory": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"docHistory:\\\"yes\\\"\"]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"docHistory:\\\"yes\\\"\"]"
+ ],
+ "pk34/observe": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"observe:\\\"x\\\"\"]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"observe:\\\"x\\\"\"]"
+ ],
+ "pk34/notTrims": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"notTrims:[\\\"base\\\"]\"]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"notTrims:[\\\"base\\\"]\"]"
+ ],
+ "pk34/attrsOff": [
+  "[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"attrsOff:[\\\"x\\\"]\"]",
+  "MCWARM:[\"Packard\",\"Twelve\",\"\",1934,null,null,null,null,null,null,null,null,null,\"attrsOff:[\\\"x\\\"]\"]"
+ ],
+ "bare/plain": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null]"
+ ],
+ "bare/empty": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null]"
+ ],
+ "bare/body": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,\"coupe\",null,null]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,\"coupe\",null,null]"
+ ],
+ "bare/trim": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,\"carrera-s|pool2\",null]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,\"carrera-s|pool2\",null]"
+ ],
+ "bare/variant": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,\"carrera\"]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,\"carrera\"]"
+ ],
+ "bare/tx": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,\"manual\",null,null,null]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,\"manual\",null,null,null]"
+ ],
+ "bare/bodyTx": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,\"manual\",\"coupe\",null,null]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,\"manual\",\"coupe\",null,null]"
+ ],
+ "bare/miMin": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"mi:20000-\"]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"mi:20000-\"]"
+ ],
+ "bare/miBand": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"mi:20000-50000\"]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"mi:20000-50000\"]"
+ ],
+ "bare/miTarget": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"miTarget:40000\",\"miBand:15000\"]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"miTarget:40000\",\"miBand:15000\"]"
+ ],
+ "bare/year": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"yr:2006\"]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"yr:2006\"]"
+ ],
+ "bare/driver": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"driver:\\\"mileage\\\"\"]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"driver:\\\"mileage\\\"\"]"
+ ],
+ "bare/docHistory": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"docHistory:\\\"yes\\\"\"]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"docHistory:\\\"yes\\\"\"]"
+ ],
+ "bare/observe": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"observe:\\\"x\\\"\"]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"observe:\\\"x\\\"\"]"
+ ],
+ "bare/notTrims": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"notTrims:[\\\"base\\\"]\"]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"notTrims:[\\\"base\\\"]\"]"
+ ],
+ "bare/attrsOff": [
+  "[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"attrsOff:[\\\"x\\\"]\"]",
+  "MCWARM:[\"Chevrolet\",\"Corvette\",\"Z06\",null,null,\"coupe\",null,null,null,null,null,null,null,\"attrsOff:[\\\"x\\\"]\"]"
+ ]
+}

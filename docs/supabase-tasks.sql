@@ -26,8 +26,10 @@ create table if not exists tasks (
 );
 create index if not exists tasks_user_idx on tasks (user_id, updated_at desc);
 create index if not exists tasks_running_idx on tasks (state) where state in ('running', 'needs_you');
--- One ACTIVE task per account (paused, draft and done do not count).
-create unique index if not exists tasks_one_active_per_user on tasks (user_id) where state in ('running', 'needs_you');
+-- One ACTIVE task per account was a unique index here (tasks_one_active_per_user). Replaced Oct 2026 by the free limit of
+-- the free working-Tasks limit (lib/tasks/limit.js FREE_TASK_LIMIT, 3 today; the number lives in code only and is stored nowhere in the database), enforced in code: run docs/supabase-tasks-limit3.sql on an existing database.
+-- A crew-only limit of ten (Nov 2026, not live) is also code only (lib/tasks/limit.js CREW_TASK_LIMIT behind the signed crew cookie) and needs no SQL.
+create index if not exists tasks_user_working_idx on tasks (user_id) where state in ('running', 'needs_you');
 
 create table if not exists task_updates (
   id bigint generated always as identity primary key,

@@ -1,0 +1,784 @@
+<title>GoAskSam Desk V3</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+<style>
+/* Layout: narrow case rail; an expanded case summary that scrolls away, replaced by a compact sticky bar carrying the car, the three figures, review status and the tabs. Report view is generated from the same case state as the workspace. Two meaning colours: evidence green, analyst copper. */
+:root{
+  --bg:#f5f5f3; --paper:#ffffff; --rail:#efefec; --ink:#1a1a18; --mute:#6c6c66; --faint:#a3a39c; --line:#dcdcd6; --line-soft:#ebebe6;
+  --ev:#1f4a3c; --ev-soft:#dfe8e3; --an:#b06a2a; --an-soft:#f3e4d6; --warn:#8a5a00; --warn-soft:#fbf1d9; --ok:#2e6b3f;
+  --ui:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#161615; --paper:#1f1f1d; --rail:#1a1a19; --ink:#ebebe6; --mute:#a3a39c; --faint:#6c6c66; --line:#363632; --line-soft:#2a2a27;
+  --ev:#8fc4ad; --ev-soft:#22332c; --an:#e39a5c; --an-soft:#3b2a1b; --warn:#e2b45a; --warn-soft:#3a3120; --ok:#7fc08f; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#161615; --paper:#1f1f1d; --rail:#1a1a19; --ink:#ebebe6; --mute:#a3a39c; --faint:#6c6c66; --line:#363632; --line-soft:#2a2a27;
+  --ev:#8fc4ad; --ev-soft:#22332c; --an:#e39a5c; --an-soft:#3b2a1b; --warn:#e2b45a; --warn-soft:#3a3120; --ok:#7fc08f; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:13.5px;line-height:1.45;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+h1,h2,h3,h4{margin:0;font-weight:600;text-wrap:balance}
+p{margin:0}
+a{color:inherit}
+button,input,textarea{font:inherit;color:inherit}
+.num{font-variant-numeric:tabular-nums}
+.label{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);font-weight:500}
+.mute{color:var(--mute)}
+.small{font-size:12px}
+.wrap{max-width:1360px;margin:0 auto}
+
+.top{display:flex;align-items:center;gap:14px;padding-block:10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.top .brand{font-weight:600;font-size:14px}
+.top .brand .org{color:var(--mute);font-weight:400}
+.top .brand .org::before{content:"·";margin:0 6px}
+.top nav{display:flex;gap:4px;margin-left:8px}
+.top nav a{text-decoration:none;font-size:13px;padding:5px 10px;border-radius:5px;color:var(--mute)}
+.top nav a.on{background:var(--ink);color:var(--bg)}
+.top .demo{margin-left:auto;font-size:11.5px;color:var(--warn);background:var(--warn-soft);padding:3px 9px;border-radius:4px}
+.top .save{font-size:12px;color:var(--mute)}
+.view[hidden]{display:none}
+
+.app{display:grid;grid-template-columns:224px minmax(0,1fr)}
+.railbox{background:var(--rail);border-right:1px solid var(--line);padding:12px 10px 14px 0;min-height:70vh;display:flex;flex-direction:column}
+.railbox .search{width:100%;border:1px solid var(--line);background:var(--paper);border-radius:5px;padding:6px 9px;font-size:12.5px;margin-bottom:8px}
+.q h4{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);font-weight:500;margin:10px 0 3px;display:flex;justify-content:space-between}
+.q h4 span{color:var(--faint)}
+.case{display:grid;gap:0;padding:6px 8px;border-radius:5px;font-size:12.5px;cursor:pointer;border-left:2px solid transparent}
+.case .c{font-weight:500}
+.case .m{color:var(--mute);font-size:11.5px;display:flex;justify-content:space-between;gap:6px}
+.case.on{background:var(--paper);border-left-color:var(--an)}
+.case:hover{background:var(--paper)}
+.ops{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--mute);display:grid;gap:3px}
+.ops b{color:var(--ink);font-weight:500}
+.ops .label{margin-bottom:2px}
+
+.main{padding-left:18px;min-width:0}
+
+/* expanded summary (scrolls away) */
+.sumx{padding-block:12px 10px;border-bottom:1px solid var(--line)}
+.sumx .row1{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.sumx .photo{width:64px;height:44px;border-radius:4px;background:repeating-linear-gradient(135deg,var(--line-soft) 0 5px,var(--line) 5px 6px);flex:none;position:relative}
+.sumx .photo::after{content:"sample";position:absolute;right:3px;bottom:2px;font-size:8px;color:var(--mute)}
+.sumx h1{font-size:17px;line-height:1.2}
+.sumx .spec{color:var(--mute);font-size:12.5px}
+.sumx .meta{margin-left:auto;display:flex;gap:14px;font-size:12px;color:var(--mute);flex-wrap:wrap;align-items:center}
+.sumx .meta b{color:var(--ink);font-weight:500}
+.status{font-size:11.5px;padding:3px 8px;border-radius:4px;background:var(--line-soft);color:var(--ink)}
+.figs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.2fr);gap:18px;margin-top:10px;align-items:start}
+.fig .label{display:block;margin-bottom:1px}
+.fig .v{font-size:21px;font-weight:600;letter-spacing:-.01em;line-height:1.1}
+.fig.ev .v{color:var(--ev)}
+.fig.an .v{color:var(--an)}
+.fig .d{font-size:12px;color:var(--mute);margin-top:2px}
+.fig .q{font-size:11.5px;color:var(--mute)}
+.fig.click .v{cursor:pointer;text-decoration:underline dotted;text-underline-offset:4px;text-decoration-color:var(--line)}
+.fig.click .v:hover{text-decoration-color:var(--an)}
+.open{font-size:12px}
+.open ul{margin:0;padding:0;list-style:none;display:grid;gap:3px}
+.open li::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warn);margin-right:7px;vertical-align:1px}
+.open li.done{color:var(--faint);text-decoration:line-through}
+.open li.done::before{background:var(--faint)}
+.stale{display:inline-block;font-size:11px;color:var(--warn);background:var(--warn-soft);padding:2px 7px;border-radius:3px;margin-left:6px}
+
+.pos{margin-top:8px}
+.pos .t{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--mute);flex-wrap:wrap;gap:6px}
+.bar{position:relative;height:52px;margin-top:2px}
+.bar .track{position:absolute;left:0;right:0;top:20px;height:8px;border-radius:4px;background:var(--line-soft)}
+.bar .iqr{position:absolute;top:20px;height:8px;border-radius:4px;background:var(--ev-soft)}
+.bar .med{position:absolute;top:12px;width:3px;height:24px;background:var(--ev);transform:translateX(-50%)}
+.bar .arng{position:absolute;top:24px;height:0;border-top:2px solid var(--an);opacity:.6}
+.bar .amk{position:absolute;top:10px;width:3px;height:28px;background:var(--an);transform:translateX(-50%);border-radius:1px}
+.bar .rmk{position:absolute;top:12px;width:0;height:24px;border-left:3px dotted var(--an);transform:translateX(-50%)}
+.bar .ask{position:absolute;top:14px;width:0;height:20px;border-left:2px dashed var(--faint);transform:translateX(-50%)}
+.bar .lb{position:absolute;top:33px;font-size:11px;color:var(--mute);transform:translateX(-50%);white-space:nowrap}
+.bar .lb.l{transform:none}
+.bar .lb.r{transform:translateX(-100%)}
+.bar .lb.ev{color:var(--ev);font-weight:600}
+.key{display:flex;gap:14px;font-size:11.5px;color:var(--mute);flex-wrap:wrap}
+.key span::before{content:"";display:inline-block;width:10px;height:3px;margin-right:5px;vertical-align:3px}
+.key .k1::before{background:var(--ev-soft);height:8px;vertical-align:0}
+.key .k2::before{background:var(--ev)}
+.key .k3::before{background:var(--an)}
+.key .k4::before{border-top:3px dotted var(--an);height:0}
+.key .k5::before{border-top:2px dashed var(--faint);height:0}
+
+/* compact sticky bar */
+.stick{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.stick .cmp{display:none;align-items:center;gap:18px;padding-top:8px;font-size:12.5px;flex-wrap:wrap}
+.stick.on .cmp{display:flex}
+.stick .cmp .car{font-weight:600;font-size:13.5px}
+.stick .cmp .cf{display:flex;gap:5px;align-items:baseline}
+.stick .cmp .cf .k{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.stick .cmp .cf .v{font-weight:600}
+.stick .cmp .cf.ev .v{color:var(--ev)}
+.stick .cmp .cf.an .v{color:var(--an);cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;text-decoration-color:var(--line)}
+.stick .cmp .rv{margin-left:auto;font-size:12px;color:var(--warn)}
+.stick .cmp .rv.ok{color:var(--ok)}
+.tabs{display:flex;gap:2px;align-items:center}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:9px 12px;font-size:13.5px;color:var(--mute);cursor:pointer;margin-bottom:-1px}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--ink);font-weight:500}
+.tabs button:focus-visible{outline:2px solid var(--an);outline-offset:-2px}
+.tabs .tm{margin-left:auto;font-size:12px;color:var(--mute)}
+.tabs .tm b{color:var(--ink);font-weight:500}
+.pane{padding-block:16px}
+.pane[hidden]{display:none}
+
+.sec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
+.sec.one{grid-template-columns:minmax(0,1fr)}
+.blk{min-width:0}
+.blk h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);font-weight:500;padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:10px;display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.blk h3 .r{font-weight:400;letter-spacing:0;text-transform:none;font-size:12px}
+.facts{display:grid;grid-template-columns:150px 1fr auto;gap:5px 12px;font-size:13px;align-items:baseline}
+.facts .k{color:var(--mute)}
+.facts .v input{border:0;border-bottom:1px dashed transparent;background:none;width:100%;padding:0}
+.facts .v input:hover,.facts .v input:focus{border-bottom-color:var(--line);outline:none}
+.src{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
+.src.ver{color:var(--ok)}
+.src.miss{color:var(--warn)}
+.src.vin{color:var(--mute)}
+.gal{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.gal .p{aspect-ratio:4/3;max-width:100%;border-radius:3px;background:repeating-linear-gradient(135deg,var(--line-soft) 0 4px,var(--line) 4px 5px);position:relative;cursor:pointer}
+.gal .p.cover::after{content:"Cover";position:absolute;left:3px;bottom:3px;font-size:9px;background:var(--paper);padding:1px 4px;border-radius:2px}
+.gal .p.rep{outline:2px solid var(--ev);outline-offset:-2px}
+.gal .add{border:1px dashed var(--line);background:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--mute)}
+.galnote{font-size:12px;color:var(--mute);margin-top:6px}
+.need{display:grid;gap:6px}
+.need .i{display:flex;gap:10px;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:5px;font-size:13px;flex-wrap:wrap}
+.need .i.done{color:var(--faint)}
+.need .i .w{color:var(--warn);font-size:11px;letter-spacing:.05em;text-transform:uppercase;width:68px;flex:none}
+.need .i.done .w{color:var(--ok)}
+.need .i .a{margin-left:auto;display:flex;gap:6px}
+.btn{padding:6px 11px;border-radius:5px;border:1px solid var(--line);background:var(--paper);cursor:pointer;font-size:12.5px;white-space:nowrap}
+.btn.pri{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible{outline:2px solid var(--an);outline-offset:2px}
+
+.summ{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 18px;font-size:13px}
+.summ .k{display:block;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
+.summ .v{font-weight:500}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);font-weight:500;padding:5px 7px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:7px 7px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+td.r,th.r{text-align:right;white-space:nowrap}
+tr.ex td{color:var(--faint)}
+td .th{width:38px;height:28px;border-radius:3px;background:repeating-linear-gradient(135deg,var(--line-soft) 0 4px,var(--line) 4px 5px);display:block}
+td .th.none{background:none;border:1px dashed var(--line);font-size:9px;color:var(--faint);display:flex;align-items:center;justify-content:center;text-align:center}
+td .why{display:block;font-size:11.5px;color:var(--mute)}
+td a{color:var(--mute);font-size:11.5px}
+.rel{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--line-soft);color:var(--mute);white-space:nowrap}
+.rel.close{background:var(--ev-soft);color:var(--ev)}
+.xbtn{background:none;border:0;color:var(--mute);cursor:pointer;font-size:12px;padding:0;text-decoration:underline}
+.exform{display:none;gap:6px;margin-top:6px;flex-wrap:wrap}
+.exform.on{display:flex}
+.exform input{flex:1;min-width:140px;border:1px solid var(--line);border-radius:4px;padding:4px 8px;background:var(--paper)}
+.exscope{display:flex;gap:4px}
+.exscope button{font-size:11px;padding:3px 7px;border:1px solid var(--line);border-radius:3px;background:none;cursor:pointer;color:var(--mute)}
+.exscope button.on{border-color:var(--an);color:var(--ink);background:var(--an-soft)}
+.engorig{font-size:12px;color:var(--mute);padding:8px 10px;border:1px solid var(--line);border-radius:5px;display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;margin-top:10px}
+.engorig b{color:var(--ink);font-weight:500}
+
+.chart{display:flex;align-items:flex-end;gap:4px;height:110px;border-bottom:1px solid var(--line);padding:0 2px}
+.chart i{display:block;flex:1;background:var(--ev);opacity:.4;border-radius:2px 2px 0 0;position:relative}
+.chart i.gap{background:none;border:1px dashed var(--line);opacity:1}
+.chart i.last{opacity:.9}
+.chart i span{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--mute);white-space:nowrap}
+.axis{display:flex;justify-content:space-between;font-size:11px;color:var(--mute);margin-top:4px}
+
+.cond{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;flex-wrap:wrap}
+.cond button{background:none;border:0;border-right:1px solid var(--line);padding:7px 14px;font-size:13px;color:var(--mute);cursor:pointer;position:relative}
+.cond button:last-child{border-right:0}
+.cond button.on{background:var(--an-soft);color:var(--ink);font-weight:500}
+.cond button.sug::after{content:"";position:absolute;top:4px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--ev)}
+.condnote{font-size:12.5px;color:var(--mute);margin-top:8px;max-width:62ch}
+.factors{display:grid;font-size:13px}
+.f{display:grid;grid-template-columns:18px 1fr auto;gap:0 10px;padding:8px 0;border-bottom:1px solid var(--line-soft);align-items:start}
+.f .chk{width:14px;height:14px;border:1.5px solid var(--mute);border-radius:3px;margin-top:3px;cursor:pointer}
+.f.on .chk{background:var(--an);border-color:var(--an)}
+.f .n{font-weight:500}
+.f .b{font-size:12px;color:var(--mute);display:block}
+.f .e{font-size:11.5px;text-align:right;white-space:nowrap}
+.f .e.sup{color:var(--ev)}
+.f .e.lim{color:var(--mute)}
+.f .e.ver{display:block;color:var(--ok);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase}
+.f .e.unv{display:block;color:var(--warn);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase}
+
+.dec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:24px}
+.field{display:grid;gap:4px;margin-bottom:12px}
+.field label{font-size:12px;color:var(--mute)}
+.field .in{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.field input[type=number],.field textarea{border:1px solid var(--line);border-radius:5px;padding:7px 9px;background:var(--paper);width:100%}
+.field input[type=number]{width:130px}
+.field textarea{min-height:60px;resize:vertical}
+.field .hint{font-size:11.5px;color:var(--mute)}
+.field .hint.warn{color:var(--warn)}
+.field input[type=range]{width:100%;accent-color:var(--an)}
+.field.flash{animation:fl 1.2s ease}
+@keyframes fl{0%{background:var(--an-soft)}100%{background:none}}
+.diff{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;margin-bottom:12px}
+.diff .k{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);display:block}
+.diff .v{font-size:16px;font-weight:600}
+.diff .v.ev{color:var(--ev)}
+.diff .v.an{color:var(--an)}
+.diff .s{grid-column:1/-1;font-size:12px;color:var(--mute)}
+.ready{display:grid;gap:5px;font-size:12.5px}
+.ready div::before{content:"✓";color:var(--ok);margin-right:8px;font-weight:600}
+.ready div.no::before{content:"•";color:var(--warn)}
+.ready div.no{color:var(--warn)}
+.acts{display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap}
+.acts .st{font-size:12px;color:var(--mute);margin-left:auto}
+.audit{font-size:12px;color:var(--mute);display:grid;gap:4px}
+.audit b{color:var(--ink);font-weight:500}
+.audit .t{color:var(--faint);margin-right:6px}
+.fin{display:none;border:1px solid var(--ok);border-radius:6px;padding:10px 12px;font-size:12.5px;margin-top:12px}
+.fin.on{display:block}
+
+/* report */
+.rep{max-width:880px;margin:16px auto 0;display:grid;gap:22px}
+.derive{font-size:12px;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 14px}
+.derive b{color:var(--ink);font-weight:500;display:block}
+.derive .w{color:var(--warn)}
+.pg{background:var(--paper);border:1px solid var(--line);aspect-ratio:8.5/11;max-width:100%;padding:0;position:relative;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.08);font-size:12.5px}
+.pg .in{padding:30px 44px 44px;display:flex;flex-direction:column;gap:14px;flex:1;min-height:0}
+.pg .hd{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--mute);letter-spacing:.06em;text-transform:uppercase}
+.pg .logo{height:22px;padding:0 10px;border:1.5px solid var(--ink);border-radius:2px;display:flex;align-items:center;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
+.pg .ft{position:absolute;left:44px;right:44px;bottom:16px;display:flex;justify-content:space-between;font-size:10px;color:var(--faint)}
+.pg .wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:110px;font-weight:600;letter-spacing:.2em;color:var(--ink);opacity:.05;transform:rotate(-24deg);z-index:2}
+.pg h2{font-family:var(--serif);font-weight:600;font-size:26px;line-height:1.15}
+.pg h3{font-family:var(--serif);font-weight:600;font-size:16px;margin-bottom:6px}
+.pg .eyebrow{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.pg ul{margin:0;padding-left:16px;display:grid;gap:4px}
+/* page 1 */
+.p1hero{position:relative;flex:0 0 52%;background:repeating-linear-gradient(135deg,var(--line-soft) 0 9px,var(--line) 9px 10px);display:flex;align-items:flex-end}
+.p1hero .tag{position:absolute;top:14px;right:16px;font-size:10px;color:var(--mute);background:var(--paper);padding:2px 7px;border-radius:2px}
+.p1hero .hd{position:absolute;top:22px;left:44px;right:44px}
+.p1hero .idb{background:var(--paper);margin:0 44px -1px;padding:16px 20px 0;border-radius:4px 4px 0 0;width:calc(100% - 88px)}
+.p1hero .idb h2{font-size:30px}
+.p1hero .idb .eyebrow{display:block;margin-top:4px}
+.recs{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:0 20px;padding-top:4px}
+.recs .v{font-family:var(--serif);font-size:32px;font-weight:600;line-height:1;color:var(--an)}
+.recs .d{font-size:11.5px;color:var(--mute);margin-top:6px;max-width:36ch;line-height:1.4}
+.lead{font-size:13px;line-height:1.55;margin:0 20px;max-width:70ch;border-top:1px solid var(--line);padding-top:12px}
+/* page 2 */
+.p2bar{position:relative;height:96px;margin-top:8px}
+.p2bar .tr{position:absolute;left:0;right:0;top:40px;height:12px;border-radius:6px;background:var(--line-soft)}
+.p2bar .iq{position:absolute;top:40px;height:12px;border-radius:6px;background:var(--ev-soft)}
+.p2bar .md{position:absolute;top:30px;width:3px;height:32px;background:var(--ev);transform:translateX(-50%)}
+.p2bar .ar{position:absolute;top:44px;height:4px;background:var(--an);border-radius:2px;opacity:.85}
+.p2bar .rs{position:absolute;top:28px;height:36px;border-left:3px dotted var(--an);transform:translateX(-50%)}
+.p2bar .dots{position:absolute;top:18px;left:0;right:0;height:8px}
+.p2bar .dots i{position:absolute;width:5px;height:5px;border-radius:50%;background:var(--ev);opacity:.35;transform:translateX(-50%)}
+.p2bar .lab{position:absolute;font-size:10.5px;white-space:nowrap;transform:translateX(-50%)}
+.p2bar .lab.top{top:0}
+.p2bar .lab.bot{top:60px;color:var(--mute)}
+.p2bar .lab.an{color:var(--an);font-weight:600}
+.p2bar .lab.ev{color:var(--ev);font-weight:600}
+.p2bar .lab.l{transform:none}
+.p2bar .lab.r{transform:translateX(-100%)}
+.sc{display:grid;grid-template-columns:1fr 1fr;gap:18px;flex:1;min-height:0}
+.sc .col h3{border-bottom:2px solid var(--ink);padding-bottom:4px}
+.sc .it{display:grid;grid-template-columns:auto 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:12px;align-items:start}
+.sc .it .ic{width:18px;height:18px;border-radius:50%;background:var(--ev-soft);color:var(--ev);font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:600;margin-top:1px}
+.sc .it.c .ic{background:var(--warn-soft);color:var(--warn)}
+.sc .it b{display:block;font-weight:500}
+.sc .it span{color:var(--mute)}
+.cndbox{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:4px;padding:10px 12px;font-size:12px}
+.cndbox .big{font-family:var(--serif);font-size:20px;font-weight:600;white-space:nowrap}
+/* page 3 */
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;flex:1;min-height:0}
+.cc{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cc .im{aspect-ratio:16/10;max-width:100%;border-radius:2px;background:repeating-linear-gradient(135deg,var(--line-soft) 0 7px,var(--line) 7px 8px);position:relative}
+.cc .im::after{content:"listing photo, sample";position:absolute;right:5px;bottom:4px;font-size:9px;color:var(--mute);background:var(--paper);padding:1px 5px}
+.cc .im.none{background:var(--ev-soft);display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;font-family:var(--serif);font-size:13px;color:var(--ev)}
+.cc .im.none::after{content:none}
+.cc .l1{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.cc .pr{font-family:var(--serif);font-size:20px;font-weight:600}
+.cc .m{font-size:11px;color:var(--mute)}
+.cc .nm{font-weight:500;font-size:12.5px}
+.cc .w{font-size:11.5px;color:var(--mute)}
+.cc a{font-size:10.5px;color:var(--mute)}
+/* page 4 */
+.p4{display:grid;grid-template-columns:1fr 1fr;gap:22px;flex:1;min-height:0}
+.p4 .mini{display:flex;align-items:flex-end;gap:5px;height:80px;border-bottom:1px solid var(--line)}
+.p4 .mini i{flex:1;display:block;background:var(--ev);opacity:.4;border-radius:2px 2px 0 0;position:relative}
+.p4 .mini i.gap{background:none;border:1px dashed var(--line);opacity:1}
+.p4 .mini i span{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:9.5px;color:var(--mute);white-space:nowrap}
+.live{display:grid;gap:5px;font-size:12px}
+.live div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line-soft);padding-bottom:4px}
+.live .t{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);white-space:nowrap}
+.nx ol{margin:0;padding-left:18px;display:grid;gap:6px;font-size:12.5px}
+.contact{border-top:1px solid var(--line);padding-top:10px;font-size:11.5px;color:var(--mute);display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.contact b{color:var(--ink);font-weight:500}
+
+@media (max-width:980px){
+  .app{grid-template-columns:1fr}
+  .railbox{display:none}
+  .main{padding-left:0}
+  .figs{grid-template-columns:1fr 1fr}
+  .sec,.dec,.sc,.cgrid,.recs,.p4,.derive,.engorig{grid-template-columns:1fr}
+  .summ{grid-template-columns:1fr 1fr}
+  .gal{grid-template-columns:repeat(4,1fr)}
+  .facts{grid-template-columns:110px 1fr auto}
+  .pg{aspect-ratio:auto}
+  .pg .in{padding:20px 18px 40px}
+  .pg .ft{left:18px;right:18px}
+  .pg .wm{font-size:60px}
+  .p1hero{flex:0 0 auto;min-height:220px}
+  .p1hero .idb{margin:0 18px -1px;width:calc(100% - 36px)}
+  .p1hero .hd{left:18px;right:18px}
+  .recs,.lead{margin:0}
+}
+@media (prefers-reduced-motion:no-preference){ .amk,.rmk,.arng{transition:left .25s ease,width .25s ease} }
+@media (prefers-reduced-motion:reduce){ .field.flash{animation:none} }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">GoAskSam Desk <span class="org">Hagerty Marketplace</span></div>
+    <nav aria-label="Views"><a href="#workspace" id="nv-ws" class="on">Analyst workspace</a><a href="#report" id="nv-rp">Customer report</a></nav>
+    <span class="demo">Demonstration case. Frozen evidence snapshot; figures are illustrative until connected to verified records.</span>
+    <span class="save" id="saveState">Saved 12:41</span>
+  </header>
+
+  <section class="view" id="view-ws">
+  <div class="app">
+    <aside class="railbox" aria-label="Case queue">
+      <input class="search" type="search" id="qsearch" placeholder="Search cases">
+      <div class="q"><h4>New leads <span>3</span></h4>
+        <div class="case"><span class="c">2016 BMW M2</span><span class="m"><span>A. Whitfield</span><span>2 h</span></span></div>
+        <div class="case"><span class="c">1972 Datsun 240Z</span><span class="m"><span>R. Okafor</span><span>5 h</span></span></div>
+        <div class="case"><span class="c">2005 Ford GT</span><span class="m"><span>L. Marsh</span><span>1 d</span></span></div>
+      </div>
+      <div class="q"><h4>In review <span>2</span></h4>
+        <div class="case on"><span class="c">1999 Porsche 911 Carrera</span><span class="m"><span>M. Reyes</span><span>1 d</span></span></div>
+        <div class="case"><span class="c">1991 Acura NSX</span><span class="m"><span>D. Park</span><span>3 d</span></span></div>
+      </div>
+      <div class="q"><h4>Ready for report <span>1</span></h4>
+        <div class="case"><span class="c">1967 Jaguar E Type</span><span class="m"><span>S. Imani</span><span>4 d</span></span></div>
+      </div>
+      <div class="q"><h4>Finalized <span>12</span></h4>
+        <div class="case"><span class="c">2003 Mercedes SL55</span><span class="m"><span>T. Byrne</span><span>v2 · Nov 6</span></span></div>
+        <div class="case"><span class="c">1988 Porsche 944 Turbo</span><span class="m"><span>K. Lund</span><span>Nov 5</span></span></div>
+      </div>
+      <div class="ops">
+        <span class="label">Today, this analyst</span>
+        <div><b>11</b> reports finalized</div>
+        <div><b>9 min 40 s</b> median handling time</div>
+        <div><b>3 of 11</b> needed more from the seller</div>
+        <div><b>1</b> report revised after finalizing</div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="sumx" id="sumx">
+        <div class="row1">
+          <div class="photo" aria-hidden="true"></div>
+          <div>
+            <h1>1999 Porsche 911 Carrera <span class="mute" style="font-weight:400">996 · Coupe · 6 speed manual</span></h1>
+            <p class="spec"><span id="specMiles">61,400</span> miles · Ocean Blue over Graphite · Asking $45,000</p>
+          </div>
+          <div class="meta"><span>Seller <b>M. Reyes</b></span><span>Lead <b>HM-24117</b></span><span>Submitted <b>Nov 7 2026</b></span><span class="status" id="caseStatus">In review</span></div>
+        </div>
+        <div class="figs">
+          <div class="fig ev"><span class="label">Market reference</span><div class="v num">$41,000</div><div class="d">Typical range $34,500 to $48,500</div><div class="q">26 completed sales · 996 Carrera coupe, manual</div><div class="q">Evidence as of Oct 21 2025 <span class="stale">Older than 90 days</span></div></div>
+          <div class="fig an click" data-go="assess"><span class="label">Analyst assessment</span><div class="v num" id="hAssess">$44,500</div><div class="d" id="hAssessR">Range $42,000 to $47,000</div><div class="q" id="hAssessD">$3,500 above market reference</div></div>
+          <div class="fig an click" data-go="reserve"><span class="label">Proposed reserve</span><div class="v num" id="hReserve">$38,000</div><div class="d" id="hReserveD">$3,000 below market reference</div><div class="q" id="hReservePos">Inside the typical range</div></div>
+          <div class="open"><span class="label">Needs review</span><ul><li id="o1">Mileage not confirmed against photos</li><li id="o2">Service documentation not received</li><li id="o3" class="done">VIN matches submitted model</li></ul></div>
+        </div>
+        <div class="pos">
+          <div class="t"><span>Market position</span><span>Completed sales only. Live bids and asking prices are not in this distribution.</span></div>
+          <div class="bar" id="bar">
+            <div class="track"></div><div class="iqr" id="iqr"></div><div class="med" id="medmk"></div>
+            <div class="arng" id="arng"></div><div class="amk" id="amk" title="Analyst assessment"></div><div class="rmk" id="rmk" title="Proposed reserve"></div><div class="ask" id="askmk" title="Asking price"></div>
+            <span class="lb l" style="left:0">$28,000 lowest</span><span class="lb" id="lq1">$34,500</span><span class="lb ev" id="lmed">$41,000 median</span><span class="lb" id="lq3">$48,500</span><span class="lb r" style="left:100%">$62,000 highest</span>
+          </div>
+          <div class="key"><span class="k1">Typical range (middle half of sales)</span><span class="k2">Market median</span><span class="k3">Analyst assessment</span><span class="k4">Proposed reserve</span><span class="k5">Asking price</span></div>
+        </div>
+      </div>
+
+      <div class="stick" id="stick">
+        <div class="cmp">
+          <span class="car">1999 Porsche 911 Carrera</span>
+          <span class="cf ev"><span class="k">Market</span><span class="v num">$41,000</span></span>
+          <span class="cf an" data-go="assess"><span class="k">Assessment</span><span class="v num" id="cAssess">$44,500</span></span>
+          <span class="cf an" data-go="reserve"><span class="k">Reserve</span><span class="v num" id="cReserve">$38,000</span></span>
+          <span class="rv" id="cReview">2 items need review</span>
+        </div>
+        <div class="tabs" role="tablist">
+          <button role="tab" class="on" data-tab="veh">Vehicle</button>
+          <button role="tab" data-tab="ev">Market evidence</button>
+          <button role="tab" data-tab="dec">Decision</button>
+          <span class="tm">Handling time <b class="num" id="timer">06:12</b></span>
+        </div>
+      </div>
+
+      <!-- VEHICLE -->
+      <div class="pane" id="pane-veh">
+        <div class="sec">
+          <div class="blk">
+            <h3>As received <span class="r">Edit a value to correct it. Changes are logged.</span></h3>
+            <div class="facts">
+              <span class="k">Year, make, model</span><span class="v"><input value="1999 Porsche 911 Carrera"></span><span class="src">Seller</span>
+              <span class="k">Generation, variant</span><span class="v"><input value="996 · Carrera 2"></span><span class="src vin">VIN decoded</span>
+              <span class="k">Body</span><span class="v"><input value="Coupe"></span><span class="src vin">VIN decoded</span>
+              <span class="k">Transmission</span><span class="v"><input value="6 speed manual"></span><span class="src ver">Analyst verified</span>
+              <span class="k">Mileage</span><span class="v"><input id="milesIn" value="61400" inputmode="numeric"></span><span class="src miss" id="milSrc">Not confirmed</span>
+              <span class="k">VIN</span><span class="v"><input value="WP0AA2993XS62····" class="num"></span><span class="src ver">Matches model</span>
+              <span class="k">Exterior, interior</span><span class="v"><input value="Ocean Blue · Graphite leather"></span><span class="src">Seller</span>
+              <span class="k">Ownership</span><span class="v"><input value="Two owners since new"></span><span class="src">Seller</span>
+              <span class="k">Service history</span><span class="v"><input value="IMS bearing and clutch 2021 at 54k, per seller"></span><span class="src miss" id="docSrc">No documents</span>
+              <span class="k">Accidents, repairs</span><span class="v"><input value="None declared"></span><span class="src">Seller</span>
+              <span class="k">Modifications</span><span class="v"><input value="None declared"></span><span class="src">Seller</span>
+              <span class="k">Condition notes</span><span class="v"><input value="Small chip on front bumper, otherwise clean"></span><span class="src">Seller</span>
+              <span class="k">Asking price</span><span class="v"><input value="$45,000"></span><span class="src">Seller</span>
+              <span class="k">Prior auction record</span><span class="v mute">No matching record found in available data</span><span class="src vin">Records</span>
+            </div>
+          </div>
+          <div class="blk">
+            <h3>Photographs <span class="r">11 received · 4 chosen for report</span></h3>
+            <div class="gal">
+              <div class="p cover rep"></div><div class="p rep"></div><div class="p"></div><div class="p rep"></div><div class="p"></div><div class="p rep"></div><div class="p"></div><div class="p"></div>
+              <div class="p"></div><div class="p"></div><div class="p"></div><div class="p add">Add</div>
+            </div>
+            <p class="galnote">Sample tiles stand in for the seller's photographs. Click to enlarge and annotate. Outlined photos go in the report; the cover is the first report image.</p>
+            <h3 style="margin-top:18px">Needs review</h3>
+            <div class="need">
+              <div class="i" id="n1"><span class="w">Open</span><span>Mileage not confirmed. Odometer photo 7 reads 61,412.</span><span class="a"><button class="btn" data-resolve="1">Mark verified</button></span></div>
+              <div class="i" id="n2"><span class="w">Open</span><span>Service documentation missing. IMS and clutch work is seller stated only.</span><span class="a"><button class="btn" data-docs="received">Invoices received</button><button class="btn" data-docs="requested">Request and proceed</button></span></div>
+              <div class="i done" id="n3"><span class="w">Done</span><span>VIN decodes to a 1999 996 Carrera coupe. Matches submission.</span></div>
+            </div>
+            <h3 style="margin-top:18px">Documents <span class="r" id="docCount">1 received</span></h3>
+            <p class="small" id="docList">Title scan (clean, California). No service records yet.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- EVIDENCE -->
+      <div class="pane" id="pane-ev" hidden>
+        <div class="sec one">
+          <div class="blk">
+            <h3>Market summary <span class="r">Evidence as of Oct 21 2025. Case opened Nov 7 2026. <span class="stale">Gap exceeds the 90 day threshold</span></span></h3>
+            <div class="summ">
+              <div><span class="k">Completed sales</span><span class="v" id="selCount">26 selected of 31 matching</span></div>
+              <div><span class="k">Median</span><span class="v num">$41,000</span></div>
+              <div><span class="k">Typical range</span><span class="v num">$34,500 to $48,500</span></div>
+              <div><span class="k">Full observed range</span><span class="v num">$28,000 to $62,000</span></div>
+              <div><span class="k">Period</span><span class="v">Nov 2024 to Oct 2025</span></div>
+              <div><span class="k">Latest sale</span><span class="v">Oct 21 2025 · $43,250</span></div>
+              <div><span class="k">Population</span><span class="v">996 Carrera and Carrera 2 coupe, manual, 1999 to 2001</span></div>
+              <div><span class="k">Excluded by analyst</span><span class="v" id="exCount">0</span></div>
+            </div>
+            <div class="engorig">
+              <div><b>Original engine result</b> 26 sales · median $41,000 · typical $34,500 to $48,500. Kept unchanged for comparison.</div>
+              <div><b>Current selected set</b> <span id="curSet">26 sales · median $41,000 · no exclusions</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sec" style="margin-top:20px">
+          <div class="blk" style="grid-column:1/-1">
+            <h3>Comparable completed sales <span class="r">Sorted by relevance. Excluding needs a reason and a scope, and the sale stays in the list and the audit trail.</span></h3>
+            <div class="tw"><table id="comps">
+              <thead><tr><th></th><th>Vehicle</th><th class="r">Miles</th><th>Platform</th><th>Sold</th><th class="r">Price</th><th>Relevance</th><th></th></tr></thead>
+              <tbody>
+                <tr data-id="r1"><td><span class="th"></span></td><td>1999 911 Carrera coupe, manual<span class="why">IMS and clutch documented in listing. Same year, 3,000 fewer miles.</span><a href="https://bringatrailer.com" target="_blank" rel="noopener">View listing</a></td><td class="r num">58,400</td><td>Bring a Trailer</td><td>Sep 2025</td><td class="r num">$44,000</td><td><span class="rel close">Close</span></td><td><button class="xbtn" data-ex="r1">Exclude</button><div class="exform" id="exf-r1"><input placeholder="Reason, required"><span class="exscope"><button class="on">Report comps</button><button>Market calc</button><button>Note only</button></span><button class="btn" data-exok="r1">Exclude</button></div></td></tr>
+                <tr data-id="r2"><td><span class="th"></span></td><td>2000 911 Carrera coupe, manual<span class="why">One year newer, 9,000 fewer miles, Arctic Silver.</span><a href="https://bringatrailer.com" target="_blank" rel="noopener">View listing</a></td><td class="r num">52,100</td><td>Bring a Trailer</td><td>Jul 2025</td><td class="r num">$42,750</td><td><span class="rel close">Close</span></td><td><button class="xbtn" data-ex="r2">Exclude</button><div class="exform" id="exf-r2"><input placeholder="Reason, required"><span class="exscope"><button class="on">Report comps</button><button>Market calc</button><button>Note only</button></span><button class="btn" data-exok="r2">Exclude</button></div></td></tr>
+                <tr data-id="r3"><td><span class="th"></span></td><td>1999 911 Carrera coupe, manual<span class="why">Same year, 3,000 more miles. No IMS work mentioned.</span><a href="https://carsandbids.com" target="_blank" rel="noopener">View listing</a></td><td class="r num">64,200</td><td>Cars &amp; Bids</td><td>Aug 2025</td><td class="r num">$40,500</td><td><span class="rel close">Close</span></td><td><button class="xbtn" data-ex="r3">Exclude</button><div class="exform" id="exf-r3"><input placeholder="Reason, required"><span class="exscope"><button class="on">Report comps</button><button>Market calc</button><button>Note only</button></span><button class="btn" data-exok="r3">Exclude</button></div></td></tr>
+                <tr data-id="r4"><td><span class="th none">No photo</span></td><td>1999 911 Carrera coupe, manual<span class="why">20,000 fewer miles. Top of the typical range.</span><a href="https://bringatrailer.com" target="_blank" rel="noopener">View listing</a></td><td class="r num">41,000</td><td>Bring a Trailer</td><td>May 2025</td><td class="r num">$48,500</td><td><span class="rel">Similar</span></td><td><button class="xbtn" data-ex="r4">Exclude</button><div class="exform" id="exf-r4"><input placeholder="Reason, required"><span class="exscope"><button class="on">Report comps</button><button>Market calc</button><button>Note only</button></span><button class="btn" data-exok="r4">Exclude</button></div></td></tr>
+                <tr data-id="r5"><td><span class="th"></span></td><td>2001 911 Carrera coupe, manual<span class="why">Aftermarket exhaust and wheels. 29,000 more miles.</span><a href="https://bringatrailer.com" target="_blank" rel="noopener">View listing</a></td><td class="r num">90,300</td><td>Bring a Trailer</td><td>Mar 2025</td><td class="r num">$33,000</td><td><span class="rel">Similar</span></td><td><button class="xbtn" data-ex="r5">Exclude</button><div class="exform" id="exf-r5"><input placeholder="Reason, required"><span class="exscope"><button class="on">Report comps</button><button>Market calc</button><button>Note only</button></span><button class="btn" data-exok="r5">Exclude</button></div></td></tr>
+                <tr data-id="r6"><td><span class="th"></span></td><td>2000 911 Carrera coupe, manual<span class="why">Repainted front end disclosed. 6,000 more miles.</span><a href="https://pcarmarket.com" target="_blank" rel="noopener">View listing</a></td><td class="r num">67,800</td><td>PCarMarket</td><td>Jun 2025</td><td class="r num">$36,250</td><td><span class="rel">Similar</span></td><td><button class="xbtn" data-ex="r6">Exclude</button><div class="exform" id="exf-r6"><input placeholder="Reason, required"><span class="exscope"><button class="on">Report comps</button><button>Market calc</button><button>Note only</button></span><button class="btn" data-exok="r6">Exclude</button></div></td></tr>
+              </tbody>
+            </table></div>
+            <p class="small mute" style="margin-top:6px">Showing 6 of 26 selected. Scope: "Report comps" drops the sale from the report's four comparables only. "Market calc" asks the engine to recompute the reference without it; the original result stays above. "Note only" records a caveat. <button class="xbtn">Show all 31</button></p>
+          </div>
+        </div>
+        <div class="sec" style="margin-top:20px">
+          <div class="blk">
+            <h3>Market movement <span class="r">Quarterly median, selected population</span></h3>
+            <div class="chart" aria-label="Quarterly median">
+              <i style="height:62%"><span>$38,500 · 7</span></i><i style="height:66%"><span>$39,750 · 6</span></i><i class="gap" style="height:30%"><span>2 sales, not shown</span></i><i style="height:74%"><span>$42,250 · 6</span></i><i class="last" style="height:70%"><span>$41,500 · 5</span></i>
+            </div>
+            <div class="axis"><span>Q4 2024</span><span>Q1 2025</span><span>Q2 2025</span><span>Q3 2025</span><span>Q4 2025 to Oct 21</span></div>
+            <p class="small mute" style="margin-top:6px">A quarter with fewer than 3 sales is left blank rather than drawn.</p>
+          </div>
+          <div class="blk">
+            <h3>Current listings <span class="r">Not part of the market reference</span></h3>
+            <div class="tw"><table>
+              <thead><tr><th>Vehicle</th><th>Where</th><th>Type</th><th class="r">Figure</th><th class="r">Ends</th></tr></thead>
+              <tbody>
+                <tr><td>1999 911 Carrera, 48k, manual</td><td>Bring a Trailer</td><td>Current bid</td><td class="r num">$38,250</td><td class="r">2 days</td></tr>
+                <tr><td>2000 911 Carrera, 71k, manual</td><td>Cars &amp; Bids</td><td>Current bid</td><td class="r num">$31,000</td><td class="r">6 hours</td></tr>
+                <tr><td>1999 911 Carrera 4, 39k, Tiptronic</td><td>Dealer</td><td>Asking</td><td class="r num">$46,900</td><td class="r">Listed</td></tr>
+                <tr><td>2001 911 Carrera, 55k, manual</td><td>Bring a Trailer</td><td>Not sold, high bid</td><td class="r num">$39,000</td><td class="r">Oct 2025</td></tr>
+              </tbody>
+            </table></div>
+            <h3 style="margin-top:18px">Outside the population <span class="r">5 Tiptronic sales</span></h3>
+            <p class="small">Median $35,000, range $29,500 to $39,750. Manual cars in the selected set sold for about $6,000 more, 18 manual against 5 Tiptronic sales.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- DECISION -->
+      <div class="pane" id="pane-dec" hidden>
+        <div class="dec">
+          <div class="blk">
+            <h3>Analyst assessment <span class="r">Judgment for this car. Market reference stays as it is.</span></h3>
+            <div class="diff">
+              <div><span class="k">Market reference</span><span class="v ev num">$41,000</span></div>
+              <div><span class="k">Assessment</span><span class="v an num" id="dAssess">$44,500</span></div>
+              <div><span class="k">Difference</span><span class="v num" id="dDiff">+$3,500</span></div>
+              <div class="s" id="dExplain"></div>
+            </div>
+            <div class="field" id="fAssess"><label for="assess">Likely selling price</label><div class="in"><span>$</span><input type="number" id="assess" value="44500" step="250" min="0"><span class="hint">Range</span><span>$</span><input type="number" id="rLo" value="42000" step="250"><span>to</span><span>$</span><input type="number" id="rHi" value="47000" step="250"></div><input type="range" id="assessSl" min="28000" max="62000" step="250" value="44500" aria-label="Assessment position in the observed range"><span class="hint" id="assessHint"></span></div>
+            <div class="field"><label for="why">Explanation <span class="mute">(printed in the report in these words)</span></label><textarea id="why">Two owners, a strong colour and the reported 2021 IMS bearing and clutch work put this car toward the upper half of recent sales. Mileage is average for the group.</textarea></div>
+
+            <h3 style="margin-top:16px">Proposed reserve <span class="r">Separate selling decision. Never moves with the assessment.</span></h3>
+            <div class="diff">
+              <div><span class="k">Seller expectation</span><span class="v num">$45,000</span></div>
+              <div><span class="k">Reserve</span><span class="v an num" id="dRes">$38,000</span></div>
+              <div><span class="k">Against reference</span><span class="v num" id="dResDiff">−$3,000</span></div>
+              <div class="s" id="dResExplain"></div>
+            </div>
+            <div class="field" id="fReserve"><label for="reserve">Reserve</label><div class="in"><span>$</span><input type="number" id="reserve" value="38000" step="250" min="0"></div><input type="range" id="reserveSl" min="28000" max="62000" step="250" value="38000" aria-label="Reserve position"><span class="hint" id="resHint"></span></div>
+            <div class="field"><label for="resWhy">Reserve rationale <span class="mute">(printed in the report)</span></label><textarea id="resWhy">Set in the lower part of the typical range so bidding starts early. Recent comparable sales cleared $40,000 and above.</textarea></div>
+            <div class="field"><label><input type="checkbox" id="sellerAgreed"> Seller has agreed this reserve <span class="mute">(recorded in the audit trail; the report says so only when ticked)</span></label></div>
+          </div>
+
+          <div class="blk">
+            <h3>Condition <span class="r">Review category that informs the assessment. Not a multiplier.</span></h3>
+            <div class="cond" role="radiogroup" id="cond">
+              <button data-c="Concours">Concours</button>
+              <button data-c="Excellent" class="on">Excellent</button>
+              <button data-c="Good" class="sug">Good <span class="small mute">suggested</span></button>
+              <button data-c="Fair">Fair</button>
+            </div>
+            <p class="condnote" id="condnote"></p>
+
+            <h3 style="margin-top:18px">Factors <span class="r">Only evidence backed effects show a figure.</span></h3>
+            <div class="factors" id="factors">
+              <div class="f on" data-k="manual"><span class="chk" role="checkbox" aria-checked="true" tabindex="0"></span><div><span class="n">Manual gearbox</span><span class="b">Across 23 sales with a known gearbox, manuals sold for about $6,000 more than Tiptronic. This car is compared only with manuals.</span></div><div><span class="e sup">In population</span><span class="e ver">Verified</span></div></div>
+              <div class="f on" data-k="ims"><span class="chk" role="checkbox" aria-checked="true" tabindex="0"></span><div><span class="n">IMS bearing and clutch replaced</span><span class="b">9 of 26 listings mention IMS work; prices overlap the rest too much to isolate an effect. Buyers ask about it on every 996, so documentation matters for the sale.</span></div><div><span class="e lim">Evidence limited</span><span class="e unv" id="imsVer">Seller stated</span></div></div>
+              <div class="f" data-k="miles"><span class="chk" role="checkbox" aria-checked="false" tabindex="0"></span><div><span class="n">Mileage</span><span class="b" id="milesFactor"></span></div><div><span class="e sup">Supported</span><span class="e unv" id="milesVer">Not confirmed</span></div></div>
+              <div class="f on" data-k="owners"><span class="chk" role="checkbox" aria-checked="true" tabindex="0"></span><div><span class="n">Two owners, clean title</span><span class="b">No measurable effect in the selected sales. Supports buyer confidence.</span></div><div><span class="e lim">No measured effect</span><span class="e ver">Title seen</span></div></div>
+              <div class="f" data-k="chip"><span class="chk" role="checkbox" aria-checked="false" tabindex="0"></span><div><span class="n">Front bumper chip</span><span class="b">Cosmetic. Analyst judgment.</span></div><div><span class="e lim">Not measured</span><span class="e ver">Photo 3</span></div></div>
+              <div class="f" data-k="trend"><span class="chk" role="checkbox" aria-checked="false" tabindex="0"></span><div><span class="n">Market movement</span><span class="b">Quarterly medians moved within $4,000 over the period. No trend adjustment suggested.</span></div><div><span class="e lim">Flat</span></div></div>
+            </div>
+
+            <h3 style="margin-top:18px">Report readiness</h3>
+            <div class="ready" id="ready">
+              <div>Vehicle identified. VIN matches.</div>
+              <div class="no" id="rd1">Mileage not confirmed.</div>
+              <div class="no" id="rd2">Service documentation outstanding.</div>
+              <div id="rd3">Assessment inside observed range. Explanation recorded.</div>
+              <div id="rd4">Reserve recorded with rationale.</div>
+              <div id="rd5">4 photographs chosen. 4 comparables selected.</div>
+            </div>
+            <div class="acts">
+              <button class="btn" id="bSave">Save draft</button>
+              <button class="btn" id="bPrev">Preview report</button>
+              <button class="btn pri" id="bFin" disabled>Finalize</button>
+              <span class="st" id="finHint"></span>
+            </div>
+            <div class="fin" id="finBox">Finalized as version 1 at <span id="finTime"></span>. Figures, selected evidence, verification state and wording are locked. Delivery goes through the Hagerty workflow with recipient and version recorded there. Any later change creates version 2.</div>
+
+            <h3 style="margin-top:18px">Audit trail</h3>
+            <div class="audit" id="audit">
+              <div><span class="t">Nov 8 12:41</span><b>Reserve</b> set to $38,000. "Lower part of the typical range so bidding starts early."</div>
+              <div><span class="t">Nov 8 12:36</span><b>Assessment</b> $41,000 to $44,500. "Two owners, strong colour, reported IMS and clutch."</div>
+              <div><span class="t">Nov 8 12:30</span><b>Condition</b> Good to Excellent.</div>
+              <div><span class="t">Nov 8 12:22</span><b>Transmission</b> verified manual from photo 9.</div>
+              <div><span class="t">Nov 7 18:04</span><b>Case created</b> from Hagerty lead HM-24117. Handling clock started on first open.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </section>
+
+  <!-- ============ REPORT (generated from case state) ============ -->
+  <section class="view" id="view-rp" hidden>
+    <div class="rep">
+      <div class="derive" id="derive"></div>
+      <div id="pages"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var LOW=28000,HIGH=62000,Q1=34500,MED=41000,Q3=48500,ASK=45000;
+  var $=function(id){return document.getElementById(id)};
+  function pct(v){return Math.max(0,Math.min(100,(v-LOW)/(HIGH-LOW)*100))}
+  function money(n){return (n<0?'−':'')+'$'+Math.abs(Math.round(n)).toLocaleString('en-US')}
+  function signed(n){return (n>=0?'+':'')+money(n)}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+  /* one case state; workspace and report both read from it */
+  var S={assess:44500,lo:42000,hi:47000,reserve:38000,cond:'Excellent',miles:61400,milesVerified:false,docs:'outstanding',sellerAgreed:false,excluded:[],finalized:false,
+         factors:{manual:true,ims:true,miles:false,owners:true,chip:false,trend:false}};
+  var comps=[
+    {id:'r1',price:44000,name:'1999 911 Carrera coupe, manual',miles:'58,400 miles',venue:'Bring a Trailer',date:'September 2025',why:'The closest match: same year, IMS and clutch documented in the listing, 3,000 fewer miles.',photo:true,url:'https://bringatrailer.com'},
+    {id:'r2',price:42750,name:'2000 911 Carrera coupe, manual',miles:'52,100 miles',venue:'Bring a Trailer',date:'July 2025',why:'One year newer with 9,000 fewer miles, in Arctic Silver.',photo:true,url:'https://bringatrailer.com'},
+    {id:'r3',price:40500,name:'1999 911 Carrera coupe, manual',miles:'64,200 miles',venue:'Cars & Bids',date:'August 2025',why:'Same year, slightly more miles, no IMS work mentioned in the listing.',photo:true,url:'https://carsandbids.com'},
+    {id:'r4',price:48500,name:'1999 911 Carrera coupe, manual',miles:'41,000 miles',venue:'Bring a Trailer',date:'May 2025',why:'Shows what lower mileage adds: 20,000 fewer miles than your car, near the top of the typical range.',photo:false,url:'https://bringatrailer.com'},
+    {id:'r5',price:33000,name:'2001 911 Carrera coupe, manual',miles:'90,300 miles',venue:'Bring a Trailer',date:'March 2025',why:'Aftermarket exhaust and wheels, and 29,000 more miles than your car.',photo:true,url:'https://bringatrailer.com'},
+    {id:'r6',price:36250,name:'2000 911 Carrera coupe, manual',miles:'67,800 miles',venue:'PCarMarket',date:'June 2025',why:'A repainted front end was disclosed; 6,000 more miles than your car.',photo:true,url:'https://pcarmarket.com'}
+  ];
+
+  /* derived wording, used by both views */
+  function D(){
+    var d={};
+    d.resPos = S.reserve<Q1?'below the typical range':(S.reserve<=Q3?'inside the typical range':'above the typical range');
+    d.resDiff=S.reserve-MED; d.asDiff=S.assess-MED;
+    d.asPos = S.assess<LOW||S.assess>HIGH?'outside the observed range of completed sales':(S.assess>MED?'above the market median':(S.assess<MED?'below the market median':'at the market median'));
+    d.ims = S.docs==='received'?'IMS bearing and clutch replaced in 2021, with invoices on file.':'The seller reports the IMS bearing and clutch were replaced in 2021. Invoices have not yet been received, so this is unverified.';
+    d.imsShort = S.docs==='received'?'documented':'reported by the seller, not yet documented';
+    d.milesTxt = S.miles.toLocaleString('en-US')+' miles';
+    d.milesPos = S.miles<50000?'is lower than most of the group; cars under 50,000 miles sold for about $4,000 more than the 50,000 to 75,000 group.':(S.miles<=75000?'is average for the group. Cars under 50,000 miles sold for about $4,000 more.':'is higher than most of the group, which sat between 50,000 and 75,000 miles.');
+    d.milesVer = S.milesVerified?'verified from the odometer photograph':'as stated by the seller, not yet verified';
+    d.cond = {Concours:'We reviewed the car as Concours from the photographs supplied. This is a strong claim for a driver of this mileage and should be confirmed by inspection before listing.',Excellent:'We reviewed the car as Excellent for its age and mileage from the photographs supplied. A pre sale inspection is recommended before listing.',Good:'We reviewed the car as Good from the photographs supplied: a well kept driver with minor cosmetic wear. A pre sale inspection is recommended before listing.',Fair:'We reviewed the car as Fair from the photographs supplied, with needs the listing should disclose.'}[S.cond];
+    d.selected = comps.filter(function(c){return S.excluded.indexOf(c.id)<0}).slice(0,4);
+    d.limits=[];
+    if(S.docs!=='received') d.limits.push('Service invoices for the 2021 work have not been provided. Including them typically helps bidding.');
+    if(!S.milesVerified) d.limits.push('Mileage is as stated by the seller and has not yet been verified.');
+    d.limits.push(d.milesTxt+' '+d.milesPos);
+    if(S.factors.chip||true) d.limits.push('A small chip on the front bumper, visible in the photographs.');
+    d.strengths=[];
+    if(S.factors.manual) d.strengths.push({t:'Manual gearbox',s:'Manual cars sold for about $6,000 more than Tiptronic cars over the period.'});
+    if(S.factors.ims) d.strengths.push({t:'IMS bearing and clutch',s:d.ims});
+    if(S.factors.owners) d.strengths.push({t:'Two owners from new',s:'Clean California title. Supports buyer confidence.'});
+    d.strengths.push({t:'Ocean Blue over Graphite',s:'A sought after factory combination.'});
+    d.canFinal = S.milesVerified && S.docs!=='outstanding' && $('why').value.trim().length>=20 && $('resWhy').value.trim().length>=20 && (S.assess>=LOW&&S.assess<=HIGH ? true : $('why').value.trim().length>=60) && S.reserve<=Q3;
+    return d;
+  }
+
+  /* static bar positions */
+  $('iqr').style.left=pct(Q1)+'%'; $('iqr').style.width=(pct(Q3)-pct(Q1))+'%';
+  $('medmk').style.left=pct(MED)+'%'; $('askmk').style.left=pct(ASK)+'%';
+  $('lq1').style.left=pct(Q1)+'%'; $('lmed').style.left=pct(MED)+'%'; $('lq3').style.left=pct(Q3)+'%';
+
+  function touch(){ if(S.finalized) return; $('saveState').textContent='Saving…'; clearTimeout(touch.t); touch.t=setTimeout(function(){ var t=new Date(); $('saveState').textContent='Saved '+t.getHours()+':'+String(t.getMinutes()).padStart(2,'0') },700) }
+  function addAudit(k,t){ var n=new Date(); var el=document.createElement('div'); el.innerHTML='<span class="t">Nov 8 '+n.getHours()+':'+String(n.getMinutes()).padStart(2,'0')+'</span><b>'+esc(k)+'</b> '+esc(t); $('audit').prepend(el) }
+
+  function render(){
+    var d=D();
+    $('amk').style.left=pct(S.assess)+'%'; $('arng').style.left=pct(Math.min(S.lo,S.hi))+'%'; $('arng').style.width=Math.abs(pct(S.hi)-pct(S.lo))+'%'; $('rmk').style.left=pct(S.reserve)+'%';
+    ['hAssess','cAssess','dAssess'].forEach(function(i){$(i).textContent=money(S.assess)});
+    ['hReserve','cReserve','dRes'].forEach(function(i){$(i).textContent=money(S.reserve)});
+    $('hAssessR').textContent='Range '+money(S.lo)+' to '+money(S.hi);
+    $('hAssessD').textContent=money(Math.abs(d.asDiff))+(d.asDiff>=0?' above':' below')+' market reference';
+    $('dDiff').textContent=signed(d.asDiff);
+    $('dExplain').textContent='Assessment is '+d.asPos+'. '+(S.factors.ims?'IMS and clutch work is '+d.imsShort+'. ':'')+'Mileage '+d.milesVer+'.';
+    var inside=S.assess>=LOW&&S.assess<=HIGH;
+    $('assessHint').textContent=inside?'Inside the observed range of completed sales.':'Outside the observed range. A specific explanation of at least a few sentences is required before finalizing.';
+    $('assessHint').className='hint'+(inside?'':' warn');
+    $('hReserveD').textContent=money(Math.abs(d.resDiff))+(d.resDiff>=0?' above':' below')+' market reference';
+    $('hReservePos').textContent=d.resPos.charAt(0).toUpperCase()+d.resPos.slice(1);
+    $('dResDiff').textContent=signed(d.resDiff);
+    $('dResExplain').textContent='Reserve is '+d.resPos+' and '+money(Math.abs(S.reserve-S.assess))+(S.reserve<=S.assess?' below':' above')+' your assessment.'+(S.sellerAgreed?' Seller agreement recorded.':' Seller agreement not recorded.');
+    var rh='',w=false;
+    if(S.reserve>Q3){rh='Above the typical range. Few comparable cars cleared this. Finalize is blocked until the reserve is reconsidered or the rationale explains it.';w=true}
+    else if(S.reserve>S.assess){rh='Above your own assessment. Explain the strategy or the seller requirement.';w=true}
+    else rh='Reserve is '+d.resPos+'.';
+    $('resHint').textContent=rh; $('resHint').className='hint'+(w?' warn':'');
+    /* mileage */
+    $('specMiles').textContent=S.miles.toLocaleString('en-US');
+    $('milesFactor').textContent=d.milesTxt+' '+d.milesPos;
+    $('milesVer').textContent=S.milesVerified?'Verified':'Not confirmed'; $('milesVer').className='e '+(S.milesVerified?'ver':'unv');
+    $('imsVer').textContent=S.docs==='received'?'Documented':'Seller stated'; $('imsVer').className='e '+(S.docs==='received'?'ver':'unv');
+    /* review status */
+    var openN=(S.milesVerified?0:1)+(S.docs==='outstanding'?1:0);
+    $('cReview').textContent=openN?openN+(openN===1?' item needs review':' items need review'):'Review complete'; $('cReview').className='rv'+(openN?'':' ok');
+    $('rd1').className=S.milesVerified?'':'no'; $('rd1').textContent=S.milesVerified?'Mileage verified from odometer photograph.':'Mileage not confirmed.';
+    $('rd2').className=S.docs==='outstanding'?'no':''; $('rd2').textContent=S.docs==='received'?'Service invoices received.':(S.docs==='requested'?'Service invoices requested. Report states the work is seller reported.':'Service documentation outstanding.');
+    $('rd3').className=inside?'':'no'; $('rd4').className=S.reserve<=Q3?'':'no'; $('rd4').textContent=S.reserve<=Q3?'Reserve recorded with rationale.':'Reserve above the typical range. Needs reconsideration.';
+    $('rd5').textContent='4 photographs chosen. '+d.selected.length+' comparables selected for the report.';
+    $('bFin').disabled=!d.canFinal||S.finalized;
+    $('finHint').textContent=S.finalized?'Locked as version 1.':(d.canFinal?'Ready. Finalizing locks version 1.':'Finalize unlocks when review items are resolved and figures are explained.');
+    $('exCount').textContent=S.excluded.length;
+    $('curSet').textContent=S.excluded.length?(26-S.excluded.length)+' sales in the report set · market reference recomputed by the engine only for "Market calc" exclusions':'26 sales · median $41,000 · no exclusions';
+    renderReport(d);
+  }
+
+  function renderReport(d){
+    var wm=S.finalized?'':'<div class="wm">DRAFT</div>';
+    var ft=function(n){return '<div class="ft"><span>Hagerty Marketplace · Prepared by J. Park · '+(S.finalized?'Version 1':'Draft preview')+'</span><span>Page '+n+' of 4</span></div>'};
+    $('derive').innerHTML=
+      '<div><b>Derived from case state</b>Every sentence below comes from the fields on the left. Change one there and it changes here.</div>'+
+      '<div><b>IMS and clutch</b><span class="'+(S.docs==='received'?'':'w')+'">'+(S.docs==='received'?'Documented':'Seller reported, invoices outstanding')+'</span></div>'+
+      '<div><b>Mileage</b><span class="'+(S.milesVerified?'':'w')+'">'+S.miles.toLocaleString('en-US')+' · '+(S.milesVerified?'verified':'not verified')+'</span></div>'+
+      '<div><b>Reserve</b>'+money(S.reserve)+' · '+d.resPos+(S.sellerAgreed?' · seller agreed':' · seller agreement not recorded')+'</div>';
+    var p1='<div class="pg">'+wm+'<div class="p1hero"><div class="hd"><div class="logo">Hagerty</div><span>Market assessment · HM-24117 · November 8 2026</span></div><span class="tag">Seller photograph 1 of 4 · sample tile</span>'+
+      '<div class="idb"><h2>1999 Porsche 911 Carrera</h2><span class="eyebrow">996 · Coupe · 6 speed manual · '+d.milesTxt+' · Ocean Blue over Graphite · Two owners</span></div></div>'+
+      '<div class="in"><div class="recs"><div><span class="eyebrow">Likely selling price</span><div class="v num" style="margin-top:6px">'+money(S.lo)+' to '+money(S.hi)+'</div><p class="d">From 26 comparable 996 Carrera coupes sold at auction between November 2024 and October 2025. The market median was $41,000.</p></div>'+
+      '<div><span class="eyebrow">Recommended reserve</span><div class="v num" style="margin-top:6px">'+money(S.reserve)+'</div><p class="d">A recommendation, not a guaranteed price. It sits '+d.resPos+' of recent sales. '+esc($('resWhy').value.trim())+'</p></div></div>'+
+      '<p class="lead">'+esc($('why').value.trim())+' '+(S.docs==='received'?'The 2021 IMS bearing and clutch invoices are on file and will go in the listing.':'Service invoices for the 2021 work would strengthen the listing.')+' We suggest a seven day auction with a reserve of '+money(S.reserve)+'.</p></div>'+ft(1)+'</div>';
+    var dots=[28000,30500,33000,34500,35000,36250,37000,38000,39000,39500,40500,41000,41000,41500,42750,43250,44000,45500,46000,47500,48500,50000,52000,55000,58000,62000].map(function(v){return '<i style="left:'+pct(v)+'%"></i>'}).join('');
+    var p2='<div class="pg">'+wm+'<div class="in"><div class="hd"><div class="logo">Hagerty</div><span>Why we recommend it</span></div><h2>Where your car sits among real sales</h2>'+
+      '<div class="p2bar"><div class="dots">'+dots+'</div><div class="tr"></div><div class="iq" style="left:'+pct(Q1)+'%;width:'+(pct(Q3)-pct(Q1))+'%"></div><div class="md" style="left:'+pct(MED)+'%"></div><div class="ar" style="left:'+pct(S.lo)+'%;width:'+(pct(S.hi)-pct(S.lo))+'%"></div><div class="rs" style="left:'+pct(S.reserve)+'%"></div>'+
+      '<span class="lab top an" style="left:'+pct((S.lo+S.hi)/2)+'%">Your car '+money(S.lo)+' to '+money(S.hi)+'</span>'+
+      '<span class="lab bot l" style="left:0">$28,000 lowest</span><span class="lab bot ev" style="left:'+pct(MED)+'%">Median $41,000</span><span class="lab bot an" style="left:'+pct(S.reserve)+'%;margin-top:14px">Reserve '+money(S.reserve)+'</span><span class="lab bot r" style="left:100%">$62,000 highest</span></div>'+
+      '<p class="small mute">Each dot is one completed sale. The shaded band is the middle half, $34,500 to $48,500. Your assessed range is '+d.asPos+'.</p>'+
+      '<div class="sc"><div class="col"><h3>What supports it</h3>'+d.strengths.map(function(s){return '<div class="it"><span class="ic">+</span><div><b>'+esc(s.t)+'</b><span>'+esc(s.s)+'</span></div></div>'}).join('')+'</div>'+
+      '<div class="col"><h3>What to consider</h3>'+d.limits.map(function(s){return '<div class="it c"><span class="ic">!</span><div><span>'+esc(s)+'</span></div></div>'}).join('')+'</div></div>'+
+      '<div class="cndbox"><span class="big">'+esc(S.cond)+'</span><span>'+esc(d.cond)+' Condition is a review category, not a precise grade.</span></div></div>'+ft(2)+'</div>';
+    var p3='<div class="pg">'+wm+'<div class="in"><div class="hd"><div class="logo">Hagerty</div><span>The cars that support it</span></div><h2>'+(d.selected.length===4?'Four':d.selected.length)+' recent sales closest to your car</h2><div class="cgrid">'+
+      d.selected.map(function(c){return '<div class="cc"><div class="im'+(c.photo?'':' none')+'">'+(c.photo?'':'Listing photograph not available for this sale')+'</div><div class="l1"><span class="pr num">'+money(c.price)+'</span><span class="m">'+esc(c.venue)+' · '+esc(c.date)+'</span></div><div class="nm">'+esc(c.name)+' · '+esc(c.miles)+'</div><div class="w">'+esc(c.why)+'</div><a href="'+c.url+'" target="_blank" rel="noopener">View the original listing</a></div>'}).join('')+
+      '</div><p class="small mute">Selected from 26 completed sales of 996 Carrera coupes with a manual gearbox, November 2024 to October 2025. Prices are final results as reported by each platform.</p></div>'+ft(3)+'</div>';
+    var p4='<div class="pg">'+wm+'<div class="in"><div class="hd"><div class="logo">Hagerty</div><span>Market context and next steps</span></div><div class="p4"><div><h3>How the market has moved</h3><div class="mini"><i style="height:62%"><span>$38,500</span></i><i style="height:66%"><span>$39,750</span></i><i class="gap" style="height:30%"></i><i style="height:74%"><span>$42,250</span></i><i style="height:70%"><span>$41,500</span></i></div><div class="axis"><span>Q4 2024</span><span>Q3 2025</span><span>Oct 2025</span></div><p class="small mute" style="margin-top:6px">Quarterly median of the comparable sales. Spring 2025 had too few sales to show. Prices were steady over the period. Evidence runs to October 21 2025.</p>'+
+      '<h3 style="margin-top:16px">On the market now</h3><div class="live"><div><span>1999 Carrera, 48k, manual · Bring a Trailer</span><span class="t">Bid $38,250</span></div><div><span>2000 Carrera, 71k, manual · Cars &amp; Bids</span><span class="t">Bid $31,000</span></div><div><span>1999 Carrera 4, 39k, Tiptronic · Dealer</span><span class="t">Asking $46,900</span></div><div><span>2001 Carrera, 55k, manual · Bring a Trailer, October</span><span class="t">Not sold at $39,000</span></div></div><p class="small mute" style="margin-top:6px">Bids and asking prices are not completed sales and are not in the figures above.</p></div>'+
+      '<div class="nx"><h3>What we suggest next</h3><ol>'+(S.docs==='received'?'':'<li>Send the invoices for the 2021 IMS bearing and clutch work so they can go in the listing.</li>')+'<li>Book a pre sale inspection; a clean report lifts bidder confidence on a 996.</li><li>Have the bumper chip touched up if it can be done well before photography.</li><li>List for seven days with a reserve of '+money(S.reserve)+'. We will advise on timing once the inspection is back.</li></ol>'+
+      '<h3 style="margin-top:16px">Please note</h3><p class="small">This assessment uses completed auction sales available to us up to October 21 2025 and the information and photographs you supplied'+(S.milesVerified?'':', including the mileage as stated')+'. It is a recommendation to inform your selling decision, not a guarantee of any price. No matching prior auction record for this car was found in the data available to us.</p>'+
+      '<div class="contact"><div><b>J. Park</b><br>Marketplace analyst<br>jpark at hagerty dot com</div><div><b>Hagerty Marketplace</b><br>Reference HM-24117<br>'+(S.finalized?'Version 1':'Draft')+' · November 8 2026</div></div></div></div></div>'+ft(4)+'</div>';
+    $('pages').innerHTML=p1+p2+p3+p4; $('pages').style.display='grid'; $('pages').style.gap='22px';
+  }
+
+  /* inputs */
+  function link(a,b,key){ a.addEventListener('input',function(){ b.value=a.value; S[key]=+a.value||0; render(); touch() }); b.addEventListener('input',function(){ a.value=b.value; S[key]=+b.value||0; render(); touch() }) }
+  link($('assess'),$('assessSl'),'assess'); link($('reserve'),$('reserveSl'),'reserve');
+  $('rLo').addEventListener('input',function(){S.lo=+this.value||0;render();touch()}); $('rHi').addEventListener('input',function(){S.hi=+this.value||0;render();touch()});
+  ['why','resWhy'].forEach(function(id){ $(id).addEventListener('input',function(){render();touch()}) });
+  $('sellerAgreed').addEventListener('change',function(){ S.sellerAgreed=this.checked; addAudit('Seller agreement',this.checked?'recorded for reserve '+money(S.reserve)+'.':'removed.'); render(); touch() });
+  $('milesIn').addEventListener('change',function(){ var v=parseInt(String(this.value).replace(/[^0-9]/g,''),10); if(!v) return; S.miles=v; S.milesVerified=false; $('milSrc').textContent='Analyst corrected, not confirmed'; $('milSrc').className='src miss'; $('o1').classList.remove('done'); $('n1').classList.remove('done'); addAudit('Mileage','corrected to '+v.toLocaleString('en-US')+'. Verification reset.'); render(); touch() });
+
+  document.querySelectorAll('[data-go]').forEach(function(el){ el.addEventListener('click',function(){ showTab('dec'); var f=el.getAttribute('data-go')==='assess'?$('fAssess'):$('fReserve'); f.scrollIntoView({block:'center'}); f.classList.remove('flash'); void f.offsetWidth; f.classList.add('flash'); f.querySelector('input[type=number]').focus() }) });
+
+  document.querySelectorAll('[data-resolve]').forEach(function(b){ b.addEventListener('click',function(){ S.milesVerified=true; $('n1').classList.add('done'); $('n1').querySelector('.w').textContent='Done'; b.remove(); $('o1').classList.add('done'); $('milSrc').textContent='Analyst verified'; $('milSrc').className='src ver'; addAudit('Mileage','verified from odometer photo 7.'); render(); touch() }) });
+  document.querySelectorAll('[data-docs]').forEach(function(b){ b.addEventListener('click',function(){ var m=b.getAttribute('data-docs'); S.docs=m; var row=$('n2'); row.classList.add('done'); row.querySelector('.w').textContent=m==='received'?'Done':'Waived'; row.querySelector('.a').remove(); $('o2').classList.add('done');
+    if(m==='received'){ $('docSrc').textContent='Invoices on file'; $('docSrc').className='src ver'; $('docCount').textContent='3 received'; $('docList').textContent='Title scan (clean, California). IMS bearing invoice, Mar 2021. Clutch invoice, Mar 2021.'; addAudit('Documents','IMS and clutch invoices received and attached.') }
+    else { $('docSrc').textContent='Requested, seller stated'; addAudit('Documents','requested from seller. Report wording set to seller reported.') }
+    render(); touch() }) });
+
+  var cnotes={Concours:'Concours is a strong claim for a 61,400 mile driver. The selected sales include no car presented this way; expect to justify it with inspection evidence.',Excellent:'Suggested Good from the photos: a driver with a bumper chip. You moved it to Excellent. The selected sales do not separate Excellent from Good cleanly enough to show a price difference, so the category informs your assessment rather than setting a figure.',Good:'Matches the suggestion from the photos. Most of the 26 sales were presented at this level.',Fair:'Below the suggestion. Say what you saw; comparables with disclosed needs will be weighted in.'};
+  $('condnote').textContent=cnotes.Excellent;
+  document.querySelectorAll('#cond button').forEach(function(b){ b.addEventListener('click',function(){ document.querySelectorAll('#cond button').forEach(function(x){x.classList.remove('on')}); b.classList.add('on'); S.cond=b.getAttribute('data-c'); $('condnote').textContent=cnotes[S.cond]; addAudit('Condition','set to '+S.cond+'.'); render(); touch() }) });
+
+  document.querySelectorAll('.f .chk').forEach(function(c){ function t(){ var f=c.parentElement; f.classList.toggle('on'); var on=f.classList.contains('on'); c.setAttribute('aria-checked',on); S.factors[f.getAttribute('data-k')]=on; render(); touch() } c.addEventListener('click',t); c.addEventListener('keydown',function(e){ if(e.key===' '||e.key==='Enter'){e.preventDefault();t()} }) });
+
+  document.querySelectorAll('.exscope button').forEach(function(b){ b.addEventListener('click',function(){ b.parentElement.querySelectorAll('button').forEach(function(x){x.classList.remove('on')}); b.classList.add('on') }) });
+  document.querySelectorAll('[data-ex]').forEach(function(b){ b.addEventListener('click',function(){ $('exf-'+b.getAttribute('data-ex')).classList.toggle('on') }) });
+  document.querySelectorAll('[data-exok]').forEach(function(b){ b.addEventListener('click',function(){
+    var id=b.getAttribute('data-exok'), f=$('exf-'+id), inp=f.querySelector('input'), scope=f.querySelector('.exscope .on').textContent;
+    if(inp.value.trim().length<8){ inp.focus(); inp.placeholder='A meaningful reason is required'; return }
+    var tr=f.closest('tr'); tr.classList.add('ex'); f.classList.remove('on'); var xb=tr.querySelector('[data-ex]'); xb.textContent='Excluded ('+scope+')'; xb.disabled=true;
+    if(scope!=='Note only') S.excluded.push(id);
+    addAudit('Comparable excluded',tr.children[1].childNodes[0].textContent+' · scope: '+scope+' · "'+inp.value.trim()+'". Original record unchanged.'); render(); touch();
+  }) });
+
+  $('bSave').addEventListener('click',touch);
+  $('bPrev').addEventListener('click',function(){ location.hash='report' });
+  $('bFin').addEventListener('click',function(){ var n=new Date(); S.finalized=true; $('finTime').textContent=n.getHours()+':'+String(n.getMinutes()).padStart(2,'0'); $('finBox').classList.add('on'); $('caseStatus').textContent='Finalized · v1'; clearInterval(tick); addAudit('Finalized','version 1 after '+$('timer').textContent+' handling time.'); $('saveState').textContent='Locked · v1'; render() });
+
+  /* tabs and sticky collapse */
+  function showTab(k){ document.querySelectorAll('.tabs button').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-tab')===k)}); ['veh','ev','dec'].forEach(function(p){ $('pane-'+p).hidden=p!==k }); if(k!=='veh') $('stick').classList.add('on'); else collapseCheck() }
+  document.querySelectorAll('.tabs button').forEach(function(b){ b.addEventListener('click',function(){ showTab(b.getAttribute('data-tab')) }) });
+  function collapseCheck(){ var r=$('sumx').getBoundingClientRect(); var active=document.querySelector('.tabs button.on').getAttribute('data-tab'); $('stick').classList.toggle('on', r.bottom<=8 || active!=='veh') }
+  window.addEventListener('scroll',collapseCheck,{passive:true});
+
+  /* handling clock, demonstration */
+  var secs=372; var tick=setInterval(function(){ secs++; $('timer').textContent=String(Math.floor(secs/60)).padStart(2,'0')+':'+String(secs%60).padStart(2,'0') },1000);
+
+  function route(){ var h=(location.hash||'#workspace').replace('#',''); var rp=h==='report'; $('view-ws').hidden=rp; $('view-rp').hidden=!rp; $('nv-ws').classList.toggle('on',!rp); $('nv-rp').classList.toggle('on',rp); if(rp) render() }
+  window.addEventListener('hashchange',route); route(); render(); collapseCheck();
+})();
+</script>

@@ -5,6 +5,7 @@
 // second manual run. Runs in the nightly GitHub Action right after "Refresh spec market cache". Archive
 // only, ZERO OldCarsData. Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
 import { specPage, allSpecSlugs911 } from "../lib/specPages.js";
+import { runAsCaller } from "../lib/_caller.js";
 
 const env = { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY };
 if (!env.supabaseUrl || !env.supabaseKey) { console.error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required"); process.exit(1); }
@@ -27,9 +28,9 @@ async function upsert(slug) {
   });
   if (r.ok) { ok++; if (page.indexable) indexable++; } else { failed++; console.error(`FAILED ${slug}: ${r.status} ${(await r.text()).slice(0, 160)}`); }
 }
-await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
+await runAsCaller("build", () => Promise.all(Array.from({ length: CONCURRENCY }, async () => {   // caller attribution (lane-b-archiveread step e)
   while (next < slugs.length) { const i = next++; try { await upsert(slugs[i]); } catch (e) { failed++; console.error(`ERROR ${slugs[i]}: ${e.message}`); } }
-}));
+})));
 
 const secs = Math.round((Date.now() - t0) / 1000);
 console.log(`spec_pages: wrote ${ok}/${slugs.length} (indexable ${indexable}), failed ${failed}, ${secs}s`);

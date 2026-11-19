@@ -7,6 +7,7 @@
 //     node scripts/pullSources.js hagerty pcarmarket
 
 import { callOldCarsData } from "../lib/_ocd.js";
+import { rawColumnsOf } from "../lib/_rawColumns.js";
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 
 const DISPLAY = { hagerty: "Hagerty", pcarmarket: "PCARMarket", acc: "All Collector Cars", gooding: "Gooding & Co", rmsothebys: "RM Sotheby's", bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids" };
@@ -31,6 +32,7 @@ const inWindow = d => d && d >= cutoff && (!ONLY_MONTH || d.toISOString().slice(
 function toFullRow(r, label) {
   const d = toDate(r.auction_end_date);
   return {
+    ...rawColumnsOf(r),   // docs/supabase-raw-columns.sql Block 4 (off unless INGEST_RAW_COLUMNS=1)
     source_id: String(r.id ?? ""), sale_date: d ? d.toISOString().slice(0, 10) : null, platform: label,
     make: (r.ocd_make_name || r.listing_make || "Unknown").toString().trim(),
     model: (r.ocd_model_name || r.listing_model || "Unknown").toString().trim(),

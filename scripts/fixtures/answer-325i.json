@@ -1,0 +1,828 @@
+{
+ "status": "one_box",
+ "resolvedCar": {
+  "year": 2006,
+  "make": "BMW",
+  "model": "325i",
+  "trim": null,
+  "genCode": null,
+  "badge": null,
+  "bodyStyle": "sedan",
+  "transmission": null,
+  "nameModel": "325i",
+  "familyLabel": "325i",
+  "applied": {
+   "body": "sedan",
+   "trim": null
+  }
+ },
+ "resolvedSpec": "Comparing the 2006 325i with equivalent 2004 to 2008 325i Sedan sales.",
+ "dedup": {
+  "collectExcluded": false,
+  "t0": 1793126643482,
+  "marks": [
+   [
+    "thin_checked",
+    361
+   ],
+   [
+    "pool_chosen",
+    445
+   ],
+   [
+    "pool_built",
+    448
+   ],
+   [
+    "result_built",
+    454
+   ],
+   [
+    "body_refine_start",
+    455
+   ],
+   [
+    "body_bare_pool",
+    460
+   ],
+   [
+    "done",
+    575
+   ]
+  ],
+  "accentUnion": true,
+  "ms": 242,
+  "queries": 3,
+  "fetchedRaw": 556,
+  "fetchedDeduped": 538,
+  "fetches": [
+   {
+    "titleContains": null,
+    "yearMin": 2004,
+    "yearMax": 2008,
+    "since": "2024-10-27",
+    "houseTier": false,
+    "raw": 94,
+    "ms": 160,
+    "filter": "sales_archive?make=ilike.BMW&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.2024-10-27&year=gte.2004&year=lte.2008&order=sale_date.desc,id.asc",
+    "byModel": "325i",
+    "byTitle": null,
+    "queryError": false
+   },
+   {
+    "titleContains": null,
+    "yearMin": 2004,
+    "yearMax": 2008,
+    "since": "2021-10-28",
+    "houseTier": true,
+    "raw": 231,
+    "ms": 120,
+    "filter": "sales_archive?make=ilike.BMW&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.2021-10-28&year=gte.2004&year=lte.2008&order=sale_date.desc,id.asc",
+    "byModel": "325i",
+    "byTitle": null,
+    "queryError": false
+   },
+   {
+    "titleContains": null,
+    "yearMin": 2004,
+    "yearMax": 2008,
+    "since": "2021-10-28",
+    "houseTier": false,
+    "raw": 231,
+    "ms": 2,
+    "filter": "sales_archive?make=ilike.BMW&sale_price=not.is.null&vehicle_type=eq.car&sale_date=gte.2021-10-28&year=gte.2004&year=lte.2008&order=sale_date.desc,id.asc",
+    "byModel": "325i",
+    "byTitle": null,
+    "queryError": false
+   }
+  ],
+  "deltaReads": 2,
+  "memoHits": 2,
+  "xtraFetchMs": 55,
+  "xtraEnriched": 79,
+  "bodyShare": {
+   "share": 5,
+   "months": 12
+  }
+ },
+ "vehicle": {
+  "make": "BMW",
+  "model": "325i",
+  "trim": "",
+  "year": 2006
+ },
+ "exactSale": null,
+ "subjectMileage": null,
+ "familyCoverageNote": null,
+ "inlineSplits": null,
+ "htMeta": {
+  "isThin": false,
+  "houseSteer": false,
+  "onlineN": 211,
+  "onlineReceiptsN": 211,
+  "houseN": 2,
+  "totalN": 213,
+  "windowMonths": 60,
+  "variantAside": null,
+  "variantAsides": [],
+  "variantOptionsLine": null,
+  "setAsideRows": [
+   {
+    "id": "93f9d364-cfb3-45ef-83cf-91a19db3d058",
+    "country": "US",
+    "countryBasis": "country_code",
+    "vinNorm": "WBAVB13516PS66380",
+    "make": "BMW",
+    "model": "3-Series",
+    "price": 58500,
+    "mi": 38000,
+    "mileageText": "38,000 mi",
+    "platform": "Bring a Trailer",
+    "platformSlug": "bringatrailer",
+    "platformName": "Bring a Trailer",
+    "date": "2023-02-02",
+    "month": "Feb 2023",
+    "transmission": "(7-speed)",
+    "title": "2006 BMW 325i Hartge H50 V10",
+    "image": "https://bringatrailer.com/wp-content/uploads/2022/11/HARTGE-H50-V10-40275_68-84482-scaled.jpg",
+    "url": "https://bringatrailer.com/listing/2006-bmw-hartge-h50-v10/",
+    "hollow": false,
+    "reason": "odd sale",
+    "setAside": true
+   }
+  ],
+  "setAsideN": 1
+ },
+ "platformsCount": 4,
+ "variantAsides": [],
+ "variantOptionsLine": null,
+ "variantAside": null,
+ "gearboxApplies": true,
+ "windowLabel": "last three years",
+ "windowMonthsChosen": 36,
+ "tier": "result",
+ "ladderStep": "base",
+ "widening": null,
+ "soldCount": 10,
+ "soldCountN": 10,
+ "windowMonths": 32,
+ "windowStart": "2024-02-29",
+ "windowWords": "since February 2024",
+ "quarterlyBands": null,
+ "rowsNotShownCount": null,
+ "yoyDirection": null,
+ "setAsideCount": 0,
+ "setAsideCountN": 0,
+ "setAsideReasons": null,
+ "setAsideLabels": null,
+ "setAsideRows": [],
+ "qualifyingTotal": 10,
+ "counts": {
+  "qualifying": 10,
+  "used": 10,
+  "setAside": {
+   "total": 0,
+   "aboveRange": 0,
+   "belowRange": 0,
+   "reasons": null
+  }
+ },
+ "bodyScoped": null,
+ "referenceFigure": {
+  "amount": 7750,
+  "rangeLow": 6500,
+  "rangeHigh": 9000,
+  "salesCount": 10,
+  "windowLabel": "last three years",
+  "confidence": "medium",
+  "basis": "The midpoint of the range most sales landed in, across 10 sales over last three years."
+ },
+ "referenceFigureReason": null,
+ "mileageFallback": null,
+ "mileageNotNarrowed": null,
+ "mileageNote": null,
+ "nearestInMiles": null,
+ "poolTrim": null,
+ "poolYears": [
+  2006,
+  2006
+ ],
+ "rangeTier": "band",
+ "olderOutside": null,
+ "span": [
+  3000,
+  10000
+ ],
+ "cluster": [
+  6500,
+  9000
+ ],
+ "direction": null,
+ "driver": null,
+ "divergence": null,
+ "newestSale": "2026-10-19",
+ "houseLed": false,
+ "spanOnly": false,
+ "poolN": 10,
+ "setAsideTags": [],
+ "platforms": [
+  "Bring a Trailer",
+  "Cars & Bids"
+ ],
+ "topPlatform": "Bring a Trailer",
+ "singlePlatform": false,
+ "earned": {
+  "kind": "mileage",
+  "buckets": [
+   {
+    "label": "under 50k",
+    "min": 0,
+    "max": 50000
+   },
+   {
+    "label": "50k to 70k",
+    "min": 50000,
+    "max": 70000
+   },
+   {
+    "label": "70k to 80k",
+    "min": 70000,
+    "max": 80000
+   },
+   {
+    "label": "over 80k",
+    "min": 80000,
+    "max": null
+   }
+  ]
+ },
+ "driverSentence": null,
+ "bodyOptions": null,
+ "bodyUnspecified": 0,
+ "trimQuestion": null,
+ "observeOffer": [],
+ "observeAside": null,
+ "driverDiag": {
+  "wideBand": false,
+  "band": null,
+  "candidates": [],
+  "dict": []
+ },
+ "refined": {
+  "label": null,
+  "mileage": false,
+  "narrowed": true,
+  "tx": null,
+  "driver": null,
+  "body": "sedan",
+  "trim": null,
+  "docHistory": null
+ },
+ "halfGeneration": null,
+ "samsTake": null,
+ "samsTakeSkipReason": "pool tier band below the 16-sale cluster tier",
+ "cards": [
+  {
+   "id": "da13f301-ef45-4fb6-ad84-4369dc00dbf2",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "WBAVB17556NK39205",
+   "make": "BMW",
+   "model": "3-Series",
+   "price": 6500,
+   "mi": 76700,
+   "mileageText": "76,700 mi",
+   "platform": "Cars & Bids",
+   "platformSlug": "carsandbids",
+   "platformName": "Cars & Bids",
+   "date": "2026-10-19",
+   "month": "Oct 2026",
+   "transmission": "Automatic (6-speed)",
+   "title": "2006 BMW 325i Sedan",
+   "image": "https://media.carsandbids.com/1477bbe21e8d6b5e719c7c3ccab577fd47dd8cc3/photos/application/s-7IVCdvj/edit/8sxZ3.jpg?t=179150002596",
+   "url": "https://carsandbids.com/auctions/3BjOWOdE/2006-bmw-325i-sedan",
+   "hollow": false,
+   "soldBefore": null,
+   "hasHistoryPage": false
+  },
+  {
+   "id": "eb1fd939-8047-40ef-a542-0b380d1317d6",
+   "country": "US",
+   "countryBasis": "state",
+   "vinNorm": "WBAVB13536PT20584",
+   "make": "BMW",
+   "model": "3-Series",
+   "price": 6600,
+   "mi": 36900,
+   "mileageText": "36,900 mi",
+   "platform": "Cars & Bids",
+   "platformSlug": "carsandbids",
+   "platformName": "Cars & Bids",
+   "date": "2026-05-27",
+   "month": "May 2026",
+   "transmission": "Automatic (6-speed)",
+   "title": "2006 BMW 325i Sedan",
+   "image": "https://media.carsandbids.com/c90d8216a8bf103048db7cf88cd07946ede17b22/photos/exterior/35plzkwj-aPHNSuM/edit/9LXCi.jpg?t=177877887223",
+   "url": "https://carsandbids.com/auctions/98By5m7w/2006-bmw-325i-sedan",
+   "hollow": false,
+   "soldBefore": null,
+   "hasHistoryPage": false
+  },
+  {
+   "id": "f760c1a7-f766-4fc4-b082-2cc2fada5b5c",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "WBAVB13586PT20953",
+   "make": "BMW",
+   "model": "325i",
+   "price": 3301,
+   "mi": 189000,
+   "mileageText": "189,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2026-05-04",
+   "month": "May 2026",
+   "transmission": "Automatic (6-speed)",
+   "title": "2006 BMW 325i Sedan",
+   "image": "https://bringatrailer.com/wp-content/uploads/2026/03/2006_bmw_325i-sedan_IMG_0205-96411-scaled.jpg?fit=940%2C627",
+   "url": "https://bringatrailer.com/listing/2006-bmw-325i-sedan-9/",
+   "hollow": false,
+   "soldBefore": null,
+   "hasHistoryPage": false
+  },
+  {
+   "id": "b2fbfc13-db0f-4cba-965c-cd139094d1d8",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "WBAVB135X6K000157",
+   "make": "BMW",
+   "model": "325i",
+   "price": 9600,
+   "mi": 66000,
+   "mileageText": "66,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2026-04-26",
+   "month": "Apr 2026",
+   "transmission": "Automatic (6-speed)",
+   "title": "2006 BMW 325i Sedan",
+   "image": "https://bringatrailer.com/wp-content/uploads/2026/04/2006_bmw_325i-sedan_dsc05985-94160.jpg?fit=940%2C627",
+   "url": "https://bringatrailer.com/listing/2006-bmw-325i-sedan-10/",
+   "hollow": false,
+   "soldBefore": null,
+   "hasHistoryPage": false
+  },
+  {
+   "id": "c1e689d0-797d-4176-9b01-dde33cfe3d05",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "WBAVD13546KV06707",
+   "make": "BMW",
+   "model": "3-Series",
+   "price": 6550,
+   "mi": 72000,
+   "mileageText": "72,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2026-02-20",
+   "month": "Feb 2026",
+   "transmission": "Automatic (6-speed)",
+   "title": "2006 BMW 325xi Sedan",
+   "image": "https://bringatrailer.com/wp-content/uploads/2026/02/2006_bmw_325xi-sedan_dsc_1214-67702.jpg?fit=940%2C626",
+   "url": "https://bringatrailer.com/listing/2006-bmw-325xi-sedan-6/",
+   "hollow": false,
+   "soldBefore": null,
+   "hasHistoryPage": false
+  },
+  {
+   "id": "94b600ea-6898-4661-82ad-c403a4c38048",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "WBAVD135X6KT80434",
+   "make": "BMW",
+   "model": "3-Series",
+   "price": 8900,
+   "mi": 67000,
+   "mileageText": "67,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2025-06-27",
+   "month": "Jun 2025",
+   "transmission": "Manual (6-speed)",
+   "title": "2006 BMW 325xi Sedan 6-Speed",
+   "image": "https://bringatrailer.com/wp-content/uploads/2025/06/2006_bmw_325xi-sedan_img_9798-76266.jpg",
+   "url": "https://bringatrailer.com/listing/2006-bmw-325xi-sedan-4/",
+   "hollow": false,
+   "soldBefore": null,
+   "hasHistoryPage": false
+  },
+  {
+   "id": "c9164643-a8a4-479f-81eb-29e348ce1c8b",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "WBAVD135X6KT80093",
+   "make": "BMW",
+   "model": "3-Series",
+   "price": 4100,
+   "mi": 81000,
+   "mileageText": "81,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2024-10-29",
+   "month": "Oct 2024",
+   "transmission": "Manual (6-speed)",
+   "title": "2006 BMW 325xi Sport Sedan 6-Speed",
+   "image": "https://bringatrailer.com/wp-content/uploads/2024/10/2006_bmw_325xi-sedan_img_6566-03074.jpeg",
+   "url": "https://bringatrailer.com/listing/2006-bmw-325xi-sedan-3/",
+   "hollow": false,
+   "soldBefore": null,
+   "hasHistoryPage": false
+  },
+  {
+   "id": "4a7c67b2-8151-4250-b91a-cc612cb7fdb9",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "WBAVB13546KX43025",
+   "make": "BMW",
+   "model": "3-Series",
+   "price": 10000,
+   "mi": 30000,
+   "mileageText": "30,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2024-06-24",
+   "month": "Jun 2024",
+   "transmission": "Automatic (6-speed)",
+   "title": "2006 BMW 325i Sedan",
+   "image": "https://bringatrailer.com/wp-content/uploads/2024/06/IMG_3347-26764-scaled.jpg",
+   "url": "https://bringatrailer.com/listing/2006-bmw-325i-sedan-8/",
+   "hollow": false,
+   "soldBefore": null,
+   "hasHistoryPage": false
+  },
+  {
+   "id": "29ff66a7-9908-4a28-8d07-02ece2dd98f2",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "WBAVD13506KV09863",
+   "make": "BMW",
+   "model": "3-Series",
+   "price": 6666,
+   "mi": 50000,
+   "mileageText": "50,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2024-03-21",
+   "month": "Mar 2024",
+   "transmission": "Automatic (6-speed)",
+   "title": "2006 BMW 325xi Sedan",
+   "image": "https://bringatrailer.com/wp-content/uploads/2024/02/IMG_5722-87961-scaled.jpg",
+   "url": "https://bringatrailer.com/listing/2006-bmw-325xi-sedan-2/",
+   "hollow": false,
+   "soldBefore": null,
+   "hasHistoryPage": false
+  },
+  {
+   "id": "84240848-2ff3-4f1f-bcf2-98ab9a93c53c",
+   "country": "US",
+   "countryBasis": "state",
+   "vinNorm": "WBAVD13566KT79989",
+   "make": "BMW",
+   "model": "3-Series",
+   "price": 9000,
+   "mi": 105700,
+   "mileageText": "105,700 mi",
+   "platform": "Cars & Bids",
+   "platformSlug": "carsandbids",
+   "platformName": "Cars & Bids",
+   "date": "2024-02-29",
+   "month": "Feb 2024",
+   "transmission": "Manual (6-speed)",
+   "title": "2006 BMW 325xi Sedan",
+   "image": "https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/9eNNgWld-FOQk7NHXvN-(edit).jpg",
+   "url": "https://carsandbids.com/auctions/36LA5a8P/2006-bmw-325xi-sedan",
+   "hollow": false,
+   "soldBefore": null,
+   "hasHistoryPage": false
+  }
+ ],
+ "asideCards": [],
+ "taggedCards": [],
+ "recent3": [
+  {
+   "id": "f760c1a7-f766-4fc4-b082-2cc2fada5b5c",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "WBAVB13586PT20953",
+   "make": "BMW",
+   "model": "325i",
+   "price": 3301,
+   "mi": 189000,
+   "mileageText": "189,000 mi",
+   "platform": "Bring a Trailer",
+   "platformSlug": "bringatrailer",
+   "platformName": "Bring a Trailer",
+   "date": "2026-05-04",
+   "month": "May 2026",
+   "transmission": "Automatic (6-speed)",
+   "title": "2006 BMW 325i Sedan",
+   "image": "https://bringatrailer.com/wp-content/uploads/2026/03/2006_bmw_325i-sedan_IMG_0205-96411-scaled.jpg?fit=940%2C627",
+   "url": "https://bringatrailer.com/listing/2006-bmw-325i-sedan-9/",
+   "hollow": false
+  },
+  {
+   "id": "eb1fd939-8047-40ef-a542-0b380d1317d6",
+   "country": "US",
+   "countryBasis": "state",
+   "vinNorm": "WBAVB13536PT20584",
+   "make": "BMW",
+   "model": "3-Series",
+   "price": 6600,
+   "mi": 36900,
+   "mileageText": "36,900 mi",
+   "platform": "Cars & Bids",
+   "platformSlug": "carsandbids",
+   "platformName": "Cars & Bids",
+   "date": "2026-05-27",
+   "month": "May 2026",
+   "transmission": "Automatic (6-speed)",
+   "title": "2006 BMW 325i Sedan",
+   "image": "https://media.carsandbids.com/c90d8216a8bf103048db7cf88cd07946ede17b22/photos/exterior/35plzkwj-aPHNSuM/edit/9LXCi.jpg?t=177877887223",
+   "url": "https://carsandbids.com/auctions/98By5m7w/2006-bmw-325i-sedan",
+   "hollow": false
+  },
+  {
+   "id": "da13f301-ef45-4fb6-ad84-4369dc00dbf2",
+   "country": "US",
+   "countryBasis": "country_code",
+   "vinNorm": "WBAVB17556NK39205",
+   "make": "BMW",
+   "model": "3-Series",
+   "price": 6500,
+   "mi": 76700,
+   "mileageText": "76,700 mi",
+   "platform": "Cars & Bids",
+   "platformSlug": "carsandbids",
+   "platformName": "Cars & Bids",
+   "date": "2026-10-19",
+   "month": "Oct 2026",
+   "transmission": "Automatic (6-speed)",
+   "title": "2006 BMW 325i Sedan",
+   "image": "https://media.carsandbids.com/1477bbe21e8d6b5e719c7c3ccab577fd47dd8cc3/photos/application/s-7IVCdvj/edit/8sxZ3.jpg?t=179150002596",
+   "url": "https://carsandbids.com/auctions/3BjOWOdE/2006-bmw-325i-sedan",
+   "hollow": false
+  }
+ ],
+ "contextRoles": {
+  "roles": [
+   {
+    "role": "near the middle of the typical range",
+    "sale": {
+     "id": "29ff66a7-9908-4a28-8d07-02ece2dd98f2",
+     "country": "US",
+     "countryBasis": "country_code",
+     "vinNorm": "WBAVD13506KV09863",
+     "make": "BMW",
+     "model": "3-Series",
+     "price": 6666,
+     "mi": 50000,
+     "mileageText": "50,000 mi",
+     "platform": "Bring a Trailer",
+     "platformSlug": "bringatrailer",
+     "platformName": "Bring a Trailer",
+     "date": "2024-03-21",
+     "month": "Mar 2024",
+     "transmission": "Automatic (6-speed)",
+     "title": "2006 BMW 325xi Sedan",
+     "image": "https://bringatrailer.com/wp-content/uploads/2024/02/IMG_5722-87961-scaled.jpg",
+     "url": "https://bringatrailer.com/listing/2006-bmw-325xi-sedan-2/",
+     "hollow": false
+    }
+   },
+   {
+    "role": "at the lower edge of the typical range",
+    "sale": {
+     "id": "da13f301-ef45-4fb6-ad84-4369dc00dbf2",
+     "country": "US",
+     "countryBasis": "country_code",
+     "vinNorm": "WBAVB17556NK39205",
+     "make": "BMW",
+     "model": "3-Series",
+     "price": 6500,
+     "mi": 76700,
+     "mileageText": "76,700 mi",
+     "platform": "Cars & Bids",
+     "platformSlug": "carsandbids",
+     "platformName": "Cars & Bids",
+     "date": "2026-10-19",
+     "month": "Oct 2026",
+     "transmission": "Automatic (6-speed)",
+     "title": "2006 BMW 325i Sedan",
+     "image": "https://media.carsandbids.com/1477bbe21e8d6b5e719c7c3ccab577fd47dd8cc3/photos/application/s-7IVCdvj/edit/8sxZ3.jpg?t=179150002596",
+     "url": "https://carsandbids.com/auctions/3BjOWOdE/2006-bmw-325i-sedan",
+     "hollow": false
+    }
+   },
+   {
+    "role": "at the upper edge of the typical range",
+    "sale": {
+     "id": "84240848-2ff3-4f1f-bcf2-98ab9a93c53c",
+     "country": "US",
+     "countryBasis": "state",
+     "vinNorm": "WBAVD13566KT79989",
+     "make": "BMW",
+     "model": "3-Series",
+     "price": 9000,
+     "mi": 105700,
+     "mileageText": "105,700 mi",
+     "platform": "Cars & Bids",
+     "platformSlug": "carsandbids",
+     "platformName": "Cars & Bids",
+     "date": "2024-02-29",
+     "month": "Feb 2024",
+     "transmission": "Manual (6-speed)",
+     "title": "2006 BMW 325xi Sedan",
+     "image": "https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=70/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/9eNNgWld-FOQk7NHXvN-(edit).jpg",
+     "url": "https://carsandbids.com/auctions/36LA5a8P/2006-bmw-325xi-sedan",
+     "hollow": false
+    }
+   }
+  ],
+  "sentence": "These three sales were chosen to show where the typical range sits, not for symmetry."
+ },
+ "identityQuestion": null,
+ "trend": null,
+ "distribution": null,
+ "strip": {
+  "sales": [
+   {
+    "date": "2026-10-19",
+    "price": 6500,
+    "miles": 76700,
+    "venue": "Cars & Bids",
+    "id": "da13f301-ef45-4fb6-ad84-4369dc00dbf2"
+   },
+   {
+    "date": "2026-05-27",
+    "price": 6600,
+    "miles": 36900,
+    "venue": "Cars & Bids",
+    "id": "eb1fd939-8047-40ef-a542-0b380d1317d6"
+   },
+   {
+    "date": "2026-05-04",
+    "price": 3301,
+    "miles": 189000,
+    "venue": "Bring a Trailer",
+    "id": "f760c1a7-f766-4fc4-b082-2cc2fada5b5c"
+   },
+   {
+    "date": "2026-04-26",
+    "price": 9600,
+    "miles": 66000,
+    "venue": "Bring a Trailer",
+    "id": "b2fbfc13-db0f-4cba-965c-cd139094d1d8"
+   },
+   {
+    "date": "2026-02-20",
+    "price": 6550,
+    "miles": 72000,
+    "venue": "Bring a Trailer",
+    "id": "c1e689d0-797d-4176-9b01-dde33cfe3d05"
+   },
+   {
+    "date": "2025-06-27",
+    "price": 8900,
+    "miles": 67000,
+    "venue": "Bring a Trailer",
+    "id": "94b600ea-6898-4661-82ad-c403a4c38048"
+   },
+   {
+    "date": "2024-10-29",
+    "price": 4100,
+    "miles": 81000,
+    "venue": "Bring a Trailer",
+    "id": "c9164643-a8a4-479f-81eb-29e348ce1c8b"
+   },
+   {
+    "date": "2024-06-24",
+    "price": 10000,
+    "miles": 30000,
+    "venue": "Bring a Trailer",
+    "id": "4a7c67b2-8151-4250-b91a-cc612cb7fdb9"
+   },
+   {
+    "date": "2024-03-21",
+    "price": 6666,
+    "miles": 50000,
+    "venue": "Bring a Trailer",
+    "id": "29ff66a7-9908-4a28-8d07-02ece2dd98f2"
+   },
+   {
+    "date": "2024-02-29",
+    "price": 9000,
+    "miles": 105700,
+    "venue": "Cars & Bids",
+    "id": "84240848-2ff3-4f1f-bcf2-98ab9a93c53c"
+   }
+  ],
+  "latestSale": {
+   "date": "2026-10-19",
+   "price": 6500,
+   "miles": 76700,
+   "venue": "Cars & Bids",
+   "id": "da13f301-ef45-4fb6-ad84-4369dc00dbf2"
+  }
+ },
+ "fallbackRung": "exact",
+ "rungLabel": "2006 325i and 325xi Sedan",
+ "scopeLabel": "2006 325i and 325xi Sedan",
+ "liveScope": "Comparing live listings to 2006 325i Sedan against $6,500 to $9,000.",
+ "ownSales": null,
+ "freshness": {
+  "mode": "online",
+  "lastNight": false,
+  "through": "2026-10-19",
+  "archiveThrough": "2026-10-26"
+ },
+ "didNotSellCount": "zero",
+ "didNotSellCountN": 0,
+ "readAt": "2026-10-27T18:44:04.056Z",
+ "latestSaleDate": "2026-10-19",
+ "oldestIncludedSaleDate": "2024-02-29",
+ "latestSaleLine": "Latest sale: October 2026.",
+ "includesFromLine": null,
+ "basisLine": "Based on 10 sales over the last 36 months.",
+ "lowestSaleN": 3301,
+ "highestSaleN": 10000,
+ "wideSpread": false,
+ "windowLonger": true,
+ "windowNote": "Based on 10 sales over the last 36 months.",
+ "best_day": null,
+ "reserve_split": null,
+ "thin_sales": null,
+ "scope_reason": null,
+ "refusal_line": null,
+ "answerType": "range",
+ "factsBlock": null,
+ "reasonFlag": null,
+ "siblingName": null,
+ "queryMileage": null,
+ "snapshotId": "1be0b2c6-146e-4354-b49a-ab616115838f",
+ "timings": {
+  "reqStart": 1793126642267,
+  "dbBytes0": 0,
+  "resolveStart": 1793126642640,
+  "resolveMs": 517,
+  "warmReadMs": 138,
+  "engineMs": 1111,
+  "mapMs": 0,
+  "snapshotMs": 73,
+  "warmHit": false,
+  "stale": false,
+  "totalMs": 2429,
+  "dbBytes": 1360804,
+  "marks": [
+   [
+    "thin_checked",
+    361
+   ],
+   [
+    "pool_chosen",
+    445
+   ],
+   [
+    "pool_built",
+    448
+   ],
+   [
+    "result_built",
+    454
+   ],
+   [
+    "body_refine_start",
+    455
+   ],
+   [
+    "body_bare_pool",
+    460
+   ],
+   [
+    "done",
+    575
+   ]
+  ],
+  "fetchMs": [
+   160,
+   120,
+   2
+  ]
+ }
+}

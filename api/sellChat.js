@@ -1,26 +1,31 @@
 // /sell conversation endpoint (Lane C, Oct 2026): POST {action:"chat", messages, state, turns} ->
 // text/event-stream through the shared chat endpoint (lib/live/chatHttp.js). "done" carries the page
 // data the turn produced: places, tiles, the latest sales and a matched PowerSeller.
+import { reasonLine } from "../lib/reasonWords.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { chatOut } from "../lib/live/chatHttp.js";
 import { runSellTurn } from "../lib/sell/sellChat.js";
 import { checkCeiling, followupGuard, sellModelGuard, testLimits, isCrew, CALM } from "../lib/_ceilings.js";
 import { hasServerCredential } from "../lib/_credential.js";
+import { carFromRequest, partialCarOk, withPartialCar } from "../lib/carToken.js";
+import { runAsCaller, callerFor } from "../lib/_caller.js";
 
-export default async function handler(req, res) {
+async function handlerCore(req, res) {
   // SWITCHED OFF (Oct 8 2026, Sam): /sell is back on the previous front page and wizard (api/sellPage.js).
   // The new Sell stays in the repo (lib/sell/ facts engine) but is not reachable by the public: 404 unless
   // SELL_NEXT_ON=1, our header credential (lib/_credential.js; never a key in the address or body) or crew
   // (the preview page, api/sellNext.js) - internal testing only.
   if (process.env.SELL_NEXT_ON !== "1" && !(hasServerCredential(req) || isCrew(req))) return res.status(404).json({ error: "Not found." });
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
-  const env = supabaseEnv();
-  if (!env) return res.status(503).json({ error: "unavailable" });
+  const env0 = supabaseEnv();
+  if (!env0) return res.status(503).json({ error: "unavailable" });
+  // ?car=<v1 token>: the car the page already resolved, per request (a copy of env, never shared); a plain words ?car= is not a token and changes nothing
+  const env = { ...env0, car: carFromRequest(req), partialCar: partialCarOk(req) };
   const b = req.body || {};
   // The one-direction Sell (lib/sell/sellFlow.js). The car questions are Market Check's own (api/sellNext.js
   // serves its page); {action:"flow", step:"result", car, state, how} -> the result; step:"ask" -> follow-up.
   if (b.action === "flow") {
-    const { buildResult, stateOf } = await import("../lib/sell/sellFlow.js");
+    const { buildResult, buildRange, buildRest, stateOf } = await import("../lib/sell/sellFlow.js");
     try {
       if (b.step === "state") return res.status(200).json({ state: stateOf(b.text) });
       // A follow-up question after the result: Claude on the shared chat core, the engine's facts in words.
@@ -37,9 +42,13 @@ export default async function handler(req, res) {
       }
       // The result: open to everyone, under the same invisible ceiling as live /sell's search (one guard).
       if (b.step === "result") { const cred = hasServerCredential(req), lim = testLimits(req, cred); if (!cred || lim) { const ce = await checkCeiling(env, req, "sell_search", { tool: "sell", limits: lim }); if (!ce.ok) return res.status(200).json({ empty: CALM.search, limited: true }); } }
+      // The result in pieces: "range" (one search, under the ceiling like the result) then "rest" (no second count).
+      if (b.step === "range") { const cred = hasServerCredential(req), lim = testLimits(req, cred); if (!cred || lim) { const ce = await checkCeiling(env, req, "sell_search", { tool: "sell", limits: lim }); if (!ce.ok) return res.status(200).json({ empty: CALM.search, limited: true }); } return res.status(200).json(await buildRange(env, { carText: String(b.car || "").slice(0, 300), state: stateOf(b.state) || null, how: ["self", "handled", "house", "unsure"].includes(b.how) ? b.how : "unsure", rush: ["fast", "month", "none"].includes(b.rush) ? b.rush : null }));
+      }
+      if (b.step === "rest") return res.status(200).json(await buildRest(env, { carText: String(b.car || "").slice(0, 300), state: stateOf(b.state) || null, how: ["self", "handled", "house", "unsure"].includes(b.how) ? b.how : "unsure", rush: ["fast", "month", "none"].includes(b.rush) ? b.rush : null }));
       if (b.step === "result") return res.status(200).json(await buildResult(env, { carText: String(b.car || "").slice(0, 300), state: stateOf(b.state) || null, how: ["self", "handled", "house", "unsure"].includes(b.how) ? b.how : "unsure", rush: ["fast", "month", "none"].includes(b.rush) ? b.rush : null }));
       return res.status(400).json({ error: "unknown step" });
-    } catch (e) { console.error("sell flow failed:", (e && e.stack) || e); return res.status(500).json({ error: "Sam couldn't read that just now." }); }
+    } catch (e) { console.error("sell flow failed:", (e && e.stack) || e); return res.status(500).json({ error: "Sam couldn't read that just now.", couldNotLine: reasonLine("cold.missed") }); }   // never a bare error: the page prints the engine's line
   }
   // Probe (header credential): how a car resolves and what each pool step holds.
   if (b.action === "probe" && hasServerCredential(req)) {
@@ -51,9 +60,9 @@ export default async function handler(req, res) {
     const out = { said, v: car.v, generation: car.generation };
     for (const days of [365, 1095]) { const sp = await specPool(car, days); out["pool" + days] = { n: sp.pool.length, step: sp.step, cohort: sp.cohort, spec: sp.spec && { model: sp.spec.model, trim: sp.spec.trim, bodyStyle: sp.spec.bodyStyle, yearMin: sp.spec.yearMin, yearMax: sp.spec.yearMax } }; }
     const hr = await houseReceiptsForVehicle(car.v, car.generation, env).catch(e => ({ err: String(e) }));
-    out.house = hr ? { n: (hr.houseReceipts || []).length, totalN: hr.totalN, err: hr.err } : null;
+    out.house = hr && hr.readFailed ? { readFailed: true, reason: hr.reason } : hr ? { n: (hr.houseReceipts || []).length, totalN: hr.totalN, err: hr.err } : null;
     const hr2 = await houseReceiptsForVehicle({ ...car.v, bodyStyle: null }, car.generation, env).catch(() => null);
-    out.houseNoBody = hr2 ? { n: (hr2.houseReceipts || []).length, totalN: hr2.totalN } : null;
+    out.houseNoBody = hr2 && hr2.readFailed ? { readFailed: true, reason: hr2.reason } : hr2 ? { n: (hr2.houseReceipts || []).length, totalN: hr2.totalN } : null;
     const { placesFor } = await import("../lib/sell/sellFacts.js");
     const pl = await placesFor(car).catch(e => ({ err: String(e) }));
     // How many unsold cars of each reserve kind each place records (24 months), for the reserve tile.
@@ -71,3 +80,6 @@ export default async function handler(req, res) {
   { const mg = await sellModelGuard(env, req); if (!mg.ok) return res.status(200).json(mg.body); }
   return chatOut(res, env, b, { surface: "sell", run: runSellTurn, shape: async out => ({ page: out.page || null, cards: [] }) });
 }
+
+// lane-b-archiveread step e: the entry names its work for caller attribution (lib/_caller.js)
+export default function handler(req, res) { return runAsCaller(callerFor("/api/sellChat", req), () => withPartialCar(req, () => handlerCore(req, res))); }

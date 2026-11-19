@@ -54,4 +54,5 @@ for (const c of cases) {
   }
 }
 console.log(failed ? `\n${failed} case(s) failed.` : "\nAll buildPool/buildResult branches clear.");
+console.log(`buildPoolSmoke: ${failed ? failed + " case(s) failed" : "all branches clear"}`);
 process.exit(failed ? 1 : 0);

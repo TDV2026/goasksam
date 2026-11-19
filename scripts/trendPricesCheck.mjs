@@ -1,3 +1,4 @@
+// Oct 28 2026 (Sam: never dots): this check now asserts the OPPOSITE of the Oct 21 order. A quarter carries its figures and its count and NEVER its sale prices.
 // trendPricesCheck (Lane B, Oct 21 2026, Lane C's ask for Sam's Market Check chart fix (b)): offline, no network. The trend's
 // quarters carry their own sale prices (rounded, sorted, as many as the quarter's count) and the trend carries minForRange (8),
 // both passed through mapEngineAnswer's trendQuarters; the quarter's low, high, typical and count are computed as before.
@@ -15,14 +16,13 @@ const t = ob.runWithAsOf("2026-10-21", () => ob.trendFor(solid, []));
 ok(t && Array.isArray(t.quarters) && t.quarters.length === 4, "four quarters, as before");
 ok(t.minForRange === 8, `the trend carries minForRange 8 (${t.minForRange})`);
 for (const q of t.quarters) {
-  ok(Array.isArray(q.prices) && q.prices.length === q.count, `${q.period}: as many prices as its count (${q.prices && q.prices.length} of ${q.count})`);
-  ok(q.prices.every((x, i, a) => Number.isInteger(x) && (i === 0 || a[i - 1] <= x)), `${q.period}: prices rounded and sorted`);
+  ok(!("prices" in q), `${q.period}: carries no sale prices`);
 }
 const q2 = t.quarters.find(q => q.period === "2026-Q2"), q3 = t.quarters.find(q => q.period === "2026-Q3");
-ok(q2 && q2.thin === true && q2.prices.join() === "70001,76000,81000", `the thin quarter shows its three sales (${q2 && q2.prices.join()})`);
+ok(q2 && q2.thin === true && !("prices" in q2), "the thin quarter is flagged thin and shows no sale prices");
 ok(q3 && q3.thin === false && q3.count === 9 && q3.low != null && q3.high != null, "the full quarter keeps its range");
 const m = ob.mapEngineAnswer({ tier: "result", trend: t });
-ok(Array.isArray(m.trendQuarters) && m.trendQuarters.every((q, i) => Array.isArray(q.prices) && q.prices.length === t.quarters[i].count), "mapEngineAnswer passes each quarter's prices");
+ok(Array.isArray(m.trendQuarters) && m.trendQuarters.every(q => !q.prices), "mapEngineAnswer passes no quarter prices");
 ok(m.trendMinForRange === 8, "mapEngineAnswer passes minForRange");
 ok(ob.mapEngineAnswer({ tier: "result" }).trendQuarters === null, "no trend: no quarters, as before");
 console.log(bad ? `trendPricesCheck: ${bad} failed` : "trendPricesCheck: all passed");

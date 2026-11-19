@@ -9,7 +9,9 @@ import { findGeneration } from "../lib/generations.js";
 import { oneEngineAnswer } from "../lib/onebox.js";
 import { supabaseSelect } from "../lib/_supabase.js";
 import { isPartsListing, isMemorabilia } from "../lib/_classify.js";
-import { genFor } from "../lib/live/search.js";
+import { genFor, warmAnswerKeyFor, readWarmAnswerDetailed, writeWarmAnswer, answerCacheable, markComputing, readComputing, clearComputing } from "../lib/live/search.js";
+import { keepAlive } from "../lib/keepAlive.js";
+import { tryRefresh } from "../lib/refreshGate.js";
 import { normalizeListingUrl } from "../lib/_urlNorm.js";
 
 export function normVin(s) { return String(s == null ? "" : s).toUpperCase().replace(/[^A-Z0-9]/g, ""); }
@@ -239,6 +241,61 @@ export async function carIdentity(apps, vin) {
 // The One Box answer for the car's family, computed by the engine exactly as One Box does
 // (resolved vehicle -> findGeneration -> runOneBox). A first call that comes back as a question
 // is re-run at the engine's own two-question cap, which answers across the variants and says so.
+// the stored row's slim form (the same as api/sellerDecision.js slimAnswerForWire: the diagnostics lists stay out of the row)
+function slimStored(ob) {
+  const out = { ...ob };
+  if (out.dedup && typeof out.dedup === "object") { const { excluded, abroad, fetchMemo, ...keep } = out.dedup; out.dedup = keep; }
+  if (out.htMeta && typeof out.htMeta === "object") { const { receipts, pairs, cards, rawPool, ...keep } = out.htMeta; out.htMeta = keep; }
+  return out;
+}
+// A FIRST VISIT TO A VIN PAGE IS NEVER A LIVE ENGINE READ (Lane B, Nov 8 2026; Lane F's audit: three of twenty cold VIN pages took 10, 22 and 32 seconds, 0.35 s once cached). CAUSE: the page's market block is the engine read WITH the car's own sale (exactSale), which has no stored row of its own,
+// so every first visit computed the pool from the archive in the request (40 second deadline): 3 to 5 s on a small family, 10 to 32 s on a big one (Corvette, Mustang, 911), and Googlebot's first request is always a first visit. NOW, in order, every step a stored row or a short wait:
+//   1. the VIN's own stored row (HVIN:<vin>, written by the engine read behind an earlier visit or by ops task=warmVin): served at once, a stale one is refreshed behind the response;
+//   2. else the family's stored Market Check answer (the same row the hub page reads): served at once as the stand-in (opts.cold.standIn), and the exact read runs behind the response and stores the VIN row;
+//   3. else the exact read gets VIN_FIRST_READ_MS (1.5 s); a read that has not finished returns null (opts.cold.timedOut: the page says it is still reading and is not cached) and finishes behind the response, storing the row for the next visit.
+// The page prints whatever it is given; it computes nothing. The refresh gate keeps it to one read per row and a few at once.
+export const VIN_ROW_PREFIX = "HVIN:";
+export const VIN_FIRST_READ_MS = 1500;
+export const vinRowKey = vin => VIN_ROW_PREFIX + String(vin || "").toUpperCase();
+// the exact read of one VIN page (the car's own sale in the read), stored as the VIN's row; the page's read behind a response and ops task=warmVin both call it
+export async function storeVinRow(env, vehicle, generation, text, exactSale, vin) {
+  let r = (await oneEngineAnswer(vehicle, generation, text, { ...env, exactSale, asked: 0 }, null)).raw;
+  if (r && /_choice$/.test(String(r.tier || ""))) r = (await oneEngineAnswer(vehicle, generation, text, { ...env, exactSale, asked: 2 }, null)).raw;
+  if (r && r.tier && answerCacheable(r) && !/_choice$/.test(String(r.tier))) await writeWarmAnswer(env, vinRowKey(vin), slimStored(r)).catch(() => {});
+  return r && r.tier ? r : null;
+}
+// the VIN's row for ops task=warmVin: the same vehicle, generation and words oneBoxFor builds, the same exact read, stored. "fresh" = a row of today's stamp and epoch is already there (nothing computed).
+export async function warmVinRow(env, id, exactSale, vin) {
+  const st = await readWarmAnswerDetailed(env, vinRowKey(vin)).catch(() => null);
+  if (st && st.raw && st.raw.tier && !st.stale) return { vin, state: "fresh" };
+  const vehicle = { ...id.vehicle }; if (id.bodyStyle && !vehicle.bodyStyle) vehicle.bodyStyle = id.bodyStyle;
+  const text = [id.year, id.make, id.family].filter(Boolean).join(" "); vehicle.raw = vehicle.raw || text;
+  const generation = await findGeneration(vehicle, env);
+  const r = await storeVinRow(env, vehicle, generation, text, exactSale, vin);
+  return { vin, state: r ? "stored" : "no_answer", tier: r ? r.tier : null };
+}
+async function vinPageAnswer(env, vehicle, generation, text, exactSale, opts) {
+  const vkey = vinRowKey(opts.vin), cold = opts.cold || {};
+  const exact = () => storeVinRow(env, vehicle, generation, text, exactSale, opts.vin);
+  const behind = () => { const g = tryRefresh(vkey, async () => { try { await exact(); } finally { await clearComputing(env, vkey).catch(() => {}); } }); if (g.promise) keepAlive(g.promise); return g.state; };
+  const own = await readWarmAnswerDetailed(env, vkey).catch(() => null);
+  if (own && own.raw && own.raw.tier) { cold.source = "vin_row"; if (own.stale) behind(); return own.raw; }
+  const wkey = warmAnswerKeyFor(vehicle, generation, null);
+  const fam = wkey ? await readWarmAnswerDetailed(env, wkey).catch(() => null) : null;
+  if (fam && fam.raw && fam.raw.tier === "result" && (Array.isArray(fam.raw.cluster) || (Array.isArray(fam.raw.options) && fam.raw.options.length))) {
+    cold.source = "family_row"; cold.standIn = true;
+    if (!(await readComputing(env, vkey))) { markComputing(env, vkey).catch(() => {}); behind(); }
+    return fam.raw;
+  }
+  if (await readComputing(env, vkey)) { cold.source = "computing"; cold.timedOut = true; return null; }
+  markComputing(env, vkey).catch(() => {});
+  const job = exact().finally(() => clearComputing(env, vkey).catch(() => {}));
+  keepAlive(job);
+  const first = await Promise.race([job.catch(() => null), new Promise(r => setTimeout(() => r("late"), VIN_FIRST_READ_MS))]);
+  if (first === "late") { cold.source = "reading"; cold.timedOut = true; return null; }
+  cold.source = "live_read";
+  return first && first.tier ? first : null;
+}
 export async function oneBoxFor(env, id, exactSale, opts) {
   try {
     const vehicle = { ...id.vehicle };
@@ -246,10 +303,21 @@ export async function oneBoxFor(env, id, exactSale, opts) {
     const text = [id.year, id.make, id.family].filter(Boolean).join(" ");
     vehicle.raw = vehicle.raw || text;
     const generation = await findGeneration(vehicle, env);
-    const run = (asked) => Promise.race([
-      oneEngineAnswer(vehicle, generation, text, { ...env, exactSale: exactSale || null, asked }, null).then(r => r.raw),
-      new Promise((_, rej) => setTimeout(() => rej(new Error("deadline")), 15000))
-    ]);
+    if (exactSale && opts && opts.vin) return await vinPageAnswer(env, vehicle, generation, text, exactSale, opts);
+    // COLD SPEC (Sam, Oct 28 2026, no dead ends): a hub (no exact car) reads the stored Market Check answer for its market first, the way every other page does; a read
+    // that has to compute outlasts the 15 second page clock behind the response (keepAlive) and stores its row, and opts.cold.timedOut tells the caller to draw the
+    // reading placeholder that asks again (history.js coldCardHtml), never a missing card.
+    const wkey = !exactSale ? warmAnswerKeyFor(vehicle, generation, null) : null;
+    if (wkey) { const st = await readWarmAnswerDetailed(env, wkey).catch(() => null); if (st && st.raw && st.raw.tier === "result" && (Array.isArray(st.raw.cluster) || (Array.isArray(st.raw.options) && st.raw.options.length))) return st.raw; }   // a result: a ranged answer, or the split and apart ones that carry their options (cluster null, e96): it carries everything the page prints; any other tier is computed as before
+    if (wkey && await readComputing(env, wkey)) { if (opts && opts.cold) opts.cold.timedOut = true; return null; }   // already being read: the page asks again, no second compute
+    if (wkey) markComputing(env, wkey).catch(() => {});
+    const run = (asked) => {
+      // A VIN page (no stored-row key) stores nothing behind the response, so its deadline stops the read it gave up on (lane-b-archiveread step h); a hub (wkey) keeps computing on purpose and stores its row.
+      const ac = wkey ? null : new AbortController();
+      const eng = oneEngineAnswer(vehicle, generation, text, { ...env, exactSale: exactSale || null, asked, ...(ac ? { signal: ac.signal } : {}) }, null).then(r => r.raw);
+      keepAlive(eng.then(async raw => { if (wkey && asked === 0 && raw && answerCacheable(raw) && !/_choice$/.test(String(raw.tier || ""))) await writeWarmAnswer(env, wkey, slimStored(raw)).catch(() => {}); if (wkey) await clearComputing(env, wkey); }));
+      return Promise.race([eng, new Promise((_, rej) => setTimeout(() => { if (ac) ac.abort(); rej(new Error("deadline")); }, exactSale ? 40000 : 15000))]);   // a VIN page has no stored row to come back to (its own sale is part of the read): it waits for the answer; a hub hands off at 15 s to its reading placeholder
+    };
     let d = await run(0);
     // BARE MULTI-GENERATION NAMEPLATE (Oct 2026, history hub timing): a year-less query that lands
     // on generation_choice (or the model-family-ambiguous choice, same tier shape) has no year to
@@ -262,7 +330,7 @@ export async function oneBoxFor(env, id, exactSale, opts) {
     if (opts && opts.skipBareRetry && d && d.tier === "generation_choice" && !vehicle.year) return null;
     if (d && /_choice$/.test(String(d.tier || ""))) d = await run(2);
     return d && d.tier ? d : null;
-  } catch (e) { console.error("history oneBoxFor failed:", (e && e.message) || e); return null; }
+  } catch (e) { if (opts && opts.cold && e && e.message === "deadline") opts.cold.timedOut = true; console.error("history oneBoxFor failed:", (e && e.message) || e); return null; }
 }
 
 // Multi-word makes, so a hub slug splits make from model correctly.
@@ -360,17 +428,7 @@ export async function liveListing(env, vinNorm) {
   return rows && rows.length ? rows[0] : null;
 }
 
-export async function addWatch(env, vinNorm, email) {
-  try {
-    const r = await fetch(`${env.supabaseUrl}/rest/v1/watch_requests?on_conflict=vin_norm,email`, {
-      method: "POST",
-      headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, "Content-Type": "application/json", Prefer: "resolution=ignore-duplicates,return=minimal" },
-      body: JSON.stringify([{ vin_norm: vinNorm, email }])
-    });
-    if (!r.ok) console.error("watch_requests insert failed", r.status, (await r.text().catch(() => "")).slice(0, 200));
-    return r.ok;
-  } catch (e) { console.error("watch_requests insert threw", e && e.message); return false; }
-}
+// addWatch (an address typed on a VIN page, written to watch_requests) was retired Oct 29 2026: nothing ever read it (docs/lane-notes.md).
 
 // ---------------------------------------------------------------- "What the listing said" (facts, never the text)
 // From the newest sale's own record: the stored desc_facts markers plus a few structured listing facts

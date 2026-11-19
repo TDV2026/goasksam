@@ -48,7 +48,7 @@ const fnSrc = (s, name) => { const i = s.search(new RegExp("function " + name + 
 // 3. MARKET CHECK'S RECEIPT CARD: the real receiptCardHtml and its helpers from public/js/onebox.js.
 {
   const s = fs.readFileSync("public/js/onebox.js", "utf8");
-  const src = 'var OB_UTM = "utm_source=goasksam";\n' + ["esc", "usd", "utmUrl", "stripIdsFromTitle", "cleanReceiptTitle", "titleCaseSaleTitle", "receiptCardHtml"].map(n => fnSrc(s, n)).join("\n");
+  const src = 'var OB_UTM = "utm_source=goasksam";\n' + ["esc", "usd", "utmUrl", "stripIdsFromTitle", "cleanReceiptTitle", "titleCaseSaleTitle", "venueOf", "receiptCardHtml"].map(n => fnSrc(s, n)).join("\n");
   const receiptCardHtml = new Function(src + "\nreturn receiptCardHtml;")();
   for (const r of RECS) ok(ownTitle(receiptCardHtml({ title: r.title, month: "Aug 2026", price: r.price, image: null, url: "https://example.com/x" }, false), r), `Market Check receipt: "${r.model}" shows its own title`);
 }

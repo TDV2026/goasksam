@@ -1,0 +1,627 @@
+# GoAskSam: Final Design Brief for Find, Market Check and Sell
+
+## Objective
+
+Use the three attached reference images to implement the final design of the **Find, Market Check and Sell entry pages**.
+
+We have spent considerable time refining these designs. The three mockups represent the visual direction we now want.
+
+The priority is a premium, beautifully simple experience that encourages people to search immediately while providing just enough evidence of GoAskSam's capabilities.
+
+**These are entry pages, not results pages.**
+
+Do not redesign the existing Find, Market Check or Sell results experiences. Their current functionality, evidence, charts, recommendations, interactions and data must remain intact.
+
+The screenshots are design references, not sources of verified auction data. Use real product data and photographs in the implementation.
+
+---
+
+## 1. Shared design across all three pages
+
+All three pages should have the same visual identity and structure.
+
+### Header
+
+Retain the existing approved global header:
+
+- Dark forest-green background.
+- GoAskSam logo, with small Beta badge, aligned left.
+- Find, Market Check, Sell, Tasks and Account navigation aligned right.
+- Cream pill highlighting the active page.
+- Identical height, typography and positioning across every page.
+
+### Left rail
+
+All three pages must retain the shared left workspace rail.
+
+The screenshots do not all show the rail consistently. The actual implementation must.
+
+Use:
+
+- **Find:** + New search
+- **Market Check:** + New check
+- **Sell:** + New analysis
+
+Display the relevant recent searches or analyses when they exist, following the existing shared-rail behavior.
+
+Do not repeat the main navigation in the rail.
+
+### Main content
+
+Use a consistent content width, horizontal alignment and vertical rhythm.
+
+Each page should have:
+
+1. A centered headline.
+2. One short supporting sentence.
+3. One prominent search input.
+4. Three natural-language example prompts.
+5. One visual example of what GoAskSam delivers.
+6. The shared footer.
+
+The search bar must remain the most important interaction.
+
+Use generous white space, but avoid unnecessary empty areas.
+
+### Typography and colors
+
+Match the screenshots:
+
+- Warm cream background.
+- Deep green serif headlines.
+- Clean sans-serif supporting text.
+- Dark-green primary actions.
+- Subtle pale-green backgrounds for evidence highlights.
+- Thin borders and restrained shadows.
+- High-quality real automotive photography.
+
+Avoid decorative icons, excessive labels, giant cards, complicated dashboards or additional marketing copy.
+
+### Search and voice
+
+All three pages must support natural-language searches by typing or speaking.
+
+Use the same search component everywhere.
+
+- Search icon on the left.
+- Placeholder text appropriate to the page.
+- Microphone clearly visible.
+- Dark-green submit arrow on the right.
+- Pressing Enter submits.
+- Voice transcription populates the same input.
+- All existing clarification and search functionality must remain.
+
+The three example prompts must be clickable and execute a real search.
+
+---
+
+# 2. FIND PAGE
+
+Reference: **GoAskSam Find: Live Classic Cars.png**
+
+## Purpose
+
+Find is about discovering live vehicles across multiple auction platforms.
+
+But simply finding cars is not the complete story.
+
+GoAskSam also brings information about those cars, including previous auction appearances, previous completed selling prices and comparable-sales evidence.
+
+We want visitors to understand both benefits without having to read paragraphs about them.
+
+## Hero
+
+Headline:
+
+**What car are you looking for?**
+
+Supporting sentence:
+
+**Search by voice or in natural language.**
+
+Keep this extremely short.
+
+Do not add another paragraph explaining the technology or auction aggregation.
+
+## Search box
+
+Placeholder:
+
+**Speak or type**
+
+Keep the microphone prominently visible, as in the reference.
+
+## Example searches
+
+Use three examples, such as:
+
+- 911 under $40k
+- '90s Range Rover
+- Aston DB9
+
+The purpose is to show that people can search naturally.
+
+Examples can evolve, but keep them short and varied.
+
+## Featured section
+
+Below the search area, display:
+
+**Live now**
+
+Use the image's three-card arrangement.
+
+Three real vehicles currently at auction, preferably from different auction platforms.
+
+### Each card contains
+
+- Genuine listing photograph.
+- Year, make and model.
+- Actual auction venue.
+- Auction timing or active status.
+- One concise piece of market intelligence.
+
+The intelligence should be the distinctive part of the card.
+
+### Three possible intelligence states
+
+**Sold before**
+
+Example display:
+
+"Sold before · $46,000"
+
+Only use this when GoAskSam has verified a previous completed auction sale of the same vehicle.
+
+The amount must be the actual recorded sale price.
+
+Clicking should lead to the previous-sale history or the existing relevant result interaction.
+
+**Market range**
+
+Example display:
+
+"Market range · $20.5k to $29k"
+
+Only show this when sufficient relevant completed-sales evidence exists.
+
+The range must come from the current Market Check engine, not a manually supplied number.
+
+**Listed before**
+
+Example display:
+
+"Listed before · Oct 2023"
+
+This identifies a previous recorded auction appearance, not necessarily a sale.
+
+Do not imply that a car sold when it was merely listed or failed to meet reserve.
+
+### Featured vehicle selection
+
+- Select actual active car auctions.
+- Exclude motorcycles, parts and unrelated categories from the featured examples.
+- Prefer diverse makes and auction venues.
+- Prefer listings with genuine photographs.
+- Prefer cars with interesting verified evidence.
+- Refresh the selection daily, with checks to remove ended auctions promptly.
+- Never invent a previous sale or historical listing to fill an intelligence slot.
+
+When an intelligence type is unavailable, display another verified insight or use a simpler listing card.
+
+### Design
+
+Retain the screenshot's strong photographic presentation.
+
+The intelligence appears in a slim pale-green section at the bottom of each card.
+
+Keep the cards compact and visually balanced.
+
+The three cars should generate interest, but the search box must remain the primary focus.
+
+Do not include the full comparable-sales panel, historical charts or additional filters on this entry page.
+
+---
+
+# 3. MARKET CHECK PAGE
+
+Reference: **GoAskSam Market Check Dashboard (4).png**
+
+## Purpose
+
+Market Check helps visitors understand what comparable vehicles have actually sold for.
+
+The most important distinction is that GoAskSam shows real completed transactions and lets users inspect the underlying evidence.
+
+This page should feel approachable, not like a financial analytics dashboard.
+
+## Hero
+
+Eyebrow:
+
+**MARKET CHECK**
+
+Headline:
+
+**What have cars like yours sold for?**
+
+Supporting sentence:
+
+**Real completed sales, so you can see what the market is actually paying.**
+
+Keep this one sentence only.
+
+## Search box
+
+Placeholder:
+
+**Tell Sam the car you want to check...**
+
+The microphone remains available.
+
+## Example searches
+
+- 2001 BMW M3
+- 997 Carrera S
+- E63 AMG
+
+The examples must execute actual Market Check searches.
+
+## Featured Market Check
+
+Below the search area, show one elegant horizontal example card.
+
+Use the exact general composition of the attached reference:
+
+**Left side:** Large vehicle photograph.
+
+**Right side:** Market Check summary.
+
+### Example structure
+
+Eyebrow:
+
+**EXAMPLE MARKET CHECK**
+
+Vehicle:
+
+**2001 BMW M3**
+
+Primary figure:
+
+**$30,000 to $36,500**
+
+Supporting evidence:
+
+**11 completed sales · Last 12 months**
+
+Then a pale-green evidence row showing one actual completed transaction:
+
+**A recent sale: $33,000**
+
+Cars & Bids · 72,100 miles
+
+These numbers are illustrative from the mockup and must not be hardcoded as verified results.
+
+The implementation must use an actual Market Check example with real completed transactions, a genuine photograph and the correct analysis period.
+
+### Why this layout works
+
+It communicates three things immediately:
+
+1. GoAskSam provides a completed-sales range.
+2. The result is supported by actual transactions.
+3. Users can inspect those transactions.
+
+This is enough to encourage someone to conduct their own Market Check.
+
+### Interaction
+
+Make the example card clickable.
+
+It should open the real Market Check results for the featured vehicle.
+
+The highlighted individual transaction should also open its original auction receipt where appropriate.
+
+### Important design restrictions
+
+Do not include on the entry page:
+
+- Historical market charts.
+- Mileage refinement inputs.
+- Body-style and transmission filters.
+- Large transaction tables.
+- Median and quartile breakdowns.
+- Multiple competing market figures.
+
+Those features belong in the actual Market Check results.
+
+### Data selection
+
+Select the featured market example from existing verified results.
+
+Prefer a reasonably well-defined vehicle population with a meaningful, relatively focused range.
+
+Do not artificially narrow a range just to make the preview appear more accurate.
+
+The stated number of sales, dates and range must describe the same evidence population.
+
+The preview can refresh daily.
+
+---
+
+# 4. SELL PAGE
+
+Reference: **GoAskSam Porsche Selling Analysis(1).png**
+
+## Purpose
+
+Sell should demonstrate that GoAskSam does much more than point someone toward an auction website.
+
+It uses completed-sales evidence to help answer:
+
+- Where should I sell?
+- What does the historical auction-day evidence show?
+- What does the evidence say about reserve versus no reserve?
+
+The most important output is an actionable selling recommendation supported by real auction results.
+
+## Hero
+
+Eyebrow:
+
+**SELL**
+
+Headline:
+
+**Where should you sell your car?**
+
+Supporting sentence:
+
+**Get a tailored recommendation based on real sales, platform performance and market conditions.**
+
+Do not add more explanatory copy.
+
+## Search box
+
+Placeholder:
+
+**Tell Sam the car you want to sell...**
+
+Keep the same voice and text capabilities as Find and Market Check.
+
+## Example prompts
+
+- Sell my 997 Carrera S
+- Best time to sell a Defender
+- Should I use a reserve?
+
+These should initiate the existing Sell query flow.
+
+## Featured Sell analysis
+
+Use the reference screenshot's structure:
+
+A single wide card with a photograph on the left and the recommendation on the right.
+
+### Left side
+
+Large photograph of the relevant vehicle.
+
+### Right side
+
+Eyebrow:
+
+**EXAMPLE SELL ANALYSIS**
+
+Vehicle:
+
+**2004 Porsche 911 Carrera**
+
+Then three clear pieces of intelligence.
+
+### A. Recommended platform
+
+Label:
+
+**SAM'S PLATFORM PICK**
+
+Primary answer:
+
+**Bring a Trailer**
+
+Supporting evidence:
+
+"11 of 14 relevant completed sales were on BaT."
+
+This is the type of evidence we want to display. Use the real current figures from the existing Sell engine.
+
+The recommendation must come from the actual engine, not a hardcoded choice of platform.
+
+### B. Auction day
+
+Label:
+
+**AUCTION DAY**
+
+Example:
+
+**Wednesday**
+
+Supporting information:
+
+"5 of 14 sales ended Wednesday."
+
+Important: The system must distinguish the most frequently observed selling day from a proven best day.
+
+If the evidence only supports which day appeared most often, describe it as an observation rather than claiming that sellers achieve better prices that day.
+
+### C. Reserve strategy
+
+Label:
+
+**RESERVE STRATEGY**
+
+Example:
+
+**With reserve?**
+
+Supporting text:
+
+"Explore how reserve and no-reserve listings performed."
+
+We want to demonstrate that GoAskSam can examine this question.
+
+Do not recommend a reserve purely because reserve auctions are more numerous or have higher observed prices.
+
+Use the existing supported Sell evidence. Where it supports only an observation or comparison, state that clearly.
+
+### Bottom action
+
+One discreet text link:
+
+**Explore the full selling analysis**
+
+The complete card can be clickable, with the link providing an obvious action.
+
+No giant green CTA on the landing page.
+
+No additional alternative-platform logos.
+
+No generic platform ranking.
+
+## Design
+
+Match the reference:
+
+- Large, attractive vehicle photo on the left.
+- Vehicle heading and recommended platform on the right.
+- Two compact intelligence sections below.
+- Small footer action inside the card.
+- Clean spacing and subtle borders.
+
+This provides considerably more value than simply saying Sam recommends Bring a Trailer, without overwhelming the visitor.
+
+---
+
+# 5. CONSISTENCY ACROSS THE THREE PAGES
+
+These are three separate capabilities within one GoAskSam product.
+
+The user should recognize the design immediately when switching between them.
+
+### Shared elements must match
+
+- Header height and logo position.
+- Left rail width and positioning.
+- Content max-width and gutters.
+- Headline typography.
+- Supporting-text typography.
+- Search box dimensions.
+- Microphone and arrow styling.
+- Example-chip styling.
+- Spacing above the featured section.
+- Footer appearance.
+- Mobile responsive behavior.
+
+### The featured examples should differ
+
+**Find:** Three live listing cards, each with a verified intelligence insight.
+
+**Market Check:** One completed-sales range, one real transaction and a vehicle photograph.
+
+**Sell:** One selling recommendation with platform, auction-day and reserve-strategy evidence.
+
+Do not force identical card structures across all three pages.
+
+They should share the same design language, but communicate different product benefits.
+
+### Do not add unnecessary sections
+
+We do not need:
+
+- How it works steps.
+- Long marketing explanations.
+- Testimonials.
+- Extra feature grids.
+- Charts on entry pages.
+- Multiple competing CTAs.
+
+The pages should feel calm, premium and highly focused.
+
+---
+
+# 6. FUNCTIONAL REQUIREMENTS
+
+The screenshots are static visual references, but the finished product must be fully functional.
+
+### Search
+
+Every search input and example prompt must work using the existing search infrastructure.
+
+### Featured data
+
+All featured vehicles, evidence and recommendations must be grounded in actual GoAskSam records.
+
+No invented prices, auction histories, dates, recommendation statistics or active listings.
+
+### Navigation
+
+Featured examples must open the relevant results page, preserving the vehicle query and context.
+
+### Results pages
+
+Do not modify the existing Find, Market Check or Sell results layouts or product logic in this task.
+
+Maintain their existing search refinements, historical transaction links, charts, recommendations, PowerSeller features and supporting evidence.
+
+### Responsive layout
+
+At desktop widths, use the full photographic arrangements shown in the references.
+
+At tablet widths, preserve readability without excessively shrinking the featured cards.
+
+On mobile:
+
+- Stack the featured cards or card columns.
+- Keep the search input prominent.
+- Make the microphone easily accessible.
+- Prevent clipping of prices, headlines and evidence.
+- Maintain the approved mobile navigation.
+
+### Performance
+
+Do not allow large featured photographs to slow down search interaction.
+
+Use appropriately sized images and sensible caching.
+
+The search input should be interactive without waiting for featured examples to finish loading.
+
+---
+
+# 7. IMPLEMENTATION PRIORITIES
+
+1. Use the three attached images as the visual references.
+2. Reuse the existing shared header, workspace rail, footer and search components.
+3. Implement the three entry-page layouts.
+4. Connect featured examples to real data and existing routes.
+5. Ensure historical sales and other intelligence labels are accurate.
+6. Test voice and typed searches.
+7. Verify desktop and mobile layouts.
+8. Confirm existing results pages are unchanged.
+
+## Final instruction
+
+**The main objective is to get people searching.**
+
+The featured examples are demonstrations of what they can discover, not separate dashboards.
+
+Find should make searching across auction platforms feel effortless.
+
+Market Check should make completed-sales evidence feel accessible.
+
+Sell should demonstrate that the same evidence can inform a real selling decision.
+
+Keep the experience premium, simple and consistent, while preserving the depth of the existing results pages.
+
+Do not rebuild the rest of GoAskSam to implement these three designs.

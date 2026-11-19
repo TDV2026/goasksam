@@ -3,23 +3,24 @@
 // page reads the same before and after its scripts run), and one quiet "Updated [date]" line under
 // "Built for enthusiast and specialty vehicles" (the real last-updated date, lib/asOf.js
 // lastUpdatedDate; no count, omitted when the date cannot be read). Edge-cached 1 hour.
+import { copy } from "../lib/copy.js";
+import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import fs from "node:fs";
 import path from "node:path";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
-import { isCrewRequest } from "./_chrome.js";
+import { isCrewRequest, FONT_LINKS } from "./_chrome.js";
 import { isTesterRequest } from "../lib/_tester.js";
-import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, SHELL_TOKENS_CSS, brandPaletteCss, ALL_PALETTES_CSS, PALETTE_APPLY_JS } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, railOpenHtml, SHELL_MAIN_CLOSE, SHELL_TOKENS_CSS, brandPaletteCss } from "../lib/appShell.js";
 import { gaBootstrapHtml } from "../lib/analytics.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
+import { heldFor } from "../lib/_hold.js";
+import { sellHeroHtml, SELL_ENTRY, SELL_ENTRY_CSS, SELL_GO_HTML } from "../lib/sell/sellEntry.js";
 
-const TITLE = "Where to sell your collector car";
-const HERO = `<div class="hero" id="hero"><div class="hp-hero">
-    <div class="hp-script">Go ahead, ask Sam.</div>
-    <h1>Tell Sam the car you're selling.<br>Sam will show you where to sell it, <br class="hero-br2">and why.</h1>
-  </div></div>`;
+const TITLE = copy("sell.TITLE");
+const HERO = sellHeroHtml();
 let shell = null;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -45,7 +46,6 @@ export async function sellShellHtml(req) {
   // The real last-updated date, shared with Market Check (lib/asOf.js lastUpdatedDate). No count.
   const updated = await lastUpdatedDate(supabaseEnv()).catch(() => null);
   const crew = isCrewRequest(req);
-  // No palette bar on any Sell page (Sam, Oct 23 2026): it lives on Home only (lib/appShell.js PALETTE_BAR_ON).
   // GOASKSAM 2.0 STAGE 2 (Sam's block, Oct 23 2026): the old Sell page gets ONLY the shared rail (lib/appShell.js), nothing else changes.
   // The old rail (logo, value trio, nav, the signed-in "Your results" list, footer) is replaced by the shared one; the saved-results
   // block is kept and carried into the shared rail so a signed-in seller still reopens a saved result. The old page's own content
@@ -56,15 +56,17 @@ export async function sellShellHtml(req) {
     const saved = ns > rs && ne > ns ? page.slice(ns, ne) : "";
     page = page.slice(0, rs) + railOpenHtml({ active: "sell", pageExtra: saved, crew, req, analytics: false }) + page.slice(ms);
     page = page.replace("\n<!-- JS served at a VERSIONED PATH PREFIX", () => `\n${SHELL_MAIN_CLOSE}\n<script>${SHELL_JS}</script>\n<!-- JS served at a VERSIONED PATH PREFIX`);
-    page = page.replace("</head>", () => `<style>#gas-rail,.gas-mhead,#gas-scrim,#gas-main{--ink:#15201A;--sec:#5E6B63;--soft:#3C4942;--green:#1E4D38;--green-dk:#143A29;--card:#fff;--border:#D8D4CB;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Newsreader",Georgia,"Times New Roman",serif}\n${SHELL_CSS}\n#gas-main{display:flex;flex-direction:column}#gas-main>#main{margin-left:0;flex:1}\n@media (max-width:860px){#hp-topbar{top:68px}.gas-mhead{z-index:70}}</style>\n</head>`);
+    page = page.replace("</head>", () => `${FONT_LINKS}<style>#gas-rail,.gas-mhead,#gas-scrim,#gas-main{--ink:#15201A;--sec:#5E6B63;--soft:#3C4942;--green:#1E4D38;--green-dk:#143A29;--card:#fff;--border:#D8D4CB;--sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;--serif:"Newsreader",Georgia,"Times New Roman",serif}\n${SHELL_CSS}\n#gas-main{display:flex;flex-direction:column}#gas-main>#main{margin-left:0;flex:1}\n/* The conversation fills the screen and #msgs scrolls inside it (Oct 26 2026): the shared main area only had min-height, so once the answers outgrew the screen #main grew past it, the page cannot scroll, and the answer box and newest message ended below the fold. Page-local, the conversation state only. */\nbody.chat #gas-main{height:100dvh;min-height:0;overflow:hidden}body.chat #gas-main>#main{min-height:0}\n@media (max-width:860px){#hp-topbar{top:68px}.gas-mhead{z-index:70}}</style>\n</head>`);
   }
   return stripUnreleasedNav(page, req)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${TITLE}$2`)
     .replace(/(<meta name="twitter:title" content=")[^"]*(")/, `$1${TITLE}$2`)
-    .replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n<script>${PALETTE_APPLY_JS}</script>`)
-    .replace("</head>", `<style>${SHELL_TOKENS_CSS}${brandPaletteCss(crew)}${ALL_PALETTES_CSS}</style>\n</head>`)
-    .replace("</body>", `<style>${CONSENT_BANNER_CSS}</style>\n${CONSENT_BANNER_HTML}\n<script>${CONSENT_BANNER_JS}</script>\n${gaBootstrapHtml()}\n</body>`)
+    .replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n`)
+    .replace("</head>", `<style>${SHELL_TOKENS_CSS}${brandPaletteCss(crew)}${SELL_ENTRY_CSS}</style>\n</head>`)
+    .replace('<button id="btn">↑</button>', () => SELL_GO_HTML)
+    .replace('placeholder="Type your car, or paste a VIN."', `placeholder="${esc(SELL_ENTRY.placeholder)}"`)
+    .replace("</body>", `<style>${CONSENT_BANNER_CSS}</style>\n${CONSENT_BANNER_HTML}\n<script>${CONSENT_BANNER_JS}</script>\n<script>${OUTBOUND_JS};gasOutboundInstall("sell")</script>\n${gaBootstrapHtml()}\n</body>`)
     .replace('<div id="msgs"></div>', `<div id="msgs">${HERO}</div>`)
         .replace('<div class="hp-value-preview hp-home-only">Built for enthusiast, specialty and collector vehicles</div>',
       '<div class="hp-value-preview hp-home-only">Built for enthusiast and specialty vehicles</div>' +
@@ -72,6 +74,13 @@ export async function sellShellHtml(req) {
 }
 
 export default async function handler(req, res) {
+  if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
+  // One switch (Oct 26 2026): with SELL_NEXT_ON=1 the newer Sell answers /sell (api/sell.js), so a direct visit to this address goes there too and no route
+  // reaches the old wizard. api/sell.js and api/sellNext.js only call this handler while the flag is off, so this never loops.
+  if (process.env.SELL_NEXT_ON === "1") {
+    const qs = String(req.url || "").includes("?") ? String(req.url).slice(String(req.url).indexOf("?")) : "";
+    res.setHeader("Cache-Control", "no-store"); res.setHeader("Location", "/sell" + qs); return res.status(302).end();
+  }
   const crew = isCrewRequest(req);
   const html = await sellShellHtml(req);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -85,7 +94,6 @@ export default async function handler(req, res) {
   // URL (the same cache-poisoning gap fixed on Market Check/business/spec/publicConfig/history
   // this quarter - closing it here too now that this page also varies its palette by crew).
   const hasCrewCookie = /(?:^|;\s*)gas_crew=/.test(String(req.headers.cookie || ""));
-  // No palette bar on any Sell page (Sam, Oct 23 2026): it lives on Home only (lib/appShell.js PALETTE_BAR_ON).
   // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
   // this page's own rail is filtered by isReleased() - public caching at all is only safe once
   // fullyLaunched() is true (every gated product released for crew and public alike) and the

@@ -15,28 +15,32 @@
 //
 // Query-string variants (?q=<car>, a prefilled search, or a legacy ?tester=/?crew= link) are noindex
 // with THIS canonical (bare /market-check) - rule 2, one URL per object.
+import { copy } from "../lib/copy.js";
+import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import { withTracking } from "../lib/track/log.js";
 import fs from "node:fs";
 import path from "node:path";
-import { lastUpdatedDate } from "../lib/asOf.js";
+import { lastUpdatedDate, shortDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { landingHtml, LANDING_CSS, startCfg } from "../lib/live/marketCheckLanding.js";
 import { START_JS } from "../lib/startPage.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
-import { SHELL_CSS, SHELL_JS, KEEPLOOK_CSS, railOpenHtml, brandPaletteCss, ALL_PALETTES_CSS, PALETTE_APPLY_JS, PALETTE_SWITCHER_CSS, PALETTE_SWITCHER_JS, paletteSwitcherHtml } from "../lib/appShell.js";
+import { SHELL_CSS, SHELL_JS, KEEPLOOK_CSS, railOpenHtml, brandPaletteCss } from "../lib/appShell.js";
 import { SELLS_FOR_CARD_JS, SELLS_FOR_CARD_CSS } from "../lib/sellsForCard.js";
-import { isCrewRequest } from "./_chrome.js";
+import { isCrewRequest, FONT_LINKS } from "./_chrome.js";
 import { isTesterRequest } from "../lib/_tester.js";
 import { isReleased, fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { CONSENT_BANNER_CSS, CONSENT_BANNER_HTML, CONSENT_BANNER_JS } from "../lib/consentBanner.js";
+import { heldFor } from "../lib/_hold.js";
+import { withNewDesign } from "../lib/_newDesign.js";
 
 // "Your results" (the rail's page-specific section on Market Check/Sell, same mechanism as Buy's
 // "Your searches"): the nav item + its dropdown are hidden by default and filled by js/onebox.js's
 // syncRailResults() from localStorage, same as before the shared shell.
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
-const TITLE = "Market Check: what could your car bring?";
+const TITLE = copy("marketCheck.TITLE");
 const H1 = "What have cars like yours sold for?";
 const SITE = "https://goasksam.com";
 
@@ -53,6 +57,7 @@ export function stripLaunchGate(html) {
 }
 
 async function handler(req, res) {
+  if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
   // LAUNCH STAGE (Oct 2026, Job 2): a public request to this address, while Market Check is not yet
   // released at the current stage, gets a TEMPORARY redirect to /sell - never permanent, so a stage
   // rollback or a later release does not leave a stale 301 cached anywhere (a browser's own 301
@@ -80,31 +85,25 @@ async function handler(req, res) {
   // /market-check as canonical - never its own indexed URL.
   const hasQuery = /\?./.test(String(req.url || ""));
   const robots = hasQuery ? "noindex, follow" : "index, follow";
-  // PALETTE SWITCHER (Sam, Oct 2026, colours only): the bar's own markup/CSS/JS are included ONLY
-  // for a reviewer (?palette=1) or a crew/tester cookie - a normal visitor's or a crawler's HTML
-  // carries none of it. ALL_PALETTES_CSS and PALETTE_APPLY_JS are unconditional (inert CSS + a tiny
-  // localStorage read that is a silent no-op with nothing stored) so a palette chosen on one page
-  // survives navigation to any other, with the bar or without it.
-  const showPal = crew;   // Sam, Stage 1c item 8a: the palette picker is for the crew only (no tester, no ?palette=1); removed before launch
 
   let html = stripLaunchGate(shell)
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${TITLE}</title>`)
     .replace(/<meta name="robots" content="[^"]*"\s*\/?>/, `<meta name="robots" content="${robots}" />`)
     // Earliest possible point in <head> - before first paint, no flash of the old colours.
-    .replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n<script>${PALETTE_APPLY_JS}</script>`)
-    .replace("</head>", `<link rel="canonical" href="${SITE}/market-check" />\n<meta name="description" content="${esc(metaDesc)}" />\n<meta property="og:title" content="${TITLE}" />\n<meta property="og:description" content="${esc(metaDesc)}" />\n<meta property="og:type" content="website" />\n<meta property="og:url" content="${SITE}/market-check" />\n<style>${LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}\n${KEEPLOOK_CSS}\n${SELLS_FOR_CARD_CSS}\n${brandPaletteCss(crew)}\n${ALL_PALETTES_CSS}\n${showPal ? PALETTE_SWITCHER_CSS : ""}\n${CONSENT_BANNER_CSS}</style>\n</head>`)
+    .replace('<meta charset="UTF-8" />', `<meta charset="UTF-8" />\n`)
+    .replace("</head>", `${FONT_LINKS}<link rel="canonical" href="${SITE}/market-check" />\n<meta name="description" content="${esc(metaDesc)}" />\n<meta property="og:title" content="${TITLE}" />\n<meta property="og:description" content="${esc(metaDesc)}" />\n<meta property="og:type" content="website" />\n<meta property="og:url" content="${SITE}/market-check" />\n<style>${LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}\n${KEEPLOOK_CSS}\n${SELLS_FOR_CARD_CSS}\n${brandPaletteCss(crew)}\n${CONSENT_BANNER_CSS}</style>\n</head>`)
     .replace('<main class="wrap"><div id="ob"></div></main>',
       `<main class="wrap"><div id="ob">${landingHtml({ updated, h1Text: H1 })}</div></main>`)
     // Round D (app shell, Oct 2026): one shared rail/main/mobile-header, lib/appShell.js.
     .replace("<!--SHELL_RAIL-->", railOpenHtml({ active: "market-check", crew, req, analytics: true }))
-    .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>${SELLS_FOR_CARD_JS}</script>\n<script>${START_JS}</script>\n<script>window.GAS_START_CFG=${JSON.stringify(startCfg(updated)).replace(/</g, "\\u003c")};</script>\n<script>\nfunction obToggleResults`)
+    .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>${SELLS_FOR_CARD_JS}</script>\n<script>${START_JS}</script>\n<script>window.GAS_START_CFG=${JSON.stringify(startCfg(updated)).replace(/</g, "\\u003c")};window.GAS_UPDATED=${JSON.stringify(updated ? shortDate(updated) : "")};</script>\n<script>\nfunction obToggleResults`)
     // Item 9 (shared top bar, Oct 2026): "Sign in" / the account control, one shared file
     // (lib/authBar.js) - the same markup/CSS Buy now uses, GAS_AUTH_MODE="topbar" so js/auth.js
     // runs its lighter boot (no /sell-wizard upfront gate check, no homepage_view funnel stamp).
     // The switcher bar (gated) sits as the very first thing in <body>, above the auth bar, so it is
     // sticky at the top of everything.
-    .replace("<body>", `<body>\n${showPal ? paletteSwitcherHtml() : ""}\n${AUTH_SIGNBAR_HTML}\n<script>${AUTH_SIGNBAR_MIRROR_JS}</script>\n<script>window.GAS_AUTH_MODE="topbar";</script>\n<script src="/js/auth.js" defer></script>`)
-    .replace("<script src=\"/api/track?js=1\" defer></script>", `${CONSENT_BANNER_HTML}\n<script src="/api/track?js=1" defer></script>\n<script>${CONSENT_BANNER_JS}</script>${showPal ? `\n<script>${PALETTE_SWITCHER_JS}</script>` : ""}`);
+    .replace("<body>", `<body>\n${AUTH_SIGNBAR_HTML}\n<script>${AUTH_SIGNBAR_MIRROR_JS}</script>\n<script>window.GAS_AUTH_MODE="topbar";</script>\n<script src="/js/auth.js" defer></script>`)
+    .replace("<script src=\"/api/track?js=1\" defer></script>", `${CONSENT_BANNER_HTML}\n<script src="/api/track?js=1" defer></script>\n<script>${CONSENT_BANNER_JS}</script><script>${OUTBOUND_JS};gasOutboundInstall("market_check")</script>`);
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Robots-Tag", robots);
@@ -132,12 +131,9 @@ async function handler(req, res) {
   // gated product released for everyone, crew and public alike, nothing left that can differ) - and
   // only for a request with no server credential, so an ops/probe call carrying a test stage
   // override can never seed the shared cache with a simulated state nobody else is actually in.
-  // showPal joins the no-cache list (Sam, Oct 2026 palette round): a distinct query string already
-  // gets its own cache key, but a page carrying the switcher's markup is never a safe thing to let
-  // a shared edge cache hold onto regardless - same caution as crew/hasCrewCookie above.
-  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched() || showPal) ? "private, no-store" : "public, s-maxage=30");
+  res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : "public, s-maxage=30");
   res.status(200).send(html);
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
-export default withTracking("/api/marketCheck", handler, "market_check");
+export default withNewDesign("market-check", withTracking("/api/marketCheck", handler, "market_check"));

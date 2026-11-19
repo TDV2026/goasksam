@@ -62,3 +62,8 @@ insert into desk_seats (org_id, subject, role) values ('sam', 'crew', 'owner')
 
 -- Note: Stage 3 (Leads) will add desk_lead_notes and desk_lead_outcomes, both
 -- org_id-scoped the same way, plus an owner/org column on the shared lead intake.
+
+-- Security (STANDING RULE): RLS was enabled above but the grants were never revoked. A leaked anon or authenticated
+-- key must be able to do nothing with these tables (Lane S, Nov 4 2026; also repeated in docs/supabase-desk-storage.sql
+-- so one paste fixes the live database).
+revoke all on desk_orgs, desk_seats, desk_saved_views from anon, authenticated;

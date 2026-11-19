@@ -58,7 +58,7 @@ ok(T.blockLines(null, 61500, "", "Current bid $61,500.").lines.join("|") === "Cu
 ok(/Current bid \$61,500 as of 10:30am PT\.\nClosest: CLK 55 AMG, 2000s\nThese are CLK 55 AMG sales, not this exact car\.\nThe typical range for CLK 55 AMG coupes: \$14,500 to \$23,000, in the past year\./.test(daily.sibling.text) && !/(inside|within|below|above) .*of recent sales/.test(daily.sibling.text), "daily, sibling: bid, then the label and the sibling above the sibling's range; no placing");
 ok(/Current bid \$61,500 as of 10:30am PT\.\nCLK DTM, all years\nThree sales on record\. No range to show yet\./.test(daily.ned.text) && (daily.ned.text.match(/\$[\d,]+/g) || []).every(x => x === "$61,500"), "daily, not_enough_data: bid, label, count; no other dollar figure");
 ok(/CLK DTM, 2003 to 2007\nCurrent bid \$61,500 as of 10:30am PT, (inside|within|below|above)/.test(daily.widened.text), "daily, widened: the label right above the range line");
-ok(/And three more are in your Task\./.test(T.taskEmailBody(task, [blockOf(FIX.absent)], { more: 3, section: true }).text) && /And 14 more are in your Task\./.test(T.taskEmailBody(task, [blockOf(FIX.absent)], { more: 14, section: true }).text), "daily: \"And three more\", \"And 14 more\"");
+ok(/Three more cars are in your Task\./.test(T.taskEmailBody(task, [blockOf(FIX.absent)], { more: 3, section: true }).text) && /14 more cars are in your Task\./.test(T.taskEmailBody(task, [blockOf(FIX.absent)], { more: 14, section: true }).text), "daily: \"And three more\", \"And 14 more\"");
 
 // ---------------------------------------------------------------- 4. the sold-car Task (lib/live/watches.js): door name, settings, its email section
 const { soldTask } = await import("../lib/tasks/rungFixture.js");

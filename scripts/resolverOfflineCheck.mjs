@@ -40,6 +40,25 @@ for (let pass = 1; pass <= 2; pass++) for (const [words, want] of CASES) {
   for (const k of Object.keys(want)) if (!v || v[k] !== want[k]) { bad2++; console.log(`FAIL mode 2 pass ${pass}: ${words}: ${k} = ${JSON.stringify(v && v[k])}, wanted ${JSON.stringify(want[k])}`); }
 }
 console.log(bad2 ? `resolverOfflineCheck mode 2: ${bad2} failure(s)` : `resolverOfflineCheck mode 2: ${CASES.length} names, same car on both passes with every outside read failing`);
+// ---- unreadable tokens (Sam, Oct 26 2026): a word that is not a year, make, model or trim never becomes a trim word or a heading, and no year is picked ----
+let bad3 = 0;
+const UNREAD = [
+  ["20067Porsche 911", ["2006 Porsche 911", "2007 Porsche 911"]],
+  ["2006 Porsche 9111", []],   // asks a model question offline (the live read asks "Did you mean the Porsche 911?"); either way the junk digit is not a model or trim
+  ["Porsche 911 2006x", ["2006 Porsche 911"]],
+];
+for (const [words, chips] of UNREAD) {
+  const r = await resolveVehicle(words, {}); const v = r && r.vehicle, c = r && r.clarification;
+  const text = JSON.stringify(r);
+  if (!r || !/^needs_/.test(String(r.status))) { bad3++; console.log(`FAIL unreadable: ${words}: status ${r && r.status}, wanted a question`); continue; }
+  if (v && (v.trim || (v.year && !/2006 Porsche 9111/.test(words)))) { bad3++; console.log(`FAIL unreadable: ${words}: trim ${JSON.stringify(v.trim)} year ${JSON.stringify(v.year)}, the junk word or a picked year is in the car`); }
+  if (/20067PORSCHE|2006X/i.test(JSON.stringify({ v: v && { trim: v.trim, label: v.label, canonicalLabel: v.canonicalLabel, displayName: v.displayName, model: v.model, make: v.make }, c }))) { bad3++; console.log(`FAIL unreadable: ${words}: the unreadable word is in the heading or the question`); }
+  for (const want of chips) if (!c || !(c.chips || []).includes(want)) { bad3++; console.log(`FAIL unreadable: ${words}: missing the chip ${want} (got ${JSON.stringify(c && c.chips)})`); }
+  const years = (c && c.chips || []).map(x => (/^(\d{4}) /.exec(x) || [])[1]).filter(Boolean);
+  if (years.length && !words.includes(years[0]) && !/9111/.test(words) && years.some(y => !/^(19|20)\d\d$/.test(y))) { bad3++; console.log(`FAIL unreadable: ${words}: a chip year that is not a year`); }
+}
+console.log(bad3 ? `resolverOfflineCheck unreadable tokens: ${bad3} failure(s)` : `resolverOfflineCheck unreadable tokens: ${UNREAD.length} names ask, none keeps the junk word or picks a year`);
+bad2 += bad3;
 console.log((bad + bad2) ? `resolverOfflineCheck: ${bad + bad2} failure(s)` : `resolverOfflineCheck: ${WORDS_N(CASES)} names clean in both modes`);
 process.exit((bad + bad2) ? 1 : 0);
-function WORDS_N(c) { return c.length + 6; }
+function WORDS_N(c) { return c.length + 9; }

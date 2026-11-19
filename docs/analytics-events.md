@@ -42,7 +42,7 @@ Store: `analytics_events` (SQL in `docs/supabase-analytics.sql`). Dashboard: `/a
 | `consent` | text | `granted`, `declined` or `not_required`. |
 | `received_at` | timestamptz | When the store got it (set by the database). |
 | `ref_domain` | text, nullable | Referring domain only (`google.com`), never the path or query. Own domain is dropped. |
-| `utm_source`, `utm_medium`, `utm_campaign`, `launch_wave` | text, nullable | The whitelist. Each at most 60 characters, letters, digits, `_ - .` only. Nothing else from the address is kept. |
+| `utm_source`, `utm_medium`, `utm_campaign`, `launch_wave` | text, nullable | The whitelist. A `via` parameter (the short link form, `/?via=beehiiv`) is read as `utm_source` when the address has none. Each at most 60 characters, letters, digits, `_ - .` only. Nothing else from the address is kept. |
 | `browser_family` | text, nullable | `chrome`, `safari`, `firefox`, `edge`, `samsung`, `other`, `bot`. |
 | `device_class` | text, nullable | `desktop`, `mobile`, `tablet`, `bot`. |
 | `is_bot` | boolean | Known crawler or headless browser. Stored, excluded from summaries. |
@@ -134,6 +134,7 @@ Who: browser. Required: `field`, `value` (40 max). Optional: `vehicle_key`.
 ### Tasks and email
 
 - **`task_created`** (journey, server, `lib/tasks/tasks.js` for search and research Tasks, `lib/live/watches.js` for exact-car and sold-car Tasks): Optional `vehicle_key`, `year`, `kind` (`hunt`, `research`, `exact_car`, `sold_car`). Every kind carries the car: search Tasks from their filters, sold-car Tasks from the engine's spec, exact-car Tasks from the live listing or the VIN's auction history. An exact-car Task's VIN goes to the admin-only `vin` column, never `props`. Optional `fallback_rung` (`sibling`, `not_enough_data`; Lane C, Oct 2026): set only when the Task's car read landed on one of those two rungs of Lane B's model-first ladder (`lib/live/rung.js`). Sold-car Tasks read it from the same engine read that names the Task; search (`hunt`) Tasks from the Buy card's stored read for the Task's car, never waiting on the engine (a read not already held records nothing). Absent on every other rung, and on every Task until Lane B ships the field. Not a new event.
+- **`standing_arm`** (service, server, `api/watch.js` and `api/buySearch.js` through `lib/live/looking.js` logArm; Lane D, Oct 29 2026): one per press of a Find "Sam is looking" control, success or refusal. Required `control` (`watch_spec`, `watch_vin`, `alert`, `task`, `saved_search`, `address_watch`), `outcome` (`added`, `already`, `refused`). Optional `reason` (`signed_out`, `not_released`, `limited`, `cap_watch`, `cap_alert`, `cap_task`, `retired`, `ended`, `no_address`, `not_found`, `no_vin`, `no_spec`, `unknown_vin`, `kind`, `failed`), `kind` (`spec`, `vin`), `listing_id`. The account is the event's user. So a missing row always has a record.
 - **`task_paused`**, **`task_cancelled`** (journey, server): Optional `via` (`page`, `email_link`).
 - **`task_frequency_changed`** (journey, browser, Lane A addition, Oct 2026): the "How often"
   select changed. Required `frequency` (`daily`, `twice`, `thrice`, `instant`). Who: browser,
@@ -179,7 +180,7 @@ the tab is not counted; a page that is never hidden before the browser dies send
   `cost_usd`. Optional `model`, `cache_read`, `cache_write`, `cache_hit` (bool), `status`.
   `product` comes from the ledger row's type (`buy_chat_*` buy, `tasks_*` tasks, `sell_*` and the
   wording layer `chat` sell).
-- **`limit_hit`** (service, server, `lib/_ceilings.js`): Required `limit` (which one). Optional `scope`. Never an address or a device key.
+- **`limit_hit`** (service, server, `lib/_ceilings.js`): Required `limit` (which one). Optional `scope`. Never an address or a device key. Oct 27 2026: optional `route` and `tier` (`signed_in` or `anonymous`); Market Check's daily cap fires `limit` `device_cars_day`, `route` `market_check`.
 - **`error`** (service, server): a 5xx answered (or a throw) by a wrapped API route: `withTracking` in
   `lib/track/log.js` around sellerDecision, buySearch, tasks, watch, account, signup, submitSellerLead, chat,
   marketCheck, history, specPage, pullLive, refreshSpecLiveCounts and admin. Cron routes' errors are the
@@ -188,6 +189,16 @@ the tab is not counted; a page that is never hidden before the browser dies send
 - **`pull_run`** (service, server). Fired from the same ledger write as `model_call`, for the pull
   report's summary row (`pull_live_summary`). Optional `platforms`, `added`, `ended`, `updated`,
   `failures`, `requests`, `mode`.
+
+## Launch dashboard additions (Lane D, Oct 26 2026; props only, no table or column change)
+
+- **`search_run.cache`** (`cold` or `warm`): Market Check `warm` when the stored answer was served (`warmHit`), Sell `warm` when the market pool came from the stored fetch; Buy does not set it (a live search has no stored answer). **`search_run.search_id`**: the page's id for this search (Market Check), the same id the question events carry.
+- **`search_run.failure_state`** now also allows `still_reading` (the code already sent it; before this it failed validation and the event was dropped).
+- **`identity_question_shown`**, **`identity_question_answered`**: optional `search_id` (a random id the page makes for each brand-new search and keeps while the visitor answers the questions), so an asked-back loop can be followed to its end.
+- **`auction_clickout.surface`** (`find`, `market_check`, `tasks`, `tasks_email`, `sell`): set by the shared click listener from the page the click is on. The closest-sales links also fire `auction_clickout` with `state: sold`. Task email links go through `GET /out?l=<the tagged listing address>&sf=tasks_email`, which logs this event (server, surface `tasks_email`) and redirects to the same address with its outbound utm tags untouched; only an https link on one of the 19 sources is followed (`lib/outboundUtm.js isSourceUrl`), anything else goes to the home page. Sell's venue links keep logging to `outbound_clicks` through `/out?p=`; the dashboard reads that table.
+- **`signin.newsletter`** (bool): the sign-in card's Daily Vroom box as sent with the call; absent when the client sent no state. Never the address.
+- **`feedback_sent`** (service, server, `api/feedback.js`): a COUNT. No field at all: no text, name, address or page. The message is still never stored.
+- **`busy_shown`** (journey, browser, `public/js/onebox.js`): the "Sam is busy right now" line was drawn. Optional `reason` (`busy`, `still_reading`).
 
 ## Consent and identity
 
@@ -302,3 +313,13 @@ Stage 1c item 6). One per Buy composer input that asked for a distance with no z
 different car, or asked for something Sam cannot do here yet. Carries ONLY `text` (what was typed, scrubbed like every
 text field), written by `trackSystem`: no visitor, session, account or address. So Sam can read what people type and
 which requests Buy cannot handle yet.
+
+## Dashboard round 2 (Lane D, Oct 26 2026)
+
+- `held_at_door` (service, server): route, status. The sealed-site holding page (503 with Retry-After) is logged here by `withTracking`, never as `error`. The Launch tab shows it as "Held at the door" with its bot share.
+- `near_me_zip` (service, server): the five-digit zip a buyer gave for "near me" on Find, logged once per new zip. A coarse place, no name or address.
+- Coarse place: `page_view`, `search_run` and `near_me_zip` rows carry `geo_country`, `geo_region` and `geo_city` in props, from Vercel's geo headers (`geoOf`, lib/track/consent.js). City is the name only. Never latitude, longitude or postcode. A visitor in the restricted set (EEA, UK, Switzerland) or who declined gets none. Device class is the `device_class` column on every event.
+- Internal: an `ADMIN_EMAILS` account signed in on a browser marks it internal through the signed `gas_int` cookie (minted by /api/account, same key as the crew cookie, its own HMAC label). It grants no access.
+- Admin: Launch panel 11 (where from and what on); a Searches tab (filters, CSV up to 5,000 rows); a Users tab (account email, first source, sign-in method, newsletter, searches, Tasks, clickouts; click for the whole journey); an include-crew switch on all three, off by default. Server-credential-only reads `write_failures` and `door`.
+
+- **A search counts by its final outcome (Oct 30 2026).** A `search_run` that ended `failed` (including `failure_state: still_reading`) is not counted as a failure or as unmet demand when a later `search_run` for the same search answered (same `search_id`, else the same visitor, product and query text). The row stays in the log for timing. One rule, `lib/admin/finalOutcome.js`, used by the Launch tab, Right now and the hourly health numbers.

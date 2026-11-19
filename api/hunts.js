@@ -4,6 +4,7 @@
 import { validateBearer } from "../lib/_auth.js";
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { failBody } from "../lib/_fail.js";
 
 // One CORS helper (lib/_cors.js, security F-06): only GoAskSam's own hosts get a cross-origin answer.
 function cors(res, req) { gasCors(req || { headers: {} }, res, { methods: "POST, OPTIONS", headers: "Content-Type, Authorization" }); }
@@ -38,6 +39,6 @@ export default async function handler(req, res) {
     if (id) await funnel(env, "hunt_submitted", { user_id: auth.userId, dedup_key: `hunt:${id}` });
     res.status(200).json({ status: "ok", id: id || null });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json(failBody("hunts", err));
   }
 }

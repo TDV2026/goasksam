@@ -1,0 +1,195 @@
+// clock: real-ok the fixture sales are dated relative to now (days ago); no calendar date is asserted (Lane B, Nov 2026)
+// DESK V3 STAGE 2, COMPARABLES AND OUTSIDE GROUPS (Lane B, Nov 8 2026). desk.comparables sorted by relevance (close, similar), desk.outside one entry per excluded gearbox group:
+//   (1) relevance comes from the verified year, generation, body, gearbox and miles distance, never the model name: the same model in another generation (or body) is not a comparable
+//   (2) every why is a reason table line, and no sentence is typed in the module
+//   (3) photo is the URL that passed the photo rule (HEAD, 200, image, under 600 KB) or null, never a placeholder
+//   (4) a sale outside the population (another gearbox) is listed with inPopulation false and never counted in the evidence; an outside group under three sales gives no entry
+//   node scripts/deskCompsCheck.mjs [root]     --mutants proves each rule by breaking it in a copy
+import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { fileURLToPath, pathToFileURL } from "node:url"; import { spawnSync } from "node:child_process";
+const here = path.dirname(fileURLToPath(import.meta.url));
+const args = process.argv.slice(2), rootArg = args.find(a => !a.startsWith("--")), ROOT = path.resolve(rootArg || path.join(here, ".."));
+if (args.includes("--mutants")) {
+  const DV = "lib/deskV3.js", RWF = "lib/reasonWords.js";
+  const muts = [
+    [DV, "return { miles: rm > 0 && sm > 0 ? rm - sm : null,", "return { miles: rm > 0 && sm > 0 ? sm - rm : null,", "(8) miles reported with the wrong sign"],
+    [DV, "year: ry && sy ? ry - sy : 0,", "year: ry && sy ? sy - ry : 0,", "(8) year reported with the wrong sign"],
+    [DV, "gearbox: box, body, year", "gearbox: \"same\", body, year", "(8) gearbox never differs"],
+    [DV, "const box = sub.gearbox && r.gearbox && sub.gearbox !== r.gearbox ? \"other\" : \"same\"", "const box = !r.gearbox || sub.gearbox !== r.gearbox ? \"other\" : \"same\"", "(8) an unstated gearbox is called a difference"],
+    [DV, "rm > 0 && sm > 0 ? rm - sm : null", "rm > 0 ? rm - (sm || 0) : null", "(8) a car with no miles gives a difference against 0"],
+    [DV, "return cands.map((o, i) => ({ id: o.r.id, title: o.r.title || null, year: Number(o.r.year) || null, generation: o.r.generation || null, body: o.r.body || null, differences: differsOf(o.r, sub), transmission:", "return cands.map((o, i) => ({ id: o.r.id, title: o.r.title || null, year: Number(o.r.year) || null, generation: o.r.generation || null, body: o.r.body || null, transmission:", "(8) the no-generation list carries no differences"],
+    [DV, "return out.map((o, i) => ({ id: o.r.id, title: o.r.title || null, year: Number(o.r.year) || null, generation: o.r.generation || null, body: o.r.body || null, differences: differsOf(o.r, sub), transmission:", "return out.map((o, i) => ({ id: o.r.id, title: o.r.title || null, year: Number(o.r.year) || null, generation: o.r.generation || null, body: o.r.body || null, transmission:", "(8) the generation list carries no differences"],
+    [DV, "[...mapped, ...take.map((o, i) => ({ id: o.r.id, title: o.r.title || null, year: Number(o.r.year) || null, generation: o.r.generation || null, body: o.r.body || null, differences: differsOf(o.r, sub), transmission:", "[...mapped, ...take.map((o, i) => ({ id: o.r.id, title: o.r.title || null, year: Number(o.r.year) || null, generation: o.r.generation || null, body: o.r.body || null, transmission:", "(8) the filled rows carry no differences"],
+    [DV, "priceLine: reasonLine(\"desk4.price\", { price: o.r.price }), dateLine: iso(o.r.date) ? reasonLine(\"desk4.comp_date\", { date: deskMonthYear(iso(o.r.date)) }) : null, milesLine: o.r.miles > 0 ? reasonLine(\"desk4.sale_miles\", { miles: o.r.miles }) : null, price: o.r.price, url: o.r.url || null, photo: photos[i] || null, relevance: o.rel, why: o.why, inPopulation: o.inPop }));", "price: o.r.price, url: o.r.url || null, photo: photos[i] || null, relevance: o.rel, why: o.why, inPopulation: o.inPop }));", "(7) a closest-sales comparable has no priceLine"],
+    [DV, "priceLine: reasonLine(\"desk4.price\", { price: o.r.price }), dateLine: iso(o.r.date) ? reasonLine(\"desk4.comp_date\", { date: deskMonthYear(iso(o.r.date)) }) : null, milesLine: o.r.miles > 0 ? reasonLine(\"desk4.sale_miles\", { miles: o.r.miles }) : null, price: o.r.price, url: o.r.url || null, photo: photos[i] || null, relevance: o.rel, why: o.why, inPopulation: o.inPop, filled: true", "price: o.r.price, url: o.r.url || null, photo: photos[i] || null, relevance: o.rel, why: o.why, inPopulation: o.inPop, filled: true", "(7) a filled comparable has no priceLine"],
+    [DV, "priceLine: reasonLine(\"desk4.price\", { price: o.r.price }), dateLine: iso(o.r.date) ? reasonLine(\"desk4.comp_date\", { date: deskMonthYear(iso(o.r.date)) }) : null, milesLine: o.r.miles > 0 ? reasonLine(\"desk4.sale_miles\", { miles: o.r.miles }) : null, price: o.r.price, url: o.r.url || null, photo: photos[i] || null, relevance: o.rel, why: whyOf(o.r, sub), inPopulation: o.inPop }));", "price: o.r.price, url: o.r.url || null, photo: photos[i] || null, relevance: o.rel, why: whyOf(o.r, sub), inPopulation: o.inPop }));", "(7) a generation comparable has no priceLine"],
+    [DV, "dateLine: iso(o.r.date) ? reasonLine(\"desk4.comp_date\", { date: deskMonthYear(iso(o.r.date)) }) : null, milesLine: o.r.miles > 0 ? reasonLine(\"desk4.sale_miles\", { miles: o.r.miles }) : null, price: o.r.price, url: o.r.url || null, photo: photos[i] || null, relevance: o.rel, why: o.why, inPopulation: o.inPop }));", "price: o.r.price, url: o.r.url || null, photo: photos[i] || null, relevance: o.rel, why: o.why, inPopulation: o.inPop }));", "(6) a closest-sales comparable has no dateLine and milesLine"],
+    [DV, "dateLine: iso(o.r.date) ? reasonLine(\"desk4.comp_date\", { date: deskMonthYear(iso(o.r.date)) }) : null, milesLine: o.r.miles > 0 ? reasonLine(\"desk4.sale_miles\", { miles: o.r.miles }) : null, price: o.r.price, url: o.r.url || null, photo: photos[i] || null, relevance: o.rel, why: o.why, inPopulation: o.inPop, filled: true", "price: o.r.price, url: o.r.url || null, photo: photos[i] || null, relevance: o.rel, why: o.why, inPopulation: o.inPop, filled: true", "(6) a filled comparable has no dateLine and milesLine"],
+    [DV, "dateLine: iso(o.r.date) ? reasonLine(\"desk4.comp_date\", { date: deskMonthYear(iso(o.r.date)) }) : null, milesLine: o.r.miles > 0 ? reasonLine(\"desk4.sale_miles\", { miles: o.r.miles }) : null, price: o.r.price, url: o.r.url || null, photo: photos[i] || null, relevance: o.rel, why: whyOf(o.r, sub), inPopulation: o.inPop }));", "price: o.r.price, url: o.r.url || null, photo: photos[i] || null, relevance: o.rel, why: whyOf(o.r, sub), inPopulation: o.inPop }));", "(6) a generation comparable has no dateLine and milesLine"],
+    [RWF, "month: \"long\", year: \"numeric\", timeZone: \"UTC\" }); };\nexport const deskDateWords", "month: \"short\", year: \"numeric\", timeZone: \"UTC\" }); };\nexport const deskDateWords", "(6) the month is not in words"],
+    [DV, "&& Math.abs(Number(r.year) - Number(sub.year)) <= YEAR_CAP) : [];", ") : [];", "(5) a car matches on the model name across any years"],
+    [DV, "export const YEAR_CAP = 5,", "export const YEAR_CAP = 40,", "(5) the year distance is not capped"],
+    [DV, "FALLBACK_MIN = 4,", "FALLBACK_MIN = 0,", "(5) too few sales still list comparables"],
+    [DV, "const rel = dYear === 0 && boxSame && bodySame && near ? \"close\" : \"similar\"", "const rel = dYear === 0 ? \"close\" : \"similar\"", "(5) close without gearbox, body and miles matching"],
+    [DV, "|| a.dist - b.dist || String(b.r.date || \"\").localeCompare(String(a.r.date || \"\"))).slice(0, FALLBACK_MAX);", "|| String(b.r.date || \"\").localeCompare(String(a.r.date || \"\"))).slice(0, FALLBACK_MAX);", "(5) the closest year is not first"],
+    [DV, "  if (!sub.generation) {\n    const { cands }", "  if (false) {\n    const { cands }", "(5) an unmapped car lists no comparables"],
+    [DV, ": fallbackPool(rows, sub, windowMonthsOf(desk), desk.caseDate).note;", ": null;", "(5) too few sales says nothing"],
+    [DV, "if (!sub.generation || !r.generation || r.generation !== sub.generation) return null;", "if (!sub.generation || !r.generation) return null;", "(1) the same model in another generation is a comparable"],
+    [DV, "if (sub.body && r.body && !sameBody(r.body, sub.body)) return null;", "", "(1) the same model in another body is a comparable"],
+    [DV, "return Number(r.year) === Number(sub.year) && boxSame && near ? \"close\" : \"similar\";", "return \"close\";", "(1) every sale is close"],
+    [DV, "if (!sub.generation || !r.generation || r.generation !== sub.generation) return null;", "if (!sub.generation || !r.generation || r.generation !== sub.generation) return (String(r.model) === String(sub.model) ? \"similar\" : null);", "(1) the model name alone makes a sale similar"],
+    [DV, "return reasonLine(\"desk3.why_nomiles\", { year });", "return `${year}, no mileage on the listing.`;", "(2) a why sentence typed in the module"],
+    [DV, "photo: photos[i] || null, relevance: o.rel, why: whyOf(o.r, sub)", "photo: photos[i] || o.r.photo || \"/img/placeholder.png\", relevance: o.rel, why: whyOf(o.r, sub)", "(3) a placeholder where the photo failed, mapped family"],
+    [DV, "photo: photos[i] || null,", "photo: photos[i] || o.r.photo || \"/img/placeholder.png\",", "(3) a placeholder (or an unchecked photo) where the photo failed"],
+    [DV, "const photos = await Promise.all(out.map(async (o, i) => (i < PHOTO_COMPS && o.r.photo ? await choosePhoto(photoCandidates({ photo_url: o.r.photo }), head || undefined) : null)));", "const photos = out.map(o => o.r.photo);", "(3) the photo rule is not applied"],
+    [DV, "if (rel === \"other_box\") { rel = \"similar\"; inPop = false; }", "if (rel === \"other_box\") { rel = \"similar\"; inPop = true; }", "(4) an outside sale is marked in the population"],
+    [DV, "export const OUTSIDE_MIN = 3;", "export const OUTSIDE_MIN = 1;", "(4) an outside group of one sale gets an entry"],
+    [DV, "const id = diff === 0 ? \"desk3.outside_same\" : evidence.median > median ? \"desk3.outside_less\" : \"desk3.outside_more\";", "const id = diff === 0 ? \"desk3.outside_same\" : evidence.median > median ? \"desk3.outside_more\" : \"desk3.outside_less\";", "(4) the outside sentence says more where it is less"],
+    [DV, "out.sort((a, b) => (a.rel === b.rel ? 0 : a.rel === \"close\" ? -1 : 1) || a.dist - b.dist ||", "out.sort((a, b) => 0 ||", "(1) comparables are not sorted by relevance"]
+  ];
+  let survivors = 0;
+  for (const [file, from, to, want] of muts) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dcc-"));
+    spawnSync("rsync", ["-a", "--exclude", ".git", "--exclude", "node_modules", "--exclude", "proofs", ROOT + "/", dir + "/"]); fs.symlinkSync(path.join(ROOT, "node_modules"), path.join(dir, "node_modules"));
+    const fp = path.join(dir, file), src = fs.readFileSync(fp, "utf8"), m = src.replace(from, to);
+    if (m === src) { console.log(`MUTANT NOT APPLIED  ${want}`); survivors++; fs.rmSync(dir, { recursive: true, force: true }); continue; }
+    fs.writeFileSync(fp, m);
+    const r = spawnSync(process.execPath, [path.join(dir, "scripts/deskCompsCheck.mjs"), dir], { encoding: "utf8" }), killed = r.status !== 0;
+    console.log(`${killed ? "killed  " : "SURVIVED"}  ${want}`); if (!killed) survivors++;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+  console.log(survivors ? `\n${survivors} mutant(s) survived` : "\nall mutants killed"); process.exit(survivors ? 1 : 0);
+}
+process.chdir(ROOT);
+let failed = 0, n = 0; const ok = (name, c, d) => { n++; if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${name}${d ? "  " + d : ""}`); };
+const W = await import(pathToFileURL(path.join(ROOT, "scripts/_deskV3World.mjs")).href);
+const S = await import(pathToFileURL(path.join(ROOT, "lib/sheetRead.js")).href);
+const DV = await import(pathToFileURL(path.join(ROOT, "lib/deskV3.js")).href);
+const RW = await import(pathToFileURL(path.join(ROOT, "lib/reasonWords.js")).href);
+const w = W.install(); console.error = () => {};
+const today = new Date().toISOString().slice(0, 10);
+const head = async u => (/x\d*[13579]\.jpg$/.test(u) ? { status: 200, bytes: 3100000, type: "image/jpeg" } : /x\d*0\.jpg$/.test(u) ? { status: 404, bytes: null, type: "" } : { status: 200, bytes: 90000, type: "image/jpeg" });
+const read = (c, o = {}) => S.sheetRead(w.env, { year: c.year, make: c.make, model: c.model, mileage: o.mileage || 61400, ...o, desk: { caseDate: today, transmission: c.transmission, label: c.label, head } }, w.deps);
+const pats = RW.reasonPatterns();
+const inTable = (field, line) => pats.some(p => p.field === field && new RegExp(p.re.source.split("\\$NaN").join("\\$[\\d,]+")).test(line));
+{ // (1) unit: the same model in another generation or body
+  const sub = { year: 1999, model: "911", generation: "996", body: "coupe", gearbox: "manual", miles: 60000, tier: null };
+  const row = (o = {}) => ({ id: "x" + Math.random(), year: 1999, generation: "996", body: "coupe", gearbox: "manual", gearboxWord: "Manual", miles: 60000, price: 40000, date: "2026-10-01", platform: "Bring a Trailer", model: "911", tier: null, inPopulation: true, ...o });
+  ok("same year, generation, body, gearbox and miles: close", DV.relevanceOf(row(), sub) === "close");
+  ok("the same model in the next generation is not a comparable", DV.relevanceOf(row({ generation: "997", year: 2005 }), sub) === null);
+  ok("the same model with a verified generation missing is not a comparable", DV.relevanceOf(row({ generation: null }), sub) === null);
+  ok("the same model in another body is not a comparable", DV.relevanceOf(row({ body: "open" }), sub) === null);
+  ok("a different year of the same generation is similar", DV.relevanceOf(row({ year: 2000 }), sub) === "similar");
+  ok("far miles of the same year is similar, not close", DV.relevanceOf(row({ miles: 110000 }), sub) === "similar");
+  ok("an unstated gearbox is similar", DV.relevanceOf(row({ gearbox: null }), sub) === "similar");
+  ok("another gearbox is listed apart (other_box)", DV.relevanceOf(row({ gearbox: "automatic" }), sub) === "other_box");
+  ok("every why variant is a table line (miles known, tier apart, miles missing, gearbox not stated)", [DV.whyOf(row(), sub), DV.whyOf(row({ tier: 2 }), { ...sub, tier: 3 }), DV.whyOf(row({ miles: null }), sub), DV.whyOf(row({ gearbox: null }), sub)].every(x => inTable("desk.comparables.why", x)));
+  ok("a missing mileage is said in words, not guessed", /miles not stated/.test(DV.whyOf(row({ miles: null }), sub)));
+  const list = await DV.comparablesOf([row({ id: "a" }), row({ id: "b", generation: "997", year: 2005 }), row({ id: "c", body: "open" }), row({ id: "d", year: 2000, miles: 62000 })], sub, head);
+  ok("a mixed list leads with the 996 coupes, close first; the sale of another body is added only as a marked fill (4 sales in the window list 3 or more), the one past the 5 year cap never", list.length === 3 && list[0].id === "a" && list[0].relevance === "close" && list[1].id === "d" && !list[1].filled && list[2].filled === true && !list.some(x => x.generation === "997"));
+}
+const c0 = W.CASES[0], sh = await read(c0), ds = sh.desk;
+ok("the 996 sheet read carries desk.comparables and desk.outside", Array.isArray(ds.comparables) && ds.comparables.length > 0 && Array.isArray(ds.outside));
+ok("every comparable is the subject's generation and body (never the model name alone)", ds.comparables.every(c => c.generation === "996" && c.body === "coupe"), JSON.stringify(ds.comparables.filter(c => c.generation !== "996").slice(0, 1)));
+ok("comparables are sorted close first", ds.comparables.every((c, i, a) => i === 0 || !(a[i - 1].relevance === "similar" && c.relevance === "close")));
+ok("a close comparable is the same year", ds.comparables.filter(c => c.relevance === "close").every(c => c.year === 1999));
+ok("every comparable carries the shape's fields", ds.comparables.every(c => ["id", "title", "year", "generation", "body", "transmission", "miles", "platform", "soldDate", "price", "url", "photo", "relevance", "why", "inPopulation"].every(k => k in c)));
+{ for (const c of [W.CASES[1], W.CASES[2]]) { const r = await read(c), cs = r.desk.comparables;
+    ok(`${c.model}: the generation comes from the curated generation list, so comparables are listed (all of the subject's generation)`, cs.length > 0 && cs.every(x => x.generation && x.generation === cs[0].generation), JSON.stringify(cs.slice(0, 1).map(x => [x.generation, x.year]))); } }
+// (2)
+ok("every why is a reason table line", ds.comparables.every(c => inTable("desk.comparables.why", c.why)), ds.comparables.find(c => !inTable("desk.comparables.why", c.why)) && ds.comparables.find(c => !inTable("desk.comparables.why", c.why)).why);
+{ const src = fs.readFileSync(path.join(ROOT, "lib/deskV3.js"), "utf8").split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n").replace(/\/\/.*$/gm, "");
+  const typed = (src.match(/["'`][A-Z][a-z]+(?: [a-z,]+){3,}[^"'`]*["'`]/g) || []).filter(x => !/import|from /.test(x));
+  ok("lib/deskV3.js types no sentence of its own", typed.length === 0, typed.slice(0, 2).join(" | ")); }
+// (3)
+ok("a photo is null or a URL that passed the photo rule", ds.comparables.every(c => c.photo === null || (/^https:\/\//.test(c.photo) && !/x\d*[13579]\.jpg$/.test(c.photo) && !/x\d*0\.jpg$/.test(c.photo))), JSON.stringify(ds.comparables.filter(c => c.photo).slice(0, 2).map(c => c.photo)));
+ok("a photo that failed the rule is null (3.1 MB, 404), never a placeholder", ds.comparables.some(c => c.photo === null) && ds.comparables.some(c => c.photo) && ds.comparables.every(c => !/placeholder|noimage|default|blank/i.test(String(c.photo))));
+// (4)
+const out = ds.comparables.filter(c => !c.inPopulation), inn = ds.comparables.filter(c => c.inPopulation);
+ok("the Tiptronic sales are listed with inPopulation false", out.length > 0 && out.every(c => /tiptronic/i.test(c.transmission)), String(out.length));
+ok("no sale outside the population is inside it (the in-population list holds no Tiptronic)", inn.length > 0 && inn.every(c => !/tiptronic/i.test(c.transmission)));
+ok("the evidence counts only the in-population comparables the meter draws", ds.evidence.count <= inn.length && ds.evidence.count >= inn.length - 6, `${ds.evidence.count} of ${inn.length}`);
+ok("outside has one entry for Tiptronic with its own count, median and range", ds.outside.length === 1 && ds.outside[0].label === "Tiptronic" && ds.outside[0].count === out.length && ds.outside[0].low <= ds.outside[0].median && ds.outside[0].median <= ds.outside[0].high);
+ok("the outside sentence is a table line, says less, and carries the counts", inTable("desk.outside.sentence", ds.outside[0].sentence) && /less than manual ones/.test(ds.outside[0].sentence) && new RegExp(`${ds.outside[0].count} sales against ${ds.evidence.count}`).test(ds.outside[0].sentence), ds.outside[0].sentence);
+ok("the outside difference is the medians' difference to the nearest $500", (() => { const m = /about \$([\d,]+) less/.exec(ds.outside[0].sentence); return m && Number(m[1].replace(/,/g, "")) === Math.round((ds.evidence.median - ds.outside[0].median) / 500) * 500; })());
+{ const e = { insufficient: false, median: 37000, count: 18 }, sub = { gearbox: "manual" };
+  const rows = [1, 2].map(i => ({ inPopulation: false, outReason: "transmission", gearboxWord: "SMG", price: 30000 + i }));
+  ok("an outside group of two sales gives no entry", DV.outsideOf(rows, e, sub).length === 0);
+  ok("an outside group of three gives one", DV.outsideOf([...rows, { inPopulation: false, outReason: "transmission", gearboxWord: "SMG", price: 31000 }], e, sub).length === 1);
+  ok("no reference in the population gives no outside entry", DV.outsideOf(rows, { insufficient: true }, sub).length === 0); }
+{ const r = await S.sheetRead(w.env, { year: c0.year, make: c0.make, model: c0.model, mileage: 61400, desk: { caseDate: today, label: c0.label, head } }, w.deps);
+  ok("with no gearbox asked there is no outside group and every comparable is in the population", r.desk.outside.length === 0 && r.desk.comparables.every(c => c.inPopulation)); }
+// (5) a car from a family with no generation list
+{ const CASE = "2026-11-10", sub = { year: 1985, make: "Acme", model: "Roadster", generation: null, body: "coupe", gearbox: "manual", miles: 60000, tier: null };
+  const mk = (i, o = {}) => ({ id: "u" + i, title: "Acme Roadster " + i, year: 1980 + (i % 11), generation: null, body: i % 5 === 0 ? "open" : "coupe", gearbox: i % 3 === 0 ? "automatic" : i % 7 === 0 ? null : "manual", gearboxWord: i % 3 === 0 ? "Automatic" : "Manual", miles: 20000 + i * 3000, price: 20000 + i * 900 + (i % 3 === 0 ? 0 : 6000), date: "2026-0" + (3 + (i % 6)) + "-10", platform: "Bring a Trailer", url: "https://x.test/u" + i, photo: null, tier: null, inPopulation: true, ...o });
+  const twenty = Array.from({ length: 24 }, (_, i) => mk(i));
+  const blk = (rows, extra = {}) => DV.deskBlock(rows, { caseDate: CASE, subject: { transmission: "Manual", body: "Coupe" }, subjectFacts: sub, head, ...extra });
+  const d = await blk(twenty), cs = d.comparables;
+  ok("(5) an unmapped family with 24 sales in the window: at least two comparables, each with a why line from the table", cs.length >= 2 && cs.length <= 12 && cs.every(c => inTable("desk.comparables.why", c.why) && !c.filled), String(cs.length));
+  ok("(5) the year distance is capped at five years: no comparable further off, and a gap is said in the line", cs.every(c => Math.abs(c.year - 1985) <= 5) && cs.filter(c => c.year !== 1985).every(c => /within the 5 year limit/.test(c.why)), JSON.stringify(cs.map(c => c.year)));
+  ok("(5) the closest come first: year distance, then close before similar rules (close ones are first)", cs.every((c, i, a) => i === 0 || !(a[i - 1].relevance === "similar" && c.relevance === "close")) && (() => { const sim = cs.filter(c => c.relevance === "similar").map(c => Math.abs(c.year - 1985)); return sim.every((v, i) => i === 0 || v >= sim[i - 1]); })());
+  ok("(5) close only when year, gearbox and body match and the miles are in the band", cs.filter(c => c.relevance === "close").every(c => c.year === 1985 && /Manual/.test(c.transmission) && c.body === "coupe" && Math.abs(c.miles - 60000) <= 15000) && cs.filter(c => c.relevance === "similar").every(c => !(c.year === 1985 && /Manual/.test(c.transmission) && c.body === "coupe" && Math.abs(c.miles - 60000) <= 15000)));
+  ok("(5) the why line says what matched and the main difference", cs.every(c => /^Matched on model/.test(c.why)) && cs.some(c => /older|newer|different gearbox|different body|miles/.test(c.why)), cs[0].why);
+  ok("(5) a note says there is no generation list and what was used, a table line, no dash", inTable("desk.comparablesNote", d.comparablesNote) && /no generation list/.test(d.comparablesNote) && !/[\u2013\u2014]/.test(d.comparablesNote), d.comparablesNote);
+  ok("(5) every comparable is a sale of the chosen window: a sale a year old is not listed in the 6 month window", (await blk(twenty.map((r, i) => (i < 12 ? { ...r, date: "2025-03-10" } : r)), { windowMonths: 6 })).comparables.every(c => c.soldDate >= "2026-05-10"));
+  const ph = await blk(twenty.map((r, i) => ({ ...r, photo: "https://img.example/x" + i + ".jpg" })));
+  ok("(5) a photo is the listing's own that passed the rule or null, never a substitute, in the unmapped list too", ph.comparables.length > 0 && ph.comparables.every(c => c.photo === null || (/^https:/.test(c.photo) && c.photo === "https://img.example/x" + c.id.slice(1) + ".jpg" && !/x\d*[13579]\.jpg$/.test(c.photo) && !/x\d*0\.jpg$/.test(c.photo))) && ph.comparables.some(c => c.photo === null) && ph.comparables.some(c => c.photo));
+  const few = await blk(twenty.slice(0, 3));
+  ok("(5) too few sales: no comparables and the sentence that says so", few.comparables.length === 0 && /too few sales of this model/.test(few.comparablesNote) && inTable("desk.comparablesNote", few.comparablesNote), few.comparablesNote);
+  const far = await blk(Array.from({ length: 30 }, (_, i) => mk(i, { year: 2012 + (i % 4) })));
+  ok("(5) thirty sales of the same model but twenty-seven years away (a redesign): none, never matched on the model name alone", far.comparables.length === 0 && /too few/.test(far.comparablesNote), String(far.comparables.length));
+  ok("(5) a mapped family with three or more generation matches has no note", (await DV.deskBlock(twenty.map(r => ({ ...r, generation: "g1", body: "coupe" })), { caseDate: CASE, subject: {}, subjectFacts: { ...sub, generation: "g1" } })).comparablesNote === null);
+  const sepRows = Array.from({ length: 24 }, (_, i) => mk(i, { year: 1985, body: "coupe", gearbox: i < 12 ? "manual" : "automatic", gearboxWord: i < 12 ? "Manual" : "Automatic", price: i < 12 ? 60000 + i * 100 : 30000 + i * 100, miles: 50000 + i * 200 }));
+  const ff = await blk(sepRows), tf = ff.factors.find(f => f.key === "transmission"), few3 = await blk(sepRows.filter((r, i) => i < 12 || i < 14)), tf2 = few3.factors.find(f => f.key === "transmission");
+  ok("(5) factors read what the sales can isolate: the gearbox effect with both groups large, none when one group has two sales", tf.effectSentence && /\$[\d,]+/.test(tf.effectSentence) && tf2.effectSentence === null && /few|number|isolate/.test(tf2.basis), String(tf.effectSentence) + " | " + tf2.basis);
+}
+// (6) dateLine and milesLine on every comparable (Lane S)
+{ const CASE = "2026-11-10", sub = { year: 1985, make: "Acme", model: "Roadster", generation: null, body: "coupe", gearbox: "manual", miles: 60000, tier: null };
+  const mk = i => ({ id: "d" + i, title: "t", year: 1983 + (i % 5), generation: null, body: "coupe", gearbox: "manual", gearboxWord: "Manual", miles: i % 4 === 3 ? null : 40000 + i * 2000, price: 20000 + i * 500, date: "2026-0" + (3 + (i % 6)) + "-10", platform: "Bring a Trailer", url: null, photo: null, tier: null, inPopulation: true });
+  const rows = Array.from({ length: 16 }, (_, i) => mk(i));
+  const lines = async (r, s2) => (await DV.deskBlock(r, { caseDate: CASE, subject: { transmission: "Manual", body: "Coupe" }, subjectFacts: s2, head })).comparables;
+  const none = await lines(rows, sub), gen = await lines(rows.map(r => ({ ...r, generation: "g1" })), { ...sub, generation: "g1" }), fill = await lines(rows.map((r, i) => ({ ...r, generation: i < 1 ? "g1" : "g2" })), { ...sub, generation: "g1" });
+  const MONTHS = /^(January|February|March|April|May|June|July|August|September|October|November|December) \d{4}$/;
+  for (const [nm, cs] of [["no generation list", none], ["generation match", gen], ["filled", fill]]) {
+    ok(`(6) ${nm}: every comparable carries dateLine, the month and year in words, from the table`, cs.length >= 3 && cs.every(c => MONTHS.test(c.dateLine) && inTable("desk.comparables.dateLine", c.dateLine)), cs[0] && cs[0].dateLine);
+    ok(`(6) ${nm}: milesLine is "N miles" from the table when the sale states miles, else null`, cs.every(c => c.miles > 0 ? c.milesLine === Math.round(c.miles).toLocaleString("en-US") + " miles" : c.milesLine === null) && cs.some(c => c.milesLine) && cs.some(c => c.milesLine === null), cs[0] && cs[0].milesLine);
+    ok(`(7) ${nm}: every comparable carries priceLine, its price as money from the table`, cs.length >= 3 && cs.every(c => c.priceLine === "$" + c.price.toLocaleString("en-US") && c.priceLine === RW.reasonLine("desk4.price", { price: c.price })), cs[0] && cs[0].priceLine);
+    ok(`(6) ${nm}: the lines carry no dash and no digit the row does not hold`, cs.every(c => !/[\u2013\u2014]/.test(String(c.dateLine) + String(c.milesLine)) && (c.dateLine || "").includes(String(c.soldDate).slice(0, 4))));
+  }
+}
+// (8) DIFFERENCES AGAINST THE CASE CAR (Lane B, Nov 15 2026, order bc85): every comparable of every list and every view carries { miles, gearbox, body, year, spec, condition }, computed against the case car by the engine; no sentence
+{ const sub = { year: 1999, generation: "996", body: "coupe", gearbox: "manual", miles: 60000, tier: 3 };
+  const row = (o = {}) => ({ id: "q" + Math.random(), year: 1999, generation: "996", body: "coupe", gearbox: "manual", gearboxWord: "Manual", miles: 60000, price: 40000, date: "2026-10-01", platform: "Bring a Trailer", model: "911", tier: 3, inPopulation: true, ...o });
+  const D = (o, s2 = sub) => DV.differsOf(row(o), s2);
+  ok("(8) a sale with more miles than the car: miles is positive (sale minus car)", D({ miles: 71000 }).miles === 11000);
+  ok("(8) a sale with fewer miles than the car: miles is negative", D({ miles: 52500 }).miles === -7500);
+  ok("(8) a sale with no miles, or a car with no miles: miles is null, never 0", D({ miles: null }).miles === null && D({}, { ...sub, miles: null }).miles === null);
+  ok("(8) a newer sale: year is positive; an older one negative; the same year 0", D({ year: 2001 }).year === 2 && D({ year: 1997 }).year === -2 && D({}).year === 0);
+  ok("(8) gearbox: other only when both are known and differ; an unstated side is not a difference", D({ gearbox: "automatic" }).gearbox === "other" && D({}).gearbox === "same" && D({ gearbox: null }).gearbox === "same");
+  ok("(8) body: other only when both are known and differ", D({ body: "open" }).body === "other" && D({}).body === "same" && D({ body: null }).body === "same");
+  ok("(8) condition: same, other or unknown from the tiers", D({}).condition === "same" && D({ tier: 2 }).condition === "other" && D({ tier: null }).condition === "unknown" && D({}, { ...sub, tier: null }).condition === "unknown");
+  ok("(8) spec: same only when both carry the same market spec, else unknown", D({ marketSpec: "us" }, { ...sub, marketSpec: "us" }).spec === "same" && D({ marketSpec: "eu" }, { ...sub, marketSpec: "us" }).spec === "unknown" && D({}).spec === "unknown");
+  ok("(8) the field has exactly the six keys and the allowed values", (() => { const d = D({ miles: 1 }); return Object.keys(d).sort().join() === "body,condition,gearbox,miles,spec,year" && ["same", "other"].includes(d.gearbox) && ["same", "other"].includes(d.body) && ["same", "unknown"].includes(d.spec) && ["same", "other", "unknown"].includes(d.condition) && Number.isFinite(d.year); })());
+}
+{ // every list the engine builds (generation list, fallback list, filled list), recomputed independently from each row's own fields and the case car
+  const CASE = "2026-11-10", sub = { year: 1985, make: "Acme", model: "Roadster", generation: null, body: "coupe", gearbox: "manual", miles: 60000, tier: null };
+  const mk = i => ({ id: "e" + i, title: "t", year: 1983 + (i % 5), generation: null, body: i % 5 === 0 ? "open" : "coupe", gearbox: i % 4 === 0 ? "automatic" : "manual", gearboxWord: i % 4 === 0 ? "Automatic" : "Manual", miles: i % 4 === 3 ? null : 40000 + i * 2000, price: 20000 + i * 500, date: "2026-0" + (3 + (i % 6)) + "-10", platform: "Bring a Trailer", url: null, photo: null, tier: null, inPopulation: true });
+  const rows = Array.from({ length: 16 }, (_, i) => mk(i));
+  const lines = async (r, s2) => (await DV.deskBlock(r, { caseDate: CASE, subject: { transmission: "Manual", body: "Coupe" }, subjectFacts: s2, head })).comparables;
+  const none = await lines(rows, sub), gen = await lines(rows.map(r => ({ ...r, generation: "g1" })), { ...sub, generation: "g1" }), fill = await lines(rows.map((r, i) => ({ ...r, generation: i < 1 ? "g1" : "g2" })), { ...sub, generation: "g1" });
+  for (const [nm, cs] of [["no generation list", none], ["generation match", gen], ["filled", fill]]) {
+    const byId = Object.fromEntries(rows.map(r => [r.id, r]));
+    ok(`(8) ${nm}: every comparable carries differences equal to the sale against the case car (miles signed, year signed, gearbox, body)`, cs.length >= 3 && cs.every(c => { const r = byId[c.id], d = c.differences; return d && d.miles === (r.miles > 0 ? r.miles - 60000 : null) && d.year === r.year - 1985 && d.gearbox === (r.gearbox === "manual" ? "same" : "other") && d.body === (r.body === "coupe" ? "same" : "other") && d.condition === "unknown" && d.spec === "unknown"; }), JSON.stringify(cs[0] && cs[0].differences));
+    ok(`(8) ${nm}: the differences are numbers and words only, no sentence`, cs.every(c => Object.values(c.differences).every(v => v === null || typeof v === "number" || /^[a-z]+$/.test(v))));
+  }
+  ok("(8) the three lists include a filled row and a sale of another gearbox, so each builder is covered", fill.some(c => c.filled) && none.some(c => c.differences.gearbox === "other") && none.some(c => c.differences.miles === null));
+}
+{ // the real read: the top of desk and EVERY desk.views entry (resolved through viewOf), against the case car (1999, 61,400 miles, manual coupe)
+  const r8 = await S.sheetRead(w.env, { year: c0.year, make: c0.make, model: c0.model, mileage: 61400, desk: { caseDate: today, transmission: c0.transmission, label: c0.label, case: { verification: {} }, exclusions: [], head, views: true } }, w.deps), d8 = r8.desk, keys = Object.keys(d8.views || {}); let seen = 0, bad = [];
+  const lists = [["top of desk", d8.comparables], ...keys.map(k => [`view ${k}`, (DV.viewOf(d8, k) || {}).comparables || []])];
+  for (const [nm, cs] of lists) for (const c of cs) { seen++; const d = c.differences;
+    if (!d || d.miles !== (c.miles > 0 ? c.miles - 61400 : null) || d.year !== c.year - 1999 || !["same", "other"].includes(d.gearbox) || !["same", "other"].includes(d.body) || (/tiptronic/i.test(c.transmission) !== (d.gearbox === "other")) || !["same", "unknown"].includes(d.spec) || !["same", "other", "unknown"].includes(d.condition)) bad.push(nm + " " + c.id); }
+  ok("(8) the real read has views and the comparables of the top of desk and of every view carry the differences, equal to the sale against the case car", keys.length > 1 && seen > 10 && bad.length === 0, bad.slice(0, 3).join(" | ") + ` (${seen} rows, ${keys.length} views)`);
+  ok("(8) a row stored once in desk.pool is the same row in every view that lists it", (d8.pool || []).filter(e => e && e.id && e.relevance).every(e => e.differences && typeof e.differences === "object"));
+  ok("(8) every row-building site of lib/deskV3.js (the comparables lists) sets differences from differsOf", (fs.readFileSync(path.join(ROOT, "lib/deskV3.js"), "utf8").match(/relevance: o\.rel,/g) || []).length === (fs.readFileSync(path.join(ROOT, "lib/deskV3.js"), "utf8").match(/body: o\.r\.body \|\| null, differences: differsOf\(o\.r, sub\), transmission:/g) || []).length);
+}
+console.log("\ndeskCompsCheck: " + (n - failed) + " pass, " + failed + " FAIL"); process.exit(failed ? 1 : 0);

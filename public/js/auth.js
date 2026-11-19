@@ -7,6 +7,52 @@
 
 const AUTH_SESSION_KEY = "gas_auth_session";     // distinct from outbound's "gas_session"
 const AUTH_CONSENT_KEY = "gas_pending_consent";  // survives the sign-in redirect (11d)
+
+// SIGN-IN RETURN (Sam, Oct 25 2026): the person's intended destination (the button they pressed, the page they were on) and anything they had typed
+// is remembered the moment the sign-in card opens, and used once the emailed code (or Google) has signed them in, so they land where they were going and
+// never have to press the button again. ONE place: these four functions. Same-origin paths only (never an external address), kept 30 minutes in
+// localStorage, so closing the card or coming back from the email loses nothing.
+const AUTH_RETURN_KEY = "gas_signin_return", AUTH_TYPED_KEY = "gas_signin_typed", AUTH_RETURN_TTL_MS = 30 * 60 * 1000;
+function authSafeDest(d) {
+  try {
+    const raw = String(d == null ? "" : d); if (!raw || /[\\\u0000-\u001f]/.test(raw) || /^\/\//.test(raw)) return null;
+    const u = new URL(raw, location.origin); if (u.origin !== location.origin) return null;
+    return u.pathname + u.search + u.hash;
+  } catch (e) { return null; }
+}
+function authRememberReturn(dest) {
+  try {
+    const path = authSafeDest(dest || (location.pathname + location.search)); if (!path) return;
+    const box = document.querySelector(".gst-in, #sell-input, #buy-input, #tk-input, textarea"), typed = box && box.value ? String(box.value).trim().slice(0, 500) : "";
+    localStorage.setItem(AUTH_RETURN_KEY, JSON.stringify({ path, typed, at: Date.now() }));
+  } catch (e) {}
+}
+function authTakeReturn() {
+  try {
+    const raw = localStorage.getItem(AUTH_RETURN_KEY); if (!raw) return null;
+    localStorage.removeItem(AUTH_RETURN_KEY);
+    const r = JSON.parse(raw), path = authSafeDest(r && r.path);
+    if (!path || !(Date.now() - Number(r.at) < AUTH_RETURN_TTL_MS)) return null;
+    return { path, typed: r.typed ? String(r.typed) : "" };
+  } catch (e) { return null; }
+}
+// After a sign-in: go where the person was going (true when it left this page). What they had typed waits for them on the destination.
+function authLandAfterSignIn() {
+  const r = authTakeReturn(); window.__authLanded = r ? "here" : "none"; if (!r) return false;   // "none": nothing was remembered (the new design sends that to Home, below)
+  try { if (r.typed) localStorage.setItem(AUTH_TYPED_KEY, JSON.stringify({ text: r.typed, path: r.path.replace(/[?#].*$/, ""), at: Date.now() })); } catch (e) {}
+  if (r.path !== location.pathname + location.search + location.hash) { window.__authLanded = "left"; location.assign(r.path); return true; }
+  authApplyTyped(); return false;
+}
+// THE NEW DESIGN (window.GAS_NEW_DESIGN, set by lib/_publicHead.js): a sign in goes back to the page it was started from, query and all (openSignInCard remembers it), and to Home when nothing was remembered. Other pages keep their own fallback.
+function authLandHomeIfNone() { if (window.GAS_NEW_DESIGN && window.__authLanded === "none") { location.assign("/"); return true; } return false; }
+function authApplyTyped() {
+  try {
+    const raw = localStorage.getItem(AUTH_TYPED_KEY); if (!raw) return;
+    const t = JSON.parse(raw); if (!t || !t.text || !(Date.now() - Number(t.at) < AUTH_RETURN_TTL_MS) || t.path !== location.pathname) { if (!t || !(Date.now() - Number(t.at) < AUTH_RETURN_TTL_MS)) localStorage.removeItem(AUTH_TYPED_KEY); return; }
+    const box = document.querySelector(".gst-in, #sell-input, #buy-input, #tk-input, textarea"); if (!box || box.value) return;
+    box.value = t.text; box.dispatchEvent(new Event("input", { bubbles: true })); localStorage.removeItem(AUTH_TYPED_KEY);
+  } catch (e) {}
+}
 let __authConfig = null, __authConfigPromise = null;
 let __authAccount = null;      // { email, tier, marketingConsent } once ensured
 let __authPrefillEmail = "";
@@ -36,11 +82,18 @@ async function authConfig() {
 
 // ---------------- session ----------------
 function authGetSession() { try { const s = localStorage.getItem(AUTH_SESSION_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+// THE DESK SEAT DOOR (Lane C, Nov 4 2026): a signed-in account that holds a Desk seat gets a signed cookie from /api/deskSeat; anyone else gets the platform's plain 404, which nothing here reads or shows.
+// At most once every 30 minutes, and only for a session that has just been written (a sign-in or a refresh).
+let _deskDoorAt = 0;
+function authDeskDoor(token) {
+  const now = Date.now(); if (!token || now - _deskDoorAt < 30 * 60 * 1000) return; _deskDoorAt = now;
+  try { fetch("/api/deskSeat", { method: "POST", credentials: "same-origin", headers: { Authorization: "Bearer " + token } }).catch(function () {}); } catch (e) {}
+}
 function authSetSession(s) {
   try { if (s) localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(AUTH_SESSION_KEY); } catch (e) {}
   // Signed out (or the token was refused): nothing of the account stays in this browser or on the page (the shell's gasAccountPurge: recent searches, results, drafts, badge).
   if (!s) { try { if (typeof window.gasAccountPurge === "function") window.gasAccountPurge(); } catch (e) {} }
-  else { try { if (typeof window.gasRecentDraw === "function") window.gasRecentDraw(); } catch (e) {} }
+  else { try { if (typeof window.gasRecentDraw === "function") window.gasRecentDraw(); } catch (e) {} authDeskDoor(s.access_token); }
 }
 function authIsSignedIn() { const s = authGetSession(); return !!(s && s.access_token); }
 function sessionFromTokenResponse(j) {
@@ -156,9 +209,11 @@ async function authVerifyCode(btn) {
     const now = Math.floor(Date.now() / 1000);
     authSetSession({ access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || (now + (j.expires_in || 3600)), email: (j.user && j.user.email) || email });
     authRenderTopbar();
-    await authEnsureAccount({ forceRecheck: true, freshSignIn: true });   // fresh sign-in: pick up a just-made TDV subscription now
+    await authEnsureAccount({ forceRecheck: true, freshSignIn: true, method: "email" });   // fresh sign-in: pick up a just-made TDV subscription now
     authRenderTopbar();
     authCloseModal();
+    if (authLandAfterSignIn()) return;   // the destination they were going to (a page's own gateAfterSignup is only the fallback)
+    if (authLandHomeIfNone()) return;
     if (typeof gateAfterSignup === "function") gateAfterSignup();
   } catch (e) { done(); authCardError("That code could not be verified just now. Try again in a moment."); }
 }
@@ -189,6 +244,7 @@ async function authEnsureAccount(opts) {
   // (gasAttribution()'s first touch) rides along so sign_in_completed can carry props.source -
   // the "best acquisition sources" admin view reads this.
   if (opts && opts.freshSignIn) { body.freshSignIn = true; const a = gasAttribution(); if (a && a.first) body.attributionSource = a.first.source || null; }
+  if (opts && opts.freshSignIn && (opts.method === "google" || opts.method === "email")) body.signInMethod = opts.method;   // analytics: which way they signed in (the signin event's method)
   try {
     const res = await fetch(authApiPath("/api/account"), {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -311,7 +367,8 @@ function authCardError(msg) { const el = document.getElementById("auth-error"); 
 function authCloseModal() { const m = document.getElementById("auth-modal"); if (m && m.remove) m.remove(); }
 
 // The sign-in card. Sam-voiced, two doors, one unticked consent checkbox.
-function openSignInCard(subtitle) {
+function openSignInCard(subtitle, opts) {
+  authRememberReturn(opts && opts.dest);   // where they were going, and what they had typed (kept 30 minutes; see authLandAfterSignIn)
   gasFunnel("signup_shown");   // 2F: the sign-in card was shown (a funnel step)
   if (typeof gasTrack === "function") gasTrack("signin_started");   // analytics (docs/analytics-events.md)
   authCloseModal();
@@ -329,9 +386,11 @@ function openSignInCard(subtitle) {
     <input id="auth-email" class="auth-input" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" />
     <div id="auth-turnstile" class="auth-turnstile"></div>
     <button class="auth-email-btn" onclick="authSignInEmail(this)">Email me a code</button>
-    <label class="auth-consent-row"><input id="auth-consent" type="checkbox" /> <span>Send me Sam's market notes</span></label>
+    <p class="auth-free" style="margin:12px 0 0;font-size:14px;line-height:1.4"><strong>Free to use. Sign in to save searches and set Tasks.</strong></p>
+    <label class="auth-consent-row"><input id="auth-consent" type="checkbox" /> <span>Sign me up to The Daily Vroom</span></label>
     <div id="auth-error" class="auth-error" style="display:none"></div>
-    <div class="auth-fineprint">No passwords. We email you a one-time code. Marketing notes only if you tick the box.</div>
+    <div class="auth-fineprint">No passwords. We email you a one-time code. You get The Daily Vroom only if you tick the box.</div>
+    <div class="auth-fineprint">By continuing you agree to our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</div>
   </div>`;
   document.body.appendChild(scrim);
   const f = document.getElementById("auth-email");
@@ -356,10 +415,12 @@ function authRenderCheckEmail(email) {
   if (!d) return;
   d.innerHTML = `<h3>Enter your code</h3>
     <p>Check your email for the code. It went to <strong>${authEsc(email)}</strong>.</p>
+    <p class="auth-junk" style="margin:-4px 0 12px;font-size:13px;color:#6B6861">Check your junk folder if it does not arrive.</p>
     <input id="auth-code" class="auth-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Enter the code" aria-label="Sign-in code" />
     <div id="auth-error" class="auth-error" style="display:none"></div>
     <button class="auth-email-btn" onclick="authVerifyCode(this)">Verify and sign in</button>
-    <button onclick="authSignInEmail(this)" style="margin-top:10px;background:none;border:none;color:#6B6861;font-size:13px;cursor:pointer;text-decoration:underline">Resend code</button>`;
+    <button onclick="authSignInEmail(this)" style="margin-top:10px;background:none;border:none;color:#6B6861;font-size:13px;cursor:pointer;text-decoration:underline">Resend code</button>
+    <div class="auth-fineprint">By continuing you agree to our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</div>`;
   const f = document.getElementById("auth-code");
   if (f) { try { f.focus(); } catch (e) {} f.addEventListener("keydown", e => { if (e.key === "Enter") authVerifyCode(document.querySelector("#auth-modal .auth-email-btn")); }); }
 }
@@ -403,12 +464,13 @@ async function authBoot() {
   if (authIsSignedIn()) {
     // Fresh sign-in (returned via Google/magic-link callback) forces a live tier
     // re-check so a just-subscribed reader is TDV immediately; a normal load does not.
-    await authEnsureAccount(returned ? { forceRecheck: true, freshSignIn: true } : undefined);
+    await authEnsureAccount(returned ? { forceRecheck: true, freshSignIn: true, method: "google" } : undefined);
     authRenderTopbar();              // repaint with the resolved email/tier
   }
-  if (returned) { authCloseModal(); gateAfterSignup(); }  // #2: land on the claimed result after a wall signup
+  if (returned) { authCloseModal(); if (!authLandAfterSignIn()) gateAfterSignup(); }  // #2: land on the claimed result after a wall signup, or where they were going
   else { gateCheckUpfront(); }                             // #1: tell a depleted visitor before the wizard
   gasFunnelOnce("homepage_view");  // 2F: one homepage_view per session
+  setTimeout(authApplyTyped, 700);   // what they typed before signing in is waiting in the page's box
 }
 
 // ===================== 2C: the account gate (client) =====================
@@ -692,8 +754,9 @@ async function authBootTopbarOnly() {
   authScrubPrefill();
   const returned = authHandleCallback();
   authRenderTopbar();
-  if (authIsSignedIn()) { await authEnsureAccount(returned ? { forceRecheck: true, freshSignIn: true } : undefined); authRenderTopbar(); }
-  if (returned) authCloseModal();
+  if (authIsSignedIn()) { await authEnsureAccount(returned ? { forceRecheck: true, freshSignIn: true, method: "google" } : undefined); authRenderTopbar(); }
+  if (returned) { authCloseModal(); if (!authLandAfterSignIn()) authLandHomeIfNone(); }
+  setTimeout(authApplyTyped, 700);   // what they typed before signing in is waiting in the page's box
 }
 if (typeof document !== "undefined" && document.addEventListener) {
   const __authEntry = (typeof window !== "undefined" && window.GAS_AUTH_MODE === "topbar") ? authBootTopbarOnly : authBoot;

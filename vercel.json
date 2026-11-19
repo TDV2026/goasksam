@@ -5,7 +5,22 @@
       "source": "/(.*)",
       "has": [{ "type": "host", "value": "goasksam.vercel.app" }],
       "destination": "https://goasksam.com/$1",
-      "permanent": true
+      "statusCode": 301
+    },
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "statusCode": 301
+    },
+    {
+      "source": "/mcp.html",
+      "destination": "/mcp",
+      "statusCode": 301
+    },
+    {
+      "source": "/powersellers.html",
+      "destination": "/powersellers",
+      "statusCode": 301
     },
     {
       "source": "/rudy",
@@ -15,7 +30,12 @@
     {
       "source": "/sell-old.html",
       "destination": "/sell",
-      "statusCode": 302
+      "statusCode": 301
+    },
+    {
+      "source": "/onebox.html",
+      "destination": "/market-check",
+      "statusCode": 301
     },
     {
       "source": "/buy",
@@ -25,25 +45,27 @@
     {
       "source": "/onebox",
       "destination": "/market-check",
-      "permanent": true
+      "statusCode": 301
     },
     {
       "source": "/partner-demo",
+      "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }],
       "destination": "/preview",
       "permanent": false
     }
   ],
+  "regions": ["dub1"],
   "rewrites": [
     { "source": "/api/task-link", "destination": "/api/watch" },
-    { "source": "/sell", "has": [{ "type": "query", "key": "car" }], "destination": "/api/sellNext" },
-    { "source": "/sell", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/sellPage?_crew=1" },
-    { "source": "/sell", "destination": "/api/sellPage" },
+    { "source": "/sell", "destination": "/api/sell" },
     { "source": "/tasks", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/tasksPage?_crew=1" },
     { "source": "/tasks", "destination": "/api/tasksPage" },
     { "source": "/tasks/mine", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/tasksPage?app=1&_crew=1" },
     { "source": "/tasks/mine", "destination": "/api/tasksPage?app=1" },
     { "source": "/market-check", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/marketCheck?_crew=1" },
     { "source": "/market-check", "destination": "/api/marketCheck" },
+    { "source": "/sitemap.xml", "destination": "/api/history?sitemap=root" },
+    { "source": "/sitemap-index.xml", "destination": "/api/history?sitemap=root" },
     { "source": "/sitemap-specs.xml", "destination": "/api/specPage?sitemap=1" },
     { "source": "/sitemap-pages.xml", "destination": "/api/sitemapPages" },
     { "source": "/cars/porsche/911", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/specPage?slug=/cars/porsche/911&_crew=1" },
@@ -51,9 +73,39 @@
     { "source": "/cars/porsche/911/:path*", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/specPage?slug=/cars/porsche/911/:path*&_crew=1" },
     { "source": "/cars/porsche/911/:path*", "destination": "/api/specPage?slug=/cars/porsche/911/:path*" },
     { "source": "/o/:id", "destination": "/api/publicConfig?obShare=:id" },
-    { "source": "/onebox-preview", "destination": "/onebox-preview.html" },
-    { "source": "/privacy", "destination": "/privacy.html" },
-    { "source": "/about", "destination": "/about.html" },
+    { "source": "/onebox-preview", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=onebox-preview" },
+    { "source": "/preview/home", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-home" },
+    { "source": "/preview/find", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-find" },
+    { "source": "/preview/market-check", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-market-check" },
+    { "source": "/preview/market-check/example", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-market-check-example" },
+    { "source": "/preview/market-check/onebox.js", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-onebox-js" },
+    { "source": "/preview/business", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-site-business" },
+    { "source": "/preview/how-sam-decides", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-site-how" },
+    { "source": "/preview/about", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-site-about" },
+    { "source": "/preview/whats-new", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-site-whatsnew" },
+    { "source": "/preview/feedback", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-site-feedback" },
+    { "source": "/preview/terms", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-site-terms" },
+    { "source": "/preview/privacy", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-site-privacy" },
+    { "source": "/preview/history", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-history" },
+    { "source": "/preview/history/:slug/:vin", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-history&slug=:slug&vin=:vin" },
+    { "source": "/preview/history/:slug", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-history&slug=:slug" },
+    { "source": "/preview/for-business", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-site-business" },
+    { "source": "/preview/sell", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-sell" },
+    { "source": "/preview/tasks", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-tasks" },
+    { "source": "/preview/tasks/mine", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-tasks-mine" },
+    { "source": "/preview/tasks/api", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-tasks-api" },
+    { "source": "/preview/desk", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-desk" },
+    { "source": "/preview/desk-valuations", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-desk-valuations" },
+    { "source": "/preview/desk/case/:id", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-desk&case=:id" },
+    { "source": "/preview/desk2", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-desk2" },
+    { "source": "/preview/desk2/case/:id", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-desk2&case=:id" },
+    { "source": "/preview/desk/api", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=preview-desk-api" },
+    { "source": "/onebox-preview", "has": [{ "type": "cookie", "key": "gas_tester", "value": "t1\\..*" }], "destination": "/api/crewPage?page=onebox-preview" },
+    { "source": "/privacy", "destination": "/api/legal?page=privacy" },
+    { "source": "/terms", "destination": "/api/legal?page=terms" },
+    { "source": "/about", "destination": "/api/about" },
+    { "source": "/whats-new", "destination": "/api/whatsNew" },
+    { "source": "/feedback", "destination": "/api/feedback" },
     { "source": "/", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/home?_crew=1" },
     { "source": "/", "destination": "/api/home" },
     { "source": "/how-sam-decides", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/howSamDecides?_crew=1" },
@@ -90,7 +142,8 @@
     { "source": "/js.20261020b/(.*)", "destination": "/js/$1" },
     { "source": "/js.20261021a/(.*)", "destination": "/js/$1" },
     { "source": "/js.20261021b/(.*)", "destination": "/js/$1" },
-    { "source": "/js.20261021c/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261026d/(.*)", "destination": "/js/$1" },
+    { "source": "/js.20261026e/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261012a/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261012b/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261013a/(.*)", "destination": "/js/$1" },
@@ -113,9 +166,17 @@
     { "source": "/obx.20261021b/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261021c/(.*)", "destination": "/js/$1" },
     { "source": "/obx.20261021d/(.*)", "destination": "/js/$1" },
-    { "source": "/admin", "destination": "/api/admin?page=1" },
-    { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/desk.html" },
-    { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_tester", "value": "t1\\..*" }], "destination": "/desk.html" },
+    { "source": "/obx.20261026a/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261026b/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261026c/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261026d/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261026e/(.*)", "destination": "/js/$1" },
+    { "source": "/obx.20261028a/(.*)", "destination": "/js/$1" },
+    { "source": "/admin", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/admin?page=1" },
+    { "source": "/desk", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=desk" },
+    { "source": "/desk/:path*", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/crewPage?page=desk" },
+    { "source": "/history", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/history?index=1&_crew=1" },
+    { "source": "/history", "destination": "/api/history?index=1" },
     { "source": "/history/:slug/:vin", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/history?slug=:slug&vin=:vin&_crew=1" },
     { "source": "/history/:slug/:vin", "destination": "/api/history?slug=:slug&vin=:vin" },
     { "source": "/history/:slug", "has": [{ "type": "cookie", "key": "gas_crew", "value": "v1\\..*" }], "destination": "/api/history?slug=:slug&_crew=1" },
@@ -133,7 +194,9 @@
     { "source": "/dsk.20261006a/(.*)", "destination": "/js/$1" },
     { "source": "/dsk.20261006b/(.*)", "destination": "/js/$1" },
     { "source": "/dsk.20261006c/(.*)", "destination": "/js/$1" },
-    { "source": "/dsk.20261006d/(.*)", "destination": "/js/$1" }
+    { "source": "/dsk.20261006d/(.*)", "destination": "/js/$1" },
+    { "source": "/dsk.20261104a/(.*)", "destination": "/js/$1" },
+    { "source": "/dsk.20261106a/(.*)", "destination": "/js/$1" }
   ],
   "headers": [
     {
@@ -144,20 +207,60 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy", "value": "camera=(), geolocation=(), payment=(), usb=(), microphone=(self)" },
-        { "key": "Content-Security-Policy-Report-Only", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://otkmxyrglikdoychnmvy.supabase.co https://auth.goasksam.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://challenges.cloudflare.com; frame-src 'self' https://challenges.cloudflare.com; media-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; report-uri /api/cspReport" }
+        { "key": "Content-Security-Policy-Report-Only", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://otkmxyrglikdoychnmvy.supabase.co https://auth.goasksam.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://challenges.cloudflare.com; frame-src 'self' blob: https://challenges.cloudflare.com; media-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; report-uri /api/cspReport" }
       ]
     }
   ],
   "functions": {
+    "api/home.js": {
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
+    },
+    "api/buy.js": {
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
+    },
+    "api/tasksPage.js": {
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
+    },
+    "api/legal.js": {
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
+    },
+    "api/about.js": {
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
+    },
+    "api/howSamDecides.js": {
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
+    },
+    "api/feedback.js": {
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
+    },
+    "api/business.js": {
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
+    },
+    "api/history.js": {
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
+    },
     "api/usageDashboard.js": {
       "maxDuration": 300,
-      "includeFiles": "scripts/warm-list.json"
+      "includeFiles": "scripts/{warm-list,warm-named}.json"
+    },
+    "api/whatsNew.js": {
+      "includeFiles": "{data/whatsNew.json,{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}}"
+    },
+    "api/sitemapPages.js": {
+      "includeFiles": "data/whatsNew.json"
+    },
+    "api/crewPage.js": {
+      "maxDuration": 60,
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
     },
     "api/publicConfig.js": {
       "includeFiles": "public/onebox.html"
     },
     "api/marketCheck.js": {
-      "includeFiles": "public/onebox.html"
+      "includeFiles": "{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}"
+    },
+    "api/sell.js": {
+      "includeFiles": "{public/sell-old.html,{lib/crewPages/**,lib/live/**,lib/sell/{sellFacts,sellBlock}.js,lib/preview/deskAnalystFixture.json,lib/{platformPick,specializationShare,houseCalendar,specPages}.js,public/{onebox.html,styles.css,js/onebox.js}}}"
     },
     "api/sellPage.js": {
       "includeFiles": "public/sell-old.html"
@@ -169,13 +272,27 @@
       "includeFiles": "public/js/{chat-core,wizard}.js"
     },
     "api/sellerDecision.js": {
-      "maxDuration": 60
+      "maxDuration": 90
     },
     "api/specPage.js": {
       "maxDuration": 60
     },
-    "api/desk.js": {
+    "api/deskInbound.js": {
       "maxDuration": 300
+    },
+    "api/tasks.js": {
+      "maxDuration": 300
+    },
+    "api/deskSend.js": {
+      "maxDuration": 60,
+      "includeFiles": "lib/pdf/fonts/**"
+    },
+    "api/deskIntake.js": {
+      "maxDuration": 60
+    },
+    "api/desk.js": {
+      "maxDuration": 300,
+      "includeFiles": "lib/pdf/fonts/**"
     }
   },
   "crons": [

@@ -1,0 +1,73 @@
+// Each mutation undoes ONE rule of the forwarded lead becoming a case on a scratch copy of the tree; scripts/intakeToCaseCheck.mjs must go red on every one (and be green on the real tree).
+//   node scripts/intakeToCaseFailsWithout.mjs [only-a-number-to-run-one]
+import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { execFileSync } from "node:child_process"; import { fileURLToPath } from "node:url";
+const ROOT = path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
+const RUN = "lib/desk/intake/run.js", TCm = "lib/desk/intake/toCase.js", HF_ = "lib/desk/intake/hagertyForm.js";
+const MUT = [
+  ["a forwarded lead makes no case (the bare row it was)", RUN, s => s.replace("if (created) caseMade = (await attachCase(", "if (false) caseMade = (await attachCase(")],
+  ["the seller's fields are marked verified", TCm, s => s.replace('source: "seller", origin: "forwarded" });', 'source: "analyst_verified", origin: "forwarded" });')],
+  ["the VIN's decode fills nothing", TCm, s => s.replace('if (car && car.source !== "typed") for', "if (false) for")],
+  ["the case is not marked forwarded", TCm, s => s.replace('source: "seller", origin: "forwarded" });', 'source: "seller", origin: null });')],
+  ["a car that is not identified has no needs attention line", "lib/desk/caseWorkflow.js", s => s.replace("applies: c => !(c.fields.vin.value || (c.fields.year.value && c.fields.make.value && c.fields.model.value)) },", "applies: c => false },")],
+  ["the original email's address is never signed", "lib/desk/storage.js", s => s.replace("se = sub.sourceEmail && sub.sourceEmail.path ? await one(sub.sourceEmail) : sub.sourceEmail;", "se = sub.sourceEmail;")],
+  ["the sheet does not carry the original email's path", "lib/desk/intake/toSheet.js", s => s.replace("...(row.source_email_path ? { sourceEmail:", "...(false ? { sourceEmail:")],
+  ["the seller's phone is not read", "lib/desk/intake/parse.js", s => s.replace("phone: findPhone(consignorBodyOf(messages, internalEmails) || text),", "phone: null,")],
+  ["the seller's ask line is typed by hand", "lib/desk/caseView.js", s => s.replace('reasonLine("case.reserve.seller_ask", { figure: c.seller.asking_price })', '"The seller asked for $" + c.seller.asking_price + "."')],
+  // THE HAGERTY FORM, one mutation per group of answers
+  ["HAGERTY CAR: the form's year, make, model and sub-model are not put on the case", TCm, s => s.replace("...Object.fromEntries(Object.entries(fromForm).filter(([, v]) => v != null && v !== \"\")) };", "};")],
+  ["HAGERTY ODOMETER: the reading and its unit are not read", "lib/desk/intake/hagertyForm.js", s => s.replace("const odometer = Number.isFinite(digits) && digits > 0 ?", "const odometer = false ?")],
+  ["HAGERTY VIN: the VIN or chassis number field is always read as a chassis", "lib/desk/intake/hagertyForm.js", s => s.replace("isVin = vinWord.length === 17 &&", "isVin = false &&")],
+  ["HAGERTY YES AND NO: no yes or no answer is read", "lib/desk/intake/hagertyForm.js", s => s.replace("const yn = v => {", "const yn = v => { return null;")],
+  ["HAGERTY LOCATION: city, state and zip are dropped", TCm, s => s.replace("city: form.city, state: form.state, zip: form.zip, ", "")],
+  ["HAGERTY MODIFIED: an upgraded answer does not mark the car modified", "lib/desk/intake/hagertyForm.js", s => s.replace("modified: upgrades && /\\S/.test(upgrades) ? true : null,", "modified: null,")],
+  ["HAGERTY RESERVE: the seller's Yes, No or Not sure is dropped", TCm, s => s.replace("if (form.reserve) c.reserve =", "if (false) c.reserve =")],
+  ["HAGERTY FREE TEXT: the three answers are not kept as documents", TCm, s => s.replace("if (text && /\\S/.test(text)) out = addDocument(", "if (false) out = addDocument(")],
+  ["HAGERTY VERIFIED: the form's answers are marked verified", TCm, s => s.replace('f = (value) => ({ value, source: "seller", verified: false });', 'f = (value) => ({ value, source: "seller", verified: true });')],
+  ["HAGERTY FORM TAKEN FOR EVERY EMAIL: a plain email gets a lead block", "lib/desk/intake/hagertyForm.js", s => s.replace("if (keys.length < 5 ||", "if (false &&")],
+  ["HAGERTY ONE LINE: a form run together on one line is read as one line, so no form", "lib/desk/intake/hagertyForm.js", s => s.replace(".flatMap(splitInline)", "")],
+  ["SAM'S RESEND 1: the form's Seller name, email and phone are not read onto the case", TCm, s => s.replace("const fsel = (read && read.form && read.form.seller) || {};", "const fsel = {};")],
+  ["SAM'S RESEND 1: a label that sits after other text in a line is not a boundary", HF_, s => s.replace(".filter(i => i > 0); if (!at.length)", ".filter(i => i > 0); if (at.length < 2)")],
+  ["SAM'S RESEND 2: the label's own tail (a full stop, \", if anything.\") opens the answer", HF_, s => s.replace("const TAIL = /^\\s*(?:,\\s*if anything\\b)?\\s*[?:.!\\-]*\\s*/i;", "const TAIL = /^\\s*[?:\\-]*\\s*/;")],
+  ["SAM'S RESEND 2: an attachment marker left in the body is read into the last answer", HF_, s => s.replace(/\.replace\(\/\\\[\[\^\\\]\\n\]\{1,160\}[^\n]*?\/gi, ""\)/, "")],
+  ["SAM'S RESEND 3: the chassis number has no line on the case view", "lib/desk/caseView.js", s => s.replace('if (v("chassis")) lines.chassisLine', 'if (false) lines.chassisLine')],
+  ["SAM'S RESEND 4: the location has no line on the case view", "lib/desk/caseView.js", s => s.replace('if (v("city") || v("state") || v("zip")) lines.locationLine', 'if (false) lines.locationLine')],
+  ["SAM'S RESEND 4: the title has no line on the case view", "lib/desk/caseView.js", s => s.replace('if (v("titleInOwnName") != null || v("titleStatus")) lines.titleLine', 'if (false) lines.titleLine')],
+  ["SAM'S RESEND 5: settling a case nobody has opened moves it out of New leads", "lib/desk/caseWorkflow.js", s => s.replace('if (c.status === "finalized" || c.status === "new") return c;', 'if (c.status === "finalized") return c;')],
+  ["a later email is not merged into the case", RUN, s => s.replace("else if (addedTo) await mergeIntoCase(", "else if (false) await mergeIntoCase(")],
+  ["a later email rebuilds the case from scratch (the analyst's edits are lost)", TCm, s => s.replace("let c = row.case, nP = 0, nD = 0;", "let c = caseFromLead({ orgId, sheet: row, read, car: null, receivedAt }), nP = 0, nD = 0;")],
+  ["the engine is read once and a case edited meanwhile is given up on", TCm, s => s.replace("attempt < 2", "attempt < 1")],
+  ["the background read never asks the engine", TCm, s => s.replace("await openCaseRead(c, readSheet, { caseDate: at.slice(0, 10), now: at });", "{ recalled: false };")],
+  ["an unknown sender is let through", RUN, s => s.replace('if (!seat) return finish("dropped_not_seat"', 'if (false) return finish("dropped_not_seat"')],
+  ["the same email twice is not claimed", RUN, s => s.replace("if (!claim.claimed) return", "if (false) return")],
+  ["a car nobody named is sent to the engine", TCm, s => s.replace('if (!(f("vin") || (f("year") && f("make") && f("model")))) return', "if (false) return")],
+  // RE-READ THE EMAIL (Nov 13 2026)
+  ["RE-READ: a held field is replaced by the email's value", "lib/desk/intake/reread.js", s => s.replace("if (blank(had) && f && !blank(f.value))", "if (f && !blank(f.value))")],
+  ["RE-READ: the seller's details are not filled", "lib/desk/intake/reread.js", s => s.replace("const fs = fresh.seller; if (fs)", "const fs = null; if (fs)")],
+  ["RE-READ: the lead's facts are not filled", "lib/desk/intake/reread.js", s => s.replace("const fl = fresh.lead; if (fl && fl.facts)", "const fl = null; if (fl && fl.facts)")],
+  ["RE-READ: a fact the case holds is replaced by the email's", "lib/desk/intake/reread.js", s => s.replace("if (!(lead.facts[k] && !blank(lead.facts[k].value)) && v && !blank(v.value))", "if (v && !blank(v.value))")],
+  ["RE-READ: the email is not read again (the stored case stands)", "lib/desk/intake/reread.js", s => s.replace("const { read } = await submissionOf(mail, deps, internal)", "const read = {}")],
+  ["RE-READ: a finalized case is read again", "lib/desk/sheetActions.js", s => s.replace('if (s0.case.status === "finalized" || s0.status === "Finalised" || s0.status === "Sent") return refuse(reasonLine("case.reread.refuse_finalized"));', "")],
+  ["RE-READ: a typed case is read again", "lib/desk/sheetActions.js", s => s.replace('if (s0.case.origin !== "forwarded") return refuse(reasonLine("case.reread.refuse_origin"));', "")],
+  ["RE-READ: a read of the email moves a New case out of New leads", "lib/desk/sheetActions.js", s => s.replace("const fresh = { ...s0, case: out.case, version: (s0.version || 0) + 1 };", "out.case.status = \"in_review\"; const fresh = { ...s0, case: out.case, version: (s0.version || 0) + 1 };")],
+  ["MERGE: the case view's lead drops the lines (leadOf alone)", "lib/desk/caseView.js", s => s.replace("lead: leadOf(leadView(c.lead)),", "lead: leadOf(c.lead),")],
+  ["MERGE: the case view's lead drops the yes or no words (leadView alone)", "lib/desk/caseView.js", s => s.replace("lead: leadOf(leadView(c.lead)),", "lead: leadView(c.lead),")],
+  ["RE-READ: the webhook reads with its own copy of the parser", RUN, s => s.replace("const { text, attachments, read } = await submissionOf(mail, deps, internal);", "const { text, attachments } = await submissionOf(mail, deps, internal); const read = readSubmission({ subject: mail.subject, body: text, internalEmails: internal, extraText: \"\" });")]
+];
+function copyTree(dst) {
+  for (const d of ["lib", "scripts", "public", "api", "data", "docs"]) if (fs.existsSync(path.join(ROOT, d))) fs.cpSync(path.join(ROOT, d), path.join(dst, d), { recursive: true, filter: s => !/node_modules|proofs/.test(s) });
+  for (const f of ["package.json", "vercel.json"]) if (fs.existsSync(path.join(ROOT, f))) fs.copyFileSync(path.join(ROOT, f), path.join(dst, f));
+  fs.symlinkSync(path.join(ROOT, "node_modules"), path.join(dst, "node_modules"));
+}
+const run = dir => { try { const o = execFileSync("node", ["scripts/intakeToCaseCheck.mjs", dir], { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 280000 }); return { red: false, out: o }; } catch (e) { return { red: true, out: String(e.stdout || "") + String(e.stderr || "") }; } };
+let bad = 0; const only = process.argv[2] && /^\d+$/.test(process.argv[2]) ? Number(process.argv[2]) : null;
+for (const [i, [name, file, fn]] of MUT.entries()) {
+  if (only != null && only !== i) continue;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ic-")); copyTree(dir);
+  const p = path.join(dir, file), before = fs.readFileSync(p, "utf8"), after = fn(before);
+  if (after === before) { console.log("FAIL  mutation did not apply: " + name); bad++; fs.rmSync(dir, { recursive: true, force: true }); continue; }
+  fs.writeFileSync(p, after); const r = run(dir);
+  console.log((r.red ? "ok  " : "FAIL") + `  [${i}] without the rule, the check goes red: ` + name + (r.red ? "  (" + (r.out.split("\n").find(l => /^FAIL/.test(l)) || r.out.split("\n").filter(Boolean).slice(-1)[0] || "").slice(0, 80) + ")" : ""));
+  if (!r.red) bad++;
+  fs.rmSync(dir, { recursive: true, force: true });
+}
+console.log(`intakeToCaseFailsWithout: ${bad ? bad + " PROBLEM" : "every mutation is caught"}`); process.exit(bad ? 1 : 0);

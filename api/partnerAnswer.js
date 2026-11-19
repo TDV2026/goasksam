@@ -16,6 +16,8 @@
 // NEVER in any output: a venue name, a venue link, a listing id, a listing title.
 // Gate: the signed crew cookie, the partner demo cookie (lib/_partnerAccess.js gas_partner), or the PARTNER_KEY header (x-partner-key) when that env var is set; anything else
 // is a plain 404. Rate limited (lib/_ceilings.js partner_answer). Archive only: zero OldCarsData requests.
+import { sendDisguisedNotFound } from "../lib/_notFound.js";
+import { isNum } from "../lib/_num.js";
 import crypto from "node:crypto";
 import { isCrewRequest } from "../lib/_crew.js";
 import { isPartnerRequest } from "../lib/_partnerAccess.js";
@@ -24,10 +26,12 @@ import { currentEpoch } from "../lib/_epoch.js";
 import { photoId, photoUrlFor, fetchPhoto, vinPhotoKey, safeImageUrl, sizedPhotoUrl } from "../lib/_salePhoto.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { vinAppearances, carIdentity, normVin } from "./_historyData.js";
-import { lastUpdatedDate } from "../lib/asOf.js";
+import { lastUpdatedDate, shortDate } from "../lib/asOf.js";
+// The card footer's "Updated" date: the shared last-ingest date (set per request below, "" when unread, so the footer prints no date), never the answer's read time.
+let CARD_UPDATED = "";
 import { decodeVinFacts } from "../lib/vehicle.js";
 import { sellsForCardHtml, latestQuarterRowHtml } from "../lib/sellsForCard.js";
-import { mapEngineAnswer, ENGINE_VERSION } from "../lib/onebox.js";
+import { mapEngineAnswer, salesNewestFirst, ENGINE_VERSION, partnerPositionsOf, partnerPlacesOf, PARTNER_PRICE_KEYS } from "../lib/onebox.js";
 
 // THE SHARED CARD (Sam, Oct 16 2026; Lane A's lib/sellsForCard.js): the "What these sell for" card is rendered here by
 // the one function every product uses, from the very answer Market Check's page hands it (its raw answer), so the
@@ -42,6 +46,8 @@ import { mapEngineAnswer, ENGINE_VERSION } from "../lib/onebox.js";
 // c9 (Sam, Oct 18 2026): the real 2014 Porsche 911 GT3 is the listing car and the page's first car.
 // the Amazon demo's own cars share this store (same key shape); DEMO_CARS stays the eBay list (Amazon revision 2 item 6)
 import { AMAZON_DEMO_CARS } from "./_amazonDemoCars.js";
+import { thinLineOf } from "../lib/pooledWords.js";
+import { runAsCaller, callerFor } from "../lib/_caller.js";
 export const DEMO_CARS = ["2014 Porsche 911 GT3", "2015 Porsche 911 GT3", "2005 Porsche 911", "1965 Ford Mustang", "1957 Porsche 356 Speedster", "1966 Ferrari 275 GTB", "2023 Porsche 911 GT3"];
 const demoKey = q => { const n = String(q || "").toLowerCase().replace(/\s+/g, " ").trim(); return (DEMO_CARS.some(c => c.toLowerCase() === n) || AMAZON_DEMO_CARS.some(c => c.toLowerCase() === n)) ? "partner_last:" + n.replace(/[^a-z0-9]+/g, "_") : null; };
 const LAST_MAX_MS = 24 * 3600e3, LAST_WRITE_EVERY_MS = 30 * 60e3;
@@ -79,7 +85,7 @@ export async function refreshDemoAnswer(env, car, { host = "goasksam.com" } = {}
   const t0 = Date.now();
   let r;
   try { r = await marketCheckAnswer({ headers: { host } }, car, null, 0, true); } catch (e) { return { car, stored: false, why: "read failed", ms: Date.now() - t0 }; }
-  const out = await withCarFacts(partnerShape(r && r.d, car, 0, {}), r && r.d, { env });
+  const out = storedWithPlaced(await withCarFacts(partnerShape(r && r.d, car, 0, {}), r && r.d, { env }), r && r.d);
   if (!fullResult(out) && !questionResult(out)) return { car, stored: false, why: out && out.stillReading ? "still reading" : (out && (out.error || out.answerType)) || "no answer", ms: Date.now() - t0 };
   if (venueLeak(out).length) return { car, stored: false, why: "blocked", ms: Date.now() - t0 };
   const ok = await writeLast(env, key, out, { force: true });
@@ -109,7 +115,7 @@ export const PILL_SLOT = '<div class="gas-pill-slot"></div>';
 // product; its sale rows are left to the page's own sales list, which every /preview view draws from the same engine
 // sales right below the card (date, price, mileage, photo through the gated ?photo= path, venue-blind), so no sale
 // shows twice.
-export const PARTNER_CARD_OPTS = { partnerPillsHtml: PILL_SLOT, rows: false };
+export const PARTNER_CARD_OPTS = { partnerPillsHtml: PILL_SLOT, rows: false, poweredBy: true };
 // THE DEMO'S COPY OF THE CARD (Sam, Oct 16 2026), two edits on the shared card's own output, nothing else: (1) the basis
 // line states no month count: "Based on {count} sales, the latest in {Month Year}." (the count in words under ten, the
 // latest from the engine's own sale dates; the engine's window is unchanged); (2) "How Sam decides" is plain text, not a
@@ -135,7 +141,8 @@ export function asideSentence(d) {
   if (!k) return null;
   // the one footnote wording (Sam, Oct 23 2026): "N sales set aside: reasons."
   const LBL = { modified: ["modified", "modified"], project: ["project car", "project cars"], replica: ["replica or tribute", "replicas or tributes"], "odd sale": ["odd sale", "odd sales"] };
-  const text = k + " " + (k === 1 ? "sale" : "sales") + " set aside: " + parts.map(([key, n]) => { const l = LBL[key] || [key, key]; return n + " " + (n === 1 ? l[0] : l[1]); }).join(", ");
+  const SL = d.setAsideLabels && typeof d.setAsideLabels === "object" ? d.setAsideLabels : {};   // the engine's own phrase labels (lib/bulkSale.js)
+  const text = k + " " + (k === 1 ? "sale" : "sales") + " set aside: " + parts.map(([key, n]) => { const p = SL[key]; if (p) return parts.length === 1 ? (n === 1 ? p.one : p.many) : n + " " + (n === 1 ? p.one : p.many); const l = LBL[key] || [key, key]; return n + " " + (n === 1 ? l[0] : l[1]); }).join(", ");
   return text + ".";
 }
 const escHtml = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -198,9 +205,9 @@ export function partnerAllowed(req) {
 // deadline of its own (Sam, Oct 18 2026: no demo-only timeout): the engine's own whole-path bound answers "still reading"
 // with its retry, and the page draws that.
 
-export async function marketCheckAnswer(req, text, refine, asked, demo = false) {
+export async function marketCheckAnswer(req, text, refine, asked, demo = false, vinFacts = null) {
   const { default: mc } = await import("./sellerDecision.js");
-  const body = { oneBox: true, car: { raw: text }, asked: Math.max(0, Math.min(9, Number(asked) || 0)) };
+  const body = { oneBox: true, car: { raw: text, ...(vinFacts ? { vinFacts } : {}) }, asked: Math.max(0, Math.min(9, Number(asked) || 0)) };   // vinFacts: what the VIN says (decode and archive), so the engine never asks the VIN car a question the VIN answers (lib/vinAsTyped.js; honoured only on the demo's server-credential read)
   if (demo) body.demoRead = true;   // Lane B (demo2): Market Check skips the public share snapshot for the demo's own read (honoured only with the server credential)
   if (refine) body.refine = refine;
   // The read goes in as the server's own internal call (Oct 17 2026): Market Check is sealed before launch, and a partner
@@ -243,6 +250,7 @@ function cleanRefine(r) {
   if (word(r.variant)) o.variant = r.variant;
   if (r.tx === "manual" || r.tx === "auto") o.tx = r.tx;
   if (r.docHistory === "has" || r.docHistory === "nohas") o.docHistory = r.docHistory;
+  if (r.mods === "modified" || r.mods === "original") o.mods = r.mods;
   for (const k of ["miMin", "miMax", "miTarget"]) if (Number.isFinite(Number(r[k])) && r[k] !== null && r[k] !== "") o[k] = Number(r[k]);
   return Object.keys(o).length ? o : null;
 }
@@ -256,12 +264,6 @@ const day = v => (v ? String(v).slice(0, 10) : null);
 // make and model instead; never a venue, never a URL. It travels as `name`, and the archive row's own id as `photo`
 // (used only by the demo's photo slot, /api/partnerAnswer?photo=<id>, which looks the photo up server side), so the
 // venue-leak guard below stays exactly as it is (it refuses any key called id or title, anywhere).
-export function rowTitle(r) {
-  const t = String((r && r.title) || "").trim();
-  if (t && !VENUE_RE.test(t)) return t;
-  const f = [r && r.year, r && r.make, r && r.model].filter(Boolean).join(" ").trim();
-  return f && !VENUE_RE.test(f) ? f : "";
-}
 const rowId = r => r && r.id != null ? photoId(r.id) : null;   // the archive's UUID (lib/_salePhoto.js photoId)
 // REVISION 4 (Sam, Oct 20 2026: the sales list in the shared card's own rows and order): the engine's included sales in
 // the order its card draws them (newest first, Market Check's order), with the same venue-safe swaps as sales (the row's
@@ -269,21 +271,23 @@ const rowId = r => r && r.id != null ? photoId(r.id) : null;   // the archive's 
 export function rowsOf(d) {
   if (!d) return [];
   const src = d.tier === "thin" && d.thin && Array.isArray(d.thin.receipts) ? d.thin.receipts : (Array.isArray(d.cards) ? d.cards : []);
-  return src.map(c => ({ photo: rowId(c), name: rowTitle(c), price: num(c.price) || num(c.allIn) || num(c.hammer), date: day(c.date), miles: num(c.mi) || num(c.mileage) })).filter(r => r.price);
+  return salesNewestFirst(src.map(c => ({ photo: rowId(c), name: rowTitle(c), price: num(c.price) || num(c.allIn) || num(c.hammer), date: day(c.date), miles: num(c.mi) || num(c.mileage) })).filter(r => r.price));
 }
 export function salesOf(d) {
   if (!d) return [];
   let rows;
   if (d.tier === "thin" && d.thin && Array.isArray(d.thin.receipts)) rows = d.thin.receipts.map(r => ({ photo: rowId(r), name: rowTitle(r), price: num(r.allIn) || num(r.hammer), date: day(r.date), miles: num(r.mileage) }));
   else rows = (Array.isArray(d.cards) ? d.cards : []).map(c => ({ photo: rowId(c), name: rowTitle(c), price: num(c.price), date: day(c.date), miles: num(c.mi) }));
-  return rows.filter(r => r.price).sort((a, b) => a.price - b.price || String(a.date || "").localeCompare(String(b.date || "")));
+  return salesNewestFirst(rows.filter(r => r.price));   // the engine's one order, newest first (Rick Carey, Nov 4 2026); the page sorts nothing
 }
 // THE CAR'S PHOTO (Sam, Oct 18 2026, for the eBay showing: always a photo of the same car when there is one, never a
 // wrong one). Taken only from the engine's own included sales for this answer (never a set-aside row): the engine's pool
 // is already that car's generation and trim, with halo trims set aside. A sale of the same year first, newest first;
 // then any included sale. No photo on any included sale means no photo. The id is served by the same ?photo= path.
 export function carPhotoOf(d, year) {
-  const rows = salesOf(d).filter(r => r.photo);
+  // THE HERO PHOTO IS A SALE OF THE ANSWER'S OWN POOL, never a wider one (lane-b-vinpool item 2): a sale outside the pool the range was built from (not in rawPool when the answer carries it) or one the engine set aside is not a candidate; no candidate, no photo
+  const poolIdList = Array.isArray(d && d.rawPool) ? d.rawPool.map(rowId).filter(Boolean) : [], poolIds = poolIdList.length ? new Set(poolIdList) : null, asideIds = new Set([...(Array.isArray(d && d.asideCards) ? d.asideCards : []), ...(Array.isArray(d && d.setAsideRows) ? d.setAsideRows : [])].map(rowId).filter(Boolean));
+  const rows = salesOf(d).filter(r => r.photo && (!poolIds || poolIds.has(r.photo)) && !asideIds.has(r.photo));
   if (!rows.length) return null;
   const yr = r => { const m = /^(\d{4})\b/.exec(String(r.name || "")); return m ? Number(m[1]) : null; };
   const newest = (a, b) => String(b.date || "").localeCompare(String(a.date || ""));
@@ -301,7 +305,8 @@ export function countOf(d) {
 }
 // A range exactly when Market Check shows one: the result tier's cluster (the engine's 8-sale gate).
 export function rangeOf(d) {
-  return d && d.tier === "result" && Array.isArray(d.cluster) && d.cluster.length === 2 && num(d.cluster[0]) && num(d.cluster[1]) ? { low: num(d.cluster[0]), high: num(d.cluster[1]) } : null;
+  // the shared card's own test (lib/sellsForCard.js hasRange): a cluster of two positive numbers, whatever the tier, so the pill and the card never disagree
+  return d && Array.isArray(d.cluster) && d.cluster.length === 2 && num(d.cluster[0]) > 0 && num(d.cluster[1]) > 0 ? { low: num(d.cluster[0]), high: num(d.cluster[1]) } : null;
 }
 const cap = s => String(s || "").charAt(0).toUpperCase() + String(s || "").slice(1);
 const plural = (n, one, many) => (n === 1 ? one : many);
@@ -313,8 +318,8 @@ function questionOf(d, text, asked) {
   if (!d) return null;
   const tier = String(d.tier || ""), next = Number(d.askIndex) || (asked + 1);
   const rc = d.resolvedCar || {};
-  const base = d.baseLabel || [rc.year, rc.make, rc.model, rc.trim].filter(Boolean).join(" ") || text;
-  const skip = { label: "Just show what sold", send: { q: text, asked: 2 } };
+  const base = d.baseLabel || [rc.year, rc.make, rc.nameModel || rc.model, rc.trim].filter(Boolean).join(" ") || text;
+  const skip = null;   // the demo never offers "Just show what sold" or any way past a choice (Sam, Oct 31 2026): the live Find, Market Check and Sell keep the engine's own skip
   if (tier === "generation_choice" && Array.isArray(d.generationOptions)) {
     return { dimension: "generation", text: d.prompt || "Which generation is it?", options: d.generationOptions.map(o => ({ label: o.label, send: { q: o.query, asked: next } })), skip };
   }
@@ -328,7 +333,7 @@ function questionOf(d, text, asked) {
     const val = label => iq.dimension === "gearbox" ? (/manual/i.test(label) ? "manual" : "auto")
       : iq.dimension === "competition" ? (/competition/i.test(label) ? "competition" : "standard")
       : iq.dimension === "documented_history" ? (/^has/i.test(label) ? "has" : "nohas") : null;
-    if (key) return { dimension: iq.dimension, text: iq.questionText || null, options: iq.options.map(o => ({ label: o.label, count: o.count ?? null, send: { q: text, refine: { [key]: val(o.label) }, asked: next } })), skip: { label: iq.skipLabel || skip.label, send: skip.send } };
+    if (key) return { dimension: iq.dimension, text: iq.questionText || null, options: iq.options.map(o => ({ label: o.label, count: o.count ?? null, send: { q: text, refine: { [key]: val(o.label) }, asked: next } })), skip };
   }
   return null;
 }
@@ -340,8 +345,8 @@ function engineQuestionCore(d, text, asked) {
   if (!d) return null;
   const tier = String(d.tier || ""), next = Number(d.askIndex) || (asked + 1);
   const rc = d.resolvedCar || {};
-  const base = d.baseLabel || [rc.year, rc.make, rc.model, rc.trim].filter(Boolean).join(" ") || text;
-  const skip = { label: "Just show what sold", send: { q: text, asked: 2 } };
+  const base = d.baseLabel || [rc.year, rc.make, rc.nameModel || rc.model, rc.trim].filter(Boolean).join(" ") || text;
+  const skip = null;   // the demo never offers "Just show what sold" or any way past a choice (Sam, Oct 31 2026): the live Find, Market Check and Sell keep the engine's own skip
   if (tier === "generation_choice" && Array.isArray(d.generationOptions)) {
     return { dimension: "generation", text: d.prompt || "Which generation is it?", options: d.generationOptions.map(o => ({ label: o.label, send: { q: o.query, asked: next } })), skip };
   }
@@ -362,7 +367,7 @@ function engineQuestionCore(d, text, asked) {
   // refine.variant = its key, plus Market Check's "Any" (every sale, no variant) when every count is known.
   if (tier === "variant_choice" && Array.isArray(d.variantChoices) && d.variantChoices.length) {
     const counts = d.variantChoices.map(c => Number(c.count));
-    const opts = d.variantChoices.map(c => ({ label: String(c.label), count: Number.isFinite(Number(c.count)) ? Number(c.count) : null, send: { q: text, refine: { variant: String(c.key) }, asked: next } }));
+    const opts = d.variantChoices.map(c => ({ label: String(c.label), count: isNum(c.count) ? Number(c.count) : null, send: { q: text, refine: { variant: String(c.key) }, asked: next } }));
     if (counts.every(Number.isFinite)) opts.push({ label: "Any", count: counts.reduce((a, b) => a + b, 0), send: { q: text, asked: next } });
     return { dimension: "variant", text: d.prompt || "Which is it?", options: opts, skip };
   }
@@ -376,7 +381,7 @@ function engineQuestionCore(d, text, asked) {
     // engine's raw prompt, whose {carPlural} placeholder is not for display
     const labels = iq.options.map(o => String(o.label || "")).filter(Boolean);
     const qtext = labels.length >= 2 ? labels.slice(0, -1).join(", ") + " or " + labels[labels.length - 1] + "?" : (d.prompt && !/\{[a-zA-Z]+\}/.test(d.prompt) ? d.prompt : "Which is it?");
-    if (key) return { dimension: iq.dimension, text: qtext, options: iq.options.map(o => ({ label: o.label, count: o.count ?? null, send: { q: text, refine: { [key]: val(o.label) }, asked: next } })), skip: { label: iq.skipLabel || skip.label, send: skip.send } };
+    if (key) return { dimension: iq.dimension, text: qtext, options: iq.options.map(o => ({ label: o.label, count: o.count ?? null, send: { q: text, refine: { [key]: val(o.label) }, asked: next } })), skip };
   }
   return null;
 }
@@ -400,7 +405,7 @@ const digitOf = n => typeof n === "string" && WORDNUM[n.toLowerCase()] != null ?
 function nameplateOf(d) {
   const rc = (d && d.resolvedCar) || {}, cl = rc.canonicalLabel;
   if (cl && rc.year && rc.make) { const pre = rc.year + " " + rc.make + " "; if (String(cl).indexOf(pre) === 0) return String(cl).slice(pre.length).split(" ")[0] || ""; }
-  return rc.model || "";
+  return rc.nameModel || rc.model || "";
 }
 export function linesOf(d) {
   if (!d || !/^(result|thin)$/.test(String(d.tier || ""))) return [];
@@ -434,8 +439,8 @@ export function linesOf(d) {
 function thinTextOf(d, count) {
   if (!d || rangeOf(d)) return null;
   const tier = String(d.tier || "");
-  if (typeof d.thinLine === "string" && d.thinLine) return d.thinLine;
-  if (/^(refusal|not_tracked|body_unavailable)$/.test(tier) && typeof d.samLine === "string" && d.samLine) return d.samLine;
+  if (thinLineOf(d)) return thinLineOf(d);
+  if (/^(refusal|not_tracked|body_unavailable)$/.test(tier)) { const l = tier === "refusal" && typeof d.refusal_line === "string" && d.refusal_line ? d.refusal_line : d.samLine; if (typeof l === "string" && l) return l; }
   return null;
 }
 // Trend: only the quarters with eight or more sales.
@@ -448,8 +453,8 @@ function trendOf(d) {
 // (setAsideReasonFor: modified, project, replica, odd sale); never mixed into the sales the answer is based on.
 export function asideRowsOf(d) {
   const rows = d && Array.isArray(d.setAsideRows) ? d.setAsideRows : (d && d.thin && Array.isArray(d.thin.setAsideRows) ? d.thin.setAsideRows : []);
-  return rows.filter(r => r && r.setAside !== false).map(r => ({ photo: rowId(r), name: rowTitle(r), price: num(r.price) || num(r.allIn) || num(r.hammer), date: day(r.date), miles: num(r.mi) || num(r.mileage), reason: typeof r.reason === "string" && !VENUE_RE.test(r.reason) ? r.reason : null }))
-    .filter(r => r.price && r.reason);
+  return salesNewestFirst(rows.filter(r => r && r.setAside !== false).map(r => ({ photo: rowId(r), name: rowTitle(r), price: num(r.price) || num(r.allIn) || num(r.hammer), date: day(r.date), miles: num(r.mi) || num(r.mileage), reason: typeof r.reason === "string" && !VENUE_RE.test(r.reason) ? r.reason : null }))
+    .filter(r => r.price && r.reason));
 }
 function setAsideOf(d) {
   const s = d && d.counts && d.counts.setAside;
@@ -583,10 +588,10 @@ export function historyOf(apps, vin) {
 // reads as its own year, make and model (rowTitle, the rule the sales list already uses). Additive: the existing card,
 // sales and every other field are unchanged, and the eBay page ignores this field.
 export function cardWithRowsOf(d) {
-  if (!d || !Array.isArray(d.cards)) return demoCard(sellsForCardHtml(d || {}, {}), d || {}) || null;
+  if (!d || !Array.isArray(d.cards)) return demoCard(sellsForCardHtml(d || {}, { updated: CARD_UPDATED, poweredBy: true }), d || {}) || null;
   const cards = d.cards.map(c => ({ ...c, title: rowTitle(c) }));
   const photo = c => { const id = c && c.image ? rowId(c) : null; return id ? "/api/partnerAnswer?photo=" + encodeURIComponent(id) + "&w=320" : null; };   // the smallest width the photo path serves (PHOTO_WIDTHS), for a 72 px row (Lane E's stage 5 find); a sale with no photo keeps the card's "No photo" slot, as on Market Check
-  return demoCard(sellsForCardHtml({ ...d, cards }, { rowPhoto: photo }), d) || null;
+  return demoCard(sellsForCardHtml({ ...d, cards }, { rowPhoto: photo, updated: CARD_UPDATED, poweredBy: true }), d) || null;
 }
 export function partnerShape(d, text, asked, extra = {}) {
   const engineVersion = d && d.engineVersion || null;
@@ -602,9 +607,12 @@ export function partnerShape(d, text, asked, extra = {}) {
     // retryAfterMs) passes through as it is: the page draws the engine's line and asks again after the engine's wait.
     const still = d.tier === "unavailable" && d.stillReading === true;
     return { ok: false, query: text, error: d.tier, history: extra.history || null,
-      ...(still ? { stillReading: true, line: typeof d.samLine === "string" ? d.samLine : null, retryAfterMs: d.retry === true && Number.isFinite(d.retryAfterMs) && d.retryAfterMs > 0 ? d.retryAfterMs : null } : {}) };
+      ...(still ? { stillReading: true, line: typeof d.samLine === "string" ? d.samLine : null, retryAfterMs: d.retry === true && Number.isFinite(d.retryAfterMs) && d.retryAfterMs > 0 ? d.retryAfterMs : null, waitMaxMs: Number.isFinite(d.waitMaxMs) && d.waitMaxMs > 0 ? d.waitMaxMs : null } : {}) };
   }
-  const question = questionOf(d, text, asked), engineQuestion = engineQuestionOf(d, text, asked);
+  const question0 = questionOf(d, text, asked), engineQuestion = engineQuestionOf(d, text, asked);
+  // THE ENGINE'S OWN QUESTION IS THE QUESTION (Oct 31 2026, the blank 2025 911 card): a trim_choice or variant_choice answer carries no range, no thin line and no card, only the engine's question, which questionOf does not map;
+  // the page read a.question alone and drew nothing. With no range and no card to draw, engineQuestion is what the page asks.
+  const question = question0 || (engineQuestion && !rangeOf(d) && !/^(result|thin|refusal|not_tracked|body_unavailable)$/.test(String(d.tier || "")) ? engineQuestion : null);
   if (question) return { ok: true, query: text, engineVersion, answerType: "identity_question", identity: identityOf(d, extra.id), question, engineQuestion, range: null, count: null, window: null, sales: [], setAside: null, thin: null, trend: null, narrow: null, history: extra.history || null };
   const range = rangeOf(d), count = countOf(d);
   return {
@@ -613,13 +621,16 @@ export function partnerShape(d, text, asked, extra = {}) {
     identity: identityOf(d, extra.id), question: null,
     ...(engineQuestion ? { engineQuestion } : {}),   // a question tier question() does not map (trim_choice, variantChoices): additive
     range, count, window: d.windowLabel || null,
+    span: range && num(d.lowestSaleN) > 0 && num(d.highestSaleN) >= num(d.lowestSaleN) ? { low: num(d.lowestSaleN), high: num(d.highestSaleN) } : null,   // the included sales' EXACT lowest and highest (the engine's lowestSaleN / highestSaleN, the figures sellsForCard reads for the spread beside the range), for the ends of the bar; d.span is the rounded rail and is not it
     sales: salesOf(d), rows: rowsOf(d), asideRows: asideRowsOf(d), asideLine: asideSentence(d), setAside: setAsideOf(d),
     thin: range ? null : thinTextOf(d, count),
     trend: range ? trendOf(d) : null,
-    card: demoCard(sellsForCardHtml(d, PARTNER_CARD_OPTS), d) || null,
+    card: demoCard(sellsForCardHtml(d, { ...PARTNER_CARD_OPTS, updated: CARD_UPDATED }), d) || null,
     cardWithRows: cardWithRowsOf(d),   // additive (Oct 20 2026, the Amazon demo's tab c): Market Check's own card WITH its sale rows
     quarter: latestQuarterRowHtml({ ...d, trendQuarters: mapEngineAnswer(d).trendQuarters }) || null,
     lines: linesOf(d),
+    vinRuledOutLine: typeof d.vinRuledOutLine === "string" ? d.vinRuledOutLine : null,   // the engine's line when the VIN's code rules trims out of the pool
+    mileageLine: typeof d.mileageLine === "string" ? d.mileageLine : null,   // the engine's one line about mileage on a VIN answer: the band it applied, or that the range is for all mileages
     carPhoto: carPhotoOf(d, (identityOf(d, extra.id) || {}).year || (/^(\d{4})\b/.exec(String(text || "")) || [])[1] || null),
     history: extra.history || null
   };
@@ -627,7 +638,49 @@ export function partnerShape(d, text, asked, extra = {}) {
 
 // Belt and braces: the reshaped answer carries only fields this file wrote, but a venue name or listing link must
 // never leave even if an upstream field changes shape. Any string that names a venue or a URL fails the answer.
-const VENUE_RE = /bring ?a ?trailer|\bbat\b|cars ?(&|and) ?bids|pcar ?market|hagerty|gooding|rm sotheby|sotheby|bonhams|mecum|barrett|broad ?arrow|hemmings|collecting ?cars|car ?& ?classic|pistonheads|all ?collector|mb ?market|autohunter|\bthemarket\b|https?:\/\//i;
+import { VENUE_RE, rowTitle, placedSaleOf } from "../lib/placedSale.js";
+export { rowTitle, placedSaleOf };
+// THE DEMO'S STORED ANSWER ALSO HOLDS THE PLACED SALES FOR THE DEFAULT ORDER (Lane B, Nov 1 2026, the eBay demo's first load): the page's first read carries an order, and a request that asks was never served from storage, so every cold load read the live engine.
+// The stored answer now carries placedSales (the five sales, newest first, the default order with no mileage typed) and order "date"; positions are placed from the stored range at read time (partnerPlacesOf, placingFor), so a typed price needs no engine read.
+// A typed mileage or another order still reads live. The fields are removed from an answer served to a request that did not ask, so that answer is exactly what it was.
+// The options of an apart answer as the partner sees them: each with its own range, positions and placed sales (no venue, no address). The engine did the placing (partnerOptionsOf); this only shapes the rows.
+export function perOptionOf(po) {
+  if (!po || !Array.isArray(po.options)) return null;
+  return { dimension: po.dimension || null, forMileage: po.forMileage || null, options: po.options.map(o => ({ value: o.value, label: o.label, dimension: o.dimension || null, n: o.n, range: o.range, positions: o.positions, placedSales: o.sales.map(placedSaleOf), ...(o.salesReason ? { salesReason: o.salesReason } : {}) })) };
+}
+export function storedWithPlaced(out, d) {
+  if (!out || out.ok !== true || !d) return out;
+  if (out.answerType === "range") {
+    const px = partnerPositionsOf(d, { order: "date" });
+    return { ...out, placedSales: px.sales.map(placedSaleOf), order: "date" };
+  }
+  // an answer that is apart or split holds each option's five sales (default order); the positions are placed from each option's stored range at read time
+  const po = perOptionOf(partnerPositionsOf(d, { order: "date" }).perOption);
+  return po ? { ...out, perOptionPlaced: po, order: "date" } : out;
+}
+const plainOf = o => { const { placedSales, order, perOptionPlaced, ...rest } = o; return rest; };
+export function servedFromStored(stored, ask) {
+  if (!stored || typeof stored !== "object") return null;
+  const { placedSales, order, perOptionPlaced, ...rest } = stored;
+  if (!ask) return rest;
+  // only the default read comes from storage: no mileage, and the order is date (or none); a stored answer without the placed sales reads through
+  if (ask.mileage || (ask.order && ask.order !== "date")) return null;
+  if (perOptionPlaced && Array.isArray(perOptionPlaced.options)) return { ...rest, perOption: { ...perOptionPlaced, options: perOptionPlaced.options.map(o => ({ ...o, positions: o.range ? partnerPlacesOf(o.range, ask.prices) : [] })) }, order: "date" };
+  if (!Array.isArray(placedSales)) return null;
+  return { ...rest, positions: rest.range ? partnerPlacesOf(rest.range, ask.prices) : [], placedSales: rest.range ? placedSales : [], order: "date" };
+}
+// ONE PLACED SALE AS THE PARTNER SEES IT (Sam, Nov 1 2026: the eBay demo must not show or expose where a sale happened): date, miles, price, the venue-safe name (rowTitle), the photo by id (served through ?photo=, never an address) and the place. No venue and no address are in the row at all.
+// the request's typed prices, mileage and order, shape-checked; null when it carries none of them (the answer is then exactly what it was)
+export function positionAskOf(b) {
+  if (!b || typeof b !== "object") return null;
+  let prices = b.prices; if (typeof prices === "string") { try { prices = JSON.parse(prices); } catch { prices = null; } }
+  const src = prices && typeof prices === "object" ? prices : b, out = {};
+  for (const k of PARTNER_PRICE_KEYS) { const v = Math.round(Number(String(src[k] ?? "").replace(/[$,\s]/g, ""))); if (v > 0 && v <= 1e9) out[k] = v; }
+  const miles = Math.round(Number(String(b.mileage ?? "").replace(/[,\s]/g, "")));
+  const order = ["miles", "date", "price"].includes(b.order) ? b.order : null;
+  if (!Object.keys(out).length && !(miles > 0) && !order) return null;
+  return { prices: out, mileage: miles > 0 && miles < 5e6 ? miles : null, order };
+}
 export function venueLeak(obj) {
   const hits = [];
   const walk = (v, path) => {
@@ -641,10 +694,10 @@ export function venueLeak(obj) {
   return hits;
 }
 
-export default async function handler(req, res) {
+async function handlerCore(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("X-Robots-Tag", "noindex, nofollow");
-  if (!partnerAllowed(req)) return res.status(404).json({ error: "Not found" });
+  if (!partnerAllowed(req)) return sendDisguisedNotFound(res, req);
   if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const env = supabaseEnv();
   // A sale's photo (Sam, Oct 18 2026; demo only; lib/_salePhoto.js): GET ?photo=<archive id> and nothing else, behind the
@@ -657,12 +710,12 @@ export default async function handler(req, res) {
   if (req.method === "GET" && req.query && req.query.last != null) {
     const car = String(req.query.last).replace(/\s+/g, " ").trim().slice(0, 120), lk = demoKey(car);
     const last = lk && env ? await readLast(env, lk) : null;
-    if (lastGoodUsable(last)) return res.status(200).json({ ...last.out, lastGood: true });
+    if (lastGoodUsable(last)) return res.status(200).json({ ...servedFromStored(last.out, null), lastGood: true });
     return res.status(200).json({ ok: false, query: car, error: "unavailable", stillReading: true, line: null, retryAfterMs: null });
   }
   if (req.method === "GET" && req.query && req.query.photo != null) {
     const vk = vinPhotoKey(req.query.photo), pid = vk ? null : photoId(req.query.photo);
-    const no = () => { res.setHeader("Content-Type", "text/plain; charset=utf-8"); res.setHeader("Cache-Control", "private, no-store"); return res.status(404).send("Not found"); };
+    const no = () => sendDisguisedNotFound(res, req);
     if ((!pid && !vk) || !env) return no();
     const lim = await checkCeiling(env, req, "partner_photo", { tool: "partner" }).catch(() => ({ ok: true }));
     if (!lim.ok) return no();
@@ -684,6 +737,8 @@ export default async function handler(req, res) {
   let refine = null;
   try { refine = cleanRefine(typeof b.refine === "string" ? JSON.parse(b.refine) : b.refine); } catch { refine = null; }
   const asked = Math.max(0, Math.min(9, Number(b.asked) || 0));
+  // TYPED PRICES, MILEAGE AND ORDER (Lane B, Nov 1 2026; the listing form, partner view b): up to four tagged prices, a mileage and an order ride on the request and are answered at read time by the engine (lib/onebox.js partnerPositionsOf); the page compares nothing.
+  const ask = positionAskOf(b);
   const inputKind = vinOfInput(b), vinIn = inputKind.vin;
   let text = String(b.q || [b.year, b.make, b.model].filter(Boolean).join(" ") || "").replace(/\s+/g, " ").trim().slice(0, 120);
   // ANY CAR (Sam, Oct 18 2026): every read on the demo, its six cars and any other car, is bounded by the demo's own
@@ -729,6 +784,7 @@ export default async function handler(req, res) {
   }
   if (!text) return res.status(400).json({ ok: false, error: "Type a car, or a VIN." });
   const updatedP = lastUpdatedDate(env).catch(() => null);   // the shared last-ingest date; null shows no date
+  { const u0 = await updatedP; CARD_UPDATED = u0 ? shortDate(u0) : ""; }
   // The read goes through Market Check's own handler and its own bound; a read that throws answers from the last good
   // answer (a demo car) or the plain still-reading state.
   // (c): a demo car whose stored answer is the engine's question (current version, under a day old) is answered from that
@@ -740,20 +796,26 @@ export default async function handler(req, res) {
   // history and name, as the existing fallback does.
   if (!refine && !(Number(asked) > 0)) {
     const qk = demoKey(text), qlast = qk && env ? await readLast(env, qk) : null;
-    if (!vinIn && lastGoodUsable(qlast) && questionResult(qlast.out)) return res.status(200).json({ ...qlast.out, history, storedQuestion: true });
-    if (lastGoodUsable(qlast) && fullResult(qlast.out)) {
+    if (!vinIn && lastGoodUsable(qlast) && questionResult(qlast.out)) return res.status(200).json({ ...servedFromStored(qlast.out, null), history, storedQuestion: true });
+    // A VIN IS NEVER ANSWERED FROM A DEMO CAR'S STORED ANSWER (lane-b-vinpool item 2): the stored answer is the bare words' pool, with that pool's photo; a VIN's decoded trim, body, code ruling and mileage make it another pool, and a stored answer cannot say so (a 997 VIN page showed a 997 GT3 as "a car like this one")
+    if (!vinIn && lastGoodUsable(qlast) && fullResult(qlast.out)) {
       if (storedDemoServable(qlast, await currentEpoch(env).catch(() => null))) {
-        const out = vinIn ? { ...qlast.out, history, vin: vinIn, carName: carNameOf(id), storedDemo: true } : { ...qlast.out, storedDemo: true };
-        out.updated = await updatedP;
-        if (!venueLeak(out).length) return res.status(200).json(out);
+        const base = servedFromStored(qlast.out, ask);   // null: this request needs the live engine (a typed mileage, another order, or a stored answer from before the placed sales)
+        const out = !base ? null : vinIn ? { ...base, history, vin: vinIn, carName: carNameOf(id), storedDemo: true } : { ...base, storedDemo: true };
+        if (out) { out.updated = await updatedP; if (!venueLeak(out).length) return res.status(200).json(out); }
       }
     }
   }
   let r;
-  try { r = await marketCheckAnswer(req, text, refine, asked, true); } catch (e) {
+  const vinFacts = vinIn ? { vin: vinIn, year: (id && id.year) || (vinDecode && vinDecode.year) || null, decodeTrim: (vinDecode && vinDecode.trim) || (id && id.fromDecode ? id.trim : null) || null, decodeBody: (vinDecode && vinDecode.bodyStyle) || null,
+    archiveTrim: id && !id.fromDecode ? id.trim || null : null, archiveTitle: id && !id.fromDecode ? [id.year, id.make, id.model, id.trim, id.bodyStyle].filter(Boolean).join(" ") : null } : null;
+  // THE LISTING'S MILEAGE RIDES WITH THE CAR, VIN OR TYPED (Lane B, Nov 3 2026, lane-b-vinpool; Sam: one behaviour however the car was entered: VIN WP0CA29951S650259, a 2001 996 Carrera cabriolet listed at 153,098 miles, was answered from the whole pool, $20,500 to $30,000, while the 101,000 mile car in the pool sold for $18,750): the mileage the partner sends
+  // is the typed mileage of the seller flow, the engine's own mileage band (refine.miTarget, banded by bandedRefine as Market Check does), never a page rule. The refine is the engine's; the echo (out.refined) stays the visitor's own choice.
+  const engineRefine = ask && ask.mileage && !(refine && (refine.miTarget != null || refine.miMin != null)) ? { ...(refine || {}), miTarget: ask.mileage } : refine;
+  try { r = await marketCheckAnswer(req, text, engineRefine, asked, true, vinFacts); } catch (e) {
     console.error("partnerAnswer:", (e && e.message) || e);
-    const lk0 = !refine ? demoKey(text) : null, last = lk0 && env ? await readLast(env, lk0) : null;
-    if (lastGoodUsable(last)) return res.status(200).json(vinIn ? { ...last.out, history, vin: vinIn, lastGood: true } : { ...last.out, lastGood: true });
+    const lk0 = !engineRefine ? demoKey(text) : null, last = lk0 && env ? await readLast(env, lk0) : null;
+    if (lastGoodUsable(last)) return res.status(200).json(plainOf(vinIn ? { ...last.out, history, vin: vinIn, lastGood: true } : { ...last.out, lastGood: true }));
     // No answer and no usable stored one: the plain still-reading state, with no wait of its own (the page offers Try again).
     return res.status(200).json({ ok: false, query: text, error: "unavailable", history, stillReading: true, line: null, retryAfterMs: null });
   }
@@ -761,9 +823,9 @@ export default async function handler(req, res) {
   if (refine && out && typeof out === "object") out.refined = refine;   // REVISION 4: the round trip echoes the chosen option (the cleaned refine), so the page carries it in the name and the address and sends it back
   // The last good answer is stored from a plain read of the car and serves the VIN views too (Oct 18 2026: the listing
   // views send the VIN, had no fallback, and showed the limit line); a VIN view keeps its own VIN history.
-  const lk = !refine ? demoKey(text) : null;
+  const lk = !engineRefine ? demoKey(text) : null;   // a mileage-banded answer is never the demo car's stored last good
   if (lk && env) {
-    if (!vinIn && (fullResult(out) || (questionResult(out) && !(Number(asked) > 0)))) writeLast(env, lk, out).catch(() => {});   // (c): a question answer too
+    if (!vinIn && (fullResult(out) || (questionResult(out) && !(Number(asked) > 0)))) writeLast(env, lk, storedWithPlaced(out, r.d)).catch(() => {});   // (c): a question answer too
     else if (!out.ok) { const last = await readLast(env, lk); if (lastGoodUsable(last)) out = vinIn ? { ...last.out, history, lastGood: true } : { ...last.out, lastGood: true }; }
   }
   if (vinIn) {
@@ -778,7 +840,12 @@ export default async function handler(req, res) {
     if (!out.identity && id) out.identity = { year: id.year || null, make: id.make, model: id.model, variant: id.trim || null };
   }
   out.updated = await updatedP;
+  if (!ask && out && ("placedSales" in out || "order" in out || "perOptionPlaced" in out)) { const { placedSales, order, perOptionPlaced, ...plain } = out; out = plain; }   // a request that asked nothing gets the answer it always got, whichever stored copy it came from
+  if (ask && out && out.ok === true && r && r.d) { const px = partnerPositionsOf(r.d, ask); const { perOptionPlaced, ...o2 } = out; out = { ...o2, positions: px.positions, placedSales: px.sales.map(placedSaleOf), order: px.order, ...(px.perOption ? { perOption: perOptionOf(px.perOption) } : {}) }; }   // a copy: the object just handed to the last-good store is never touched   // read time only, after the last good answer was stored: the stored answer never carries them
   const leaks = venueLeak(out);
   if (leaks.length) { console.error("partnerAnswer venue leak blocked:", leaks.slice(0, 5).join(" | ")); return res.status(500).json({ ok: false, error: "blocked" }); }
   return res.status(200).json(out);
 }
+
+// lane-b-archiveread step e: the entry names its work for caller attribution (lib/_caller.js)
+export default function handler(req, res) { return runAsCaller(callerFor("/api/partnerAnswer", req), () => handlerCore(req, res)); }

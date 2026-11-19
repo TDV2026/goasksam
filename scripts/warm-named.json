@@ -1,0 +1,24 @@
+{
+  "note": "The named warm list (Sam, Oct 28 2026). Warmed first in every warm run (the e96 re-warm, the Wednesday evening launch warm, the Thursday 5 AM pass), before the Buy specs; scripts/warmNamed.mjs warms it and confirms warmHit true on each, scripts/namedWarmCheck.mjs fails on any cold spec. The golden table (docs/golden-rules.md) and the 50 most searched Market Check specs (ops task buyqueries&product=market_check) are warmed with it.",
+  "named": [
+    "2004 BMW M3",
+    "2001 BMW M3",
+    "1994 Porsche 911 Carrera Cabriolet",
+    "1994 Porsche 911 Carrera",
+    "1989 Porsche 911 Carrera",
+    "2010 Lamborghini Murcielago",
+    "2001 Lamborghini Diablo SE Coupe",
+    "2020 McLaren Speedtail",
+    "1985 Land Rover Defender 110",
+    "1957 Porsche 356 Speedster",
+    "1963 Porsche 356 Carrera",
+    "1971 Mercedes-Benz 280SE 3.5 Cabriolet",
+    "2023 Porsche 911 Carrera",
+    "1999 Porsche 911 Carrera",
+    "1991 Acura NSX",
+    "2005 Ford GT",
+    "1969 Chevrolet Nova",
+    "1972 Chevrolet K5 Blazer",
+    "2023 Mercedes-AMG C63"
+  ]
+}

@@ -12,8 +12,9 @@
 // Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OLDCARSDATA_API_KEY (GitHub
 // Actions provides them as secrets; secrets are not pullable to a laptop).
 import fs from "node:fs";
+import { rawColumnsOf, rawColumnsLine } from "../lib/_rawColumns.js";
 import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";
-import { supabaseEnv, supabaseInsert, supabaseSelect, supabaseSelectAll, supabaseDelete } from "../lib/_supabase.js";
+import { supabaseEnv, supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { isPartsListing, projectFlagReason } from "../lib/_classify.js";
 import { deltaShouldStop, earliestGapDay, typicalByWeekday, recentDayList, zeroStreakFlag, requestCapReached, isFutureSale } from "../lib/_ingestHealth.js";
 import { resolveIngestIdentity } from "../lib/_unknownClassify.js";
@@ -191,6 +192,8 @@ function toFullRow(r, label, source) {
     has_reserve: toBool(r.has_reserve), views: toInt(r.stats?.views), bids: toInt(r.stats?.bids),
     known_flaws: r.known_flaws ?? null, recent_service_history: r.recent_service_history ?? null, modifications: r.modifications ?? null
   };
+  // RAW COLUMNS (docs/supabase-raw-columns.sql Block 4): lib/_rawColumns.js, off unless INGEST_RAW_COLUMNS=1
+  Object.assign(row, rawColumnsOf(r));
   // SOURCE-ROW CORRECTIONS (Round 5 Lane B job, Oct 2026): a curated override (lib/_corrections.js,
   // keyed on platform+source_id) applied AFTER OCD's own identity resolution, so a known upstream
   // mislabel (the Merkur XR4Ti/Ford Sierra RS Cosworth case) is written correctly on every ingest,
@@ -428,56 +431,28 @@ if (skipped.length) {
 // blocks or fails the ingest run on a cache-layer problem).
 if (inserted > 0) {
   try {
-    const touched = new Set(uniq.map(r => `${String(r.make || "").toLowerCase()}|${String(r.model || "").toLowerCase()}`).filter(k => k !== "|"));
+    const { touchedSetOf, markTouchedStale } = await import("../lib/_staleMark.js");
+    const touched = touchedSetOf(uniq);
     if (touched.size) {
-      const cacheRows = (await supabaseSelectAll(env, "spec_market_cache?select=spec_key")) || [];
-      const toDelete = [];
-      for (const row of cacheRows) {
-        let parsed; try { parsed = JSON.parse(row.spec_key); } catch { continue; }
-        const [mk, md, , gc] = Array.isArray(parsed) ? parsed : [];
-        const mkL = String(mk || "").toLowerCase();
-        if (!mkL) continue;
-        if (touched.has(`${mkL}|${String(md || "").toLowerCase()}`) || (gc && touched.has(`${mkL}|${String(gc).toLowerCase()}`))) toDelete.push(row.spec_key);
-      }
-      if (toDelete.length) {
-        for (let k = 0; k < toDelete.length; k += 100) {
-          const batch = toDelete.slice(k, k + 100).map(s => `"${s.replace(/"/g, '\\"')}"`).join(",");
-          await supabaseDelete(env, `spec_market_cache?spec_key=in.(${encodeURIComponent(batch)})`);
-        }
-        console.log(`spec_market_cache: invalidated ${toDelete.length} row(s) touched by ${touched.size} make/model pair(s) from this run`);
-
-        // RECOMPUTE (item 3, Oct 2026 follow-up; CAPPED and moved OUT of this run, Oct 2026 nightly-
-        // timing follow-up). A deleted row is a clean cache miss, which Buy/Tasks already recompute
-        // live on the next real visitor's read - this just saves that visitor the cold-read cost. An
-        // EARLIER version recomputed every invalidated spec inline, right here, with no cap: on a
-        // night that touched many make/model pairs this turned a normally-20-second ingest step into
-        // a 21-MINUTE one (run #105, Oct 9 2026 - the ingest JOB then hit its 55-minute ceiling mid-
-        // crossProductCheck and was cancelled, taking warm/attempts/premium/cube down with it since
-        // all four `needs: ingest`). Fixed two ways: (1) this step no longer recomputes inline at
-        // all by default - it writes the invalidated key list to disk and a SEPARATE script
-        // (scripts/recomputeSpecCache.js), run from its OWN job in nightly.yml with its own
-        // timeout, picks it up afterward, so a slow recompute night can never block the archive-
-        // freshness-only jobs again; (2) that separate script is itself capped (RECOMPUTE_CAP,
-        // default 60) and ranks the deferred list by real search volume first (one ranking source,
-        // the same app_usage_events signal scripts/warm.js already uses), so the specs most likely
-        // to be read again soon are the ones that get recomputed first - the remainder is left for
-        // the ordinary cold-read-on-next-visit path, same as today, never silently dropped.
-        // --recompute-inline (CLI mode, kept for local/manual runs only) restores the OLD inline,
-        // uncapped behavior exactly - never used by the nightly workflow.
+      // MARK STALE, NEVER DELETE (Oct 28 2026): a touched core row stays and is marked (market.staleSince); the serve path answers from it at once and refreshes it behind the response.
+      const r = await markTouchedStale(env, touched);
+      console.log(`spec_market_cache: marked ${r.marked} row(s) stale (${r.already} already marked, ${r.failed} failed), 0 deleted, touched by ${touched.size} make/model pair(s) from this run`);
+      if (r.keys.length) {
+        // the deferred recompute (scripts/recomputeSpecCache.js, the caches job) refreshes the marked keys, capped and ranked by search volume, exactly as it did for the deleted ones
         if (args.includes("--recompute-inline")) {
           const { recomputeOneSpecKey } = await import("../lib/_specRecompute.js");
           let recomputed = 0, failed = 0;
-          for (const key of toDelete) { (await recomputeOneSpecKey(env, key)) === "recomputed" ? recomputed++ : failed++; }
-          console.log(`spec_market_cache: recomputed ${recomputed}/${toDelete.length} invalidated spec(s) inline (${failed} thin/no-range or failed, left for the next real read)`);
+          for (const key of r.keys) { (await recomputeOneSpecKey(env, key)) === "recomputed" ? recomputed++ : failed++; }
+          console.log(`spec_market_cache: recomputed ${recomputed}/${r.keys.length} marked spec(s) inline (${failed} thin/no-range or failed)`);
         } else {
           try {
-            fs.writeFileSync(new URL("../invalidated-specs.json", import.meta.url), JSON.stringify(toDelete));
-            console.log(`spec_market_cache: ${toDelete.length} invalidated spec(s) written to invalidated-specs.json for the deferred recompute step (never blocks this run)`);
-          } catch (e) { console.error("spec_market_cache: failed to write invalidated-specs.json (non-fatal, next real read still recomputes):", e && e.message); }
+            fs.writeFileSync(new URL("../invalidated-specs.json", import.meta.url), JSON.stringify(r.keys));
+            console.log(`spec_market_cache: ${r.keys.length} marked spec(s) written to invalidated-specs.json for the deferred recompute step (never blocks this run)`);
+          } catch (e) { console.error("spec_market_cache: failed to write invalidated-specs.json (non-fatal, the first read refreshes behind):", e && e.message); }
         }
       }
     }
-  } catch (e) { console.error("spec_market_cache invalidation failed (non-fatal):", e && e.message); }
+  } catch (e) { console.error("spec_market_cache marking failed (non-fatal):", e && e.message); }
 }
 
 // SALES EPOCH BUMP (Round 5 Job 1, Oct 2026): the single, cheap, globally-readable signal every
@@ -495,10 +470,19 @@ if (inserted > 0) {
   } catch (e) { console.error("sales_epoch bump failed (non-fatal, CACHE_OUTER_TTL still bounds staleness):", e && e.message); }
 }
 
+// THE DAY'S INGEST HAS FINISHED (Lane B, Nov 8 2026): the marker the warm tasks read (lib/_epoch.js readIngestDone). Written AFTER the epoch bump above so a warm that sees it stamps the new epoch; not written for a run that stopped at its request cap (it is incomplete);
+// best-effort like the bump: a failed write never fails the ingest (the warm then falls back to the job_ingest event).
+if (!capReached) {
+  try { const { markIngestDone } = await import("../lib/_epoch.js"); const at = await markIngestDone(env); console.log(`ingest_done: marker written ${at}`); }
+  catch (e) { console.error("ingest_done marker failed (non-fatal, the warm falls back to the job_ingest event):", e && e.message); }
+}
+
 // Per-day YIELD of this run (what it added per day), informational only. Pipeline HEALTH is NOT
 // judged here any more: a healthy delta that correctly finds nothing new would always trip a per-run
 // floor. The authoritative, archive-based health check runs below (item 3).
 const days = Object.keys(perDay).sort();
+// Word only (on or off), never the value: the nightly log shows at a glance whether the ten raw columns were written.
+console.log(rawColumnsLine());
 console.log(`\n=== ingest report (${DELTA ? "delta" : `${FROM}..${TO}`}) ===`);
 for (const d of days) console.log(`  ${d}: ${perDay[d]}`);
 // The AUTHORITATIVE OCD count is the client's per-run counter (every HTTP request, incl 429 retries),

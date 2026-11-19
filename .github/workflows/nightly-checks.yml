@@ -1,0 +1,69 @@
+# Nightly checks (Lane C, Nov 5 2026). COPY to .github/workflows/nightly-checks.yml (the CI token lacks the workflow scope, so Sam adds it in the GitHub web editor).
+#
+# WHY THIS FILE EXISTS. The Search rules check and the Cross-product engine check used to be the last steps of the "caches" job in nightly.yml.
+# They READ the database to judge it; they build nothing a visitor reads. Inside "caches" they cost the whole nightly its colour:
+#   runs 112 to 127 (Oct 14 to 28): the cross-product check ran 35 minutes with no cap, the job's 80 minute limit cancelled the run (15 nights cancelled);
+#   runs 131 and 132 (Nov 4 and 5): every cache built and every step passed, but the cross-product check reported a disagreement and the guard step turned the job red.
+# Here they run AFTER the nightly ends (workflow_run), in their own job with its own limit. A finding is red HERE, in plain sight, and cannot make
+# the nightly read as an ingest or cache failure. Nothing in nightly.yml waits for this file.
+#
+# BUDGET. crossProductCheck.js already samples a moving window of specs (CROSS_MAX_SPECS a night, default 12, one window further each day, so every spec is read
+# within a week or two) and stops starting work after CROSS_MAX_MINUTES (default 8); neither is a failure. That sample IS the resume: tomorrow starts where today stopped.
+name: Nightly checks
+
+on:
+  workflow_run:
+    workflows: ["Nightly ingest and warm"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read   # the health step reads the nightly's own run history
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30   # steps below add up to 27; one step can never run the job into the cancel
+    # Only after a nightly that actually ran its data jobs (ingest green). A cancelled or failed ingest has nothing fresh to judge.
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion != 'cancelled'
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+        timeout-minutes: 2
+      - uses: actions/setup-node@v5
+        timeout-minutes: 2
+        with:
+          node-version: 22
+      - name: Search rules check (public pages)
+        timeout-minutes: 3
+        id: searchcheck
+        continue-on-error: true
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: node scripts/searchCheck.js
+      - name: Cross-product engine check (Buy/Sell/Market Check/Tasks agree)
+        timeout-minutes: 13
+        id: crossproductcheck
+        continue-on-error: true
+        env:
+          CROSS_MAX_MINUTES: "8"
+        run: node scripts/crossProductCheck.js
+      - name: Fail the run if the cross-product engine check found a mismatch
+        timeout-minutes: 1
+        if: steps.crossproductcheck.outcome == 'failure'
+        run: |
+          echo "::error::Buy/Sell/Market Check/Tasks disagreed on at least one spec (see the Cross-product engine check step above for which field and which specs). The one-engine rule means the same car must give the same sales count, range and window on every product."
+          exit 1
+      - name: Note a search rules failure
+        timeout-minutes: 1
+        if: steps.searchcheck.outcome == 'failure'
+        run: |
+          echo "::warning::The search rules check failed (see the Search rules check step above). It is advisory here, as it was in nightly.yml."
+      - name: Nightly health (every scheduled nightly in the last 3 days ended green)
+        timeout-minutes: 2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/nightlyHealthCheck.mjs --live --days=3

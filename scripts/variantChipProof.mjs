@@ -55,7 +55,7 @@ try {
   if (!API_ONLY) {
     console.log("\n-- live page: a zero-count option is never offered (the page renders, the option is absent) --");
     const host = new URL(BASE).host;
-    const READY = /\$\d[\d,]{2,}|catching his breath|limit of \d+ cars|which (one|generation|body|model|year|trim)|did you mean|sale on record|sales? (since|in the last)/i;
+    const READY = /\$\d[\d,]{2,}|catching his breath|Sam is busy right now|limit of \d+ cars|which (one|generation|body|model|year|trim)|did you mean|sale on record|sales? (since|in the last)/i;
     for (const c of CASES) {
       const ctx = await browser.createBrowserContext();
       const p = await ctx.newPage();

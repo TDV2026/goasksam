@@ -10,12 +10,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { appConfigFlag } from "../lib/_flags.js";
 import { supabaseSelect } from "../lib/_supabase.js";
+import { routeLimit, sendTooMany } from "../lib/_routeLimit.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, KEEPLOOK_CSS, railOpenHtml } from "../lib/appShell.js";
-import { isCrewRequest } from "./_chrome.js";
+import { isCrewRequest, FONT_LINKS } from "./_chrome.js";
 import { fullyLaunched } from "../lib/_launchStage.js";
 import { hasServerCredential } from "../lib/_credential.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { heldFor } from "../lib/_hold.js";
+import { isFreshShareId } from "../lib/shareId.js";
 
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
@@ -70,7 +73,7 @@ async function handleOneboxShare(req, res, id) {
     '<meta name="twitter:card" content="summary" />';
   const finish = (ogTags, injectScript) => {
     const page = html
-      .replace("</head>", ogTags + (injectScript || "") + `\n<style>${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}\n${KEEPLOOK_CSS}</style>\n</head>`)
+      .replace("</head>", ogTags + (injectScript || "") + FONT_LINKS + `\n<style>${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}\n${KEEPLOOK_CSS}</style>\n</head>`)
       .replace("<!--SHELL_RAIL-->", railOpenHtml({ active: "market-check", crew, req, analytics: true }))
       .replace("<script>\nfunction obToggleResults", `<script>${SHELL_JS}</script>\n<script>\nfunction obToggleResults`)
       .replace("<body>", `<body>\n${AUTH_SIGNBAR_HTML}\n<script>${AUTH_SIGNBAR_MIRROR_JS}</script>\n<script>window.GAS_AUTH_MODE="topbar";</script>\n<script src="/js/auth.js" defer></script>`);
@@ -83,15 +86,26 @@ async function handleOneboxShare(req, res, id) {
     // LAUNCH-STAGE SAFETY (Oct 2026, production incident, api/marketCheck.js has the full writeup):
     // this page's own rail is filtered by isReleased() (via railOpenHtml) - public caching at all
     // is only safe once fullyLaunched() is true and the request carries no server credential.
-    res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : (injectScript ? "public, max-age=300" : "public, max-age=120"));
+    res.setHeader("Cache-Control", (crew || hasCrewCookie || hasServerCredential(req) || !fullyLaunched()) ? "private, no-store" : (injectScript ? "public, max-age=300, s-maxage=300, stale-while-revalidate=900" : "public, max-age=120, s-maxage=120, stale-while-revalidate=600"));
     res.status(200).send(page);
   };
 
   if (!/^[0-9a-fA-F-]{10,64}$/.test(id)) { finish(defaultOg, ""); return; }
+  {   // the address limit (lib/_routeLimit.js, Oct 27 2026): one indexed row per request, but a flood of ids is still a flood
+    const sbUrl = process.env.SUPABASE_URL, sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    const lim = await routeLimit(sbUrl && sbKey ? { supabaseUrl: sbUrl, supabaseKey: sbKey } : null, req, "shared_result", { route: "/o" });
+    if (!lim.ok) return sendTooMany(res, lim.retryAfter);
+  }
   try {
-    const rows = await supabaseSelect(
-      { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY },
-      `saved_results?id=eq.${encodeURIComponent(id)}&select=payload&limit=1`);
+    // A link handed out on a stored read (sellerDecision writes its row after the response) may be opened before the row lands: wait for it, up to 6 s, before the default page.
+    let rows = null;
+    for (let tries = 0; tries < 15; tries++) {
+      rows = await supabaseSelect(
+        { supabaseUrl: process.env.SUPABASE_URL, supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY },
+        `saved_results?id=eq.${encodeURIComponent(id)}&select=payload&limit=1`);
+      if ((rows && rows[0]) || !isFreshShareId(id)) break;
+      await new Promise(r => setTimeout(r, 400));
+    }
     const payload = rows && rows[0] && rows[0].payload;
     if (!payload || payload.obShare !== true || !payload.oneBox || !payload.oneBox.tier) { finish(defaultOg, ""); return; }
     const ob = payload.oneBox;
@@ -122,6 +136,7 @@ export default async function handler(req, res) {
   // One Box share route (rewritten from /o/<id>). Served here to stay under the Hobby
   // plan's 12-function cap. HTML response, distinct from the JSON config path below.
   if (req.query && typeof req.query.obShare !== "undefined") {
+    if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js)
     return handleOneboxShare(req, res, String(req.query.obShare || "").trim());
   }
 

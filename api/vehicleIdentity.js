@@ -5,16 +5,22 @@
 // extracts structure, the extraction re-enters the normal resolver pipeline,
 // and the canned "year, make and model" line only renders after both fail.
 
+import { wayOutFor } from "../lib/questionWayOut.js";
 import { createHash } from "node:crypto";
 import { resolveVehicle, lastResolveDebug } from "../lib/vehicle.js";
 import { hasAskableTrim } from "../lib/modelRules.js";
 import { supabaseInsert, supabaseSelect } from "../lib/_supabase.js";
 import { recordUsageEvent, anthropicCost } from "./_usage.js";
 import { isTesterRequest } from "../lib/_tester.js";
-import { vinFeatureActive, findVinArchiveMatch } from "../lib/_flags.js";
+import { vinFeatureActive, findVinArchiveMatch, looksLikeChassisId } from "../lib/_flags.js";
+import { findVinLiveMatch, liveVehicleOf, ownLiveOf } from "../lib/vinLiveMatch.js";
 
 import { isCrewRequest } from "../lib/_crew.js";
+import { hasServerCredential } from "../lib/_credential.js";
+import { routeLimit } from "../lib/_routeLimit.js";
 import { cors as gasCors } from "../lib/_cors.js";
+import { failBody } from "../lib/_fail.js";
+import { carFromRequest, carWords, isPartialCar } from "../lib/carToken.js";
 // Privacy (VIN feature): a raw 17-char VIN must never land in a funnel/analytics
 // event or a log line. Replace any VIN run with a short truncated marker so the
 // event stays useful for debugging without storing the full identifier.
@@ -24,6 +30,7 @@ function scrubVin(text) {
 
 
 const EXTRACT_MODEL = process.env.SAM_MODEL || "claude-sonnet-4-6";
+const EXTRACT_KEY_VERSION = "vehx2";
 const EXTRACT_SYS = `Extract vehicle facts from a message someone typed about a car they may sell. Reply with ONLY a JSON object, no prose:
 {"make":string|null,"model":string|null,"trim":string|null,"year":number|null,"decade":string|null,"condition_hint":string|null,"location_hint":string|null,"price_hint":string|null,"confidence":"high"|"low"}
 Rules: make/model use proper names (lx470 means Lexus LX 470; hellcat alone means Dodge but the model is ambiguous, leave model null). decade like "1980s" when only an era is given. confidence "high" only when make plus model (or an unambiguous nickname) are clear. Never invent details not present.`;
@@ -71,7 +78,9 @@ function dirtyInput(result) {
 async function llmExtractVehicle(text, env) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
-  const cacheKey = createHash("sha256").update(`vehx|${EXTRACT_MODEL}|${text}`).digest("hex");
+  // THE KEY IS VERSIONED (lane-b-notice, Nov 17 2026): an extraction cached before the number phrases were set aside (a mileage read as a model, the plus of an address read as part of a word) is never read again; nothing is deleted. Raise
+  // EXTRACT_KEY_VERSION to retire every stored extraction the same way.
+  const cacheKey = createHash("sha256").update(`${EXTRACT_KEY_VERSION}|${EXTRACT_MODEL}|${text}`).digest("hex");
   const cached = await supabaseSelect(env, `narration_cache?cache_key=eq.${cacheKey}&select=response_text&limit=1`);
   let jsonText = cached?.[0]?.response_text || null;
   let usage = null;
@@ -117,16 +126,21 @@ export default async function handler(req, res) {
   if (process.env.CURTAIN_SEALED === "1") {
     const cookie = req.headers.cookie || "";
     const testerOk = isTesterRequest(cookie);   // the signed tester cookie only (e41, Sam's Job 4)
-    if (!isCrewRequest(cookie) && !testerOk) {
+    if (!isCrewRequest(cookie) && !testerOk && !hasServerCredential(req)) {   // a keyed server job passes (lib/_credential.js, header only)
       return res.status(403).json({ status: "sealed", error: "Not open yet." });
     }
   }
 
-  const raw = req.body?.text || req.body?.car || req.body?.search || req.body?.query;
+  // THE CAR TOKEN (Lane B, Nov 17 2026, lib/carToken.js): a v1 token in ?car= or the body is the car already resolved. It comes back as the valid car it holds, the resolver is not called, a page that calls this before sellerDecision resolves zero times.
+  { const tokenCar = carFromRequest(req); if (tokenCar && !isPartialCar(tokenCar)) { const w = carWords(tokenCar); return res.status(200).json({ status: "valid", vehicle: tokenCar, clarification: null, corrections: [], archiveModelCount: null, car: { token: String((req.query && req.query.car) || req.body.car), line: w ? w.line : null, short: w ? w.short : null } }); } }
+  const partialTok = carFromRequest(req), raw = (partialTok && isPartialCar(partialTok) && carWords(partialTok).label) || req.body?.text || req.body?.car || req.body?.search || req.body?.query;   // a partial car token is read as its words: the resolver says which model is missing
   if (!raw) return res.status(400).json({ error: "Missing text" });
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
   const env = { supabaseUrl, supabaseKey };
+
+  // The address limit (lib/_routeLimit.js, Oct 27 2026): far above a person typing cars; crew and keyed jobs pass; fails open.
+  { const lim = await routeLimit(env, req, "identity_lookup", { route: "/api/vehicleIdentity" }); if (!lim.ok) { res.setHeader("Retry-After", String(lim.retryAfter)); return res.status(429).json({ status: "ip_rate_limited", error: "Too many requests. Try again in a minute." }); } }
 
   try {
     // VIN feature flag (dark by default): active only for crew/test sessions when
@@ -207,7 +221,8 @@ export default async function handler(req, res) {
                 question: `I can see a ${seen} in there. ${missing.length ? `Which ${missing.join(" and ")}?` : "Give me the year, make and model in one line."}`,
                 missing,
                 baseVehicle: [parsed.year, parsed.make, parsed.model].filter(Boolean).join(" ") || null,
-                chips: ["Change car", "Not sure"]
+                chips: ["Change car", "Not sure"],
+                wayOut: wayOutFor(missing.includes("model") ? "model" : missing.includes("year") ? "year" : "car", { ...parsed })
               },
               corrections: result.corrections
             };
@@ -280,7 +295,7 @@ export default async function handler(req, res) {
     // privacy (request body only, never logged). Gated on vinActive like every VIN path so
     // the off-feature response shape is unchanged.
     let chassisVehicle = null;
-    if (!vinMatch && vinActive && result.clarification?.kind === "chassis_hint" && typeof raw === "string") {
+    if (!vinMatch && vinActive && (result.clarification?.kind === "chassis_hint" || (!result.vehicle?.make && looksLikeChassisId(raw))) && typeof raw === "string") {
       const chassisTok = raw.trim().replace(/\s+/g, "");
       if (chassisTok) vinMatch = await findVinArchiveMatch(env, { vin: chassisTok });
       // On an exact chassis hit, the matched record IS the car's identity (evidence, not a
@@ -299,6 +314,32 @@ export default async function handler(req, res) {
           chassisVehicle.chassis = raw.trim();
         }
       }
+    }
+    // A VIN AT AUCTION RIGHT NOW IS KNOWN FROM ITS OWN LISTING (lib/vinLiveMatch.js, Nov 11 2026): no recorded sale, but the live pool holds this VIN. The listing's title names the car, so the car is that one: no decode question, the listing travels as vinLiveMatch.
+    const liveAny = !chassisVehicle && vinActive && result.vehicle?.vin ? await findVinLiveMatch(env, { vin: result.vehicle.vin }) : null;   // read for every VIN: a recorded sale leads the identity, the live listing still rides beside it
+    if (liveAny) result.vinLiveMatch = liveAny;
+    if (!vinMatch && liveAny) {
+      const live = liveAny;
+      if (live) {
+        const vehicle = await liveVehicleOf(live, result.vehicle, resolveVehicle);   // the same step every door takes (lib/vinLiveMatch.js)
+        if (vehicle) {
+          return res.status(200).json({ status: "valid", vehicle, clarification: null, corrections: [...(result.corrections || []), { type: "vin_live_match", to: live.displayName }], archiveModelCount: modelCount, vinLiveMatch: live, ownLive: ownLiveOf(live), fallback: fallbackUsed || undefined, _debug: _dbg });
+        }
+        // the listing could not be resolved to one car: the decode question stands, with the listing beside it (result.vinLiveMatch is set above)
+      }
+    }
+    // A CHASSIS NUMBER AT AUCTION RIGHT NOW (Lane B, Nov 13 2026): no recorded sale carries the number, but the live pool prints it in a listing's VIN field, title or text (exact token). The listing names the car, the same step a 17 character VIN takes (lib/vinLiveMatch.js).
+    if (!vinMatch && !chassisVehicle && vinActive && !result.vehicle?.make && typeof raw === "string" && looksLikeChassisId(raw)) {
+      const liveChassis = await findVinLiveMatch(env, { vin: raw.trim().replace(/\s+/g, "") }).catch(() => null);
+      if (liveChassis) {
+        result.vinLiveMatch = liveChassis;
+        const vehicle = await liveVehicleOf(liveChassis, { vin: null }, resolveVehicle);
+        if (vehicle) return res.status(200).json({ status: "valid", vehicle: { ...vehicle, vin: null, chassis: raw.trim() }, clarification: null, corrections: [...(result.corrections || []), { type: "vin_live_match", to: liveChassis.displayName }], archiveModelCount: modelCount, vinLiveMatch: liveChassis, ownLive: ownLiveOf(liveChassis), fallback: fallbackUsed || undefined, _debug: _dbg });
+      }
+    }
+    // A typed number that looks like a chassis but matched nothing (and the resolver gave it no clarification of its own) says so plainly and asks for the car.
+    if (!vinMatch && !chassisVehicle && vinActive && !result.vehicle?.make && !result.clarification?.kind && typeof raw === "string" && looksLikeChassisId(raw)) {
+      result.clarification = { kind: "chassis_hint", question: "I did not find that number in the sales I track. Type the year, make and model of the car instead.", answerHint: "Year, make and model", chips: ["Not sure"] };
     }
     // A resolved chassis match is returned as a VALID vehicle (with the archive match and a
     // chassis_match correction) so the frontend renders the "I know this exact car" callout,
@@ -322,10 +363,11 @@ export default async function handler(req, res) {
       corrections: result.corrections,
       archiveModelCount: modelCount,
       vinArchiveMatch: vinMatch || undefined,
+      ...(result.vinLiveMatch ? { vinLiveMatch: result.vinLiveMatch, ownLive: ownLiveOf(result.vinLiveMatch) } : {}),
       fallback: fallbackUsed || undefined,
       _debug: _dbg
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "Vehicle identity failed" });
+    return res.status(500).json(failBody("vehicleIdentity", err));
   }
 }

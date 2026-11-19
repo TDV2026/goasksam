@@ -2,7 +2,7 @@
 // BUY TIMES (Lane E, Buy speed, Oct 16 2026): where a Buy search's time goes, measured from outside through the
 // public endpoints, one search at a time, read-only, zero OldCarsData (every Buy path is archive + live_listings).
 // For each search, in this order:
-//   ping     POST {action:"converse", state:{messages:[]}}  the function round trip with no database read
+//   ping     POST {action:"parse", text:""}  the function round trip with no database read
 //   parse    POST {action:"parse"}                           the resolver alone (the page's chips + waiting line)
 //   chat     POST {action:"chat", debug:true}                the real Buy search: the model turn with its tools, then the
 //                                                            cards' enrichment; the stream's "text" event marks the end of
@@ -15,7 +15,7 @@
 // Derived: shape = done - text (enrichFast); tool = rerun - shape (toolSearchLive); model = text - tool.
 //
 //   PROBE_KEY="$(security find-generic-password -s goasksam-probe -w)" node scripts/buyTimes.mjs [--cars "a|b"] [--runs 2]
-// The key goes only in the x-ops-key header of same-origin requests (and the explain probe's body), never printed.
+// The key goes only in the x-ops-key header of same-origin requests, the explain probe's included (the page's request interception adds it to every one); never in a body or an address, never printed.
 import puppeteer from "puppeteer-core";
 import { crewCookie } from "./_crewCookie.mjs";
 
@@ -104,13 +104,13 @@ console.log("search | run | ping | parse | chat: headers / text / done | server 
 const rows = [];
 for (let run = 1; run <= RUNS; run++) {
   for (const q of CARS) {
-    const ping = await post({ action: "converse", state: { messages: [] } });
+    const ping = await post({ action: "parse", text: "" });   // the function round trip with no database read (the old converse ping is retired)
     const parse = await post({ action: "parse", text: q });
     const chat = await post({ action: "chat", messages: [{ role: "user", content: q }], state: { filters: {} }, turns: 0, debug: true }, true);
     const d = chat.done || {};
     const trace = d.trace || [], sl = trace.find(t => t.tool === "search_live"), filters = (sl && sl.input) || (d.state && d.state.filters) || {};
     const usage = d.usage || {}, cards = d.cards || [], pend = cards.filter(isPend).length;
-    const explain = await post({ action: "explain", key: KEY, p: filters });
+    const explain = await post({ action: "explain", p: filters });
     const rerun = await post({ action: "rerun", filters, turns: 1 });
     const rc = (rerun.j && rerun.j.cards) || [], rpend = rc.filter(isPend).length;
     const ids = cards.slice(0, 10).map(c => c.id).filter(Boolean);

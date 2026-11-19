@@ -10,7 +10,7 @@ const buy = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
 const c = JSON.parse(/^const CLIENT = (".*");$/m.exec(buy)[1]), css = JSON.parse(/^const BUY_CARD_CSS = (".*");$/m.exec(buy)[1]);
 const block = (from, to) => { const a = c.indexOf(from), b = c.indexOf(to, a); if (a < 0 || b < 0) throw new Error("missing " + from); return c.slice(a, b); };
 const line = from => { const a = c.indexOf(from); if (a < 0) throw new Error("missing " + from); return c.slice(a, c.indexOf("\n", a)) + "\n"; };
-const env = "function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\"/g,'&quot;'); }\nvar HOUSE = {}; var priorSold = " + priorSold.toString() + ";\n" + line("  function sameCar(l){") + line("  function histChipHtml(l){") + line("  function chipsHtml(l){");
+const env = "function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\"/g,'&quot;'); }\nvar HOUSE = {}; var priorSold = " + priorSold.toString() + ";\n" + line("  function sameCar(") + line("  function histChipHtml(") + line("  function chipsHtml(");
 const fns = new Function(env + "\nreturn { chipsHtml: chipsHtml };")();
 const sold = { id: 7, chips: ["Guards Red over Cashmere Beige", "Clean title", "VIN WP0AC2…5142"], timeline: [{ date: "2026-09-21", result: "sold", price: 306000, miles: 31000 }] };
 const listed = { id: 8, chips: ["Red"], timeline: [{ date: "2026-05-02", result: "not_sold", price: 90000 }] };
@@ -21,7 +21,7 @@ ok(/<span class="spec">Clean title<\/span><button type="button" class="spec hchi
 ok(/>Listed before<\/button>/.test(h2) && !/Sold before/.test(h2), "only listed before (reserve not met): 'Listed before', never 'Sold before'");
 ok(/^<p class="specs"><button type="button" class="spec hchip" data-hist="9"[^>]*>Sold before<\/button><\/p>$/.test(h3), "a card with no other chips gets the row with just the history chip (seen_before also counts)");
 ok(!/hchip/.test(h4) && /Manual/.test(h4), "no history: no chip");
-ok(!/Sam has seen this exact car before|seenHtml|See its earlier sale/.test(line("  function slInner(l){")), "the Sam area carries no history lines");
+ok(!/Sam has seen this exact car before|seenHtml|See its earlier sale/.test(line("  function slInner(")), "the Sam area carries no history lines");
 ok(/\.car \.specs \.spec\.hchip\{position:relative;z-index:2;cursor:pointer;color:var\(--green\)/.test(css), "styled as clickable, above the card's title link");
 ok(/var hb = e\.target\.closest\("\[data-hist\]"\); if \(hb\) \{ e\.preventDefault\(\); return openHist\(hb\); \}/.test(c), "a click opens the history popup");
 console.log(`buyHistChipCheck: ${pass} passed, ${fail} failed`);

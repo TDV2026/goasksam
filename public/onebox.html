@@ -70,7 +70,15 @@ a{color:var(--green)}a:hover{color:var(--green-dk)}
 button{font:inherit}
 :focus-visible{outline:2px solid var(--green);outline-offset:2px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* the hidden attribute always hides: a class that sets display (.linkbtn is inline-flex) beat the browser rule, so "Show more sales (N)" stayed on screen after it had shown every row (Oct 29 2026) */
+[hidden]{display:none!important}
 .linkbtn{background:none;border:0;padding:0;color:var(--green);font:600 15px/1.4 var(--sans);text-decoration:underline;text-underline-offset:3px;cursor:pointer;min-height:44px;display:inline-flex;align-items:center}
+.applied{margin:12px 0 10px}
+.applied-line{font:500 15px/1.4 var(--sans);color:var(--ink);margin:0 0 8px}
+.applied-chips{display:flex;flex-wrap:wrap;gap:8px}
+.applied-chip{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--green);border-radius:999px;padding:2px 4px 2px 12px;font:600 14px/1.3 var(--sans);color:var(--green)}
+.applied-x{background:none;border:0;color:var(--green);font:600 20px/1 var(--sans);cursor:pointer;min-width:44px;min-height:36px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px}
+.applied-x:hover{background:rgba(0,0,0,.06)}
 .linkbtn:hover{color:var(--green-dk)}
 
 /* ---- shell: left rail + main column (lib/appShell.js SHELL_CSS is spliced in server-side above;
@@ -134,9 +142,8 @@ button{font:inherit}
    at desktop (minmax so the receipt never gets crushed), one column stacked at 390 (media query at
    the bottom of this file, grouped with the rest of the phone rules). */
 /* align-items default (stretch, not start): the right column (the chart) grows to match whichever
-   column is taller instead of sizing to its own content alone and leaving empty space below it when
-   the left column (mileage/identity lines) runs long - the chart itself still centers in that
-   stretched space (.hero-chart below), so it never looks squeezed, only genuinely fills the row. */
+   column is taller instead of sizing to its own content alone; the chart's heading, size line and chart stay together at the top of that
+   stretched space (.hc-body below), never centered away from the heading. */
 .hero2col{display:grid;grid-template-columns:minmax(0,6fr) minmax(280px,6fr);gap:0 48px}
 /* No chart (fewer than 3 qualifying quarters, item 1): hero-right is omitted entirely rather than
    rendered empty, so .hero-left is the grid's only child - span the full row instead of sitting in
@@ -145,6 +152,21 @@ button{font:inherit}
 .hero2col > .hero-left:only-child{grid-column:1/-1;border-right:0;padding-right:0}   /* Sam's chart item 3 (Oct 21 2026): alone in the row (no chart), no divider on its right and the full width */
 .hero-left{display:flex;flex-direction:column;gap:10px;min-width:0;padding-right:36px;border-right:1px solid var(--div)}
 .hero-right{min-width:0;display:flex;flex-direction:column}
+/* The withheld layout (Oct 29 2026): the engine's caption, then its latest sales in the See the sales row shape (photo, text, price; the text column never collapses). */
+.hero-held{min-width:0}
+.hw-cap{margin:2px 0 12px;font:400 17px/1.4 var(--serif);color:var(--ink)}
+.hw-rows{list-style:none;margin:0;padding:0;border-top:1px solid var(--div,#DCD8CC)}
+.hw-row{border-bottom:1px solid var(--div,#DCD8CC);padding:0}
+.hw-rowb{display:grid;grid-template-columns:96px minmax(0,1fr) auto;column-gap:16px;align-items:center;padding:10px 0;color:inherit;text-decoration:none;min-width:0}
+a.hw-rowb:hover .hw-n,a.hw-rowb:focus-visible .hw-n{text-decoration:underline}
+.hw-ph{width:96px;height:64px;border-radius:6px;overflow:hidden;background:#EFEBE4;display:flex;align-items:center;justify-content:center;font:500 10px/1.2 var(--sans);color:var(--sec);text-align:center}
+.hw-ph img{width:96px;height:64px;object-fit:cover;display:block}
+.hw-t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.hw-n{font:500 15px/1.3 var(--sans);color:var(--ink);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+.hw-m{font:400 13px/1.35 var(--sans);color:var(--sec);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.hw-p{font:600 15px/1.25 var(--sans);color:var(--ink);white-space:nowrap;text-align:right}
+.hw-all{margin:10px 0 0}
+@media (max-width:700px){.hw-rowb{grid-template-columns:64px minmax(0,1fr) auto;column-gap:12px}.hw-ph,.hw-ph img{width:64px;height:48px}}
 .hero-label{margin:0}
 /* Mockup match round: a clear gap (about one line height) before "WHERE THE MIDDLE HALF SOLD" -
    .hero-left's own flex gap (10px) is uniform for every child, so this one label gets extra
@@ -163,6 +185,7 @@ button{font:inherit}
    the approved mockup itself shows it smaller and grey, overridden on purpose). */
 .hero-divider{height:1px;background:var(--div);margin:10px 0 0}
 .hero-idline{margin:2px 0 0;font:400 17px/1.6 var(--sans);color:var(--sec)}
+.hero-idnote{margin:0;font:400 14px/1.5 var(--sans);color:var(--sec)}
 .hero-idlink{font-size:17px}
 /* Item 2 (Sam's review round): the chosen option in a persisted identity line reads as plain ink
    text, not a link - same weight/size as the .linkbtn options beside it, no underline, not
@@ -186,7 +209,7 @@ button{font:inherit}
 /* Right column, hero: "How this market has moved" - candles when the engine answer carries trend,
    else the strip (every sale as a dot on a lowest-to-highest line). No card surface, no photo. */
 .hero-chart{flex:1;display:flex;flex-direction:column;gap:10px}
-.hc-body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px}
+.hc-body{flex:1;display:flex;flex-direction:column;justify-content:flex-start;gap:10px}   /* Oct 26 2026: pinned to the top (was centered): a taller left column stretched this body and the centering opened a large empty band between the heading and the "by quarter" line */
 .hero-chart h2{margin:0;font:600 20px/1.3 var(--serif);color:var(--ink)}
 /* aspect-ratio (not a fixed px height): the SVG's own viewBox is cut to the SAME ratio (see
    candleChartHtml/stripChartHtml, js/onebox.js), so the chart always fills its box edge to edge at
@@ -207,10 +230,18 @@ button{font:inherit}
 .hc-axislabel{font-size:23px;fill:var(--sec)}
 .hc-candlelabel{font-size:23px;font-weight:600;fill:var(--sec)}
 /* Sam's chart fix (c), Oct 21 2026: each quarter's sale count under its name, quiet. */
-.hc-count{font-size:19px;fill:var(--sec)}
+.hc-count{font-size:19px;fill:var(--ink)}
+/* Candle axis (Sam, Oct 25 2026): the period on two lines ("Q4" over its year in smaller grey type), the sale count a plain number in its own row, the row named once. */
+.hc-axq{font-size:20px;font-weight:600;fill:var(--ink)}
+.hc-axy{font-size:16px;fill:var(--sec)}
+.hc-cap{font-size:16px;fill:var(--sec)}
+.hc-candle:focus-visible{outline:2px solid var(--green,#1E4D38);outline-offset:2px}
 .hc-size{margin:0;font:400 14px/1.3 var(--sans);color:var(--sec)}
 .hc-legend-tick{display:inline-block;width:14px;height:0;border-top:3px solid var(--num);vertical-align:middle;margin-right:6px}
 .hc-legend{display:flex;flex-wrap:wrap;gap:16px;align-items:center;font:400 13px/1.3 var(--sans);color:var(--sec)}
+.hc-axgap{fill:var(--sec);opacity:.55}
+.hc-note{margin:0;font:400 13px/1.3 var(--sans);color:var(--sec)}
+.hc-scope{margin:0;font:400 13px/1.4 var(--sans);color:var(--sec)}
 .hc-legend-sw{display:inline-flex;align-items:center;gap:6px}
 .hc-legend-box{width:12px;height:12px;border-radius:2px;background:var(--chip);display:inline-block}
 .hc-legend-dot{width:10px;height:10px;border-radius:50%;background:var(--num);display:inline-block}
@@ -386,6 +417,7 @@ a.salescard:hover .salescard-title{text-decoration:underline;text-underline-offs
 .card:has(.ctitle a:focus-visible){outline:2px solid var(--green);outline-offset:2px}
 .viewsale{position:relative;z-index:2;display:inline-flex;align-items:center;gap:4px;margin-top:2px;font:600 13.5px/1.3 var(--sans);color:var(--sec);text-decoration:none}
 .viewsale:hover{color:var(--green)}
+.histplain{position:relative;z-index:2;display:inline-flex;align-items:center;margin-top:2px;margin-left:12px;font:600 13.5px/1.3 var(--sans);color:var(--sec);text-decoration:underline;text-underline-offset:3px}.histplain:hover{color:var(--green)}.histplain.inrow{margin-left:8px;font-weight:500;font-size:13px}
 .card.hero{grid-column:span 3}
 .cards5.single .card.hero{grid-column:1 / -1}
 .card.this{border:1.5px solid var(--green)}
@@ -599,6 +631,7 @@ a.sb-line:hover{color:var(--green)}
 /* ---- loader ---- */
 .loader{display:flex;align-items:baseline;gap:4px;font:500 15px/1.5 var(--sans);color:var(--sec)}
 .loader .ldots{display:inline-flex;gap:3px;margin-left:2px}
+.lslow{margin:6px 0 0;font:400 14px/1.4 var(--sans);color:var(--sec)}
 .loader .ldots i{width:4px;height:4px;border-radius:50%;background:var(--green);display:inline-block;animation:obdot 1.1s ease-in-out infinite}
 .loader .ldots i:nth-child(2){animation-delay:.18s}
 .loader .ldots i:nth-child(3){animation-delay:.36s}
@@ -666,7 +699,10 @@ a.sb-line:hover{color:var(--green)}
      ~0.56 - the chart is full width here but a shorter box, a bigger scale drop than the half-width
      desktop column), so the same real-13px target needs a bigger SVG-unit base at this width. */
   .hc-axislabel,.hc-candlelabel{font-size:32px}
-  .hc-count{font-size:26px}
+  .hc-count{font-size:28px}
+  .hc-axq{font-size:30px}
+  .hc-axy{font-size:24px}
+  .hc-cap{font-size:24px}
   .dist-label,.dist-count{font-size:15px}
   .sep-note,.ev-why-note p{font-size:13px}
   /* Mileage field (item 8): the sentence on its own line, then the field full width with Go beside
@@ -725,7 +761,7 @@ a.sb-line:hover{color:var(--green)}
 <script>
 function obToggleResults(e){if(e)e.preventDefault();var m=document.getElementById("gas-results-menu");if(m)m.classList.toggle("open");return false;}
 </script>
-<script src="/obx.20261021d/onebox.js"></script>
+<script src="/obx.20261028a/onebox.js"></script>
 <script src="/api/track?js=1" defer></script>
 </body>
 </html>

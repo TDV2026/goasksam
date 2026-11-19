@@ -1,0 +1,146 @@
+[
+  {
+    "date": "2026-11-18",
+    "text": "Sell always tells you where to sell, even when there are too few sales to put a price range on the car."
+  },
+  {
+    "date": "2026-11-18",
+    "text": "Cars that share a name but not a price are kept apart. A Ferrari 330 GT 2+2 and a 330 GTC each get their own range, in Market Check and in Sell."
+  },
+  {
+    "date": "2026-11-18",
+    "text": "Cars whose trims sell apart are priced trim by trim. A Firebird is a Base, a Formula, a Trans Am or a GTA, and each gets its own range."
+  },
+  {
+    "date": "2026-11-17",
+    "text": "Start with just a make and year. Sam asks which model and carries it across Find, Market Check, Sell and Tasks."
+  },
+  {
+    "date": "2026-11-17",
+    "title": "One car across Find, Market Check, Sell and Tasks",
+    "lines": [
+      "Search for a car once and it stays with you across Find, Market Check, Sell and Tasks, so you never type it twice."
+    ],
+    "thanks": "Thanks to Clint."
+  },
+  {
+    "date": "2026-11-17",
+    "title": "Trims that sell differently are priced on their own",
+    "lines": [
+      "Ask about a Firebird Trans Am, a GTA or a Turbo Trans Am and the range comes from that trim's own sales. The same goes for the Camaro Z28 and IROC-Z, and the Mustang LX, GT, Cobra and Saleen. Replicas and tributes are set aside and counted."
+    ]
+  },
+  {
+    "date": "2026-11-17",
+    "title": "Type the mileage with the car",
+    "lines": [
+      "Type a car and its mileage together, like 2003 Mercedes-Benz SL500 38,400 miles, and Market Check narrows the range to cars within 15,000 miles of yours."
+    ]
+  },
+  {
+    "when": "NEW_DESIGN",
+    "dateEnv": "NEW_DESIGN_DATE",
+    "title": "A new look for GoAskSam",
+    "lines": [
+      "Find, Market Check and Sell each open on one search box. Type or speak what you want.",
+      "Find shows three cars at auction right now, with what each sold for before or what cars like it sell for.",
+      "Market Check and Sell each show a real example, so you can see what you get before you search.",
+      "Every page shares the same header and footer, and reads better on a phone."
+    ]
+  },
+  {
+    "date": "2026-11-11",
+    "title": "Ten Tasks at once, free for every account",
+    "lines": [
+      "Run up to ten Tasks at once. Every account gets all ten at no cost."
+    ]
+  },
+  {
+    "date": "2026-11-11",
+    "text": "Find reads a phrase like updated engine as an engine swap, and says so."
+  },
+  {
+    "date": "2026-11-10",
+    "title": "Auction history",
+    "lines": [
+      "Every car Sam has seen sell has its own page, grouped by make and model."
+    ]
+  },
+  {
+    "date": "2026-11-09",
+    "title": "Modified or original",
+    "lines": [
+      "When a car's sales mix modified and original cars, Market Check lets you see each on its own."
+    ]
+  },
+  {
+    "date": "2026-11-03",
+    "text": "Find has two new sorts. Furthest below the range puts the cars with the biggest gap between the bid and what they sell for first. Closest to me asks for your zip once and orders by distance. Both carry through Show more.",
+    "thanks": "Thanks Francis for asking for both."
+  },
+  {
+    "date": "2026-11-03",
+    "text": "On a Find card for a car whose sales split by mileage, the box now shows the band nearest your car's miles with its range, and See the sales lets you pick any band, including ones with too few sales for a range."
+  },
+  {
+    "date": "2026-11-02",
+    "text": "Market Check now shows the closest sales to your car, matched on mileage, under the range. The page also states the mileage the range was computed at. A VIN lookup skips the trim question when the VIN already says the trim."
+  },
+  {
+    "date": "2026-11-02",
+    "text": "Show 24 more on Find now loads the next batch in one click.",
+    "thanks": "Thanks Francis for reporting it."
+  },
+  {
+    "date": "2026-11-02",
+    "text": "The Ford Capri and Mercury Capri now find each other, and a bare model name fills in from the badge.",
+    "thanks": "Thanks Michelle for the report."
+  },
+  {
+    "date": "2026-11-02",
+    "text": "The sales list in the Find card popup is back. It had stopped showing when the second read failed; it now falls back to the stored sales and says when it is still reading."
+  },
+  {
+    "date": "2026-11-02",
+    "text": "Every Find card now has the same shape: a label line, the figures, and one line below. No card text is cut off."
+  },
+  {
+    "date": "2026-11-01",
+    "text": "Leave cars out by saying so. Words like not, without and except take those cars out of the results, and the page says what was left out.",
+    "thanks": "Thanks to Ron."
+  },
+  {
+    "date": "2026-11-01",
+    "text": "Older and pre-war cars read better: coachbuilders, body styles, makes and models are understood the way they were written. Collector car auction data at rickcarey.com.",
+    "thanks": "Thanks to Rick."
+  },
+  {
+    "date": "2026-11-01",
+    "text": "Model names show the way they are written, like M8, E-Type and GT3."
+  },
+  {
+    "date": "2026-10-31",
+    "text": "Type a gearbox or engine, like 6-speed or V8, and Sam narrows the sales to match.",
+    "thanks": "Thanks Rick and Owen."
+  },
+  {
+    "date": "2026-10-31",
+    "text": "Pre-war bodies are their own markets: a Roadster, a Phaeton and a Speedster are priced apart."
+  },
+  {
+    "date": "2026-10-30",
+    "text": "Ask about a model with no year, like Audi RS6, and Sam asks which generation first."
+  },
+  {
+    "date": "2026-10-30",
+    "text": "Find cards say where the bidding sits against the range, with the time left."
+  },
+  {
+    "date": "2026-10-30",
+    "text": "Every range now shows the lowest and highest sale beside it, so you can see the whole spread at a glance."
+  },
+  {
+    "date": "2026-10-30",
+    "text": "GoAskSam is open. Ask about any car by typing or speaking, on Find, Market Check and Sell."
+  }
+]

@@ -49,7 +49,7 @@ async function getText(url) {
 // reading it is one cheap query, not a scan.
 async function sitemapUrls() {
   const set = new Set();
-  for (const sm of ["sitemap-pages.xml", "sitemap-specs.xml", "sitemap-hubs.xml"]) {
+  for (const sm of ["sitemap-pages.xml", "sitemap-specs.xml"]) {
     const r = await getText(`${BASE}/${sm}`);
     if (r.ok) for (const m of r.body.matchAll(/<loc>([^<]+)<\/loc>/gi)) set.add(m[1].trim().replace(/\/$/, ""));
   }

@@ -19,7 +19,9 @@ const t0 = Date.now();
 // 20 minutes: generous for a nightly job with no serverless ceiling. The live path's 180s stopgap
 // budget (api/history.js rollout()) stays the safety net on any request this table doesn't cover yet.
 const BUDGET_MS = 20 * 60 * 1000;
-const r = await rollout(env, { budgetMs: BUDGET_MS });
+// Lane B, Nov 8 2026: every hub that passes the string tests is asked of the page's own gate (api/history.js hubGate) with its own budget, so the hub file lists only hubs the page serves 200 and indexable, and the VINs those hubs link are known (the sitemap's VIN files are capped to them).
+const HUB_GATE_BUDGET_MS = 30 * 60 * 1000;
+const r = await rollout(env, { budgetMs: BUDGET_MS, hubGateBudgetMs: HUB_GATE_BUDGET_MS });
 const secs = Math.round((Date.now() - t0) / 1000);
 const DRY = process.argv.includes("--dry-run");
 // What the scan covered (Oct 2026): rollout() reports rows_scanned / scan_pages / scan_complete once its scan is uncapped
@@ -27,6 +29,7 @@ const DRY = process.argv.includes("--dry-run");
 const c = r.counts || {};
 console.log(`scan: vin_index rows scanned ${c.rows_scanned ?? "(not reported by rollout yet)"}, pages ${c.scan_pages ?? "(not reported)"}, distinct VINs seen ${c.vins}, scan complete ${c.scan_complete ?? "(not reported)"}`);
 if (c.scan_complete === false) { console.error("::error::rollout() scan did not reach the end of vin_index (time budget or a failed page). Refusing to overwrite vin_rollout_cache with a partial set."); process.exit(1); }
+{ const g = (r.counts || {}).hubs_gate || {}; console.log(`hub gate: ${r.counts.hubs_before_gate} candidates, ${g.checked} asked, ${g.listed} listed, ${g.no_rows} no rows (404), ${g.noindex} noindex ${JSON.stringify(r.counts.hubs_gate_noindex_reasons)}, ${g.alias} alias, ${g.unreadable} unreadable, ${g.unreached} not reached; ${r.counts.linked_vins} VINs linked from a listed hub.`); if (g.unreached > 0) console.error(`::warning::hub gate ran out of its budget with ${g.unreached} hubs not asked; they are not listed tonight.`); }
 console.log(`rollout() computed in ${secs}s: ${r.vins.length} vins, ${r.motos.length} motorcycles, ${r.others.length} other, ${r.hubs.length} hubs.`);
 if (r.counts.rollout_budget_cut) console.error(`::warning::rollout() hit its ${Math.round(BUDGET_MS / 1000)}s budget even on the nightly run - vin_index has grown enough that this budget needs raising.`);
 

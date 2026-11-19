@@ -596,7 +596,7 @@ function renderDecision(decisionData,renderOpts){
           // here, at the one render site. Composers should never emit filler, but
           // this guarantees no future composed bullet can bypass the filter.
           const gated=(typeof evidenceOnlyBullets==="function")?evidenceOnlyBullets(c.bullets):(c.bullets||[]);
-          const list=(gated&&gated.length)?`<ul class="sell-rec-bullets">${gated.map(b=>`<li>${numify(gate(b.text))}${b.receiptUrl?` <a href="${escapeHtml(b.receiptUrl)}" target="_blank" rel="noopener noreferrer" class="vin-receipt-link">View that sale</a>`:""}</li>`).join("")}</ul>`:"";
+          const list=(gated&&gated.length)?`<ul class="sell-rec-bullets">${gated.map(b=>`<li>${numify(gate(b.text))}${b.receiptUrl?` <a href="${escapeHtml(b.receiptUrl)}" target="_blank" rel="noopener" class="vin-receipt-link">View that sale</a>`:""}</li>`).join("")}</ul>`:"";
           if(!head&&!list)return "";
           return `<div class="sell-rec-reason-label label-mono">${label}</div>${head}${list}`;
         })()}
@@ -1167,7 +1167,7 @@ function _thinPickCardHtml(o){
   // beneath it as context - not the other way round (a car year read like a sale year).
   // Item 2: show this venue's receipts by RECENCY, never the 3 priciest (which biased the card to the
   // ceiling). Newest-first is the honest evidence order and every shown sale is within the venue pool.
-  const rc=(o.receipts||[]).filter(r=>String(r.slug||"").toLowerCase()===p.slug).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))).slice(0,3)
+  const rc=(o.receipts||[]).filter(r=>String(r.slug||"").toLowerCase()===p.slug).slice(0,3)
     .map(r=>`<div class="pcard-mrow"><div><div class="pcard-mp" style="font-variant-numeric:tabular-nums">${esc(_thinMonthLabel(r.date)||"Recent")} · ${money(r.hammer)}${isHouse&&r.allIn?` <span style="opacity:.6">buyer paid ${money(r.allIn)}</span>`:""}</div><div class="pcard-ms">${esc(cleanReceiptTitleForCard(r.title)||[r.year,r.model,o.modelLabel].filter(Boolean).join(" ").trim()||o.modelLabel)}</div></div></div>`).join("");
   // Adjacent-year disclosure (Thread A, approved): the thin pool windows year +/-2, so a 1964
   // query can legitimately pool 1963-1964 cars. When the receipts' actual year range differs from
@@ -1288,7 +1288,7 @@ function renderThinDecisionSell(msgs,thin,decisionData){
   else if(rush&&thin.houseSteer){ if(op)shownVenues.push(op.pick.slug); }
   else { if(op)shownVenues.push(op.pick.slug); if(hp)shownVenues.push(hp.pick.slug); }
   const shownThinRecs=[];
-  for(const sv of shownVenues){ recs.filter(r=>String(r.slug||"").toLowerCase()===String(sv).toLowerCase()).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))).slice(0,3).forEach(r=>shownThinRecs.push(r)); }
+  for(const sv of shownVenues){ recs.filter(r=>String(r.slug||"").toLowerCase()===String(sv).toLowerCase()).slice(0,3).forEach(r=>shownThinRecs.push(r)); }
   const askLine=_askingVsSalesLine((shownThinRecs.length?shownThinRecs:recs).map(r=>r.hammer));
   const row=document.createElement("div");row.className="row sam";
   row.innerHTML=`<div class="row-inner"><div class="msg-wrap"><div class="sam-label">Sam</div>${body}
@@ -1593,7 +1593,7 @@ function renderClassEraSell(msgs,ce,decisionData){
     // straight off the engine object (now stripped at the source, lib/onebox.js classEraGuarded)
     // AND independently recomputed from the raw receipts as a fallback - removed both; count +
     // latest month only, same shape as the thin-tier facts block.
-    const byDateDesc=recs.slice().sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+    const byDateDesc=recs.slice();   // the engine's order (newest first)
     const latest=byDateDesc[0]||null;
     const latestBit=latest&&latest.date?`, most recently ${esc(_thinMonthLabel(String(latest.date).slice(0,10))||"")}`:"";
     // Item 1b: the pool is filtered to a body class, so NAME it ("1980s Dodge trucks", not "market").
@@ -2191,7 +2191,7 @@ function closeLeadDetailsModal(){const m=document.getElementById("lead-details-m
 var METHODOLOGY_PARAS=[
   "Every recommendation starts with real sales. Sam tracks completed sales across the major enthusiast platforms, what sold, where, and for how much, recalculated as new sales close.",
   "For your vehicle, Sam looks at how cars like yours have actually performed on each platform: how many have sold, how consistently, and at what level. Volume matters, a platform with a deep track record for your kind of car counts for more than one with a couple of lucky results.",
-  "Sam also weighs what you've told him: your timing, how involved you want to be, and what you're hoping to get. The recommendation balances the market evidence with your situation, and where a PowerSeller has a proven record with cars like yours, Sam says so.",
+  "Sam also weighs what you've told Sam: your timing, how involved you want to be, and what you're hoping to get. The recommendation balances the market evidence with your situation, and where a PowerSeller has a proven record with cars like yours, Sam says so.",
   "No platform or PowerSeller can pay to be recommended. Nothing you see is sponsored, and when the data is thin, Sam says that too, better nothing than a fake number."
 ];
 var methodologyKeyHandler=null;

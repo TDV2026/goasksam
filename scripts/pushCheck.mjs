@@ -69,7 +69,7 @@ try {
     const shown = await page.evaluate(() => { const t = s => String(s || "").replace(/\s+/g, " ").trim(); const h = document.querySelector("h1"); return { h1: t(h && h.textContent).slice(0, 70), text: t(document.body && document.body.innerText).length, money: (t(document.body && document.body.innerText).match(/\$\d[\d,]{2,}/g) || []).length }; }).catch(() => ({}));
     // A page that loads but shows a failure line instead of a result is a failure too (Oct 11: Market Check showed
     // "Sam's catching his breath" with no console error and passed).
-    const failLine = await page.evaluate(() => { const t = document.body ? document.body.innerText : ""; const m = /catching his breath|having trouble answering|Connection issue|couldn.t finish that one|couldn.t read that just now/i.exec(t); return m ? m[0] : null; }).catch(() => null);
+    const failLine = await page.evaluate(() => { const t = document.body ? document.body.innerText : ""; const m = /catching his breath|Sam is busy right now|having trouble answering|Connection issue|couldn.t finish that one|couldn.t read that just now/i.exec(t); return m ? m[0] : null; }).catch(() => null);
     if (failLine) errors.push(`shows a failure line instead of a result: "${failLine}"`);
     // KEY-REJECTED GUARD (Oct 2026, Lane B2): with a key, a gated page must END on its own address and show its
     // real result. A rejected key falls back to the public launch stage, which redirects to /sell; that page loads
@@ -174,7 +174,7 @@ try {
       elapsed = Date.now() - t0;
       const info = await page.evaluate(() => {
         const t = document.body ? document.body.innerText : "";
-        const fail = /catching his breath|having trouble answering|Connection issue|couldn.t finish that one|couldn.t read that just now/i.exec(t);
+        const fail = /catching his breath|Sam is busy right now|having trouble answering|Connection issue|couldn.t finish that one|couldn.t read that just now/i.exec(t);
         return { fail: fail ? fail[0] : null, money: (t.match(/\$\d[\d,]{2,}/g) || []).length, limit: /today.s limit of \d+ cars/i.test(t) };
       }).catch(() => ({}));
       if (info.fail) { failLine = info.fail; break; }

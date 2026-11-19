@@ -3,9 +3,12 @@
 // js/onebox.js) so "porsche 911" asks exactly Market Check's questions in its cards and serif. js/onebox.js
 // exposes a small Sell hook (window.GAS_SELL, inert on Market Check); lib/sell/sellMcClient.js asks the
 // state and how to sell it in the same card, then shows the result from /api/sellChat {action:"flow"}.
+import { reasonLine } from "../lib/reasonWords.js";
+import { engineWaitMs } from "../lib/live/search.js";
+import { OUTBOUND_JS } from "../lib/outboundUtm.js";
 import fs from "node:fs";
 import path from "node:path";
-import { lastUpdatedDate } from "../lib/asOf.js";
+import { lastUpdatedDate, shortDate } from "../lib/asOf.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { stripLaunchGate } from "./marketCheck.js";
 import { SELL_MC_CSS, SELL_MC_CLIENT } from "../lib/sell/sellMcClient.js";
@@ -15,8 +18,10 @@ import { START_JS } from "../lib/startPage.js";
 import sellPage from "./sellPage.js";
 import { AUTH_SIGNBAR_HTML, AUTH_SIGNBAR_CSS, AUTH_SIGNBAR_MIRROR_JS } from "../lib/authBar.js";
 import { SHELL_CSS, SHELL_JS, railOpenHtml } from "../lib/appShell.js";
-import { isCrewRequest } from "./_chrome.js";
+import { isCrewRequest, FONT_LINKS } from "./_chrome.js";
 import { hasServerCredential } from "../lib/_credential.js";
+import { heldFor } from "../lib/_hold.js";
+import { runAsCaller, callerFor } from "../lib/_caller.js";
 
 const YOUR_RESULTS_RAIL = '<a class="gas-navitem" id="gas-nav-results" href="#" style="display:none" onclick="return obToggleResults(event)">Your results</a><div class="gas-submenu" id="gas-results-menu"></div>';
 
@@ -31,30 +36,36 @@ function pcardCss() {
   return css.slice(a, b + PCARD_TO.length);
 }
 
-export default async function handler(req, res) {
+async function handlerCore(req, res) {
+  if (heldFor(req, res)) return;   // the holding page while CURTAIN_SEALED=1 (lib/_hold.js); a keyed server job, crew and testers pass
   // SWITCHED OFF for the public (Oct 8 2026, Sam): 404 unless SELL_NEXT_ON=1, our header credential
   // (lib/_credential.js, never a key in the address), or crew opening the preview landing itself
-  // (/api/sellNext). A crew visit to a result address (/sell?car=) still gets the live /sell.
-  const keyed = hasServerCredential(req) || (isCrewRequest(req) && !/[?&]car=/.test(String(req.url || "")));
+  // (/api/sellNext). Since Oct 26 2026 crew also get it at /sell and at result addresses (/sell?car=), routed by api/sell.js.
+  const keyed = hasServerCredential(req) || isCrewRequest(req);
   // A result address (/sell?car=..., routed here by vercel.json) while the new Sell is off: the live /sell
   // page, exactly as /sell serves it, so the public never sees the new Sell before the cutover.
   if (process.env.SELL_NEXT_ON !== "1" && !keyed) return /[?&]car=/.test(String(req.url || "")) ? (res.setHeader("X-Robots-Tag", "noindex, follow"), sellPage(req, res)) : res.status(404).json({ error: "Not found." });
   if (!shell) shell = fs.readFileSync(path.join(process.cwd(), "public", "onebox.html"), "utf8");
   if (cardCss == null) cardCss = pcardCss();
   const crew = isCrewRequest(req);
+  // SEARCH (search rule 4/7, Oct 2026): the public Sell landing (plain /sell, nobody keyed or in crew) is indexable and is in the
+  // pages sitemap; every other address (a result /sell?car=, any query variant, crew or keyed previews) is noindex with /sell as its canonical.
+  const publicLanding = !keyed && !crew && !String(req.url || "").includes("?");
+  const robots = publicLanding ? "index, follow" : "noindex, nofollow";
   const env = supabaseEnv();
   // The landing's one live example (lib/sell/sellExample.js, the same result a visitor gets): memory, the
   // stored row, or a build waited on for up to 8 seconds (never left to finish after the response is sent).
   // Past the wait, this one request shows the landing without the example band.
   const updated = await lastUpdatedDate(env).catch(() => null);
   const home = sellLandingHtml({ updated });
-  const cfg = JSON.stringify({ updated: updated || "", home }).replace(/</g, "\\u003c");
+  const cfg = JSON.stringify({ updated: updated || "", home, couldNot: reasonLine("cold.missed"), stillReading: reasonLine("cold.still"), waitMaxMs: engineWaitMs() }).replace(/</g, "\\u003c");   // the engine's lines and the engine's own wait (the page's deadline is that number; Sell's server answers settle-time earlier)
   // Function replacements throughout: the client holds "$" sequences a replacement string would expand.
   const html = stripLaunchGate(shell)
+    .replace("</body>", () => `<script>${OUTBOUND_JS};gasOutboundInstall("sell")</script></body>`)
     .replace(/<title>[\s\S]*?<\/title>/, () => "<title>Sell your car | GoAskSam</title>")
     .replace(/<meta name="robots" content="[^"]*"\s*\/?>/, () => "")
-    // Every new Sell address is noindex with the Sell landing as its canonical (result addresses included).
-    .replace("</head>", () => `<meta name="robots" content="noindex, nofollow">\n<link rel="canonical" href="https://goasksam.com/sell">\n<style>${cardCss}\n${SELL_MC_CSS}\n${SELLS_FOR_CARD_CSS}\n${SELL_LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}</style>\n</head>`)
+    // The plain public landing is indexable; every other new Sell address is noindex with the Sell landing as its canonical (result addresses included).
+    .replace("</head>", () => `${FONT_LINKS}<meta name="robots" content="${robots}">\n<link rel="canonical" href="https://goasksam.com/sell">\n<style>${cardCss}\n${SELL_MC_CSS}\n${SELLS_FOR_CARD_CSS}\n${SELL_LANDING_CSS}\n${AUTH_SIGNBAR_CSS}\n${SHELL_CSS}</style>\n</head>`)
     // Round D (app shell, Oct 2026): the same shared rail as every other product - the full page
     // list, current page ("sell") marked - replacing the old Sell-only stripped-down rail.
     // Server-rendered start page (GoAskSam 2.0 Stage 4): the headline, sub, box and line are in the first HTML, not drawn afterwards by the browser.
@@ -64,16 +75,19 @@ export default async function handler(req, res) {
     // The Sell hook must exist before js/onebox.js boots, so the client goes in ahead of it.
     // SELLS_FOR_CARD_JS goes in first so window.sellsForCardHtml exists before sellMcClient.js's
     // draw() runs (same ordering api/marketCheck.js uses ahead of js/onebox.js).
-    .replace(/<script src="\/obx\.[^"]+\/onebox\.js"><\/script>/, m => `<script>${SELLS_FOR_CARD_JS}</script>\n<script>window.GAS_SELL_CFG=${cfg};</script>\n<script>${SELL_MC_CLIENT}</script>\n${m}`)
+    .replace(/<script src="\/obx\.[^"]+\/onebox\.js"><\/script>/, m => `<script>${SELLS_FOR_CARD_JS}</script>\n<script>window.GAS_SELL_CFG=${cfg};window.GAS_UPDATED=${JSON.stringify(updated ? shortDate(updated) : "")};</script>\n<script>${SELL_MC_CLIENT}</script>\n${m}`)
     // Item 9 (shared top bar): same control as Market Check/Buy, one file (lib/authBar.js).
     // window.GAS_SELL is already set above (SELL_MC_CLIENT), so js/onebox.js's own address-bar
     // code correctly skips this page either way; GAS_AUTH_MODE="topbar" is this page's own,
     // separate flag for js/auth.js's lighter boot and is unrelated to GAS_SELL.
     .replace("<body>", () => `<body>\n${AUTH_SIGNBAR_HTML}\n<script>${AUTH_SIGNBAR_MIRROR_JS}</script>\n<script>window.GAS_AUTH_MODE="topbar";</script>\n<script src="/js/auth.js" defer></script>`);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.setHeader("X-Robots-Tag", "noindex, nofollow");
+  res.setHeader("X-Robots-Tag", robots);
   // A probe-key preview, or crew (whose rail differs from the public's, PUBLIC_LAUNCH switch), stays
   // private; once SELL_NEXT_ON serves it to everyone it is a public page (no Vary on the cookie).
   res.setHeader("Cache-Control", (keyed || crew) ? "private, no-store" : "public, max-age=0, s-maxage=600, stale-while-revalidate=3600");
   res.status(200).send(html);
 }
+
+// lane-b-archiveread step e: the entry names its work for caller attribution (lib/_caller.js)
+export default function handler(req, res) { return runAsCaller(callerFor("/api/sellNext", req), () => handlerCore(req, res)); }

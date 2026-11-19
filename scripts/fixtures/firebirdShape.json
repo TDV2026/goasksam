@@ -1,0 +1,20 @@
+{
+  "note": "THE RECORDED SHAPE OF THE THIRD GENERATION FIREBIRD (Lane B, lane-b-variant-split, Nov 17 2026): counts and prices only, no listing text, no seller. RECORDED is what production answered for crew on Nov 17 2026 (variantSplit.why on 928e39e9: the census of the unstated car over 1982 to 1992, five years) and what the answer's own variant list counted (176 sales). WORLD is a sales archive built to that shape: each window is n sales spread over the quartiles given (min and max a little outside p25 and p75), dated between the months given, in the years given. The older windows are why a variant's census median is not the median of its own page (the GTA census reads $15,950 over 38; its own page reads $24,000 over the last two years), and the 20th Anniversary Turbo Trans Am reads 0 in the census of the unstated car (set aside as a halo) while its own page reads $42,000 over 20 sales.",
+  "RECORDED": {
+    "census_total": 131, "census_years": "1982 to 1992",
+    "census": { "Firehawk": [], "20th Anniversary Turbo Trans Am": [], "GTA": [38, 11000, 15950, 24812], "Trans Am": [52, 9075, 14275, 17625], "Formula": [23, 10025, 14250, 16430], "Unstated": [18, 6375, 11300, 16313] },
+    "answer_variant_counts": { "Firehawk": 0, "20th Anniversary Turbo Trans Am": 36, "GTA": 38, "Trans Am": 61, "Formula": 23, "Unstated": 18 },
+    "answer_total": 176, "answer_pool": 11, "answer_range": [8500, 19500],
+    "known_page_medians": { "Base": 7500, "Trans Am": 14250, "GTA": 24000, "20th Anniversary Turbo Trans Am": 42000 }
+  },
+  "WORLD": {
+    "groups": [
+      { "title": "", "windows": [ { "n": 9, "p": [6375, 7500, 9500], "months": [2, 22], "years": [1982, 1992] }, { "n": 9, "p": [9500, 14000, 16313], "months": [26, 58], "years": [1982, 1992] } ] },
+      { "title": "Formula", "windows": [ { "n": 12, "p": [11500, 14250, 16000], "months": [2, 22], "years": [1987, 1992] }, { "n": 11, "p": [10025, 14000, 16430], "months": [26, 58], "years": [1987, 1992] } ] },
+      { "title": "Trans Am", "windows": [ { "n": 25, "p": [12500, 14250, 16500], "months": [2, 22], "years": [1982, 1992] }, { "n": 27, "p": [9075, 14300, 17625], "months": [26, 58], "years": [1982, 1992] } ] },
+      { "title": "Trans Am GTA", "windows": [ { "n": 19, "p": [22000, 24000, 26500], "months": [2, 22], "years": [1987, 1992] }, { "n": 19, "p": [9500, 11000, 13000], "months": [26, 58], "years": [1987, 1992] } ] },
+      { "title": "20th Anniversary Turbo Trans Am", "windows": [ { "n": 20, "p": [40000, 42000, 47775], "months": [2, 22], "years": [1989, 1989] }, { "n": 16, "p": [38000, 41000, 44000], "months": [26, 58], "years": [1989, 1989] } ] }
+    ],
+    "replicas": { "title": "Trans Am KITT Replica", "n": 4, "price": 53400 }
+  }
+}

@@ -1,0 +1,159 @@
+# Texts typed 2+ times in 14 days (crew and test included) on Market Check whose stored answer is missing, expired or behind (task=typedmissing, Oct 31 2026, read only). Format: text TAB times TAB why.
+# First block: answerable, warm with warmNamed --list. Last block: asks a question, is unresolved or is a refusal, so no answer row by design.
+1965 Ford Mustang	81	ttl_expired
+1972 chevrolet corvette	80	ttl_expired
+1957 chevrolet bel air	80	ttl_expired
+1967 chevrolet corvette	78	no_row
+1987 porsche 911 carrera	78	ttl_expired
+1978 toyota land cruiser	78	ttl_expired
+2002 bmw m3	78	ttl_expired
+1970 dodge charger	78	ttl_expired
+1987 buick regal grand national	76	ttl_expired
+1969 ford mustang mach 1	76	ttl_expired
+1973 porsche 911 targa	75	ttl_expired
+1985 land rover defender 110	75	ttl_expired
+1972 chevrolet k5 blazer	75	ttl_expired
+1995 acura nsx	74	ttl_expired
+1972 datsun 240z	74	ttl_expired
+1970 plymouth barracuda	72	ttl_expired
+1963 chevrolet corvette	72	ttl_expired
+2003 porsche 911 carrera targa	71	ttl_expired
+1999 bmw m3	70	ttl_expired
+1960 mercedes-benz 300sl	70	ttl_expired
+1998 toyota supra	70	ttl_expired
+1990 mazda miata	70	ttl_expired
+1965 jaguar e-type	70	no_row
+1978 ford bronco	70	ttl_expired
+1976 international scout	70	ttl_expired
+2004 Porsche 911	21	no_row
+2006 porsche 911	19	ttl_expired
+2004 BMW M3	14	ttl_expired
+2025 porsche 911	12	engine_version_mismatch
+2001 Lamborghini Diablo SE Coupe	10	ttl_expired
+1994 Porsche 911 Carrera Cabriolet	9	ttl_expired
+2010 Porsche 911 GT3	9	ttl_expired
+2024 porsche 911 carrera s coupe	8	ttl_expired
+2006 mercedes-benz clk dtm	8	ttl_expired
+2008 mercedes-benz clk63 amg black series	8	ttl_expired
+1971 mercedes-benz 280se 3.5 cabriolet	8	ttl_expired
+1991 acura nsx	8	stale
+2005 ford gt	8	ttl_expired
+1997 land rover defender 110	7	ttl_expired
+2003 Mercedes-Benz S-Class	6	engine_version_mismatch
+1989 porsche 911 turbo targa	6	ttl_expired
+2001 bmw m3 coupe	6	ttl_expired
+1989 chevrolet camaro iroc-z	6	ttl_expired
+2018 ford gt	6	ttl_expired
+1992 porsche 911 carrera 4 by singer	6	ttl_expired
+2003 bmw m3 coupe	5	ttl_expired
+1989 merkur xr4ti	5	ttl_expired
+2024 porsche 911 gt3	5	ttl_expired
+2018 ford mustang gt	5	ttl_expired
+2005 saab 9-2x	5	ttl_expired
+1963 chevrolet corvette split window	5	engine_version_mismatch
+2012 bmw m3 competition coupe	5	ttl_expired
+1963 chevrolet corvette roadster	5	ttl_expired
+1989 mazda miata roadster	5	ttl_expired
+1967 shelby cobra roadster	5	no_row
+1955 mercedes-benz 300sl roadster	5	ttl_expired
+2001 porsche 911 carrera 4s cabriolet	5	question_recheck
+2006 porsche boxster convertible	5	ttl_expired
+1979 porsche 911 sc	5	ttl_expired
+2001 bmw z3 2.5i	5	ttl_expired
+2007 bmw z4 3.0si coupe	5	ttl_expired
+1986 renault alpine v6 gt	5	ttl_expired
+2001 bmw m3 convertible	5	ttl_expired
+1989 lancia delta integrale	5	ttl_expired
+2001 ford mustang bullitt	5	ttl_expired
+2003 ford mustang svt cobra	5	ttl_expired
+2019 bmw 3-series	5	ttl_expired
+2004 porsche carrera gt	5	ttl_expired
+1959 ferrari 250 gt california	5	ttl_expired
+1971 nissan skyline gt-r	5	ttl_expired
+2006 ford gt heritage edition	5	ttl_expired
+1999 ferrari 550 maranello	5	ttl_expired
+2022 mercedes-benz s-class	5	ttl_expired
+2016 bmw m3	5	stale
+2026 lexus lc 500	5	ttl_expired
+1992 porsche 911 carrera 4	5	ttl_expired
+1969 chevrolet nova	5	ttl_expired
+1986 Porsche 911 Carrera	5	ttl_expired
+2004 SLK 320 hardtop convertible	5	ttl_expired
+2006 BMW 325i	4	ttl_expired
+1974 Triumph Stag	4	ttl_expired
+1994 Porsche 911 Carrera	4	ttl_expired
+1989 Porsche 911 Carrera	4	ttl_expired
+2010 Lamborghini Murcielago	4	ttl_expired
+1963 Porsche 356 Carrera	4	ttl_expired
+2023 Porsche 911 Carrera	4	ttl_expired
+1999 Porsche 911 Carrera	4	ttl_expired
+2023 Mercedes-AMG C63	4	ttl_expired
+2009 Mercedes-Benz S-Class	4	ttl_expired
+2008 BMW 3-Series	4	ttl_expired
+2016 Porsche Boxster Spyder	4	stale
+2019 Mercedes-AMG GT Roadster	3	engine_version_mismatch
+2012 Mercedes-Benz SLS AMG	3	ttl_expired
+2015 porsche 911	3	ttl_expired
+2005 BMW M3	3	ttl_expired
+2005 BMW 3-Series	3	ttl_expired
+2006 Porsche 911 Carrera	3	ttl_expired
+1986 Porsche 911	3	engine_version_mismatch
+1996 Porsche 911 Carrera	3	ttl_expired
+1995 Porsche 911	3	ttl_expired
+2004 BMW 3-Series	3	ttl_expired
+2002 bmw 3-series	3	ttl_expired
+1989 Porsche 911	3	ttl_expired
+2008 Porsche 911 C4S cabriolet	3	no_row
+2004 Porsche C4 S	3	stale
+2019 Mercedes-AMG GT	2	engine_version_mismatch
+2019 Mercedes-AMG GT C	2	engine_version_mismatch
+2019 Mercedes-AMG G63	2	ttl_expired
+2019 porsche 911	2	engine_version_mismatch
+2016 Ford Mustang GT	2	ttl_expired
+2005 Porsche 911 Turbo S Cabriolet	2	stale
+2017 Mercedes-Benz C63 AMG	2	ttl_expired
+2020 Porsche 911	2	ttl_expired
+2008 Porsche 911	2	ttl_expired
+1963 Jaguar XKE Series	2	ttl_expired
+1996 Porsche 911	2	no_row
+2003 Porsche 911 Carrera	2	ttl_expired
+1970 chevrolet chevelle	2	ttl_expired
+1970 oldsmobile 442	2	ttl_expired
+1955 chevrolet bel air	2	ttl_expired
+1966 ford thunderbird	2	ttl_expired
+1970 plymouth road runner	2	ttl_expired
+2010 bmw m3	2	ttl_expired
+1985 mercedes-benz 560sl	2	ttl_expired
+2004 mercedes-benz sl55 amg	2	ttl_expired
+2015 audi r8	2	ttl_expired
+1985 audi quattro	2	ttl_expired
+1985 toyota ae86	2	no_row
+1995 ferrari 355	2	ttl_expired
+1995 porsche 968	2	ttl_expired
+2008 bmw 3 series	2	ttl_expired
+2022 Audi RS 6 Avant	2	ttl_expired
+2007 Porsche 911 Turbo	2	ttl_expired
+2011 Porsche 911 GT3	2	ttl_expired
+2014 bmw z4 coupe	2	ttl_expired
+2012 amg sls roadster	2	ttl_expired
+2020 ford mustang performance package 2	2	ttl_expired
+2002 Porsche 911 Carrera with high mileage	2	ttl_expired
+1958 Porsche 356	2	ttl_expired
+2004 Mercedes Benz SLK 320	2	ttl_expired
+2019 Porsche 911 turbo	2	ttl_expired
+2018 BMW M550i	2	ttl_expired
+2019 GT3 RS	2	stale
+2019 Porsche gt3rs	2	stale
+2011 porsche gt3 rs	2	stale
+# not stored by design
+[vin]	17	no_car (asks a question or unresolved)
+2020 McLaren Speedtail	8	refusal_not_served
+2011 honda s2000	5	no_car (asks a question or unresolved)
+2009 ferrari california	5	no_car (asks a question or unresolved)
+1995 porsche	4	no_car (asks a question or unresolved)
+porsche 996 carrera	3	no_car (asks a question or unresolved)
+Audi RS 6 Avant	3	no_car (asks a question or unresolved)
+Datsun 260Z	2	no_car (asks a question or unresolved)
+[vin] with sport package and panoramic roof, red/tan, 49000 miles	2	no_car (asks a question or unresolved)
+1975 suzuki re5	2	no_car (asks a question or unresolved)
+V90	2	no_car (asks a question or unresolved)

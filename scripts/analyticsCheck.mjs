@@ -1,3 +1,4 @@
+// crew-check: refusal (section 7 asks /admin without the cookie on purpose: it tests the 404)
 // Analytics layer checks (Oct 2026, Lane C; docs/analytics-events.md). No database, no network, no keys:
 // the store is replaced by a sink (or by a closed local port for the store-down test).
 //   node scripts/analyticsCheck.mjs            all checks, exit 1 on any failure
@@ -114,7 +115,10 @@ for (const [label, g] of Object.entries(groups)) {
     ok(rows.length === 6 && rows.every(r => r.anon_id && r.session_id), `${label}: all events stored with anon and session ids`);
   }
   ok(rows.every(r => !JSON.stringify(r).includes("quota-device-id")), `${label}: the quota device id is never in an event`);
-  ok(rows.every(r => r.region_class === id.region_class && !/"(US|DE|FR|GB)"/.test(JSON.stringify(r))), `${label}: region class only, never the country`);
+  // Round 2 (Oct 2026): an open-region visitor's page views and searches carry a coarse place in props (geo_country, geo_region, geo_city);
+  // a restricted-region visitor (EEA, UK, Switzerland) never has the country in any event, and nobody has it outside those props.
+  const strip = r => JSON.stringify({ ...r, props: Object.fromEntries(Object.entries(r.props || {}).filter(([k]) => !/^geo_/.test(k))) });
+  ok(rows.every(r => r.region_class === id.region_class && !/"(US|DE|FR|GB)"/.test(strip(r)) && (id.region_class !== "restricted" || !/"geo_/.test(JSON.stringify(r)))), `${label}: region class on every row; the country only inside the geo props, and none at all in a restricted region`);
 }
 ok(consentResults["open (US, no cookie)"].consent === "not_required" && consentResults["restricted + granted (DE)"].consent === "granted"
   && consentResults["restricted + declined (FR)"].consent === "declined" && consentResults["restricted, no cookie (GB)"].consent === "declined", "consent states: open, granted, declined, missing cookie counts as declined");
@@ -225,7 +229,7 @@ ok(consentState(mkReq({ country: "DE", headers: { "x-gas-region": "open" } })).r
   process.env.ADMIN_EMAILS = "someone@example.com";
   const { default: admin } = await import("../api/admin.js");
   const g = mkRes(); await admin({ method: "GET", query: { page: "1" }, headers: {} }, g);
-  ok(g.statusCode === 404 && /This page doesn/.test(g.body), "/admin answers 404 with the plain not-found page");
+  ok(g.statusCode === 404 && /NOT_FOUND/.test(g.body) && !/dashboard|admin/i.test(g.body), "/admin without the crew cookie answers the ordinary 404 (scripts/hiddenCrewCheck.mjs holds the full comparison)");
   ok(!/eyJ|service_role|SUPABASE_|sk-ant|ADMIN_EMAILS|someone@example/.test(g.body), "/admin page carries no key, no setting and no address");
   const p1 = mkRes(); await admin({ method: "POST", query: {}, headers: {}, body: { part: "overview" } }, p1);
   ok(p1.statusCode === 404, "data without a sign-in: 404");

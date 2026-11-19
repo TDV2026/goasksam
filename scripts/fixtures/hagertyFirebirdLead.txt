@@ -1,0 +1,19 @@
+Name: Dale Whitfield
+Email: dale.whitfield@example.com
+Phone: (555) 010-0142
+Year: 1977
+Make: Pontiac
+Model: Firebird
+Trim: Trans Am
+VIN: 2W87Z7N123456
+Mileage: 48,900
+Transmission: Automatic
+Body: Coupe
+Exterior colour: Black
+Interior colour: Black
+Location: Tulsa, OK
+Asking price: $62,000
+Describe your car: Black and gold Trans Am with the 400 and T tops, bought from the second owner in 2011.
+Known flaws and imperfections: Small crack in the dash pad, a few paint chips on the nose.
+What has been replaced or upgraded: Rebuilt Quadrajet in 2021, new exhaust, original wheels kept.
+Documentation: Build sheet, Pontiac Historical Services letter and the 2021 receipts.
