@@ -126,6 +126,31 @@ body{background:var(--page);color:var(--ink)}.rail{background:var(--page)}
   .lcard{grid-template-columns:1fr}
   .others a{grid-template-columns:48px minmax(0,1fr);}
   .others a .p{grid-column:2}
+}
+/* the VIN index (Lane S, Nov 18 2026): every column has its own width and gap, whatever the width; the count is its own cell */
+table.vix{table-layout:fixed;width:100%;border-collapse:collapse;font:400 16px/1.35 var(--sans);font-variant-numeric:lining-nums tabular-nums}
+table.vix col.k-ph{width:96px}table.vix col.k-seen{width:84px}table.vix col.k-res{width:206px}table.vix col.k-date{width:96px}table.vix col.k-mi{width:84px}
+table.vix th,table.vix td{padding:12px 0 12px 16px;vertical-align:top;text-align:left;overflow-wrap:anywhere}
+table.vix th{padding-top:0;padding-bottom:10px;letter-spacing:.08em;white-space:nowrap}
+table.vix th:first-child,table.vix td:first-child{padding-left:0}
+table.vix .r{text-align:right}
+table.vix td.c-ph{padding-right:0}
+table.vix .cl{display:block;font:500 17px/1.3 var(--sans);color:var(--ink)}
+table.vix a.vn{display:block;margin-top:3px;font:400 13px/1.3 var(--sans);color:var(--sec);overflow-wrap:anywhere}
+table.vix a.vn.solo{margin-top:0;font-size:15px;color:var(--ink)}
+table.vix .o{font-weight:600}table.vix .o.no,table.vix .muted{color:var(--sec)}
+table.vix .fee{display:block;margin-top:2px;font-size:13px;color:var(--sec)}
+@media (max-width:640px){
+table.vix,table.vix tbody{display:block;width:100%}table.vix colgroup,table.vix thead{display:none}
+table.vix tr{display:grid;grid-template-columns:72px minmax(0,1fr) auto;column-gap:12px;row-gap:6px;padding:14px 0;border-bottom:1px solid var(--div)}
+table.vix tr:last-child{border-bottom:0}
+table.vix td{display:block;padding:0;border:0;min-width:0}
+table.vix td.c-ph{grid-column:1;grid-row:1}table.vix td.c-car{grid-column:2;grid-row:1}
+table.vix td.c-seen{grid-column:3;grid-row:1;text-align:right;font-size:14px;color:var(--sec)}
+table.vix td.c-res{grid-column:1/-1;grid-row:2}
+table.vix td.c-date{grid-column:1/3;grid-row:3;font-size:14px;color:var(--sec)}
+table.vix td.c-mi{grid-column:3;grid-row:3;font-size:14px;color:var(--sec);white-space:nowrap}
+table.vix td[data-l="Seen"]::before{content:"Seen ";font-size:13px}
 }`;
 const M = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const MS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -153,6 +178,19 @@ function withFee(a) {
 }
 function salePriceFee(a) { const w = withFee(a); return salePrice(a) + (w ? ` (${usd(w)} with buyer's fee)` : ""); }
 function bidPrice(a) { return money(a.bidUsd, a.nativeBid, a.currency); }
+// THE CAR LINE OF AN INDEX ROW (Lane S, Nov 18 2026): the archive's columns joined with spaces, year then the engine's family (else the
+// model) then the body style unless the name already says it. Nothing read from the title or the VIN; no year and no name: "" (the row then
+// leads with the VIN alone).
+export function carLine(c) {
+  if (!c) return "";
+  const name = c.modelFamily || c.model || "", body = c.body && !name.toLowerCase().includes(String(c.body).toLowerCase()) ? c.body : "";
+  return [c.year, name, body].filter(Boolean).join(" ");
+}
+// The result cell: the outcome word first, then the price or the bid; the buyer's fee (where the house's is known) as a quieter second line.
+export function resultCell(a) {
+  if (a.kind === "sale") { const w = withFee(a); return `<span class="o">Sold</span> <span class="pr">${esc(salePrice(a))}</span>${w ? `<span class="fee">${esc(usd(w))} with buyer&#8217;s fee</span>` : ""}`; }
+  return `<span class="o no">Not sold</span>${bidPrice(a) ? ` <span class="pr">Bid to ${esc(bidPrice(a))}</span>` : ""}`;
+}
 function resultText(a) { return a.kind === "sale" ? "Sold " + salePriceFee(a) : (bidPrice(a) ? "Bid to " + bidPrice(a) + ", not sold" : "Not sold"); }
 function utm(url) { return url ? url + (url.includes("?") ? "&" : "?") + "utm_source=goasksam&utm_medium=history&utm_campaign=vin_page" : null; }
 function jsonLd(o) { return '<script type="application/ld+json">' + JSON.stringify(o).replace(/</g, "\\u003c") + "</script>"; }
@@ -740,14 +778,15 @@ async function hubPage(req, res, env, slug) {
   const rows = list.slice(0, 200).map(g => {
     const a = g.last, ph = g.apps.find(x => x.image) || null;
     const carHref = hrefOf(g);
-    return `<tr><td class="thumbcell">${ph ? photoHtml(ph.image, ph.url, ph.house, g.vin, "thumb") : '<span class="thumb"></span>'}</td><td data-l="VIN"><a href="${esc(carHref)}">${esc(g.vin)}</a></td><td data-l="Appearances" class="r">${g.apps.length}</td><td data-l="Last result" class="${a.kind === "sale" ? "sold" : "muted"}">${esc(resultText(a))}</td><td data-l="Date">${esc(monShort(a.date))}</td><td data-l="Miles" class="r">${esc(miles(a.mileage))}</td></tr>`;
+    const cl = carLine(g.car);
+    return `<tr><td class="c-ph">${ph ? photoHtml(ph.image, ph.url, ph.house, g.vin, "thumb") : '<span class="thumb"></span>'}</td><td class="c-car">${cl ? `<span class="cl">${esc(cl)}</span>` : ""}<a class="vn${cl ? "" : " solo"}" href="${esc(carHref)}">${esc(g.vin)}</a></td><td class="c-seen r" data-l="Seen">${g.apps.length}</td><td class="c-res" data-l="Last result">${resultCell(a)}</td><td class="c-date" data-l="Date">${esc(monShort(a.date))}</td><td class="c-mi r" data-l="Miles">${esc(miles(a.mileage))}</td></tr>`;
   }).join("");
   const body = `
 <div><span class="eyebrow">${esc(id.family)} · Auction results</span><h1 style="margin:6px 0 0;font:600 40px/1.12 var(--serif)">${esc(name)} auction results</h1></div>
 ${cold.timedOut && !d ? coldCardHtml(stillReadingMarket()) : oneBoxBlock(d, id, `/market-check?q=${encodeURIComponent(name)}`, "")}
 <p class="answer" style="margin:0">${esc(ctx)}</p>
 <section class="card"><div class="sh"><h2>Every ${esc(name)} by VIN</h2><span class="muted">Newest sale first</span></div>
-<table class="stack"><thead><tr><th><span style="position:absolute;left:-9999px">Photo</span></th><th>VIN</th><th class="r">Appearances</th><th>Last result</th><th>Date</th><th class="r">Miles</th></tr></thead><tbody>${rows}</tbody></table></section>
+<table class="vix"><colgroup><col class="k-ph"><col class="k-car"><col class="k-seen"><col class="k-res"><col class="k-date"><col class="k-mi"></colgroup><thead><tr><th class="c-ph"><span style="position:absolute;left:-9999px">Photo</span></th><th class="c-car">Car</th><th class="c-seen r">Seen</th><th class="c-res">Last result</th><th class="c-date">Date</th><th class="c-mi r">Miles</th></tr></thead><tbody>${rows}</tbody></table></section>
 ${list.length > 200 ? `<section class="sec hxs" aria-label="More cars"><h2>More ${esc(name)} auction histories</h2><ul class="hx">${list.slice(200, 1700).map(g => `<li><a href="${esc(hrefOf(g))}">${esc(((g.apps.find(x => x.year) || {}).year ? (g.apps.find(x => x.year) || {}).year + ", " : "") + "VIN " + g.vin)}</a></li>`).join("")}</ul></section>` : ""}
 ${hubNavHtml(await linkGraph(env), hub.year ? hubSlug(hub.makeSlug, hub.modelSlug) : slug)}
 ${hub.year ? `<nav class="vlinks" aria-label="More"><a href="/history/${esc(hubSlug(hub.makeSlug, hub.modelSlug))}">All years of the ${esc(id.make + " " + id.family)}</a></nav>` : ""}
