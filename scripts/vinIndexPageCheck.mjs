@@ -72,12 +72,13 @@ const env = { supabaseUrl: "https://db.test", supabaseKey: "k" };
 // ---- the data (no browser): the car on each row, straight from the columns
 {
   const list = await hubVins(env, { year: null, makeSlug: "bmw", modelSlug: "m3" });
-  const by = Object.fromEntries(list.map(g => [g.vin, g]));
+  const by = Object.fromEntries(list.map(g => [g.vin, { apps: [], car: null, ...g, car: g.car === undefined ? null : g.car }]));
+  const cr = v => (by[v] && by[v].car) || {};
   ok(by[V.a] && JSON.stringify(by[V.a].car) === JSON.stringify({ year: 2013, model: "M3", modelFamily: "M3", body: "Coupe" }), "a sale's car: year, model, model_family, body, from the columns");
-  ok(by[V.a].apps.some(x => x.kind === "attempt") && by[V.a].car.body === "Coupe" && by[V.a].car.year === 2013, "a VIN with a sale and an attempt takes the car from the sale, not the attempt (attempt said 2012 Wagon)");
+  ok(by[V.a].apps.some(x => x.kind === "attempt") && cr(V.a).body === "Coupe" && cr(V.a).year === 2013, "a VIN with a sale and an attempt takes the car from the sale, not the attempt (attempt said 2012 Wagon)");
   ok(by[V.d] && by[V.d].car && by[V.d].car.year === 2013 && by[V.d].car.model === "M3" && by[V.d].car.body === "Convertible" && by[V.d].car.modelFamily === null, "an attempt-only VIN takes the year, model and body from the attempt's own columns");
-  ok(by[V.e] && by[V.e].car == null, "no year and no name on any row: no car (the page shows the VIN alone)");
-  ok(by[V.c].car.body === null && by[V.c].car.year === 2017, "a missing body style stays null, never guessed");
+  ok(by[V.e] && by[V.e].car == null && by[V.e].apps.length === 2, "no year and no name on any row: no car (the page shows the VIN alone)");
+  ok(by[V.c].car && by[V.c].car.body === null && by[V.c].car.year === 2017, "a missing body style stays null, never guessed");
   const sel = asked.join(" ");
   ok(/sales_archive\?[^ ]*select=[^ ]*model_family/.test(sel) && /sales_archive\?[^ ]*select=[^ ]*body:raw_record->>body_style/.test(sel) && /auction_attempts\?[^ ]*select=[^ ]*year,model,body:raw_record->>body_style/.test(sel), "the hub reads the same columns the VIN page reads");
   const src = fs.readFileSync(path.join(ROOT, "api/_historyData.js"), "utf8"), i = src.indexOf("function carCols"), blk = src.slice(i, src.indexOf("export async function hubVins"));
@@ -182,7 +183,7 @@ for (const slug of ["all", "y2013"]) for (const w of [1440, 1280, 768, 390]) {
   await pg.close();
 }
 // the links are the same as before the change: one per car, to the same address each car had (built from the hub slug and the car's year)
-{ const hrefs = first.all.rows.map(r => r.href).sort(); ok(new Set(hrefs).size === hrefs.length && first.y2013.rows.every(r => /^\/history\/2013-bmw-m3\/[A-Z0-9]+$/.test(r.href)), "a year index links each car to /history/{year-make-model}/{VIN}"); }
+if (first.all && first.y2013) { const hrefs = first.all.rows.map(r => r.href).sort(); ok(new Set(hrefs).size === hrefs.length && first.y2013.rows.every(r => /^\/history\/2013-bmw-m3\/[A-Z0-9]+$/.test(r.href)), "a year index links each car to /history/{year-make-model}/{VIN}"); }
 await browser.close();
 
 // ---- the class sweep: every <table> in the repo is either this one or on this list

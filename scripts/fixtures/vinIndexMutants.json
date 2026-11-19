@@ -1,0 +1,272 @@
+[
+ {
+  "name": "model_family is not selected",
+  "edits": [
+   {
+    "file": "api/_historyData.js",
+    "from": "year,model,model_family,body:raw_record->>body_style,sale_date",
+    "to": "year,model,body:raw_record->>body_style,sale_date"
+   }
+  ]
+ },
+ {
+  "name": "the sale's body style is not selected",
+  "edits": [
+   {
+    "file": "api/_historyData.js",
+    "from": "year,model,model_family,body:raw_record->>body_style,sale_date",
+    "to": "year,model,model_family,sale_date"
+   }
+  ]
+ },
+ {
+  "name": "an unsold row has no year",
+  "edits": [
+   {
+    "file": "api/_historyData.js",
+    "from": "chassis_vin_norm,year,model,body:",
+    "to": "chassis_vin_norm,model,body:"
+   }
+  ]
+ },
+ {
+  "name": "an unsold row has no body",
+  "edits": [
+   {
+    "file": "api/_historyData.js",
+    "from": "chassis_vin_norm,year,model,body:raw_record->>body_style,attempt_date",
+    "to": "chassis_vin_norm,year,model,attempt_date"
+   }
+  ]
+ },
+ {
+  "name": "the car line comes from the newest appearance, not the sale",
+  "edits": [
+   {
+    "file": "api/_historyData.js",
+    "from": "g.car = ((g.lastSale && g.lastSale.car) || (g.apps.find(x => x.car) || {}).car) || null;",
+    "to": "g.car = (g.apps.find(x => x.car) || {}).car || null;"
+   }
+  ]
+ },
+ {
+  "name": "a car with no name is guessed",
+  "edits": [
+   {
+    "file": "api/_historyData.js",
+    "from": "return y || m || f || b ? { year: y, model: m, modelFamily: f, body: b } : null;",
+    "to": "return { year: y, model: m || \"Car\", modelFamily: f, body: b };"
+   }
+  ]
+ },
+ {
+  "name": "the car line leaves out the year",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "return [c.year, name, body].filter(Boolean).join(\" \");",
+    "to": "return [name, body].filter(Boolean).join(\" \");"
+   }
+  ]
+ },
+ {
+  "name": "the car line leaves out the body",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "return [c.year, name, body].filter(Boolean).join(\" \");",
+    "to": "return [c.year, name].filter(Boolean).join(\" \");"
+   }
+  ]
+ },
+ {
+  "name": "the body is said twice",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "c.body && !name.toLowerCase().includes(String(c.body).toLowerCase()) ? c.body : \"\"",
+    "to": "c.body || \"\""
+   }
+  ]
+ },
+ {
+  "name": "a row with no name gets a made-up line",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "const cl = carLine(g.car);",
+    "to": "const cl = carLine(g.car) || \"Car\";"
+   }
+  ]
+ },
+ {
+  "name": "the heading says Appearances again",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "<th class=\"c-seen r\">Seen</th>",
+    "to": "<th class=\"c-seen r\">Appearances</th>"
+   }
+  ]
+ },
+ {
+  "name": "the table lays out by content",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "table.vix{table-layout:fixed;",
+    "to": "table.vix{table-layout:auto;"
+   }
+  ]
+ },
+ {
+  "name": "the Seen column has no room",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "table.vix col.k-seen{width:56px}",
+    "to": "table.vix col.k-seen{width:8px}"
+   }
+  ]
+ },
+ {
+  "name": "the result column has no room",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "table.vix col.k-res{width:206px}",
+    "to": "table.vix col.k-res{width:60px}"
+   }
+  ]
+ },
+ {
+  "name": "cells have no gap",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "table.vix th,table.vix td{padding:12px 0 12px 16px;",
+    "to": "table.vix th,table.vix td{padding:12px 0 12px 0;"
+   }
+  ]
+ },
+ {
+  "name": "Seen is not right aligned",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "table.vix .r{text-align:right}",
+    "to": "table.vix .r{text-align:left}"
+   }
+  ]
+ },
+ {
+  "name": "figures are not tabular",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "font:400 16px/1.35 var(--sans);font-variant-numeric:lining-nums tabular-nums}",
+    "to": "font:400 16px/1.35 var(--sans);font-variant-numeric:normal}"
+   }
+  ]
+ },
+ {
+  "name": "the fee is as loud as the price",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "table.vix .fee{display:block;margin-top:2px;font-size:13px;color:var(--sec)}",
+    "to": "table.vix .fee{display:block;margin-top:2px;font-size:19px;color:var(--ink)}"
+   }
+  ]
+ },
+ {
+  "name": "the fee runs on the same line",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "table.vix .fee{display:block;",
+    "to": "table.vix .fee{display:inline;"
+   }
+  ]
+ },
+ {
+  "name": "the price comes before the outcome word",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "<span class=\"o\">Sold</span> <span class=\"pr\">${esc(salePrice(a))}</span>",
+    "to": "<span class=\"pr\">${esc(salePrice(a))}</span> <span class=\"o\">Sold</span>"
+   }
+  ]
+ },
+ {
+  "name": "the VIN is as big as the car line",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "table.vix a.vn{display:block;margin-top:3px;font:400 13px/1.3",
+    "to": "table.vix a.vn{display:block;margin-top:3px;font:400 19px/1.3"
+   }
+  ]
+ },
+ {
+  "name": "the phone rows do not stack",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "table.vix tr{display:grid;",
+    "to": "table.vix tr{display:table-row;"
+   }
+  ]
+ },
+ {
+  "name": "the phone result sits on the third line",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "table.vix td.c-res{grid-column:1/-1;grid-row:2}",
+    "to": "table.vix td.c-res{grid-column:1/-1;grid-row:4}"
+   }
+  ]
+ },
+ {
+  "name": "the phone date and miles split lines",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "table.vix td.c-mi{grid-column:3;grid-row:3;",
+    "to": "table.vix td.c-mi{grid-column:3;grid-row:4;"
+   }
+  ]
+ },
+ {
+  "name": "the VIN link goes elsewhere",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "<a class=\"vn${cl ? \"\" : \" solo\"}\" href=\"${esc(carHref)}\">",
+    "to": "<a class=\"vn${cl ? \"\" : \" solo\"}\" href=\"${esc(\"/vin/\" + g.vin)}\">"
+   }
+  ]
+ },
+ {
+  "name": "the count shares the result cell",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "<td class=\"c-seen r\" data-l=\"Seen\">${g.apps.length}</td><td class=\"c-res\" data-l=\"Last result\">${resultCell(a)}</td>",
+    "to": "<td class=\"c-seen r\" data-l=\"Seen\"></td><td class=\"c-res\" data-l=\"Last result\">${g.apps.length} ${resultCell(a)}</td>"
+   }
+  ]
+ },
+ {
+  "name": "a not-sold row leads with the bid",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "return `<span class=\"o no\">Not sold</span>${bidPrice(a) ? ` <span class=\"pr\">Bid to ${esc(bidPrice(a))}</span>` : \"\"}`;",
+    "to": "return `${bidPrice(a) ? `<span class=\"pr\">Bid to ${esc(bidPrice(a))}</span> ` : \"\"}<span class=\"o no\">Not sold</span>`;"
+   }
+  ]
+ }
+]
