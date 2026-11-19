@@ -51,6 +51,7 @@ for (let i = 0; i < 12; i++) sales.push(S(V.g, { sale_date: `2023-${String(i + 1
 const A = (vin, o) => ({ chassis_vin_norm: vin, year: 2013, model: "M3", body: "Convertible", attempt_date: "2024-05-01", high_bid: 48000, high_bid_usd: 48000, source_slug: "bringatrailer", title: "2013 BMW M3 Convertible", img: null, url: "https://bringatrailer.com/listing/d", url2: null, mileage: "18200", currency: "USD", ...o });
 const atts = [
   A(V.a, { attempt_date: "2024-06-01", year: 2012, model: "Other", body: "Wagon" }),
+  A(V.f, { year: 2012, model: "Other", body: "Wagon", attempt_date: "2025-08-01" }),
   A(V.d, {}),
   A(V.e, { year: null, model: null, body: null, attempt_date: "2024-04-01", high_bid: null, high_bid_usd: null, mileage: null, title: "BMW M3 no bid" }),
 ];
@@ -76,6 +77,7 @@ const env = { supabaseUrl: "https://db.test", supabaseKey: "k" };
   const cr = v => (by[v] && by[v].car) || {};
   ok(by[V.a] && JSON.stringify(by[V.a].car) === JSON.stringify({ year: 2013, model: "M3", modelFamily: "M3", body: "Coupe" }), "a sale's car: year, model, model_family, body, from the columns");
   ok(by[V.a].apps.some(x => x.kind === "attempt") && cr(V.a).body === "Coupe" && cr(V.a).year === 2013, "a VIN with a sale and an attempt takes the car from the sale, not the attempt (attempt said 2012 Wagon)");
+  ok(by[V.f] && by[V.f].last.kind === "attempt" && cr(V.f).year === 2013 && cr(V.f).body === "Coupe", "a newer attempt (2012 Wagon) does not take the car line from the older sale");
   ok(by[V.d] && by[V.d].car && by[V.d].car.year === 2013 && by[V.d].car.model === "M3" && by[V.d].car.body === "Convertible" && by[V.d].car.modelFamily === null, "an attempt-only VIN takes the year, model and body from the attempt's own columns");
   ok(by[V.e] && by[V.e].car == null && by[V.e].apps.length === 2, "no year and no name on any row: no car (the page shows the VIN alone)");
   ok(by[V.c].car && by[V.c].car.body === null && by[V.c].car.year === 2017, "a missing body style stays null, never guessed");
@@ -117,7 +119,7 @@ const MEASURE = () => {
   const rows = [...tbl.querySelectorAll("tbody tr")].map(tr => {
     const cells = [...tr.children].map(td => ({ cls: td.className.replace(/\bpad\b/, "").trim(), txt: td.textContent.trim(), box: R(td), ink: inner(td), over: td.scrollWidth > td.clientWidth + 1, ta: getComputedStyle(td).textAlign, fv: getComputedStyle(td).fontVariantNumeric }));
     const car = tr.querySelector(".c-car"); const vn = tr.querySelector("a.vn");
-    return { cells, cl: (car.querySelector(".cl") || {}).textContent || "", vin: vn.textContent, href: vn.getAttribute("href"), vnSize: parseFloat(getComputedStyle(vn).fontSize), clSize: car.querySelector(".cl") ? parseFloat(getComputedStyle(car.querySelector(".cl")).fontSize) : null, vnTop: R(vn).t, clBot: car.querySelector(".cl") ? R(car.querySelector(".cl")).b : null, fee: (tr.querySelector(".fee") || {}).textContent || null, feeSize: tr.querySelector(".fee") ? parseFloat(getComputedStyle(tr.querySelector(".fee")).fontSize) : null, prSize: tr.querySelector(".pr") ? parseFloat(getComputedStyle(tr.querySelector(".pr")).fontSize) : null, res: tr.querySelector(".c-res").textContent.trim() };
+    return { cells, cl: (car.querySelector(".cl") || {}).textContent || "", vin: vn.textContent, href: vn.getAttribute("href"), vnSize: parseFloat(getComputedStyle(vn).fontSize), clSize: car.querySelector(".cl") ? parseFloat(getComputedStyle(car.querySelector(".cl")).fontSize) : null, vnTop: R(vn).t, clBot: car.querySelector(".cl") ? R(car.querySelector(".cl")).b : null, fee: (tr.querySelector(".fee") || {}).textContent || null, feeBelow: tr.querySelector(".fee") ? tr.querySelector(".fee").getBoundingClientRect().top >= tr.querySelector(".pr").getBoundingClientRect().bottom - 1 : null, layout: getComputedStyle(tbl).tableLayout, feeSize: tr.querySelector(".fee") ? parseFloat(getComputedStyle(tr.querySelector(".fee")).fontSize) : null, prSize: tr.querySelector(".pr") ? parseFloat(getComputedStyle(tr.querySelector(".pr")).fontSize) : null, res: tr.querySelector(".c-res").textContent.trim() };
   });
   return { heads, rows, sw: document.documentElement.scrollWidth, iw: window.innerWidth, h1: (document.querySelector("h1") || {}).textContent, title: document.title, links: [...tbl.querySelectorAll("a")].map(a => a.getAttribute("href")) };
 };
@@ -145,6 +147,8 @@ for (const slug of ["all", "y2013"]) for (const w of [1440, 1280, 768, 390]) {
     ok(/tabular-nums/.test(c["c-seen"].fv) && /tabular-nums/.test(c["c-mi"].fv) && /tabular-nums/.test(c["c-res"].fv), tag + `${r.vin}: tabular figures`);
     ok(r.vnSize <= 15 && (r.clSize == null || r.clSize > r.vnSize), tag + `${r.vin}: the VIN is small type beneath/after the car line`);
     ok(!/[–—]/.test(r.cells.map(x => x.txt).join(" ")), tag + `${r.vin}: no dashes in the row`);
+    if (r.fee) ok(r.feeBelow === true, tag + `${r.vin}: the fee sits on its own line below the price`);
+    if (w >= 768) ok(r.layout === "fixed", tag + `${r.vin}: the table lays out by its column widths`);
     if (w === 1280 && r.fee) ok(r.feeSize < r.prSize || r.feeSize <= 13, tag + `${r.vin}: the fee is a quieter second line`);
   }
   if (w === 390) {
@@ -196,6 +200,7 @@ await browser.close();
   ok(stray.length === 0, "every file that draws a <table> is named in the sweep registry (not named: " + stray.join(", ") + ")");
   const h = fs.readFileSync(path.join(ROOT, "api/history.js"), "utf8");
   ok(!/<table class="stack">/.test(h) && (h.match(/<table/g) || []).length === 1 && /<table class="vix">/.test(h), "history.js draws one table, and it is the index (the VIN page has none)");
+  ok(/table\.vix\{[^}]*tabular-nums/.test(h), "the table asks for tabular figures itself, not only through the shared td rule");
   ok(!/<th[^>]*>Appearances|data-l="Appearances"/.test(h), "no 'Appearances' heading is left in history.js");
 }
 console.log(`vinIndexPageCheck: ${pass} passed, ${fail} failed`);
