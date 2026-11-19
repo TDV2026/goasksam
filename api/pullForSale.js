@@ -1,7 +1,8 @@
-// For sale pull and prepare (Lane D, lane-d-forsale, Nov 2026). GET /api/pullForSale
+// For sale sync and prepare (Lane D, lane-d-forsale-sync, Nov 2026). GET /api/pullForSale
 //   Auth: Vercel cron (Authorization: Bearer CRON_SECRET) or the probe key in the x-ops-key header. A key in the address is refused.
-//   ?mode=pull      THE PULL: the vendor's classifieds into for_sale_listings, US only, held sources never asked for, dealers first and autotraderclassics last and only if switched on. Spends vendor queries (one a page), ONLY within
-//                   the budget in data/forsaleBudget.json (default 0: none), never the auction feed's reserve, never past the per run cap. A run that would pass a limit stops, marks nothing gone, and says so.
+//   ?mode=pull      THE SYNC (the name stays: it is the one scheduled path): per source, the one-time resumable LOAD, then the CHANGE poll (changed_since, saved checkpoint) and the STALE poll (last_seen_before 24 hours; a listing it returns is hidden, not deleted),
+//                   into for_sale_listings, US only, held sources never asked for, dealers first and autotraderclassics last and only if switched on. Spends vendor queries (one a page), ONLY within the budget in data/forsaleBudget.json (default 0: none),
+//                   never the auction feed's reserve, never past the per run cap. A run that would pass a limit stops, and says so. Nothing is ever marked gone because a walk ended: only the vendor's own status says gone (lib/forsale/sync.js).
 //   ?mode=prepare   THE READ MADE READY: the engine's resolved car, read and the car's earlier record, stored on each row, so a visitor's request never runs the engine. Zero vendor queries.
 //   ?report=1       ZERO vendor queries, read only: how many rows are in each state, the budget (limits, what this cycle has cost, the vendor's own count left) and how the last pull ended.
 // NO SCHEDULE FIRES UNTIL SAM SAYS SO: vercel.json carries no cron for this route, and a call that arrives as a scheduled one (Authorization: Bearer CRON_SECRET) is refused unless data/forsaleBudget.json schedule.pull_on / prepare_on is true.
@@ -13,7 +14,7 @@ import { recordUsageEvent } from "./_usage.js";
 import { readRemaining, reserveFloor } from "../lib/live/ocdGuard.js";
 import { BUDGET, planRun, spentThisCycle, cycleStart, persistFigures, readFigures } from "../lib/forsale/budget.js";
 import { pulledSources } from "../lib/forsale/rules.js";
-import { pullForSale } from "../lib/forsale/ingest.js";
+import { syncForSale, loadStates, lapseMs, liveSources } from "../lib/forsale/sync.js";
 import { prepareForSale } from "../lib/forsale/prepare.js";
 
 export default async function handler(req, res) {
@@ -30,10 +31,11 @@ export default async function handler(req, res) {
       const now = Date.now(), rl = await readRemaining(env), spent = await spentThisCycle(env, now), all = await spentThisCycle(env, now, null);
       const plan = planRun({ spentCycle: spent, remaining: rl && rl.fresh ? rl.remaining : null, now });
       let last = null;
-      try { const r = await fetch(`${env.supabaseUrl}/rest/v1/app_usage_events?event_type=in.(forsale_pull,forsale_pull_skipped)&select=created_at,event_type,metadata&order=created_at.desc&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); const x = r.ok ? await r.json() : []; if (x[0]) { const m = x[0].metadata || {}; last = { at: x[0].created_at, event: x[0].event_type, requests: m.vendorQueries ?? m.requests ?? 0, allowance: m.allowance ?? null, stopped: m.stopped || null, skipped: m.skipped || null, errors: Array.isArray(m.errors) ? m.errors.length : 0, markedGone: m.markedGone ?? null, sources: m.sources ? Object.fromEntries(Object.entries(m.sources).map(([k, v]) => [k, { pages: v.pages, seen: v.seen, kept: v.kept, complete: v.complete }])) : null }; } } catch { /* the report still answers */ }
+      try { const r = await fetch(`${env.supabaseUrl}/rest/v1/app_usage_events?event_type=in.(forsale_pull,forsale_pull_skipped)&select=created_at,event_type,metadata&order=created_at.desc&limit=1`, { headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` } }); const x = r.ok ? await r.json() : []; if (x[0]) { const m = x[0].metadata || {}; last = { at: x[0].created_at, event: x[0].event_type, requests: m.vendorQueries ?? m.requests ?? 0, allowance: m.allowance ?? null, stopped: m.stopped || null, skipped: m.skipped || null, errors: Array.isArray(m.errors) ? m.errors.length : 0, markedGone: m.markedGone ?? null, sources: m.sources ? Object.fromEntries(Object.entries(m.sources).map(([k, v]) => [k, { load: v.load, change: v.change, stale: v.stale }])) : null, priceChanges: m.priceChanges ?? null, moved: m.moved || null, hidden: m.hidden ?? null, unhidden: m.unhidden ?? null }; } } catch { /* the report still answers */ }
+      const states = await loadStates(env), live = liveSources(states, now), sync = states ? Object.fromEntries(Object.entries(states).map(([k, v]) => [k, { loaded: !!(v.load && v.load.done), loadPages: v.load ? v.load.pages : 0, loadResumeAt: v.load && !v.load.done ? v.load.cursor ? "a saved page cursor" : "the start" : null, changeOkAt: v.change ? v.change.ok_at || null : null, changeSince: v.change ? v.change.since || null : null, hasCheckpoint: !!(v.change && v.change.checkpoint), staleOkAt: v.stale ? v.stale.ok_at || null : null, staleHidden: v.stale ? v.stale.listed ?? null : null, served: live.has(k) }])) : null;
       const vendor = await readFigures(env, now);
       const budget = { vendor, cycleStart: cycleStart(now).toISOString(), planMonthly: BUDGET.plan_monthly, auctionReserveMonthly: BUDGET.auction_reserve_monthly, forsaleMonthlyBudget: BUDGET.forsale_monthly_budget, forsaleRunCap: BUDGET.forsale_run_cap, pull: BUDGET.pull, schedule: BUDGET.schedule, spentThisCycle: spent, allVendorQueriesThisCycle: all, auctionFeedThisCycleMeasured: spent == null || all == null ? null : Math.max(0, all - spent), vendorRemaining: rl ? rl.remaining : null, vendorRemainingFresh: !!(rl && rl.fresh), nextRunAllowance: plan.allowance, nextRunBinding: plan.binding, nextRunWhy: plan.why, lastRun: last };
-      return res.status(200).json({ report: true, vendorQueries: 0, budget, live: await count("gone=eq.false"), gone: await count("gone=eq.true"), resolved: await count("gone=eq.false&resolve_state=eq.resolved"), unresolved: await count("gone=eq.false&resolve_state=eq.unresolved"), notTried: await count("gone=eq.false&resolve_state=is.null"), withRead: await count("gone=eq.false&read=not.is.null") });
+      return res.status(200).json({ report: true, vendorQueries: 0, budget, sync: { lapseHours: lapseMs() / 3600e3, sources: sync }, live: await count("gone=eq.false"), hidden: await count("gone=eq.false&hidden=eq.true"), gone: await count("gone=eq.true"), resolved: await count("gone=eq.false&resolve_state=eq.resolved"), unresolved: await count("gone=eq.false&resolve_state=eq.unresolved"), notTried: await count("gone=eq.false&resolve_state=is.null"), withRead: await count("gone=eq.false&read=not.is.null") });
     }
     if (scheduled && (mode === "prepare" ? BUDGET.schedule.prepare_on : BUDGET.schedule.pull_on) !== true) {
       return res.status(200).json({ ok: true, skipped: "schedule_off", mode, vendorQueries: 0, note: "no schedule runs until data/forsaleBudget.json schedule." + (mode === "prepare" ? "prepare_on" : "pull_on") + " is true" });
@@ -64,7 +66,7 @@ export default async function handler(req, res) {
     if (!apiKey) return res.status(500).json({ error: "Vendor key missing." });
     configureOcdUsage({ ...env, job: "pull_for_sale", startedBy: scheduled ? "scheduled" : "probe", startedDetail: "classifieds pull" });
     const start = getOcdRunMetered();
-    const out = await pullForSale(env, apiKey, { maxRequests: plan.allowance });
+    const out = await syncForSale(env, apiKey, { maxRequests: plan.allowance });
     await flushOcdUsage();
     await persistFigures(env, out.rateLimit);   // the vendor's own figures from the last response, kept for the next run and the report
     const meta = { ...out, vendorQueries: getOcdRunMetered() - start + probed, binding: plan.binding, plan: { limits: plan.limits, monthlyCap: plan.monthlyCap, spentCycle: plan.spentCycle, remaining: plan.remaining } };
