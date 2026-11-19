@@ -78,6 +78,8 @@ const SAFE = [
   ["lib/sell/sellFlow.js", "${Cnt(total)} sales ${inWin}, but no single venue", "reached only with eight or more sales"],
   ["lib/tasks/tasks.js", "for your Task, live now", "the several-car subject is the helper's count and its noun, then the Task line"],
   ["api/sellerDecision.js", "${landed.sales} sales ${windowLabel", "printed only from ten sales"],
+  ["lib/reasonWords.js", "${p.n} of ${p.total} sales ended on", "the one caller (marketCheckExamples auctionDay) needs 8 or more dated sales, so the total is never 1"],
+  ["lib/reasonWords.js", "Figures use all ${p.count} sales in this period", "the one caller (deskV3 reserve ladder) passes a fallback view with at least DESK_EVIDENCE_MIN (3) sales, never 1"],
 ];
 const pat = /((?:obNumWord|obNumWordLow|countWord|numWord|dnw|Cnt|low|COUNT_WORDS\[[^\]]*\]|timesWord)\([^()]*\)|\$\{[^}]*(?:\.length|\bn\b|\bcount\b|\btotal\b|\.n\b|\.sales\b|\.count\b)[^}]*\})\s*["'`]?\s*\+?\s*["'`]?\s*(sales|cars|listings|quarters|odd sales|recent sales|reasons|set asides?)\b/g;
 const left = [];
