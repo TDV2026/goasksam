@@ -2528,6 +2528,24 @@
     "scripts/fixtures/answer-stag.json"
    ]
   },
+  "factCoverageCheck": {
+   "file": "scripts/factCoverageCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/usageDashboard.js",
+    "data/",
+    "docs/",
+    "docs/supabase-factmine.sql",
+    "lib/",
+    "lib/factCoverage.js",
+    "lib/factMine.js",
+    "node_modules/",
+    "package.json",
+    "scripts/"
+   ]
+  },
   "factMapCheck": {
    "file": "scripts/factMapCheck.mjs",
    "kind": "offline",
@@ -2556,6 +2574,8 @@
     "api/",
     "api/usageDashboard.js",
     "data/",
+    "docs/",
+    "docs/supabase-factmine.sql",
     "lib/",
     "lib/factMap.js",
     "lib/factMine.js",

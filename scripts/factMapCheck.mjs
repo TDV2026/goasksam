@@ -31,9 +31,9 @@ const run = (db, model, q = {}) => MAP.runFactMap({ family: "e46_m3", limit: 300
 const kindOfRaw = (db, raw) => (db.map.find(m => m.raw_topic === raw) || {}).kind;
 
 await section("the kinds", async () => {
-  ok("the seven kinds, in the order's order", JSON.stringify(MAP.KINDS) === JSON.stringify(["condition", "history", "work_done", "modification", "paperwork", "equipment", "other"]), MAP.KINDS);
+  ok("the eight kinds (the seven and option), in this order", JSON.stringify(MAP.KINDS) === JSON.stringify(["condition", "history", "work_done", "modification", "paperwork", "equipment", "option", "other"]), MAP.KINDS);
   ok("the map prompt names every kind and asks for a kind in each group", MAP.KINDS.every(k => MAP.MAP_SYSTEM.includes(`"${k}"`)) && /Give every group a kind, one of:/.test(MAP.MAP_SYSTEM) && /"kind":/.test(MAP.MAP_SYSTEM.replace(/\\"/g, '"')));
-  ok("the labelling prompt names every kind and says what equipment is", MAP.KINDS.every(k => MAP.KIND_SYSTEM.includes(`"${k}"`)) && /equipment \(what the car was built or optioned with/.test(MAP.KIND_SYSTEM));
+  ok("the labelling prompt names every kind and says what equipment is", MAP.KINDS.every(k => MAP.KIND_SYSTEM.includes(`"${k}"`)) && /equipment \(what the car was built with/.test(MAP.KIND_SYSTEM) && /option \(a factory option, package or trim line named as such/.test(MAP.KIND_SYSTEM));
   ok("kindOf accepts the spellings a model gives and refuses what is not a kind", MAP.kindOf("Work Done") === "work_done" && MAP.kindOf("work-done") === "work_done" && MAP.kindOf(" EQUIPMENT ") === "equipment" && MAP.kindOf("options") === null && MAP.kindOf("") === null && MAP.kindOf(null) === null);
 });
 
@@ -95,6 +95,13 @@ await section("the report", async () => {
   ok("a share keeps its denominator: carfax is 12 of 20, 60 percent, with or without the equipment", def.topics.find(t => t.topic === "clean carfax report").share_of_listings_pct === 60 && inc.topics.find(t => t.topic === "clean carfax report").share_of_listings_pct === 60);
   ok("the pairs never hold an equipment topic by default", def.pairs.every(p => !["limited-slip differential", "shadowline trim"].includes(p.a) && !["limited-slip differential", "shadowline trim"].includes(p.b)) && inc.pairs.some(p => ["limited-slip differential", "shadowline trim"].includes(p.a) || ["limited-slip differential", "shadowline trim"].includes(p.b)));
   ok("equipment=include lists them, with their kind, and says none were set aside", names(inc).includes("limited-slip differential") && inc.topics.find(t => t.topic === "limited-slip differential").kind === "equipment" && inc.set_aside.included === true && inc.set_aside.topics === 0, inc.set_aside);
+  { // fm4: deciding happens here. A topic's kind can be option; equipment AND option are set aside by default, both come back with equipment=include, and nothing is re-read.
+    const runs = Array.from({ length: 10 }, (_, i) => ({ listing_id: "bringatrailer:L" + i, source: "bringatrailer" })), mention = (t, n) => Array.from({ length: n }, (_, i) => ({ listing_id: "bringatrailer:L" + i, source: "bringatrailer", topic: t, statement_type: "claim", polarity: "neutral", has_date: false, has_mileage: false }));
+    const mm = [...mention("sport chrono package", 6), ...mention("19 inch wheels", 5), ...mention("clutch replaced", 4)], mp = [{ raw_topic: "sport chrono package", canonical_topic: "sport chrono package", kind: "option" }, { raw_topic: "19 inch wheels", canonical_topic: "19 inch wheels", kind: "equipment" }, { raw_topic: "clutch replaced", canonical_topic: "clutch replaced", kind: "work_done" }];
+    const d = REP.reportFrom({ runs, mentions: mm, map: mp, sales: new Map() }, { family: "e46_m3", map: "m1", top: 20, includeEquipment: false }), n = REP.reportFrom({ runs, mentions: mm, map: mp, sales: new Map() }, { family: "e46_m3", map: "m1", top: 20, includeEquipment: true });
+    ok("by default an option topic is set aside with the equipment, and the answer counts both (2 topics, 11 statements)", d.topics.map(t => t.topic).join() === "clutch replaced" && d.set_aside.topics === 2 && d.set_aside.mentions === 11 && d.set_aside.included === false && JSON.stringify(d.set_aside.kinds) === JSON.stringify(["equipment", "option"]), d.set_aside);
+    ok("with equipment=include the option topic is listed with its kind and nothing is set aside", n.topics.some(t => t.topic === "sport chrono package" && t.kind === "option") && n.set_aside.topics === 0, n.set_aside);
+    const g = MAP.ASIDE_KINDS; ok("the kinds set aside by default are exactly equipment and option (a reader's decision, kept in one place)", JSON.stringify(g) === JSON.stringify(["equipment", "option"])); }
   const km = REP.kindsOf([{ canonical_topic: "x", kind: "equipment" }, { canonical_topic: "x", kind: "equipment" }, { canonical_topic: "x", kind: "other" }, { canonical_topic: "y", kind: null }, { canonical_topic: "z", kind: "gadgets" }]);
   ok("the kind of a canonical topic is the most common kind among its rows; no kind or a kind outside the list is none", km.get("x") === "equipment" && !km.has("y") && !km.has("z"), [...km]);
   ok("the two spellings of the limited-slip differential count as one topic on 9 listings", inc.topics.find(t => t.topic === "limited-slip differential").listings === 9);
@@ -151,16 +158,19 @@ function mutants() {
     ["the report does not set equipment aside", ...sub("lib/factReport.js", ".filter(([c]) => call.includeEquipment || !isEq(c)).sort(", ".sort(")],
     ["the report sets it aside and does not count it", ...sub("lib/factReport.js", "topics: eq.length, mentions: eq.reduce((a, [, t]) => a + t.n, 0), listings: eqListings.size };", "topics: 0, mentions: 0, listings: 0 };")],
     ["the report counts the listings of the equipment wrongly", ...sub("lib/factReport.js", "listings: eqListings.size };", "listings: eq.length };")],
-    ["the report sets aside a topic that has no kind", ...sub("lib/factReport.js", "isEq = c => kinds.get(c) === \"equipment\"", "isEq = c => kinds.get(c) !== \"paperwork\" && kinds.get(c) !== \"work_done\"")],
+    ["the report sets aside a topic that has no kind", ...sub("lib/factReport.js", "isEq = c => ASIDE_KINDS.includes(kinds.get(c))", "isEq = c => kinds.get(c) !== \"paperwork\" && kinds.get(c) !== \"work_done\"")],
+    ["an option topic is not set aside by the report", ...sub("lib/factMap.js", "export const ASIDE_KINDS = [\"equipment\", \"option\"];", "export const ASIDE_KINDS = [\"equipment\"];")],
+    ["the option kind is missing from the kinds", ...sub("lib/factMap.js", "\"equipment\", \"option\", \"other\"];\n// the kinds", "\"equipment\", \"other\"];\n// the kinds")],
+    ["the labelling prompt does not define option", ...sub("lib/factMap.js", "option (a factory option, package or trim line named as such", "option (")],
     ["equipment=include is ignored by the report", ...sub("lib/factReport.js", "includeEquipment: eq === \"include\" }", "includeEquipment: false }")],
     ["equipment is included by default", ...sub("lib/factReport.js", "includeEquipment: eq === \"include\" }", "includeEquipment: eq !== \"set_aside\" }")],
     ["a bad equipment value is accepted", ...sub("lib/factReport.js", "if (![\"\", \"include\", \"set_aside\"].includes(eq)) return", "if (false) return")],
     ["the report hides the kind of a topic", ...sub("lib/factReport.js", "out.topics.push({ topic: c, kind: kinds.get(c) || null,", "out.topics.push({ topic: c,")],
     ["the topic map read leaves out the kind column", ...sub("lib/factReport.js", "topic_map?select=raw_topic,canonical_topic,kind&family", "topic_map?select=raw_topic,canonical_topic&family")],
     ["the kind of a canonical is the last row's, not the most common", ...sub("lib/factReport.js", "sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0][0]); return out;", "sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1))[0][0]); return out;")],
-    ["the price read does not set equipment aside", ...sub("lib/factPrice.js", "if (!p.call.includeEquipment && kinds.get(c) === \"equipment\") {", "if (false) {")],
+    ["the price read does not set equipment aside", ...sub("lib/factPrice.js", "if (!p.call.includeEquipment && ASIDE_KINDS.includes(kinds.get(c))) {", "if (false) {")],
     ["the price read sets it aside and does not count it", ...sub("lib/factPrice.js", "aside.topics.add(c); aside.mentions++; continue;", "continue;")],
-    ["the price read ignores equipment=include", ...sub("lib/factPrice.js", "if (!p.call.includeEquipment && kinds.get(c) === \"equipment\") {", "if (kinds.get(c) === \"equipment\") {")],
+    ["the price read ignores equipment=include", ...sub("lib/factPrice.js", "if (!p.call.includeEquipment && ASIDE_KINDS.includes(kinds.get(c))) {", "if (ASIDE_KINDS.includes(kinds.get(c))) {")],
     ["the SQL does not add the kind column", ...sub("docs/supabase-factmine.sql", "alter table topic_map add column if not exists kind text check", "-- alter table topic_map add column if not exists kind text check")]
   ].filter(Boolean);
   let survived = 0;

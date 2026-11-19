@@ -3604,15 +3604,15 @@ if (task === "optiondetail") {
     res.setHeader("Cache-Control", "no-store");
     return r.ok ? res.status(200).json(r.body) : res.status(r.status || 400).json({ task: "valuecensus", error: r.why });
   }
-  // task=factmine / factmap / factreport / factprice (Lane B, Nov 17 2026, order bc85, lib/factMine.js, factMap.js, factReport.js, factPrice.js): value driver mining. factmine and factmap WRITE listing_mentions, listing_mining_runs and topic_map
+  // task=factmine / factmap / factreport / factprice / factcoverage (factcoverage: Lane D, Nov 19 2026, lib/factCoverage.js: the second read of the sentences the miner left out, counts only; same door, same lease and limits as factmine) (Lane B, Nov 17 2026, order bc85, lib/factMine.js, factMap.js, factReport.js, factPrice.js): value driver mining. factmine and factmap WRITE listing_mentions, listing_mining_runs and topic_map
   // (docs/supabase-factmine.sql, run by Sam), one source and one family per call, a window of 366 days or less, 25 listings and a token cap per call; factreport and factprice are read only. Every answer is counts and tokens, never listing text or a seller.
-  if (task === "factmine" || task === "factmap" || task === "factreport" || task === "factprice") {
+  if (task === "factmine" || task === "factmap" || task === "factreport" || task === "factprice" || task === "factcoverage") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const FM = task === "factmine" ? await import("../lib/factMine.js") : task === "factmap" ? await import("../lib/factMap.js") : task === "factreport" ? await import("../lib/factReport.js") : await import("../lib/factPrice.js");
+    const FM = task === "factmine" ? await import("../lib/factMine.js") : task === "factmap" ? await import("../lib/factMap.js") : task === "factreport" ? await import("../lib/factReport.js") : task === "factcoverage" ? await import("../lib/factCoverage.js") : await import("../lib/factPrice.js");
     const { makeCallModel } = await import("../lib/factModel.js");
     const { supabaseInsert } = await import("../lib/_supabase.js");
     const deps = { select: qs => supabaseSelect(env, qs), insert: async (table, rows, prefer, query) => { try { const w = await supabaseInsert(table, rows, env.supabaseUrl, env.supabaseKey, prefer, query); return w && w.error ? { error: "write failed" } : {}; } catch { return { error: "write failed" }; } }, callModel: makeCallModel(env, task) };
-    const run = task === "factmine" ? FM.runFactMine : task === "factmap" ? FM.runFactMap : task === "factreport" ? FM.runFactReport : FM.runFactPrice;
+    const run = task === "factmine" ? FM.runFactMine : task === "factmap" ? FM.runFactMap : task === "factreport" ? FM.runFactReport : task === "factcoverage" ? FM.runFactCoverage : FM.runFactPrice;
     const r = await run(req.query || {}, deps);
     res.setHeader("Cache-Control", "no-store");
     return r.ok ? res.status(200).json(r.body) : res.status(r.status || 400).json({ task, error: r.why });
