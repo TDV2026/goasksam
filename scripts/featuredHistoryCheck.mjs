@@ -171,7 +171,8 @@ const CREW = "gas_crew=" + mintCrewCookieValue();
   for (const top of ["api", "lib", "public", "vercel.json"]) { const p = path.join(root, top); if (!fs.existsSync(p)) continue; if (fs.statSync(p).isDirectory()) walk(p); else if (NAMES.test(fs.readFileSync(p, "utf8"))) hits.push(top); }
   ok("(8) only the module, its crew route, the cron refresh and the crew gated Homepage preview (route and page) name the field, the store key or the module", hits.every(h => ALLOWED.has(h)) && ALLOWED.size === hits.length, hits.join(", "));
   { const cp = fs.readFileSync(path.join(root, "api/crewPage.js"), "utf8"); const g = cp.indexOf("sendDisguisedNotFound(res, req)"), r = cp.indexOf("renderAsync(req)");
-    ok("(8) the crew page route answers the platform's 404 before it renders the preview that reads the field", g > 0 && r > g && /isCrewRequest\(req\)/.test(cp.slice(0, r)) && /if \(!p \|\| !\(seat \|\| isCrewRequest\(req\)/.test(cp)); }
+    ok("(8) the crew page route answers the platform's 404 before it renders the preview that reads the field", g > 0 && r > g && /isCrewRequest\(req\)/.test(cp.slice(0, r)) && /if \(!p \|\| !isCrewRequest\(req\) && !\(p\.tester && isTesterRequest\(req\)\)\) return sendDisguisedNotFound/.test(cp));   // a tester may open only a page flagged tester (the Desk and the One Box preview); the page that reads the field is not one
+    { const { PAGES } = await import(pathToFileURL(path.join(root, "api/crewPage.js")).href); ok("(8) the page that reads the field is not open to a tester, only to the crew", !!PAGES["preview-home"] && !PAGES["preview-home"].tester); } }
   const route = fs.readFileSync(path.join(root, "api/featuredHistory.js"), "utf8");
   ok("(8) the one route checks the crew cookie before it reads anything", /isCrewRequest\(req\)/.test(route) && route.indexOf("isCrewRequest") < route.indexOf("readFeaturedHistory("));
   const lib = fs.readFileSync(path.join(root, "lib/live/featuredHistory.js"), "utf8");
