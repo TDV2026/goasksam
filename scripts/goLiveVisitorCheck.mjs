@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // goLiveVisitorCheck (Lane E, Nov 11 2026): A VISITOR SEES THE EXAMPLES ON THE NEW PAGES.
 // CAUSE of the flip's rollback (Lane C, Nov 11): Find and Market Check showed a visitor no examples. Two causes, both invisible to every earlier check because each ran as the CREW, inside api/crewPage.js:
 //   (1) the example readers are loaded by a variable path (readField), so they ship only with the function that names them in includeFiles. A public page runs the new design inside ITS OWN function (api/buy.js, api/marketCheck.js, ...), whose bundle had none of them: "Cannot find module", caught, null, the section left out (public mode hides a failed read). scripts/functionBundleCheck.mjs now covers it.

@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // A FIRST VISIT TO A VIN PAGE IS A STORED READ, NOT A LIVE ENGINE READ (Lane B, Nov 8 2026; Lane F's audit: cold VIN pages took 10.4, 22.2 and 32.2 s, 0.35 s once cached).
 // WHERE THE TIME WENT (api/_historyData.js oneBoxFor, read from the code and timed on production): the VIN page's market block is the engine read WITH the car's own sale, which had no stored row, so every first visit computed the pool from the archive inside the request
 // (40 s deadline): 3.4 to 5 s on the small families I timed, 10 to 32 s on the big ones. Not the VIN index (the identity comes from the nightly rollout row in one read) and not a missing family warm row (a hub's warm row only sped hubs up; the VIN page never read it).

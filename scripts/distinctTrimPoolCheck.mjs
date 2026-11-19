@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // A TYPED TRIM THAT NAMES A DISTINCT CAR IS NEVER ANOTHER CAR'S ANSWER (Lane B, Oct 29 2026, Sam's launch gate: Market Check "2016 Porsche Boxster Spyder" read "2016 Boxster Roadster", scope "Roadsters", the Spyder gone from the name).
 // CAUSE: the spec builder (lib/onebox.js, trimAsBody) turned every trim that is only a body word (Spyder, Spider, Roadster...) into a body filter and cleared the trim, so the Porsche Boxster/718/918 Spyder, which names its own car,
 // was labelled as the base car's open body. droppedTrimCheck did not catch it: that class is a trim NO sale carries; the Spyder has its own sales, and the trim was not dropped for lack of them but read as a body word.

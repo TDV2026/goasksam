@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // CREW KEYS REPORT (Lane B, Nov 6 2026; Sam: "the small read-only ops task that reports what crew_featured_history and crew_tasks_demo hold and the funnel counts, so I can ask Lane F for them").
 // ops task=crewkeys (api/usageDashboard.js -> api/pullLive.js -> crewKeysReport in lib/live/tasksDemo.js): behind the ops key like every ops task; for each of the two keys: held or not, the pick (car, request, criteria, earlier record, selected and checked
 // times) or the no-pick marker; with funnel=1 the counts the refresh finds on the live pool (live, with a VIN, with an earlier record, tried, why each failed). READ ONLY: no write, no delete, no OldCarsData.

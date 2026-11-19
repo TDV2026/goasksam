@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // A WARM LEAVES NO ANSWER ROW BEHIND A QUESTION, AND STORES NOTHING THE VISITOR PATH WOULD REFUSE (Lane B, Nov 1 2026). Worked offline against a fake spec_market_cache; no production write.
 // CAUSE (read live on 26e7nsyan, warmwhy, 0 writes): "2025 Porsche 911", "2019 Porsche 911", "2003 S-Class", "1963 Corvette split window", "2019 AMG GT", "2019 AMG GT Roadster" and "1986 Porsche 911" are all a trim_choice QUESTION now. A question
 // stores no answer row, so a forced warm correctly stored none, and the answer row each held from Oct 20 and 21 (stamps e73, e74, e75) stayed: warmHits and typedmissing read that row and said "older engine stamp".

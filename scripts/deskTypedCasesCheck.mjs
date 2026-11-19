@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // THE THREE TYPED CASES (Lane D, Nov 11 2026, Stage 6). A case made from typed year, make and model (the New case form's fields, case_new through the preview door) is read by the engine and carries a typical range, three or more comparables each with a why line,
 // the car's name as typed, the assessment at the engine's median (nothing typed) and a four page report. The reads are the engine's own recorded answers (lib/preview/deskRecordedReads.js, made with the ops task deskrungs full=1 on Nov 11 2026, figures posted in docs/lane-notes.md).
 // The class (a preview that answers a figure the engine did not read) is held by deskDemoCarCheck.mjs and the mutants in deskDemoFailsWithout.mjs.

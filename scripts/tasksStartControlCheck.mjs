@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // tasksStartControlCheck: THE SIGNED OUT /tasks PAGE HAS A WORKING WAY TO START, and the live sign-in check clicks controls that exist.
 // CAUSE it covers (Lane S, Nov 16 2026): scripts/tasksAuthCheck.mjs clicked #tkcta2 and #tkcta, the "Give Sam a Task" buttons of the page NEW_DESIGN replaced on Nov 11; the new /tasks page starts from the request box
 // (#pq and its submit button) and the header's Account button, and nothing failed loudly because that check only runs live. This check runs offline in headless Chrome on the page the new design serves

@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // THE PHOTO RULE FOR EVERY EXAMPLE PICK (Lane B, Nov 8 2026; the 2004 Maybach 57 on Find: a 3.1 MB, 3000 pixel JPEG that took 11 seconds). At SELECTION each crew example car's first photo is HEADed: a 200, an image, under 600 KB; else the listing's next photo (a resized copy first where the row has one);
 // else the car is skipped. Applies to the Find pick, the Tasks example, the watching card and the Homepage pick (and the entry example fields, scripts/entryExamplesCheck.mjs).
 //   (1) the rule itself: oversized refused, a 404 refused, a non-image refused, no length read to the limit, a resized copy preferred, the next photo tried, none -> null

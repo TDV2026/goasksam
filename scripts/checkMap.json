@@ -354,6 +354,19 @@
     "node_modules/"
    ]
   },
+  "buildOutputCheck": {
+   "file": "scripts/buildOutputCheck.mjs",
+   "kind": "offline",
+   "serial": "writes decoy build folders (.vercel/output, .next, dist, build, out, .output, .turbo, .cache, coverage) into the worktree and moves a person's own .vercel/output out and back while it runs; nothing else may sweep the tree beside it",
+   "covers": [
+    "api/",
+    "data/",
+    "lib/",
+    "public/js/",
+    "scripts/",
+    "scripts/checkMap.json"
+   ]
+  },
   "bulkSaleCheck": {
    "file": "scripts/bulkSaleCheck.mjs",
    "kind": "offline",
@@ -3486,6 +3499,7 @@
    "file": "scripts/houseSalesCountCheck.mjs",
    "kind": "offline",
    "covers": [
+    "data/engineStamp.json",
     "lib/live/search.js",
     "lib/onebox.js",
     "lib/reasonWords.js"
@@ -4069,6 +4083,7 @@
    "covers": [
     "api/",
     "api/buySearch.js",
+    "data/engineStamp.json",
     "lib/",
     "lib/live/search.js",
     "lib/onebox.js",
@@ -4391,7 +4406,11 @@
    "file": "scripts/noQuestionRuleCheck.mjs",
    "kind": "offline",
    "covers": [
+    "docs/",
     "lib/onebox.js",
+    "scripts/.checkTimes.json",
+    "scripts/_repoWalk.mjs",
+    "scripts/checkMap.json",
     "scripts/generationChipCheck.mjs",
     "scripts/mixedRangeCheck.mjs",
     "scripts/prePush.mjs",
@@ -5824,7 +5843,9 @@
   },
   "searchCheck": {
    "file": "scripts/searchCheck.js",
-   "kind": "offline",
+   "kind": "live",
+   "kindFixed": "live",
+   "why": "fetches the LIVE public pages and sitemaps (it fails on any machine without the protection bypass: Vercel's Security Checkpoint answers 429 to a burst of raw fetches) and samples VIN pages from vin_summary, so its result depends on the network, the bypass and the day's sample; a live check, run only in a gap the lanes name (Lane C, Nov 18 2026)",
    "covers": [
     "api/_usage.js",
     "lib/_supabase.js"
@@ -5995,7 +6016,8 @@
     "lib/variants.js",
     "node_modules/",
     "package.json",
-    "scripts/"
+    "scripts/",
+    "scripts/_repoWalk.mjs"
    ]
   },
   "sellReserveLineCheck": {
@@ -6425,6 +6447,14 @@
     "lib/live/search.js",
     "lib/onebox.js",
     "scripts/ingest.js"
+   ]
+  },
+  "stampPinCheck": {
+   "file": "scripts/stampPinCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/",
+    "scripts/_repoWalk.mjs"
    ]
   },
   "standingControlsCheck": {
@@ -7797,6 +7827,7 @@
    "file": "scripts/widenedLineCheck.mjs",
    "kind": "offline",
    "covers": [
+    "data/engineStamp.json",
     "lib/live/samChat.js",
     "lib/live/search.js",
     "lib/live/unusedWords.js",

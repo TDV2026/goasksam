@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // DESK V3 DECISION (Lane E, Nov 8 2026): the Decision tab on Lane D's fields. Market reference, assessment and difference side by side; numeric input first, range inputs, the slider second and keyboard driven; the explanation; the reserve with its
 // position line, rationale and seller agreed box; condition as a segmented control with the suggested rung dotted and the basis sentence; factors from desk.factors (effectSentence only when present, the verification state); readiness from Lane D;
 // Finalize disabled until ready; the audit trail. THE RESERVE NEVER MOVES WHEN THE ASSESSMENT MOVES: no code on the page couples them, and each save posts its own figure only.   node scripts/deskV3DecisionCheck.mjs

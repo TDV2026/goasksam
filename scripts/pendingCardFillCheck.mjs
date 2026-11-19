@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // A PENDING FIND CARD IS NEVER STRANDED (Sam's live test, Oct 29 2026, "Porsche", 190 matches: three of the first six cards printed "The sales for this one are being read." and never changed until a refresh).
 // A pending card keeps being asked for, on the engine's own cadence (market.retryAfterMs, from the engine's stillReadingMarket), until the engine answers, and the answer redraws in place with no refresh. When the engine's wait
 // (market.waitMaxMs) passes the card prints the engine's own "couldn't read" line, never the pending line. This renders the real Find page (api/buy.js) in Chrome at 1440 and 390 with the engine stubbed per scenario:

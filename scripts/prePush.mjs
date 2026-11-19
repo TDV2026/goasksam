@@ -2544,45 +2544,45 @@ try {
 }
 try {
   const out = execSync("node scripts/deskV4ThirdRunCheck.mjs", { encoding: "utf8", timeout: 400000 });
-  record("Desk v4 third run: the reserve mode's thin line printed once and no line printed twice in the panel, a Set as cover on each thumbnail written through the case's cover and the report's first page printing it, a bottom price axis of labelled ticks from the engine's words, the right panel in tabs with the figure and checks fixed above and Preview and Finalize fixed below, one word for one state in the facts grid; mutants (scripts/deskV4ThirdRunCheck.mjs)", /\b0 FAIL/.test(out), (out.trim().split("\n").pop() || "").slice(0, 160));
+  record("Desk v4 third run: the reserve mode's thin line printed once and no line printed twice in the panel, a Set as cover on each thumbnail written through the case's cover and the report's first page printing it, a bottom price axis of labelled ticks from the engine's words, the right panel in tabs with the figure and checks fixed above and Preview and Finalize fixed below, one word for one state in the facts grid; mutants (scripts/deskV4ThirdRunCheck.mjs)", /\b0 FAIL/.test(out) ? "PASS" : "FAIL", (out.trim().split("\n").pop() || "").slice(0, 160));
 } catch (e) {
-  record("Desk v4 third run: the reserve mode's thin line printed once and no line printed twice in the panel, a Set as cover on each thumbnail written through the case's cover and the report's first page printing it, a bottom price axis of labelled ticks from the engine's words, the right panel in tabs with the figure and checks fixed above and Preview and Finalize fixed below, one word for one state in the facts grid; mutants (scripts/deskV4ThirdRunCheck.mjs)", false, String((e.stdout || e.message || "")).slice(-200));
+  record("Desk v4 third run: the reserve mode's thin line printed once and no line printed twice in the panel, a Set as cover on each thumbnail written through the case's cover and the report's first page printing it, a bottom price axis of labelled ticks from the engine's words, the right panel in tabs with the figure and checks fixed above and Preview and Finalize fixed below, one word for one state in the facts grid; mutants (scripts/deskV4ThirdRunCheck.mjs)", "FAIL", String((e.stdout || e.message || "")).slice(-200));
 }
 try {
   const out = execSync("node scripts/deskV4SellerFactsCheck.mjs", { encoding: "utf8", timeout: 300000 });
-  record("Desk v4 seller facts: the head's Contact and Location lines and the Title status and Mileage original rows print what the case carries and nothing else, a yes or no in the server's word, with mutants (scripts/deskV4SellerFactsCheck.mjs)", /\b0 FAIL/.test(out), (out.trim().split("\n").pop() || "").slice(0, 160));
+  record("Desk v4 seller facts: the head's Contact and Location lines and the Title status and Mileage original rows print what the case carries and nothing else, a yes or no in the server's word, with mutants (scripts/deskV4SellerFactsCheck.mjs)", /\b0 FAIL/.test(out) ? "PASS" : "FAIL", (out.trim().split("\n").pop() || "").slice(0, 160));
 } catch (e) {
-  record("Desk v4 seller facts: the head's Contact and Location lines and the Title status and Mileage original rows print what the case carries and nothing else, a yes or no in the server's word, with mutants (scripts/deskV4SellerFactsCheck.mjs)", false, String((e.stdout || e.message || "")).slice(-200));
+  record("Desk v4 seller facts: the head's Contact and Location lines and the Title status and Mileage original rows print what the case carries and nothing else, a yes or no in the server's word, with mutants (scripts/deskV4SellerFactsCheck.mjs)", "FAIL", String((e.stdout || e.message || "")).slice(-200));
 }
 try {
   const out = execSync("node scripts/deskV4OwnHistoryCheck.mjs", { encoding: "utf8", timeout: 300000 });
-  record("Desk v4 own history: This car has sold before (each prior sale as sent, newest first, linked) above What the market paid, Listed now only when the server sent a listing, the From its last sale mark; mutants (scripts/deskV4OwnHistoryCheck.mjs)", /\b0 FAIL/.test(out), (out.trim().split("\n").pop() || "").slice(0, 160));
+  record("Desk v4 own history: This car has sold before (each prior sale as sent, newest first, linked) above What the market paid, Listed now only when the server sent a listing, the From its last sale mark; mutants (scripts/deskV4OwnHistoryCheck.mjs)", /\b0 FAIL/.test(out) ? "PASS" : "FAIL", (out.trim().split("\n").pop() || "").slice(0, 160));
 } catch (e) {
-  record("Desk v4 own history: This car has sold before (each prior sale as sent, newest first, linked) above What the market paid, Listed now only when the server sent a listing, the From its last sale mark; mutants (scripts/deskV4OwnHistoryCheck.mjs)", false, String((e.stdout || e.message || "")).slice(-200));
+  record("Desk v4 own history: This car has sold before (each prior sale as sent, newest first, linked) above What the market paid, Listed now only when the server sent a listing, the From its last sale mark; mutants (scripts/deskV4OwnHistoryCheck.mjs)", "FAIL", String((e.stdout || e.message || "")).slice(-200));
 }
 try {
   const out = execSync("node scripts/deskV4SearchCheck.mjs", { encoding: "utf8", timeout: 300000 });
-  record("Desk v4 prior cases and queue search: the prior cases line and linked list under the title, the Search cases box asking case_list with archived included, the Archived mark, an alias, clearing back to the queue; mutants (scripts/deskV4SearchCheck.mjs)", /\b0 FAIL\b/.test(out), out.trim().split("\n").slice(-3).join(" | "));
+  record("Desk v4 prior cases and queue search: the prior cases line and linked list under the title, the Search cases box asking case_list with archived included, the Archived mark, an alias, clearing back to the queue; mutants (scripts/deskV4SearchCheck.mjs)", /\b0 FAIL\b/.test(out) ? "PASS" : "FAIL", out.trim().split("\n").slice(-3).join(" | "));
 } catch (e) {
-  record("Desk v4 prior cases and queue search: the prior cases line and linked list under the title, the Search cases box asking case_list with archived included, the Archived mark, an alias, clearing back to the queue; mutants (scripts/deskV4SearchCheck.mjs)", false, String(e.stdout || e.message || e).trim().split("\n").slice(-4).join(" | "));
+  record("Desk v4 prior cases and queue search: the prior cases line and linked list under the title, the Search cases box asking case_list with archived included, the Archived mark, an alias, clearing back to the queue; mutants (scripts/deskV4SearchCheck.mjs)", "FAIL", String(e.stdout || e.message || e).trim().split("\n").slice(-4).join(" | "));
 }
 try {
   const out = execSync("node scripts/deskV4HagertyCheck.mjs", { encoding: "utf8", timeout: 300000 });
-  record("Desk v4 Hagerty highlighting: Hagerty sales as second colour dots with a legend entry only when present, Hagerty rows first in Closest sales with a mark, the Hagerty chip with desk.hagerty.count as sent, selecting it filters the chart and the list and shows the line, nothing at all on a view with none; mutants (scripts/deskV4HagertyCheck.mjs)", /\b0 FAIL\b/.test(out), out.trim().split("\n").slice(-3).join(" | "));
+  record("Desk v4 Hagerty highlighting: Hagerty sales as second colour dots with a legend entry only when present, Hagerty rows first in Closest sales with a mark, the Hagerty chip with desk.hagerty.count as sent, selecting it filters the chart and the list and shows the line, nothing at all on a view with none; mutants (scripts/deskV4HagertyCheck.mjs)", /\b0 FAIL\b/.test(out) ? "PASS" : "FAIL", out.trim().split("\n").slice(-3).join(" | "));
 } catch (e) {
-  record("Desk v4 Hagerty highlighting: Hagerty sales as second colour dots with a legend entry only when present, Hagerty rows first in Closest sales with a mark, the Hagerty chip with desk.hagerty.count as sent, selecting it filters the chart and the list and shows the line, nothing at all on a view with none; mutants (scripts/deskV4HagertyCheck.mjs)", false, String(e.stdout || e.message || e).trim().split("\n").slice(-4).join(" | "));
+  record("Desk v4 Hagerty highlighting: Hagerty sales as second colour dots with a legend entry only when present, Hagerty rows first in Closest sales with a mark, the Hagerty chip with desk.hagerty.count as sent, selecting it filters the chart and the list and shows the line, nothing at all on a view with none; mutants (scripts/deskV4HagertyCheck.mjs)", "FAIL", String(e.stdout || e.message || e).trim().split("\n").slice(-4).join(" | "));
 }
 try {
   const out = execSync("node scripts/deskV4FourthRunCheck.mjs", { encoding: "utf8", timeout: 300000 });
-  record("Desk v4 fourth run: the unopened lead locked until Open it, the dot hint only when marked, Condition in the market header, For sale now photo cards above Closest sales, the period switch from desk.windows, the live line and the start note as sent; mutants (scripts/deskV4FourthRunCheck.mjs)", /\b0 FAIL\b/.test(out), out.trim().split("\n").slice(-3).join(" | "));
+  record("Desk v4 fourth run: the unopened lead locked until Open it, the dot hint only when marked, Condition in the market header, For sale now photo cards above Closest sales, the period switch from desk.windows, the live line and the start note as sent; mutants (scripts/deskV4FourthRunCheck.mjs)", /\b0 FAIL\b/.test(out) ? "PASS" : "FAIL", out.trim().split("\n").slice(-3).join(" | "));
 } catch (e) {
-  record("Desk v4 fourth run: the unopened lead locked until Open it, the dot hint only when marked, Condition in the market header, For sale now photo cards above Closest sales, the period switch from desk.windows, the live line and the start note as sent; mutants (scripts/deskV4FourthRunCheck.mjs)", false, String(e.stdout || e.message || e).trim().split("\n").slice(-4).join(" | "));
+  record("Desk v4 fourth run: the unopened lead locked until Open it, the dot hint only when marked, Condition in the market header, For sale now photo cards above Closest sales, the period switch from desk.windows, the live line and the start note as sent; mutants (scripts/deskV4FourthRunCheck.mjs)", "FAIL", String(e.stdout || e.message || e).trim().split("\n").slice(-4).join(" | "));
 }
 try {
   const out = execSync("node scripts/deskV4RereadCheck.mjs", { encoding: "utf8", timeout: 300000 });
-  record("Desk v4 against Lane D's real handlers: Re-read the email on a forwarded case's Documents card, the check digit warning on the New case card, each prefilled field's source label; mutants (scripts/deskV4RereadCheck.mjs)", /\b0 FAIL\b/.test(out), out.trim().split("\n").slice(-3).join(" | "));
+  record("Desk v4 against Lane D's real handlers: Re-read the email on a forwarded case's Documents card, the check digit warning on the New case card, each prefilled field's source label; mutants (scripts/deskV4RereadCheck.mjs)", /\b0 FAIL\b/.test(out) ? "PASS" : "FAIL", out.trim().split("\n").slice(-3).join(" | "));
 } catch (e) {
-  record("Desk v4 against Lane D's real handlers: Re-read the email on a forwarded case's Documents card, the check digit warning on the New case card, each prefilled field's source label; mutants (scripts/deskV4RereadCheck.mjs)", false, String(e.stdout || e.message || e).trim().split("\n").slice(-4).join(" | "));
+  record("Desk v4 against Lane D's real handlers: Re-read the email on a forwarded case's Documents card, the check digit warning on the New case card, each prefilled field's source label; mutants (scripts/deskV4RereadCheck.mjs)", "FAIL", String(e.stdout || e.message || e).trim().split("\n").slice(-4).join(" | "));
 }
 try {
   const out = execSync("node scripts/deskV4ReserveModeCheck.mjs", { encoding: "utf8", timeout: 300000 });
