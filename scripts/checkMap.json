@@ -5792,11 +5792,13 @@
   },
   "searchCheck": {
    "file": "scripts/searchCheck.js",
-   "kind": "offline",
+   "kind": "live",
    "covers": [
     "api/_usage.js",
     "lib/_supabase.js"
-   ]
+   ],
+   "kindFixed": "live",
+   "why": "fetches the LIVE public pages and sitemaps (it fails on any machine without the protection bypass: Vercel's Security Checkpoint answers 429 to a burst of raw fetches) and samples VIN pages from vin_summary, so its result depends on the network, the bypass and the day's sample; a live check, run only in a gap the lanes name (Lane C, Nov 18 2026)"
   },
   "searchTextCheck": {
    "file": "scripts/searchTextCheck.mjs",
