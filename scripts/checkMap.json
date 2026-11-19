@@ -3074,6 +3074,7 @@
     "lib/forsale/budget.js",
     "lib/forsale/gate.js",
     "lib/forsale/prepare.js",
+    "lib/forsale/report.js",
     "lib/forsale/rules.js",
     "lib/forsale/serve.js",
     "lib/forsale/sync.js",
@@ -3090,6 +3091,25 @@
     "scripts/",
     "scripts/fixtures/forsaleShape.json",
     "vercel.json"
+   ]
+  },
+  "forSalePrepareCheck": {
+   "file": "scripts/forSalePrepareCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/pullForSale.js",
+    "data/",
+    "docs/",
+    "lib/",
+    "lib/forsale/prepare.js",
+    "lib/forsale/report.js",
+    "lib/forsale/rules.js",
+    "lib/onebox.js",
+    "node_modules/",
+    "package.json",
+    "scripts/"
    ]
   },
   "foreignCarsTaskCheck": {
