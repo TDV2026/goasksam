@@ -546,7 +546,10 @@ await section("sync", async () => {
   // ---- THE RULE ON ITS OWN: nothing that serves reads a stored last_seen against a clock any more ----
   { const src = f => fs.readFileSync(path.join(ROOT, f), "utf8"), held = src("lib/forsale/rules.js"), body = held.slice(held.indexOf("export function heldBack"), held.indexOf("// ONE CARD PER CAR"));
     ok("CLASS SWEEP: the serve rule (heldBack) tests no stored time against a clock; the prepare job and the serve read no last_seen filter either (the stale poll is the freshness test now)", !/FRESH_MS|now\s*-\s*seen|last_seen\s*(<|>)/.test(body) && !/last_seen=(gte|lt|gt|lte)/.test(src("lib/forsale/serve.js") + src("lib/forsale/prepare.js")) && !/FRESH_MS/.test(src("lib/forsale/serve.js") + src("lib/forsale/prepare.js")));
-    ok("the stale cutoff is one number (24 hours) in one place, and the rule on it is strict: equal is not stale, an unknown time is not in the stale set", RULES.FRESH_MS === 24 * HOUR && RULES.isStaleSeen(new Date(NOW - 24 * HOUR).toISOString(), NOW) === false && RULES.isStaleSeen(new Date(NOW - 24 * HOUR - 1).toISOString(), NOW) === true && RULES.isStaleSeen(null, NOW) === false); }
+    { const mk = h => RULES.rowOf({ ...rec("streetside", {}), last_seen_at: new Date(NOW - h * HOUR).toISOString() }, new Date(NOW).toISOString());
+    ok("a record the vendor last saw 30 hours ago is stored HIDDEN, one seen 23 hours ago is not (the stale rule applies at the write too, not only at the next stale poll), and a hidden row carries when it was hidden", mk(30).hidden === true && !!mk(30).hidden_at && mk(23).hidden === false && mk(23).hidden_at == null);
+    ok("only a source whose load FINISHED and whose change poll and stale poll both finished within the lapse is live (a load restarted over an old polled state is not)", (() => { const t = new Date(NOW).toISOString(), L = (done) => ({ s: { load: { done }, change: { ok_at: t }, stale: { ok_at: t } } }); return INGEST && INGEST.liveSources(L(true), NOW).has("s") && !INGEST.liveSources(L(false), NOW).has("s") && !INGEST.liveSources({ s: { load: { done: true }, change: { ok_at: t } } }, NOW).has("s") && INGEST.liveSources(null, NOW).size === 0; })()); }
+  ok("the stale cutoff is one number (24 hours) in one place, and the rule on it is strict: equal is not stale, an unknown time is not in the stale set", RULES.FRESH_MS === 24 * HOUR && RULES.isStaleSeen(new Date(NOW - 24 * HOUR).toISOString(), NOW) === false && RULES.isStaleSeen(new Date(NOW - 24 * HOUR - 1).toISOString(), NOW) === true && RULES.isStaleSeen(null, NOW) === false); }
 
   // ---- A PRICE CHANGE: applied, dated, and our own history keeps what the vendor's list drops ----
   { const d = DS("grautogallery", 6), before = RW("grautogallery", 6), was = before.asking_price_usd, nHist = (before.price_history || []).length;
@@ -598,19 +601,19 @@ await section("sync", async () => {
     V_PRICE(d, 39999); const x4 = await run(); row = RW("classiccars", 401);
     ok("ROAD A: a change poll that carries it with a last_seen_at inside 24 hours unhides it by itself (the stale poll had nothing left to unhide) and it is served at the new price", row.hidden === false && row.asking_price_usd === 39999 && x4.o.unhidden === 0 && await isServed(row), [row.hidden, x4.o.unhidden]);
     // a hidden listing the vendor then calls sold stays out (the stale poll's absence road never revives a listing that is not active)
-    V_STALE(d, 30); await run(); V_STATUS(d, "sold"); V_SEEN(d); await run(); row = RW("classiccars", 401);
-    ok("a hidden listing the vendor then calls sold is gone for us and is NOT brought back by the stale poll no longer listing it", row.status === "sold" && row.gone === true && !(await isServed(row)), [row.status, row.hidden]);
+    V_STALE(d, 30); await run(); V_STATUS(d, "sold"); const xs = await run(); row = RW("classiccars", 401);
+    ok("a hidden listing the vendor then calls sold is gone for us and the stale poll no longer listing it (it is not active) brings nothing back: nothing is unhidden, the row stays hidden and gone", row.status === "sold" && row.gone === true && row.hidden === true && xs.o.unhidden === 0 && !(await isServed(row)), [row.status, row.hidden, xs.o.unhidden]);
     V_STATUS(d, "active"); V_SEEN(d); await run(); }
 
   // ---- A SHORT ALLOWANCE: change polls first, then stale polls, then loads; a stale poll cut short never brings anything back ----
-  { const d = DS("classiccars", 404); V_STALE(d, 30); await run(); ok("hidden for the short allowance case", RW("classiccars", 404).hidden === true); V_SEEN(d);
-    const order = RULES.pulledSources(), nCh = order.length;
+  { const d = DS("grautogallery", 960); V_STALE(d, 30); await run(); ok("hidden for the short allowance case (in the second source: the stale poll that is cut short)", RW("grautogallery", 960).hidden === true); V_SEEN(d);
+    const order = RULES.pulledSources(), nCh = order.length, okBefore = SYNC.rows.get("forsale_sync:grautogallery").stale.ok_at;
     setCfg({ forsale_run_cap: nCh + 1 }); setSpent(0); const x = await runPull();
     ok("with an allowance of one more than the change polls, the run does every change poll, then ONE stale poll, and stops on the allowance in the stale phase", x.calls.slice(0, nCh).every(c => c.changed_since) && x.calls[nCh] && x.calls[nCh].last_seen_before && x.o.stopped && x.o.stopped.reason === "allowance" && x.o.stopped.phase === "stale", [x.calls.length, x.o.stopped]);
-    ok("a stale poll cut short brings nothing back (the vendor has seen it again, but a partial poll cannot say it is no longer listed)", RW("classiccars", 404).hidden === true && x.o.unhidden === 0 && SYNC.rows.get("forsale_sync:classiccars").stale.ok_at !== x.o.stopped.at, x.o.unhidden);
+    ok("a stale poll cut short brings nothing back and does not stamp itself finished (the vendor has seen it again, but a partial poll cannot say it is no longer listed)", RW("grautogallery", 960).hidden === true && x.o.unhidden === 0 && SYNC.rows.get("forsale_sync:grautogallery").stale.ok_at === okBefore, x.o.unhidden);
     setCfg({ forsale_run_cap: 5 }); setSpent(0); const y = await runPull();
     ok("a run too short for the change polls does change polls only, none of the stale polls", y.calls.length === 5 && y.calls.every(c => c.changed_since) && y.o.stopped.phase === "change", [y.calls.length, y.o.stopped]);
-    setCfg({}); setSpent(0); await run(); ok("a full run then brings it back (road B)", RW("classiccars", 404).hidden === false); }
+    setCfg({}); setSpent(0); await run(); ok("a full run then brings it back (road B)", RW("grautogallery", 960).hidden === false); }
 
   // ---- A RESUMED FULL LOAD: the cursor saved after each page, never serving or marking anything from an unfinished walk, ascending ----
   let BFALL = [];
@@ -850,6 +853,7 @@ async function mutants() {
   const M = JSON.parse(fs.readFileSync(path.join(here, "fixtures/forsaleMutants.json"), "utf8"));
   let survived = 0, killed = 0;
   for (const m of M) {
+    if (process.env.FS_MUTANT && !new RegExp(process.env.FS_MUTANT).test(m.name)) continue;
     const saved = [];
     let missing = false;
     for (const e of m.edits) { const file = path.join(copy, e.file), orig = fs.readFileSync(file, "utf8"); if (!orig.includes(e.from)) { missing = true; break; } saved.push([file, orig]); fs.writeFileSync(file, orig.replace(e.from, e.to)); }

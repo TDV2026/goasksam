@@ -26,6 +26,11 @@
         "file": "lib/forsale/rules.js",
         "from": "if (!opts.anyStatus && txt(rec.status).toLowerCase() !== \"active\") return { keep: false, why: \"not_active\" };",
         "to": ""
+      },
+      {
+        "file": "lib/forsale/sync.js",
+        "from": "if (!ex && row.status !== \"active\") {",
+        "to": "if (false) {"
       }
     ]
   },
