@@ -134,6 +134,7 @@ const applyFilter = (rows, u) => {   // a plain PostgREST over our table: the fi
     out = out.filter(r => { const x = r[k]; if (op === "eq") return String(x) === val; if (op === "neq") return String(x) !== val; if (op === "lt") return String(x) < val; if (op === "gte") return String(x) >= val; if (op === "gt") return Number(x) > Number(val); if (op === "is") return val === "null" ? x == null : String(x) === val; if (op === "not.is") return val === "null" ? x != null : true; if (op === "ilike") return new RegExp("^" + val.split("*").map(t => t.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*") + "$", "i").test(String(x ?? "")); if (op === "in") return val.replace(/^\(|\)$/g, "").split(",").includes(String(x)); return true; });
   }
   const orp = u.searchParams.get("or");
+  if (orp && /^\(read\.is\.null,/.test(orp)) { const ver = (/engine_version\.neq\.([^,]+),/.exec(orp) || [])[1], lt = (/at\.lt\.([^)]+)\)$/.exec(orp) || [])[1]; out = out.filter(r => r.read == null || r.read.engine_version !== decodeURIComponent(ver) || String(r.read.at) < decodeURIComponent(lt)); }
   if (orp && /resolve_state\.is\.null/.test(orp)) out = out.filter(r => r.resolve_state == null || !r.car || r.car.engine_version !== (orp.match(/neq\.([^)]+)\)/) || [])[1]);
   return out;
 };
@@ -161,6 +162,7 @@ globalThis.fetch = async (url, init) => {
     if (init && init.method === "POST") { USAGE.push(init.body); return new Response("", { status: 201 }); }
     if (USAGE_DOWN) return new Response("{}", { status: 500 });
     const posted = USAGE.map(b => { try { return JSON.parse(b); } catch { return null; } }).filter(Boolean);
+    if (u.searchParams.get("event_type") === "eq.forsale_prepare_lease") { let k = 0; return new Response(JSON.stringify(posted.flat().filter(e => e && e.event_type === "forsale_prepare_lease").map(e => ({ id: ++k, status: e.status, metadata: e.metadata }))), { status: 200 }); }
     if (/^in\.\(forsale_pull/.test(u.searchParams.get("event_type") || "")) { const last = posted.filter(e => /^forsale_pull/.test(e.event_type)).pop(); return new Response(JSON.stringify(last ? [{ created_at: new Date().toISOString(), event_type: last.event_type, metadata: last.metadata }] : []), { status: 200 }); }
     const job = (u.searchParams.get("metadata->>job") || "").replace(/^eq\./, "");   // what the budget counts: the metered rows the vendor client wrote (one per call), by job
     const rows = posted.filter(e => e.event_type === "ocd_call" && (!job || (e.metadata && e.metadata.job === job))).map(e => ({ oldcarsdata_metered_requests: e.oldcarsdata_metered_requests }));
@@ -261,7 +263,7 @@ await section("pull", async () => {
 await section("prepare", async () => {
   ok("before the prepare job, nothing is resolved", TABLE.filter(r => r.source_listing_id !== "H1").every(r => r.resolve_state == null));
   let o = null;
-  for (let i = 0; i < 3; i++) { const r = await call(PULL, "/api/pullForSale?mode=prepare&budgetMs=240000", { crew: false, headers: { "x-ops-key": PROBE } }); o = json(r); ok("prepare run " + (i + 1) + " answers 200 and spends no vendor query", r.code === 200 && o && o.vendorQueries === 0, o); }
+  for (let i = 0; i < 3; i++) { const r = await call(PULL, "/api/pullForSale?mode=prepare&budgetMs=240000", { crew: false, headers: { "x-ops-key": PROBE } }); o = json(r); if (process.env.DBGP) process.stderr.write(JSON.stringify(o) + "\n"); ok("prepare run " + (i + 1) + " answers 200 and spends no vendor query", r.code === 200 && o && o.vendorQueries === 0, o); }
   const live = TABLE.filter(r => !r.gone);
   const zz = TABLE.find(r => r.vin === vin(12));
   ok("a listing the resolver cannot place is marked unresolved and is counted", zz && zz.resolve_state === "unresolved" && (o.unresolved || 0) + TABLE.filter(r => r.resolve_state === "unresolved").length >= 1);
@@ -401,7 +403,7 @@ await section("asking never in sold", async () => {
   // the class: nothing that builds a range, pool or count reads the for-sale table; only the for-sale code and its two hooks do
   const walk = d => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true }).flatMap(e => e.isDirectory() ? (["node_modules", "fixtures", "proofs"].includes(e.name) ? [] : walk(path.join(d, e.name))) : /\.(js|mjs)$/.test(e.name) ? [path.join(d, e.name)] : []);
   const readers = [...walk("lib"), ...walk("api")].filter(f => /for_sale_listings|asking_price_usd/.test(fs.readFileSync(path.join(ROOT, f), "utf8"))).sort();
-  ok("only the for-sale code reads or writes the for-sale table or an asking price column", readers.join() === ["api/pullForSale.js", "lib/forsale/prepare.js", "lib/forsale/rules.js", "lib/forsale/serve.js", "lib/forsale/sync.js"].sort().join(), readers);
+  ok("only the for-sale code reads or writes the for-sale table or an asking price column", readers.join() === ["api/pullForSale.js", "lib/forsale/prepare.js", "lib/forsale/report.js", "lib/forsale/rules.js", "lib/forsale/serve.js", "lib/forsale/sync.js"].sort().join(), readers);
   const eng = ["lib/onebox.js", "lib/_classify.js", "lib/desk/execute.js", "lib/_houseComps.js", "lib/variants.js", "lib/sell/sellFacts.js"].map(f => fs.existsSync(path.join(ROOT, f)) ? fs.readFileSync(path.join(ROOT, f), "utf8") : "");
   ok("the sales engine files name no for-sale table, no asking price field and no forsale module", eng.every(t => !/for_sale|forsale|asking_price_usd/.test(t)));
 });
@@ -477,7 +479,7 @@ await section("each rule on its own (the pure rule, one row at a time)", async (
   const PREP = await tryImp("lib/forsale/prepare.js"); if (PREP) {
     let cur = 0, maxCur = 0;
     const rows = Array.from({ length: 12 }, (_, i) => ({ id: 900 + i, source: "streetside", source_type: "dealer", title: "t" + i, asking_price_usd: 1000, gone: false, last_seen: new Date(Date.now() - 1000).toISOString(), resolve_state: "resolved", car_key: "key" + i, car: { key: "key" + i, engine_version: "v" }, read: null, vin_norm: null }));
-    const f0 = globalThis.fetch; globalThis.fetch = async (u, i) => { const su = String(u); if (/for_sale_listings/.test(su) && (!i || !i.method || i.method === "GET")) return new Response(JSON.stringify(/resolve_state=is.null|engine_version.neq/.test(decodeURIComponent(su)) ? [] : rows), { status: 200 }); if (/for_sale_listings/.test(su)) return new Response("", { status: 204 }); return f0(u, i); };
+    const f0 = globalThis.fetch; globalThis.fetch = async (u, i) => { const su = String(u); if (/for_sale_listings/.test(su) && (!i || !i.method || i.method === "GET")) return new Response(JSON.stringify(/resolve_state\.is\.null/.test(decodeURIComponent(su)) || /vin_norm=not\.is\.null/.test(su) ? [] : rows), { status: 200 }); if (/for_sale_listings/.test(su)) return new Response("", { status: 204 }); return f0(u, i); };
     await PREP.prepareForSale({ supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" }, { budgetMs: 30000, concurrency: 99, engine: { specOf: async () => null, seenBefore: async () => null, listingMarket: async () => { cur++; maxCur = Math.max(maxCur, cur); await new Promise(r => setTimeout(r, 15)); cur--; return { kind: "range", low: 1000, high: 2000 }; } } });
     globalThis.fetch = f0;
     ok("the prepare job never runs more than three engine reads at once (the standing limit of heavy reads), whatever it is asked for", maxCur >= 2 && maxCur <= 3, maxCur);
