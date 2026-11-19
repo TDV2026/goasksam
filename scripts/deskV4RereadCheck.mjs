@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // DESK V4 AGAINST LANE D'S ad37ba09 (Lane S, Nov 13 2026): the three things the page takes from it, each answered by the REAL handler (handleSheetAction with injected readers), never by a stub.
 //   1 RE-READ THE EMAIL: a button on a forwarded case's Documents card, in the table's words (case.reread.button); a typed case and a finalized case carry none; a click posts case_reread_email for the open case; the page prints the server's line (or its refusal) and shows the case the server sent.
 //   2 THE CHECK DIGIT WARNING: a 17 character VIN with a wrong check digit decodes, and the server's warning prints on the car card in its own words; a VIN that passes prints none.

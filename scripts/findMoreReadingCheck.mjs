@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // FIND SHOW MORE READS UNDER ITS OWN CLOCK (Lane E, Nov 2 2026; Sam's live click on "Show 24 more" that took very long with no sign of work, so he pressed it about five times). The class: ANY Show more batch, whatever its cards' reads are doing.
 // The engine (api/buySearch.js moreBatch) returns within the engine's batch time (lib/live/samChat.js BATCH_BUDGET_MS): a card whose read is back comes whole, a card whose read is not comes at once with the engine's being-read line and no range
 // (never blank, never held for the slowest card); the page says Reading... from the first press, ignores a second press, sends one request at a time, never repeats a card, fills the being-read cards as the engine reads them, and when an ask fails

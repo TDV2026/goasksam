@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // TASKS DEMO (Lane B, Nov 2026, the Tasks page centrepiece, CREW ONLY, NOT LIVE). No database, no network (injected reads), the real request writer, the real reader and the real geo.
 //   (1) the request is written FROM the car: make and model always; gearbox and colour only if the listing states them; a mileage ceiling above its mileage; a price ceiling above its bid; a distance only from a real city the car is within
 //   (2) the reader must give every criterion back as written, and the matcher must RETURN THE CAR, and every stated criterion must hold on the car itself: otherwise the car is rejected with that reason

@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // A CARD AND ITS POPUP COUNT ONE POOL (Lane B, Nov 3 2026, job lane-b-genline; live on Find: the 1989 911 Speedster card said "10 sales since Nov 2024", its popup "Based on 18 sales since November 2024").
 // CAUSE: findAnswerOf makes the sales NEAR THE LISTING'S MILES the card's headline (basis "band": that band's range and count) when the listing states its mileage and the band reaches a range, but the popup (panelOf)
 // read the whole pool for a card with no option of its own, so one car carried two counts and two ranges. WHO ELSE: every Find card whose listing states a mileage and whose band reaches 8 sales (any car, any pool), and the

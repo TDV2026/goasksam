@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // THE FIND EXAMPLES' PICK IS VARIED (Lane B, Nov 8 2026, crew only, not live): when the three cars are chosen, the engine prefers three different PLATFORMS, then different decades, colours and bodies; always different makes; a sold-before car first.
 // A preference, not a rule: with only two platforms among the eligible cars it still fills three. (lib/live/findExamples.js chooseNext)
 //   node scripts/findPickVarietyCheck.mjs [root]      --mutants proves each rule by breaking it in a copy

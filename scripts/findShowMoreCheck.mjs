@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // FIND SHOW MORE (Lane E, Nov 2 2026): a dealer group buyer searched "all live sales this week"; Find said 1,669 live matches and drew 24 cards with no way to the rest. The engine answers
 // one batch (SHOW_BATCH cars) with the counts in meta (shown, remaining, nextN, countLine, lib/live/samChat.js pageMeta); the page draws them, and past the batch keeps ONE "Show N more" at the
 // foot that asks the same search for the next batch (buySearch action "more"), in the engine's order, until the engine says nothing remains, when the button goes. The class: ANY search with more

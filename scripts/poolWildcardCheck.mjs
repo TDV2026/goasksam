@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // THE ARCHIVE WILDCARD BRIDGES A SEPARATOR, NOT A SENTENCE (Lane B, Oct 29 2026, Sam's gate: zero wrong-model results).
 // CAUSE: the pool read turns a code into an ILIKE pattern with a `*` between its digits and letters (300SL -> *300*SL*) so "300SL", "300 SL" and "300-SL" meet. An ILIKE `*` matches ANY text, so
 // "1956 Mercedes-Benz 300c w/Sliding Roof" (a $55,000 Adenauer sedan) was in the 1954 to 1957 300SL pool (range $1.5M to $1.87M, lowest sale $55,000). Nothing after the database read re-checked the code.

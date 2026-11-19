@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // A TYPED TRIM WITH NO SALES OF ITS OWN READS THE MODEL'S MARKET AND SAYS SO; IT IS NEVER "NOT TRACKED" (Lane B, Oct 30 2026, the Unmet demand table: "2020 Ford Mustang PP2" and "2016 Porsche 911 C4S" read "No sale of a Ford Mustang PP2 has been tracked yet.").
 // CAUSE: when the typed trim matched no sale at any rung, the engine ended at the not-tracked line for the TRIM, a claim about a car the model plainly has sales of (every 2020 Mustang). The Oct 29 ruling (Sam) already says a trim with too few sales of its own reads the model's market and
 // says so ("Too few Boxster Spyder sales for a range. Here is the Boxster market instead."); a trim with NONE fell through that ruling to the refusal.

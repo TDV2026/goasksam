@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // FIND PRINTS WHAT IT LEFT OUT (Lane E, Nov 1 2026; Lane B's lane-b-exclude): "ND Miata not RF", "911 without sunroof", "Mustang non-GT" remove cars, and the engine returns
 // excluded[] with its own sentence for each (Left out 3 listings that say RF. / ... though listings often stay silent on it.). The page prints each sentence exactly as sent under the
 // header, above the cards, and prints nothing when excluded[] is empty or absent. The class: every Find answer path that carries excluded[] (chat and rerun through meta.excluded, the

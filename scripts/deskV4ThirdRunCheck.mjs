@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // DESK V4 THIRD RUN CHECK (Lane S, Nov 12 2026): Sam's third run, six items, each with mutants that must fail. The page computes nothing: every figure and sentence below is a field the server sent.
 //   1 THE THIN LINE PRINTS ONCE (and CLASS: no line of 12 or more characters is printed in two places in the Reserve panel, across every tab, in the thin, the plain and the finalized states).
 //   2 COVER: every thumbnail but the cover has Set as cover (on hover and in its menu), the cover carries a small tag, the write is Lane D's case_edit cover with the photoId, the hero follows; and the report's first page prints the cover (the real report builder asked which photo it fetches first).

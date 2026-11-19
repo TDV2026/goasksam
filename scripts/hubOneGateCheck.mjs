@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // ONE GATE FOR "IS THIS HUB LIVE" (Lane B, Nov 8 2026; Lane F's sitemap audit: about 900 of the 4,545 hub URLs in the sitemap answered 404 or noindex because the file was built from the nightly cached list with a COPY of the page's rule).
 // RULE: the hub page and the sitemap's hub file both ask hubGate (api/history.js), so a hub is listed only when its page answers 200 and indexable; the VIN files list only VINs a verified hub links (sitemapView). CLASS: every hub, not one: for a spread of hub shapes the
 // page's real response (status, robots) must equal the gate's verdict and the file's membership, in both directions; and the file is built from the gate's output, never from the pre-gate list.

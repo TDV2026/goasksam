@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // A CAR IN A THIN MILEAGE BAND READS THE NEAREST BAND THAT HAS A RANGE, THE OPTION LIST NEVER RESTATES THE HEADLINE, BANDS PRINT ASCENDING (Lane B, Oct 30 2026).
 // THE LIVE CASE: a Task email, 1995 BMW M3 Coupe, 61,000 km (about 38,000 miles), Bellingham WA. Its own band (under 50,000 miles) holds 4 sales; the next (50,000 to 100,000 miles) holds 9, $26,000 to $36,500.
 // The card printed "Four sales under 50,000 miles, too few for a range." as the headline, then "Under 50,000 miles, 4 sales, too few for a range" as its first option (the same band twice), then the options as under 50,

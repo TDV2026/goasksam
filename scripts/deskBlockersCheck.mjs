@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // DESK DEMO BLOCKERS (Lane D, Nov 2026; Lane F's live check of two Hagerty test sheets). Offline: a fake archive holds cars whose pool SPLITS by body, the real engine reads it, the real sheet read and sheet actions answer.
 //   node scripts/deskBlockersCheck.mjs [repo root]        (scripts/deskBlockersFailsWithout.mjs: each mutant must turn it red)
 //  1. A POOL THAT SPLITS ASKS: when the engine finds the pool splits by body (or gearbox, edition, year) the sheet asks which one, from the engine's own options and counts (the VIN's body preselected when known); the tier is then read

@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // THE TASK EMAIL EXAMPLE (Lane B, Nov 8 2026, crew only, not live): tasksEmailExample(env, req) hands Lane E the block the Task email template renders for one car, read from a STORED Task update and built by the template's own function
 // (taskEmailBlocks), never composed or invented here. The preferred update is the 1995 BMW M3 Coupe on Bring a Trailer (last bid seen $1,000, 147,000 miles, West New York NJ, "Matches your Task: a BMW from 1995."); when it has aged out the
 // most recent real match update stands in (source "latest"); with none, null.

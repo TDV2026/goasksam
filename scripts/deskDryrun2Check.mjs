@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // DESK DRY RUN 2 (Lane D, Nov 8 2026; Sam's run on the 2008 Porsche 911 Carrera S sheet and its draft PDF). In the real page, in Chrome, over the real sheet actions and the real PDF writer, on three cars (a split pool,
 // a plain pool, a thin tier pool), not the one example. CAUSES: (1) a sheet could only be given photos by the New valuation form and printed none at the top; (2) a click waited for the engine before it showed anything and
 // the open waited too; (4/5/6) the median and the range were the body pool's whatever tier was picked, and the decision was held against a different range from the one on the page.
