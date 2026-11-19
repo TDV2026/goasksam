@@ -2887,9 +2887,9 @@ try {
 }
 try {
   const out = execSync("node scripts/poolSourceCheck.mjs", { encoding: "utf8", timeout: 240000 });
-  record("engine: a house-heavy car's Market Check pool is the whole record, house sales included; an online-heavy car keeps the online band (scripts/poolSourceCheck.mjs)", "PASS", (out.match(/poolSourceCheck: .*/) || [""])[0]);
+  record("engine: every sale we hold counts: a Market Check pool is the whole record, house sales included, whatever the online count (scripts/poolSourceCheck.mjs)", "PASS", (out.match(/poolSourceCheck: .*/) || [""])[0]);
 } catch (e) {
-  record("engine: a house-heavy car's Market Check pool is the whole record, house sales included; an online-heavy car keeps the online band (scripts/poolSourceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
+  record("engine: every sale we hold counts: a Market Check pool is the whole record, house sales included, whatever the online count (scripts/poolSourceCheck.mjs)", "FAIL", String(e.stdout || "").split("\n").filter(l => /^FAIL/.test(l)).slice(0, 4).join(" | "));
 }
 try {
   const out = execSync("node scripts/sheetReadCheck.mjs", { encoding: "utf8", timeout: 240000 });

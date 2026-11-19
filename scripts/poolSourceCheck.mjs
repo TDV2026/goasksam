@@ -1,7 +1,7 @@
 // POOL SOURCE CHECK (lane-b-rick2, Nov 5 2026). Live: Market Check for a 1934 Packard Twelve answered from 8 Bring a Trailer sedans while the archive held 29 house sales of the same years (convertibles, coupes, phaetons at RM, Gooding, Bonhams, Mecum).
 // CAUSE: the online band cut (lib/onebox.js fetchPool, "online"): once a fetched record holds three or more online sales its house sales are held out of the band, whatever they outnumber. For a car the houses sell, that threw away most of the record, and the pre-war
 // bodies rule then had one body to look at. WHO ELSE: every model whose archive sales are mostly house sales and that has three or more online sales: that is what docs/pool-source-sweep.sql counts. THE RULE NOW: when the houses are two-thirds or more of the record, the pool is the
-// whole record under the same rules (premium backed out, fences, set asides); a record that is mostly online keeps the cut. Must hold:
+// whole record under the same rules (premium backed out, fences, set asides); (Nov 19 2026: the cut is gone for every car, see block 2.) Must hold:
 //  (1) twenty house-heavy cars (house share from 67% up, 3 to 12 online sales, some pre-war; a car with fewer than 8 online sales is a thin record and already kept its house sales, so the cut bites from 8 online sales up): the Market Check pool count equals the archive count under the published rules (every sale in the window that passes the fences);
 //  (2) twenty online-heavy controls (house share under two-thirds, three or more online): unchanged, the pool is the online sales;
 //  (3) the Packard case (8 online sedans, 29 house sales over convertible, coupe, phaeton, sedan, 1933 to 1936): pool 37 and the pre-war bodies rule fires (apart by body).
@@ -48,12 +48,16 @@ for (const [k, [on, hs, year]] of HEAVY.entries()) {
   const d = await read(year, model), share = Math.round(hs / (on + hs) * 100);
   ok(`house-heavy ${model} (${year}, ${on} online, ${hs} house, ${share}% house): the pool is the whole record in its window: every sale, online and house`, poolOf(d) === inWindow(d) && inWindow(d) > on, `pool ${poolOf(d)}, archive in window ${inWindow(d)} (online ${inWindow(d, false)}, house ${inWindow(d, true)}), window ${d.windowStart}`);
 }
-// (2) online-heavy controls keep the cut
+// (2) EVERY SALE WE HOLD COUNTS (Sam, Nov 19 2026, lane-b-coverage; this block used to keep the online band cut for an online-heavy car). A pool with eight or more online sales still counts its house sales: pool = every sale in the window, online and house,
+// and the tiles name where each sold (card.platform, card.isHouse). Fails on main, where the pool is the online sales alone.
 for (let k = 0; k < 20; k++) { rows = []; n = 0; const model = "Online" + String(k).padStart(2, "0"), on = 10 + k, hs = 2 + (k % 5), year = 2001 + k % 8;
   for (let i = 0; i < on; i++) sale(year, "Coupe", 40000 + (i % 9) * 700, 30 + i * 5, model, false);
   for (let i = 0; i < hs; i++) sale(year, "Coupe", 52000 + (i % 3) * 900, 20 + i * 11, model, true);
   const d = await read(year, model);
-  ok(`online-heavy control ${model} (${on} online, ${hs} house): unchanged, the pool is the online sales in its window`, poolOf(d) === inWindow(d, false), `pool ${poolOf(d)}, online in window ${inWindow(d, false)}`); }
+  ok(`online-heavy ${model} (${on} online, ${hs} house): every sale counts, the pool is the online and the house sales in its window`, poolOf(d) === inWindow(d) && inWindow(d, true) === hs && poolOf(d) > inWindow(d, false), `pool ${poolOf(d)}, in window ${inWindow(d)} (online ${inWindow(d, false)}, house ${inWindow(d, true)})`);
+  const cards = d.cards || [], hc = cards.filter(c => c.platformSlug && c.platformSlug !== "bringatrailer");
+  ok(`... ${model}: every tile names where it sold, the ${hs} house sales by their own venue (never "others", never blank)`, cards.length === on + hs && hc.length === hs && cards.every(c => c.platformName && c.platformName !== "others"), JSON.stringify(cards.map(c => c.platformName)));
+  const strip = ((d.strip && d.strip.sales) || []).map(x => x.venue); if (strip.length) ok(`... ${model}: the sales strip names the same venues (never "others")`, strip.every(v => v && v !== "others"), JSON.stringify(strip)); }
 // (3) the Packard case
 { rows = []; n = 0; const model = "Twelve";
   for (let i = 0; i < 8; i++) sale(i < 2 ? 1934 : [1933, 1935, 1936][i % 3], "Sedan", 83000 + i * 1000, 30 + i * 12, model, false);
