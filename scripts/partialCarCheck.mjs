@@ -181,6 +181,22 @@ await section("sweep", async () => {
   ok("the VIN page takes a partial car as the words, never as a car (lib/vinAsTyped.js reads deps.car only when it is a full car)", (() => { const s = fs.readFileSync("lib/vinAsTyped.js", "utf8"); return /deps && deps\.car \?/.test(s); })());
 });
 
+// ---- FOR SALE (lib/forsale/serve.js withForSaleLine reads the car token of the answer it is handed; Lane D, Nov 18 2026, Lane C's hold): a PARTIAL token, as the crew and as a visitor, gives no line, no counts, no link, no error, and invents no model ----
+await section("forsale reader", async () => {
+  const FS = await imp("lib/forsale/serve.js"), GATE = await imp("lib/forsale/gate.js");
+  const ptok = tokenOf({ raw: "2009 BMW", year: 2009, make: "BMW" }), full = CT.encodeCar({ raw: "2003 Mercedes-Benz SL500", year: 2003, make: "Mercedes-Benz", model: "SL-Class", trim: "SL500" });
+  const crewReq = { headers: { cookie: "gas_crew=" + globalThis.__mintCrew() } }, visitorReq = { headers: { cookie: "" } };
+  const answerOf = t => ({ tier: "result", car: { token: t }, marker: 1 });
+  for (const [who, req] of [["crew", crewReq], ["a visitor", visitorReq]]) {
+    let out, thrown = null;
+    try { out = await GATE.withForSale(req, () => FS.withForSaleLine(env, answerOf(ptok))); } catch (e) { thrown = e; }
+    ok("withForSaleLine, a partial token as " + who + ": no error, the answer returned as it came, no line, no counts, no link, no model invented", !thrown && !!out && out.marker === 1 && out.forSaleLine === undefined && out.forSaleCounts === undefined && out.forSaleLink === undefined && !(out.car && out.car.model), thrown && String(thrown.message));
+  }
+  const visitorFull = await GATE.withForSale(visitorReq, () => FS.withForSaleLine(env, answerOf(full)));
+  ok("withForSaleLine, a full token as a visitor: still nothing added (the switch is off for a visitor)", visitorFull.forSaleLine === undefined && visitorFull.forSaleCounts === undefined);
+  ok("withForSaleLine guards on a model before it reads the car (a partial car is never handed on)", /if \(!w \|\| !car\.model\) return answer;/.test(fs.readFileSync("lib/forsale/serve.js", "utf8")) && /decodeCar\(answer\.car\.token\)/.test(fs.readFileSync("lib/forsale/serve.js", "utf8")));
+});
+
 // ---- THE BAR'S DOOR (lib/carBar.js prepareCarRequest and carFindRoute, the server side of a page opened with ?car=): a PARTIAL token opens the bar with the engine's words and Find's results already run, never stripped as a token that does not decode (Lane D, Nov 18 2026: the survivor "the bar's door opens no partial car" had no case that reached it) ----
 await section("bar door", async () => {
   const tok = tokenOf({ raw: "2009 BMW", year: 2009, make: "BMW" }), crewC = "gas_crew=" + globalThis.__mintCrew();
@@ -199,7 +215,7 @@ await section("bar door", async () => {
 await section("class", async () => {
   const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? (["node_modules", ".git", "proofs", "scripts", "docs", "public"].includes(e.name) ? [] : walk(path.join(d, e.name))) : /\.js$/.test(e.name) ? [path.join(d, e.name)] : []);
   const files = [...walk("api"), ...walk("lib")];
-  const READERS = ["api/buySearch.js", "api/sellChat.js", "api/sellerDecision.js", "api/tasks.js", "api/vehicleIdentity.js", "lib/sheetRead.js", "lib/carBar.js", "lib/carToken.js", "lib/carChoice.js", "lib/vinAsTyped.js"];
+  const READERS = ["api/buySearch.js", "api/sellChat.js", "api/sellerDecision.js", "api/tasks.js", "api/vehicleIdentity.js", "lib/sheetRead.js", "lib/carBar.js", "lib/carToken.js", "lib/carChoice.js", "lib/vinAsTyped.js", "lib/forsale/serve.js"];
   const readers = files.filter(f => /\b(carFromRequest|decodeCar)\(/.test(fs.readFileSync(f, "utf8")) && f !== "lib/carToken.js");
   ok("every reader of a car token is one this check drives with a partial token (a new reader fails here until it is listed and tested)", readers.every(f => READERS.includes(f)), readers.filter(f => !READERS.includes(f)));
   const uses = [];
@@ -266,7 +282,8 @@ function mutants() {
     sub("api/vehicleIdentity.js", "if (tokenCar && !isPartialCar(tokenCar)) {", "if (tokenCar) {", "vehicleIdentity returns a partial token as a valid car"),
     sub("lib/sheetRead.js", "(c => (c && c.model ? c : null))(decodeCar(input.car))", "decodeCar(input.car)", "the desk read takes a partial token as a car and invents a model"),
     sub("lib/live/search.js", "(aside.changed ? aside.text : String(text || \"\"))", "String(text || \"\")", "Find names the typed mileage as the model (BMW 38,400 miles gave the model 38 400)"),
-    sub("lib/live/search.js", "if (env && env.car && env.car.make && env.car.model) { const pq = parseQuery(raw);", "if (env && env.car && env.car.make) { const pq = parseQuery(raw);", "Find hands a partial car to the engine as a car (no model guard)")
+    sub("lib/live/search.js", "if (env && env.car && env.car.make && env.car.model) { const pq = parseQuery(raw);", "if (env && env.car && env.car.make) { const pq = parseQuery(raw);", "Find hands a partial car to the engine as a car (no model guard)"),
+    sub("lib/forsale/serve.js", "if (!w || !car.model) return answer;", "if (!w) return answer;", "the for sale line reads a partial token as a car (no model guard)")
   ];
   let survivors = 0;
   for (const m of M) {

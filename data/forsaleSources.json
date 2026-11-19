@@ -1,0 +1,26 @@
+{
+  "_about": "One file a person can read: every classifieds source the vendor carries that the census (docs/classifieds/census.md, lane-f-classifieds 49acfe61) saw, with the type each card is labelled with. type is dealer (the dealer's own site) or classified (a marketplace or listing site that carries many sellers). hold true means the source is never pulled and never served (the reason says why). Edit this file to change a type or to hold or release a source; nothing else decides it. A source that is not in this file is never pulled and never served, and is counted as unknown_source if one turns up.",
+  "sources": {
+    "streetside":          { "type": "dealer",     "hold": false },
+    "grautogallery":       { "type": "dealer",     "hold": false },
+    "classicautomall":     { "type": "dealer",     "hold": false },
+    "rkmotors":            { "type": "dealer",     "hold": false },
+    "vanguardmotorsales":  { "type": "dealer",     "hold": false },
+    "restoreamusclecar":   { "type": "dealer",     "hold": false },
+    "supersportclassics":  { "type": "dealer",     "hold": false },
+    "autobarnclassiccars": { "type": "dealer",     "hold": false },
+    "fusionmotorco":       { "type": "dealer",     "hold": false },
+    "driversource":        { "type": "dealer",     "hold": false },
+    "pjsautoworld":        { "type": "dealer",     "hold": false },
+    "ellingsonmotorcars":  { "type": "dealer",     "hold": false },
+    "gaudinclassic":       { "type": "dealer",     "hold": false },
+    "gpmotorsports":       { "type": "dealer",     "hold": false },
+    "autotraderclassics":  { "type": "classified", "hold": false },
+    "classiccars":         { "type": "classified", "hold": false },
+    "dupontregistry":      { "type": "classified", "hold": false },
+    "barnfinds":           { "type": "classified", "hold": false },
+    "gatewayclassiccars":  { "type": "dealer",     "hold": true, "reason": "census stage 3: its pages answer HTTP 202 with no page to every fetch, so no listing can be confirmed alive" },
+    "lowmilesnomiles":     { "type": "classified", "hold": true, "reason": "census stage 3: answered 429 to every fetch, so no listing can be confirmed alive" },
+    "carandclassic":       { "type": "classified", "hold": true, "reason": "census stage 3: answered 403 (Cloudflare) to every fetch, and nearly all of it is UK and Europe" }
+  }
+}

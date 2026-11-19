@@ -6,6 +6,8 @@ import { countNoun } from "../lib/countNoun.js";
 import { unusedFieldsFor } from "../lib/live/unusedWords.js";
 import { tryRefresh } from "../lib/refreshGate.js";
 import { carFromRequest, isPartialCar, carWords, partialCarOk, withPartialCar } from "../lib/carToken.js";
+import { withForSaleLine } from "../lib/forsale/serve.js";
+import { withForSale } from "../lib/forsale/gate.js";
 import { partialChoiceAnswer, makeWithYearsOnly, choiceReply } from "../lib/carChoice.js";
 import { resolveVehicle, sanitizeResolvedVehicle, primeResolver } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
@@ -3893,6 +3895,7 @@ async function handler(req, res) {
       // the cards are still being read (lib/variantRows.js: the rows outran this request's clock and finish behind it, stored): the engine's own "still being read" answer, so the page asks again and a visitor's first read is the second read, never the blend without its cards (lane-b-sell-cards-first)
       if (oneBox && oneBox.splitPending === true) return res.status(200).json(computingAnswer(vehicle));
       oneBox = withServedCar(oneBox, vehicle, { supabaseUrl, supabaseKey });   // the car this answer is SERVED for, whatever row it came from (lib/onebox.js withServedCar)
+      oneBox = await withForSaleLine({ supabaseUrl, supabaseKey }, oneBox);   // crew only behind FORSALE_PUBLIC: "20 for sale now: 3 at auction, 12 at dealers, 5 classifieds" and the address of Find for the car (lib/forsale/serve.js); a visitor's answer is returned as it came
       return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
     }
 
@@ -4775,4 +4778,4 @@ async function handler(req, res) {
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
-export default withTracking("/api/sellerDecision", (req, res) => withPartialCar(req, () => handler(req, res)), "sell");   // the partial car is crew only: the engine asks partialCarActive() (lib/carToken.js)
+export default withTracking("/api/sellerDecision", (req, res) => withPartialCar(req, () => withForSale(req, () => handler(req, res))), "sell");   // the partial car is crew only: the engine asks partialCarActive() (lib/carToken.js)
