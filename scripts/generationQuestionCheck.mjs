@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // A MODEL WHOSE SALES SPAN MORE THAN ONE GENERATION ASKS WHICH, WHEN NO YEAR IS TYPED (Lane B, Oct 29 2026, Sam's phone: "Audi RS 6 Avant" with no year read "RS6, all years", 2003 to 2011, $12,500 to $28,000; a reader typing it means the 2020-on car).
 // CAUSE: the generation question comes from the curated generation table (lib/generations.js). The RS6 had no rows, so the engine pooled every year it could read and showed one range. SWEEP of the stored no-year answers (14 with a range) found two
 // that span generations with no table row: Audi RS6 (2003 to 2011) and Volkswagen Rabbit (1978 to 2019: the 1975 to 1984 Rabbit and the 2006 to 2009 Rabbit). Both are in the table now. The rest are one generation by nature (Dune Buggy, Manx, 914, XK120...).

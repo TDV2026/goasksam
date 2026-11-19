@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // goLivePerfCheck (Lane E, Nov 10 2026, go live Stage 4): NO PUBLIC PAGE IS SLOWER TO A FIRST USABLE SEARCH THAN TODAY, at 1440 and 390.
 // For Home, Find, Market Check, Sell and Tasks (the landing pages): the page as it is today (NEW_DESIGN off) against the new page (on), the same handler, the same stubbed database.
 //   BYTES   the HTML the browser must download, plain and gzipped: the new page must not be heavier than today's (a photo inline as base64 made Home four times heavier and was taken out)

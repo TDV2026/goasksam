@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // A BARE MODEL NAME, A MAKE AND MODEL TYPED WITH ITS MAKE, A BADGE TWIN AND A STYLE WORD NEVER READ AS NOTHING OR AS A TRIM (Lane B, Nov 1 2026; the reader's "Capri" and "Mercury Capri" found nothing while a live BaT listing,
 // "RS-Style, 2.8L V6-Powered 1974 Mercury Capri 5-Speed", sat in the table). CAUSES: (1) the resolver knows a model only through the seeded taxonomy, so a bare model name resolved to no car; (2) the listing itself fell out
 // of every search on two title rules: "-Style" read as memorabilia and "2.8L V6-Powered" read as an engine swap (the Capri's factory V6); (3) Mercury Capri and Ford Capri were never linked for a request with no make;

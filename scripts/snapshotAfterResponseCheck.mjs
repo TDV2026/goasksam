@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // A STORED HIT ANSWERS BEFORE ITS SHARE SNAPSHOT IS WRITTEN, AND THE LINK NEVER POINTS AT NOTHING (Lane B, Oct 31 2026; Sam's go-ahead, conditional on the stage timings).
 // CAUSE: api/sellerDecision.js awaited persistSavedResult (an insert of the whole answer into saved_results) before responding to EVERY result, stored or fresh; on a stored hit it is the largest part of the read.
 // WHO ELSE: every stored Market Check, Find card and Tasks read that goes through the One Box branch with a result and no refine; fresh computes keep the awaited write (they are slow anyway and the id is real at once).

@@ -354,6 +354,18 @@
     "node_modules/"
    ]
   },
+  "buildOutputCheck": {
+   "file": "scripts/buildOutputCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "data/",
+    "lib/",
+    "public/js/",
+    "scripts/",
+    "scripts/checkMap.json"
+   ]
+  },
   "bulkSaleCheck": {
    "file": "scripts/bulkSaleCheck.mjs",
    "kind": "offline",
@@ -3486,6 +3498,7 @@
    "file": "scripts/houseSalesCountCheck.mjs",
    "kind": "offline",
    "covers": [
+    "data/engineStamp.json",
     "lib/live/search.js",
     "lib/onebox.js",
     "lib/reasonWords.js"
@@ -4069,6 +4082,7 @@
    "covers": [
     "api/",
     "api/buySearch.js",
+    "data/engineStamp.json",
     "lib/",
     "lib/live/search.js",
     "lib/onebox.js",
@@ -4391,7 +4405,11 @@
    "file": "scripts/noQuestionRuleCheck.mjs",
    "kind": "offline",
    "covers": [
+    "docs/",
     "lib/onebox.js",
+    "scripts/.checkTimes.json",
+    "scripts/_repoWalk.mjs",
+    "scripts/checkMap.json",
     "scripts/generationChipCheck.mjs",
     "scripts/mixedRangeCheck.mjs",
     "scripts/prePush.mjs",
@@ -5995,7 +6013,8 @@
     "lib/variants.js",
     "node_modules/",
     "package.json",
-    "scripts/"
+    "scripts/",
+    "scripts/_repoWalk.mjs"
    ]
   },
   "sellReserveLineCheck": {
@@ -6425,6 +6444,14 @@
     "lib/live/search.js",
     "lib/onebox.js",
     "scripts/ingest.js"
+   ]
+  },
+  "stampPinCheck": {
+   "file": "scripts/stampPinCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/",
+    "scripts/_repoWalk.mjs"
    ]
   },
   "standingControlsCheck": {
@@ -7797,6 +7824,7 @@
    "file": "scripts/widenedLineCheck.mjs",
    "kind": "offline",
    "covers": [
+    "data/engineStamp.json",
     "lib/live/samChat.js",
     "lib/live/search.js",
     "lib/live/unusedWords.js",

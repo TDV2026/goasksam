@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // THE FIND EXAMPLES: THE DAILY PICK AND THE HOURLY REVALIDATION (Lane B, Nov 8 2026, per Sam; crew only, not live).
 //   (1) once every 24 hours (the Pacific date, stored as pickDate) three live cars are chosen, the same for every visitor: one Bring a Trailer, one Cars & Bids, one from a third platform; when a platform has none, three different platforms, then three different makes
 //   (2) always three different makes; never the three newest listings; a real first photo and a year make model title; a car with a VIN confirmed sold before is in the three when one is available

@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // FIND PILLS FENCE THE POOL (Lane B, Nov 6 2026; a reader's two Find addresses). The class: a filter the page shows as a pill must narrow the cars, on EVERY path into the engine. Cause found: the search
 // that names no make (searchAll, lib/live/converse.js) tested body, gearbox, colour, miles, price and year but never the title word (has), the venue, "ends within", a colour or a word left out or an engine layout;
 // a body word the engine did not list (truck) was dropped without a trace, a colour it did not know was dropped, and a trim, generation or era with no car resolved was read by nothing. So

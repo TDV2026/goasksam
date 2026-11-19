@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // goLiveExamplesCheck (Lane E, Nov 10 2026, go live Stage 3): THE LANDING PAGES READ LANE B'S EXAMPLE FIELDS WITHOUT EVER BLOCKING THE SEARCH BOX.
 //   For Home, Find, Market Check, Sell and Tasks served by the new design on a public address:
 //   - a field that is null, a read that throws, a read that says "could not read" and a read that never answers all give the SAME page: the section is hidden, nothing is printed in its place, the search box is in the page;

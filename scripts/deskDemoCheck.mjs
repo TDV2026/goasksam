@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // DESK DEMO PRIORITIES (Lane D, Nov 2026; Sam's five). Offline: the real sheet actions, the memory store, the real PDF, the real email composer, the preview's own API.
 //   node scripts/deskDemoCheck.mjs [repo root]        (scripts/deskDemoFailsWithout.mjs: each mutant must turn it red)
 //  A. NEW VALUATION: a VIN or year make model, miles and photos make the same sheet the inbound email makes. One naming (carLabel), a typed sheet is read and re-read like a VIN sheet, photos are checked.

@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // findResultsCheck (Lane E, Nov 10 2026, go live held item: Find results in the new shell), the mcSellResultsCheck pattern applied to Find.
 // WHAT IT DOES: the Find results for one search (the 2005 Mercedes-Benz SL65 AMG, the stored engine answer scripts/fixtures/findSl65Search.json) are opened twice in Chrome from the SAME answer, with no network:
 //   TODAY  the page as /find?q= answers now (NEW_DESIGN off)

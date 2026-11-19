@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // DESK V4, SAM'S FOURTH RUN (Lane S, Nov 13 2026), against Lane D's d6996122 shapes. Six things, each with a mutant:
 //   1 THE UNOPENED LEAD: case.claim { line, button } prints in the case header as the server sent it; until the button is pressed every card and the Reserve panel are locked and no refusal prints; the click sends case_get { open: true } and the page then shows the claimed case, unlocked.
 //   2 THE DOT HINT: "Dot marks the suggestion" prints only when the engine marked a condition (condition.suggested), otherwise it is absent.

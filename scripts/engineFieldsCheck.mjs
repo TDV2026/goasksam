@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // NO ENGINE FIELD IS DROPPED SILENTLY (Sam, Oct 27 2026). Sell and Find each handed the shared card only the engine fields on their own list; a field the lists did not know was lost without a word
 // (the 325i blank card, the thin card that missed, the pooled options). Now: (1) there is ONE list (lib/engineFields.js CARD_FIELDS) and Sell's and Find's card fields both read it, neither keeps a
 // list of its own; (2) every top level field the engine can add to an answer is on that list or acknowledged in NOT_CARRIED. The fields are found in the engine's own source (every key a builder adds

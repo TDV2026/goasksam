@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // DESK V4 FLOW CHECK (Lane S, Nov 10 2026). The analyst's whole flow in Chrome on the REAL readers (the page's POSTs go to the in-process Desk reader, previewDeskApi, which runs Lane D's case actions and Lane B's engine read; no stub).
 //   FLOW: open the demonstration case; tick and untick a comparable (the list stays); exclude one with a reason and restore it; click each condition; switch the window; type and drag the reserve and push it above the typical range;
 //   tick the seller's request; add a document; resolve every attention item; Select all photos; edit a next step; Preview (a typed, unsaved why is flushed first); Finalize.

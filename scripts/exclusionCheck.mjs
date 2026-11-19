@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // EXCLUSIONS: A WORD AFTER "NOT" REMOVES CARS, IT NEVER NARROWS TOWARD THEM (Lane B, Nov 1 2026; a reader's /feedback: "ND Miatas that are NOT RF" returned an RF Miata). Worked offline on a fake archive; no production read.
 // CAUSE: nothing read a negation. The resolver took "not GT" as trim GT, "except convertible" as body convertible, "excluding Targa" as trim Targa, "no automatic" as an automatic filter, "not a V8" as a V8 filter, and the NOT itself was dropped as filler.
 // FIX: lib/exclusions.js takes the negated phrase out of the text before any reader sees it and carries it as a key (not:rf); the engine removes the sales that carry the word and says what it removed (typedAttributeLines), or says no sale states it;

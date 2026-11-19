@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // DESK V3 STAGE 7, THE DEMO WALKTHROUGH (Lane E, Nov 9 2026). Chrome drives the whole road against the REAL readers (the preview door, Lane D's case_new and case_edit and case_pdf and case_finalize, caseView, readinessOf, Lane B's deskBlock):
 // a case from nothing through the New case form, two photos (the first becomes the cover), condition Good then Excellent then Fair with the market line changing each time and the page never reloading, the valuation typed, the reserve and rationale,
 // the draft report opened in the pane, Finalize, version 1 locked. The only stand-in is the archive: a registered engine answers from tiered sample sales through Lane B's deskBlock (the same block the page reads live).

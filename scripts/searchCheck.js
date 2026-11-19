@@ -35,7 +35,7 @@ function parsePage(html) {
 
 // The Vercel Security Checkpoint 429s automated fetches; the project bypass secret (same one warm.js
 // uses) clears it. Browsers are unaffected. Absent -> the nightly may see 429s, which is a loud fail.
-const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || "";
+const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || process.env.GAS_BYPASS || "";   // GAS_BYPASS is the name the lane scripts read from the Keychain (goasksam-bypass)
 async function getText(url) {
   const headers = { "user-agent": "GoAskSam-searchCheck", ...(BYPASS ? { "x-vercel-protection-bypass": BYPASS, "x-vercel-set-bypass-cookie": "samesitenone" } : {}) };
   try { const r = await fetch(url, { redirect: "follow", headers, signal: AbortSignal.timeout(25000) }); return { ok: r.ok, status: r.status, finalUrl: r.url, body: await r.text() }; }

@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // A WARM IS STAMPED WITH THE EPOCH IT WAS WRITTEN UNDER, AND SAYS WHEN THAT EPOCH ENDS (Lane B, Nov 7 2026; Lane C's warm after warmguard: the bare Delahaye 135 and Duesenberg Model J rows read epoch_mismatch and stale).
 // CAUSE (read from production, not guessed): the rows were stamped with the live epoch at write time (2026-11-06T15:00:05Z, the row stored 08:22Z Nov 7) and the daily ingest bumped the epoch at the end of its run (13:58:13Z Nov 7; the job_ingest log shows the
 // run ending between 13:58 and 17:01Z on each of the last 7 days), so every row stored in the hours before it reads as the previous epoch (warmDay: 18,855 of 20,303 rows). A deploy does not change the epoch: only scripts/ingest.js bumps it, and the warm and the reader

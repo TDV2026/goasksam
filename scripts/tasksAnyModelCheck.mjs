@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // ANY MODEL IN A TASK (Lane B, Nov 2026, CREW ONLY, NOT LIVE). Lane F's audit: "a red Ferrari near Chicago" was answered with "Which Ferrari model should Sam look for?" before it would start, and the read-back
 // never said any model. CAUSE: validateJob asks the model question for every hunt with a make and no model (it had an Any option, but only after the question), and jobPhrase prints the make's plural
 // ("Ferraris") whether the buyer chose a model or any. Affects every make-only hunt (Ferrari, Porsche, Ford ... with a colour, place, price or mileage) and its read-back, reasons and emails (jobPhrase / matchReasonList).
