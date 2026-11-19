@@ -60,6 +60,7 @@ globalThis.fetch = realFetch;
 const REVIEWED = {   // file: why a failed read cannot reach a visitor as a data claim or a blank there (each read for this check, Nov 5 2026)
   "lib/live/narrow.js": "a failed or slow read gives no generation question and the search falls back to decades; it prints no claim",
   "lib/sell/sellFacts.js": "its answer reaches a visitor only through buildResult and buildBlock (lib/sell/sellFlow.js, sellBlock.js), which stop on a failed read (part 4 below); its question path takes only choices and builder refusals",
+  "lib/tasks/tasks.js": "the one call (the Task email preview probe, read only, mileage line) adds mileage_read only when the answer is tier result; a failed, slow (8 s race) or thrown read leaves the preview without the line and states nothing about the market",
   "api/_historyData.js": "returns the engine's answer to its page callers, which map an unavailable answer: api/history.js oneBoxBlock (part 5 below), api/buySearch.js and api/partnerAnswer.js (stillReading)"
 };
 const walk = (dir, out = []) => { for (const e of fs.readdirSync(dir, { withFileTypes: true })) { if (e.name === "node_modules" || e.name.startsWith(".")) continue; const f = path.join(dir, e.name); if (e.isDirectory()) walk(f, out); else if (/\.(js|mjs)$/.test(e.name)) out.push(f); } return out; };
