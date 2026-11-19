@@ -40,7 +40,7 @@
       ]
     },
     {
-      "id": "bmw-3-series-e30", "label": "BMW 3 Series (E30), 1984 to 1991", "make": "BMW", "models": ["3-Series"], "years": [1984, 1991], "vin": null,
+      "id": "bmw-3-series-e30", "label": "BMW 3 Series (E30), 1984 to 1991", "make": "BMW", "models": ["3-Series"], "alsoModels": ["318i", "325e", "325i", "325is"], "years": [1984, 1991], "vin": null,
       "variants": [
         {"name": "318i", "years": [1984, 1991], "words": ["\\b318\\s?is?\\b"]},
         {"name": "325e", "years": [1984, 1987], "words": ["\\b325\\s?e\\b"]},

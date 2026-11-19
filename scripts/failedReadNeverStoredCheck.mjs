@@ -17,6 +17,7 @@ let pass = 0, fail = 0; const ok = (n, c, d) => { if (c) pass++; else { fail++; 
 const SITES = {
   "lib/live/search.js": [5, "persistCore (every market row: Find, Buy, Tasks, warm answers, question rows, markers), markRecomputing (a PATCH of a row already stored), the computing marker, the stored-row delete", "persistCore refuses a failed-read row (B); the others store a marker or change a row that exists"],
   "lib/onebox.js": [3, "the eligibility record (kind qelig), the missed-question queue (kind qelig_miss), the delete of a stale eligibility row", "none stores a market answer; an eligibility record is made from answers that already finished"],
+  "lib/variantRows.js": [1, "the variant split of a family car (kind vsplit, writeSplitStore: the cards of the versions, 12 hours, keyed on the engine stamp)", "stored only from a FINISHED split whose every row came from an engine answer that came back (rowReadFailed: no answer, an unavailable or read_failed tier, a still-reading answer, or a variant the resolver could not name makes the row bad, and a split holding a bad row is shown but never kept or stored); never by a crew read; never by a read that timed out before the rows were done (the compute kept alive behind it stores only when all rows are good) (D)"],
   "lib/sell/sellBlock.js": [1, "the Sell block (writeBlock)", "its caller returns why:failed_read before writing; a block with no epoch is refused"],
   "lib/sell/sellFacts.js": [1, "the Sell facts row", "only when places.total is above zero (an empty result may be a read that did not come back)"],
   "lib/sell/sellExample.js": [1, "the Sell landing example", "stores an example it built, never a null"],
@@ -69,6 +70,21 @@ FAIL.archive = false; WRITES.length = 0; await new Promise(r => setTimeout(r, 28
 ok("(C) the same search over a working archive stores real answers, none of them saying nothing", marketRows().length > 0 && !marketRows().some(x => sayless(x.market)), { rows: marketRows().length });
 ok("(C) every none row it stores names the tier of the engine answer it was made from (answeredTier)", marketRows().filter(x => x.market.kind === "none").length > 0 && marketRows().filter(x => x.market.kind === "none").every(x => typeof x.market.answeredTier === "string" && x.market.answeredTier), marketRows().filter(x => x.market.kind === "none").slice(0, 2).map(x => x.market));
 if (process.env.SHOWKINDS) console.log(marketRows().map(x => x.market.kind + ":" + (x.market.answeredTier || "-")).join(" "));
+// (D) THE VARIANT SPLIT STORE (lane-b-sell-cards-first; Lane C's sixth red: an unclassified write site, lib/variantRows.js). A split whose rows were read over a failing archive says "no sales" for every version of a car nobody read; it must never be stored. A crew read stores nothing. A working archive and a good read store the split.
+{ const VR = await imp("lib/variantRows.js"), OBx = await imp("lib/onebox.js"); VR.__setResolver(async text => ({ status: "valid", vehicle: { year: 1987, make: "Pontiac", model: "Firebird", trim: null, confidence: "high", raw: text } }));
+  const vsw = []; const f0 = globalThis.fetch; let archive = "fail";
+  globalThis.fetch = async (u, o) => { const url = String(u); if (/spec_market_cache/.test(url) && o && o.method === "POST") { vsw.push(...JSON.parse(o.body)); return new Response("[]", { status: 201 }); } if (/sales_archive/.test(url)) return archive === "fail" ? new Response("boom", { status: 500 }) : new Response("[]", { status: 200 }); return new Response("[]", { status: 200 }); };
+  const d = { tier: "result", poolN: 12, cluster: null, variants: { familyId: "pontiac-firebird-3rd", stated: [], applied: false, chosen: null, items: [] }, resolvedCar: { year: 1987, make: "Pontiac", model: "Firebird", nameModel: "Firebird" } }, veh = { make: "Pontiac", model: "Firebird", year: 1987 }, envD = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
+  const run = async (crew) => { VR.__clearVariantRowsCache(); vsw.length = 0; const r = await VR.variantSplitFor(d, { asked: 0, refine: null, crew, text: "1987 Pontiac Firebird" }, veh, null, envD, { deadlineMs: 20000 }); await new Promise(x => setTimeout(x, 400)); return { r, stored: vsw.filter(x => /^VSPLIT\|/.test(x.spec_key)).length }; };
+  archive = "fail"; const failed = await run(false);
+  ok("(D) a split read over a failing archive is never stored", failed.stored === 0, { stored: failed.stored });
+  const memory = await (async () => { vsw.length = 0; const r = await VR.variantSplitFor(d, { asked: 0, refine: null, crew: false, text: "1987 Pontiac Firebird" }, veh, null, envD, { deadlineMs: 20000 }); await new Promise(x => setTimeout(x, 300)); return vsw.filter(x => /^VSPLIT\|/.test(x.spec_key)).length; })();
+  ok("(D) ...and a second read over the failing archive does not find it remembered either (it reads again)", memory === 0, { stored: memory });
+  archive = "ok"; const good = await run(false);
+  ok("(D) the same search over a working archive stores its split (a real read is stored)", good.stored === 1, { stored: good.stored });
+  const crewRun = await run(true);
+  ok("(D) a crew read stores nothing", crewRun.stored === 0, { stored: crewRun.stored });
+  globalThis.fetch = f0; VR.__setResolver(null); VR.__clearVariantRowsCache(); }
 console.log(`failedReadNeverStoredCheck: ${fail ? fail + " FAIL" : "all pass"} (${pass})`); process.exit(fail ? 1 : 0);
 
 function mutants() {
@@ -79,13 +95,16 @@ function mutants() {
     ["the writer stores a row that says readFailed", "lib/live/search.js", s => s.replace('if (core.readFailed === true || core.stillReading === true) return "read_failed";', ""), "readFailed"],
     ["the writer is not asked at all", "lib/live/search.js", s => s.replace("  const why = storeRefusalReason(core);\n  if (why) {", "  const why = null;\n  if (why) {"), "refused"],
     ["the none row forgets its answeredTier", "lib/live/search.js", s => s.replace('kind: "none", answeredTier: answeredTierMem.get(spec.key) || null,', 'kind: "none",'), "names the tier"],
+    ["the split store keeps a split built from failed reads", "lib/variantRows.js", s => s.replace("const split = finish(rows), failed = rows.some(r => BAD_ROWS.has(r));", "const split = finish(rows), failed = false;"), "(D) a split read over a failing archive is never stored"],
+    ["a failed read is remembered by the row cache", "lib/variantRows.js", s => s.replace("if (rowReadFailed(raw)) BAD_ROWS.add(row); else rowCache.set(rkey, { at: Date.now(), row });", "rowCache.set(rkey, { at: Date.now(), row });"), "(D)"],
+    ["a crew read stores the split", "lib/variantRows.js", s => s.replace("if (!(ctx && ctx.crew)) keepAlive(writeSplitStore(env, skey, split));", "keepAlive(writeSplitStore(env, skey, split));"), "(D) a crew read stores nothing"],
     ["a new direct write site appears unnamed", "lib/live/findExamples.js", s => s + '\nexport async function __leak(env, key, m) { await fetch(`${env.supabaseUrl}/rest/v1/spec_market_cache?on_conflict=spec_key`, { method: "POST", body: JSON.stringify([{ spec_key: key, market: m }]) }); }\n', "write site named"],
     ["a named write site is dropped from the tree", "lib/live/deskExample.js", s => s.replace('supabaseInsert("spec_market_cache"', 'supabaseInsert("other_table"'), "still exists"],
   ];
   let survived = 0;
   for (const [name, file, fn, expect] of M) {
     const tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "frns-")); try {
-      for (const d of ["lib", "api", "scripts", "public"]) if (fs.existsSync(path.join(R, d))) fs.cpSync(path.join(R, d), path.join(tmp, d), { recursive: true, filter: s => !/node_modules/.test(s) });
+      for (const d of ["lib", "api", "scripts", "public", "data"]) if (fs.existsSync(path.join(R, d))) fs.cpSync(path.join(R, d), path.join(tmp, d), { recursive: true, filter: s => !/node_modules/.test(s) });
       for (const f of ["vercel.json", "package.json"]) if (fs.existsSync(path.join(R, f))) fs.copyFileSync(path.join(R, f), path.join(tmp, f));
       fs.symlinkSync(path.join(R, "node_modules"), path.join(tmp, "node_modules"));
       const fp = path.join(tmp, file), src = fs.readFileSync(fp, "utf8"), out = fn(src); if (out === src) { console.log("MUTANT BROKEN (no change): " + name); survived++; continue; }
