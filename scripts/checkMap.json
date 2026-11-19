@@ -2590,6 +2590,7 @@
     "docs/",
     "docs/supabase-factmine.sql",
     "lib/",
+    "lib/factCoverage.js",
     "lib/factMap.js",
     "lib/factMine.js",
     "lib/factModel.js",
