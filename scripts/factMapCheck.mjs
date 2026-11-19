@@ -37,6 +37,45 @@ await section("the kinds", async () => {
   ok("kindOf accepts the spellings a model gives and refuses what is not a kind", MAP.kindOf("Work Done") === "work_done" && MAP.kindOf("work-done") === "work_done" && MAP.kindOf(" EQUIPMENT ") === "equipment" && MAP.kindOf("options") === null && MAP.kindOf("") === null && MAP.kindOf(null) === null);
 });
 
+await section("fm5: one call pages through every unmapped topic", async () => {
+  const raw = {}; for (let i = 0; i < 930; i++) raw["topic " + String(i).padStart(3, "0")] = 3 - (i % 3);   // 930 raw topics, the most common first
+  const solo = db => (a) => { db.calls.push({ system: a.system, user: a.user }); const u = a.usage || { input_tokens: 100, output_tokens: 50 };
+    if (/^You label/.test(a.system)) return { text: JSON.stringify({ kinds: JSON.parse(a.user).map(x => ({ topic: x.topic, kind: "other" })) }), usage: u };
+    return { text: JSON.stringify({ groups: JSON.parse(a.user).map(x => ({ canonical: x.label, kind: "condition", members: [x.label] })) }), usage: u }; };
+  const db = mkDb(raw), r = await run(db, async a => solo(db)(a));
+  ok("ONE call maps all 930 raw topics (batches of 300: four batches) and says so: mapped 930, remaining 0, 4 batches", r.ok && r.body.mapped === 930 && r.body.remaining_unmapped === 0 && r.body.batches === 4 && r.body.asked === 930 && db.map.length === 930 && r.body.stopped === null, r.body);
+  ok("each batch takes the most common unmapped topics first (the first batch holds the 300 most common)", JSON.parse(db.calls[0].user).map(x => x.label)[0] === "topic 000" && JSON.parse(db.calls[0].user).length === 300 && JSON.parse(db.calls[3].user).length === 30, [JSON.parse(db.calls[0].user).length, JSON.parse(db.calls[3].user).length]);
+  const again = await run(db, async a => solo(db)(a)); ok("a second call has nothing to map: no model call, remaining 0", again.ok && again.body.asked === 0 && again.body.batches === 0 && again.body.remaining_unmapped === 0 && db.calls.length === 4, again.body);
+  // the time budget: each batch takes 120 ms; the budget of 400 ms fits two or three batches, then it stops with the rest remaining; the next call carries on and nothing is mapped twice
+  const t = mkDb(raw), slow = async a => { await new Promise(r => setTimeout(r, 120)); return solo(t)(a); };
+  const r1 = await MAP.runFactMap({ family: "e46_m3", limit: 300 }, { select: t.select, insert: t.insert, callModel: slow, timing: { budgetMs: 450, marginMs: 0 } });
+  ok("a call stops when the time budget would not fit another batch, and says how many remain (stopped time, 1 to 3 batches, the rest remaining)", r1.ok && r1.body.stopped === "time" && r1.body.batches >= 1 && r1.body.batches <= 3 && r1.body.remaining_unmapped === 930 - r1.body.mapped && r1.body.remaining_unmapped > 0, r1.body);
+  const r2 = await MAP.runFactMap({ family: "e46_m3", limit: 300 }, { select: t.select, insert: t.insert, callModel: slow, timing: { budgetMs: 450, marginMs: 0 } }), r3 = await MAP.runFactMap({ family: "e46_m3", limit: 300 }, { select: t.select, insert: t.insert, callModel: slow, timing: { budgetMs: 450, marginMs: 0 } });
+  ok("a full map is a few calls (here at most four), mapped 930 in all with no topic mapped twice", t.map.length === 930 && new Set(t.map.map(m => m.raw_topic)).size === 930 && r1.body.mapped + r2.body.mapped + r3.body.mapped >= 930 - 300, [r1.body.mapped, r2.body.mapped, r3.body.mapped, t.map.length]);
+  const c = mkDb(raw), r4 = await MAP.runFactMap({ family: "e46_m3", limit: 300, tokenCap: 1000 }, { select: c.select, insert: c.insert, callModel: async a => solo(c)({ ...a, usage: { input_tokens: 400, output_tokens: 100 } }) });
+  ok("the token cap stops the paging (500 tokens a batch against a cap of 1,000: two batches, stopped token_cap, 330 remaining)", r4.ok && r4.body.stopped === "token_cap" && r4.body.batches === 2 && r4.body.remaining_unmapped === 330, r4.body);
+  const f = mkDb(raw); let k = 0; const r5 = await run(f, async a => { if (++k === 2) throw new Error("model 429"); return solo(f)(a); });
+  ok("a batch that fails after the first stops the paging, keeps what was mapped, and says so (200, stopped model_error, 300 mapped, 630 remaining)", r5.ok && r5.body.stopped === "model_error" && r5.body.mapped === 300 && r5.body.remaining_unmapped === 630 && f.map.length === 300, r5.body);
+  const g = mkDb(raw), r6 = await run(g, async () => { throw new Error("model 500"); }); ok("a first batch that fails is a 502 and writes nothing", r6.ok === false && r6.status === 502 && g.map.length === 0, r6);
+  ok("CLASS (no topic is left out of the count): mapped + remaining = every raw topic not yet mapped, after a full call and after a call cut short", r.body.mapped + r.body.remaining_unmapped === 930 && r1.body.mapped + r1.body.remaining_unmapped === 930 && r4.body.mapped + r4.body.remaining_unmapped === 930, [r.body.mapped, r1.body.mapped, r4.body.mapped]);
+  // the labelling pass pages too: 700 canonicals with no kind
+  const rows = Array.from({ length: 700 }, (_, i) => ({ raw_topic: "k" + i, canonical_topic: "k" + i, family: "e46_m3", map_version: "m1", kind: null })), kr = {}; for (let i = 0; i < 700; i++) kr["k" + i] = 700 - i;
+  const h = mkDb(kr, rows), r7 = await run(h, async a => solo(h)(a));
+  ok("the labelling pass pages through every kindless canonical in the same call (700 in three batches), says so, and leaves none", r7.ok && r7.body.kind_batches === 3 && r7.body.kinded === 700 && r7.body.kind_remaining === 0 && h.map.every(m => m.kind === "other"), r7.body);
+});
+await section("fm5: the report's shares across every statement", async () => {
+  const runs = Array.from({ length: 10 }, (_, i) => ({ listing_id: "bringatrailer:L" + i, source: "bringatrailer" }));
+  const mm = (t, o = {}) => ({ listing_id: "bringatrailer:L" + (o.i || 0), source: "bringatrailer", topic: t, statement_type: "claim", polarity: "neutral", has_date: !!o.y, has_mileage: !!o.m, stated_year: o.y || null, stated_miles: o.m || null, proof_mentioned: !!o.p, unmatched: !!o.u });
+  // 19 statements over 10 topics, only the top 2 shown; four are equipment (set aside); every share is over ALL 19
+  const ments = [...Array.from({ length: 6 }, (_, i) => mm("service", { i, y: i < 3 ? 2022 : 0, p: i < 4 })), ...Array.from({ length: 5 }, (_, i) => mm("wheels", { i, m: i < 2 ? 50000 : 0 })), mm("a", { u: true }), mm("b", { y: 2019, m: 41000, p: true }), mm("c", { u: true, p: true }), mm("d"), mm("e"), mm("f"), mm("g"), mm("h", { y: 2020 })];
+  const map = [{ raw_topic: "wheels", canonical_topic: "wheels", kind: "equipment" }, { raw_topic: "a", canonical_topic: "a", kind: "option" }];
+  const rep = REP.reportFrom({ runs, mentions: ments, map, sales: new Map() }, { family: "e46_m3", map: "m1", top: 2, includeEquipment: false }), sh = rep.statement_shares;
+  ok("the report carries statement_shares across ALL 19 statements, not the top topics: stated year 5 (26.3%), stated miles 3 (15.8%), proof 6 (31.6%), unmatched 2 (10.5%)", sh && sh.statements === 19 && sh.with_stated_year === 5 && sh.with_stated_year_pct === 26.3 && sh.with_stated_miles === 3 && sh.with_stated_miles_pct === 15.8 && sh.with_proof === 6 && sh.with_proof_pct === 31.6 && sh.unmatched === 2 && sh.unmatched_pct === 10.5, sh);
+  ok("the shares do not move when the top is cut to 1 or equipment is included (they are over every statement)", JSON.stringify(REP.reportFrom({ runs, mentions: ments, map, sales: new Map() }, { family: "e46_m3", map: "m1", top: 1, includeEquipment: true }).statement_shares) === JSON.stringify(sh));
+  const svc = rep.topics.find(t => t.topic === "service"); ok("a topic carries its own proof share (service: 4 of 6 statements name proof, 66.7%)", svc && svc.with_proof_pct === 66.7 && svc.with_a_date_pct === 50, svc);
+  const sel = []; await REP.runFactReport({ family: "e46_m3" }, { select: async qs => { sel.push(qs); return []; } });
+  ok("the read asks for the stored year, miles, proof and unmatched flag of every statement", sel.some(q => q.startsWith("listing_mentions?") && /stated_year,stated_miles,proof_mentioned,unmatched/.test(q)), sel.find(q => q.startsWith("listing_mentions?")));
+});
 await section("the map gives a kind", async () => {
   const raw = { "limited-slip differential": 9, "lsd": 3, "shadowline trim": 6, "repainted": 5, "original paint": 4, "no accidents": 7, "accident": 2, "service records": 8, "records from new": 2, "weird thing": 2, "other fact": 2 };
   const groups = [{ canonical: "limited-slip differential", kind: "equipment", members: ["limited-slip differential", "lsd"] }, { canonical: "shadowline trim", kind: "Equipment", members: ["shadowline trim"] },
@@ -150,11 +189,11 @@ function mutants() {
     ["a kind outside the list is accepted", ...sub("lib/factMap.js", "return KINDS.includes(s) ? s : null; };", "return s || null; };")],
     ["a kind outside the list is guessed as other", ...sub("lib/factMap.js", "return KINDS.includes(s) ? s : null; };", "return KINDS.includes(s) ? s : \"other\"; };")],
     ["work done is not read as work_done", ...sub("lib/factMap.js", ".replace(/[\\s-]+/g, \"_\"); return KINDS", "; return KINDS")],
-    ["the rows written before kinds are not asked", ...sub("lib/factMap.js", "let kindTodo = kindTodoOf();", "let kindTodo = [];")],
+    ["the rows written before kinds are not asked", ...sub("lib/factMap.js", "const given_ = new Set(), tried = new Set(), kindTodoOf = () => [...unkinded.entries()].filter(([t]) => !given_.has(t) && !tried.has(t))", "const given_ = new Set(), tried = new Set(), kindTodoOf = () => []")],
     ["the labelling pass leaves out a label the model skipped", ...sub("lib/factMap.js", "out.left_alone++; unkinded.set(t, n); }", "out.left_alone++; }")],
     ["the labelling pass rewrites the canonical name", ...sub("lib/factMap.js", "rows.push({ raw_topic: m.raw_topic, canonical_topic: m.canonical_topic, family: c.family, map_version: c.version, kind: given.get(m.canonical_topic) });", "rows.push({ raw_topic: m.raw_topic, canonical_topic: m.canonical_topic + \" x\", family: c.family, map_version: c.version, kind: given.get(m.canonical_topic) });")],
     ["the labelling pass asks again for rows that have a kind", ...sub("lib/factMap.js", "if (!kindOf(m.kind)) unkinded.set(", "if (true) unkinded.set(")],
-    ["the labelling pass sends more than labels and counts", ...sub("lib/factMap.js", "JSON.stringify(kindTodo.map(([t, n]) => ({ topic: t, n })))", "JSON.stringify(kindTodo.map(([t, n]) => ({ topic: t, n, rows: ms.length })))")],
+    ["the labelling pass sends more than labels and counts", ...sub("lib/factMap.js", "JSON.stringify(batch.map(([t, n]) => ({ topic: t, n })))", "JSON.stringify(batch.map(([t, n]) => ({ topic: t, n, rows: ms.length })))")],
     ["the report does not set equipment aside", ...sub("lib/factReport.js", ".filter(([c]) => call.includeEquipment || !isEq(c)).sort(", ".sort(")],
     ["the report sets it aside and does not count it", ...sub("lib/factReport.js", "topics: eq.length, mentions: eq.reduce((a, [, t]) => a + t.n, 0), listings: eqListings.size };", "topics: 0, mentions: 0, listings: 0 };")],
     ["the report counts the listings of the equipment wrongly", ...sub("lib/factReport.js", "listings: eqListings.size };", "listings: eq.length };")],
@@ -162,6 +201,17 @@ function mutants() {
     ["an option topic is not set aside by the report", ...sub("lib/factMap.js", "export const ASIDE_KINDS = [\"equipment\", \"option\"];", "export const ASIDE_KINDS = [\"equipment\"];")],
     ["the option kind is missing from the kinds", ...sub("lib/factMap.js", "\"equipment\", \"option\", \"other\"];\n// the kinds", "\"equipment\", \"other\"];\n// the kinds")],
     ["the labelling prompt does not define option", ...sub("lib/factMap.js", "option (a factory option, package or trim line named as such", "option (")],
+    ["the map stops after one batch", ...sub("lib/factMap.js", "if (out.batches > 0) { const why = room();", "if (out.batches > 0) { const why = \"one\";")],
+    ["the map ignores the time budget", ...sub("lib/factMap.js", "if (spent() + lastMs * 1.25 + T.marginMs > T.budgetMs) return \"time\";", "")],
+    ["the map ignores the token cap while paging", ...sub("lib/factMap.js", "if (out.tokens_input + out.tokens_output >= c.tokenCap) return \"token_cap\";", "")],
+    ["the map does not say how many remain", ...sub("lib/factMap.js", "out.remaining_unmapped = todoOf().length;\n  // ---- the labelling", "out.remaining_unmapped = 0;\n  // ---- the labelling")],
+    ["the map asks the least common topics first", ...sub("lib/factMap.js", ".sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));\n  // canonical topics", ".sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1));\n  // canonical topics")],
+    ["a later batch that fails loses what was mapped", ...sub("lib/factMap.js", "if (!out.batches) return { ok: false, status: 502, why: a.err || \"the model's answer could not be read\" }; out.stopped = out.stopped || \"model_error\"; break; }", "return { ok: false, status: 502, why: \"x\" }; }")],
+    ["the labelling pass does not page", ...sub("lib/factMap.js", "out.kind_batches++; lastMs = Math.max(lastMs, Date.now() - b0); if (!any)", "out.kind_batches++; lastMs = Math.max(lastMs, Date.now() - b0); break; if (!any)")],
+    ["the report's shares cover only the shown topics", ...sub("lib/factReport.js", "const n = mentions.length; out.statement_shares", "const n = mentions.length; mentions = ranked.slice(0, call.top).flatMap(([c]) => mentions.filter(m => canon(m.topic) === c)); out.statement_shares")],
+    ["the report leaves out the proof share", ...sub("lib/factReport.js", "with_proof_pct: share(mentions.filter(m => m.proof_mentioned === true).length, n), unmatched_pct", "unmatched_pct")],
+    ["the report counts a null year as stated", ...sub("lib/factReport.js", "with_stated_year_pct: share(mentions.filter(m => m.stated_year != null ||", "with_stated_year_pct: share(mentions.filter(m => true ||")],
+    ["the report does not ask for the proof column", ...sub("lib/factReport.js", "has_mileage,stated_year,stated_miles,proof_mentioned,unmatched&family", "has_mileage&family")],
     ["equipment=include is ignored by the report", ...sub("lib/factReport.js", "includeEquipment: eq === \"include\" }", "includeEquipment: false }")],
     ["equipment is included by default", ...sub("lib/factReport.js", "includeEquipment: eq === \"include\" }", "includeEquipment: eq !== \"set_aside\" }")],
     ["a bad equipment value is accepted", ...sub("lib/factReport.js", "if (![\"\", \"include\", \"set_aside\"].includes(eq)) return", "if (false) return")],
