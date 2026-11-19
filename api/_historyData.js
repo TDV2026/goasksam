@@ -314,11 +314,18 @@ export async function hubHasRows(env, hub, capMs = HUB_READ_MS) {
   if (has) return true;
   return sales == null || atts == null ? null : false;
 }
+// THE CAR ON A ROW (Lane S, Nov 18 2026): the archive's own columns for the car, straight from the row (year, model, the archive's
+// model_family, body style), nothing read from the title or the VIN. Null when the row holds none of them. A sale's wins over an attempt's.
+function carCols(year, model, family, body) {
+  const t = v => { const x = String(v == null ? "" : v).trim(); return x || null; };
+  const y = Number(year) || null, m = t(model), f = t(family), b = t(body);
+  return y || m || f || b ? { year: y, model: m, modelFamily: f, body: b } : null;
+}
 export async function hubVins(env, hub, timing) {
   const toks = hubTokens(hub);
   const pat = encodeURIComponent("*" + toks.join("*") + "*");
-  const sSel = "vin_norm,year,sale_date,sale_price,sale_price_usd,platform,listing_title,mileage,img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,currency:raw_record->>currency";
-  const aSel = "chassis_vin_norm,attempt_date,high_bid,high_bid_usd,source_slug,title:raw_record->>title,img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,mileage:raw_record->>mileage,currency:raw_record->>currency";
+  const sSel = "vin_norm,year,model,model_family,body:raw_record->>body_style,sale_date,sale_price,sale_price_usd,platform,listing_title,mileage,img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,currency:raw_record->>currency";
+  const aSel = "chassis_vin_norm,year,model,body:raw_record->>body_style,attempt_date,high_bid,high_bid_usd,source_slug,title:raw_record->>title,img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,mileage:raw_record->>mileage,currency:raw_record->>currency";
   const t0 = Date.now();
   const [sales, atts] = await Promise.all([
     supabaseSelect(env, `sales_archive?${hub.year ? "year=eq." + hub.year + "&" : ""}listing_title=ilike.${pat}&vin_norm=not.is.null&select=${sSel}&order=sale_date.desc&limit=400`).then(r => { if (timing) timing.sales = Date.now() - t0; return r; }),
@@ -333,16 +340,16 @@ export async function hubVins(env, hub, timing) {
     const key = r.vin_norm + "|" + String(r.sale_date || "").slice(0, 10) + "|" + Math.round(Number(r.sale_price) || 0);
     if (sk.has(key)) continue; sk.add(key);
     const p = usdOf(r.sale_price, r.sale_price_usd, r.currency);
-    get(r.vin_norm).apps.push({ kind: "sale", year: Number(r.year) || null, date: String(r.sale_date || "").slice(0, 10), priceUsd: p.usd, nativePrice: p.native, currency: p.currency, house: houseName(r.platform), url: r.url || r.url2 || null, mileage: num(r.mileage), image: r.img || null, title: r.listing_title });
+    get(r.vin_norm).apps.push({ kind: "sale", car: carCols(r.year, r.model, r.model_family, r.body), year: Number(r.year) || null, date: String(r.sale_date || "").slice(0, 10), priceUsd: p.usd, nativePrice: p.native, currency: p.currency, house: houseName(r.platform), url: r.url || r.url2 || null, mileage: num(r.mileage), image: r.img || null, title: r.listing_title });
   }
   for (const a of atts || []) {
     if (!a.chassis_vin_norm || a.chassis_vin_norm.length < 6 || isMemorabilia(a.title) || isPartsListing(a.title, a.mileage)) continue;
     const g = get(a.chassis_vin_norm), day = String(a.attempt_date || "").slice(0, 10);
     if (g.apps.some(x => x.date === day)) continue;
     const p = usdOf(a.high_bid, a.high_bid_usd, a.currency);
-    g.apps.push({ kind: "attempt", date: day, bidUsd: p.usd, nativeBid: p.native, currency: p.currency, house: houseName(a.source_slug), url: a.url || a.url2 || null, mileage: num(a.mileage), image: a.img || null, title: a.title });
+    g.apps.push({ kind: "attempt", car: carCols(a.year, a.model, null, a.body), date: day, bidUsd: p.usd, nativeBid: p.native, currency: p.currency, house: houseName(a.source_slug), url: a.url || a.url2 || null, mileage: num(a.mileage), image: a.img || null, title: a.title });
   }
-  const list = [...by.values()].map(g => { g.apps.sort((x, y) => String(y.date || "").localeCompare(String(x.date || ""))); g.last = g.apps[0]; g.lastSale = g.apps.find(x => x.kind === "sale") || null; return g; });
+  const list = [...by.values()].map(g => { g.apps.sort((x, y) => String(y.date || "").localeCompare(String(x.date || ""))); g.last = g.apps[0]; g.lastSale = g.apps.find(x => x.kind === "sale") || null; g.car = ((g.lastSale && g.lastSale.car) || (g.apps.find(x => x.car) || {}).car) || null; return g; });
   list.sort((x, y) => String((y.lastSale || y.last).date || "").localeCompare(String((x.lastSale || x.last).date || "")));
   return list;
 }
