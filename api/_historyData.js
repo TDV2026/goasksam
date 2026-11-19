@@ -13,6 +13,7 @@ import { genFor, warmAnswerKeyFor, readWarmAnswerDetailed, writeWarmAnswer, answ
 import { keepAlive } from "../lib/keepAlive.js";
 import { tryRefresh } from "../lib/refreshGate.js";
 import { normalizeListingUrl } from "../lib/_urlNorm.js";
+import { feeFieldsOf } from "../lib/buyerFee.js";
 
 export function normVin(s) { return String(s == null ? "" : s).toUpperCase().replace(/[^A-Z0-9]/g, ""); }
 export function historyEnv() {
@@ -53,7 +54,7 @@ export async function vinAppearances(env, vin) {
       priceUsd: sold ? p : null, bidUsd: sold ? null : p, nativePrice: null, nativeBid: null, currency: null,
       status: r.result || null, house: houseName(r.source), url: r.url || null, mileage: num(r.mileage), title: r.listing_title || "", image: r.photo_url || null,
       year: Number(r.year) || null, make: r.make || null, model: r.model || null, body: null, color: null, familyKey: r.model_family || null }; });
-    return { vinNorm: want, appearances: apps, ok: true, source: "vin_index", summary: Array.isArray(summary) && summary[0] ? summary[0] : null };
+    return { vinNorm: want, appearances: apps.map(a => ({ ...a, ...feeFieldsOf(a) })), ok: true, source: "vin_index", summary: Array.isArray(summary) && summary[0] ? summary[0] : null };
   }
   const sSel = (usd) => "vin_norm,sale_date,sale_price," + (usd ? "sale_price_usd," : "") + "platform,listing_title,year,make,model,model_family,mileage," +
     "img:raw_record->>featured_image_url,url:raw_record->>url,url2:raw_record->>source_url,currency:raw_record->>currency," +
@@ -90,7 +91,7 @@ export async function vinAppearances(env, vin) {
       make: a.make || null, model: a.model || null, body: null, color: null });
   }
   out.sort((x, y) => String(y.date || "").localeCompare(String(x.date || "")));
-  return { vinNorm: want, appearances: out, ok: true, source: "archive" };
+  return { vinNorm: want, appearances: out.map(a => ({ ...a, ...feeFieldsOf(a) })), ok: true, source: "archive" };
 }
 
 // A listing title cleaned to the car's name: no BaT mileage hook, no chassis/VIN clause, no lot code.

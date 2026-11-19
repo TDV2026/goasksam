@@ -60,7 +60,7 @@ const CARD_HTML = `<div id="gas-card" class="gas"><div class="gas-inner"><div cl
 c.querySelector('.gas-spec').textContent=o.spec||'';
 var rg=o.soldRangeHammerUsd;c.querySelector('.gas-range').textContent=rg?(rg.low+' to '+rg.high+' hammer'):'';
 var m=[];if(o.salesCount)m.push(o.salesCount+' recorded sales');if(o.period)m.push(o.period);
-if(o.closestSale&&o.closestSale.hammerUsd)m.push('Closest sale: '+o.closestSale.title+', hammer '+o.closestSale.hammerUsd);
+if(o.closestSale&&o.closestSale.hammerUsd)m.push('Closest sale: '+o.closestSale.carLine+', hammer '+o.closestSale.hammerUsd);
 c.querySelector('.gas-meta').innerHTML=m.join('<br>');
 var a=c.querySelector('.gas-link');if(o.link){a.href=o.link;}else{a.style.display='none';}}
 if(window.openai&&window.openai.toolOutput){r();}else{window.addEventListener('openai:set_globals',r);setTimeout(r,200);}})();

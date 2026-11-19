@@ -144,14 +144,8 @@ function on(house) { return (HOUSES.has(house) ? "at " : "on ") + house; }
 function miles(n) { return n ? Math.round(n).toLocaleString("en-US") : ""; }
 function timesWord(n) { return n === 1 ? "once" : n === 2 ? "twice" : n + " times"; }
 function salePrice(a) { return money(a.priceUsd, a.nativePrice, a.currency); }
-// Buyer's fee, only where the house's published fee is known (USD hammer): Bring a Trailer 5%
-// ($250 to $7,500), Cars & Bids 4.5% ($225 to $4,500). Elsewhere the hammer stands alone.
-const FEES = { "Bring a Trailer": [0.05, 250, 7500], "Cars & Bids": [0.045, 225, 4500] };
-function withFee(a) {
-  const f = FEES[a.house]; if (!f || !a.priceUsd || a.nativePrice) return null;
-  return a.priceUsd + Math.min(f[2], Math.max(f[1], Math.round(a.priceUsd * f[0])));
-}
-function salePriceFee(a) { const w = withFee(a); return salePrice(a) + (w ? ` (${usd(w)} with buyer's fee)` : ""); }
+// The with-fee words come from the engine (lib/buyerFee.js, served on each sale appearance as withFeeLine); the page prints them and works out nothing.
+function salePriceFee(a) { return salePrice(a) + (a.withFeeLine ? ` (${a.withFeeLine})` : ""); }
 function bidPrice(a) { return money(a.bidUsd, a.nativeBid, a.currency); }
 function resultText(a) { return a.kind === "sale" ? "Sold " + salePriceFee(a) : (bidPrice(a) ? "Bid to " + bidPrice(a) + ", not sold" : "Not sold"); }
 function utm(url) { return url ? url + (url.includes("?") ? "&" : "?") + "utm_source=goasksam&utm_medium=history&utm_campaign=vin_page" : null; }

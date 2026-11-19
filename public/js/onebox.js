@@ -439,13 +439,13 @@
   // got a direct replacement inside the new hero (heroMileageLineHtml, heroIdentityLineHtml); body,
   // gearbox, driver and observe have no new home on this surface this round.
   function receiptCardHtml(c, tagAside) {
-    var img = c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.title) + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.rplate\');if(p)p.style.display=\'flex\'">' : "";
+    var img = c.image ? '<img src="' + esc(c.image) + '" alt="' + esc(c.carLine || "") + '" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentNode.querySelector(\'.rplate\');if(p)p.style.display=\'flex\'">' : "";
     var aside = (tagAside && c.hollow) ? '<span class="aside">set aside</span>' : "";
     var ext = '<span class="ext"><svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg></span>';
-    var inner = '<div class="rph">' + img + ext + aside + '<div class="rplate"><div class="n">' + esc(titleCaseSaleTitle(c.title)) + '</div><div class="s">photo unavailable</div></div></div>' +
+    var inner = '<div class="rph">' + img + ext + aside + '<div class="rplate"><div class="n">' + esc((c.carLine || "")) + '</div><div class="s">photo unavailable</div></div></div>' +
       '<div class="rb"><div class="rprice num">' + esc(usd(c.price)) + "</div>" +
       '<div class="rmeta"><span class="num">' + esc(c.mileageText) + (venueOf(c) ? '</span><span class="dot">&middot;</span>' + esc(venueOf(c)) : "</span>") + "</div>" +
-      '<div class="rdate">' + esc(c.month) + "</div><div class=\"rtitle\">" + esc(titleCaseSaleTitle(c.title)) + "</div></div>";
+      '<div class="rdate">' + esc(c.month) + "</div><div class=\"rtitle\">" + esc((c.carLine || "")) + "</div></div>";
     var href = utmUrl(c.url);
     return href ? '<a class="rcard" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="rcard">' + inner + "</div>";
   }
@@ -1099,7 +1099,7 @@
       if (!c) return "";
       var href = utmUrl(c.url), meta = [fullDateOrMonth(c), longMiles(c) ? longMiles(c) : "", venueOf(c)].filter(Boolean).join(" \u00b7 ");
       var ph = c.image ? '<img src="' + esc(c.image) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.add(\'np\');this.remove()">' : "No photo";
-      var inner = '<span class="hw-ph' + (c.image ? "" : " np") + '">' + ph + '</span><span class="hw-t"><span class="hw-n">' + esc(cleanReceiptTitle(c.title)) + '</span><span class="hw-m">' + esc(meta) + '</span></span><span class="hw-p">' + (Number(c.price) > 0 ? esc(usd(c.price)) : "") + "</span>";
+      var inner = '<span class="hw-ph' + (c.image ? "" : " np") + '">' + ph + '</span><span class="hw-t"><span class="hw-n">' + esc((c.carLine || "")) + '</span><span class="hw-m">' + esc(meta) + '</span></span><span class="hw-p">' + (Number(c.price) > 0 ? esc(usd(c.price)) : "") + "</span>";
       return '<li class="hw-row">' + (href ? '<a class="hw-rowb" href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '">' + inner + "</a>" : '<div class="hw-rowb">' + inner + "</div>") + "</li>";
     }).filter(Boolean);
     if (!rows.length) return "";   // a heading with no sales under it is never printed
@@ -1190,7 +1190,7 @@
   function venueOf(c) { return c && c.platform && c.platform !== "others" ? c.platform : ((c && c.platformName) || ""); }
   function thinTileHtml(c, asideLabel) {
     var href = utmUrl(c.url);
-    var title = cleanReceiptTitle(c.title);
+    var title = (c.carLine || "");
     var miles = Number(c.mi) > 0 ? (Number(c.mi).toLocaleString("en-US") + " miles") : "";
     var venue = venueOf(c);
     // monShort(c.date), never c.month directly: the thin tier's own pool (thinCardsFrom) builds
@@ -1343,9 +1343,9 @@
     // Mockup match round, Oct 2026: miles, venue and date each on their own small line (was one
     // middle-dot-joined meta line) - matches the mockup's card layout exactly.
     return "<" + tag + ' class="salescard"' + attrs + ">" +
-      photoHtml(c.image, cleanReceiptTitle(c.title), "") +
+      photoHtml(c.image, (c.carLine || ""), "") +
       '<div class="salescard-body"><p class="salescard-price">' + esc(usd(c.price)) + "</p>" +
-      '<p class="salescard-title">' + esc(cleanReceiptTitle(c.title)) + "</p>" +
+      '<p class="salescard-title">' + esc((c.carLine || "")) + "</p>" +
       (miles ? ('<p class="salescard-meta">' + esc(miles) + "</p>") : "") +
       (venue ? ('<p class="salescard-meta">' + esc(venue) + "</p>") : "") +
       (month ? ('<p class="salescard-meta">' + esc(month) + "</p>") : "") +
@@ -1527,8 +1527,8 @@
     var href = utmUrl(c.url);
     var gasAttrs = (href && c.id != null) ? (' data-gas-event="receipt_click" data-gas-source="' + esc(c.platformSlug || "") + '" data-gas-listing-id="' + esc(c.id) + '"') : "";
     var carCell = href
-      ? ('<a href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs + ">" + esc(cleanReceiptTitle(c.title)) + "</a>")
-      : esc(cleanReceiptTitle(c.title));
+      ? ('<a href="' + esc(href) + '" target="_blank" rel="noopener" data-cardclick="' + esc(c.platformSlug || "") + '"' + gasAttrs + ">" + esc((c.carLine || "")) + "</a>")
+      : esc((c.carLine || ""));
     if (c.hasHistoryPage && c.vinNorm) carCell += " " + histPlainHtml(c.vinNorm, "inrow");
     return "<tr><td>" + esc(fullDateOrMonth(c)) + "</td><td>" + carCell + "</td><td>" + esc(longMiles(c) || "") + "</td><td>" + esc(venue) +
       '</td><td class="astc-price num">' + esc(usd(c.price)) + "</td></tr>";
@@ -1835,7 +1835,7 @@
     else if (htGearboxSplit && rc.gearboxWord) segs.push(rc.gearboxWord);
     var marks = (rc.markers && rc.markers.length) ? "<div>" + rc.markers.map(function (mk) { return '<span class="mk">' + esc(mk.label) + "</span>"; }).join("") + "</div>" : "";
     return saleCardHtml({ cls: "t", flat: !!flat, href: utmUrl(rc.url), slug: rc.slug, id: rc.id, image: rc.image, priceHtml: priceHtml, allIn: allIn,
-      title: cleanReceiptTitle(shortCarName(rc.title)), meta: segs.filter(Boolean).join(" · "), extra: marks, vinNorm: rc.vinNorm });
+      title: rc.carLine || "", meta: segs.filter(Boolean).join(" · "), extra: marks, vinNorm: rc.vinNorm });
   }
   // Engine d.cards shape (refusal / shown-separately): price, mileageText, platform, month, title.
   // tagLabel is an optional small pill ("Above range") - never invented, only ever a label the
@@ -1857,7 +1857,7 @@
     // flat: true unconditionally (follow-up round, Oct 2026) - poolCardHtml's callers (the aside-
     // toggle's outside-range cards, distribution's bucket receipts) all want the flat row treatment.
     return saleCardHtml({ cls: "t", flat: true, pill: tagLabel || "", href: utmUrl(c.url), slug: c.platformSlug, id: c.id, image: c.image,
-      priceHtml: esc(usd(c.price)), title: cleanReceiptTitle(c.title),
+      priceHtml: esc(usd(c.price)), title: (c.carLine || ""),
       meta: [c.mileageText && c.mileageText !== "TMU" ? c.mileageText : "", venue, c.month || monShort(c.date)].filter(Boolean).join(" · "), after: sb,
       vinNorm: (c.hasHistoryPage && c.vinNorm && c.soldBefore && c.soldBefore.date) ? c.vinNorm : "" });
   }
@@ -2242,7 +2242,7 @@
   // the exact same pool.
   function thinCardsFrom(scope) {
     return (scope || []).filter(function (rc) { return rc && (Number(rc.allIn) > 0 || Number(rc.hammer) > 0); }).map(function (rc) {
-      return { price: rc.allIn || rc.hammer, url: rc.url, platformSlug: rc.slug, id: rc.id, image: rc.image, title: rc.title,
+      return { price: rc.allIn || rc.hammer, url: rc.url, platformSlug: rc.slug, id: rc.id, image: rc.image, carLine: rc.carLine,
         mi: Number(rc.mileage) > 0 ? Number(rc.mileage) : null, platform: rc.venue, month: monthYear(rc.date), date: rc.date };
     });
   }

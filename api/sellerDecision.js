@@ -27,7 +27,7 @@ import { variantSplitFor } from "../lib/variantRows.js";
 import { splitServed } from "../lib/variants.js";
 import { familyOf as variantFamilyOfCar } from "../lib/variants.js";
 import { variantKeyShape } from "../lib/variants.js";
-import { BODY_LABEL, isSingerPorsche, withReadFields, isStorableQuestion } from "../lib/onebox.js";
+import { BODY_LABEL, isSingerPorsche, withReadFields, isStorableQuestion, servedCopy } from "../lib/onebox.js";
 import { casedChips } from "../lib/chipLabel.js";
 import { lastUpdatedDate } from "../lib/asOf.js";
 import { settleVinAnswer, vinSearchPlan, applyVinOverlay, decodeTrimRerun, ruledOutLineOf } from "../lib/vinAsTyped.js";
@@ -3883,7 +3883,7 @@ async function handler(req, res) {
           const body3 = { ...req.body, ...(tr.refine ? { refine: { ...(req.body.refine || {}), ...tr.refine } } : {}), vinSettledRun: true, vinTrimRun: true, vinRerunWords: [tr.trim, tr.body].filter(Boolean).join(" "), ...(req.body.car && typeof req.body.car === "object" ? { car: { ...req.body.car, ...(req.body.car.vinFacts ? { raw: tr.text } : {}) } } : {}) };
           let out3 = null; const res3 = { statusCode: 200, headersSent: false, setHeader() {}, getHeader() { return undefined; }, removeHeader() {}, status(c) { this.statusCode = c; return this; }, json(x) { if (out3 == null) out3 = x; this.headersSent = true; return this; }, send(x) { if (out3 == null) out3 = x; this.headersSent = true; return this; }, end() { this.headersSent = true; return this; } };
           await handler({ ...req, body: body3 }, res3);
-          if (out3 && out3.status === "one_box" && /^(result|thin)$/.test(String(out3.tier || ""))) return res.status(200).json({ ...out3, ...(tr.ruling ? { vinRuling: { allowed: tr.ruling.allowed, ruledOut: tr.ruling.ruledOut, source: tr.ruling.source }, vinRuledOutLine: ruledOutLineOf(tr.ruling) } : {}), vinSettled: [...(Array.isArray(out3.vinSettled) ? out3.vinSettled : []), ...(tr.trim ? [{ dimension: "trim", label: tr.trim, source: "decode" }] : []), ...(tr.body ? [{ dimension: "body", label: tr.body, source: "decode" }] : [])] });
+          if (out3 && out3.status === "one_box" && /^(result|thin)$/.test(String(out3.tier || ""))) return res.status(200).json({ ...servedCopy(out3), ...(tr.ruling ? { vinRuling: { allowed: tr.ruling.allowed, ruledOut: tr.ruling.ruledOut, source: tr.ruling.source }, vinRuledOutLine: ruledOutLineOf(tr.ruling) } : {}), vinSettled: [...(Array.isArray(out3.vinSettled) ? out3.vinSettled : []), ...(tr.trim ? [{ dimension: "trim", label: tr.trim, source: "decode" }] : []), ...(tr.body ? [{ dimension: "body", label: tr.body, source: "decode" }] : [])] });
         }
       }
       if (vinCtx) oneBox = applyVinOverlay(oneBox, vinCtx);   // the VIN car's own sales and option on the typed car's finished answer
@@ -3891,7 +3891,7 @@ async function handler(req, res) {
       // NO QUALIFYING QUESTION (Sam, Nov 17 2026): a car of a family whose variants sell apart is answered with its variants as rows (variantSplit), never asked which one it is and never one blended range; the question (variantQuestionFor) is no longer asked here
       if (!vinCtx && !exactSale && splitServed(req)) oneBox = await variantSplitFor(oneBox, { asked: askedN, refine: obRefine, crew: isCrewRequest(req), text: oneBoxText }, vehicle, generation, { supabaseUrl, supabaseKey }, { deadlineMs: Math.max(4000, Math.min(14000, obRemaining() - 2000)) });   // the variants of an unstated car, as rows (lib/variantRows.js); each row is the engine's answer for its own car
       oneBox = withServedCar(oneBox, vehicle, { supabaseUrl, supabaseKey });   // the car this answer is SERVED for, whatever row it came from (lib/onebox.js withServedCar)
-      return res.status(200).json({ status: "one_box", ...slimAnswerForWire(oneBox), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
+      return res.status(200).json({ status: "one_box", ...servedCopy(slimAnswerForWire(oneBox)), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
     }
 
     // Price-step transparency (#68): a seller who DEFERS the asking price gets THE RECORD
@@ -3904,7 +3904,7 @@ async function handler(req, res) {
       // and an optional sinceDays window. Trim-scoped like the band; the caller filters finer spec.
       if (req.body?.listSales) {
         const listing = await listSalesForVehicle(vehicle, generation, { supabaseUrl, supabaseKey }, Number(req.body?.sinceDays) || undefined);
-        return res.status(200).json({ status: "price_probe", band, listing });
+        return res.status(200).json({ status: "price_probe", band, listing: servedCopy(listing) });
       }
       return res.status(200).json({ status: "price_probe", band });
     }
