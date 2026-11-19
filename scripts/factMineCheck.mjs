@@ -42,7 +42,7 @@ const mapModel = (db, groupsJson, kinds = {}) => async a => { db.modelCalls++; d
   if (/^You label/.test(a.system)) return { text: JSON.stringify({ kinds: JSON.parse(a.user).map(x => ({ topic: x.topic, kind: kinds[x.topic] || "other" })) }), usage: u };
   return { text: groupsJson, usage: u }; };
 const quoteOf = (d, i) => d.slice(d.indexOf(i), d.indexOf(i) + i.length);
-const L = (topic, cat, type, pol, d, m, quote) => [topic, cat, type, pol, d ? "D" : "-", m ? "M" : "-", quote].join(" | ");
+const L = (topic, cat, type, pol, d, m, quote, proof) => [topic, cat, type, pol, d ? (typeof d === "number" && d > 1 ? d : "2022") : "-", m ? (typeof m === "number" && m > 1 ? m : "61000") : "-", proof ? "P" : "-", quote].join(" | ");
 const GOOD = user => [
   L("repainted", "paint and body", "work_done", "neutral", 0, 0, "repainted in the original color"),
   L("timing chain guides replaced", "mechanical work", "work_done", "positive", 1, 1, "timing chain guides were replaced at 61,000 miles in 2022"),
@@ -72,7 +72,7 @@ const Q = { source: "bringatrailer", family: "e46_m3", from: "2026-01-01", to: "
   ok("every kept span lies inside the text read", p.items.every(i => i.span_start >= 0 && i.span_end <= text.length && i.span_end > i.span_start));
   ok("an unreadable answer is bad, not an item", FM.parseItems("no lines here", text).bad === true);
   const db = mkDb(); await FM.runFactMine({ ...Q, limit: 1 }, db);
-  ok("what is written: only the kept items (an invented quote, no quote, a bad category, type or polarity are dropped), 4 of 9", db.mentions.length === 4, db.mentions.map(m => m.topic));
+  ok("what is written: every item whose quote is in the text, 7 of 9 (a category, type or polarity of the miner's own is kept, as its own category or as other); only the invented quote and the line with no quote are dropped", db.mentions.length === 7 && !db.mentions.some(m => m.topic === "invented fact"), db.mentions.map(m => m.topic));
   ok("every written mention has a span inside the text read and no quote or text field", db.mentions.every(m => m.span_start >= 0 && m.span_end > m.span_start && m.span_end <= db.runs.get(m.listing_id).characters_read && !("quote" in m) && !("text" in m) && !("description" in m)), db.mentions[0]);
 }
 // ===== 3 IDEMPOTENT =====
@@ -150,20 +150,50 @@ const mine = (db, q, extra) => FM.runFactMine({ ...Q, ...q }, { select: db.selec
 const withTimeout = (p, ms) => Promise.race([p, new Promise(res => setTimeout(() => res("HUNG"), ms))]);
 await section("prompt", async () => {
   const S = FM.SYSTEM;
-  ok("the prompt skips standard equipment and plain feature lists, and names examples", /SKIP:/.test(S) && /every car of this model has/.test(S) && /standard equipment/.test(S) && /climate control/.test(S) && /cruise control/.test(S) && /factory equipment and options of every kind/.test(S) && /even when the seller names/.test(S), S.slice(0, 120));
-  ok("fm3: equipment stays only when the statement is about its condition, a fault, a repair, a replacement, an aftermarket change or its absence", /ONLY when the statement is about its condition, a fault, a repair, a replacement, an aftermarket change or its absence/.test(S));
-  ok("fm3: the prompt no longer asks to keep factory packages or rare options", !/factory packages or rare options/.test(S) && !/named packages/.test(S));
-  ok("the prompt keeps condition, faults, work and when, accident and paint history, rust, originality and modifications, ownership and location, service records, stated absences", ["condition present", "faults and wear", "work done and when", "accident and paint history", "rust", "originality and modifications", "ownership and location history", "service records and paperwork", "stated absences"].every(w => S.includes(w)));
-  ok("the prompt orders by buyer weight and caps at 30 items", /most likely to matter to a buyer first/.test(S) && /At most 30 items/.test(S) && FM.MAX_ITEMS === 30);
+  ok("fm4: the prompt tells the miner to write down EVERY fact the seller states, and names equipment, options, features, claims, absences and provenance among them", /EVERY fact the seller states/.test(S) && /options and equipment/.test(S) && /features/.test(S) && /claims/.test(S) && /stated absences/.test(S) && /provenance/.test(S) && /anything stated about the car/.test(S), S.slice(0, 160));
+  ok("fm4: no filter is left in the prompt: no SKIP list, no standard equipment rule, no buyer weighing, no order of importance, no item cap", !/SKIP:/.test(S) && !/factory equipment and options of every kind/.test(S) && !/standard equipment\)/.test(S) && !/every car of this model has/.test(S) && !/most likely to matter/.test(S) && !/At most \d+ items/.test(S) && !/that a buyer would weigh/.test(S) && !("MAX_ITEMS" in FM), S);
+  ok("fm4: the only text it skips is text that states nothing about the car (greetings, process, comments, feelings)", /Skip only text that states nothing about the car itself/.test(S));
+  ok("fm4: the category is open (the miner writes its own short words, no fixed list) and the type and polarity lists end in other", /your own short word or words/.test(S) && /there is no fixed list/.test(S) && !("CATEGORIES" in FM) && FM.STATEMENT_TYPES.includes("other") && FM.POLARITIES.includes("other") && /or "other" when none of these fits/.test(S));
+  ok("fm4: the prompt asks for the stated year, the stated miles (digits) and whether records, receipts, invoices or photos are named as proof for the fact", /year: the four digit year the statement itself carries/.test(S) && /miles: the mileage the statement itself carries, digits only/.test(S) && /proof: the letter P when the description names records, receipts, invoices or photos as proof of THIS fact/.test(S) && /topic \| category \| statement_type \| polarity \| year \| miles \| proof \| quote/.test(S));
   ok("the prompt asks for lines, not JSON, quote at most 60 characters", /one item per line, no JSON/.test(S) && /at most 60 characters/.test(S) && !/Return ONLY JSON/.test(S));
   ok("the prompt is still blind (no price, bid, outcome, comment or seller field)", !/PRICEMARK|SELLERMARK/.test(S));
 });
 await section("equipment", async () => {   // a model that obeys the prompt: it lists equipment only if the prompt does not tell it to skip it
   const EQ = "This 2004 BMW M3 has automatic climate control, cruise control, a Harman Kardon sound system, rain-sensing wipers, 19 inch wheels, power windows, leather seats and a sunroof. It is silver over black. Nothing else is stated about the car in this listing at all.";
-  const obeying = ({ system }) => { const skips = /SKIP:/.test(system) && /factory equipment and options of every kind/.test(system); return { text: skips ? "NONE" : [L("automatic climate control", "interior", "condition_present", "positive", 0, 0, "automatic climate control"), L("cruise control", "interior", "condition_present", "positive", 0, 0, "cruise control"), L("sound system", "interior", "condition_present", "positive", 0, 0, "Harman Kardon sound system")].join("\n"), usage: { input_tokens: 900, output_tokens: 40 }, stop_reason: "end_turn" }; };
+  const obeying = ({ system }) => { const skips = /SKIP:/.test(system) || /factory equipment and options of every kind/.test(system); return { text: skips ? "NONE" : [L("automatic climate control", "interior", "condition_present", "positive", 0, 0, "automatic climate control"), L("cruise control", "interior", "condition_present", "positive", 0, 0, "cruise control"), L("sound system", "interior", "condition_present", "positive", 0, 0, "Harman Kardon sound system"), L("rain sensing wipers", "equipment", "condition_present", "neutral", 0, 0, "rain-sensing wipers"), L("19 inch wheels", "wheels", "condition_present", "neutral", 0, 0, "19 inch wheels"), L("power windows", "equipment", "condition_present", "neutral", 0, 0, "power windows"), L("leather seats", "seats", "condition_present", "neutral", 0, 0, "leather seats"), L("sunroof", "options", "condition_present", "neutral", 0, 0, "a sunroof")].join("\n"), usage: { input_tokens: 900, output_tokens: 260 }, stop_reason: "end_turn" }; };
   const db = mkDb(rowsN(1, EQ)); db.callModel2 = async a => obeying(a); const r = await mine(db, { limit: 1 });
-  ok("an equipment only description yields no items, and the listing is done, not failed", r.ok && r.body.mined === 1 && r.body.items_written === 0 && r.body.failed === 0 && db.mentions.length === 0 && [...db.runs.values()][0].status === "done", r.body || r);
+  ok("an equipment heavy description yields its items: all eight are written (climate control, cruise control, sound system, wipers, wheels, windows, seats, sunroof) and the listing is done, not failed", r.ok && r.body.mined === 1 && r.body.items_written === 8 && r.body.failed === 0 && db.mentions.length === 8 && [...db.runs.values()][0].status === "done", r.body || r);
+  ok("an open category is kept as the miner wrote it (wheels, seats, options, interior), nothing dropped for it", ["wheels", "seats", "options", "interior"].every(c => db.mentions.some(m => m.category === c)) && r.body.items_dropped === 0, db.mentions.map(m => m.category));
   ok("NONE is a clean empty answer (also with a trailing full stop or spaces)", FM.parseItems("NONE", "x".repeat(200)).bad === false && FM.parseItems("  none. \n", "x".repeat(200)).items.length === 0);
+});
+await section("fm4: capture everything, with the year, the miles and the proof", async () => {
+  const D = "The timing chain guides were replaced in 2022 at 61,000 miles, invoices are included. Sport Chrono package and 19 inch wheels. The clutch was done about 40k miles ago with receipts. Stored in a heated garage. Owned by a collector since 2011.";
+  const mk = (...a) => L(...a);
+  const answer = [mk("timing chain guides replaced", "service", "work_done", "positive", 2022, 61000, "timing chain guides were replaced in 2022 at 61,000 miles", true), mk("sport chrono package", "options", "condition_present", "neutral", 0, 0, "Sport Chrono package"), mk("19 inch wheels", "wheels", "condition_present", "neutral", 0, 0, "19 inch wheels"), "clutch replaced | service | work_done | positive | - | 40k | P | The clutch was done about 40k miles ago", mk("heated garage storage", "storage", "claim", "neutral", 0, 0, "Stored in a heated garage"), "single collector owner | provenance | claim | positive | 2011 | - | - | Owned by a collector since 2011"].join("\n");
+  const db = mkDb(rowsN(1, D)); db.callModel2 = async () => ({ text: answer, usage: { input_tokens: 800, output_tokens: 260 }, stop_reason: "end_turn" });
+  const r = await mine(db, { limit: 1 }), m = db.mentions, by = t => m.find(x => x.topic === t);
+  ok("every stated fact is written: six facts, equipment and options included, nothing dropped", r.ok && m.length === 6 && r.body.items_dropped === 0 && !!by("sport chrono package") && !!by("19 inch wheels"), m.map(x => x.topic));
+  ok("a fact carries the YEAR and the MILES it states (the numbers), not only a flag", by("timing chain guides replaced").stated_year === 2022 && by("timing chain guides replaced").stated_miles === 61000 && by("timing chain guides replaced").has_date === true && by("timing chain guides replaced").has_mileage === true, by("timing chain guides replaced"));
+  ok("a year alone and a mileage alone are each kept alone (2011 with no miles; 40k is 40,000 with no year)", by("single collector owner").stated_year === 2011 && by("single collector owner").stated_miles === null && by("clutch replaced").stated_miles === 40000 && by("clutch replaced").stated_year === null, [by("single collector owner"), by("clutch replaced")]);
+  ok("a fact with no year and no miles carries nulls and false flags", by("19 inch wheels").stated_year === null && by("19 inch wheels").stated_miles === null && by("19 inch wheels").has_date === false && by("19 inch wheels").has_mileage === false);
+  ok("PROOF: records, receipts or invoices named for a fact are marked on that fact only (the chain guides and the clutch), not on the others", by("timing chain guides replaced").proof_mentioned === true && by("clutch replaced").proof_mentioned === true && m.filter(x => x.proof_mentioned).length === 2, m.map(x => [x.topic, x.proof_mentioned]));
+  ok("an open category is kept as written (service, options, wheels, storage, provenance)", ["service", "options", "wheels", "storage", "provenance"].every(c => m.some(x => x.category === c)), m.map(x => x.category));
+  ok("the year and the mileage readers: 61,000 and 61k and 61000 miles are 61000; a dash, a word and 12 digits are none; a 4 digit year is read out of '2022', 'in 2022' and 'c. 2019'", FM.milesOf("61,000") === 61000 && FM.milesOf("61k") === 61000 && FM.milesOf("61000 miles") === 61000 && FM.milesOf("-") === null && FM.milesOf("many") === null && FM.milesOf("123456789012") === null && FM.yearOf("2022") === 2022 && FM.yearOf("in 2022") === 2022 && FM.yearOf("c. 2019") === 2019 && FM.yearOf("-") === null && FM.yearOf("61000") === null && FM.yearOf("12345") === null);
+  const oth = FM.parseItems("sport seats | seats | feature | great | - | - | - | sport seats", "He has sport seats fitted."), it = oth.items[0];
+  ok("a type or polarity outside its list is stored as other, never a reason to drop", oth.items.length === 1 && it.statement_type === "other" && it.polarity === "other" && oth.dropped === 0, it);
+  ok("a quote that is not in the text is still dropped, and it is the only thing that is (besides a line that cannot be read)", FM.parseItems("ghost | other | claim | neutral | - | - | - | words that are not here", "He has sport seats fitted.").reasons.quote_not_found === 1);
+  { // THE CLASS: anything the reader decides at READING time. Whatever the miner chooses for a field it owns (category, type, polarity, year, miles, proof) is kept; only a quote that is not in the text (or an unreadable line) loses an item.
+    const T = "He mentions the wheels, the seats and a Bilstein damper kit, and says nothing else of note.", odd = [["wheels", "wheels", "feature", "mixed"], ["seats", "interior trim and seats and things", "equipment", "positive"], ["damper kit", "", "claim", ""], ["x1", "UPPER CASE", "WORK DONE", "NEUTRAL"], ["x2", "a b c d e f g", "rumour", "great"], ["x3", "123", "other", "other"], ["x4", "caf\u00e9 \u00fc\u00f1", "absence stated", "negative"], ["x5", "paint", "condition present", "Positive"]];
+    const quote = ["the wheels", "the seats", "Bilstein damper kit", "says nothing", "He mentions", "and a Bilstein", "nothing else", "else of note"];
+    const p = FM.parseItems(odd.map((o, i) => [o[0], o[1], o[2], o[3], "-", "-", "-", quote[i]].join(" | ")).join("\n"), T);
+    ok("CLASS: every item whose quote is in the text is kept whatever category, type or polarity the miner chose (8 odd combinations, an empty category and an empty polarity included), and only the quote decides", p.items.length === odd.length && p.dropped === 0 && p.items.every(i => FM.STATEMENT_TYPES.includes(i.statement_type) && FM.POLARITIES.includes(i.polarity) && i.category.length > 0 && i.category.split(" ").length <= 3), [p.items.length, p.reasons]);
+    const unreadable = FM.parseItems("only | three | fields", T), noq = FM.parseItems("ab | b | c | d | - | - | - | words not in the text at all", T);
+    ok("CLASS: the only losses are a line that cannot be read, a quote not in the text and an exact repeat", unreadable.reasons.malformed_line === 1 && noq.reasons.quote_not_found === 1 && JSON.stringify(Object.keys(noq.reasons).sort()) === JSON.stringify(["duplicate", "malformed_line", "quote_not_found"]));
+    const src = fs.readFileSync(path.join(ROOT, "lib/factMine.js"), "utf8").split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n");
+    ok("CLASS (a read time filter written back into the source): no item cap, no category list and no skip rule in lib/factMine.js", !/MAX_ITEMS|CATEGORIES|over_item_cap|_not_in_list|SKIP:/.test(src)); }
+  const cols = (fs.readFileSync(path.join(ROOT, "docs/supabase-factmine.sql"), "utf8")).replace(/--.*$/gm, "");
+  ok("CLASS (a column the code writes that the table does not have): every key of every row the miner wrote to listing_mentions or listing_mining_runs is a column in docs/supabase-factmine.sql, and the new three each have an add column if not exists line", [...new Set([...m, ...db.runs.values()].flatMap(x => Object.keys(x)))].every(k => new RegExp("\\b" + k + "\\b").test(cols)) && ["stated_year", "stated_miles", "proof_mentioned"].every(c => new RegExp("alter table listing_mentions add column if not exists " + c + " ").test(cols)), [...new Set(m.flatMap(x => Object.keys(x)))]);
+  ok("the SQL widens the lists the miner no longer stays inside: statement_type and polarity end in other, topic_map kind has option", /listing_mentions_statement_type_check check \(statement_type in \('work_done','condition_present','absence_stated','claim','other'\)\)/.test(cols) && /listing_mentions_polarity_check check \(polarity in \('positive','negative','neutral','other'\)\)/.test(cols) && /topic_map_kind_check check \(kind in \([^)]*'option'/.test(cols));
 });
 await section("three facts", async () => {
   const D = "The car was repainted in 2019 in the original Laguna Seca Blue. The rod bearings were replaced in March 2021 at 74,000 miles. The owner reports no accidents. Silver wheels and a sunroof are fitted as standard on this model, and the car is sold with a clean title.";
@@ -176,30 +206,32 @@ await section("compact answer", async () => {
   const text = "x ".repeat(80) + Array.from({ length: 40 }, (_, i) => `fact number ${i + 10} stands here.`).join(" ") + " " + "this very long quoted sentence goes on and on far past sixty characters in total length.";
   const lines = Array.from({ length: 35 }, (_, i) => L("fact " + String.fromCharCode(97 + (i % 26)) + (i > 25 ? "x" : ""), "other", "claim", "neutral", 0, 0, `fact number ${i + 10} stands here.`));
   const p = FM.parseItems(lines.join("\n"), text);
-  ok("at most 30 items are kept; the 5 beyond are counted as over the cap", p.items.length === 30 && p.reasons.over_item_cap === 5 && p.dropped === 5, [p.items.length, p.reasons]);
+  ok("NO ITEM CAP: all 35 items are kept, nothing counted over a cap", p.items.length === 35 && p.dropped === 0 && !("over_item_cap" in p.reasons), [p.items.length, p.reasons]);
+  const big = Array.from({ length: 140 }, (_, i) => `fact number ${i + 10} stands here.`).join(" "), many = FM.parseItems(Array.from({ length: 140 }, (_, i) => L("fact " + i, "x" + (i % 7), "claim", "neutral", 0, 0, `fact number ${i + 10} stands here.`)).join("\n"), big);
+  ok("a 140 statement listing keeps all 140", many.items.length === 140 && many.dropped === 0, [many.items.length, many.reasons]);
   const lq = "this very long quoted sentence goes on and on far past sixty characters in total length.", q = FM.parseItems(L("long quote", "other", "claim", "neutral", 0, 0, lq), text);
   ok("a quote is read to 60 characters only (the span is 60 long)", q.items.length === 1 && q.items[0].span_end - q.items[0].span_start === 60, q.items[0]);
   ok("a pipe inside the quote stays in the quote", FM.parseItems(L("pipe", "other", "claim", "neutral", 0, 0, "one | two"), "x one | two y z").items.length === 1);
-  ok("the output limit is the 30 item need (about 1,200 tokens) plus half again: 1,800, down from 4,000", FM.MAX_OUT_TOKENS === 1800);
+  ok("the output limit is 8,000 tokens (about 50 a statement, so 120 statements plus margin), up from 1,800, and the model timeout is raised with it", FM.MAX_OUT_TOKENS === 8000 && FM.MODEL_TIMEOUT_MS >= 90000);
 });
 await section("cut off", async () => {
   const D = DESC(0), ln = [L("repainted", "paint and body", "work_done", "neutral", 0, 0, "repainted in the original color"), L("timing chain guides replaced", "mechanical work", "work_done", "positive", 1, 1, "timing chain guides were replaced at 61,000 miles in 2022"), L("service records", "documentation", "claim", "positive", 0, 0, "Service records are included from new"), L("no accidents", "accident and title", "absence_stated", "positive", 0, 0, "No accidents, clean title")];
   const cut = ln.join("\n") + "\n" + "original 19 inch wheels | other | cla";   // the fifth line is cut mid line
-  const db = mkDb(rowsN(1, D)); db.callModel2 = async () => ({ text: cut, usage: { input_tokens: 1000, output_tokens: 1800 }, stop_reason: "max_tokens" });
+  const db = mkDb(rowsN(1, D)); db.callModel2 = async () => ({ text: cut, usage: { input_tokens: 1000, output_tokens: FM.MAX_OUT_TOKENS }, stop_reason: "max_tokens" });
   const r = await mine(db, { limit: 1 }), run = [...db.runs.values()][0];
   ok("a cut off answer keeps its four complete lines and drops the partial fifth", r.ok && r.body.mined === 1 && db.mentions.length === 4 && r.body.failed === 0, r.body || r);
   ok("it is done and flagged: truncated 1 in the counts, the word truncated in the existing error field, no new column", r.body.truncated === 1 && run.status === "done" && run.error === "truncated" && Object.keys(run).every(k => ["listing_id", "miner_version", "source", "family", "sold_or_attempt", "status", "characters_read", "items_found", "tokens_input", "tokens_output", "error"].includes(k)), run);
   const full = FM.parseItems(ln.join("\n") + "\n", D, { truncated: true }); ok("a cut off answer that ends on a line end keeps every line", full.items.length === 4 && full.partial_dropped === 0, full.items.length);
   const dropped = FM.parseItems(cut, D, { truncated: true }); ok("the partial line is dropped before it is read (an unfinished line is never an item)", dropped.partial_dropped === 1 && dropped.items.length === 4 && dropped.reasons.malformed_line === 0);
-  const by = mkDb(rowsN(1, D)); by.callModel2 = async () => ({ text: ln.join("\n"), usage: { input_tokens: 1000, output_tokens: 1800 } });   // no stop reason, output tokens at the limit
+  const by = mkDb(rowsN(1, D)); by.callModel2 = async () => ({ text: ln.join("\n"), usage: { input_tokens: 1000, output_tokens: FM.MAX_OUT_TOKENS } });   // no stop reason, output tokens at the limit
   const r2 = await mine(by, { limit: 1 }); ok("output tokens at the limit mark it truncated even with no stop reason", r2.body.truncated === 1, r2.body);
   const norm = mkDb(rowsN(1, D)); norm.callModel2 = async () => ({ text: ln.join("\n"), usage: { input_tokens: 1000, output_tokens: 300 }, stop_reason: "end_turn" }); const r3 = await mine(norm, { limit: 1 });
   ok("a whole answer is not flagged and writes no error word", r3.body.truncated === 0 && [...norm.runs.values()][0].error === undefined);
 });
 await section("dropped and failed reasons", async () => {
   const db = mkDb(rowsN(1)), r = await mine(db, { limit: 1 }), d = r.body.dropped_by_reason;
-  ok("the dropped count is split by reason: quote, category, type, polarity (one each) and a malformed line", d.quote_not_found === 1 && d.category_not_in_list === 1 && d.type_not_in_list === 1 && d.polarity_not_in_list === 1 && d.malformed_line === 1, d);
-  ok("the split adds up to the dropped total", Object.values(d).reduce((a, b) => a + b, 0) === r.body.items_dropped && r.body.items_dropped === 5, [d, r.body.items_dropped]);
+  ok("the dropped count is split by reason and only three reasons exist: the quote is not in the text (1), a line cannot be read (1), a repeat (0); category, type and polarity are never a reason", d.quote_not_found === 1 && d.malformed_line === 1 && d.duplicate === 0 && Object.keys(d).sort().join() === "duplicate,malformed_line,quote_not_found", d);
+  ok("the split adds up to the dropped total", Object.values(d).reduce((a, b) => a + b, 0) === r.body.items_dropped && r.body.items_dropped === 2, [d, r.body.items_dropped]);
   const f = mkDb(rowsN(5)); let n = 0; f.callModel2 = async () => { n++; if (n === 1) throw new Error("model 429"); if (n === 2) throw new Error("SECRETLISTINGTEXT the seller said so"); if (n === 3) return { text: "I cannot help with that", usage: { input_tokens: 800, output_tokens: 10 }, stop_reason: "end_turn" }; if (n === 4) return { text: "", usage: { input_tokens: 800, output_tokens: 0 }, stop_reason: "end_turn" }; return { text: GOOD(""), usage: { input_tokens: 800, output_tokens: 200 }, stop_reason: "end_turn" }; };
   const r2 = await mine(f, { limit: 5 }), fr = r2.body.failed_by_reason;
   ok("each failed listing has a short code: model_429, model_error, unreadable, no_answer", r2.body.failed === 4 && fr.model_429 === 1 && fr.model_error === 1 && fr.unreadable === 1 && fr.no_answer === 1 && r2.body.failures.length === 4 && r2.body.failures.every(x => typeof x.n === "number" && /^[a-z_0-9]+$/.test(x.reason)), r2.body);
@@ -208,9 +240,9 @@ await section("dropped and failed reasons", async () => {
   ok("a failed listing is read again next time (failed is not done)", again.body.mined === 2, again.body);
 });
 await section("version", async () => {
-  ok("the miner version is bumped to fm3 (the equipment rule changes what is kept)", FM.MINER_VERSION === "fm3" && FM.MINER_VERSION !== "fm2");
-  const db = mkDb(rowsN(8)); for (let i = 0; i < 8; i++) db.runs.set("bringatrailer:N" + (1000 + i), { listing_id: "bringatrailer:N" + (1000 + i), miner_version: "fm2", status: "done" });
-  const r = await mine(db, { limit: 8 }); ok("the 8 listings already read under fm2 are read again under fm3", r.ok && r.body.already_mined === 0 && r.body.mined === 8 && db.modelCalls === 8, r.body);
+  ok("the miner version is bumped to fm4 (the filters are gone, so what is kept changes; main already held fm3, the equipment skipping prompt)", FM.MINER_VERSION === "fm4" && FM.MINER_VERSION !== "fm3" && FM.MINER_VERSION !== "fm2");
+  const db = mkDb(rowsN(8)); for (let i = 0; i < 8; i++) db.runs.set("bringatrailer:N" + (1000 + i), { listing_id: "bringatrailer:N" + (1000 + i), miner_version: "fm3", status: "done" });
+  const r = await mine(db, { limit: 8 }); ok("the 8 listings already read under fm3 are read again under fm4", r.ok && r.body.already_mined === 0 && r.body.mined === 8 && db.modelCalls === 8, r.body);
   ok("the done check asks for this miner version only", db.selects.some(q => q.startsWith("listing_mining_runs?") && q.includes("miner_version=eq." + FM.MINER_VERSION)));
 });
 await section("time budget", async () => {
@@ -391,7 +423,8 @@ function mutants() {
     ["the call starts when the lease cannot be written (both guards: the write error and the missing own row)", "lib/factMine.js", s => s.replace("if (w && w.error) return { ok: false, status: 503, why: \"this call could not be counted", "if (false) return { ok: false, status: 503, why: \"this call could not be counted").replace("if (!act || rank < 0) {", "if (false) {"), "lease write"],
     ["the refusal is a 400, not a 429", ...sub("lib/factMine.js", "return { ok: false, status: 429,", "return { ok: false, status: 400,")],
     ["the endpoint drops the refusal's status", ...sub("api/usageDashboard.js", "res.status(r.status || 400).json({ task, error: r.why });", "res.status(400).json({ task, error: r.why });")],
-    ["an item with a bad category is kept", ...sub("lib/factMine.js", "const category = enumOf(c, CATEGORIES); if (!category) {", "const category = enumOf(c, CATEGORIES) || \"other\"; if (false) {")],
+    ["an item whose type or polarity is outside its list is dropped", ...sub("lib/factMine.js", "const category = categoryOf(c), type = enumOrOther(ty, STATEMENT_TYPES), pol = enumOrOther(po, POLARITIES);", "const category = categoryOf(c), type = enumOf(ty, STATEMENT_TYPES), pol = enumOf(po, POLARITIES); if (!type || !pol) { reasons.malformed_line++; continue; }")],
+    ["the category is closed again (an unknown word becomes other)", ...sub("lib/factMine.js", "const categoryOf = v => {", "const categoryOf = v => { if (!/^(paint|service|options|wheels|storage|provenance|seats|interior)$/.test(String(v).trim())) return \"other\";")],
     ["a done listing is mined again", ...sub("lib/factMine.js", "const todo = eligible.filter((r, i) => !doneIds.has(ids[i])).slice(0, call.limit);", "const todo = eligible.slice(0, call.limit);")],
     ["an unwindowed call is allowed", ...sub("lib/factMine.js", "if (!DATE.test(from) || !DATE.test(to)) return", "if (false) return")],
     ["a window over 366 days is allowed", ...sub("lib/factMine.js", "if (days(from, to) > MAX_WINDOW_DAYS) return", "if (false) return")],
@@ -402,15 +435,25 @@ function mutants() {
     ["text can be returned", ...sub("lib/factMine.js", "if (typeof v === \"string\") return v.length <= 200;", "if (typeof v === \"string\") return true;")],
     ["the map merges opposite meanings", ...sub("lib/factMap.js", "if (parts.size <= 1) return [{ canonical, members: [...members] }];", "return [{ canonical, members: [...members] }];")],
     ["the map asks again for what is mapped", ...sub("lib/factMap.js", "filter(([t]) => !have.has(t))", "filter(([t]) => true)")],
-    ["the prompt no longer skips factory equipment", ...sub("lib/factMine.js", "factory equipment and options of every kind, even when", "ordinary things, even when")],
-    ["the prompt keeps factory packages again", ...sub("lib/factMine.js", "stated absences (\\\"no accidents\\\", \\\"never tracked\\\").\",", "stated absences (\\\"no accidents\\\", \\\"never tracked\\\"); factory packages or rare options named as such.\",")],
+    ["the prompt skips factory equipment again", ...sub("lib/factMine.js", "Skip only text that states nothing about the car itself", "SKIP: factory equipment and options of every kind. Skip only text that states nothing about the car itself")],
+    ["the prompt weighs what a buyer would care about again", ...sub("lib/factMine.js", "write down EVERY fact the seller states about the car", "write down the facts a buyer would weigh")],
+    ["the year is not captured", ...sub("lib/factMine.js", "const stated_year = yearOf(yr), stated_miles = milesOf(mi);", "const stated_year = null, stated_miles = milesOf(mi);")],
+    ["the miles are not captured", ...sub("lib/factMine.js", "const stated_year = yearOf(yr), stated_miles = milesOf(mi);", "const stated_year = yearOf(yr), stated_miles = null;")],
+    ["the proof is never marked", ...sub("lib/factMine.js", "proof_mentioned: proofOn(pf),", "proof_mentioned: false,")],
+    ["the proof is marked on every fact", ...sub("lib/factMine.js", "proof_mentioned: proofOn(pf),", "proof_mentioned: true,")],
+    ["the stated year flag is true when there is no year", ...sub("lib/factMine.js", "has_date: stated_year != null,", "has_date: true,")],
+    ["a thousand is not read from 61k", ...sub("lib/factMine.js", "* (m[2] ? 1000 : 1)", "* 1")],
+    ["the prompt no longer asks for the year, miles and proof", ...sub("lib/factMine.js", "year: the four digit year the statement itself carries", "year: a number")],
+    ["the SQL has no stated_year column", ...sub("docs/supabase-factmine.sql", "alter table listing_mentions add column if not exists stated_year    integer;", "")],
+    ["the SQL keeps the old statement type list", ...sub("docs/supabase-factmine.sql", "'absence_stated','claim','other'));", "'absence_stated','claim'));")],
+    ["the SQL has no option kind", ...sub("docs/supabase-factmine.sql", "'equipment','option','other'));", "'equipment','other'));")],
     ["a cut off answer keeps its partial last line", ...sub("lib/factMine.js", "if (opts.truncated && !/\\n\\s*$/.test(raw) && lines.length) {", "if (false) {")],
     ["a truncated listing is not flagged", ...sub("lib/factMine.js", "...(truncated ? { error: \"truncated\" } : {})", "")],
     ["a truncated listing is a failure", ...sub("lib/factMine.js", "if (parsed.bad) return fail(", "if (parsed.bad || truncated) return fail(")],
-    ["the item cap of 30 is not applied", ...sub("lib/factMine.js", "if (evaluated >= MAX_ITEMS) {", "if (false) {")],
+    ["an item cap of 30 is put back", ...sub("lib/factMine.js", "    shaped++;", "    shaped++; if (items.length >= 30) { reasons.duplicate++; continue; }")],
     ["a quote is not clipped to 60 characters", ...sub("lib/factMine.js", ".trim().slice(0, MAX_QUOTE), topic", ".trim(), topic")],
-    ["the miner version is not bumped", ...sub("lib/factMine.js", "export const MINER_VERSION = \"fm3\"", "export const MINER_VERSION = \"fm2\"")],
-    ["the output limit goes back to 4,000", ...sub("lib/factMine.js", "MAX_OUT_TOKENS = 1800", "MAX_OUT_TOKENS = 4000")],
+    ["the miner version is not bumped", ...sub("lib/factMine.js", "export const MINER_VERSION = \"fm4\"", "export const MINER_VERSION = \"fm3\"")],
+    ["the output limit goes back to 1,800", ...sub("lib/factMine.js", "MAX_OUT_TOKENS = 8000", "MAX_OUT_TOKENS = 1800")],
     ["listings are read one at a time", ...sub("lib/factMine.js", "PARALLEL = 5,", "PARALLEL = 1,")],
     ["a listing is started with no time left", ...sub("lib/factMine.js", "if (Date.now() - t0 + T.modelTimeoutMs + T.marginMs > T.budgetMs) {", "if (false) {")],
     ["the call does not answer at its budget", ...sub("lib/factMine.js", "Math.max(0, T.budgetMs - (Date.now() - t0))", "1e9")],
@@ -428,6 +471,7 @@ function mutants() {
     const tmp = fs.mkdtempSync(path.join(fs.realpathSync("/tmp"), "fm-"));
     try {
       for (const d of ["lib", "api", "data", "package.json"]) spawnSync("cp", ["-R", path.join(R, d), tmp]);
+      fs.mkdirSync(path.join(tmp, "docs")); fs.copyFileSync(path.join(R, "docs/supabase-factmine.sql"), path.join(tmp, "docs/supabase-factmine.sql"));
       fs.mkdirSync(path.join(tmp, "scripts")); fs.symlinkSync(path.join(R, "node_modules"), path.join(tmp, "node_modules"));
       const f = path.join(tmp, file), before = fs.readFileSync(f, "utf8"), after = fn(before); if (before === after) { console.log("SKIP (no change) " + name); survived++; continue; }
       fs.writeFileSync(f, after);
