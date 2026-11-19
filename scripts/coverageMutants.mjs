@@ -14,7 +14,7 @@ const M = [
   ["vendorSourceCheck", "duPont is put in the fee set (its hammer would be backed out)", "lib/_houseComps.js", "export const HOUSE_SOURCES = new Set([\"rmsothebys\",", "export const HOUSE_SOURCES = new Set([\"dupontregistrylive\", \"rmsothebys\","],
   ["vendorSourceCheck", "duPont is not a house venue for words", "lib/_houseComps.js", "new Set([...HOUSE_SOURCES, \"dupontregistrylive\"])", "new Set([...HOUSE_SOURCES])"],
   ["vendorSourceCheck", "the email venue map drops Mecum (a pre-existing slug leak class)", "lib/_email.js", " mecum: \"Mecum\" }", " }"],
-  ["vendorSourceCheck", "the engine's venue name map drops duPont (tile shows the slug)", "lib/onebox.js", ", dupontregistrylive: \"duPont Registry Live\"\n};", "\n};"],
+  ["vendorSourceCheck", "the engine's venue name map drops duPont (tile shows the slug)", "lib/onebox.js", "broadarrow: \"Broad Arrow\", dupontregistrylive: \"duPont Registry Live\", themarket", "broadarrow: \"Broad Arrow\", themarket"],
   ["vendorSourceCheck", "the room type of an uncalendared live auction reads online", "lib/desk/roomType.js", "if (!cal) return { type: \"live\", source: \"inferred\" };", "if (!cal) return { type: \"online\", source: \"inferred\" };"],
   ["softFlagCheck", "stored flags are not read again", "lib/onebox.js", "got = await reconcileSoftFlags(env, got); }", "}"],
   ["softFlagCheck", "only soft keys are read again (a stale hard flag stays)", "lib/onebox.js", "const soft = rows.filter(r => r && r.id != null && String(r.project_flag || \"\").trim());", "const soft = rows.filter(r => r && r.id != null && /^(tribute|replica|recreation)$/.test(String(r.project_flag || \"\").trim()));"],
