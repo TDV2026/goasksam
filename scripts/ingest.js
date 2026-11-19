@@ -39,7 +39,8 @@ const DISPLAY = {
   mbmarket: "MB Market", autohunter: "AutoHunter",
   barrettjackson: "Barrett-Jackson", mecum: "Mecum Auctions", bonhams: "Bonhams",
   broadarrow: "Broad Arrow", carandclassic: "Car & Classic", collectingcars: "Collecting Cars",
-  themarket: "The Market", pistonheads: "PistonHeads"
+  themarket: "The Market", pistonheads: "PistonHeads",
+  dupontregistrylive: "duPont Registry Live"   // Nov 19 2026 (lane-b-coverage): the vendor's new live-auction source; the feed price is the hammer, so no fee rule; NOT dupontregistry (the classifieds source)
 };
 // AutoHunter went out of business (Aug 2026) and no longer publishes sales, so it is dropped from the
 // default FETCH list (no run should spend a request trying to ingest a dead source). Its DISPLAY label

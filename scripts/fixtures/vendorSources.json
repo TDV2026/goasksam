@@ -1,0 +1,25 @@
+{
+ "read": "2026-11-19 from https://api.oldcarsdata.com/openapi.json (not metered): the source enum of GET /auctions",
+ "sources": [
+  "bringatrailer",
+  "carsandbids",
+  "hemmings",
+  "autohunter",
+  "hagerty",
+  "pcarmarket",
+  "acc",
+  "gooding",
+  "rmsothebys",
+  "barrettjackson",
+  "sothebysmotorsport",
+  "dupontregistrylive",
+  "carandclassic",
+  "themarket",
+  "broadarrow",
+  "mbmarket",
+  "mecum",
+  "pistonheads",
+  "collectingcars",
+  "bonhams"
+ ]
+}

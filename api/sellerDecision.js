@@ -42,7 +42,7 @@ import { findGeneration, generationModelToken, generationsForModel } from "../li
 import { sourceCoverage } from "../lib/desk/coverage.js";
 import { isMaterialVariant } from "../lib/materialVariants.js";
 import { buildHouseComparison } from "../lib/houseCalendar.js";
-import { isHouseSource } from "../lib/_houseComps.js";
+import { isHouseVenue } from "../lib/_houseComps.js";
 import { vinFeatureActive, findVinArchiveMatch, looksLikeChassisId } from "../lib/_flags.js";
 import { findVinLiveMatch, liveVehicleOf, liveFactsOf } from "../lib/vinLiveMatch.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
@@ -316,7 +316,7 @@ export function isEvidenceSource(record, vehicle) {
   // evidence (their premium is backed out to hammer in classifyRecord), so their sales
   // inform the read and they can be NAMED. They remain non-routable (not in
   // US_ROUTE_ALLOWLIST -> routable:false), so a house is never the pick/a submission door.
-  if (isHouseSource(record)) return true;
+  if (isHouseVenue(record)) return true;
   const marque = MARQUE_GATED_EVIDENCE[slug];
   if (marque) return makeMatchesMarque(vehicle && vehicle.make, marque);
   return false;
@@ -523,7 +523,7 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
       // Keep US-routable platforms AND the live-auction houses. Houses survive as
       // routable:false routes (not in ROUTE_POLICIES), so they can be NAMED as evidence /
       // surface as the stronger-non-routable callout, but never leave as a routable pick.
-      if (!US_ROUTE_ALLOWLIST.has(normSourceSlug(key)) && !isHouseSource(normSourceSlug(key))) candidateKeys.delete(key);
+      if (!US_ROUTE_ALLOWLIST.has(normSourceSlug(key)) && !isHouseVenue(normSourceSlug(key))) candidateKeys.delete(key);
     }
   }
 

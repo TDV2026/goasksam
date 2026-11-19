@@ -7433,6 +7433,22 @@
     "scripts/fixtures/noDeadEnds.json"
    ]
   },
+  "vendorSourceCheck": {
+   "file": "scripts/vendorSourceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/",
+    "lib/_houseComps.js",
+    "lib/desk/roomType.js",
+    "lib/generations.js",
+    "lib/onebox.js",
+    "lib/ops/depthProbe.js",
+    "scripts/",
+    "scripts/ingest.js",
+    "scripts/pullSources.js"
+   ]
+  },
   "vercelConfigCheck": {
    "file": "scripts/vercelConfigCheck.mjs",
    "kind": "offline",

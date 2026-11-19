@@ -26,7 +26,7 @@ const HOUSE = {
   acc: "All Collector Cars", allcollectorcars: "All Collector Cars", gooding: "Gooding & Co", rmsothebys: "RM Sotheby's",
   hemmings: "Hemmings", sothebysmotorsport: "Sotheby's Motorsport", mbmarket: "MB Market", autohunter: "AutoHunter",
   barrettjackson: "Barrett-Jackson", mecum: "Mecum", bonhams: "Bonhams", broadarrow: "Broad Arrow",
-  carandclassic: "Car & Classic", collectingcars: "Collecting Cars", themarket: "The Market", pistonheads: "PistonHeads"
+  carandclassic: "Car & Classic", collectingcars: "Collecting Cars", themarket: "The Market", pistonheads: "PistonHeads", dupontregistrylive: "duPont Registry Live"
 };
 export function houseName(s) { const k = String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); return HOUSE[k] || (s ? String(s) : ""); }
 
