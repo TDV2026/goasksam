@@ -665,16 +665,6 @@
   ]
  },
  {
-  "name": "shipped: the schedule switches are off",
-  "edits": [
-   {
-    "file": "data/forsaleBudget.json",
-    "from": "\"schedule\": { \"pull_on\": true, \"prepare_on\": true }",
-    "to": "\"schedule\": { \"pull_on\": false, \"prepare_on\": false }"
-   }
-  ]
- },
- {
   "name": "shipped: autotraderclassics is on",
   "edits": [
    {
@@ -706,36 +696,6 @@
     "file": "data/forsaleBudget.json",
     "from": "\"classiccars\": false",
     "to": "\"classiccars\": true"
-   }
-  ]
- },
- {
-  "name": "shipped: the pull cron fires four times a day",
-  "edits": [
-   {
-    "file": "vercel.json",
-    "from": "\"schedule\": \"10 */12 * * *\"",
-    "to": "\"schedule\": \"10 */6 * * *\""
-   }
-  ]
- },
- {
-  "name": "shipped: the pull cron is gone",
-  "edits": [
-   {
-    "file": "vercel.json",
-    "from": "    { \"path\": \"/api/pullForSale?mode=pull\", \"schedule\": \"10 */12 * * *\" },\n",
-    "to": ""
-   }
-  ]
- },
- {
-  "name": "shipped: the prepare cron is gone",
-  "edits": [
-   {
-    "file": "vercel.json",
-    "from": "    { \"path\": \"/api/pullForSale?mode=prepare\", \"schedule\": \"40 * * * *\" },\n",
-    "to": ""
    }
   ]
  },
@@ -926,6 +886,26 @@
     "file": "vercel.json",
     "from": "\"crons\": [",
     "to": "\"crons\": [\n    { \"path\": \"/api/pullForSale?mode=pull\", \"schedule\": \"10 */12 * * *\" },"
+   }
+  ]
+ },
+ {
+  "name": "the config names the pull cadence as four times a day",
+  "edits": [
+   {
+    "file": "data/forsaleBudget.json",
+    "from": "mode=pull with schedule 10 */12 * * *",
+    "to": "mode=pull with schedule 10 */6 * * *"
+   }
+  ]
+ },
+ {
+  "name": "the config no longer says switching on takes both",
+  "edits": [
+   {
+    "file": "data/forsaleBudget.json",
+    "from": "TO SWITCH ON it takes BOTH",
+    "to": "TO SWITCH ON set the flags"
    }
   ]
  }
