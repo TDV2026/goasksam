@@ -7,6 +7,7 @@
 //   (5) the photos of a stored pick are re-checked once an hour; a pick whose photo has gone is built again, else the section is hidden
 //   (6) the class: crewPage.js reads this very file and function; zero OldCarsData
 //   node scripts/mcExamplesCheck.mjs [root]     --mutants proves each rule by breaking it in a copy
+import { fnBlock } from "./_pageLift.mjs";
 import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { fileURLToPath, pathToFileURL } from "node:url"; import { spawnSync } from "node:child_process";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2), rootArg = args.find(a => !a.startsWith("--")), ROOT = path.resolve(rootArg || path.join(here, ".."));
@@ -170,8 +171,8 @@ let failed = 0, n = 0; const ok = (name, c, d) => { n++; if (!c) failed++; conso
   ok("(7) the period line: rungLabel, poolYears and the rest of the grey line are the page's, unchanged", ["rungLabel", "poolYears", "scopeLabel", "resolvedSpec"].every(k => JSON.stringify(r.result[k]) === JSON.stringify(page[k])) && Array.isArray(r.result.poolYears) && /\d{4}/.test(r.result.rungLabel));
   ok("(7) on the real 325i answer the title and the period line are copied unchanged (resolvedCar, rungLabel, poolYears, resolvedSpec, scopeLabel)", ["resolvedCar", "rungLabel", "poolYears", "resolvedSpec", "scopeLabel"].every(k => JSON.stringify(ro[k]) === JSON.stringify(ra[k]) && ro[k] !== undefined));
   // THE TITLE LINE (Nov 8 2026): the engine's titleLine is the text of the results page's own carLabel (public/js/onebox.js), run here from the page's source
-  { const js = fs.readFileSync(path.join(ROOT, "public/js/onebox.js"), "utf8"), i0 = js.indexOf("function carLabel(rc) {"), i1 = js.indexOf("\n  }\n", i0) + 4, c0 = js.indexOf("function cap(s)"), c1 = js.indexOf("\n", c0);
-    const carLabel = new Function(js.slice(c0, c1) + "\n" + js.slice(i0, i1) + "\nreturn carLabel;")(), OB = await import(pathToFileURL(path.join(ROOT, "lib/onebox.js")).href);
+  { const js = fs.readFileSync(path.join(ROOT, "public/js/onebox.js"), "utf8"), labelSrc = fnBlock(js, "carLabel"), capSrc = fnBlock(js, "cap");
+    const carLabel = new Function(capSrc + "\n" + labelSrc + "\nreturn carLabel;")(), OB = await import(pathToFileURL(path.join(ROOT, "lib/onebox.js")).href);
     ok("(7) titleLine in the result equals the page's carLabel for that car", typeof r.result.titleLine === "string" && r.result.titleLine === carLabel(r.result.resolvedCar) && r.result.titleLine === page.titleLine, r.result.titleLine);
     const CARS = [{ year: 2006, make: "BMW", model: "325i", nameModel: "325i", trim: null, bodyStyle: "sedan" }, { year: 1990, make: "BMW", model: "E30 M3", nameModel: "M3", trim: null, bodyStyle: null, canonicalLabel: "1990 BMW M3" }, { year: 1957, make: "Mercedes-Benz", model: "300SL", trim: "Roadster", bodyStyle: "roadster" }, { year: 1999, make: "Porsche", model: "911", nameModel: "911", trim: "Carrera", bodyStyle: "coupe" }, { year: 1965, make: "Ferrari", model: "275 GTB", trim: null, bodyStyle: "" }, { make: "Ford", model: "Mustang" }, null];
     ok("(7) the class: titleLineOf is carLabel for every kind of car (a canonical label, a trim that carries the body, no body, no year, no car)", CARS.every(c => OB.titleLineOf(c) === (c ? carLabel(c) : null) || (c && carLabel(c) === "this car" && OB.titleLineOf(c) === null)), CARS.map(c => OB.titleLineOf(c)).join(" | "));
