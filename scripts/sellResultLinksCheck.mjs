@@ -80,7 +80,8 @@ ok(!/sellFactsFor\(|pickPlatform\(|partnerFor\(|buildBlock\(/.test(rangeSrc) && 
 ok(/timings\.resolve/.test(flowSrc) && /capped\("block_read"/.test(flowSrc) && /timings\.answer/.test(flowSrc) && /timings\.build/.test(flowSrc) && /capped\("partner"/.test(flowSrc) && /total: Date\.now\(\) - T0/.test(flowSrc), "every piece reports its milliseconds (resolve, the block read, the answer and where it came from, the build, the partner, the total)");
 ok(/b\.step === "range"/.test(chatSrc) && /b\.step === "rest"/.test(chatSrc) && /b\.step === "result"/.test(chatSrc), "the Sell route answers range, rest and result");
 ok(client.includes("Reading the sales for the ") && client.includes("Checking where cars like this sold") && client.includes("Nearly there") && client.includes("This one is taking longer than usual"), "the waiting lines are the ones asked for, in the client");
-ok(/startWait\("sell-waitbox", \[\[0, "Reading the sales for the " \+ S\.label\]\]\)/.test(client) && /startWait\("sell-slotwait", \[\[0, "Checking where cars like this sold"\], \[8, "Nearly there"\]\]\)/.test(client), "in order: reading (until the range), then checking, then nearly there");
+// Nov 19 2026: startWait gained a third argument (the wait key, "sell" / "sellSlot"); the stages and their order are what this pins
+ok(/startWait\("sell-waitbox", \[\[0, "Reading the sales for the " \+ S\.label\]\](?:, "[A-Za-z]+")?\)/.test(client) && /startWait\("sell-slotwait", \[\[0, "Checking where cars like this sold"\], \[8, "Nearly there"\]\](?:, "[A-Za-z]+")?\)/.test(client), "in order: reading (until the range), then checking, then nearly there");
 ok(/restFailed\(/.test(client) && /couldn\\'t read where cars like this sold yet/.test(client), "a rest that fails says so in its own place");
 console.log(`sellResultLinksCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);
