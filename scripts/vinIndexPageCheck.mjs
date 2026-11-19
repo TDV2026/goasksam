@@ -37,7 +37,7 @@ if (MUT) {
 
 // ---- the fake archive
 process.env.SUPABASE_URL = "https://db.test"; process.env.SUPABASE_SERVICE_ROLE_KEY = "k";
-const V = { a: "WBSKG9C50DE000001", b: "WBSPM9C52AE000002", c: "WBS3R9C57HK000003", d: "WBSKG9C5XDE000004", e: "WBSKG9C51DE0000051234", f: "WBSKG9C59DE000006", g: "WBSKG9C55DE000007" };
+const V = { a: "WBSKG9C50DE000001", b: "WBSPM9C52AE000002", c: "WBS3R9C57HK000003", d: "WBSKG9C5XDE000004", e: "WBSKG9C51DE0000051234", f: "WBSKG9C59DE000006", g: "WBSKG9C55DE000007", h: "SCFEBBCF4EGL00008" };
 const T = "BMW M3 listing";
 const S = (vin, o) => ({ vin_norm: vin, year: 2013, model: "M3", model_family: "M3", body: "Coupe", sale_date: "2025-03-11", sale_price: 55500, sale_price_usd: 55500, platform: "bringatrailer", listing_title: "2013 BMW M3 Coupe", mileage: 21000, img: "https://img.test/a.jpg", url: "https://bringatrailer.com/listing/a", url2: null, currency: "USD", ...o });
 const sales = [
@@ -47,6 +47,8 @@ const sales = [
   S(V.e, { year: null, model: null, model_family: null, body: null, sale_date: "2024-12-01", sale_price: 20000, sale_price_usd: 20000, platform: "hagerty", mileage: null, listing_title: "BMW M3 unnamed", img: null }),
   S(V.f, { model: "M3 Coupe", model_family: null, body: "Coupe", sale_date: "2024-11-05", listing_title: "2013 BMW M3 Coupe", mileage: 33100 }),
 ];
+// the longest car line and the biggest price the page has to hold: a long model and body name, a seven figure price with its fee
+sales.push(S(V.h, { year: 1955, model: "300 SL Gullwing Coupe Alloy Body", model_family: "Mercedes-Benz 300 SL Gullwing Coupe Alloy Body", body: "Convertible", sale_date: "2025-05-05", sale_price: 1234567, sale_price_usd: 1234567, platform: "bringatrailer", mileage: 123456, listing_title: "1955 Mercedes-Benz 300 SL", img: null }));
 for (let i = 0; i < 12; i++) sales.push(S(V.g, { sale_date: `2023-${String(i + 1).padStart(2, "0")}-15`, sale_price: 40000 + i * 500, sale_price_usd: 40000 + i * 500, mileage: 50000 + i, img: null }));
 const A = (vin, o) => ({ chassis_vin_norm: vin, year: 2013, model: "M3", body: "Convertible", attempt_date: "2024-05-01", high_bid: 48000, high_bid_usd: 48000, source_slug: "bringatrailer", title: "2013 BMW M3 Convertible", img: null, url: "https://bringatrailer.com/listing/d", url2: null, mileage: "18200", currency: "USD", ...o });
 const atts = [
@@ -121,17 +123,22 @@ const MEASURE = () => {
     const car = tr.querySelector(".c-car"); const vn = tr.querySelector("a.vn");
     return { cells, cl: (car.querySelector(".cl") || {}).textContent || "", vin: vn.textContent, href: vn.getAttribute("href"), vnSize: parseFloat(getComputedStyle(vn).fontSize), clSize: car.querySelector(".cl") ? parseFloat(getComputedStyle(car.querySelector(".cl")).fontSize) : null, vnTop: R(vn).t, clBot: car.querySelector(".cl") ? R(car.querySelector(".cl")).b : null, fee: (tr.querySelector(".fee") || {}).textContent || null, feeBelow: tr.querySelector(".fee") ? tr.querySelector(".fee").getBoundingClientRect().top >= tr.querySelector(".pr").getBoundingClientRect().bottom - 1 : null, layout: getComputedStyle(tbl).tableLayout, feeSize: tr.querySelector(".fee") ? parseFloat(getComputedStyle(tr.querySelector(".fee")).fontSize) : null, prSize: tr.querySelector(".pr") ? parseFloat(getComputedStyle(tr.querySelector(".pr")).fontSize) : null, res: tr.querySelector(".c-res").textContent.trim() };
   });
-  return { heads, rows, sw: document.documentElement.scrollWidth, iw: window.innerWidth, h1: (document.querySelector("h1") || {}).textContent, title: document.title, links: [...tbl.querySelectorAll("a")].map(a => a.getAttribute("href")) };
+  const clip = [...document.querySelectorAll("main *")].filter(e => e.scrollWidth > e.clientWidth + 2 && ["hidden", "clip"].includes(getComputedStyle(e).overflowX) && e.clientWidth > 4 && e.textContent.trim().length > 0 && getComputedStyle(e).position !== "absolute").map(e => e.tagName + "." + e.className + ":" + e.textContent.trim().slice(0, 30));
+  return { clip, heads, rows, sw: document.documentElement.scrollWidth, iw: window.innerWidth, h1: (document.querySelector("h1") || {}).textContent, title: document.title, links: [...tbl.querySelectorAll("a")].map(a => a.getAttribute("href")) };
 };
 const clear = (a, b, gap = 8) => !a || !b || a.r + gap <= b.l || b.r + gap <= a.l || a.b <= b.t || b.b <= a.t;   // no horizontal touch unless they sit on different lines
 const apart = (a, b, gap = 8) => !a || !b || a.r + gap <= b.l || a.b <= b.t;   // a ends left of b by the gap, or above it
 const first = {};
-for (const slug of ["all", "y2013"]) for (const w of [1440, 1280, 768, 390]) {
-  const pg = await open(slug, w), m = await pg.evaluate(MEASURE); const tag = `${NAMES[slug]} @${w}: `;
+for (const stress of [false, true]) for (const slug of ["all", "y2013"]) for (const w of [1440, 1280, 1024, 768, 390]) {
+  if (stress && slug !== "all") continue;
+  const pg = await open(slug, w); if (stress) await pg.addStyleTag({ content: "table.vix th{font-size:15px !important;letter-spacing:.14em !important}table.vix td{font-size:17px !important}" });   // the page is wrapped by shells with their own heading type: wider type must not clip either
+  const m = await pg.evaluate(MEASURE); const tag = `${NAMES[slug]} @${w}${stress ? " wide type" : ""}: `;
   if (m.none) { ok(false, tag + "no table"); if (SHOTS && slug === "all" && [1440, 390].includes(w)) { const f = path.join(ROOT, "docs/demo-run", `vin-index-${process.env.SHOT_TAG || "after"}-${w === 390 ? "phone-390" : "desktop-1440"}.png`); fs.mkdirSync(path.dirname(f), { recursive: true }); await pg.evaluate(() => { const t = document.querySelector("table"); if (t) t.scrollIntoView(); }); await pg.screenshot({ path: f }); } await pg.close(); continue; }
+  ok(m.clip.length === 0, tag + `nothing is clipped (the page's own rule: no element hides content wider than itself): ${m.clip.join(" | ")}`);
   ok(m.sw <= m.iw, tag + `no sideways scroll (${m.sw} > ${m.iw})`);
   if (w >= 768) {
     const H = m.heads.filter(h => h.shown && h.txt !== "Photo"); ok(H.map(h => h.txt).join("|") === "Car|Seen|Last result|Date|Miles", tag + "the headings are Car, Seen, Last result, Date, Miles (" + H.map(h => h.txt).join("|") + ")");
+    for (const h of H) ok(!h.ink || h.ink.r <= h.box.r + 1, tag + `the heading "${h.txt}" fits inside its own column`);
     for (let i = 0; i + 1 < H.length; i++) ok(apart(H[i].ink, H[i + 1].ink), tag + `headings "${H[i].txt}" and "${H[i + 1].txt}" do not touch (8px apart)`);
     ok(!m.heads.some(h => /Appearances/.test(h.txt)), tag + "the heading is Seen, not Appearances");
   }
@@ -160,7 +167,7 @@ for (const slug of ["all", "y2013"]) for (const w of [1440, 1280, 768, 390]) {
       ok(clear(c["c-date"].ink, c["c-mi"].ink) && clear(c["c-car"].ink, c["c-seen"].ink), tag + `${r.vin}: nothing touches on the phone`);
     }
   }
-  if (w === 1440) {
+  if (w === 1440 && !stress) {
     first[slug] = m;
     const byV = Object.fromEntries(m.rows.map(r => [r.vin, r]));
     if (slug === "all") {
@@ -177,13 +184,14 @@ for (const slug of ["all", "y2013"]) for (const w of [1440, 1280, 768, 390]) {
       const hrefs = m.rows.map(r => r.href);
       ok(hrefs.every(h => /^\/history\/[a-z0-9-]+\/[A-Z0-9]+$|^\/vin\/[A-Z0-9]+$/.test(h)) && hrefs.length === m.rows.length, "all: every VIN link is a car page address: " + hrefs.slice(0, 2).join(", "));
       ok(m.h1 === "BMW M3 auction results" && /BMW M3/.test(m.title), "all: heading and title unchanged (" + m.h1 + " | " + m.title + ")");
-      ok(m.rows.length === 7, "all: seven cars listed (" + m.rows.length + ")");
+      ok(m.rows.length === 8, "all: eight cars listed (" + m.rows.length + ")");
+      ok(byV[V.h] && byV[V.h].cl === "1955 Mercedes-Benz 300 SL Gullwing Coupe Alloy Body Convertible" && /\$1,234,567/.test(byV[V.h].res) && /\$1,242,067 with buyer/.test(byV[V.h].res), "all: the longest car line and a seven figure price with its fee print whole (" + (byV[V.h] || {}).cl + " | " + (byV[V.h] || {}).res + ")");
     } else {
       ok(m.rows.every(r => /^2013 /.test(r.cl)), "2013: every row's car line names its own year");
       ok(m.h1 === "2013 BMW M3 auction results", "2013: heading unchanged (" + m.h1 + ")");
     }
   }
-  if (SHOTS && ((slug === "all") && [1440, 390].includes(w))) { fs.mkdirSync(path.join(ROOT, "docs/demo-run"), { recursive: true }); const f = path.join(ROOT, "docs/demo-run", `vin-index-${process.env.SHOT_TAG || "after"}-${w === 390 ? "phone-390" : "desktop-1440"}.png`); await pg.evaluate(() => document.querySelector("table.vix").scrollIntoView()); await pg.screenshot({ path: f }); }
+  if (SHOTS && !stress && ((slug === "all") && [1440, 390].includes(w))) { fs.mkdirSync(path.join(ROOT, "docs/demo-run"), { recursive: true }); const f = path.join(ROOT, "docs/demo-run", `vin-index-${process.env.SHOT_TAG || "after"}-${w === 390 ? "phone-390" : "desktop-1440"}.png`); await pg.evaluate(() => document.querySelector("table.vix").scrollIntoView()); await pg.screenshot({ path: f }); }
   await pg.close();
 }
 // the links are the same as before the change: one per car, to the same address each car had (built from the hub slug and the car's year)
@@ -194,7 +202,7 @@ await browser.close();
 {
   const files = []; const walk = d => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { if (["node_modules", ".git", "docs", "scripts", "proofs"].includes(e.name)) continue; const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else if (/\.(js|mjs)$/.test(e.name)) files.push(p); } };
   walk(path.join(ROOT, "api")); walk(path.join(ROOT, "lib"));
-  const REG = { "api/history.js": "CHANGED: the VIN index (every make, model and year hub, one template)", "api/admin.js": "swept: crew admin tables, noindex, not a public index", "api/usageDashboard.js": "swept: keyed ops dashboards, not public", "lib/_email.js": "swept: email layout tables, no data columns", "lib/tasks/emailCardLayout.js": "swept: email card layout", "lib/tasks/carMailPreview.js": "swept: crew-only email preview" };
+  const REG = { "api/history.js": "CHANGED: the VIN index (every make, model and year hub, one template)", "api/admin.js": "swept: crew admin tables, noindex, not a public index", "api/usageDashboard.js": "swept: keyed ops dashboards, not public", "lib/_email.js": "swept: email layout tables, no data columns", "lib/tasks/emailCardLayout.js": "swept: email card layout", "lib/tasks/carMailPreview.js": "swept: crew-only email preview", "lib/preview/deskV3.js": "swept: crew-only desk preview, not a public index" };
   const hit = files.filter(f => /<table\b/.test(fs.readFileSync(f, "utf8"))).map(f => path.relative(ROOT, f));
   const stray = hit.filter(f => !REG[f]);
   ok(stray.length === 0, "every file that draws a <table> is named in the sweep registry (not named: " + stray.join(", ") + ")");

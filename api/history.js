@@ -129,8 +129,8 @@ body{background:var(--page);color:var(--ink)}.rail{background:var(--page)}
 }
 /* the VIN index (Lane S, Nov 18 2026): every column has its own width and gap, whatever the width; the count is its own cell */
 table.vix{table-layout:fixed;width:100%;border-collapse:collapse;font:400 16px/1.35 var(--sans);font-variant-numeric:lining-nums tabular-nums}
-table.vix col.k-ph{width:96px}table.vix col.k-seen{width:56px}table.vix col.k-res{width:206px}table.vix col.k-date{width:96px}table.vix col.k-mi{width:84px}
-table.vix th,table.vix td{padding:12px 0 12px 16px;vertical-align:top;text-align:left;overflow:hidden;overflow-wrap:anywhere}
+table.vix col.k-ph{width:96px}table.vix col.k-seen{width:84px}table.vix col.k-res{width:206px}table.vix col.k-date{width:96px}table.vix col.k-mi{width:84px}
+table.vix th,table.vix td{padding:12px 0 12px 16px;vertical-align:top;text-align:left;overflow-wrap:anywhere}
 table.vix th{padding-top:0;padding-bottom:10px;letter-spacing:.08em;white-space:nowrap}
 table.vix th:first-child,table.vix td:first-child{padding-left:0}
 table.vix .r{text-align:right}

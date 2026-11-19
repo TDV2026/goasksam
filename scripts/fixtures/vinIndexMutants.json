@@ -124,7 +124,7 @@
   "edits": [
    {
     "file": "api/history.js",
-    "from": "table.vix col.k-seen{width:56px}",
+    "from": "table.vix col.k-seen{width:84px}",
     "to": "table.vix col.k-seen{width:8px}"
    }
   ]
@@ -266,6 +266,26 @@
     "file": "api/history.js",
     "from": "return `<span class=\"o no\">Not sold</span>${bidPrice(a) ? ` <span class=\"pr\">Bid to ${esc(bidPrice(a))}</span>` : \"\"}`;",
     "to": "return `${bidPrice(a) ? `<span class=\"pr\">Bid to ${esc(bidPrice(a))}</span> ` : \"\"}<span class=\"o no\">Not sold</span>`;"
+   }
+  ]
+ },
+ {
+  "name": "the Seen column is too narrow for its own heading",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "table.vix col.k-seen{width:84px}",
+    "to": "table.vix col.k-seen{width:56px}"
+   }
+  ]
+ },
+ {
+  "name": "the heading cannot take wider type",
+  "edits": [
+   {
+    "file": "api/history.js",
+    "from": "table.vix th{padding-top:0;padding-bottom:10px;letter-spacing:.08em;white-space:nowrap}",
+    "to": "table.vix th{padding-top:0;padding-bottom:10px;letter-spacing:.08em;white-space:nowrap;overflow:hidden;max-width:50px}"
    }
   ]
  }
