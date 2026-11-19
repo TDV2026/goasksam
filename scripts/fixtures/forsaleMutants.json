@@ -878,5 +878,55 @@
     "to": "if (false) return null;\n  const now = opts.now"
    }
   ]
+ },
+ {
+  "name": "a line on an answer reads the market for its year window again (no yearWindow handed on)",
+  "edits": [
+   {
+    "file": "lib/forsale/serve.js",
+    "from": "const so = yw ? { yearWindow: yw } : {};",
+    "to": "const so = {};"
+   }
+  ]
+ },
+ {
+  "name": "searchLive ignores the window it is handed and reads the market",
+  "edits": [
+   {
+    "file": "lib/live/search.js",
+    "from": "(opts.yearWindow || await liveYearWindow(env, v))",
+    "to": "await liveYearWindow(env, v)"
+   }
+  ]
+ },
+ {
+  "name": "the pull schedule is shipped on",
+  "edits": [
+   {
+    "file": "data/forsaleBudget.json",
+    "from": "\"pull_on\": false",
+    "to": "\"pull_on\": true"
+   }
+  ]
+ },
+ {
+  "name": "the prepare schedule is shipped on",
+  "edits": [
+   {
+    "file": "data/forsaleBudget.json",
+    "from": "\"prepare_on\": false",
+    "to": "\"prepare_on\": true"
+   }
+  ]
+ },
+ {
+  "name": "a pull cron is shipped while the schedule is off",
+  "edits": [
+   {
+    "file": "vercel.json",
+    "from": "\"crons\": [",
+    "to": "\"crons\": [\n    { \"path\": \"/api/pullForSale?mode=pull\", \"schedule\": \"10 */12 * * *\" },"
+   }
+  ]
  }
 ]
