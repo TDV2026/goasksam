@@ -15,22 +15,20 @@ ok(AMAZON_DEMO_CARS.every(c => !EBAY.some(e => e.toLowerCase() === c.toLowerCase
 ok(AMAZON_DEMO_CARS.every(c => !/[–—]/.test(c)), "no dash characters in the Amazon names");
 for (const c of [...EBAY, ...AMAZON_DEMO_CARS]) { const r = await refreshDemoAnswer(null, c); ok(r.why === "no env", `${c}: the store accepts it (why=${r.why})`); }
 for (const c of ["2018 Toyota Camry", "2016 Mercedes-Benz E-Class", "1969 Chevrolet Camaro"]) { const r = await refreshDemoAnswer(null, c); ok(r.why === "not a demo car", `${c}: the store refuses it (why=${r.why})`); }
-// (3) the warm paths: every line main had is still there, verbatim, except the three lines each widened by an Amazon branch,
-// and each of those still carries main's eBay expression unchanged.
-// the baseline is main BEFORE any Amazon change landed (a6ab6f94, the parent of 607cde3f, the car list), never moving main
-const EBAY_BASE = "a6ab6f94";
-const before = execSync(`git show ${EBAY_BASE}:api/usageDashboard.js`, { encoding: "utf8" }).split("\n");
-const after = fs.readFileSync(new URL("../api/usageDashboard.js", import.meta.url), "utf8").split("\n");
-const block = (L, a, b) => { const i = L.findIndex(l => l.startsWith(`  if (task === "${a}")`)), j = L.findIndex((l, k) => k > i && l.startsWith(`  if (task === "${b}")`) || (k > i && l.startsWith("  // task=warmBuy"))); return L.slice(i, j); };
-// each widened line must keep main's eBay expression verbatim and add only an Amazon branch
-const KEPT = [["for (const q of DEMO_CARS) {", "DEMO_CARS)) {"], ["[...new Set([...DEMO, ...PERF, ...golden])];", ": [...new Set([...DEMO, ...PERF, ...golden])];"], ["if (/^(result|thin)$/.test(String(d.tier))) { try { const { refreshDemoAnswer }", ": /^(result|thin)$/).test(String(d.tier))) { try { const { refreshDemoAnswer }"]];
-for (const [a, b, widened] of [["warmDemoCheck", "warmDemo", 1], ["warmDemo", "warmBuy", 2]]) {
-  const B = block(before, a, b), A = block(after, a, b), set = new Set(A);
-  const missing = B.filter(l => !set.has(l)), added = A.filter(l => !B.includes(l));
-  ok(B.length > 10, `${a}: the pre-Amazon block found (${B.length} lines)`);
-  ok(missing.length === widened, `${a}: exactly ${widened} of the pre-Amazon lines widened (${missing.length}: ${missing.map(m => m.trim().slice(0, 60)).join(" | ")})`);
-  for (const m of missing) { const k = KEPT.find(([from]) => m.includes(from)); ok(!!k && added.some(l => l.includes(k[1]) && /amazon/.test(l)), `${a}: "${m.trim().slice(0, 50)}" keeps its eBay expression and only adds the Amazon branch`); }
-  ok(added.every(l => /amazon/i.test(l)), `${a}: every added line is the Amazon branch`);
+// (3) the warm paths: the eBay (default) list and tier expressions are still what they were, and each Amazon difference is a
+// branch gated on profile=amazon. The warm tasks have grown other lines since the Amazon change (gates, settle rows, sell block), so this reads
+// the CURRENT block and asserts the intent (the default expression survives on the same line as its Amazon branch), never a line-for-line diff against an old commit.
+const src = fs.readFileSync(new URL("../api/usageDashboard.js", import.meta.url), "utf8").split("\n");
+const block = (a, b) => { const i = src.findIndex(l => l.startsWith(`  if (task === "${a}")`)), j = src.findIndex((l, k) => k > i && (l.startsWith(`  if (task === "${b}")`) || l.startsWith("  // task=warmBuy"))); return src.slice(i, j); };
+const CHECKS = [
+  ["warmDemoCheck", "warmDemo", [["the eBay list DEMO_CARS", /amazon\s*\?[^:]*AMAZON_DEMO_CARS[^:]*:\s*DEMO_CARS\)/]]],
+  ["warmDemo", "warmBuy", [["the default list DEMO + PERF + golden", /profile === "amazon"[^:]*AMAZON_DEMO_CARS[^:]*:\s*\[\.\.\.new Set\(\[\.\.\.DEMO, \.\.\.PERF, \.\.\.golden\]\)\]/], ["the default tier set /^(result|thin)$/ for the demo store write", /"amazon"\s*\?\s*\/\^\(result\|thin\|refusal\)\$\/\s*:\s*\/\^\(result\|thin\)\$\/\)/]]],
+];
+for (const [a, b, exprs] of CHECKS) {
+  const B = block(a, b);
+  ok(B.length > 10, `${a}: the block found (${B.length} lines)`);
+  for (const [name, re] of exprs) ok(B.some(l => re.test(l)), `${a}: ${name} stays the non-Amazon alternative of its Amazon branch`);
+  ok(B.filter(l => /AMAZON_DEMO_CARS/.test(l)).every(l => /amazon/i.test(l.replace(/AMAZON_DEMO_CARS/g, "")) || /profile/.test(l)), `${a}: every Amazon list read is gated on profile=amazon`);
 }
 // (4) crons
 const crons = JSON.parse(fs.readFileSync(new URL("../vercel.json", import.meta.url), "utf8")).crons;
@@ -40,6 +38,8 @@ const mins = c => c.schedule.split(" ")[0].split(",").map(Number);
 ok(az.every(c => mins(c).every(m => m % 15 > 4)), "Amazon crons sit outside the pull minutes (:00-:04, :15-:19, :30-:34, :45-:49)");
 const taken = new Set(crons.filter(c => !/profile=amazon/.test(c.path) && /\*$/.test(c.schedule)).flatMap(c => { const [m, h] = c.schedule.split(" "); return h === "*" ? [] : m.split(",").map(x => `${h}:${x}`); }));
 ok(az.filter(c => c.schedule.split(" ")[1] !== "*").every(c => !taken.has(`${c.schedule.split(" ")[1]}:${mins(c)[0]}`)), "the Amazon daily warms take a minute no other daily task uses");
-ok(crons.filter(c => !/profile=amazon/.test(c.path)).length === JSON.parse(execSync(`git show ${EBAY_BASE}:vercel.json`, { encoding: "utf8" })).crons.length, "every existing cron is still there");
+// the baseline is main BEFORE any Amazon change (a6ab6f94); other lanes have ADDED crons since, so the intent is "none of the old ones was dropped or moved", not an equal count
+{ const EBAY_BASE = "a6ab6f94", base = JSON.parse(execSync(`git show ${EBAY_BASE}:vercel.json`, { encoding: "utf8" })).crons;
+  ok(base.every(b => crons.some(c => c.path === b.path && c.schedule === b.schedule)), "every pre-Amazon cron is still there, same path and schedule"); }
 console.log(`amazonCarsCheck: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

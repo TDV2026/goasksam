@@ -7,17 +7,17 @@ export const DAY = 864e5;
 export const loadCars = root => JSON.parse(fs.readFileSync(path.join(root, "scripts/fixtures/deskOlderCars.json"), "utf8")).cars;
 export function install(root, opts = {}) {
   const cars = opts.cars || loadCars(root); let seed = 7; const rnd = () => (seed = (seed * 48271) % 2147483647) / 2147483647;
-  const DATA = new Map(), bodyWord = c => opts.bodyOf ? opts.bodyOf(c) : c.typedBody;
+  const DATA = new Map(), bodyWord = c => opts.bodyOf ? opts.bodyOf(c) : (opts.bodyNeverSold || [13]).includes(c.n) && /^(roadster|convertible|cabriolet|spider|spyder)$/i.test(c.typedBody || "") ? "Coupe" : c.typedBody;   // car 13 (the 250SL roadster): the recorded read said that body was never sold for it, so its sales are Coupe titles and the typed open body cannot be read
   for (const [ci, c] of cars.entries()) {
     const own = c.read ? c.m24 : (c.countWithoutBody || 3), pop24 = c.read ? c.c24 : own, pop12 = c.read ? c.c12 : Math.min(2, own), mid = c.read && c.range12 ? c.range12[1] : 30000;
     const rows = []; let i = 0;
-    const add = (year, daysAgo, manual) => { const k = i++, price = Math.round(mid * (0.8 + rnd() * 0.4)), gb = manual ? "Manual (4-Speed)" : "Automatic", title = `${year} ${c.make} ${c.rmodel}${c.rtrim ? " " + c.rtrim : ""}`, miles = 20000 + Math.round(rnd() * 80000);
+    const add = (year, daysAgo, manual) => { const k = i++, price = Math.round(mid * (0.8 + rnd() * 0.4)), gb = manual ? "Manual (4-Speed)" : "Automatic", title = `${year} ${c.make} ${c.rmodel}${c.rtrim ? " " + c.rtrim : ""}${!opts.bodyOf && bodyWord(c) !== c.typedBody ? " " + bodyWord(c) : ""}`, miles = 20000 + Math.round(rnd() * 80000);
       const raw = { id: "old" + ci + "_" + k, title, featured_image_url: "https://img.example/o" + ci + "_" + k + ".jpg", mileage: String(miles), body_style: bodyWord(c), modifications: null, currency: "USD", transmission: gb, exterior_color: "Red", title_status: "Clean", url: "https://bat.example/o" + ci + "_" + k, source_url: "https://src.example/o" + ci + "_" + k, city: "Austin", state: "TX", country_code: "US", auction_end_precision: "day" };
       rows.push({ id: `o${String(ci).padStart(2, "0")}-${String(k).padStart(5, "0")}`, source_id: raw.id, sale_price: price, sale_date: new Date(Date.now() - daysAgo * DAY).toISOString().slice(0, 10), platform: k % 3 === 0 ? "Cars & Bids" : "Bring a Trailer", listing_title: title, year, make: c.make, model: c.rmodel, vin_norm: null, stated_mileage: null, project_flag: null, desc_facts: null, has_reserve: false, raw_record: raw, vehicle_type: "car" }); };
     for (let k = 0; k < own; k++) add(c.year, k < (c.read ? c.m12 : pop12) ? 20 + k * 25 : 380 + (k % 8) * 40, k < pop24 ? (k < pop12 || k >= (c.read ? c.m12 : pop12)) : false);
     for (let k = 0; k < 9; k++) add(c.year, 800 + k * 90, true);                                            // older sales of the same year, so the engine's own five year pool is deep enough
     if (!opts.oneYear) for (const dy of [-2, -1, 1, 2]) for (let k = 0; k < 4; k++) add(c.year + dy, 60 + k * 120, true);   // the neighbouring model years
-    DATA.set(c.rmodel, rows);
+    DATA.set(c.rmodel, [...(DATA.get(c.rmodel) || []), ...rows]);   // cars that share a model (the SL-Class 250SL and 280SL) keep each other's sales: the archive holds both, and the variant fence reads its own
   }
   const jt = v => v === null || v === undefined ? null : typeof v === "string" ? v : JSON.stringify(v);
   const evalItem = (row, item) => { const ci = item.indexOf(":"); const hasAlias = ci > 0 && item[ci + 1] !== ":"; const alias = hasAlias ? item.slice(0, ci) : null; const expr = hasAlias ? item.slice(ci + 1) : item;

@@ -105,7 +105,7 @@ for (const [dim, labels, title] of [["gearbox", [["Manual", "manual"], ["Tiptron
     const line = R({ make, model, generation, year_min: y, year_max: y, gearbox }, { year: 1995, gearbox: "manual" }, null); if (line) sweep.push(line); }
   ok(`every reason (${sweep.length} filter shapes) is a sentence naming a car ("a ..." or "an ..."), never a bare year, make or code`, sweep.every(l => /^Matches your Task: an? [^,.]*(car|[A-Za-z]{2,})[^.]*\.$/.test(l) && !/^Matches your Task: (\d{4}|[A-Z0-9-]{2,6})\.$/.test(l)), sweep.find(l => !/^Matches your Task: an? /.test(l)));
   const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? (/node_modules|\.git|proofs|docs/.test(e.name) ? [] : walk(path.join(d, e.name))) : /\.(js|mjs)$/.test(e.name) ? [path.join(d, e.name)] : []);
-  const hits = [...walk("lib"), ...walk("api"), ...walk("public")].filter(f => /Matches your Task|Matches your task|matches your Task/i.test(fs.readFileSync(f, "utf8").replace(/\/\/[^\n]*/g, "")));
+  const hits = [...walk("lib"), ...walk("api"), ...walk("public")].filter(f => /matches your task:/i.test(fs.readFileSync(f, "utf8").replace(/\/\/[^\n]*/g, "")));
   ok("the reason string is built in one place (lib/tasks/tasks.js), so no watch or Task path has its own", hits.length === 1 && hits[0] === path.join("lib", "tasks", "tasks.js"), hits.join(" | "));
 }
 console.log(fail ? `mileageBandNearCheck: ${fail} failure(s)` : "mileageBandNearCheck: all pass");

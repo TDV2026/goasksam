@@ -7,6 +7,7 @@
 // (runFilters over a fake live table) and the page's own chip and count code, and asserts for each answer: no doubled count in any chip; no word the unused-words line names appears in any chip or in the phrase a chip was mapped from; a mapped chip
 // names its phrase; no sentence about "this listing" on an answer with no card; a zero count agrees with a counted offer (the number is in the line); an answer that drops a mapped word shows the cars it counted.
 //   node scripts/findVoiceCheck.mjs [repo root]   (a tree without the fix fails: run it against origin/main); --mutants breaks one rule at a time.
+import { fnBlock } from "./_pageLift.mjs";
 import fs from "node:fs"; import path from "node:path"; import { spawnSync } from "node:child_process"; import { fileURLToPath, pathToFileURL } from "node:url";
 const args = process.argv.slice(2), here = path.dirname(fileURLToPath(import.meta.url)), root = path.resolve(args.find(a => !a.startsWith("--")) || path.join(here, ".."));
 if (args.includes("--mutants")) process.exit(mutants());
@@ -35,7 +36,9 @@ const block = (from, to) => { const a = c.indexOf(from), b = c.indexOf(to, a); i
 const env2 = ["  function esc(s)", "  function usd(n)", "  function num(n)", "  function genWord(v)", "  function band(lo, hi, fmt)"].map(line).join("") + block("  function eraWords(", "  function band(") + block("  // STAGE 2: \"{N} live matches\"", "  function headerHtml(");
 const page = new Function(env2 + "\nreturn { matchesLine: matchesLine, filterParts: filterParts };")();
 // the offer label, as headerHtml builds it for one to two cars (not thin: the label with its count)
-const labelSrc = block("    var label = function(w){", "    // STAGE 2 (Sam's Buy redesign"), offerLabel = new Function("thin", "drop", "wider", "num", labelSrc + "\nreturn label;")(false, {}, () => "", n => String(n));
+// found by NAME inside headerHtml (fnBlock) and cut by its own braces, never by a typed-out line (pageSliceCheck)
+const lift = (src, decl) => { const a = src.indexOf(decl); if (a < 0) throw new Error("missing " + decl); let d = 0, k = src.indexOf("{", a); for (let j = k; j < src.length; j++) { if (src[j] === "{") d++; else if (src[j] === "}" && --d === 0) { let e = j + 1; if (src[e] === ";") e++; return src.slice(a, e); } } throw new Error("unclosed " + decl); };
+const labelSrc = lift(fnBlock(c, "headerHtml"), "var label = function(w){"), offerLabel = new Function("thin", "drop", "wider", "num", labelSrc + "\nreturn label;")(false, {}, () => "", n => String(n));
 const hasLabelOf = m => (m && m.hasMap && m.hasMap.label) || undefined;
 const filtersOf = (p) => ({ make: p.make, model: p.model, generation: p.generation, trim: p.trim, year_min: p.year_min, year_max: p.year_max, colour: p.colour, gearbox: p.gearbox, body: p.body, has: p.has, budget_max: p.budget_max, miles_max: p.miles_max });
 // 20 recorded searches: what the buyer typed, and the filters the chat sent for it

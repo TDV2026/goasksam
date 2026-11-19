@@ -8,6 +8,7 @@ import { pathToFileURL } from "node:url";
 import { startBrowser, pageHtml, openMC, ROOT } from "./e98Render.mjs";
 import { buildCards } from "./e98FindRender.mjs";
 import { MC, BLACK_BMW } from "./e98Fixtures.mjs";
+import { reasonLine } from "../lib/reasonWords.js";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 // ---- 1. the page sources
 const FILES = ["api/buy.js", "api/tasksPage.js", "api/history.js", "api/partnerDemo.js", "api/_amazonDemo.js", "api/partnerAnswer.js", "api/marketCheck.js", "api/home.js", "api/sellPage.js", "api/sellNext.js", "api/business.js", "api/about.js", "api/howSamDecides.js", "api/feedback.js", "api/specPage.js", "lib/startPage.js", "lib/appShell.js"];
@@ -40,7 +41,8 @@ const findRun = async (wait, landAfter) => {
   await p.goto("https://goasksam.com/buy", { waitUntil: "networkidle2" }).catch(() => {}); await p.waitForSelector("#hq", { timeout: 5000 }).catch(() => {}); await p.type("#hq", "bmw"); await p.keyboard.press("Enter");
   await new Promise(r => setTimeout(r, wait * SC + 1200)); const txt = await p.evaluate(() => document.body.innerText.replace(/\s+/g, " ")); await p.close(); return txt; };
 { const a = await findRun(85000, 60000); ok(/\$38,000 to \$52,000/.test(a) && !/could not be read yet|couldn.t read this one yet/i.test(a), "Find: waitMaxMs 85000 and the answer at 60 s: the card draws the answer, not the could-not line"); }
-{ const a = await findRun(20000, 30000); ok(/could not be read yet|couldn.t read this one yet/i.test(a) && !/\$38,000 to \$52,000/.test(a), "Find: waitMaxMs 20000 and the answer at 30 s: the card gives up at the ENGINE's 20 s (not at a number of its own)"); }
+// Nov 19 2026 (stale wording): a Find card past the engine's wait prints the engine's card line (cold.card_missed), read from the reason table so a wording change follows the product
+{ const a = await findRun(20000, 30000); ok((/could not be read yet|couldn.t read this one yet/i.test(a) || a.includes(reasonLine("cold.card_missed"))) && !/\$38,000 to \$52,000/.test(a), "Find: waitMaxMs 20000 and the answer at 30 s: the card gives up at the ENGINE's 20 s (not at a number of its own)"); }
 const mcRun = async (wait, landAfter) => { let t0 = null; const fx = { ...MC["2001 BMW M3 (alike with options)"], respond: n => { t0 = t0 || Date.now(); return Date.now() - t0 >= landAfter * SC ? { status: "one_box", ...MC["2001 BMW M3 (alike with options)"].d } : { status: "one_box", tier: "unavailable", stillReading: true, computing: true, retry: true, retryAfterMs: 2000, waitMaxMs: wait, samLine: "Sam is reading the sales for this one.", couldNotLine: "Sam couldn't read this one yet.", resolvedCar: { year: 2001, make: "BMW", model: "M3" } }; } };
   const p = await openMC(b, fx, 1440, { scale: SC }).catch(() => null); if (!p) return ""; await new Promise(r => setTimeout(r, wait * SC + 1500)); const txt = await p.evaluate(() => document.body.innerText.replace(/\s+/g, " ")); await p.close(); return txt; };
 { const a = await mcRun(85000, 60000); ok(/\$22,500 to \$41,000/.test(a) && !/could not be read yet|couldn.t read this one yet/i.test(a), "Market Check: waitMaxMs 85000 and the answer at 60 s: the page draws the answer, not the could-not line"); }

@@ -945,6 +945,7 @@
    "file": "scripts/containedReadCheck.mjs",
    "kind": "offline",
    "covers": [
+    "lib/generations.js",
     "lib/onebox.js"
    ]
   },
@@ -1012,6 +1013,7 @@
     "lib/",
     "lib/countNoun.js",
     "lib/onebox.js",
+    "lib/reasonWords.js",
     "lib/sell/sellFlow.js",
     "lib/sellsForCard.js",
     "lib/tasks/tasks.js",
@@ -1119,7 +1121,9 @@
   },
   "crossProductCheck": {
    "file": "scripts/crossProductCheck.js",
-   "kind": "offline",
+   "kind": "live",
+   "kindFixed": "live",
+   "why": "run as a command it reads the shared archive through SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (exit 2 without them); prePush imports only its pure fixture functions, which is a different use. Without the credentials treat it as SKIPPED, never red or green.",
    "covers": [
     "api/buySearch.js",
     "api/sellerDecision.js",
@@ -1990,6 +1994,7 @@
    "kind": "offline",
    "covers": [
     "lib/desk/sheetActions.js",
+    "lib/deskV3.js",
     "lib/reasonWords.js",
     "scripts/deskV4Harness.mjs",
     "scripts/fixtures/hagertySamResend.subject.txt",
@@ -3012,7 +3017,8 @@
     "public/js/entry.js",
     "public/js/onebox.js",
     "public/js/result-v2.js",
-    "public/js/result.js"
+    "public/js/result.js",
+    "scripts/_pageLift.mjs"
    ]
   },
   "findWatchCheck": {
@@ -3664,6 +3670,7 @@
    "kind": "offline",
    "covers": [
     "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
     "scripts/deskIntakeKit.mjs",
     "scripts/deskValsRender.mjs"
    ]
@@ -4023,6 +4030,7 @@
     "node_modules/",
     "public/js/onebox.js",
     "scripts/_mcExamplesWorld.mjs",
+    "scripts/_pageLift.mjs",
     "scripts/fixtures/",
     "scripts/fixtures/answer-325i.json"
    ]
@@ -4272,7 +4280,8 @@
     "lib/genPhrase.js",
     "lib/live/samChat.js",
     "lib/live/search.js",
-    "lib/onebox.js"
+    "lib/onebox.js",
+    "lib/reasonWords.js"
    ]
   },
   "namedWarmCheck": {
@@ -4647,7 +4656,8 @@
     "api/sell.js",
     "api/specPage.js",
     "api/tasksPage.js",
-    "lib/_launchStage.js"
+    "lib/_launchStage.js",
+    "scripts/_fakeClock.mjs"
    ]
   },
   "openingTimeCheck": {
@@ -4784,6 +4794,7 @@
     "api/specPage.js",
     "api/tasksPage.js",
     "lib/appShell.js",
+    "lib/reasonWords.js",
     "lib/sell/",
     "lib/startPage.js",
     "lib/tasks/",
@@ -5478,6 +5489,7 @@
     "api/sellerDecision.js",
     "lib/",
     "lib/_routeLimit.js",
+    "lib/factMine.js",
     "lib/live/buyExample.js",
     "lib/live/chatCore.js",
     "lib/live/deskExample.js",
@@ -5496,6 +5508,7 @@
     "lib/sell/sellFacts.js",
     "lib/tasks/fullCards.js",
     "lib/tasks/tasks.js",
+    "lib/variantRows.js",
     "lib/vehicle.js"
    ]
   },
@@ -5865,7 +5878,7 @@
    "file": "scripts/searchCheck.js",
    "kind": "live",
    "kindFixed": "live",
-   "why": "fetches the LIVE public pages and sitemaps (it fails on any machine without the protection bypass: Vercel's Security Checkpoint answers 429 to a burst of raw fetches) and samples VIN pages from vin_summary, so its result depends on the network, the bypass and the day's sample; a live check, run only in a gap the lanes name (Lane C, Nov 18 2026)",
+   "why": "fetches the live public pages and sitemaps at https://goasksam.com (and reads vin_summary through Supabase); behind Vercel bot protection it needs VERCEL_AUTOMATION_BYPASS_SECRET or GAS_BYPASS, and it goes red under load without it. Without them treat it as SKIPPED; scripts/searchCheckBrowser.mjs is the browser twin.",
    "covers": [
     "api/_usage.js",
     "lib/_supabase.js"
@@ -7123,6 +7136,7 @@
     "lib/sell/sellFacts.js",
     "lib/sell/sellFlow.js",
     "lib/sheetRead.js",
+    "lib/tasks/tasks.js",
     "lib/tools/_shared.js",
     "lib/tools/marketCheck.js",
     "lib/tools/whereToSell.js"
@@ -7272,6 +7286,7 @@
     "lib/live/buyAlerts.js",
     "lib/live/marketCheckLanding.js",
     "lib/live/search.js",
+    "lib/reasonWords.js",
     "lib/sell/sellFlow.js",
     "public/js/onebox.js"
    ]
@@ -7731,7 +7746,9 @@
   },
   "warmMarketCheck": {
    "file": "scripts/warmMarketCheck.js",
-   "kind": "offline",
+   "kind": "live",
+   "kindFixed": "live",
+   "why": "run as a command it reads and writes the warm cache through SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (exit 1 without them). Without the credentials treat it as SKIPPED, never red or green.",
    "covers": [
     "lib/_caller.js",
     "lib/_supabase.js",

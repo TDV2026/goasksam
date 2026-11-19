@@ -26,7 +26,7 @@ const fetchImage = async url => { const m = /^data:[^;]+;base64,(.*)$/.exec(Stri
 const stream = bytes => [...Buffer.from(bytes).toString("latin1").matchAll(/stream\n([\s\S]*?)\nendstream/g)].map(m => m[1]).filter(s => /BT /.test(s));
 const imgs = s => (s.match(/\/Im\d+ Do/g) || []).length;
 const V_SPLIT = "WP0CB29918S765432", V_PLAIN = "WP0AB29918S745123", V_M3 = "WBSBR93422EX21856";
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dr2-")), f1 = path.join(tmp, "one.jpg"), f2 = path.join(tmp, "two.jpg"); fs.writeFileSync(f1, JPG); fs.writeFileSync(f2, JPG);
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dr2-")), f1 = path.join(tmp, "one.jpg"), f2 = path.join(tmp, "two.jpg"); fs.writeFileSync(f1, JPG); fs.writeFileSync(f2, await (await import("sharp")).default(JPG).negate().jpeg().toBuffer());   /* a different picture (colours inverted): the page shrinks a photo before it sends it and the same bytes are never on a case twice (Nov 16), so two copies of one picture show one thumbnail */
 const base = { reasons: [], otherText: "", line: "", guardLines: {} };
 const usd = n => "$" + Math.round(n).toLocaleString("en-US");
 

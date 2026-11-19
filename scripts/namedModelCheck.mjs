@@ -139,7 +139,7 @@ LIVE = OTHERS.concat([live("Ford", "Capri", 1972, "1972 Ford Capri 1600")]);
 const zl = await S.runFilters(env, { make: "Ford", model: "Capri" }, {});
 ok("control: with a Capri live there is no none-live block", zl.cards.length === 1 && !(zl.meta && zl.meta.noneLive));
 { const page = fs.readFileSync(path.join(root, "api/buy.js"), "utf8").replace(/\\n/g, "\n").replace(/\\"/g, '"');
-  const iN = page.indexOf(": n ? '<p class=\"sc-1\" data-count>' + esc(m.countLine || m.liveLine || matchesLine(n, true))"), iZ = page.indexOf(": matchesLine(0,", iN);
+  const iN = page.indexOf(": n ? '<p class=\"sc-1\" data-count>' + esc(m.countLine || m.liveLine || matchesLine(n, true))"), iZ = [": matchesLine(0,", ": (m.zeroLine || matchesLine(0,"].map(k => page.indexOf(k, iN)).filter(i => i > 0).sort((x, y) => x - y)[0] || -1;   // the zero branch now opens with the engine's zeroLine (else matchesLine(0, ...))
   ok("the page prints \"N live matches\" and \"That's everything matching your search\" only in the branch that has matches (n)", iN > 0 && iZ > iN && page.slice(iN, iZ).includes("everythingLine(m, f)") && (page.match(/esc\(everythingLine\(m, f\)\)/g) || []).length === 1);
   ok("the page prints the engine's none-live lines and computes nothing (meta.noneLive.lines, escaped text)", /\(nlv\.pending \? \[nlv\.line\] : nlv\.lines\)\.filter\(Boolean\)\.map\(function\(x\)\{ return "<p>" \+ esc\(x\) \+ "<\/p>"; \}\)/.test(page));
   ok("the page offers Keep looking when nothing is live (keepHtml with no cards)", /keepHtml\(cards\.length, q, qp\)/.test(page) && /<h3>Nothing live right now\.<\/h3>/.test(page)); }
@@ -161,7 +161,10 @@ const SAVEFETCH = globalThis.fetch; let coldN = 0;
 globalThis.fetch = async (url, init) => { const u = new URL(String(url)); if (u.pathname.endsWith("/sales_archive") && coldN < 40) { coldN++; return new Response("", { status: 500 }); } return SAVEFETCH(url, init); };
 const L2 = await import(pathToFileURL(path.join(root, "lib/live/search.js")).href);
 const cold = await S.runFilters(env, { make: "Hillman", model: "Imp" }, {}), cn = cold.meta && cold.meta.noneLive;
-ok("a cold read is never silent: meta.noneLive is there, pending, with the engine's still-reading line, its retry and its wait", !!cn && cn.pending === true && typeof cn.line === "string" && cn.line.length > 0 && Number(cn.retryAfterMs) > 0 && Number(cn.waitMaxMs) > 0, JSON.stringify(cn));
+// A read that FAILED (the archive answering 500, as above) and a read still in progress are two answers since Nov 13 (bcaf5945): the failed one says it could not read (cold.card_missed, no retry cadence of its own; the page falls back to its STILL_RETRY and STILL_WAIT defaults), the in-progress one carries retryAfterMs and waitMaxMs.
+// Either way the read is never silent: noneLive is there, pending, and its line is the engine's own sentence for that state, with a cadence when it is the in-progress one.
+{ const { reasonLine } = await import(pathToFileURL(path.join(root, "lib/reasonWords.js")).href), missed = reasonLine("cold.card_missed"), reading = reasonLine("cold.reading");
+  ok("a cold read is never silent: meta.noneLive is there, pending, with the engine's own line for a failed read (could not read) or a read in progress (still reading, with its retry and its wait)", !!cn && cn.pending === true && typeof cn.line === "string" && (cn.line === missed || (cn.line === reading && Number(cn.retryAfterMs) > 0 && Number(cn.waitMaxMs) > 0)), JSON.stringify(cn)); }
 ok("the pending lines carry no number of the page's own and no sale", !!cn && !/\$\d/.test(String(cn.line)) && (cn.lines || []).length === 0, JSON.stringify(cn));
 globalThis.fetch = SAVEFETCH;
 const warmA = await S.runFilters(env, { make: "Ford", model: "Capri", year_min: 1968, year_max: 1974 }, {}), warmB = await S.runFilters(env, { make: "Ford", model: "Capri", year_min: 1968, year_max: 1974 }, {});

@@ -13,7 +13,11 @@ const readers = files.filter(f => !SKIP.test(f) && READS.test(fs.readFileSync(f,
 ok(readers.length >= 1, `the pages that read a stored example are found (${readers.join(", ")})`);
 for (const f of readers) { const s = fs.readFileSync(f, "utf8").replace(/\/\/[^\n]*/g, "");
   const readsRange = /\.cluster\b|clusterLow|low_usd|high_usd/.test(s);
-  ok(!readsRange || /headlineLines/.test(s), `${f}: reads an example's range, so it also prints headlineLines when the range is null`);
+  // A reader either prints headlineLines for a split car, or draws NOTHING for it (a section that needs a two-ended cluster and returns "" without one is never an empty band). The second kind is proved by running it, not by a word in its source.
+  const drawsNothingWhenSplit = async () => { try { const m = await import("../" + f); if (typeof m.exampleResultHtml !== "function") return false;
+    const split = { model: "Split car", result: { tier: "result", cluster: null, headlineLines: ["Two markets"], referenceFigure: { priceLine: "x" }, cards: [{ url: "https://example.com/a" }] } };
+    return m.exampleResultHtml(split) === ""; } catch { return false; } };
+  ok(!readsRange || /headlineLines/.test(s) || await drawsNothingWhenSplit(), `${f}: reads an example's range, so it prints headlineLines when the range is null, or draws nothing for a split example (run, not read)`);
   ok(!/\bexample\.cluster\[0\][^\n]*\bexample\.cluster\[1\]/.test(s) || /headlineLines/.test(s), `${f}: no band of its own from cluster ends`); }
 // the one Desk reader renders a split generation (cluster null, headlineLines) without an empty or invented figure
 const biz = fs.readFileSync("api/business.js", "utf8");

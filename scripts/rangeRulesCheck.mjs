@@ -28,7 +28,8 @@ ok(code === 401, "task=rangepreview refuses without the ops key");
 // warmDemo keeps the demo's thin answers too (Oct 20 2026, the 1966 275 GTB): the demo row is refreshed for tier result AND thin
 const fs = await import("fs");
 const ud = fs.readFileSync(new URL("../api/usageDashboard.js", import.meta.url), "utf8");
-ok(/if \(\/\^\(result\|thin\)\$\/\.test\(String\(d\.tier\)\)\) \{ try \{ const \{ refreshDemoAnswer \}/.test(ud), "warmDemo refreshes the demo's stored answer for thin answers as well as ranges");
+// Nov 19 2026: the amazon profile also keeps a refusal, so the tier test became (profile === "amazon" ? /^(result|thin|refusal)$/ : /^(result|thin)$/); the rule here (result AND thin refresh the demo row) is unchanged
+ok(/(?:if \(\/\^\(result\|thin\)\$\/|if \(row\.stored && \(req\.query\?\.profile === "amazon" \? \/\^\(result\|thin\|refusal\)\$\/ : \/\^\(result\|thin\)\$\/\))\.test\(String\(d\.tier\)\)\) \{ try \{ const \{ refreshDemoAnswer \}/.test(ud), "warmDemo refreshes the demo's stored answer for thin answers as well as ranges");
 // rule 3 (house-only body) is gone: the venue fence no longer withholds a range
 const obSrc = fs.readFileSync(new URL("../lib/onebox.js", import.meta.url), "utf8");
 ok(!/rangeRuleOn\(env, "houseOnlyBody"\)/.test(obSrc), "rule 3 (house-only body) is removed from the range path");
