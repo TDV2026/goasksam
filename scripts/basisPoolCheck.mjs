@@ -11,6 +11,6 @@ ok(f("Carrera, all years", "911") === "Carrera cars from all years", "all years"
 ok(f("2020 911 Carrera 4S Coupe", "911") === null, "a pool that matches the title keeps the plain basis line");
 const { sellsForCardHtml } = await import("../lib/sellsForCard.js");
 const html = sellsForCardHtml({ cluster: [20000, 30000], poolN: 8, basisLine: "Based on eight sales of 1992 to 1993 Carrera RS Touring cars, the latest in August 2026.", basisPool: "1992 to 1993 Carrera RS Touring cars" });
-ok(/Based on eight sales of 1992 to 1993 Carrera RS Touring cars, the latest in August 2026\./.test(html) && /The typical range for cars like this\./.test(html), "the card prints the basis line and the unchanged typical-range wording");
+ok(/Based on eight sales of 1992 to 1993 Carrera RS Touring cars, the latest in August 2026\./.test(html) && /\$20,000/.test(html) && /\$30,000/.test(html), "the card prints the basis line (naming the pool) under the engine range; E98 moved the old typical-range sentence out, the footer carries the window");
 console.log(bad ? `basisPoolCheck: ${bad} failed` : "basisPoolCheck: all passed");
 process.exit(bad ? 1 : 0);
