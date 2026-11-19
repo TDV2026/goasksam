@@ -73,8 +73,11 @@ const fresh = async (s, months) => { reqs = 0; const r = await E.fetchQualifying
   for (let i = 0; i < 4; i++) sale(1971, 60 + i, 27000, false);
   const saved = rows.slice(); rows.length = 0; rows.push(...fx);
   const sink = []; const a = await E.oneEngineAnswer({ make: "Datsun", model: "240Z", trim: "", year: 1972, bodyStyle: null }, null, "1972 Datsun 240Z", { ...env, noStageLog: true, legSink: sink }, null);
+  // the walk's generation years come from the generation table (S30 240Z, 1970 to 1973 since Nov 10 2026), not a number typed here: a table edit must not turn this check stale
+  const { CURATED_GENERATIONS } = await import(pathToFileURL(path.join(root, "lib/generations.js")).href), gen = CURATED_GENERATIONS.find(g => g.make === "Datsun" && g.model === "240Z" && 1972 >= g.yearStart && 1972 <= g.yearEnd), genYears = gen ? new RegExp(`years ${gen.yearStart}-${gen.yearEnd}`) : /years 1970-1974/;
+  ok("(5) the generation table holds the 240Z (the walk has a generation to read)", !!gen);
   const walk = sink.filter(l => l.stage === "sell_fields");
-  ok("(5) the walk's generation read is served from the rows the ladder holds (no archive request for it)", walk.length > 0 && walk.filter(l => /years 1970-1974/.test(l.leg)).length > 0 && walk.filter(l => /years 1970-1974/.test(l.leg)).every(l => l.from === "contained" || l.from === "held"), JSON.stringify(walk.map(l => `${l.leg} ${l.from || l.ms + "ms (archive)"}`)));
+  ok("(5) the walk's generation read is served from the rows the ladder holds (no archive request for it)", walk.length > 0 && walk.filter(l => genYears.test(l.leg)).length > 0 && walk.filter(l => genYears.test(l.leg)).every(l => l.from === "contained" || l.from === "held"), JSON.stringify(walk.map(l => `${l.leg} ${l.from || l.ms + "ms (archive)"}`)));
   rows.length = 0; rows.push(...saved); }
 
 console.error = quiet;
