@@ -203,24 +203,47 @@ await section("roads", async () => {
 });
 
 // ===== 6 A VISITOR GETS NONE OF IT =====
+// ===== 1b FIND WITH NOTHING LIVE (Lane D, Nov 18 2026, lane-d-partial-bar-fix): the live smoke read the bar of "2009 BMW" as null once the live board held no 2009 BMW =====
+// CAUSE: the smoke waited for the count line ("N live matches") before it read the bar. Find answers a car with nothing live in the engine's none line ("No 2009 BMWs are live right now ..."), which has no such phrase, so the wait ran out and the check printed the bar as null
+// while the bar was on the page all along (read live: crew and visitor alike, bar "2009 BMW" with four pills, the engine's car in the answer). A market fact, not a fault of the page. CLASS: every wait for a Find answer, in every live script, must accept both of the engine's ways of saying it.
+// The pattern lives in scripts/_findAnswered.mjs (the smoke imports it). Here: the REAL page on a partial car with nothing live, every word read back from the engine's own answer.
+await section("find nothing live", async () => {
+  let FA = null; try { FA = (await import(pathToFileURL(path.join(ROOT, "scripts/_findAnswered.mjs")).href)).FIND_ANSWERED; } catch { /* a tree without the fix */ }
+  const textOf = p => p.evaluate(() => document.body.innerText.replace(/\n+/g, " | "));
+  for (const [typed, words] of [["2012 Porsche", "2012 Porsche"], ["1990 BMW", "1990 BMW"]]) {
+    const p = await open("/find?q=" + enc(typed)), bar = await p.evaluate(BAR), t = await textOf(p), calls = p._api.filter(c => c.path === "/api/buySearch" && c.json && c.json.car && c.json.car.token), a = calls[calls.length - 1], car = a && a.json.car;
+    ok(`find nothing live "${typed}": the engine answered with no live car and said so in its own words (no count line)`, !!a && Array.isArray(a.json.cards) && !/live match/i.test(t) && /\blive\b/i.test(t), [t.slice(0, 160)]);
+    ok(`find nothing live "${typed}": the answer still carries the car and the bar shows it with the engine's words and four pills`, !!car && car.line === words && bar.present && bar.shown && bar.line === car.line && bar.pills.length === 4, [car && car.line, bar.line]);
+    ok(`find nothing live "${typed}": the shared Find-answered pattern matches the page (and the count line alone would not)`, !!FA && FA.test(t) && !/live match/i.test(t), [!!FA]);
+    const pill = bar.pills.find(x => x.t === "Find"); await p.close();
+    if (pill) { const q = await open(pill.h), qb = await q.evaluate(BAR), qt = await textOf(q); ok(`find nothing live "${typed}": the Find pill opens the results with the bar "${words}" (the smoke's own step)`, !!FA && FA.test(qt) && qb.present && qb.shown && qb.line === words, [qb.line, qt.slice(0, 120)]); await q.close(); }
+  }
+  const smoke = fs.readFileSync(path.join(ROOT, "scripts/liveSmoke.mjs"), "utf8");
+  ok("the live smoke waits for Find's answer by the shared pattern at every site, and no wait of its own names only the count line", /import \{ FIND_ANSWERED \} from "\.\/_findAnswered\.mjs"/.test(smoke) && !/\/live match\//.test(smoke) && (smoke.match(/FIND_ANSWERED/g) || []).length >= 5, (smoke.match(/\/live match/g) || []).length);
+  ok("the shared pattern accepts the engine's count line and each none line, and refuses a page that has not answered", !!FA && [ "3 live matches within 50 miles", "No 2009 BMWs are live right now. These are the nearest years, 2008.", "Nothing live for that car right now", "0 live matches" ].every(x => FA.test(x)) && ["What car are you looking for?", "Sam is reading", "Loading"].every(x => !FA.test(x)));
+});
+
 await section("visitor", async () => {
-  for (const [typed] of SEARCHES) {
+  // THE PARTIAL CAR IS PUBLIC (Sam's word, Nov 17 2026; PARTIAL_CAR_PUBLIC on, lane-d-partial-bar-fix Nov 18 2026 brings this section to it: it still asserted the crew only behaviour and had been red on main since): a visitor gets what the crew gets,
+  // read from the engine's own answers on the real pages. What stays crew only is not in this check (the variant rows, the for sale groups).
+  ok("the switch is on in the code", CT.PARTIAL_CAR_PUBLIC === true);
+  for (const [typed, words] of SEARCHES) {
     const f = await open("/find?q=" + enc(typed), { crew: false }), fa = lastJson(f, /buySearch/, j => j.cards || j.reply ? j : null), fb = await f.evaluate(BAR); await f.close();
-    ok(`visitor "${typed}": Find's answer carries no car and the bar is not drawn`, !!fa && !fa.car && !(fb.present && fb.shown), [fa && fa.car, fb.shown]);
-    { const q = fa && fa.meta && fa.meta.asks && fa.meta.asks.find(x => x.dim === "model"); ok(`visitor "${typed}": Find's model question is the visitor's own wording ("Which model?"), unchanged`, !q || q.q === "Which model?", q && q.q); }
+    ok(`visitor "${typed}": Find's answer carries the partial car and the bar shows it with the engine's words and four pills`, !!fa && !!fa.car && fa.car.line === words && fb.present && fb.shown && fb.line === fa.car.line && fb.pills.length === 4, [fa && fa.car && fa.car.line, fb.line]);
+    { const q = fa && fa.meta && fa.meta.asks && fa.meta.asks.find(x => x.dim === "model"); ok(`visitor "${typed}": Find's model question is in the car's own words, as the crew's is`, !q || q.q === `Which ${fa.car.short}?`, q && q.q); }
     const m = await open("/market-check?q=" + enc(typed), { crew: false }), ma = lastJson(m, /sellerDecision/, j => j.status ? j : null), mg = await m.evaluate(GMC), mb = await m.evaluate(BAR), mt = await m.evaluate(PAGETEXT); await m.close();
-    ok(`visitor "${typed}": Market Check's answer has no modelChoice, no car, no complete flag, and no choice block or bar`, !!ma && !ma.modelChoice && !ma.car && ma.complete !== true && mg.n === 0 && !(mb.present && mb.shown), ma && Object.keys(ma));
-    ok(`visitor "${typed}": the older question is still the visitor's (nothing removed for visitors)`, !ma || ma.tier !== "model_choice" || /Which (?:BMW|Porsche)\?|The range changes with the answer/.test(mt), mt.slice(0, 200));
-    const s = await open("/sell?car=" + enc(LABEL[typed]) + SELLQ, { crew: false }), sa = lastJson(s, /sellChat/, j => j.error || j.marketAnswer || j.modelChoice ? j : null), sg = await s.evaluate(GMC); await s.close();
-    ok(`visitor "${typed}": Sell serves no modelChoice and draws none`, !(sa && sa.modelChoice) && sg.n === 0, sa && Object.keys(sa));
+    ok(`visitor "${typed}": Market Check serves the model choice once, as a complete reply with the car, and the bar shows`, !!ma && !!ma.modelChoice && ma.complete === true && !!ma.car && mg.n === 1 && mb.present && mb.shown && mb.line === ma.car.line, ma && Object.keys(ma));
+    ok(`visitor "${typed}": no older question beside the choice and no busy line`, !OLDER.test(mt) && !/Which (?:BMW|Porsche)\?/.test(mt.replace(ma && ma.modelChoice ? ma.modelChoice.line : "", "")), mt.slice(0, 200));
+    // Sell: the page for a visitor is held by the launch stage in this world (it opens its landing and calls no API), so Sell's model choice for a visitor is asserted on the engine in partialCarCheck (buildRange with the partial car), not on the page here.
   }
   const tok = CT.encodeCar({ make: "BMW", year: 2009 }, { partial: true }), t = await open("/tasks?car=" + enc(tok), { crew: false }), tb = await t.evaluate(BAR); await t.close();
-  ok("visitor: a partial token in a Tasks address is no car and no bar", !(tb.present && tb.shown), tb);
+  ok("visitor: a partial token in a Tasks address is read as the car and the bar shows its words", tb.present && tb.shown && tb.line === "2009 BMW" && tb.pills.length === 4, tb);
 });
 await b.close(); console.log = log; console.error = err;
 console.log(`partialCarJoinCheck: ${pass} pass, ${fail} FAIL`); for (const f of fails) console.log("FAIL " + f); process.exit(fail ? 1 : 0);
 // ---- MUTANTS, in a COPY of the worktree (never on the branch): each breaks one rule of the join and the check must go red ----
 async function mutants() {
+  const onlyArg = (args.find(a => a.startsWith("--only=")) || "").slice(7);
   const sub = (file, from, to, want) => ({ file, from, to, want });
   const M = [
     sub("lib/live/samChat.js", "ctx.car = partialSearchCar(v, f, p);", "ctx.car = null;", "the chat road stamps no car"),
@@ -242,8 +265,10 @@ async function mutants() {
     sub("lib/modelChoicePage.js", "if (text(mc.typeLine))", "if (false)", "the engine's line about typing the model is not printed"),
     sub("lib/live/narrow.js", "if (!partialCarActive() || !make) return QWORDS.model;", "return QWORDS.model;", "Find asks the bare Which model?"),
     sub("lib/live/narrow.js", "if (!partialCarActive() || !make) return QWORDS.model;", "if (!make) return QWORDS.model;", "a visitor's question is reworded"),
-    sub("lib/carBar.js", "const barFor = req => CAR_BAR_PUBLIC || isCrewRequest(req) === true;", "const barFor = req => false;", "the bar is never drawn")
-  ];
+    sub("lib/carBar.js", "const barFor = req => CAR_BAR_PUBLIC || isCrewRequest(req) === true;", "const barFor = req => false;", "the bar is never drawn"),
+    sub("scripts/_findAnswered.mjs", "export const FIND_ANSWERED = /live match|Nothing live|No [^|.]*\\blive\\b|0 live/i;", "export const FIND_ANSWERED = /live match/i;", "the Find-answered pattern names only the count line (the live smoke's old wait)"),
+    sub("scripts/liveSmoke.mjs", "return FIND_ANSWERED.test(t) && b2 ? { t, b2 } : null; }, 60000);\n      check(\"partial car (crew): the Find pill opens the results", "return /live match/i.test(t) && b2 ? { t, b2 } : null; }, 60000);\n      check(\"partial car (crew): the Find pill opens the results", "the smoke's partial Find step waits for the count line alone")
+  ].filter(m => !onlyArg || m.want.includes(onlyArg));   // --only=<text> runs the mutants whose name holds the text
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "pcj-")), results = [];
   const prep = i => { const d = path.join(tmp, "m" + i); spawnSync("rsync", ["-a", "--exclude", ".git", "--exclude", "node_modules", ROOT + "/", d + "/"]); fs.symlinkSync(path.join(ROOT, "node_modules"), path.join(d, "node_modules")); return d; };
   const run = (m, i) => new Promise(res => {
