@@ -44,7 +44,10 @@ ok(names.length > 100 && out.length >= 5, `found the prePush checks (${names.len
 const res = await runAll(root, out);
 for (const n of out) {
   const rs = SHIFTS.map(d => res.find(r => r.n === n && r.days === d)), codes = rs.map(r => r.code);
-  const good = RED_AT_ZERO.has(n) ? codes.every(c => c === codes[0]) : codes.every(c => c === 0);
-  ok(good, `${n} gives the same passing answer with the clock at +${SHIFTS.join(", +")} days (exit ${codes.join(", ")}) ${rs.flatMap(r => r.fails).slice(0, 1).join("")}`);
+  // A check red at +0 is red for a reason of its own (reported by the full run, not here): this check answers only whether the CLOCK changes its answer. It is accepted red only when every shift gives the same exit AND the same FAIL
+  // lines; a check that is green at +0 must be green at every shift, and one whose failing lines move with the clock is named.
+  const sameRed = codes[0] !== 0 && codes.every(c => c === codes[0]) && rs.every(r => JSON.stringify(r.fails) === JSON.stringify(rs[0].fails));
+  const good = codes.every(c => c === 0) || ((RED_AT_ZERO.has(n) || codes[0] !== 0) && sameRed);
+  ok(good, `${n} gives the same answer with the clock at +${SHIFTS.join(", +")} days (exit ${codes.join(", ")}${sameRed ? "; red on its own at +0, the same lines at every shift: not a clock fault, see the check's own run" : ""}) ${rs.flatMap(r => r.fails).slice(0, 1).join("")}`);
 }
 console.log(`\nclockShiftCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 1 : 0);
