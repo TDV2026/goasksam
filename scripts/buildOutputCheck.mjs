@@ -25,7 +25,11 @@ const runOne = f => new Promise(res => {
   c.stdout.on("data", d => out += d); c.stderr.on("data", d => out += d);
   c.on("close", code => { clearTimeout(to); const m = [...out.matchAll(/(\d+) pass(?:ed)?,? (\d+) (?:FAIL|failed)/gi)].pop(); res({ f, code, counts: m ? m[1] + "/" + m[2] : "no count line", ms: Date.now() - t0 }); });
 });
-async function runAll(list, workers = 6) { const out = []; let i = 0; await Promise.all(Array.from({ length: workers }, async () => { while (i < list.length) { const f = list[i++]; let r = await runOne(f); if (r.counts === "no count line") r = await runOne(f);   // a run that died under load (no count line) is asked once more
+// A check the map marks "serial" writes temporary mutant files into lib/api or edits a real file in place (tasksCrewLimitCheck does): run beside six others it changes THEIR counts and they change its (8/1 in one run, 9/0 in the next, in both
+// directions, with or without decoys). So the serial ones run alone, one at a time, after the parallel batch, in both passes. A check that mutates the tree is the reason, not the decoys.
+const isSerial = f => !!(map[f.replace(/\.mjs$/, "")] || {}).serial;
+async function runAll(list, workers = 6) { const par = await runPool(list.filter(f => !isSerial(f)), workers), ser = await runPool(list.filter(isSerial), 1); return { ...par, ...ser }; }
+async function runPool(list, workers = 6) { const out = []; let i = 0; await Promise.all(Array.from({ length: workers }, async () => { while (i < list.length) { const f = list[i++]; let r = await runOne(f); if (r.counts === "no count line") r = await runOne(f);   // a run that died under load (no count line) is asked once more
           out.push(r); } })); return Object.fromEntries(out.map(r => [r.f, r])); }
 
 // A person's own build output (the stale .vercel/output of a machine that has deployed) is moved out of the tree for the first run, so "as the tree stands" means a clean checkout, and put back at the end (also on a signal).
