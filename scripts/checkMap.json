@@ -3018,7 +3018,9 @@
   },
   "forSaleCheck": {
    "file": "scripts/forSaleCheck.mjs",
-   "kind": "live",
+   "kind": "offline",
+   "kindFixed": "offline",
+   "why": "Runs the live handlers over a fake PostgREST and a stand-in vendor (scripts/fixtures/forsaleShape.json); it names goasksam.com and PROBE_KEY only as fixture values and never calls production (Lane C, Nov 19 2026).",
    "covers": [
     "./",
     "api/",
