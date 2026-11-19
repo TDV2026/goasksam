@@ -94,7 +94,11 @@ const unwrapSwitch = src => src.replace(/^import \{ withNewDesign \} from "\.\.\
 const blobOf = (ref, f) => { try { const t = execFileSync("git", ["show", ref + ":" + f], { encoding: "utf8", maxBuffer: 1 << 28 }); return hashOf(/^api\/(marketCheck|sell)\.js$/.test(f) ? unwrapSwitch(t) : t); } catch { return null; } }, hashOf = s => crypto.createHash("sha1").update("blob " + Buffer.byteLength(s) + "\0").update(s).digest("hex");
 // a results source is unchanged when it equals origin/main's, or the re-cut history links branch's (the history links add a link and nothing else to the results page, Sam's order of Nov 9)
 const BASES = ["origin/main", "lane-e-history-links"];
-const changed = (files, read = f => unwrapSwitch(fs.readFileSync(f, "utf8"))) => files.filter(f => blobOf("origin/main", f) && !BASES.some(r => blobOf(r, f) === hashOf(read(f))));
+// lane-b-read-resilience (Nov 18 2026, Lane C's find, public/js/onebox.js line 2034): the one change to the results page that is allowed is the sentence that names the car ("When the next {car} sells"): carNamed, offerName, armName and the
+// two lines that print them (scripts/carNamedLineCheck.mjs checks it). OLD assertion: every results source byte identical to origin/main. NEW: identical, or differing from origin/main ONLY in lines that carry those words (every other changed line fails).
+const NAMED_EDIT = /carNamed|offerName|armName|onLine|samonit|Not enough real|When the next/;
+const onlyNamedEdits = f => { try { const d = execFileSync("git", ["diff", "-U0", "origin/main", "--", f], { encoding: "utf8", maxBuffer: 1 << 28 }).split("\n").filter(l => /^[+-]/.test(l) && !/^(\+\+\+|---)/.test(l)); return d.length > 0 && d.every(l => NAMED_EDIT.test(l)); } catch { return false; } };
+const changed = (files, read = null) => files.filter(f => blobOf("origin/main", f) && !BASES.some(r => blobOf(r, f) === hashOf((read || (g => unwrapSwitch(fs.readFileSync(g, "utf8"))))(f))) && !(read === null && onlyNamedEdits(f)));
 { const ch = changed(RESULTS); ok(ch.length === 0, `the results pages' sources are byte identical to origin/main (${RESULTS.length} files)${ch.length ? ": changed " + ch : ""}`);
   ok(changed(RESULTS, f => unwrapSwitch(fs.readFileSync(f, "utf8")) + (f === RESULTS[0] ? "\n// edit" : "")).length === 1, "mutant caught: one results source changed by a comment is reported"); }
 // ---------- 6 the class: no duplicate reason ids ----------

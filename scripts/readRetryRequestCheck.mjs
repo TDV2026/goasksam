@@ -49,9 +49,13 @@ const reset = (mode, n = 0, target = "title") => { failMode = mode; failTarget =
 const maxSame = () => Math.max(0, ...perUrl.values());
 
 // (1) engine, timeout
-reset("timeout"); { const d = await answer();
-  ok("oneEngineAnswer: a leg answered 57014 is read once: no page retry, and the whole answer is NOT run again", maxSame() === 1, `most requests for one query: ${maxSame()}, tier=${d && d.tier}`);
+// lane-b-read-resilience (Nov 18 2026): the rule below is now the rule for a BULK caller (the History, spec and market pages, "site": a crawler's cold read is not repeated). A visitor's read (Sell, Market Check, Find) is retried ONCE after a short pause (lib/_readRetry.js).
+const asCaller = async (c, fn) => { const C = await import(pathToFileURL(path.join(ROOT, "lib/_caller.js")).href); return C.runAsCaller(c, fn); };
+reset("timeout"); { const d = await asCaller("site", answer);
+  ok("oneEngineAnswer: a leg answered 57014 is read once: no page retry, and the whole answer is NOT run again (a bulk caller: the History pages)", maxSame() === 1, `most requests for one query: ${maxSame()}, tier=${d && d.tier}`);
   ok("... and the answer is still-reading, never a finished one", d && d.tier === "unavailable" && d.readFailed === true); }
+reset("timeout"); { const d = await asCaller("sell", answer);
+  ok("oneEngineAnswer: for a visitor's read (Sell) a leg answered 57014 is read again ONCE after the pause (two requests for the query, never three), and an answer that fails again is still-reading, never finished", maxSame() === 2 && d && d.tier === "unavailable" && d.readFailed === true, `most requests for one query: ${maxSame()}, tier=${d && d.tier}`); }
 // (2) engine, blip: 3 attempts of the page-level retry fail, then the request-level retry serves
 reset("blip", 3); { const d = await answer();
   ok("oneEngineAnswer: a dropped connection on the first run is retried ONCE at the request level and the answer is served", /^(result|thin)$/.test(String(d && d.tier)) && maxSame() === 4, `tier=${d && d.tier}, most requests for one query: ${maxSame()}`); }

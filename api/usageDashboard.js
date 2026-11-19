@@ -5330,6 +5330,20 @@ if (task === "optiondetail") {
     return res.status(200).json({ task: "pageviews", last24h: rows.length, bySource, byPath, recent: rows.slice(0, 12).map(r => ({ at: r.created_at.slice(0, 19), path: r.route || (r.metadata && r.metadata.path), source: r.metadata && r.metadata.source, kind: r.status })) });
   }
 
+  // task=warmlist (lane-b-read-resilience, Nov 18 2026): READ-ONLY. The cars visitors read most over the last N days (analytics search_run query_text) and the History hubs read most (page_view rows), for the warm-up after a stamp bump
+  // (scripts/warmAfterBump.mjs). Nothing written, zero OldCarsData, at most two bounded reads.
+  if (task === "warmlist") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const WL = await import("../lib/warmList.js");
+    const days = Math.max(1, Math.min(60, Number(req.query?.days) || 30)), maxCars = Math.max(1, Math.min(1000, Number(req.query?.cars) || 300)), maxHubs = Math.max(0, Math.min(1000, Number(req.query?.hubs) || 200));
+    const sinceIso = new Date(Date.now() - days * 864e5).toISOString();
+    const ev = await supabaseSelect(env, `analytics_events?name=eq.search_run&ts=gte.${sinceIso}&select=props&order=ts.desc&limit=20000`).catch(() => null);
+    const pv = maxHubs ? await supabaseSelect(env, `app_usage_events?event_type=eq.page_view&created_at=gte.${sinceIso}&route=like.%2Fhistory%2F*&select=route&order=created_at.desc&limit=20000`).catch(() => null) : [];
+    if (!Array.isArray(ev) || !Array.isArray(pv)) return res.status(200).json({ task: "warmlist", readFailed: true, writes: 0, ocdSpend: 0 });
+    const cars = WL.topCars(ev.map(r => r && r.props), maxCars), hubs = WL.topHubs(pv, maxHubs);
+    return res.status(200).json({ task: "warmlist", days, searchEvents: ev.length, pageViews: pv.length, cars, hubs, plan: WL.planOf({ cars: cars.length, hubs: hubs.length }), writes: 0, ocdSpend: 0 });
+  }
+
   // task=vindbg: READ-ONLY. What vinAppearances sees for a VIN: vin_index rows + direct sales/attempts.
   if (task === "vindbg") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
