@@ -632,6 +632,14 @@
     "scripts/_typedThroughWorld.mjs"
    ]
   },
+  "carNamedLineCheck": {
+   "file": "scripts/carNamedLineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "public/js/onebox.js"
+   ]
+  },
   "carNamesCheck": {
    "file": "scripts/carNamesCheck.mjs",
    "kind": "offline",
@@ -2958,6 +2966,14 @@
     "lib/live/samChat.js"
    ]
   },
+  "findSortHoldsCheck": {
+   "file": "scripts/findSortHoldsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/live/samChat.js"
+   ]
+  },
   "findSortsCheck": {
    "file": "scripts/findSortsCheck.mjs",
    "kind": "offline",
@@ -3380,6 +3396,17 @@
     "public/robots.txt",
     "scripts/",
     "vercel.json"
+   ]
+  },
+  "historyColdGateCheck": {
+   "file": "scripts/historyColdGateCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/_historyData.js",
+    "lib/_caller.js",
+    "lib/_coldGate.js",
+    "lib/onebox.js"
    ]
   },
   "historyReachCheck": {
@@ -5503,13 +5530,18 @@
    "file": "scripts/readRetryCheck.mjs",
    "kind": "offline",
    "covers": [
-    "lib/_supabase.js"
+    "./",
+    "lib/_caller.js",
+    "lib/_readRetry.js",
+    "lib/_readScope.js",
+    "lib/onebox.js"
    ]
   },
   "readRetryRequestCheck": {
    "file": "scripts/readRetryRequestCheck.mjs",
    "kind": "offline",
    "covers": [
+    "lib/_caller.js",
     "lib/desk/execute.js",
     "lib/onebox.js"
    ]
@@ -5911,6 +5943,30 @@
    "covers": [
     "public/js/",
     "public/sell-old.html"
+   ]
+  },
+  "sellBmwLiveCheck": {
+   "file": "scripts/sellBmwLiveCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "./",
+    "api/buy.js",
+    "api/buySearch.js",
+    "api/marketCheck.js",
+    "api/sell.js",
+    "api/sellChat.js",
+    "api/sellerDecision.js",
+    "api/tasks.js",
+    "api/tasksPage.js",
+    "data/",
+    "lib/_crew.js",
+    "lib/carToken.js",
+    "lib/live/samChat.js",
+    "lib/sell/sellFlow.js",
+    "lib/sell/sellMcClient.js",
+    "node_modules/",
+    "package.json",
+    "public/"
    ]
   },
   "sellBuilderCheck": {
@@ -7656,6 +7712,16 @@
    "covers": [
     "lib/onebox.js",
     "lib/vehicle.js"
+   ]
+  },
+  "warmAfterBumpCheck": {
+   "file": "scripts/warmAfterBumpCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/usageDashboard.js",
+    "lib/warmList.js",
+    "scripts/warmAfterBump.mjs"
    ]
   },
   "warmBaseCheck": {
