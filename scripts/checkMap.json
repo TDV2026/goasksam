@@ -4166,6 +4166,14 @@
     "lib/live/samChat.js"
    ]
   },
+  "modelChoiceCarsOnlyCheck": {
+   "file": "scripts/modelChoiceCarsOnlyCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/_classify.js",
+    "lib/onebox.js"
+   ]
+  },
   "modelChoicesCheck": {
    "file": "scripts/modelChoicesCheck.mjs",
    "kind": "offline",
@@ -6370,6 +6378,16 @@
     "api/publicConfig.js",
     "api/sellerDecision.js",
     "lib/shareId.js"
+   ]
+  },
+  "softFlagCheck": {
+   "file": "scripts/softFlagCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "data/variantFamilies.json",
+    "lib/_classify.js",
+    "lib/generations.js",
+    "lib/onebox.js"
    ]
   },
   "spacedModelCodeCheck": {
