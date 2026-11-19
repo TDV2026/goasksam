@@ -72,6 +72,7 @@ const PLAIN = {
   unflagged: (count, venues) => `${count} ${count === 1 ? "sale" : "sales"} from ${venues.length > 1 ? venues.slice(0, -1).join(", ") + " and " + venues[venues.length - 1] : venues[0]} have no reserve information we can rely on, so they are in neither count.`
 };
 const JARGON = /median and the share|point to different sides|separate reserve|flag we can read|count for neither side|\bunflagged\b|\bflag\b/i;
+// NO MILEAGE ON THESE CASES: since order bc85 (6ab6db79) a case with miles is priced over its mileage band, which cuts the fixture pools below the five-outcome minimum on both sides; the reserve rule is about the whole window pool, and the oracle below is held against desk.sales whichever pool that is.
 // the oracle, written here from the window pool the engine itself returned (desk.sales) and the flags dealt
 function oracle(sales, flags, attempts, months) {
   const cut = (() => { const d = new Date(today + "T00:00:00Z"), day = d.getUTCDate(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - months); d.setUTCDate(Math.min(day, new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate())); return d.toISOString().slice(0, 10); })();
@@ -125,7 +126,7 @@ const w = OLD.install(ROOT), prevFetch = globalThis.fetch, ATT = new Map();
 globalThis.fetch = async (url, init) => { const u = String(url); if (/\/auction_attempts/.test(u)) { const mk = /make=ilike\.([^&]+)/.exec(u); return new Response(JSON.stringify(ATT.get(mk ? decodeURIComponent(mk[1]) : "") || []), { status: 200 }); } return prevFetch(url, init); };
 const cars = OLD.loadCars(ROOT); let strong = 0, total = 0; const byScen = SCEN.map(() => ({ asked: 0, hit: 0 }));
 for (const c of cars) {
-  const res = await dealAndRead({ read: () => S.sheetRead(w.env, { year: c.year, make: c.make, model: c.model, mileage: 60000, bodyStyle: c.typedBody || undefined, desk: { caseDate: today, transmission: "Manual", label: `${c.year} ${c.make} ${c.model}`, case: { verification: {} }, exclusions: [], head } }, w.deps).catch(() => null), rowsOf: () => w.DATA.get(c.rmodel) || [], attemptsSink: ATT, key: c.make });
+  const res = await dealAndRead({ read: () => S.sheetRead(w.env, { year: c.year, make: c.make, model: c.model, bodyStyle: c.typedBody || undefined, desk: { caseDate: today, transmission: "Manual", label: `${c.year} ${c.make} ${c.model}`, case: { verification: {} }, exclusions: [], head } }, w.deps).catch(() => null), rowsOf: () => w.DATA.get(c.rmodel) || [], attemptsSink: ATT, key: c.make });
   const tag = `#${c.n} ${c.year} ${c.make} ${c.model}`;
   if (res.refused) { ok(`${tag}: the Desk answers`, false); continue; }
   for (const x of res.out) { if (x.refused) { ok(`${tag} ${x.sc.name}: the Desk answers`, false, x.why); continue; } hold(tag, x); if (!x.rm) continue; total++; const si = SCEN.indexOf(x.sc); byScen[si].asked++;
@@ -142,7 +143,7 @@ for (const [si, b] of byScen.entries()) ok(`the world is big enough to exercise 
 // ---- the demo 1999 911 (the Desk v3 world)
 { const w3 = V3.install(), prev3 = globalThis.fetch, ATT3 = new Map(); globalThis.fetch = async (url, init) => { const u = String(url); if (/\/auction_attempts/.test(u)) return new Response(JSON.stringify(ATT3.get("Porsche") || []), { status: 200 }); return prev3(url, init); };
   const c = V3.CASES[0];
-  const res = await dealAndRead({ read: () => S.sheetRead(w3.env, { year: c.year, make: c.make, model: c.model, mileage: 40000, desk: { caseDate: today, transmission: c.transmission, label: c.label } }, w3.deps).catch(() => null), rowsOf: () => w3.DATA.get("911") || [], attemptsSink: ATT3, key: "Porsche" });
+  const res = await dealAndRead({ read: () => S.sheetRead(w3.env, { year: c.year, make: c.make, model: c.model, desk: { caseDate: today, transmission: c.transmission, label: c.label } }, w3.deps).catch(() => null), rowsOf: () => w3.DATA.get("911") || [], attemptsSink: ATT3, key: "Porsche" });
   ok("the demo 996: the Desk answers", !res.refused);
   if (!res.refused) { for (const x of res.out) { if (x.refused) { ok(`demo 996 ${x.sc.name}: the Desk answers`, false); continue; } hold("demo 996", x); if (!x.rm) continue; if (!x.o.thin && x.sc.want && x.sc.want !== "unclear") ok(`demo 996 ${x.sc.name}: intended outcome ${x.sc.want}`, x.rm.recommendation === x.sc.want, x.rm.line); }
     ok("the demo 996 pool is deep enough to clear the five-outcome minimum on both sides (no reserve leads)", res.out[0].o.r.count >= 5 && res.out[0].o.n.count >= 5, [res.out[0].o.r.count, res.out[0].o.n.count]); } }
