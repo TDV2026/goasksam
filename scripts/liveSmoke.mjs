@@ -143,7 +143,7 @@ async function barSuite(isCrew, who) {
     await p.waitForFunction(re => new RegExp(re.source, re.flags).test(document.body.innerText), { timeout: 60000 }, { source: FIND_ANSWERED.source, flags: FIND_ANSWERED.flags }).catch(() => {});
     const t = await textOf(p);
     check("Find pill (crew): opens already run for the SL500 (a result line, the car's chips, not the empty prompt)", FIND_ANSWERED.test(t) && /SL500/.test(t) && !/What car are you looking for\?/.test(t), t.slice(0, 300));
-    check("Find pill (crew): the line above the cars names the mileage (the ones within 15,000 miles of 38,400, or none is within it and here is every one)", /None for sale right now is within 15,000 miles of 38,400, so here is every one\.|These are the ones within 15,000 miles of 38,400\./.test(t) && !/38,400 to 38,400/.test(t), t.slice(0, 700));
+    check("Find pill (crew): the line above the cars names the mileage (the ones within 15,000 miles of 38,400, or none is within it and here is every one)", /None for sale right now is within 15,000 miles of 38,400, so here is every one\.|Only one for sale right now is within 15,000 miles of 38,400, too few to narrow to, so here is every one\.|These are the ones within 15,000 miles of 38,400\./.test(t) && !/38,400 to 38,400/.test(t), t.slice(0, 700));
     check("Find pill (crew): the bar is kept on the Find page", /38,400 miles/.test(t), t.slice(0, 200));
     await p.close();
   } else check("Find pill (crew): opens already run", false, "no Find pill");
@@ -257,6 +257,42 @@ await barSuite(false, "visitor");
   check("MC visitor: 'Ferrari 365' lists no Ferrari 400i or 412 (a sale of another car is not in the pool)", !/Ferrari (400i|412|400 GT)/.test(await textOf(g5.p)), (await textOf(g5.p)).slice(0, 200)); await g5.p.close();
 }
 
+
+// ---- 5. SELL MUST ANSWER (Lane C, Nov 18 2026, the live fault: any search on Sell ended on "This one could not be read yet." and "bmw" asked every question, drew the model choice, asked them all again) ---------------------
+// Three rules, each failing on its own: (a) Sell answers a car it knows, to the end (a visitor: a car and a VIN reach the pick or the range, never the could-not-read line); (b) a partial car (a make only) gets the model choice BEFORE any question;
+// (c) no question is asked twice in one run. Waits are for named conditions with ceilings (liveWaitsCheck), never fixed pauses beyond the one-second poll.
+{
+  const SELL_DONE = /SAM.S PICK|WHAT THESE SELL FOR|Too few sales to show a range|different cars at different prices|price depends on which one it is/i, COULD_NOT = /could not be read yet|still being read|When the next/i;
+  const QUESTIONS = ["Which state is it in?", "How would you like to sell it?", "How quickly do you need it sold?"];
+  const pollIn = async (p, f, ms) => { const end = Date.now() + ms; while (Date.now() < end) { try { const r = await f(); if (r) return r; } catch { /* the page is moving */ } await new Promise(x => setTimeout(x, 1000)); } return null; };
+  const tapChip = async (p, labels) => { try { return await tapChipRaw(p, labels); } catch { return null; } };
+  const tapChipRaw = (p, labels) => p.evaluate(ls => { const e = [...document.querySelectorAll("button,.chip")].find(e => e.offsetParent && ls.includes(e.innerText.trim())); if (e) { e.click(); return e.innerText.trim(); } return null; }, labels);
+  // one run through Sell for a typed car as a visitor: the screens seen in order (the question prompts and the choice block), until it ends or the ceiling
+  const runSell = async (typed, { tapModel = null, ms = 100000 } = {}) => {
+    const p = await open(false); await p.goto(SITE + "/sell", { waitUntil: "networkidle2" }); await p.type("#pq", typed); await p.keyboard.press("Enter");
+    const seen = []; let choiceAt = -1, tapped = null, text = "", end = Date.now() + ms;
+    while (Date.now() < end) {
+      let st = null; try { st = await p.evaluate(() => ({ t: document.body.innerText.replace(/\s+/g, " "), gmc: !!document.querySelector("#gmc .gmc-btn") })); } catch { /* moving */ }
+      if (st) {
+        text = st.t; for (const q of QUESTIONS) if (st.t.includes(q) && seen[seen.length - 1] !== q) seen.push(q);
+        if (st.gmc && choiceAt < 0) { choiceAt = seen.length; seen.push("CHOICE"); if (tapModel) { tapped = await p.evaluate(m => { const b = [...document.querySelectorAll("#gmc .gmc-btn")].find(x => x.textContent.trim() === m) || document.querySelector("#gmc .gmc-btn"); if (b) { b.click(); return b.textContent.trim(); } return null; }, tapModel); } }
+        if (SELL_DONE.test(st.t) && !QUESTIONS.some(q => st.t.includes(q))) break;
+        if (COULD_NOT.test(st.t) && !QUESTIONS.some(q => st.t.includes(q)) && !/Sam is reading/.test(st.t)) break;
+      }
+      const chip = await tapChip(p, ["Texas", "I'll sell it myself", "Within a month"]); if (chip) await new Promise(x => setTimeout(x, 1500)); else await new Promise(x => setTimeout(x, 1000));
+    }
+    try { await p.close(); } catch { /* gone */ } return { seen, choiceAt, tapped, text, done: SELL_DONE.test(text), couldNot: COULD_NOT.test(text) };
+  };
+  for (const [name, typed] of [["a car", "2003 Mercedes-Benz SL500"], ["a VIN", "WP0AA29962S621698"]]) {
+    const r = await runSell(typed);
+    check("Sell (visitor): " + name + " ('" + typed + "') is answered to the end: the pick or the range, never the could-not-read line", r.done && !r.couldNot, r.seen.join(" > ") + " :: " + r.text.slice(0, 200));
+  }
+  const bm = await runSell("bmw", { tapModel: "3 Series" });
+  check("Sell (visitor): a make only ('bmw') draws the model choice BEFORE the first question", bm.choiceAt === 0, bm.seen.join(" > ") + " :: " + bm.text.slice(0, 160));
+  const seenQ = bm.seen.filter(x => x !== "CHOICE"); const twice = QUESTIONS.filter(q => seenQ.filter(x => x === q).length > 1);
+  check("Sell (visitor): no question is asked twice in one run ('bmw', then a model)", twice.length === 0 && bm.choiceAt >= 0, "twice: " + twice.join(" | ") + " :: " + bm.seen.join(" > "));
+  check("Sell (visitor): 'bmw' then a model ends on a result, not on the could-not-read line", bm.done && !bm.couldNot, bm.seen.join(" > ") + " :: " + bm.text.slice(0, 200));
+}
 
 console.log("\nliveSmoke " + SITE + ": " + pass + " pass, " + fail + " FAIL");
 await browser.close();
