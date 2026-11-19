@@ -143,7 +143,7 @@ async function barSuite(isCrew, who) {
     await p.waitForFunction(re => new RegExp(re.source, re.flags).test(document.body.innerText), { timeout: 60000 }, { source: FIND_ANSWERED.source, flags: FIND_ANSWERED.flags }).catch(() => {});
     const t = await textOf(p);
     check("Find pill (crew): opens already run for the SL500 (a result line, the car's chips, not the empty prompt)", FIND_ANSWERED.test(t) && /SL500/.test(t) && !/What car are you looking for\?/.test(t), t.slice(0, 300));
-    check("Find pill (crew): the line above the cars names the mileage (the ones within 15,000 miles of 38,400, or none is within it and here is every one)", /None for sale right now is within 15,000 miles of 38,400, so here is every one\.|These are the ones within 15,000 miles of 38,400\./.test(t) && !/38,400 to 38,400/.test(t), t.slice(0, 700));
+    check("Find pill (crew): the line above the cars names the mileage (the ones within 15,000 miles of 38,400, or none is within it and here is every one)", /None for sale right now is within 15,000 miles of 38,400, so here is every one\.|Only one for sale right now is within 15,000 miles of 38,400, too few to narrow to, so here is every one\.|These are the ones within 15,000 miles of 38,400\./.test(t) && !/38,400 to 38,400/.test(t), t.slice(0, 700));
     check("Find pill (crew): the bar is kept on the Find page", /38,400 miles/.test(t), t.slice(0, 200));
     await p.close();
   } else check("Find pill (crew): opens already run", false, "no Find pill");

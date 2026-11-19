@@ -25,7 +25,8 @@ const runOne = f => new Promise(res => {
   c.stdout.on("data", d => out += d); c.stderr.on("data", d => out += d);
   c.on("close", code => { clearTimeout(to); const m = [...out.matchAll(/(\d+) pass(?:ed)?,? (\d+) (?:FAIL|failed)/gi)].pop(); res({ f, code, counts: m ? m[1] + "/" + m[2] : "no count line", ms: Date.now() - t0 }); });
 });
-async function runAll(list, workers = 6) { const out = []; let i = 0; await Promise.all(Array.from({ length: workers }, async () => { while (i < list.length) { const f = list[i++]; out.push(await runOne(f)); } })); return Object.fromEntries(out.map(r => [r.f, r])); }
+async function runAll(list, workers = 6) { const out = []; let i = 0; await Promise.all(Array.from({ length: workers }, async () => { while (i < list.length) { const f = list[i++]; let r = await runOne(f); if (r.counts === "no count line") r = await runOne(f);   // a run that died under load (no count line) is asked once more
+          out.push(r); } })); return Object.fromEntries(out.map(r => [r.f, r])); }
 
 // A person's own build output (the stale .vercel/output of a machine that has deployed) is moved out of the tree for the first run, so "as the tree stands" means a clean checkout, and put back at the end (also on a signal).
 import os from "node:os";
