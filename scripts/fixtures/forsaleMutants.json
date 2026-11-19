@@ -635,47 +635,12 @@
     ]
   },
   {
-    "name": "shipped: the per run cap is far above one pull of A",
-    "edits": [
-      {
-        "file": "data/forsaleBudget.json",
-        "from": "\"forsale_run_cap\": 50",
-        "to": "\"forsale_run_cap\": 500"
-      }
-    ]
-  },
-  {
     "name": "shipped: autotraderclassics is on",
     "edits": [
       {
         "file": "data/forsaleBudget.json",
         "from": "\"autotraderclassics\": false",
         "to": "\"autotraderclassics\": true"
-      }
-    ]
-  },
-  {
-    "name": "shipped: the classifieds group is on",
-    "edits": [
-      {
-        "file": "data/forsaleBudget.json",
-        "from": "\"classifieds\": false",
-        "to": "\"classifieds\": true"
-      }
-    ]
-  },
-  {
-    "name": "shipped: classiccars has no switch of its own (and its group is on)",
-    "edits": [
-      {
-        "file": "data/forsaleBudget.json",
-        "from": "\"classifieds\": false",
-        "to": "\"classifieds\": true"
-      },
-      {
-        "file": "data/forsaleBudget.json",
-        "from": "\"classiccars\": false",
-        "to": "\"classiccars\": true"
       }
     ]
   },
@@ -840,26 +805,6 @@
     ]
   },
   {
-    "name": "the pull schedule is shipped on",
-    "edits": [
-      {
-        "file": "data/forsaleBudget.json",
-        "from": "\"pull_on\": false",
-        "to": "\"pull_on\": true"
-      }
-    ]
-  },
-  {
-    "name": "the prepare schedule is shipped on",
-    "edits": [
-      {
-        "file": "data/forsaleBudget.json",
-        "from": "\"prepare_on\": false",
-        "to": "\"prepare_on\": true"
-      }
-    ]
-  },
-  {
     "name": "a pull cron is shipped while the schedule is off",
     "edits": [
       {
@@ -876,16 +821,6 @@
         "file": "data/forsaleBudget.json",
         "from": "mode=pull with schedule 10 */12 * * *",
         "to": "mode=pull with schedule 10 */6 * * *"
-      }
-    ]
-  },
-  {
-    "name": "the config no longer says switching on takes both",
-    "edits": [
-      {
-        "file": "data/forsaleBudget.json",
-        "from": "TO SWITCH ON it takes BOTH",
-        "to": "TO SWITCH ON set the flags"
       }
     ]
   },
@@ -1176,6 +1111,156 @@
         "file": "lib/forsale/sync.js",
         "from": "status: \"all\", direction: \"asc\", changed_since: ch.since",
         "to": "status: \"all\", direction: \"desc\", changed_since: ch.since"
+      }
+    ]
+  },
+  {
+    "name": "switch-on: the pull flag is off while its cron line is there",
+    "edits": [
+      {
+        "file": "data/forsaleBudget.json",
+        "from": "\"pull_on\": true",
+        "to": "\"pull_on\": false"
+      }
+    ]
+  },
+  {
+    "name": "switch-on: the prepare flag is off while its cron line is there",
+    "edits": [
+      {
+        "file": "data/forsaleBudget.json",
+        "from": "\"prepare_on\": true",
+        "to": "\"prepare_on\": false"
+      }
+    ]
+  },
+  {
+    "name": "switch-on: the prepare cron line is missing",
+    "edits": [
+      {
+        "file": "vercel.json",
+        "from": "    { \"path\": \"/api/pullForSale?mode=prepare\", \"schedule\": \"40 * * * *\" }\n",
+        "to": ""
+      }
+    ]
+  },
+  {
+    "name": "switch-on: the pull cron runs every 6 hours",
+    "edits": [
+      {
+        "file": "vercel.json",
+        "from": "\"schedule\": \"10 */12 * * *\"",
+        "to": "\"schedule\": \"10 */6 * * *\""
+      }
+    ]
+  },
+  {
+    "name": "switch-on: autotraderclassics is switched on",
+    "edits": [
+      {
+        "file": "data/forsaleBudget.json",
+        "from": "\"autotraderclassics\": false",
+        "to": "\"autotraderclassics\": true"
+      }
+    ]
+  },
+  {
+    "name": "switch-on: classiccars is left off",
+    "edits": [
+      {
+        "file": "data/forsaleBudget.json",
+        "from": "\"classiccars\": true",
+        "to": "\"classiccars\": false"
+      }
+    ]
+  },
+  {
+    "name": "switch-on: barnfinds is left off",
+    "edits": [
+      {
+        "file": "data/forsaleBudget.json",
+        "from": "\"barnfinds\": true",
+        "to": "\"barnfinds\": false"
+      }
+    ]
+  },
+  {
+    "name": "switch-on: the run cap stays 50",
+    "edits": [
+      {
+        "file": "data/forsaleBudget.json",
+        "from": "\"forsale_run_cap\": 120",
+        "to": "\"forsale_run_cap\": 50"
+      }
+    ]
+  },
+  {
+    "name": "switch-on: the run cap is 500 (a load in one run)",
+    "edits": [
+      {
+        "file": "data/forsaleBudget.json",
+        "from": "\"forsale_run_cap\": 120",
+        "to": "\"forsale_run_cap\": 500"
+      }
+    ]
+  },
+  {
+    "name": "switch-on: the monthly budget is 4000 (past the room)",
+    "edits": [
+      {
+        "file": "data/forsaleBudget.json",
+        "from": "\"forsale_monthly_budget\": 2800",
+        "to": "\"forsale_monthly_budget\": 4000"
+      }
+    ]
+  },
+  {
+    "name": "sql: the alter line for hidden_at is missing",
+    "edits": [
+      {
+        "file": "docs/supabase-forsale.sql",
+        "from": "alter table for_sale_listings add column if not exists hidden_at timestamptz;\n",
+        "to": ""
+      }
+    ]
+  },
+  {
+    "name": "sql: the alter line for vendor_id is missing",
+    "edits": [
+      {
+        "file": "docs/supabase-forsale.sql",
+        "from": "alter table for_sale_listings add column if not exists vendor_id bigint;\n",
+        "to": ""
+      }
+    ]
+  },
+  {
+    "name": "sql: the alter line for price_history is missing",
+    "edits": [
+      {
+        "file": "docs/supabase-forsale.sql",
+        "from": "alter table for_sale_listings add column if not exists price_history jsonb;\n",
+        "to": ""
+      }
+    ]
+  },
+  {
+    "name": "sql: the changed_at column is missing from the table altogether",
+    "edits": [
+      {
+        "file": "docs/supabase-forsale.sql",
+        "from": "alter table for_sale_listings add column if not exists changed_at timestamptz;\n",
+        "to": ""
+      }
+    ]
+  },
+  {
+    "name": "switch-on: the config's words give the wrong load for the 17 sources",
+    "edits": [
+      {
+        "file": "data/forsaleBudget.json",
+        "from": "the load is 427 queries",
+        "to": "the load is 42 queries"
       }
     ]
   }
