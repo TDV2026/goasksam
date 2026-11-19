@@ -280,12 +280,12 @@
   ]
  },
  {
-  "name": "the heading cannot take wider type",
+  "name": "a heading in bigger type than its column holds",
   "edits": [
    {
     "file": "api/history.js",
     "from": "table.vix th{padding-top:0;padding-bottom:10px;letter-spacing:.08em;white-space:nowrap}",
-    "to": "table.vix th{padding-top:0;padding-bottom:10px;letter-spacing:.08em;white-space:nowrap;overflow:hidden;max-width:50px}"
+    "to": "table.vix th{padding-top:0;padding-bottom:10px;letter-spacing:.08em;white-space:nowrap;font-size:26px}"
    }
   ]
  }
