@@ -16,11 +16,16 @@ const card = r => SV.cardOf({ r: { _fs: r } });
 ok("the engine's real read is a range or the engine's own line, stored with this engine version", !!real.read && !!real.read.sold_line && real.read.engine_version, JSON.stringify(real.read && real.read.sold_line));
 const landed = card(row({ read: stored })), none = card(row({ read: null })), old = card(row({ read: { ...stored, engine_version: "e1-old" } })), bare = card(row({ read: undefined }));
 ok("the read has landed: the box holds the engine's own words and the asking line", landed.read === "Asking $30,000. " + real.read.sold_line && landed.readKind === real.read.kind, landed.read);
-for (const [name, c] of [["no stored read", none], ["a stored read of another engine version", old], ["no read field at all", bare]]) {
+for (const [name, c] of [["no stored read", none], ["no read field at all", bare]]) {
   ok(`${name}: the card shows the asking line and the holding line`, c.read === "Asking $30,000. My read is on its way." && c.readKind === "pending" && c.askingLine === "Asking $30,000", c.read);
   ok(`${name}: no range and no number in the Sam box (only the asking price)`, !/\bsold for\b/i.test(c.read) && c.read.replace("Asking $30,000.", "").replace(/\d/g, "").length === c.read.replace("Asking $30,000.", "").length, c.read);
 }
-ok("a read of another engine version never shows its numbers while it is held", !(real.read.low > 0) || !new RegExp(String(real.read.low).replace(/\B(?=(\d{3})+(?!\d))/g, ",")).test(old.read));
+// A READ MADE UNDER A PREVIOUS STAMP KEEPS BEING SERVED until its new read lands (order of Nov 20 2026, item 4): it shows its own words, never the holding line, and the prepare job's queue still takes it (READ_Q: engine_version.neq) so the new read replaces it in demand order
+ok("a read of an earlier engine stamp is served as it is (its own words and kind), not the holding line", old.read === "Asking $30,000. " + real.read.sold_line && old.readKind === real.read.kind && !/on its way/.test(old.read), old.read);
+const PS = (await import("node:fs")).readFileSync(path.join(root, "lib/forsale/prepare.js"), "utf8");
+ok("the prepare queue still takes every read of another stamp and every car resolved under another stamp (so they are remade, in demand order)", /read->>engine_version\.neq\.\$\{encodeURIComponent\(ENGINE_VERSION\)\}/.test(PS) && /car->>engine_version\.neq\.\$\{encodeURIComponent\(ENGINE_VERSION\)\}/.test(PS), null);
+const landedNew = card(row({ read: { ...stored, sold_line: "NEW LINE" } })), landedOld = card(row({ read: { ...stored, engine_version: "e1-old", sold_line: "OLD LINE" } }));
+ok("when the new read lands it replaces the old one on the card", landedNew.read.endsWith("NEW LINE") && landedOld.read.endsWith("OLD LINE"));
 const held = r => R.heldBack(r, Date.now(), E.ENGINE_VERSION, null);
 ok("the rules do not hold a resolved listing back for a read that has not landed (it is served)", held(row({ read: null })) === null && held(row({ read: { ...stored, engine_version: "e1-old" } })) === null && held(row({ read: stored })) === null);
 ok("the rules still hold back what must not show: unresolved, no price, gone, stale", held(row({ resolve_state: "unresolved", car: null })) === "unresolved" && held(row({ asking_price_usd: 0 })) === "no_price" && held(row({ gone: true })) === "gone" && held(row({ hidden: true })) === "stale");
