@@ -3,6 +3,7 @@
 // run in a sandbox with the rule written in exactly as the page does, and that no surface keeps its own copy of the
 // wording. No network.
 import fs from "node:fs";
+import { fillBuyClient } from "./_buyClient.mjs";
 import vm from "node:vm";
 import { priorSold, priorWords, priorTake } from "../lib/live/priorListing.js";
 
@@ -37,7 +38,7 @@ const page = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
 const client = JSON.parse(/^const CLIENT = (.*);$/m.exec(page)[1]);
 ok(client.includes("/*__PRIOR__*/") && /\.replace\("\/\*__PRIOR__\*\/", \(\) => PRIOR_JS\)/.test(page), "the page writes the shared rule into its script");
 ok(/import \{ priorSold, priorWords, priorTake \} from "\.\.\/lib\/live\/priorListing\.js"/.test(page), "the page reads the one rule");
-const code = client.replace("__KEEP_ICON__", '""').replace("__COLD_MISSED__", () => JSON.stringify("COLD_MISSED")).replace("__COLD_READING__", () => JSON.stringify("COLD_READING")).replace("__ANY_ANSWER__", "function(){ return false; }").replace("/*__PRIOR__*/", [priorSold, priorWords, priorTake].map(f => f.toString()).join("\n"));
+const code = fillBuyClient(client, { PRIOR: [priorSold, priorWords, priorTake].map(f => f.toString()).join("\n") });
 const body = code.replace(/^\(function\s*\(\s*\)\s*\{\n/, "").replace(/\n\}\)\(\);?\s*$/, "");
 const noop = () => {}, el = () => ({ addEventListener: noop, setAttribute: noop, getAttribute: () => null, appendChild: noop, querySelector: () => null, querySelectorAll: () => [], classList: { add: noop, remove: noop, toggle: noop, contains: () => false }, style: {}, dataset: {} });
 const sb = { window: { addEventListener: noop, GAS_REL: { mc: true, tasks: true } }, document: { getElementById: el, querySelector: el, querySelectorAll: () => [], createElement: el, addEventListener: noop, body: el(), documentElement: el(), cookie: "" }, location: { search: "", pathname: "/buy", hostname: "localhost" }, navigator: { userAgent: "node" }, localStorage: { getItem: () => null, setItem: noop }, sessionStorage: { getItem: () => null, setItem: noop }, history: { replaceState: noop, pushState: noop }, fetch: () => Promise.reject(new Error("no network")), setTimeout: () => 0, clearTimeout: noop, setInterval: () => 0, clearInterval: noop, console, matchMedia: () => ({ matches: false }) };

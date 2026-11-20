@@ -12,6 +12,7 @@
 //
 //   node scripts/offWindowCheck.mjs
 import fs from "node:fs";
+import { fillBuyClient } from "./_buyClient.mjs";
 import path from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
@@ -101,7 +102,7 @@ function loadBuyBuilder() {
   const src = fs.readFileSync(path.join(ROOT, "api/buy.js"), "utf8");
   const m = src.match(/const CLIENT = "((?:\\.|[^"\\])*)";/);
   if (!m) throw new Error("api/buy.js: could not find `const CLIENT = \"...\";` - update this script's extraction");
-  const code = JSON.parse(`"${m[1]}"`).replace("__KEEP_ICON__", '""').replace("__COLD_MISSED__", () => JSON.stringify("COLD_MISSED")).replace("__COLD_READING__", () => JSON.stringify("COLD_READING"));
+  const code = fillBuyClient(JSON.parse(`"${m[1]}"`));
   const body = unwrapIife(code, "api/buy.js CLIENT");
   const context = runAndCapture(body, "api/buy.js CLIENT");
   if (typeof context.drawerHtml !== "function") throw new Error("api/buy.js: drawerHtml not found after sandboxed load - function renamed or restructured, update this script");

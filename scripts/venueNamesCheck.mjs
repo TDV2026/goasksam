@@ -77,6 +77,17 @@ const STORED = {
   // a check that pins a page by a source map that the page no longer holds goes stale on purpose-built removals (Lane C held this branch on two): none may anchor on the removed names
   const stale = fs.readdirSync(path.join(root, "scripts")).filter(f => /Check\.mjs$/.test(f) && f !== "venueNamesCheck.mjs" && /["']\s+var HOUSE = \{["']|PLATFORM_NAMES\b|PLATFORM_LABELS\b/.test(fs.readFileSync(path.join(root, "scripts", f), "utf8")));
   ok("no check anchors on a source map that the one map replaced (var HOUSE = {, PLATFORM_NAMES, PLATFORM_LABELS)", stale.length === 0, stale); }
+// 2d THE PAGE'S SCRIPT FILLED (Lane C's second hold: priorListingCheck built the script with a fixed list of placeholders, and the page's new __LIVE_SITES__ was not on it). Every check that builds the page's script uses scripts/_buyClient.mjs, which fills EVERY placeholder;
+// api/buy.js must fill every placeholder its script holds; and no check fills one by hand again.
+{ const bc = await import(pathToFileURL(path.join(root, "scripts/_buyClient.mjs")).href).catch(e => ({ __error: e.message }));
+  const buyTxt = fs.readFileSync(path.join(root, "api/buy.js"), "utf8"), m = /^const CLIENT = (".*");$/m.exec(buyTxt), raw = m ? JSON.parse(m[1]) : "";
+  const held = [...new Set([...raw.matchAll(/__([A-Z][A-Z_]*[A-Z])__/g)].map(x => x[1]))], filled = new Set([...buyTxt.matchAll(/\.replace\("(?:\/\*)?__([A-Z][A-Z_]*[A-Z])__/g)].map(x => x[1]));
+  ok("api/buy.js fills every placeholder its script holds (" + held.join(", ") + ")", held.length > 0 && held.every(h => filled.has(h)), held.filter(h => !filled.has(h)));
+  let parsed = false, left = [];
+  try { const out = bc.fillBuyClient(raw, {}, root); left = out.match(/__[A-Z][A-Z_]*[A-Z]__/g) || []; new Function(out); parsed = true; } catch (e) { left = [String(e.message || e)]; }
+  ok("the shared builder fills every placeholder and the script parses", !bc.__error && parsed && left.length === 0, bc.__error || left);
+  const hand = fs.readdirSync(path.join(root, "scripts")).filter(f => /\.(mjs|js)$/.test(f) && f !== "_buyClient.mjs" && f !== "venueNamesCheck.mjs" && fs.readFileSync(path.join(root, "scripts", f), "utf8").split("\n").some(l => /\.replace\("(?:\/\*)?__(KEEP_ICON|COLD_MISSED|COLD_READING|ANY_ANSWER|LIVE_SITES|PRIOR)__/.test(l) && !/includes\(|\.test\(|^\s*\/\//.test(l)));
+  ok("no check fills the page's placeholders by hand (they use scripts/_buyClient.mjs)", hand.length === 0, hand); }
 // 3 the engine serves the name on each path
 const hd = await imp("api/_historyData.js"), ob = await imp("lib/onebox.js"), srch = await imp("lib/live/search.js"), serve = await imp("lib/forsale/serve.js");
 ok("the history line's houseName gives the name for every auction source and never a key", !hd.__error && AUCTION.every(k => hd.houseName(k) === name(k)) && hd.houseName("zzzvendorsource") === "", hd.__error);

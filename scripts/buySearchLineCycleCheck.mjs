@@ -7,10 +7,12 @@ import fs from "node:fs";
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const s = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
+import { fillBuyClient } from "./_buyClient.mjs";
 import { venueName } from "../lib/venueNames.js";
 const i = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, raw = JSON.parse(s.slice(i, s.indexOf('";\n', i) + 1));
 // the page gets its site names from the one map (lib/venueNames.js) at render time: the check fills the placeholder the way api/buy.js does, from the keys api/buy.js holds
-const KEYS = JSON.parse(/const LIVE_SITE_KEYS = (\[[^\]]*\]);/.exec(s)[1]), c = raw.replace("__LIVE_SITES__", () => JSON.stringify(KEYS.map(venueName)));
+const KEYS = JSON.parse(/const LIVE_SITE_KEYS = (\[[^\]]*\]);/.exec(s)[1]), c = fillBuyClient(raw);
+void venueName; void KEYS;
 const block = (from, to) => { const a = c.indexOf(from), b = c.indexOf(to, a); if (a < 0 || b < 0) throw new Error("missing " + from); return c.slice(a, b); };
 const SIXTEEN = ["Bring a Trailer", "Cars & Bids", "Hagerty", "PCarMarket", "Hemmings", "MB Market", "Sotheby's Motorsport", "RM Sotheby's", "Gooding Christie's", "Collecting Cars"];
 ok(/var LIVE_SITES = __LIVE_SITES__;/.test(raw) && !/Gooding|PCAR/.test(raw), "the page holds no site name of its own: the names come from the one map");
