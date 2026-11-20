@@ -2895,6 +2895,19 @@
     "scripts/fixtures/m3Answer.json"
    ]
   },
+  "findOneVoiceCheck": {
+   "file": "scripts/findOneVoiceCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/buy.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/reasonWords.js",
+    "node_modules/",
+    "scripts/_findStates.mjs"
+   ]
+  },
   "findPickCheck": {
    "file": "scripts/findPickCheck.mjs",
    "kind": "offline",

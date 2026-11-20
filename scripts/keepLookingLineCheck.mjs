@@ -10,7 +10,8 @@ const i = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.pars
 // STAGE 1d ITEM 6 (Sam, Oct 20 2026): the sentence is removed, and with cars on the page the panel is the next step.
 ok(!/Following one auction/.test(c) && !/Nothing else right now/.test(c), "no 'Following one auction?' sentence and no 'Nothing else right now.' (Stage 1d item 6)");
 ok(c.includes("<h3>Have Sam keep looking</h3><p>Sam will keep watching new listings and email you when another matching car goes live.</p>") && c.includes('esc(qp ? "Have Sam keep looking for " + qp : "Have Sam keep looking")'), "the next-step panel in Sam's words: the heading, the line, the button naming the search");
-ok(c.includes("<h3>Nothing live right now.</h3>") && c.includes("Sam will email you when a matching car goes live."), "with nothing live the panel is the whole answer, unchanged");
+// ONE VOICE (Lane S, Nov 19 2026): with nothing live the header already says so, so the panel carries the action: its heading is the engine's one line (meta.keepLine, reasonWords keep.none) and it writes no sentence of its own (scripts/findOneVoiceCheck.mjs runs it in the page).
+ok(c.includes("<h3>' + esc(kl) + '</h3>") && !c.includes("Nothing live right now.") && !c.includes("Sam will email you when a matching car goes live.") && !c.includes("Sam can keep looking for a "), "with nothing live the panel is the action: its heading is the engine's keepLine and the page words none of it");
 ok(!/with where the bid stands against the range/.test(c), "no 'with where the bid stands against the range' (the drawer's own switch line is not this sentence and is unchanged)");
 const a = fs.readFileSync(new URL("../lib/live/buyAlerts.js", import.meta.url), "utf8");
 ok(/st\.kind === "fresh" \? lastBidSeenLine\(usd\(f\.bid\), f\.bidAt, now\) :/.test(a), "the email: The last bid seen was {amount} at {time}., through the one shared helper");
