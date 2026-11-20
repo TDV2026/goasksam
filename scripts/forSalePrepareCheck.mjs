@@ -16,7 +16,7 @@ const section = async (name, fn) => { try { await fn(); } catch (e) { fail++; fa
 
 // ---- a fake table with the filters the job and the report send (PostgREST in miniature) ----------------------------------------------------------------------------------------
 const ENV = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
-let TABLE = [], LEASES = [], LOG = [], PAGE_SEEN = [], FAIL_LEASE = false;
+let TABLE = [], LEASES = [], HALTS = [], LOG = [], PAGE_SEEN = [], FAIL_LEASE = false;
 const jget = (r, p) => { const [a, b] = p.split("->>"); const v = r[a]; return b == null ? v : v == null ? null : v[b]; };
 const filterRows = (rows, u) => {
   let out = rows;
@@ -35,8 +35,9 @@ globalThis.fetch = async (url, init) => {
   const u = new URL(String(url)), method = (init && init.method) || "GET";
   if (u.pathname.endsWith("/app_usage_events")) {
     if (FAIL_LEASE === "throw") throw new Error("network");
-    if (method === "POST") { if (FAIL_LEASE) return new Response("{}", { status: 500 }); for (const r of JSON.parse(init.body)) LEASES.push({ id: LEASES.length + 1, at: Date.now() + (globalThis.__SKEW || 0), status: r.status, metadata: r.metadata }); return new Response("", { status: 201 }); }
+    if (method === "POST") { if (FAIL_LEASE) return new Response("{}", { status: 500 }); for (const r of JSON.parse(init.body)) if (r.event_type === "forsale_prepare_halt") HALTS.push({ id: HALTS.length + 1, at: Date.now() + (globalThis.__SKEW || 0), metadata: r.metadata }); else LEASES.push({ id: LEASES.length + 1, at: Date.now() + (globalThis.__SKEW || 0), status: r.status, metadata: r.metadata }); return new Response("", { status: 201 }); }
     const gte = decodeURIComponent(u.searchParams.get("created_at") || "").replace(/^gte\./, ""); if (FAIL_LEASE) return new Response("{}", { status: 500 });
+    if (u.searchParams.get("event_type") === "eq.forsale_prepare_halt") return new Response(JSON.stringify(HALTS.filter(h => !gte || h.at >= Date.parse(gte)).map(h => ({ id: h.id }))), { status: 200 });
     return new Response(JSON.stringify(LEASES.filter(l => !gte || l.at >= Date.parse(gte)).map(l => ({ id: l.id, status: l.status, metadata: l.metadata }))), { status: 200 });
   }
   if (!u.pathname.endsWith("/for_sale_listings")) return new Response("{}", { status: 404 });
@@ -52,10 +53,10 @@ const mk = (i, o = {}) => ({ id: i, source: "streetside", source_type: "dealer",
 const specFor = title => /Ghost/.test(title) ? null : { key: "key:" + title.replace(/^\d{4} /, "").replace(/\s+/g, "_"), v: /Mustang/.test(title) ? { make: "Ford", model: "Mustang", year: 1965 } : { make: "Porsche", model: "911", year: 1987 }, generation: null };
 const ENGINE = (log = {}) => ({
   specOf: async (env, lr) => { log.spec = (log.spec || 0) + 1; (log.order = log.order || []).push("spec"); await new Promise(r => setTimeout(r, log.specMs || 0)); if (log.specUndefined && log.specUndefined.test(lr.listing_title)) return undefined; return specFor(lr.listing_title); },
-  listingMarket: async (env, lr, facts) => { (log.order = log.order || []).push("read"); log.reads = (log.reads || 0) + 1; log.cur = (log.cur || 0) + 1; log.max = Math.max(log.max || 0, log.cur); await new Promise(r => setTimeout(r, log.readMs || 5)); log.cur--; (log.keys = log.keys || []).push(lr.listing_title + "|" + facts.miles); return { kind: "range", low: 40000, high: 60000 }; },
+  listingMarket: async (env, lr, facts) => { if (log.failReads && (log.callN = (log.callN || 0) + 1) <= log.failReads) throw new Error("archive read failed"); (log.order = log.order || []).push("read"); log.reads = (log.reads || 0) + 1; log.cur = (log.cur || 0) + 1; log.max = Math.max(log.max || 0, log.cur); await new Promise(r => setTimeout(r, log.readMs || 5)); log.cur--; (log.keys = log.keys || []).push(lr.listing_title + "|" + facts.miles); return { kind: "range", low: 40000, high: 60000 }; },
   seenBefore: async (env, vin) => { log.vins = (log.vins || 0) + 1; return null; }
 });
-const reset = rows => { TABLE = rows; LEASES = []; LOG = []; PAGE_SEEN = []; FAIL_LEASE = false; globalThis.__SKEW = 0; };
+const reset = rows => { TABLE = rows; LEASES = []; HALTS = []; LOG = []; PAGE_SEEN = []; FAIL_LEASE = false; globalThis.__SKEW = 0; };
 const run = (log, o) => PREP.prepareForSale(ENV, { budgetMs: 20000, engine: ENGINE(log), ...(o || {}) });
 
 await section("the resolver alone, first, once per distinct title", async () => {
@@ -89,8 +90,12 @@ await section("one engine read per distinct car and mileage band", async () => {
   ok("the stamped read is the engine's words (a range and the engine's version), the same shape one listing a read gave", TABLE[0].read.kind === "range" && TABLE[0].read.low === 40000 && TABLE[0].read.engine_version === ENGINE_VERSION && typeof TABLE[0].read.sold_line === "string" && TABLE[0].read.sold_line.length > 5, TABLE[0].read);
   ok("the biggest group is read first (the 20 listing group before the 10 and the 12)", log.keys[0].endsWith("|40000"), log.keys);
   const again = {}, o2 = await run(again); ok("a second run reads nothing again (the stamped reads are current) and ends at once", again.reads === undefined && o2.reads === 0 && o2.readCalls === 0, o2);
-  const stale = TABLE.filter(r => r.read).slice(0, 10); stale.forEach(r => { r.read = { ...r.read, at: new Date(Date.now() - 13 * 3600e3).toISOString() }; });
-  const l3 = {}; const o3 = await run(l3); ok("a read older than 12 hours is made again, still one read per group", l3.reads >= 1 && l3.reads <= 3 && o3.reads >= 10, [l3.reads, o3.reads]);
+  const ageH = h => new Date(Date.now() - h * 3600e3).toISOString(), pick = TABLE.filter(r => r.read).slice(0, 10);
+  pick.forEach(r => { r.read = { ...r.read, at: ageH(13) }; });
+  const l3 = {}; const o3 = await run(l3); ok("a read 13 hours old is KEPT (a read lives 7 days, data/forsaleBudget.json prepare.read_age_hours 168): no engine read, nothing requeued", (l3.reads || 0) === 0 && o3.reads === 0 && o3.readCalls === 0 && pick.every(r => r.read && r.read.at === pick[0].read.at), [l3.reads, o3.reads]);
+  pick.forEach(r => { r.read = { ...r.read, at: ageH(24 * 8) }; });
+  const l8 = {}; const o8 = await run(l8); ok("a read 8 days old is made again, still one read per group", l8.reads >= 1 && l8.reads <= 3 && o8.reads >= 10 && pick.every(r => Date.now() - Date.parse(r.read.at) < 3600e3), [l8.reads, o8.reads]);
+  ok("the age is the setting, not a constant: 168 hours in data/forsaleBudget.json, read by readAgeMs", PREP.READ_MAX_AGE_MS === 168 * 3600e3 && PREP.readAgeMs({ prepare: { read_age_hours: 24 } }) === 24 * 3600e3 && PREP.readAgeMs({}) === 168 * 3600e3);
   reset(Array.from({ length: 5 }, (_, i) => mk(i + 1, { gone: i === 0, hidden: i === 1 }))); const l4 = {}; await run(l4);
   ok("a gone listing and a hidden listing are never resolved or read", TABLE[0].resolve_state == null && TABLE[1].resolve_state == null && TABLE.slice(2).every(r => r.resolve_state === "resolved" && r.read));
   { const rc = { resolve_state: "resolved", car_key: "key:old", car: { key: "key:old", engine_version: ENGINE_VERSION } }; reset([mk(1, { ...rc, gone: true }), mk(2, { ...rc, hidden: true }), mk(3, rc)]); const l6 = {}; const o6 = await run(l6);
@@ -147,6 +152,25 @@ await section("the queue by demand (Nov 19 2026)", async () => {
   ok("demandKey ignores case, spaces and punctuation; demandOf with the table unreadable is no demand, never an error", PREP.demandKey("Mercedes-Benz", "300 SL") === PREP.demandKey("mercedes benz", "300sl") && (await PREP.demandOf({ supabaseUrl: "http://127.0.0.1:9", supabaseKey: "k" })) instanceof Map && (await PREP.demandOf(null)) instanceof Map && await (async () => { const f = globalThis.fetch; globalThis.fetch = async () => new Response("nope", { status: 500 }); try { return (await PREP.demandOf(ENV)) instanceof Map; } finally { globalThis.fetch = f; } })());
   const by = PREP.byDemand([[{ r: { car: { make: "A", model: "x" } } }], [{ r: { car: { make: "B", model: "y" } } }, { r: {} }]], new Map([[PREP.demandKey("A", "x"), 3]]));
   ok("byDemand puts demand before size", by[0][0].r.car.make === "A");
+});
+
+await section("back to back, and the failure rules (Nov 20 2026)", async () => {
+  const many = n => Array.from({ length: n }, (_, i) => mk(i + 1, { title: "1987 Porsche 911 Carrera " + i, mileage: 40000 }));
+  // BACK TO BACK: a run keeps making passes until its time is used, not one batch (the passes are limited here to 40 rows so one batch is not the whole table)
+  reset(many(120)); const lA = {}; const one = await PREP.prepareForSale(ENV, { budgetMs: 60000, engine: ENGINE(lA), resolveLimit: 40, readLimit: 40, onePass: true });
+  ok("one pass is one batch (the limit of 40 rows): 80 listings are left", one.passes === 1 && one.left.toResolve + one.left.toRead > 0 && TABLE.filter(r => r.read).length <= 40, [one.passes, one.left]);
+  reset(many(120)); const lB = {}; const all = await PREP.prepareForSale(ENV, { budgetMs: 60000, engine: ENGINE(lB), resolveLimit: 40, readLimit: 40 });
+  ok("a run keeps making passes until the work is done or the time is used: 120 listings resolved and read in ONE run", all.passes >= 3 && TABLE.every(r => r.resolve_state === "resolved" && r.read) && all.left.toResolve === 0 && all.left.toRead === 0, [all.passes, all.left]);
+  ok("and the reads stayed at three at once", (lB.max || 0) <= 3 && all.readWidth === 3, [lB.max, all.readWidth]);
+  // THE FAILURE RULES: per 100 reads, over 5 failed drops to two at once; over 20 stops the run, records the halt and holds the job
+  reset(many(260)); const lC = { failReads: 8, readMs: 4 }; const c = await PREP.prepareForSale(ENV, { budgetMs: 60000, engine: ENGINE(lC), onePass: true });
+  ok("8 failed reads in the first 100: the run drops to two reads at once, says so, and goes on", !!c.widthLowered && c.readWidth === 2 && !c.halted && c.reads > 100 && /over 5/.test(c.widthLowered.rule), [c.widthLowered, c.readWidth, c.reads]);
+  reset(many(260)); const lD = { failReads: 30, readMs: 4 }; const d = await PREP.prepareForSale(ENV, { budgetMs: 60000, engine: ENGINE(lD), onePass: true });
+  ok("30 failed reads in the first 100: the run STOPS (halted, DECISION NEEDED) and does not go on to read the rest", !!d.halted && d.decisionNeeded === true && d.readCalls < 130 && TABLE.filter(r => r.read).length < 100 && HALTS.length === 1, [d.halted, d.readCalls, HALTS.length]);
+  const lE = {}; const e = await PREP.prepareForSale(ENV, { budgetMs: 60000, engine: ENGINE(lE), onePass: true });
+  ok("the next run is refused for the hour (halted): it reads nothing until a person has looked", e.skipped === "halted" && lE.reads === undefined);
+  reset(many(260)); const lF = { failReads: 5, readMs: 4 }; const f = await PREP.prepareForSale(ENV, { budgetMs: 60000, engine: ENGINE(lF), onePass: true });
+  ok("5 failed reads in 100 is inside the rule: no change of width, no halt", !f.widthLowered && !f.halted && f.readWidth === 3, [f.widthLowered, f.halted]);
 });
 await section("the catch up", async () => {
   // 3,000 listings, 200 distinct titles; the engine is slow enough that one run does not finish; the runs left are counted from the table, and the table is done in a few runs

@@ -19,6 +19,7 @@
     "lapse_hours": 30,
     "overlap_minutes": 60
   },
+  "prepare": { "read_age_hours": 168, "_about": "How long a stored dealer or classified read is kept before it is made again: 7 days (Sam, Nov 20 2026), not 12 hours. A read is also made again at once when the listing's asking price changes (the sync clears it). Auction cards keep their own refresh; this is for the for sale table only." },
   "schedule": {
     "pull_on": true,
     "prepare_on": true

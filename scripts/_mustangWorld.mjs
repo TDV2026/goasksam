@@ -36,5 +36,5 @@ export async function world(root) {
   const listing = mi => ({ id: 1, source: "bringatrailer", source_listing_id: "s1", url: "https://x/1", listing_title: "1965 Ford Mustang", make: "Ford", model: "Mustang", year: 1965, vin_norm: null, mileage: mi, mileage_unit: "mi", body: null, transmission: null, location: "Greenland, NH", country: "US", currency: "USD", current_bid: 30000, current_bid_usd: 30000, status: "classified", photo_url: null });
   const readFor = async mi => { const row = listing(mi), facts = S.listingFacts(row); let m = null; for (let t = 0; t < 12; t++) { m = await S.listingMarket(env, row, facts, { noBlock: true, notTracked: true, vehicle }); if (m && m.kind !== "pending") break; await new Promise(r => setTimeout(r, 700)); } return { facts, m, read: P.readOf(m, "2026-11-19T00:00:00Z") }; };
   
-  return { env, S, P, vehicle, listing, readFor, quiet: () => { const o = console.error; console.error = () => {}; return () => { console.error = o; }; } };
+  return { env, S, P, vehicle, listing, readFor, fetch: globalThis.fetch, quiet: () => { const o = console.error; console.error = () => {}; return () => { console.error = o; }; } };
 }

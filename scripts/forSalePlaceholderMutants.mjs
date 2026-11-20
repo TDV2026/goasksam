@@ -29,6 +29,13 @@ const M = [
   ["the queue puts size before demand", "lib/forsale/prepare.js", "groupDemand(b, demand) - groupDemand(a, demand) || b.length - a.length);", "b.length - a.length || groupDemand(b, demand) - groupDemand(a, demand));", "forSalePrepareCheck"],
   ["an unreadable demand table breaks the run", "lib/forsale/prepare.js", "for (const r of Array.isArray(rows) ? rows : [])", "for (const r of rows)", "forSalePrepareCheck"],
   ["the top of the queue is not reported", "lib/forsale/prepare.js", "out.started = rg.slice(0, 20).map(", "out.startedX = rg.slice(0, 20).map(", "forSalePrepareCheck"]
+  ,["a read lives 12 hours again (a constant)", "lib/forsale/prepare.js", "export const READ_MAX_AGE_MS = readAgeMs();", "export const READ_MAX_AGE_MS = 12 * 3600e3;", "forSaleReadAgeCheck"],
+  ["the setting says 12 hours", "data/forsaleBudget.json", "\"read_age_hours\": 168", "\"read_age_hours\": 12", "forSaleReadAgeCheck"],
+  ["a price change does not clear the read", "lib/forsale/sync.js", "{ read: null, updated_at: at }); out.requeuedForPrice", "{ updated_at: at }); out.requeuedForPrice", "forSaleCheck"],
+  ["the run is one batch again", "lib/forsale/prepare.js", "if (opts.onePass || state.halted || !did", "if (true || state.halted || !did", "forSalePrepareCheck"],
+  ["over 5 failures in 100 does not drop to two", "lib/forsale/prepare.js", "else if (f > 5 && st.width > 2)", "else if (f > 500 && st.width > 2)", "forSalePrepareCheck"],
+  ["over 20 failures in 100 does not stop", "lib/forsale/prepare.js", "if (f > 20) st.halted", "if (f > 2000) st.halted", "forSalePrepareCheck"],
+  ["a halted job is not held", "lib/forsale/prepare.js", "if (Array.isArray(hr) && hr.length) return { ok: false, why: \"halted\" };", "", "forSalePrepareCheck"]
 ];
 const only = process.argv.includes("--only") ? Number(process.argv[process.argv.indexOf("--only") + 1]) : null;
 let survived = 0, n = 0;

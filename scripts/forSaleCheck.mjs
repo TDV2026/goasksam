@@ -162,6 +162,7 @@ globalThis.fetch = async (url, init) => {
     if (init && init.method === "POST") { USAGE.push(init.body); return new Response("", { status: 201 }); }
     if (USAGE_DOWN) return new Response("{}", { status: 500 });
     const posted = USAGE.map(b => { try { return JSON.parse(b); } catch { return null; } }).filter(Boolean);
+    if (u.searchParams.get("event_type") === "eq.forsale_prepare_halt") return new Response(JSON.stringify(posted.flat().filter(e => e && e.event_type === "forsale_prepare_halt").map(() => ({ id: 1 }))), { status: 200 });
     if (u.searchParams.get("event_type") === "eq.forsale_prepare_lease") { let k = 0; return new Response(JSON.stringify(posted.flat().filter(e => e && e.event_type === "forsale_prepare_lease").map(e => ({ id: ++k, status: e.status, metadata: e.metadata }))), { status: 200 }); }
     if (/^in\.\(forsale_pull/.test(u.searchParams.get("event_type") || "")) { const last = posted.filter(e => /^forsale_pull/.test(e.event_type)).pop(); return new Response(JSON.stringify(last ? [{ created_at: new Date().toISOString(), event_type: last.event_type, metadata: last.metadata }] : []), { status: 200 }); }
     const job = (u.searchParams.get("metadata->>job") || "").replace(/^eq\./, "");   // what the budget counts: the metered rows the vendor client wrote (one per call), by job
@@ -556,12 +557,14 @@ await section("sync", async () => {
   // ---- A PRICE CHANGE: applied, dated, and our own history keeps what the vendor's list drops ----
   { const d = DS("grautogallery", 6), before = RW("grautogallery", 6), was = before.asking_price_usd, nHist = (before.price_history || []).length;
     ok("before: the row holds the price the load stored, as a dated fact", was === 52000 && nHist >= 1 && before.price_history.every(f => f.price > 0 && Number.isFinite(Date.parse(f.observed_at))), before.price_history);
+    const keepRead = { kind: "range", low: 1, high: 2, sold_line: "x", engine_version: "v", at: new Date().toISOString() }, ctrl = RW("grautogallery", 7); before.read = { ...keepRead }; ctrl.read = { ...keepRead };
     V_PRICE(d, 49500); const x = await run(); const row = RW("grautogallery", 6);
+    ok("a price change clears that listing's read at once (the next prepare run reads it fresh) and counts it; a listing whose price did not change keeps its read", row.read === null && ctrl.read && ctrl.read.sold_line === "x" && x.o.requeuedForPrice >= 1, [row.read, x.o.requeuedForPrice]);
     ok("the change poll applied the new asking price, and counted a price change", row.asking_price_usd === 49500 && x.o.priceChanges >= 1, [row.asking_price_usd, x.o.priceChanges]);
     ok("the old and the new price are both kept as dated price facts, oldest first, numbers and dates only (no text)", row.price_history.length >= 2 && row.price_history.some(f => f.price === 52000) && row.price_history[row.price_history.length - 1].price === 49500 && row.price_history.every((f, i, a) => Object.keys(f).sort().join() === "observed_at,price" && (i === 0 || Date.parse(a[i - 1].observed_at) <= Date.parse(f.observed_at))), row.price_history);
     d.asking_price_history = d.asking_price_history.slice(-1); V_FACT(d, { exterior_color: "Silver" }); await run();
     ok("a price fact once dated stays even when the vendor's own list is shorter the next time", RW("grautogallery", 6).price_history.some(f => f.price === 52000), RW("grautogallery", 6).price_history);
-    ok("a price change alone does not send the car back to the resolver (the engine's read is of the car, not of its price)", RW("grautogallery", 6).resolve_state === "resolved" && !!RW("grautogallery", 6).read);
+    ok("a price change alone does not send the car back to the resolver (the car is the same; only its read is made again)", RW("grautogallery", 6).resolve_state === "resolved" && !!RW("grautogallery", 6).car && RW("grautogallery", 6).read === null);
     const rr = RULES.rowOf({ ...d, asking_price: 41000, asking_price_history: [{ price: 45000, observed_at: "2026-11-10T10:00:00Z" }], last_asking_price_observed_at: "2026-11-12T09:00:00Z" }, new Date().toISOString());
     ok("a price the vendor lists but has not yet put in its history is still a dated fact (dated by when the vendor observed it)", rr.price_history.length === 2 && rr.price_history[1].price === 41000 && rr.price_history[1].observed_at === "2026-11-12T09:00:00.000Z", rr.price_history);
     const card = (await servable()).find(r => r.id === RW("grautogallery", 6).id); ok("the car is served at its new asking price", !!card && card.asking_price_usd === 49500); }

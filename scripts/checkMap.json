@@ -3183,6 +3183,17 @@
     "scripts/"
    ]
   },
+  "forSaleReadAgeCheck": {
+   "file": "scripts/forSaleReadAgeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "data/forsaleBudget.json",
+    "lib/forsale/prepare.js",
+    "lib/forsale/serve.js",
+    "lib/onebox.js",
+    "scripts/_mustangWorld.mjs"
+   ]
+  },
   "forSaleWorldCheck": {
    "file": "scripts/forSaleWorldCheck.mjs",
    "kind": "offline",
