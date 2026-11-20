@@ -2550,6 +2550,15 @@
     "scripts/fixtures/answer-stag.json"
    ]
   },
+  "factCarCheck": {
+   "file": "scripts/factCarCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/factCar.js",
+    "node_modules/"
+   ]
+  },
   "factCoverageCheck": {
    "file": "scripts/factCoverageCheck.mjs",
    "kind": "offline",
@@ -8160,15 +8169,5 @@
     "lib/_ingestHealth.js"
    ]
   }
- },
- "factCarCheck": {
-  "file": "scripts/factCarCheck.mjs",
-  "kind": "offline",
-  "covers": [
-   "api/usageDashboard.js",
-   "lib/factCar.js",
-   "lib/factMine.js",
-   "docs/supabase-factmine.sql"
-  ]
  }
 }
