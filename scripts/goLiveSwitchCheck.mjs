@@ -153,7 +153,8 @@ process.env.NEW_DESIGN = "all";
 // 6. the vercel.json rewrites are untouched in kind: no redirect to a preview or a new address
 {
   const v = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8")), b = JSON.parse(fs.readFileSync(path.join(base, "vercel.json"), "utf8"));
-  ok(JSON.stringify(v.redirects) === JSON.stringify(b.redirects), "vercel.json redirects equal the baseline's (the switch adds none)");
+  const noHostRules = rs => (rs || []).filter(r => !(r.has || []).some(h => h.type === "host"));   // the host rules (www and vercel.app to the bare host, Lane S Nov 20 2026) are not the switch
+  ok(JSON.stringify(noHostRules(v.redirects)) === JSON.stringify(noHostRules(b.redirects)), "vercel.json redirects equal the baseline's (the switch adds none)");
   ok(JSON.stringify(v.rewrites) === JSON.stringify(b.rewrites), "vercel.json rewrites equal the baseline's (the switch is in the handlers, no URL change)");
 }
 console.log(`goLiveSwitchCheck: ${pass} passed, ${fail} failed (baseline ${baseRef})`);

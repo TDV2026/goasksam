@@ -3,6 +3,12 @@
   "redirects": [
     {
       "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.goasksam.com" }],
+      "destination": "https://goasksam.com/$1",
+      "statusCode": 301
+    },
+    {
+      "source": "/(.*)",
       "has": [{ "type": "host", "value": "goasksam.vercel.app" }],
       "destination": "https://goasksam.com/$1",
       "statusCode": 301

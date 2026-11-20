@@ -36,7 +36,7 @@ ok(mergeIdentity(null, identOf(mk(1993, "Chevrolet", "Silverado")), null) === nu
 ok(JSON.stringify(Object.keys(identOf(live))) === JSON.stringify(["year", "make", "model", "trim", "family", "genCode", "bodyStyle", "slug"]), "the stored identity is the naming fields only (no vehicle object, no prices)");
 // The wiring.
 const h = fs.readFileSync(new URL("../api/history.js", import.meta.url), "utf8");
-ok(/photos, ident: identOf\(id\) \};/.test(h), "the nightly rollout stores the identity beside each address");
+ok(/photos, sold, ident: identOf\(id\) \};/.test(h), "the nightly rollout stores the identity beside each address");
 ok(/const id = await identityFor\(env, appearances, vinNorm\);/.test(h) && /appearances\.length \? await identityFor\(env, appearances, vin\) : null/.test(h), "the VIN page and the /vin/ redirect read the cached identity first");
 ok(/const IDENT_READ_MS = 1500;/.test(h) && /Promise\.race\(\[supabaseSelectSafe\(env, `vin_rollout_cache\?key=eq\.current&select=data&limit=1`\)/.test(h) && !/cachedIdent[\s\S]{0,400}rolloutCached\(|cachedIdent[\s\S]{0,400}await rollout\(/.test(h), "the cache read is capped at 1.5 s and never starts a live rollout");
 const page = mergeIdentity(live, identOf(mk(1993, "Chevrolet", "Silverado")), { make: "Chevrolet", model: "Silverado", year: 1993 });

@@ -430,7 +430,7 @@ export async function hubVins(env, hub, timing) {
     g.apps.push({ kind: "attempt", car: carCols(a.year, a.model, null, a.body), date: day, bidUsd: p.usd, nativeBid: p.native, currency: p.currency, house: houseName(a.source_slug), url: a.url || a.url2 || null, mileage: num(a.mileage), image: a.img || null, title: a.title });
   }
   const list = [...by.values()].map(g => { g.apps.sort((x, y) => String(y.date || "").localeCompare(String(x.date || ""))); g.last = g.apps[0]; g.lastSale = g.apps.find(x => x.kind === "sale") || null; g.car = ((g.lastSale && g.lastSale.car) || (g.apps.find(x => x.car) || {}).car) || null; return g; });
-  list.sort((x, y) => String((y.lastSale || y.last).date || "").localeCompare(String((x.lastSale || x.last).date || "")));
+  list.sort((x, y) => (y.lastSale ? 1 : 0) - (x.lastSale ? 1 : 0) || String((y.lastSale || y.last).date || "").localeCompare(String((x.lastSale || x.last).date || "")));   // a car with a sale first: the first 200 are the pages the sitemap lists
   return list;
 }
 

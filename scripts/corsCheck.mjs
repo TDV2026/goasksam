@@ -7,7 +7,7 @@ let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const run = (origin, opts) => { const h = {}; cors({ headers: origin ? { origin } : {} }, { setHeader: (k, v) => { h[k.toLowerCase()] = v; } }, opts); return h; };
 ok(run("https://goasksam.com")["access-control-allow-origin"] === "https://goasksam.com", "the site gets its own origin back");
-ok(run("https://www.goasksam.com")["access-control-allow-origin"] === "https://www.goasksam.com", "www too");
+ok(run("https://www.goasksam.com")["access-control-allow-origin"] === undefined, "www is no origin: it 301s to the bare host");
 ok(run("https://goasksam-r49r3jxay-sam-s-projects-4277cbfa.vercel.app")["access-control-allow-origin"] === "https://goasksam-r49r3jxay-sam-s-projects-4277cbfa.vercel.app", "this project's preview hosts");
 for (const o of ["https://evil.example", "https://goasksam.com.evil.example", "https://goasksam-x-other-team.vercel.app", "http://goasksam.com", "null", "https://notgoasksam.com"]) ok(!("access-control-allow-origin" in run(o)) && run(o).vary === "Origin", `${o}: no cross-origin answer`);
 ok(!("access-control-allow-origin" in run(null)), "no Origin (same-origin or a server): no header needed");

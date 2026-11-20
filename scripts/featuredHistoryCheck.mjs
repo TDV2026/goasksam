@@ -111,7 +111,7 @@ const CREW = "gas_crew=" + mintCrewCookieValue();
   const ids = []; for (let i = 0; i < 6; i++) { db.now += 5 * 60000; await F.refreshFeaturedHistory(env, d); const got = await F.readFeaturedHistory(env, CREW, d); ids.push(got && got.current.url + "|" + got.selectedAt); }
   ok("(6) STABLE: six refreshes and six loads give the same car and the same selectedAt", ids.every(x => x && x === ids[0]), ids.join(" ; "));
   const g = await F.readFeaturedHistory(env, CREW, d);
-  ok("(6) the load carries a newer checkedAt than selectedAt and a findUrl", g && g.checkedAt > g.selectedAt && /^\/buy\?q=/.test(g.findUrl));
+  ok("(6) the load carries a newer checkedAt than selectedAt and a findUrl", g && g.checkedAt > g.selectedAt && /^\/find\?q=/.test(g.findUrl));
   const sel0 = db.selects; await F.readFeaturedHistory(env, CREW, d);
   ok("(6) a load is two keyed reads (the store, the listing) and never the search", db.selects - sel0 === 2 && !db.calls.slice(sel0).some(q => /status=eq\.live|vin_index|sales_archive/.test(q)), String(db.selects - sel0));
   // the auction ends: not served, then replaced
@@ -191,10 +191,10 @@ const CREW = "gas_crew=" + mintCrewCookieValue();
   db.names = { L1: { name: "2008 Porsche 911 Carrera S", trim: "Carrera S" }, L2: { name: "2008 Porsche 911", trim: null } };
   const r = await F.refreshFeaturedHistory(env, d), got = await F.readFeaturedHistory(env, CREW, d);
   ok("(9) gap 1: the title carries the trim exactly as the Find card names the car", got && got.current.title === "2008 Porsche 911 Carrera S", got && got.current.title);
-  ok("(9) gap 1: findUrl searches that title, trim included", got && decodeURIComponent(got.findUrl.replace("/buy?q=", "")) === "2008 Porsche 911 Carrera S" && got.findUrl === F.findUrlFor("2008 Porsche 911 Carrera S"), got && got.findUrl);
+  ok("(9) gap 1: findUrl searches that title, trim included", got && decodeURIComponent(got.findUrl.replace("/find?q=", "")) === "2008 Porsche 911 Carrera S" && got.findUrl === F.findUrlFor("2008 Porsche 911 Carrera S"), got && got.findUrl);
   ok("(9) gap 1: the count of eligible cars and of those with a trim is reported", r.stats && r.stats.eligible === 2 && r.stats.withTrim === 1, JSON.stringify(r.stats));
   { const n2 = fakeDb(); n2.db.names = { L1: { name: "2008 Porsche 911", trim: null }, L2: { name: "2008 Porsche 911", trim: null } }; await F.refreshFeaturedHistory(env, n2.d); const g = await F.readFeaturedHistory(env, CREW, n2.d);
-    ok("(9) gap 1: a car whose card names no trim keeps the title without one, and its findUrl has none", g && g.current.title === "2008 Porsche 911" && g.findUrl === "/buy?q=2008%20Porsche%20911", g && g.current.title); }
+    ok("(9) gap 1: a car whose card names no trim keeps the title without one, and its findUrl has none", g && g.current.title === "2008 Porsche 911" && g.findUrl === "/find?q=2008%20Porsche%20911", g && g.current.title); }
   { const n3 = fakeDb(); n3.db.names = { L1: { name: "2008 BMW M3 Competition", trim: "Competition" }, L2: { name: "2008 BMW M3 Competition", trim: "Competition" } }; await F.refreshFeaturedHistory(env, n3.d); const g = await F.readFeaturedHistory(env, CREW, n3.d);
     ok("(9) gap 1: a name for another car is never used (the listing's own year, make and model instead)", g && g.current.title === "2008 Porsche 911" && !/Competition|BMW/.test(g.findUrl), g && g.current.title); }
   { const n4 = fakeDb(); n4.db.names = { L1: new Error("resolver down"), L2: new Error("resolver down") }; await F.refreshFeaturedHistory(env, n4.d); const g = await F.readFeaturedHistory(env, CREW, n4.d);
@@ -203,7 +203,7 @@ const CREW = "gas_crew=" + mintCrewCookieValue();
   // the search address lands on that car: the real resolver reads the same make, model and trim back from it
   globalThis.fetch = async u => (/fake\.supabase/.test(String(u)) ? new Response("[]", { status: 200 }) : new Response("", { status: 500 }));
   const { resolveVehicle } = await import(pathToFileURL(path.join(root, "lib/vehicle.js")).href);
-  const rv = got ? await resolveVehicle(decodeURIComponent((got.findUrl).replace("/buy?q=", "")), {}) : null;
+  const rv = got ? await resolveVehicle(decodeURIComponent((got.findUrl).replace("/find?q=", "")), {}) : null;
   ok("(9) gap 1: the real resolver reads the findUrl search back as the same make, model and trim", rv && rv.vehicle && rv.vehicle.make === "Porsche" && /911/.test(rv.vehicle.model) && /Carrera S/i.test(String(rv.vehicle.trim || "")), JSON.stringify(rv && rv.vehicle && [rv.vehicle.make, rv.vehicle.model, rv.vehicle.trim]));
   // a pick stored before v2 is never served and is replaced
   { const o = fakeDb(); await F.refreshFeaturedHistory(env, o.d); const v = o.db.cfg.get(F.STORE_KEY); const { v: _drop, ...old } = v; o.db.cfg.set(F.STORE_KEY, old);
@@ -230,7 +230,7 @@ const CREW = "gas_crew=" + mintCrewCookieValue();
   { const f = base().featured || {}, srcBuy = fs.readFileSync(path.join(root, "api/buySearch.js"), "utf8");
     ok("(9) gap 3: previous.historyUrl is /vin/ and the car's VIN", f.previous.historyUrl === "/vin/" + encodeURIComponent(VIN), f.previous.historyUrl);
     ok("(9) gap 3: it is built the way the Find card builds its history_url (the same source line)", /history_url: timeline && timeline\.length \? "\/vin\/" \+ encodeURIComponent\(x\.r\.vin_norm\) : null/.test(srcBuy));
-    ok("(9) gap 3: Find opens no card or history from an address, so findUrl stays a search address and historyUrl is the history page", /^\/buy\?q=/.test(f.findUrl === null ? "/buy?q=" : f.findUrl) && F.historyUrlOf(VIN) === "/vin/" + VIN && F.historyUrlOf("") === null && F.historyUrlOf("12") === null);
+    ok("(9) gap 3: Find opens no card or history from an address, so findUrl stays a search address and historyUrl is the history page", /^\/find\?q=/.test(f.findUrl === null ? "/find?q=" : f.findUrl) && F.historyUrlOf(VIN) === "/vin/" + VIN && F.historyUrlOf("") === null && F.historyUrlOf("12") === null);
     const stored = (await (async () => { const o = fakeDb(); await F.refreshFeaturedHistory(env, o.d); return F.readFeaturedHistory(env, CREW, o.d); })());
     ok("(9) gap 3: the served pick carries it", stored && /^\/vin\/[A-Z0-9]+$/.test(stored.previous.historyUrl)); }
 }

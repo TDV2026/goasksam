@@ -853,6 +853,19 @@ async function handleOps(req, res) {
     return res.status(200).json({ task: "sellshadow", total: rows.length, matches, pctIdentical: rows.length ? Math.round((matches / rows.length) * 1000) / 10 : null, byCause, rows });
   }
 
+  // GOOGLEBOT COUNT (Lane S, Nov 20 2026): the requests that reached a function with a user agent naming Googlebot (lib/botLog.js), by day, status and kind of page.
+  // The gap between this and Search Console's crawl count is what the edge answered before a function ran. Counts only: no address and no user agent are stored.
+  if (task === "googlebot") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const days = Math.min(90, Math.max(1, Number(req.query?.days) || 30));
+    const since = new Date(Date.now() - days * 864e5).toISOString();
+    const rows = await supabaseSelectAll(env, `app_usage_events?event_type=eq.googlebot_request&created_at=gte.${encodeURIComponent(since)}&select=created_at,status,metadata&order=created_at.desc`);
+    if (!Array.isArray(rows)) return res.status(503).json({ task: "googlebot", error: "unreadable" });
+    const byDay = {}, byStatus = {}, byKind = {}; let ms = 0;
+    for (const r of rows) { const d = String(r.created_at).slice(0, 10), k = (r.metadata && r.metadata.kind) || "page"; byDay[d] = (byDay[d] || 0) + 1; byStatus[r.status] = (byStatus[r.status] || 0) + 1; byKind[k] = (byKind[k] || 0) + 1; ms += Number(r.metadata && r.metadata.ms) || 0; }
+    return res.status(200).json({ task: "googlebot", days, requests: rows.length, avg_ms: rows.length ? Math.round(ms / rows.length) : null, byStatus, byKind, byDay });
+  }
+
   if (task === "venuecheck") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const q = String(req.query?.q || "2008 Porsche 911 Carrera");
