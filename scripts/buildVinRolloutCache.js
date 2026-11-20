@@ -46,3 +46,5 @@ const { VIN_DECODE_NIGHTLY, runNightlyDecode } = await import("../lib/_vinDecode
 if (VIN_DECODE_NIGHTLY) {
   try { await runNightlyDecode(env); } catch (e) { console.error("::warning::vin decode step failed: " + String((e && e.message) || e).slice(0, 200)); }
 }
+// THE NIGHTLY LEASE (Lane D, Nov 20 2026, lib/nightlyLease.js): the last script of the nightly's longest chain clears the lease scripts/ingest.js set, so the for sale prepare job reads again. If this script never runs the lease expires by itself after 90 minutes. Never fails this run.
+{ const { clearNightlyLease } = await import("../lib/nightlyLease.js"); await clearNightlyLease(env); }

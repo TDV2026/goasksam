@@ -15,6 +15,7 @@ import fs from "node:fs";
 import { rawColumnsOf, rawColumnsLine } from "../lib/_rawColumns.js";
 import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";
 import { supabaseEnv, supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
+import { setNightlyLease } from "../lib/nightlyLease.js";
 import { isPartsListing, projectFlagReason } from "../lib/_classify.js";
 import { deltaShouldStop, earliestGapDay, typicalByWeekday, recentDayList, zeroStreakFlag, requestCapReached, isFutureSale } from "../lib/_ingestHealth.js";
 import { resolveIngestIdentity } from "../lib/_unknownClassify.js";
@@ -66,6 +67,8 @@ const MAX_REQUESTS = flag("max-requests") != null ? Math.max(1, Number(flag("max
 const env = supabaseEnv();
 const apiKey = process.env.OLDCARSDATA_API_KEY;
 if (!env || !apiKey) { console.error("Need SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OLDCARSDATA_API_KEY."); process.exit(1); }
+// THE NIGHTLY LEASE (Lane D, Nov 20 2026, lib/nightlyLease.js): this is the nightly's FIRST script; the for sale prepare job makes no read while the lease is held (it expires by itself after 90 minutes; scripts/buildVinRolloutCache.js, the last script of the longest chain, clears it). Never fails this run.
+await setNightlyLease(env);
 // Attribute this run's OCD usage (periodic + final rows) to the ingest job so a crash still leaves a record.
 configureOcdUsage({ supabaseUrl: env.supabaseUrl, supabaseKey: env.supabaseKey, job: DELTA ? "ingest_delta" : "ingest_backfill" });
 // A delta never legitimately needs many pages per source; exceeding this means the stop logic failed

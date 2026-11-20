@@ -8169,5 +8169,19 @@
     "lib/_ingestHealth.js"
    ]
   }
+ },
+ "forSalePrepareCheck": {
+  "file": "scripts/forSalePrepareCheck.mjs",
+  "kind": "offline",
+  "covers": [
+   "api/pullForSale.js",
+   "data/forsaleBudget.json",
+   "lib/forsale/prepare.js",
+   "lib/forsale/report.js",
+   "lib/nightlyLease.js",
+   "scripts/prepareLoop.mjs",
+   "scripts/ingest.js",
+   "scripts/buildVinRolloutCache.js"
+  ]
  }
 }

@@ -16,7 +16,7 @@ const section = async (name, fn) => { try { await fn(); } catch (e) { fail++; fa
 
 // ---- a fake table with the filters the job and the report send (PostgREST in miniature) ----------------------------------------------------------------------------------------
 const ENV = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
-let TABLE = [], LEASES = [], HALTS = [], LOG = [], PAGE_SEEN = [], FAIL_LEASE = false;
+let NIGHTLY = [], NIGHTLY_DOWN = false, TABLE = [], LEASES = [], HALTS = [], LOG = [], PAGE_SEEN = [], FAIL_LEASE = false;
 const jget = (r, p) => { const [a, b] = p.split("->>"); const v = r[a]; return b == null ? v : v == null ? null : v[b]; };
 const filterRows = (rows, u) => {
   let out = rows;
@@ -33,6 +33,11 @@ const filterRows = (rows, u) => {
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (url, init) => {
   const u = new URL(String(url)), method = (init && init.method) || "GET";
+  if (u.pathname.endsWith("/app_usage_events") && (method === "POST" ? /nightly_lease/.test(String(init && init.body)) : u.searchParams.get("event_type") === "eq.nightly_lease")) {   // THE NIGHTLY LEASE rows (lib/nightlyLease.js): their own list, their own failure switch
+    if (NIGHTLY_DOWN) return new Response("{}", { status: 500 });
+    if (method === "POST") { for (const r of JSON.parse(init.body)) NIGHTLY.push({ id: NIGHTLY.length + 1, at: Date.now() + (globalThis.__SKEW || 0), status: r.status, metadata: r.metadata }); return new Response("", { status: 201 }); }
+    const gte = decodeURIComponent(u.searchParams.get("created_at") || "").replace(/^gte\./, ""); return new Response(JSON.stringify(NIGHTLY.filter(l => !gte || l.at >= Date.parse(gte)).map(l => ({ id: l.id, status: l.status, metadata: l.metadata, created_at: new Date(l.at).toISOString() }))), { status: 200 });
+  }
   if (u.pathname.endsWith("/app_usage_events")) {
     if (FAIL_LEASE === "throw") throw new Error("network");
     if (method === "POST") { if (FAIL_LEASE) return new Response("{}", { status: 500 }); for (const r of JSON.parse(init.body)) if (r.event_type === "forsale_prepare_halt") HALTS.push({ id: HALTS.length + 1, at: Date.now() + (globalThis.__SKEW || 0), metadata: r.metadata }); else LEASES.push({ id: LEASES.length + 1, at: Date.now() + (globalThis.__SKEW || 0), status: r.status, metadata: r.metadata }); return new Response("", { status: 201 }); }
@@ -56,8 +61,10 @@ const ENGINE = (log = {}) => ({
   listingMarket: async (env, lr, facts) => { if (log.failReads && (log.callN = (log.callN || 0) + 1) <= log.failReads) throw new Error("archive read failed"); (log.order = log.order || []).push("read"); log.reads = (log.reads || 0) + 1; log.cur = (log.cur || 0) + 1; log.max = Math.max(log.max || 0, log.cur); await new Promise(r => setTimeout(r, log.readMs || 5)); log.cur--; (log.keys = log.keys || []).push(lr.listing_title + "|" + facts.miles); return { kind: "range", low: 40000, high: 60000 }; },
   seenBefore: async (env, vin) => { log.vins = (log.vins || 0) + 1; return null; }
 });
-const reset = rows => { TABLE = rows; LEASES = []; HALTS = []; LOG = []; PAGE_SEEN = []; FAIL_LEASE = false; globalThis.__SKEW = 0; };
-const run = (log, o) => PREP.prepareForSale(ENV, { budgetMs: 20000, engine: ENGINE(log), ...(o || {}) });
+// the config the older rules below run under: three wide, no nightly window (the rules they cover are about the lease, the budget, the failures and the table, not the width setting; the width and the window have their own section at the end)
+const CFG0 = JSON.parse(fs.readFileSync(path.join(ROOT, "data/forsaleBudget.json"), "utf8")), WIDE = { ...CFG0, schedule: { ...CFG0.schedule, prepare_on: false }, prepare: { ...CFG0.prepare, read_width: 3, nightly_pause_utc: null } };
+const reset = rows => { NIGHTLY = []; NIGHTLY_DOWN = false; TABLE = rows; LEASES = []; HALTS = []; LOG = []; PAGE_SEEN = []; FAIL_LEASE = false; globalThis.__SKEW = 0; };
+const run = (log, o) => PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 20000, engine: ENGINE(log), ...(o || {}) });
 
 await section("the resolver alone, first, once per distinct title", async () => {
   // 40 listings of 5 distinct titles (8 each), one title the resolver cannot place
@@ -100,7 +107,7 @@ await section("one engine read per distinct car and mileage band", async () => {
   ok("a gone listing and a hidden listing are never resolved or read", TABLE[0].resolve_state == null && TABLE[1].resolve_state == null && TABLE.slice(2).every(r => r.resolve_state === "resolved" && r.read));
   { const rc = { resolve_state: "resolved", car_key: "key:old", car: { key: "key:old", engine_version: ENGINE_VERSION } }; reset([mk(1, { ...rc, gone: true }), mk(2, { ...rc, hidden: true }), mk(3, rc)]); const l6 = {}; const o6 = await run(l6);
     ok("a RESOLVED listing that is gone or hidden is not read either (1 read for the one live listing)", l6.reads === 1 && TABLE[0].read === null && TABLE[1].read === null && TABLE[2].read !== null && o6.reads === 1, [l6.reads, o6.reads]); }
-  const nr = mk(1); reset([nr, mk(2)]); const l5 = {}; const o5 = await PREP.prepareForSale(ENV, { budgetMs: 20000, engine: { ...ENGINE(l5), listingMarket: async () => ({ kind: "pending" }) } });
+  const nr = mk(1); reset([nr, mk(2)]); const l5 = {}; const o5 = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 20000, engine: { ...ENGINE(l5), listingMarket: async () => ({ kind: "pending" }) } });
   ok("a read the engine has not got ready stamps nothing, and every listing of the group stays to be read", o5.readsNotReady === 2 && TABLE.every(r => r.read === null) && o5.left.toRead === 2, o5);
 });
 await section("the VIN history, once per VIN", async () => {
@@ -125,15 +132,15 @@ await section("the limits", async () => {
   reset([mk(1)]); FAIL_LEASE = "throw"; const net = await run({}); ok("fail closed on a network error too: the run does nothing", !!net.skipped && TABLE[0].resolve_state == null, net);
   FAIL_LEASE = false;
   reset(Array.from({ length: 12 }, (_, i) => mk(i + 1, { title: "1987 Porsche 911 Carrera " + i })));
-  const slow = {}, t0 = Date.now(), o = await PREP.prepareForSale(ENV, { budgetMs: 2500, engine: ENGINE({ specMs: 400, readMs: 400 }), resolveWidth: 1, concurrency: 1 });
+  const slow = {}, t0 = Date.now(), o = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 2500, engine: ENGINE({ specMs: 400, readMs: 400 }), resolveWidth: 1, concurrency: 1 });
   ok("the time budget stops a run (budget 2.5 s with 0.4 s calls, one at a time): it ends inside the budget with work left, and says how much", Date.now() - t0 < 4200 && o.left.toResolve + o.left.toRead > 0 && o.resolveCalls < 12, [Date.now() - t0, o.resolveCalls, o.left]);
   ok("and what is left to resolve is counted from the table: the run says how many listings the resolver still has to place", o.left.toResolve > 0 && o.left.toResolve === TABLE.filter(r => r.resolve_state == null).length, [o.left, TABLE.filter(r => r.resolve_state == null).length]);
   { const rc = i => ({ resolve_state: "resolved", car_key: "key:c" + i, car: { key: "key:c" + i, engine_version: ENGINE_VERSION } }); reset(Array.from({ length: 12 }, (_, i) => mk(i + 1, { title: "1987 Porsche 911 Carrera " + i, ...rc(i) })));
-    const tb = Date.now(), o2 = await PREP.prepareForSale(ENV, { budgetMs: 1500, engine: ENGINE({ readMs: 300 }), concurrency: 1 });
+    const tb = Date.now(), o2 = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 1500, engine: ENGINE({ readMs: 300 }), concurrency: 1 });
     ok("the time budget stops the reads: 12 cars at 0.3 s one at a time in a budget of 1.5 s are not all read, and the run ends inside the budget", o2.reads < 12 && o2.reads >= 1 && Date.now() - tb < 2600 && o2.left.toRead === 12 - o2.reads, [o2.reads, Date.now() - tb, o2.left]); }
   reset([]); const none = await run({}); ok("a run with nothing to do ends at once with nothing left", none.ms < 500 && none.left.toResolve === 0 && none.left.toRead === 0 && none.resolved === 0, none);
   reset(Array.from({ length: 2300 }, (_, i) => mk(i + 1, { title: "1987 Porsche 911 Carrera " + (i % 40) }))); PAGE_SEEN = [];
-  const big = await PREP.prepareForSale(ENV, { budgetMs: 60000, engine: ENGINE({}) });
+  const big = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 60000, engine: ENGINE({}) });
   ok("the table answers 1,000 rows a page: all 2,300 listings are walked in full (3 pages), resolved and read", big.resolved === 2300 && TABLE.every(r => r.resolve_state === "resolved") && PAGE_SEEN.some(n => n === 1000), [big.resolved, big.reads]);
 });
 
@@ -157,25 +164,25 @@ await section("the queue by demand (Nov 19 2026)", async () => {
 await section("back to back, and the failure rules (Nov 20 2026)", async () => {
   const many = n => Array.from({ length: n }, (_, i) => mk(i + 1, { title: "1987 Porsche 911 Carrera " + i, mileage: 40000 }));
   // BACK TO BACK: a run keeps making passes until its time is used, not one batch (the passes are limited here to 40 rows so one batch is not the whole table)
-  reset(many(120)); const lA = {}; const one = await PREP.prepareForSale(ENV, { budgetMs: 60000, engine: ENGINE(lA), resolveLimit: 40, readLimit: 40, onePass: true });
+  reset(many(120)); const lA = {}; const one = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 60000, engine: ENGINE(lA), resolveLimit: 40, readLimit: 40, onePass: true });
   ok("one pass is one batch (the limit of 40 rows): 80 listings are left", one.passes === 1 && one.left.toResolve + one.left.toRead > 0 && TABLE.filter(r => r.read).length <= 40, [one.passes, one.left]);
-  reset(many(120)); const lB = {}; const all = await PREP.prepareForSale(ENV, { budgetMs: 60000, engine: ENGINE(lB), resolveLimit: 40, readLimit: 40 });
+  reset(many(120)); const lB = {}; const all = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 60000, engine: ENGINE(lB), resolveLimit: 40, readLimit: 40 });
   ok("a run keeps making passes until the work is done or the time is used: 120 listings resolved and read in ONE run", all.passes >= 3 && TABLE.every(r => r.resolve_state === "resolved" && r.read) && all.left.toResolve === 0 && all.left.toRead === 0, [all.passes, all.left]);
   ok("and the reads stayed at three at once", (lB.max || 0) <= 3 && all.readWidth === 3, [lB.max, all.readWidth]);
   // THE FAILURE RULES: per 100 reads, over 5 failed drops to two at once; over 20 stops the run, records the halt and holds the job
-  reset(many(260)); const lC = { failReads: 8, readMs: 4 }; const c = await PREP.prepareForSale(ENV, { budgetMs: 60000, engine: ENGINE(lC), onePass: true });
+  reset(many(260)); const lC = { failReads: 8, readMs: 4 }; const c = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 60000, engine: ENGINE(lC), onePass: true });
   ok("8 failed reads in the first 100: the run drops to two reads at once, says so, and goes on", !!c.widthLowered && c.readWidth === 2 && !c.halted && c.reads > 100 && /over 5/.test(c.widthLowered.rule), [c.widthLowered, c.readWidth, c.reads]);
-  reset(many(260)); const lD = { failReads: 30, readMs: 4 }; const d = await PREP.prepareForSale(ENV, { budgetMs: 60000, engine: ENGINE(lD), onePass: true });
+  reset(many(260)); const lD = { failReads: 30, readMs: 4 }; const d = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 60000, engine: ENGINE(lD), onePass: true });
   ok("30 failed reads in the first 100: the run STOPS (halted, DECISION NEEDED) and does not go on to read the rest", !!d.halted && d.decisionNeeded === true && d.readCalls < 130 && TABLE.filter(r => r.read).length < 100 && HALTS.length === 1, [d.halted, d.readCalls, HALTS.length]);
-  const lE = {}; const e = await PREP.prepareForSale(ENV, { budgetMs: 60000, engine: ENGINE(lE), onePass: true });
+  const lE = {}; const e = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 60000, engine: ENGINE(lE), onePass: true });
   ok("the next run is refused for the hour (halted): it reads nothing until a person has looked", e.skipped === "halted" && lE.reads === undefined);
-  reset(many(260)); const lF = { failReads: 5, readMs: 4 }; const f = await PREP.prepareForSale(ENV, { budgetMs: 60000, engine: ENGINE(lF), onePass: true });
+  reset(many(260)); const lF = { failReads: 5, readMs: 4 }; const f = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 60000, engine: ENGINE(lF), onePass: true });
   ok("5 failed reads in 100 is inside the rule: no change of width, no halt", !f.widthLowered && !f.halted && f.readWidth === 3, [f.widthLowered, f.halted]);
 });
 await section("the catch up", async () => {
   // 3,000 listings, 200 distinct titles; the engine is slow enough that one run does not finish; the runs left are counted from the table, and the table is done in a few runs
   reset(Array.from({ length: 3000 }, (_, i) => mk(i + 1, { title: "1987 Porsche 911 Carrera " + (i % 200), mileage: 20000 + (i % 3) * 30000 }))); const total = { spec: 0, reads: 0 }; let runs = 0, o;
-  do { const l = { specMs: 2, readMs: 6 }; o = await PREP.prepareForSale(ENV, { budgetMs: 4500, engine: ENGINE(l), resolveWidth: 4 }); total.spec += l.spec || 0; total.reads += l.reads || 0; runs++; } while ((o.left.toResolve > 0 || o.left.toRead > 0) && runs < 40);
+  do { const l = { specMs: 2, readMs: 6 }; o = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 4500, engine: ENGINE(l), resolveWidth: 4 }); total.spec += l.spec || 0; total.reads += l.reads || 0; runs++; } while ((o.left.toResolve > 0 || o.left.toRead > 0) && runs < 40);
   ok("3,000 listings of 200 distinct titles are done in a few runs, with 200 resolver calls and 400 engine reads in all (200 cars in two mileage bands; not 3,000 of each)", runs <= 12 && total.spec === 200 && total.reads === 400 && TABLE.every(r => r.resolve_state === "resolved" && r.read), [runs, total]);
   ok("the run that ends the catch up says nothing is left (resolve 0, read 0)", o.left.toResolve === 0 && o.left.toRead === 0, o.left);
   const rep = await REPORT.catchUp(ENV); ok("the catch up arithmetic read off the table: 3,000 listings in 400 read groups (7.5 listings each), 200 distinct cars, none pending", rep.resolved_listings === 3000 && rep.read_groups === 400 && rep.distinct_cars === 200 && rep.read_groups_pending === 0 && rep.listings_per_group_avg === 7.5, rep);
@@ -200,6 +207,37 @@ await section("the report: a split for every source and the VIN history count", 
   const api = fs.readFileSync(path.join(ROOT, "api/pullForSale.js"), "utf8");
   ok("the report route carries the split, the VIN history match count and (on cars=1) the catch up arithmetic", /sourceSplit\(env\)/.test(api) && /vinHistoryMatches/.test(api) && /q\.cars/.test(api) && /catchUp\(env\)/.test(api) && /lib\/forsale\/report\.js/.test(api));
   ok("the report names no listing text, seller or VIN: counts only", !/title|seller|vin_norm/.test(JSON.stringify(r)));
+});
+// 6 THE NIGHTLY LEASE AND THE WIDTH (Nov 20 2026): GitHub starts the nightly anywhere from 07:00 to 17:00 UTC, so no clock decides: the nightly's first script sets a lease (lib/nightlyLease.js), its last clears it, it expires alone after 90 minutes; the prepare job (the cron and the loop, one route) makes no read while it is held; the width follows data/forsaleBudget.json prepare.read_width.
+await section("nightly lease and width", async () => {
+  const NL = await imp("lib/nightlyLease.js"), LIVE = JSON.parse(fs.readFileSync(path.join(ROOT, "data/forsaleBudget.json"), "utf8")), mkRows = n => Array.from({ length: n }, (_, i) => mk(i + 1, { title: "1987 Porsche 911 Carrera " + i, mileage: 40000 })), E = { ...ENV };
+  ok("the shipped file: no clock window, width 3", !("nightly_pause_utc" in (LIVE.prepare || {})) && LIVE.prepare.read_width === 3, LIVE.prepare);
+  reset(mkRows(30)); const l0 = {}; const free = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 20000, engine: ENGINE(l0) });
+  ok("no lease: the job reads", free.skipped === undefined && (l0.reads || 0) > 0, [free.skipped, l0.reads]);
+  reset(mkRows(30)); const set = await NL.setNightlyLease(ENV); const l1 = {}; const held = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 20000, engine: ENGINE(l1) });
+  ok("the lease is set by one call", set.ok === true && NIGHTLY.length === 1 && NIGHTLY[0].status === "running", NIGHTLY);
+  ok("NO READ WHILE THE LEASE IS HELD: nothing resolved, nothing read, no prepare lease taken, and it says why and for how long", held.skipped === "nightly_lease" && !l1.reads && !l1.spec && LEASES.length === 0 && held.resumeInMs > 80 * 60000 && held.resumeInMs <= 90 * 60000, [held.skipped, l1, LEASES.length, held.resumeInMs]);
+  ok("the lease EXPIRES BY ITSELF after 90 minutes (no clear needed)", (await NL.nightlyLeaseHeld(ENV, Date.now() + 91 * 60000)).held === false);
+  ok("and is still held at 89 minutes", (await NL.nightlyLeaseHeld(ENV, Date.now() + 89 * 60000)).held === true);
+  const cl = await NL.clearNightlyLease(ENV); ok("the last script clears it", cl.ok === true && cl.cleared === 1 && (await NL.nightlyLeaseHeld(ENV)).held === false, cl);
+  const l2 = {}; const after = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 20000, engine: ENGINE(l2) }); ok("after the clear the job reads again", after.skipped === undefined && (l2.reads || 0) > 0, [after.skipped, l2.reads]);
+  reset(mkRows(30)); NIGHTLY_DOWN = true; const l3 = {}; const dark = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 20000, engine: ENGINE(l3) });
+  ok("a lease that cannot be read is held: the job says so and reads nothing", dark.skipped === "nightly_lease" && dark.unreadable === true && !l3.reads, [dark.skipped, l3]);
+  NIGHTLY_DOWN = true; ok("and a script that cannot write it does not fail (the call answers ok false)", (await NL.setNightlyLease(ENV)).ok === false && (await NL.clearNightlyLease(ENV)).cleared === 0); NIGHTLY_DOWN = false;
+  reset(mkRows(120)); const lm = { readMs: 6, onNthRead: null }; let started = false; const eng = ENGINE(lm), base = eng.listingMarket; eng.listingMarket = async (...a) => { if (!started) { started = true; await NL.setNightlyLease(ENV); } return base(...a); };
+  const mid = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 60000, engine: eng, resolveLimit: 40, readLimit: 40 });
+  ok("a nightly that starts DURING a run stops it after the pass it is in (no later pass reads)", mid.stoppedFor === "nightly_lease" && mid.passes >= 1 && TABLE.filter(r => r.read).length < 120, [mid.stoppedFor, mid.passes, TABLE.filter(r => r.read).length]);
+  // the width follows the file
+  for (const w of [1, 2, 3]) { reset(mkRows(30)); const lw = { readMs: 20 }; const o = await PREP.prepareForSale(ENV, { cfg: { ...LIVE, prepare: { ...LIVE.prepare, read_width: w } }, budgetMs: 20000, engine: ENGINE(lw), concurrency: 99 }); ok(`width ${w} in the file reads ${w} at once, whatever a call asks (concurrency 99)`, (lw.max || 0) === w && o.readWidth === w, [lw.max, o.readWidth]); }
+  ok("the width falls back to three when the file has none", PREP.readWidthCap({ prepare: {} }) === 3 && PREP.readWidthCap({}) === 3 && PREP.readWidthCap({ prepare: { read_width: 9 } }) === 3);
+  // the scripts
+  const rd = f => fs.readFileSync(path.join(ROOT, f), "utf8"), LP = rd("scripts/prepareLoop.mjs"), IN = rd("scripts/ingest.js"), VR = rd("scripts/buildVinRolloutCache.js"), API = rd("api/pullForSale.js");
+  ok("the nightly's FIRST script (scripts/ingest.js) sets the lease and its last (buildVinRolloutCache.js) clears it", /setNightlyLease/.test(IN) && /clearNightlyLease/.test(VR) && !/clearNightlyLease/.test(IN) && !/setNightlyLease/.test(VR), null);
+  ok("no workflow file names the lease (none is edited)", !fs.readdirSync(path.join(ROOT, ".github/workflows")).some(f => /nightlyLease|nightly_lease/.test(rd(".github/workflows/" + f))), null);
+  ok("the loop waits on the route's nightly_lease answer, reads the width from the file, and has no clock window", /nightly_lease/.test(LP) && /read_width/.test(LP) && !/nightly_pause_utc/.test(LP), null);
+  ok("the loop runs at two until 19:00 UTC on Nov 20 and then at the file's width", /TWO_UNTIL/.test(LP) && /Date\.UTC\(2026, 10, 20, 19, 0\)/.test(LP), null);
+  ok("the loop sends the width, never a fixed three", !/concurrency=3/.test(LP) && /concurrency=\$\{conc\}/.test(LP), null);
+  ok("the route answers a nightly_lease skip as it comes (the prepare job's own answer is the route's body)", /prepareForSale\(env/.test(API), null);
 });
 globalThis.fetch = realFetch;
 console.log(`forSalePrepareCheck: ${pass} pass, ${fail} FAIL`); for (const f of fails) console.log("FAIL " + f);
@@ -241,11 +279,22 @@ function mutants() {
     ["the report counts a no-match history as a match", ...sub(RP, "vin_history_match: \"gone=eq.false&history->>none=eq.false\"", "vin_history_match: \"gone=eq.false&history=not.is.null\"")],
     ["the report's cells are not per source", ...sub(RP, "`source=eq.${encodeURIComponent(s)}&${CELLS[c]}`", "`${CELLS[c]}`")],
     ["the report's totals are wrong", ...sub(RP, "total[c] = names.reduce((a, s) => sum(a, out[s][c]), 0);", "total[c] = out[names[0]][c];")],
+    ["the job reads while the nightly lease is held", ...sub(P, "if (nl.held) return { skipped: \"nightly_lease\"", "if (false) return { skipped: \"nightly_lease\"")],
+    ["a nightly that starts during a run does not stop it", ...sub(P, "if (nl2.held) { stoppedFor = \"nightly_lease\"; break; }", "if (false) { break; }")],
+    ["the lease never expires", ...sub("lib/nightlyLease.js", "&created_at=gte.${encodeURIComponent(since)}", "")],
+    ["a lease that is cleared is still held", ...sub("lib/nightlyLease.js", "const gone = new Set(rows.filter(x => x && x.status === \"released\")", "const gone = new Set([].filter(x => x && x.status === \"released\")")],
+    ["a lease that cannot be read is not held", ...sub("lib/nightlyLease.js", "if (!Array.isArray(rows)) return { held: true, unreadable: true, expiresInMs: 300000, leases: [] };", "if (!Array.isArray(rows)) return { held: false, expiresInMs: 0, leases: [] };")],
+    ["the lease is 30 minutes, not 90", ...sub("lib/nightlyLease.js", "NIGHTLY_LEASE_MS = 90 * 60000", "NIGHTLY_LEASE_MS = 30 * 60000")],
+    ["the width is read as three whatever the file says", ...sub(P, "return Math.max(1, Math.min(3, set >= 1 ? set : 3));", "return 3;")],
+    ["the nightly's first script does not set the lease", ...sub("scripts/ingest.js", "await setNightlyLease(env);", "")],
+    ["the nightly's last script does not clear it", ...sub("scripts/buildVinRolloutCache.js", "await clearNightlyLease(env);", "")],
+    ["the loop has no two-until-19:00 rule", ...sub("scripts/prepareLoop.mjs", "Date.now() < TWO_UNTIL ? 2 : 3", "3")],
+    ["the loop ignores the route's nightly_lease answer", ...sub("scripts/prepareLoop.mjs", "if (o.skipped === \"nightly_lease\") {", "if (o.skipped === \"nightly_leaseX\") {")],
     ["the route does not carry the split", ...sub(A, "...(await sourceSplit(env)), ", "")],
     ["the route does not carry the VIN history match count", ...sub(A, "vinHistoryMatches: await count(\"gone=eq.false&history->>none=eq.false\"), ", "")],
   ];
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "fsprep-mut-")), copy = path.join(tmp, "tree");
-  for (const d of ["lib", "api", "data", "docs", "scripts"]) fs.cpSync(path.join(R, d), path.join(copy, d), { recursive: true });
+  for (const d of ["lib", "api", "data", "docs", "scripts", ".github"]) fs.cpSync(path.join(R, d), path.join(copy, d), { recursive: true });
   for (const f of ["package.json"]) if (fs.existsSync(path.join(R, f))) fs.copyFileSync(path.join(R, f), path.join(copy, f));
   fs.symlinkSync(path.join(R, "node_modules"), path.join(copy, "node_modules"));
   let killed = 0, survived = 0;
