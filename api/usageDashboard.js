@@ -3625,6 +3625,14 @@ if (task === "optiondetail") {
     res.setHeader("Cache-Control", "no-store");
     return r.ok ? res.status(200).json(r.body) : res.status(r.status || 400).json({ task, error: r.why });
   }
+  // task=factcar (Lane D, Nov 20 2026, lib/factCar.js; Lane F's measure 4): READ ONLY. n listings of one miner run (most statements first): year, stated mileage, sale date, source and every statement (topic in our words, kind, type, polarity, stated year and miles, proof, unmatched). The listing is an opaque hash; never span text, listing text, VIN, title, URL or seller.
+  if (task === "factcar") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const { runFactCar } = await import("../lib/factCar.js"), { carKeySecret } = await import("../lib/poolRowsExt.js");
+    const r = await runFactCar(req.query || {}, { select: qs => supabaseSelect(env, qs) }, carKeySecret());
+    res.setHeader("Cache-Control", "no-store");
+    return r.ok ? res.status(200).json(r.body) : res.status(r.status || 400).json({ task, error: r.why });
+  }
   if (task === "poolrows") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const PX = await import("../lib/poolRowsExt.js");
