@@ -42,6 +42,8 @@ for (const f of [999999, 111111, 123456, 1]) {
   ok(`the Find card (${f}) from a row stored before the fix: no miles, no miles line`, card.miles == null && card.milesLine == null, JSON.stringify([card.miles, card.milesLine]));
   ok(`Tasks and Buy (liveTrust, ${f}): no stated miles`, LT.liveTrust({ listing_title: "1965 Ford Mustang", mileage: f, mileage_unit: "mi", year: 1965, country: "US", currency: "USD", description: "" }).miles == null);
 }
+{ const mkRow = (mileage, unit) => R.rowOf({ source: "streetside", id: 8, source_listing_id: "b", title: "1965 Ford Mustang", year: 1965, mileage, mileage_unit: unit, asking_price: 30000, last_seen_at: new Date().toISOString(), status: "active" }, new Date().toISOString()).mileage;
+  ok("kilometres: a filler as typed (99,999 km) is no mileage though its miles (62,136) would look real; a kilometre figure that converts to a filler (178,816 km is 111,111 miles) is none; a real figure converts (100,000 km is 62,137 miles)", mkRow(99999, "km") == null && mkRow(178816, "km") == null && mkRow(100000, "km") === 62137); }
 ok("the history line: a filler on the earlier or the current listing prints no 'more miles'", PL.priorTake([{ date: "2024-03-12", result: "sold", miles: 41000 }], 999999, Date.now()) === PL.priorTake([{ date: "2024-03-12", result: "sold", miles: 41000 }], null, Date.now()) && !/more miles/.test(PL.priorTake([{ date: "2024-03-12", result: "sold", miles: 999999 }], 45000, Date.now())));
 ok("prepare groups a filler with the cars of no mileage", P.bandOf(999999) === P.bandOf(null) && P.bandOf(0) === "unknown" && P.bandOf(45000) !== "unknown");
 // 4. THE SWEEP AND THE REQUEUE
