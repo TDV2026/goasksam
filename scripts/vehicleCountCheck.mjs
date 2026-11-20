@@ -49,6 +49,11 @@ ok("the top line sits above the landing, inside the page's column", /<div class=
 const sl = /var SEARCH_LINE = "([^"]*)";/.exec(html);
 ok("the searching sign says the engine's searching line (crew)", !!sl && sl[1] === L.searching, sl && sl[1]);
 ok("the sign no longer cycles site names for the crew when the engine serves the line", !!sl && !/\{site\}/.test(sl[1]));
+// Sam, Nov 19 2026: the count line is the whole message. No site name beside it and no timer that rewrites it, in the crew build; the visitor's build keeps its cycle.
+{ const crewJs = (html.match(/<script>(\(function\(\)\{\n  var KEEP_ICON[\s\S]*?)<\/script>/) || [])[1] || html;
+  ok("the crew build holds no site list and no cycling timer (the count line is the whole message)", /var LIVE_SITES = \[\];/.test(crewJs) && !/setInterval\(cycle/.test(crewJs) && !/Bring a Trailer/.test(crewJs.slice(crewJs.indexOf("var SEARCH_LINE"), crewJs.indexOf("function searchingBlock"))));
+  const vJs = (vhtml.match(/<script>(\(function\(\)\{\n  var KEEP_ICON[\s\S]*?)<\/script>/) || [])[1] || vhtml;
+  ok("the visitor's build still cycles its sites, by the names of the one map", /var LIVE_SITES = \["Bring a Trailer"/.test(vJs) && /Gooding Christie's/.test(vJs) && /setInterval\(cycle/.test(vJs)); }
 ok("a visitor's page has no total, no sign line and no change (the old cycling sign)", !/fs-total|vehicles for sale right now/.test(vhtml) && /var SEARCH_LINE = "Sam is searching \{site\} for your car";/.test(vhtml));
 // 5 the page does not compute: its source holds no rounding, no sum and no wording of the count
 { const pg = fs.readFileSync(path.join(root, "lib/forSalePage.js"), "utf8"), by = fs.readFileSync(path.join(root, "api/buy.js"), "utf8");

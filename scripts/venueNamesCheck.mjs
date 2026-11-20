@@ -47,6 +47,29 @@ const STAYS = {
   const second = files.filter(p => p !== "lib/venueNames.js" && !STAYS[p] && ((fs.readFileSync(path.join(root, p), "utf8").match(KEYRE) || []).length >= 3));
   ok("no second map of source names in lib, api or the page (the few that stay are listed with their reason)", second.length === 0, second);
   const guards = fs.readFileSync(path.join(root, "public/js/onebox.js"), "utf8"); ok("the One Box page's venue helper leaves out a key it does not know", /\^\[a-z0-9_\.-\]\+\$\/\.test\(String\(s \|\| ""\)\) \? ""/.test(guards)); }
+// 2b the OLD FORMS (Sam, Nov 19 2026: the house is "Gooding Christie's"; Hagerty and PCarMarket stand). "Gooding & Co", "Gooding & Company" and the PCAR Market spellings are STORED archive labels (sales_archive.platform) that a query filters on; they are never a name a page prints.
+// A file outside this list that holds one is a page, email or tile printing the old form; the list says why each stays. The map itself must give the house its new name for the key, the stored label and the old spellings.
+const STORED = {
+  "api/sellerDecision.js": "the stored label a house-leaders query filters on and the evidence tables key on (platform=eq.<label>)",
+  "api/usageDashboard.js": "ops endpoint queries and crew-only ops text",
+  "lib/ops/depthProbe.js": "the depth probe's own table (ops)",
+  "lib/desk/coverage.js": "the stored platform labels the coverage table reads",
+  "lib/desk/dictionary.js": "the Desk's venue phrases and the stored label each one queries",
+  "lib/desk/measures.js": "the stored archive label the Desk's venue filter queries on",
+  "lib/specializationShare.js": "generated table keyed by the stored platform label",
+  "lib/winConditions.js": "a developer comment", "lib/_ingestHealth.js": "a developer comment", "lib/_houseComps.js": "a developer comment about the stored label",
+  "lib/venueNames.js": "the map's own comments",
+  "public/js/desk.js": "the Desk chart's colour key, by the stored label (it also carries the new name)"
+};
+{ const OLD = /Gooding (?:&|&amp;|and) Co(?:mpany)?|PCAR ?Market/, files = [];
+  const walk = d => { for (const e of fs.readdirSync(path.join(root, d), { withFileTypes: true })) { const p = d + "/" + e.name; if (e.isDirectory()) { if (!/node_modules|^\.|proofs|docs|fixtures/.test(e.name)) walk(p); } else if (/\.(js|mjs|html)$/.test(e.name)) files.push(p); } };
+  for (const d of ["lib", "api", "public"]) if (fs.existsSync(path.join(root, d))) walk(d);
+  const old = files.filter(p => !STORED[p] && OLD.test(fs.readFileSync(path.join(root, p), "utf8")));
+  ok("no page, email or tile prints an old form of a venue name (Gooding & Co, PCAR Market); the stored labels that stay are listed with their reason", old.length === 0, old);
+  const bare = files.filter(p => !STORED[p] && p !== "api/desk.js" && /["']Gooding["']/.test(fs.readFileSync(path.join(root, p), "utf8")));
+  ok("no page prints the house as the bare word Gooding (api/desk.js holds one ILIKE token of the archive diagnostic, which is a filter)", bare.length === 0, bare);
+  ok("the house is Gooding Christie's for the key, the stored label and the old spellings", ["gooding", "Gooding & Co", "Gooding & Company", "goodingco", "Gooding"].every(x => name(x) === "Gooding Christie's"), ["gooding", "Gooding & Co"].map(name));
+  ok("Hagerty and PCarMarket are the names of the map", name("hagerty") === "Hagerty" && name("pcarmarket") === "PCarMarket", [name("hagerty"), name("pcarmarket")]); }
 // 3 the engine serves the name on each path
 const hd = await imp("api/_historyData.js"), ob = await imp("lib/onebox.js"), srch = await imp("lib/live/search.js"), serve = await imp("lib/forsale/serve.js");
 ok("the history line's houseName gives the name for every auction source and never a key", !hd.__error && AUCTION.every(k => hd.houseName(k) === name(k)) && hd.houseName("zzzvendorsource") === "", hd.__error);
@@ -78,6 +101,9 @@ console.log(`venueNamesCheck: ${pass} pass, ${fail} FAIL`); process.exit(fail ? 
 function mutants() {
   const copy = fs.mkdtempSync(path.join(process.env.TMPDIR || "/tmp", "vnc-")); spawnSync("cp", ["-R", root, copy + "/t"], { stdio: "ignore" }); const T = copy + "/t"; try { fs.rmSync(T + "/node_modules", { force: true }); fs.symlinkSync(path.join(root, "node_modules"), T + "/node_modules"); } catch {}
   const cases = [
+    ["the house is still Gooding & Co", "lib/venueNames.js", 'gooding: "Gooding Christie\'s"', 'gooding: "Gooding & Co"'],
+    ["a page prints the old form of the house", "lib/sell/sellFollow.js", '["gooding", "Gooding Christie\'s", true]', '["gooding", "Gooding & Co", true]'],
+    ["the searching sign holds a site name of its own again", "api/buy.js", "var LIVE_SITES = __LIVE_SITES__;", "var LIVE_SITES = [\\\"PCAR Market\\\"];"],
     ["duPont Registry Live has no name", "lib/venueNames.js", '  dupontregistrylive: "duPont Registry Live",\n', ""],
     ["a key nobody named is printed as it is", "lib/venueNames.js", 'return /^[a-z0-9_.-]+$/.test(raw) ? "" : raw;', "return raw;"],
     ["a dealer has no name", "lib/venueNames.js", 'streetside: "Streetside Classics", ', ""],

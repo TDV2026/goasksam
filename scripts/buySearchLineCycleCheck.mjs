@@ -7,10 +7,14 @@ import fs from "node:fs";
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const s = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
-const i = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.parse(s.slice(i, s.indexOf('";\n', i) + 1));
+import { venueName } from "../lib/venueNames.js";
+const i = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, raw = JSON.parse(s.slice(i, s.indexOf('";\n', i) + 1));
+// the page gets its site names from the one map (lib/venueNames.js) at render time: the check fills the placeholder the way api/buy.js does, from the keys api/buy.js holds
+const KEYS = JSON.parse(/const LIVE_SITE_KEYS = (\[[^\]]*\]);/.exec(s)[1]), c = raw.replace("__LIVE_SITES__", () => JSON.stringify(KEYS.map(venueName)));
 const block = (from, to) => { const a = c.indexOf(from), b = c.indexOf(to, a); if (a < 0 || b < 0) throw new Error("missing " + from); return c.slice(a, b); };
-const SIXTEEN = ["Bring a Trailer", "Cars & Bids", "Hagerty", "PCAR Market", "Hemmings", "MB Market", "Sotheby's Motorsport", "RM Sotheby's", "Gooding & Co", "Collecting Cars"];
-ok(c.includes(`var LIVE_SITES = ${JSON.stringify(SIXTEEN).replace(/","/g, '", "')};`), "the sites of the live read, in Sam's order (no All Collector Cars: Sam, Oct 23 2026)");
+const SIXTEEN = ["Bring a Trailer", "Cars & Bids", "Hagerty", "PCarMarket", "Hemmings", "MB Market", "Sotheby's Motorsport", "RM Sotheby's", "Gooding Christie's", "Collecting Cars"];
+ok(/var LIVE_SITES = __LIVE_SITES__;/.test(raw) && !/Gooding|PCAR/.test(raw), "the page holds no site name of its own: the names come from the one map");
+ok(c.includes(`var LIVE_SITES = ${JSON.stringify(SIXTEEN)};`), "the sites of the live read, in Sam's order (no All Collector Cars: Sam, Oct 23 2026)");
 ok(!/All Collector Cars/i.test(block("  var SEARCH_LINE = ", "  function searchingBlock(")) && !SIXTEEN.includes("All Collector Cars"), "no All Collector Cars in the searching line");
 ok(!SIXTEEN.some(x => /Car & Classic|PistonHeads|The Market|Bonhams|Mecum|All Collector Cars/i.test(x)), "no UK-only or unreturned source is named (Sam, Oct 25 2026)");
 ok(!/AutoHunter/i.test(block("  var SEARCH_LINE = ", "  function searchingBlock(")), "no AutoHunter");

@@ -659,7 +659,7 @@ function platformDisplayName(name){
   // never a submission button (they have no outbound submission URL, so the door in
   // result.js never renders for them). Naming the source is a price-fact only; no claim
   // about how the house operates.
-  const map={bringatrailer:"Bring a Trailer",bat:"Bring a Trailer",carsandbids:"Cars & Bids",pcarmarket:"PCarMarket",hagerty:"Hagerty Marketplace",sothebysmotorsport:"Sotheby's Motorsport (SOMO)",autohunter:"AutoHunter",mbmarket:"MB Market",rmsothebys:"RM Sotheby's",gooding:"Gooding",goodingco:"Gooding",bonhams:"Bonhams",barrettjackson:"Barrett-Jackson",broadarrow:"Broad Arrow",mecum:"Mecum",acc:"All Collector Cars",allcollectorcars:"All Collector Cars",hemmings:"Hemmings",carandclassic:"Car & Classic",collectingcars:"Collecting Cars"};
+  const map={bringatrailer:"Bring a Trailer",bat:"Bring a Trailer",carsandbids:"Cars & Bids",pcarmarket:"PCarMarket",hagerty:"Hagerty",sothebysmotorsport:"Sotheby's Motorsport (SOMO)",autohunter:"AutoHunter",mbmarket:"MB Market",rmsothebys:"RM Sotheby's",gooding:"Gooding Christie's",goodingco:"Gooding Christie's",bonhams:"Bonhams",barrettjackson:"Barrett-Jackson",broadarrow:"Broad Arrow",mecum:"Mecum",acc:"All Collector Cars",allcollectorcars:"All Collector Cars",hemmings:"Hemmings",carandclassic:"Car & Classic",collectingcars:"Collecting Cars"};
   if(map[key])return map[key];
   // Never leak a raw slug to a user. Internal slugs are lowercase single tokens
   // (no spaces, no capitals); an unknown one renders as a safe generic. An
