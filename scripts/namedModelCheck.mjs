@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // A MODEL OR TRIM THE READER NAMED IS NEVER DROPPED TO THE WHOLE MAKE, A FILTER NEVER APPEARS THAT THE READER DID NOT TYPE, AND A BADGE-ENGINEERED CAR IS READ UNDER BOTH BADGES (Lane B, Nov 1 2026).
 // Reader report: "a first gen Ford Capri" opened /find?q=Ford+Capri+RS+from+1968+to+1974&make=Ford&model=Capri&trim=RS&from=1968&to=1974 and showed "20 live matches. That's everything matching your search" over a
 // 1972 Mustang, a Ranchero, an F-350, a Bronco and an F-100, and asked "Which body style?" from those cars. CAUSE: the resolver does not confirm Capri as a Ford model, so lib/live/samChat.js runSearch and

@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // The demonstration car is a real archive sale: its VIN, listing address and photo come from one record read with the ops task deskcars, every desk file takes the VIN from lib/desk/demoCar.js, and the recorded rung counts match the figures posted in docs/lane-notes.md.
 import fs from "node:fs"; import path from "node:path"; import { fileURLToPath, pathToFileURL } from "node:url";
 const ROOT = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));

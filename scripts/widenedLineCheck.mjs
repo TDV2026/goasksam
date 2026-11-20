@@ -92,7 +92,7 @@ const src = fs.readFileSync(path.join(ROOT, "lib/onebox.js"), "utf8").split("\n"
   ok("(G) the three rescue landers (trim, model, sibling) each refuse a far pool", lands === 3 && typeof (E && E.askedYearsFar) === "function", `${lands} of 3`); }
 
 // (H) no stamp bump: a targeted recheck of the rows the rules change, no others
-{ ok("(H) the engine stamp is still e99 and SPEC_V still 12 (no stamp bump: every other stored row keeps serving)", !!E && /^e99-/.test(String(E.ENGINE_VERSION)) && !!S && S.SPEC_V === 12, `${E && E.ENGINE_VERSION} ${S && S.SPEC_V}`);
+{ ok("(H) the engine stamp is the one stamp file's value and SPEC_V is a number, and every other stored row keeps serving (the old pin, \"still e99\" and SPEC_V 12, was true only on the commit that wrote it)", !!E && E.ENGINE_VERSION === (() => { try { return JSON.parse(fs.readFileSync("data/engineStamp.json", "utf8")).stamp; } catch { return null; } })() && /^e\d+-\d{8}-/.test(String(E.ENGINE_VERSION)) && !!S && Number.isInteger(S.SPEC_V), `${E && E.ENGINE_VERSION} ${S && S.SPEC_V}`);
   // a stored row as the engine writes it today: every rule tag current EXCEPT the one under test (widenRulesTag), so only the widening rule can overtake it (E.withCurrentTags)
   const row = raw => ({ computed_at: new Date().toISOString(), market: { raw: E.withCurrentTags(raw, ["widenRulesTag"]), engineVersion: E.ENGINE_VERSION, warmEpoch: null } });
   const pool = ys => ys.map(y => ({ year: y })), res = (year, extra) => ({ tier: "result", poolN: 14, cluster: [12500, 28000], resolvedCar: { year, make: "Volvo", model: "240" }, rawPool: pool([year]), ...extra });

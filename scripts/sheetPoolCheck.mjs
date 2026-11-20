@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // THE DESK SHEET READS AS THE WHOLE MARKET (Lane B, Nov 8 2026). Four things, over a fake archive with real photos and a tier on every sale:
 //   (1) COMPARABLES: every sale in the picked body and tier pool, each with its own first photo (https), the venue's display name, price, mileage and tier; a tier holding under five shows the WHOLE body pool with each sale's tier tagged. Never three rows.
 //   (2) WORDING: the count and the range, not an apology ("N sales of this body since [month], M in tier T, shown on the full set." / "Range from N sales: $low to $high, median $X."); no "wider pool", "wider range", "too few" anywhere in the Desk sheet's sentences; the consumer pages' lines are separate table entries and unchanged.

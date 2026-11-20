@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // Lane C's hand back (Nov 10 2026): the preview report had no photo on page 1 because the preview context's fetchImage returned null. This builds the demonstration report through the preview door, offline, with a fetch that serves the repo's own JPEG for an allowed listing host, and asserts:
 // the PDF holds an image on page 1 (the cover), the fetch is https only and limited to the listing photo hosts, it refuses a non-image, a file over the 600 KB photo rule and a slow host, and it never reaches an address that is not listed.
 import fs from "node:fs"; import path from "node:path"; import { fileURLToPath, pathToFileURL } from "node:url";

@@ -21,7 +21,7 @@
 //   node scripts/deskCube.js --min 8     only families with >= N qualifying sales (default 8)
 // =====================================================================
 import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
-import { hammerUsd, isHouseSource, sourceSlugOf, setFxRates } from "../lib/_houseComps.js";
+import { hammerUsd, isHouseVenue, sourceSlugOf, setFxRates } from "../lib/_houseComps.js";
 import { loadFxRates } from "../lib/_fx.js";
 import { isPartsListing, isMemorabilia } from "../lib/_classify.js";
 import { recordExcludeReason } from "../lib/onebox.js";
@@ -91,7 +91,7 @@ function statOf(rows) {
 }
 
 function inWindow(r, key) { const [a, b] = WINDOWS[key]; const d = new Date(String(r.sale_date).slice(0, 10) + "T00:00:00Z").getTime(); return d >= a && d <= b; }
-function channelOf(r) { return isHouseSource(r) ? "house" : "online"; }
+function channelOf(r) { return isHouseVenue(r) ? "house" : "online"; }
 
 function run() {
   return loadRows().then(async rows => {
@@ -105,7 +105,7 @@ function run() {
       if (reason && reason !== "halo") { bump(setAsideByFamily, r, reason.split(" ")[0]); continue; }  // race/restomod/period(tuner)
       r.value = hammerUsd({ source_slug: r.source_slug, source: r.platform, price: Number(r.sale_price), currency: r.currency || "USD" });
       if (!Number.isFinite(r.value) || r.value <= 0) continue;
-      if (isHouseSource(r) && r.value < 2500) continue;   // house data-error floor
+      if (isHouseVenue(r) && r.value < 2500) continue;   // house data-error floor
       if (reason === "halo") bump(setAsideByFamily, r, "halo");   // KEEP in pool, count it
       r._slug = sourceSlugOf(r) || String(r.source_slug || "").toLowerCase();
       r._gen = genCodeFor(r);

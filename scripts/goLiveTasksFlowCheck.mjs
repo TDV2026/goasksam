@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // goLiveTasksFlowCheck (Lane E, Nov 10 2026, go live held item 2): SIGNED IN, ON THE PUBLIC ADDRESS, TASKS CREATE, EDIT AND STOP WORK, AND THE ACCOUNT BUTTON OPENS THE SAME SIGN IN.
 // The Tasks app page as /tasks/mine?app=1 answers with NEW_DESIGN on (the real handler), opened in Chrome with a signed in session and no network: /api/tasks is answered here, and every call the page makes is recorded.
 //   CREATE  type a request in the new Task box, Sam reads it back, Start sends action "start" with the draft

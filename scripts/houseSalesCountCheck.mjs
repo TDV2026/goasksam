@@ -66,7 +66,7 @@ FIX = Array.from({ length: 12 }, (_, i) => mk(false, price(i), 1993)); { const d
     ok("(F) every other row keeps serving (few_sales, a result, few_comparable with no house sale or fewer than 8 sales in all)", !!a.d.raw && !!b.d.raw && !!c.d.raw && !!c2.d.raw && !!c3.d.raw && !!a.p && !!b.p && !!c.p && !!c2.p && !!c3.p); }
   { const { d, p } = await rd({ ...base, thinReason: "few_comparable", thin: { houseN: 4, totalN: 9 } }); ok("(F) a few_comparable row whose pool reaches 8 sales once its house sales count (4 house, 9 in all) is read as no row, by both readers", d.raw === null && d.reason === "house_recheck" && !p, JSON.stringify([d.reason, !!p])); }
   { const { d, p } = await rd({ ...base, thinReason: "few_comparable", thin: { houseN: 4, totalN: 9 }, houseRulesTag: E.HOUSE_RULES_TAG }); ok("(F) the same few_comparable row carrying the tag is served", !!d.raw && !!p); }
-  ok("(F) the stamp did not move (still e99)", !!E && /^e99-/.test(String(E.ENGINE_VERSION)), E && E.ENGINE_VERSION);
+  ok("(F) the stamp is the engine's one stamp (data/engineStamp.json), and the rows this check stores carry it and keep serving (the old pin, \"still e99\", was true only on the commit that wrote it)", !!E && E.ENGINE_VERSION === (() => { try { return JSON.parse(fs.readFileSync("data/engineStamp.json", "utf8")).stamp; } catch { return null; } })() && /^e\d+-\d{8}-/.test(String(E.ENGINE_VERSION)), E && E.ENGINE_VERSION);
   ROW = null;
   FIX = Array.from({ length: 12 }, (_, i) => mk(true, price(i), 1993)); const d = await answer();
   ok("(F) an answer the engine computes carries houseRulesTag", !!d && d.houseRulesTag === E.HOUSE_RULES_TAG, String(d && d.houseRulesTag)); }

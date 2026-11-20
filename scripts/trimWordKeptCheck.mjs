@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // A REAL TRIM WORD IS NEVER SILENTLY DROPPED (Lane B, Nov 5 2026). LIVE: Market Check for "2024 Land Rover Range Rover Autobiography" printed "Sam didn't use 'autobiography' in this search." and answered for the bare 2024 Range Rover.
 // CAUSE: "Autobiography" was not in TRIM_VOCABULARY (lib/vehicleData.js), the whitelist of trim words, so the resolver set it aside as a dirty token (trim null) and the engine read the model without it. Not a thin trim pool: the word never reached the pool.
 // CLASS: any real trim, series or edition word that is a pure word (no digit) and not in the list: Range Rover Autobiography, SVR, HSE, Vogue, Dynamic, Westminster; Jaguar Autobiography and SVR; Maybach; Jeep Trackhawk; Rolls-Royce Black Badge; Tesla Plaid;

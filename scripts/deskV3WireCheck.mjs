@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // DESK V3 WIRE (Lane E, Nov 8 2026). Every number and sentence the demonstration case shows on the summary, the sticky bar and the tabs traces to a field the server sent: desk.* (the block lib/deskV3.js builds),
 // market.meter (built from desk.evidence) or the case's own fields (Lane D: the analyst's figures and lines). A typed sentence, a figure the page made (arithmetic) or a figure no field carries fails.
 //   node scripts/deskV3WireCheck.mjs      (offline; the mutants must be caught)

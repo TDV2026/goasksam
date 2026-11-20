@@ -4,15 +4,16 @@
 // Runs the real handler over a stateful fake PostgREST that evaluates the same filters the tasks send. MUTANTS (--mutants): the list matches rows with a not-tracked line; the clear needs no confirm; the delete does not re-check the filter; the list writes.
 //   node scripts/noneRowsCheck.mjs [--mutants]
 import fs from "node:fs"; import path from "node:path"; import os from "node:os"; import { spawnSync } from "node:child_process"; import { fileURLToPath, pathToFileURL } from "node:url";
+import { SPEC_V } from "../lib/live/search.js";   // a stored core carries the engine's own SPEC_V, never a number of its own (scripts/specVersionFixtureCheck.mjs)
 const here = path.dirname(fileURLToPath(import.meta.url)), root = path.resolve(process.argv.find((a, i) => i > 1 && !a.startsWith("--")) || path.join(here, ".."));
 if (process.argv.includes("--mutants")) process.exit(mutants());
 process.chdir(root);
 process.env.PROBE_KEY = "local-check-key"; process.env.OLDCARSDATA_API_KEY = "unused"; process.env.SUPABASE_URL = "https://stub.invalid"; process.env.SUPABASE_SERVICE_ROLE_KEY = "stub"; process.env.SUPABASE_ANON_KEY = "stub";
 const { reasonLine } = await import(pathToFileURL(path.join(root, "lib/reasonWords.js")).href); const NONE = reasonLine("find.none"), CHOICE = reasonLine("find.choice");
 const mk = (key, market) => ({ spec_key: key, computed_at: "2026-11-12T10:00:00Z", market });
-const bad9 = i => mk(`["Porsche","911","Carrera",${1990 + i},"964",null]`, { v: 1, engineVersion: "e100", kind: "none", notTrackedLine: null, thinZero: false, refusalLine: NONE });
+const bad9 = i => mk(`["Porsche","911","Carrera",${1990 + i},"964",null]`, { v: SPEC_V, engineVersion: "e100", kind: "none", notTrackedLine: null, thinZero: false, refusalLine: NONE });
 let TABLE = [];
-const reset = () => { TABLE = [...Array.from({ length: 5 }, (_, i) => bad9(i)), mk('["Porsche","911","Carrera",1999,"996",null]', { v: 1, engineVersion: "e100", kind: "none", refusalLine: NONE }),   // 6 failed-read rows (one without the null fields)
+const reset = () => { TABLE = [...Array.from({ length: 5 }, (_, i) => bad9(i)), mk('["Porsche","911","Carrera",1999,"996",null]', { v: SPEC_V, engineVersion: "e100", kind: "none", refusalLine: NONE }),   // 6 failed-read rows (one without the null fields)
   mk("nt", { kind: "none", notTrackedLine: "No sale of a Ford Pinto has been tracked yet.", thinZero: false, refusalLine: NONE }), mk("zt", { kind: "none", thinZero: true, refusalLine: NONE, notTrackedLine: null }),
   mk("ch", { kind: "none", refusalLine: CHOICE }), mk("rg", { kind: "range", low: 1, high: 2, count: 9 }), mk("rf", { kind: "none", refusalLine: "No sales on record in the last five years." })]; };
 let BLOBS = 300; let opened_max = 0; const seen = [], selects = []; let beforeDelete = null, FAIL = false;

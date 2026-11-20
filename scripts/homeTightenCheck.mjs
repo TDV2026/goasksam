@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // THE FOUR START PAGES, TIGHTENED (Sam, Oct 26 2026): Home, Find, Market Check and Sell draw the same box: one line, about 72 px high (64 on a phone), 960 px wide, the
 // mic and the arrow at the right edge, no helper line, no eyebrow on Home; a placeholder that rotates through three examples (a plain fade, it stops on focus or text, and it
 // never rewrites the real placeholder, so a screen reader reads the label and hears no rotation); each page's accessible label; the hero starts the same distance from the top

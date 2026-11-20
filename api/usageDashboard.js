@@ -1379,7 +1379,7 @@ async function handleOps(req, res) {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}` };
     const count = async (q) => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${q}`, { headers: { ...H, Prefer: "count=exact" } }); const cr = r.headers.get("content-range"); return cr ? Number(cr.split("/")[1]) : null; } catch (e) { return null; } };
-    const sources = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+    const sources = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads", "dupontregistrylive"];
     const per = {};
     for (const s of sources) {
       const aliases = await count(`sale_aliases?source_slug=eq.${s}&select=source_record_id&limit=1`);
@@ -2685,7 +2685,7 @@ if (task === "optiondetail") {
     const sold = "sale_price=not.is.null";
     const total = await countOf(`${sold}&select=id`, "exact");
     const withPhoto = await countOf(`${sold}&raw_record->>featured_image_url=not.is.null&select=id`, "exact");
-    const SRC = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+    const SRC = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads", "dupontregistrylive"];
     const bySource = {};
     if (req.query?.sources === "1") for (const src of SRC) {
       const t = await countOf(`${sold}&source_slug=eq.${src}&select=id`, exact ? "exact" : "planned");
@@ -2697,7 +2697,7 @@ if (task === "optiondetail") {
   if (task === "fieldcov") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const FIELDS = ["description", "known_flaws", "recent_service_history", "modifications"];
-    const SRC = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+    const SRC = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads", "dupontregistrylive"];
     const exact = req.query?.exact === "1";
     const countOf = async (filter) => {
       try {
@@ -3030,10 +3030,10 @@ if (task === "optiondetail") {
   // auction_attempts (non-sold), and canonical_sales, for the full 19-source coverage audit.
   if (task === "srcaudit") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+    const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads", "dupontregistrylive"];
     // slug -> display label, so we can also count rows stored only under the platform LABEL
     // (older sales_archive rows predate the source_slug column and have it NULL).
-    const LABEL = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", hagerty: "Hagerty", pcarmarket: "PCARMarket", acc: "All Collector Cars", gooding: "Gooding & Co", rmsothebys: "RM Sotheby's", hemmings: "Hemmings", sothebysmotorsport: "Sotheby's Motorsport", mbmarket: "MB Market", autohunter: "AutoHunter", barrettjackson: "Barrett-Jackson", mecum: "Mecum Auctions", bonhams: "Bonhams", broadarrow: "Broad Arrow", carandclassic: "Car & Classic", collectingcars: "Collecting Cars", themarket: "The Market", pistonheads: "PistonHeads" };
+    const LABEL = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", hagerty: "Hagerty", pcarmarket: "PCARMarket", acc: "All Collector Cars", gooding: "Gooding & Co", rmsothebys: "RM Sotheby's", hemmings: "Hemmings", sothebysmotorsport: "Sotheby's Motorsport", mbmarket: "MB Market", autohunter: "AutoHunter", barrettjackson: "Barrett-Jackson", mecum: "Mecum Auctions", bonhams: "Bonhams", broadarrow: "Broad Arrow", carandclassic: "Car & Classic", collectingcars: "Collecting Cars", themarket: "The Market", pistonheads: "PistonHeads", dupontregistrylive: "duPont Registry Live" };
     // count=estimated uses planner statistics (fast) instead of an exact seq-scan per source.
     const headers = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=estimated" };
     const count = async (table, filter) => {
@@ -3580,7 +3580,7 @@ if (task === "optiondetail") {
   if (task === "countrycov") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const since = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query?.since || "")) ? String(req.query.since) : "2025-01-01";
-    const slugs = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+    const slugs = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads", "dupontregistrylive"];
     const H = { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact" };
     const countOf = async qs => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/${qs}&limit=1`, { headers: H }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch (e) { return null; } };
     const venues = [];
@@ -3604,15 +3604,15 @@ if (task === "optiondetail") {
     res.setHeader("Cache-Control", "no-store");
     return r.ok ? res.status(200).json(r.body) : res.status(r.status || 400).json({ task: "valuecensus", error: r.why });
   }
-  // task=factmine / factmap / factreport / factprice (Lane B, Nov 17 2026, order bc85, lib/factMine.js, factMap.js, factReport.js, factPrice.js): value driver mining. factmine and factmap WRITE listing_mentions, listing_mining_runs and topic_map
+  // task=factmine / factmap / factreport / factprice / factcoverage (factcoverage: Lane D, Nov 19 2026, lib/factCoverage.js: the second read of the sentences the miner left out, counts only; same door, same lease and limits as factmine) (Lane B, Nov 17 2026, order bc85, lib/factMine.js, factMap.js, factReport.js, factPrice.js): value driver mining. factmine and factmap WRITE listing_mentions, listing_mining_runs and topic_map
   // (docs/supabase-factmine.sql, run by Sam), one source and one family per call, a window of 366 days or less, 25 listings and a token cap per call; factreport and factprice are read only. Every answer is counts and tokens, never listing text or a seller.
-  if (task === "factmine" || task === "factmap" || task === "factreport" || task === "factprice") {
+  if (task === "factmine" || task === "factmap" || task === "factreport" || task === "factprice" || task === "factcoverage") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const FM = task === "factmine" ? await import("../lib/factMine.js") : task === "factmap" ? await import("../lib/factMap.js") : task === "factreport" ? await import("../lib/factReport.js") : await import("../lib/factPrice.js");
+    const FM = task === "factmine" ? await import("../lib/factMine.js") : task === "factmap" ? await import("../lib/factMap.js") : task === "factreport" ? await import("../lib/factReport.js") : task === "factcoverage" ? await import("../lib/factCoverage.js") : await import("../lib/factPrice.js");
     const { makeCallModel } = await import("../lib/factModel.js");
     const { supabaseInsert } = await import("../lib/_supabase.js");
     const deps = { select: qs => supabaseSelect(env, qs), insert: async (table, rows, prefer, query) => { try { const w = await supabaseInsert(table, rows, env.supabaseUrl, env.supabaseKey, prefer, query); return w && w.error ? { error: "write failed" } : {}; } catch { return { error: "write failed" }; } }, callModel: makeCallModel(env, task) };
-    const run = task === "factmine" ? FM.runFactMine : task === "factmap" ? FM.runFactMap : task === "factreport" ? FM.runFactReport : FM.runFactPrice;
+    const run = task === "factmine" ? FM.runFactMine : task === "factmap" ? FM.runFactMap : task === "factreport" ? FM.runFactReport : task === "factcoverage" ? FM.runFactCoverage : FM.runFactPrice;
     const r = await run(req.query || {}, deps);
     res.setHeader("Cache-Control", "no-store");
     return r.ok ? res.status(200).json(r.body) : res.status(r.status || 400).json({ task, error: r.why });
@@ -4468,8 +4468,8 @@ if (task === "optiondetail") {
   //   ?task=daycount&from=2026-09-21&to=2026-10-04&sources=carsandbids,bonhams  (sources optional)
   if (task === "daycount") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const ALL = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
-    const LABEL = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", hagerty: "Hagerty", pcarmarket: "PCARMarket", acc: "All Collector Cars", gooding: "Gooding & Co", rmsothebys: "RM Sotheby's", hemmings: "Hemmings", sothebysmotorsport: "Sotheby's Motorsport", mbmarket: "MB Market", autohunter: "AutoHunter", barrettjackson: "Barrett-Jackson", mecum: "Mecum Auctions", bonhams: "Bonhams", broadarrow: "Broad Arrow", carandclassic: "Car & Classic", collectingcars: "Collecting Cars", themarket: "The Market", pistonheads: "PistonHeads" };
+    const ALL = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads", "dupontregistrylive"];
+    const LABEL = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", hagerty: "Hagerty", pcarmarket: "PCARMarket", acc: "All Collector Cars", gooding: "Gooding & Co", rmsothebys: "RM Sotheby's", hemmings: "Hemmings", sothebysmotorsport: "Sotheby's Motorsport", mbmarket: "MB Market", autohunter: "AutoHunter", barrettjackson: "Barrett-Jackson", mecum: "Mecum Auctions", bonhams: "Bonhams", broadarrow: "Broad Arrow", carandclassic: "Car & Classic", collectingcars: "Collecting Cars", themarket: "The Market", pistonheads: "PistonHeads", dupontregistrylive: "duPont Registry Live" };
     const sources = req.query?.sources ? String(req.query.sources).split(",").map(s => s.trim()).filter(Boolean) : ALL;
     const today = new Date().toISOString().slice(0, 10);
     const dayMs = 86400000;
@@ -5563,7 +5563,7 @@ if (task === "optiondetail") {
     const mbSample = mustRows(await supabaseSelect(env, `sales_archive?source_slug=eq.mbmarket&mileage=gt.0&mileage=lt.1000&select=listing_title,vin,mileage,rawmiles:raw_record->>mileage,make,model,sale_date&order=mileage.desc&limit=30`), "ops milesaudit L5292");
     const mbUnder1000 = await cq("sales_archive", "source_slug=eq.mbmarket&mileage=gt.0&mileage=lt.1000");
     const mbTotal = await cq("sales_archive", "source_slug=eq.mbmarket");
-    const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads", "autohunter"];
+    const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads", "autohunter", "dupontregistrylive"];
     const zeroBySource = {};
     for (const s of SRCS) { const z = await cq("sales_archive", `source_slug=eq.${s}&mileage=eq.0`); if (z) zeroBySource[s] = z; }
     const statedZero = await cq("sales_archive", "stated_mileage=eq.0");
@@ -6566,7 +6566,7 @@ if (task === "optiondetail") {
     const descSet = await countQ("desc_facts=not.is.null");
     const projectFlagged = await countQ("project_flag=not.is.null");
     const statedMileage = await countQ("stated_mileage=not.is.null");
-    const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads"];
+    const SRCS = ["bringatrailer", "carsandbids", "hagerty", "pcarmarket", "acc", "gooding", "rmsothebys", "hemmings", "sothebysmotorsport", "mbmarket", "autohunter", "barrettjackson", "mecum", "bonhams", "broadarrow", "carandclassic", "collectingcars", "themarket", "pistonheads", "dupontregistrylive"];
     const bySource = {};
     for (const s of SRCS) { const t = await countQ(`source_slug=eq.${s}`); if (!t) continue; bySource[s] = { total: t, desc_facts_set: await countQ(`source_slug=eq.${s}&desc_facts=not.is.null`), project_flagged: await countQ(`source_slug=eq.${s}&project_flag=not.is.null`) }; }
     return res.status(200).json({ task: "descfactscov", global: { total, desc_facts_set: descSet, still_null: (total != null && descSet != null) ? total - descSet : null, project_flagged: projectFlagged, stated_mileage: statedMileage }, bySource });

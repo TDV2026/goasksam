@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // A STORED BODY IS TRUSTED ONLY FOR A BODY THE MODEL CAME IN (Lane B, Nov 6 2026; Sam's call after lane-b-pills). A Cars & Bids 2023 Subaru WRX, a WRX STI and a Lancer Evolution VIII carried body "Convertible"; their titles
 // name no body, so the engine took the field and the cars answered a convertible search and printed a convertible pill. The class: any consumer of the stored body (Find/Tasks/emails through listingFacts, the Market Check link,
 // One Box's classifyBody, the exact-match flag) must cross-check it against the model's known bodies (lib/modelBodies.js: MODEL_RULES + bodiesForYear, then MODEL_BODY_FACTS). On a conflict the body is NOT STATED, never

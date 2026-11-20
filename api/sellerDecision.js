@@ -6,6 +6,8 @@ import { countNoun } from "../lib/countNoun.js";
 import { unusedFieldsFor } from "../lib/live/unusedWords.js";
 import { tryRefresh } from "../lib/refreshGate.js";
 import { carFromRequest, isPartialCar, carWords, partialCarOk, withPartialCar } from "../lib/carToken.js";
+import { withForSaleLine } from "../lib/forsale/serve.js";
+import { withForSale } from "../lib/forsale/gate.js";
 import { partialChoiceAnswer, makeWithYearsOnly, choiceReply } from "../lib/carChoice.js";
 import { resolveVehicle, sanitizeResolvedVehicle, primeResolver } from "../lib/vehicle.js";
 import { nonRoadReason } from "../lib/_roadType.js";
@@ -40,7 +42,7 @@ import { findGeneration, generationModelToken, generationsForModel } from "../li
 import { sourceCoverage } from "../lib/desk/coverage.js";
 import { isMaterialVariant } from "../lib/materialVariants.js";
 import { buildHouseComparison } from "../lib/houseCalendar.js";
-import { isHouseSource } from "../lib/_houseComps.js";
+import { isHouseVenue } from "../lib/_houseComps.js";
 import { vinFeatureActive, findVinArchiveMatch, looksLikeChassisId } from "../lib/_flags.js";
 import { findVinLiveMatch, liveVehicleOf, liveFactsOf } from "../lib/vinLiveMatch.js";
 import { findWinCondition, BACKING_MIN } from "../lib/winConditions.js";
@@ -314,7 +316,7 @@ export function isEvidenceSource(record, vehicle) {
   // evidence (their premium is backed out to hammer in classifyRecord), so their sales
   // inform the read and they can be NAMED. They remain non-routable (not in
   // US_ROUTE_ALLOWLIST -> routable:false), so a house is never the pick/a submission door.
-  if (isHouseSource(record)) return true;
+  if (isHouseVenue(record)) return true;
   const marque = MARQUE_GATED_EVIDENCE[slug];
   if (marque) return makeMatchesMarque(vehicle && vehicle.make, marque);
   return false;
@@ -521,7 +523,7 @@ function analyzeRouteFit(analysis, criteria, vehicle) {
       // Keep US-routable platforms AND the live-auction houses. Houses survive as
       // routable:false routes (not in ROUTE_POLICIES), so they can be NAMED as evidence /
       // surface as the stronger-non-routable callout, but never leave as a routable pick.
-      if (!US_ROUTE_ALLOWLIST.has(normSourceSlug(key)) && !isHouseSource(normSourceSlug(key))) candidateKeys.delete(key);
+      if (!US_ROUTE_ALLOWLIST.has(normSourceSlug(key)) && !isHouseVenue(normSourceSlug(key))) candidateKeys.delete(key);
     }
   }
 
@@ -3890,7 +3892,10 @@ async function handler(req, res) {
       const unusedFields = unusedFieldsFor(typeof rawSearch0 === "string" ? rawSearch0 : oneBoxText, vehicle, oneBox);
       // NO QUALIFYING QUESTION (Sam, Nov 17 2026): a car of a family whose variants sell apart is answered with its variants as rows (variantSplit), never asked which one it is and never one blended range; the question (variantQuestionFor) is no longer asked here
       if (!vinCtx && !exactSale && splitServed(req)) oneBox = await variantSplitFor(oneBox, { asked: askedN, refine: obRefine, crew: isCrewRequest(req), text: oneBoxText }, vehicle, generation, { supabaseUrl, supabaseKey }, { deadlineMs: Math.max(4000, Math.min(14000, obRemaining() - 2000)) });   // the variants of an unstated car, as rows (lib/variantRows.js); each row is the engine's answer for its own car
+      // the cards are still being read (lib/variantRows.js: the rows outran this request's clock and finish behind it, stored): the engine's own "still being read" answer, so the page asks again and a visitor's first read is the second read, never the blend without its cards (lane-b-sell-cards-first)
+      if (oneBox && oneBox.splitPending === true) return res.status(200).json(computingAnswer(vehicle));
       oneBox = withServedCar(oneBox, vehicle, { supabaseUrl, supabaseKey });   // the car this answer is SERVED for, whatever row it came from (lib/onebox.js withServedCar)
+      oneBox = await withForSaleLine({ supabaseUrl, supabaseKey }, oneBox);   // crew only behind FORSALE_PUBLIC: "20 for sale now: 3 at auction, 12 at dealers, 5 classifieds" and the address of Find for the car (lib/forsale/serve.js); a visitor's answer is returned as it came
       return res.status(200).json({ status: "one_box", ...servedCopy(slimAnswerForWire(oneBox)), ...staleFields, ...unusedFields, snapshotId: snapshotId || undefined, timings });
     }
 
@@ -4773,4 +4778,4 @@ async function handler(req, res) {
 }
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
-export default withTracking("/api/sellerDecision", (req, res) => withPartialCar(req, () => handler(req, res)), "sell");   // the partial car is crew only: the engine asks partialCarActive() (lib/carToken.js)
+export default withTracking("/api/sellerDecision", (req, res) => withPartialCar(req, () => withForSale(req, () => handler(req, res))), "sell");   // the partial car is crew only: the engine asks partialCarActive() (lib/carToken.js)
