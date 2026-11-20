@@ -569,7 +569,9 @@
    "file": "scripts/buySearchLineCycleCheck.mjs",
    "kind": "offline",
    "covers": [
-    "api/buy.js"
+    "api/buy.js",
+    "lib/venueNames.js",
+    "scripts/_buyClient.mjs"
    ]
   },
   "buyStage1Check": {
@@ -3112,7 +3114,8 @@
     "lib/live/lookingCaps.js",
     "lib/live/search.js",
     "lib/live/watches.js",
-    "lib/tasks/limit.js"
+    "lib/tasks/limit.js",
+    "scripts/_buyClient.mjs"
    ]
   },
   "firstQuestionNowCheck": {
@@ -4823,7 +4826,8 @@
    "covers": [
     "./",
     "api/buy.js",
-    "public/js/onebox.js"
+    "public/js/onebox.js",
+    "scripts/_buyClient.mjs"
    ]
   },
   "oneOptionPoolCheck": {
@@ -5496,7 +5500,8 @@
    "kind": "offline",
    "covers": [
     "api/buy.js",
-    "lib/live/priorListing.js"
+    "lib/live/priorListing.js",
+    "scripts/_buyClient.mjs"
    ]
   },
   "publicExamplesCheck": {
@@ -6791,7 +6796,8 @@
     "lib/tasks/limit.js",
     "lib/track/catalog.js",
     "lib/track/log.js",
-    "public/js/onebox.js"
+    "public/js/onebox.js",
+    "scripts/_buyClient.mjs"
    ]
   },
   "standingDrawerCheck": {
@@ -6825,6 +6831,7 @@
     "lib/newsletterSignup.js",
     "lib/preview/tasksAppFork.js",
     "lib/preview/tasksPreview.js",
+    "lib/reasonWords.js",
     "lib/tasks/delivery.js",
     "lib/tasks/digest.js",
     "lib/tasks/tasks.js",
@@ -7716,6 +7723,20 @@
     "scripts/fixtures/noDeadEnds.json"
    ]
   },
+  "vehicleCountCheck": {
+   "file": "scripts/vehicleCountCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/buy.js",
+    "api/buySearch.js",
+    "lib/forSalePage.js",
+    "lib/forsale/total.js",
+    "lib/reasonWords.js",
+    "node_modules/",
+    "scripts/_forSaleWorld.mjs"
+   ]
+  },
   "vendorSourceCheck": {
    "file": "scripts/vendorSourceCheck.mjs",
    "kind": "offline",
@@ -7730,6 +7751,46 @@
     "scripts/",
     "scripts/ingest.js",
     "scripts/pullSources.js"
+   ]
+  },
+  "venueNamesCheck": {
+   "file": "scripts/venueNamesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/_historyData.js",
+    "api/buy.js",
+    "api/desk.js",
+    "api/sellerDecision.js",
+    "api/usageDashboard.js",
+    "data/forsaleSources.json",
+    "lib/",
+    "lib/_email.js",
+    "lib/_houseComps.js",
+    "lib/_ingestHealth.js",
+    "lib/desk/coverage.js",
+    "lib/desk/dictionary.js",
+    "lib/desk/execute.js",
+    "lib/desk/measures.js",
+    "lib/forsale/serve.js",
+    "lib/live/findExamples.js",
+    "lib/live/marketCheckExamples.js",
+    "lib/live/search.js",
+    "lib/onebox.js",
+    "lib/ops/depthProbe.js",
+    "lib/sell/sellFollow.js",
+    "lib/specializationShare.js",
+    "lib/venueNames.js",
+    "lib/winConditions.js",
+    "node_modules/",
+    "public/",
+    "public/js/desk.js",
+    "public/js/onebox.js",
+    "public/js/result-copy.js",
+    "scripts/",
+    "scripts/_buyClient.mjs",
+    "scripts/_findStates.mjs"
    ]
   },
   "vercelConfigCheck": {
