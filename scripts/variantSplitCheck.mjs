@@ -421,22 +421,32 @@ process.env.OLDCARSDATA_API_KEY = "x"; process.env.CURTAIN_CREW_CODE = "fixture-
 console.error = err;
 for (const f of fails.slice(0, +(process.env.SHOW || 40))) console.log("FAIL " + f);
 // ===== WHAT IS PRICED ON ITS OWN, UNDER THE RANGE (lane-b-sale-name, Nov 19 2026; order bc85 item 1) =====
-// CAUSE: a range that left a trim, a year or a set of cars out said nothing about them, so a buyer of a 2005 Ford GT never learned the 2006 cars and the Heritage Editions are read on their own, nor a 1987 Trans Am reader that the GTA and Formula are. FIX: lib/variants.js ownPriceOf, from the family data and the pool's year window, served as variants.ownLine and variants.own (each name with its own page's address).
+// CAUSE: a range that left a trim, a year or a set of cars out said nothing about them, so a buyer of a 2005 Ford GT never learned the 2006 cars and the Heritage editions are read on their own, nor a 1987 Trans Am reader that the GTA and Formula are. FIX: lib/variants.js ownPriceOf, from the family data and the pool's year window, served as variants.ownLine and variants.own (each name with its own page's address).
 // CLASS: every family in the data (the sweep below), the three read through the engine here (Ford GT, Firebird, Camaro).
 { const ownOf = async (text, vehicle) => { w.deps.resolveVehicle = async () => ({ status: "valid", vehicle }); return (await OB.oneEngineAnswer(vehicle, null, text, { ...w.env })).raw; };
   w.DATA.clear();
   w.DATA.set("GT", [...world("Ford", "GT", [2005, 2005], [["", 10, 300000]]), ...world("Ford", "GT", [2006, 2006], [["", 9, 350000], ["Heritage Edition", 6, 450000]])]);
-  w.DATA.set("Firebird", world("Pontiac", "Firebird", [1987, 1987], FB));
+  w.DATA.set("Firebird", world("Pontiac", "Firebird", [1987, 1987], [["Trans Am", 10, 30000], ["Trans Am GTA", 5, 24000], ["Formula", 5, 13000], ["", 5, 7500]]));
+  w.DATA.set("Supra", world("Toyota", "Supra", [1990, 1990], [["", 12, 20000]]));
   w.DATA.set("Camaro", world("Chevrolet", "Camaro", [1987, 1987], [["Z28", 6, 18000], ["IROC-Z", 5, 22000], ["Berlinetta", 5, 9000], ["RS", 5, 11000], ["", 5, 8000]]));
   const g05 = await ownOf("2005 Ford GT", { year: 2005, make: "Ford", model: "GT" }), fb = await ownOf("1987 Pontiac Firebird Trans Am", { year: 1987, make: "Pontiac", model: "Firebird", trim: "Trans AM" }), cz = await ownOf("1987 Chevrolet Camaro Z28", { year: 1987, make: "Chevrolet", model: "Camaro", trim: "Z28" });
   ok("2005 Ford GT: the Ford GT list holds it (the family is in the data)", !!(g05.variants && g05.variants.familyId === "ford-gt-2005"), g05.variants && g05.variants.familyId);
-  ok('2005 Ford GT: "2006 cars and Heritage Editions are priced on their own."', g05.variants && g05.variants.ownLine === "2006 cars and Heritage Editions are priced on their own.", g05.variants && g05.variants.ownLine);
+  ok('2005 Ford GT: "2006 cars and Heritage editions are priced on their own."', g05.variants && g05.variants.ownLine === "2006 cars and Heritage editions are priced on their own.", g05.variants && g05.variants.ownLine);
   ok("2005 Ford GT: each name is a link to its own page (the 2006 cars, the Heritage Edition)", g05.variants && Array.isArray(g05.variants.own) && g05.variants.own.length === 2 && g05.variants.own[0].address === "/market-check?q=2006%20Ford%20GT" && g05.variants.own[1].address === "/market-check?q=2006%20Ford%20GT%20Heritage%20Edition" && g05.variants.own.every(i => /^\/sell\?car=/.test(i.sellAddress)), g05.variants && g05.variants.own);
   ok('1987 Firebird Trans Am: "GTA and Formula cars are priced on their own." (the plain Base is no name)', fb.variants && fb.variants.ownLine === "GTA and Formula cars are priced on their own.", fb.variants && fb.variants.ownLine);
   ok("1987 Firebird Trans Am: the names link to the GTA and the Formula", fb.variants && (fb.variants.own || []).map(i => i.address).join() === "/market-check?q=1987%20Pontiac%20Firebird%20GTA,/market-check?q=1987%20Pontiac%20Firebird%20Formula", fb.variants && fb.variants.own);
   ok("1987 Camaro Z28: a line from the list, naming the cars set aside and never the Base or an unnamed sale", cz.variants && typeof cz.variants.ownLine === "string" && / are priced on their own\.$/.test(cz.variants.ownLine) && /IROC-Z/.test(cz.variants.ownLine) && !/Unstated|unstated|\bBase\b/.test(cz.variants.ownLine), cz.variants && cz.variants.ownLine);
   const un = await ownOf("1987 Pontiac Firebird", { year: 1987, make: "Pontiac", model: "Firebird" });
   ok("an unstated Firebird (every variant in the pool) has no line", !(un.variants && un.variants.ownLine), un.variants && un.variants.ownLine);
+  // THE DIG LINE (order bc85 item 5): one public line under every range; the split names the variants left out; a car with no family gets the general sentence
+  const sup = await ownOf("1990 Toyota Supra", { year: 1990, make: "Toyota", model: "Supra" });
+  const GEN = "Every sale we hold is in this range. Editions and trims are priced on their own, and replicas and tributes are set aside.";
+  ok("DIG: the 2005 Ford GT names its split", g05.tier === "result" && g05.digLine === "Every sale we hold is in this range. Heritage editions are priced on their own. Replicas and tributes are set aside.", g05.digLine);
+  ok("DIG: the 1987 Firebird Trans Am names its split (GTA and Formula)", fb.tier === "result" && fb.digLine === "Every sale we hold is in this range. GTA and Formula cars are priced on their own. Replicas and tributes are set aside.", [fb.tier, fb.digLine]);
+  ok("DIG: a car with no family gets the general sentence", sup.tier === "result" && sup.digLine === GEN, [sup.tier, sup.digLine]);
+  ok("DIG: the parts a page prints are the line, and each name is a link to its own page", [g05, fb, sup].every(a => Array.isArray(a.digParts) && a.digParts.map(x => x.text).join("") === a.digLine) && g05.digParts.some(x => x.text === "Heritage editions" && x.address === "/market-check?q=2006%20Ford%20GT%20Heritage%20Edition") && fb.digParts.filter(x => x.address).length === 2 && sup.digParts.every(x => !x.address), [g05.digParts, fb.digParts]);
+  ok("DIG: every answer with a range carries it, in Sam's voice (no tool or house named, no dash)", [g05, fb, sup, cz].filter(a => a.tier === "result").every(a => typeof a.digLine === "string" && !/hagerty|bring a trailer|cars (&|and) bids|\bBaT\b|[\u2013\u2014]/i.test(a.digLine)), [g05, fb, sup, cz].map(a => [a.tier, !!a.digLine]));
+  ok("DIG: an answer with no range carries none", !["thin", "refusal", "trim_choice"].some(t => { const a = [g05, fb, sup, cz, un].find(x => x.tier === t); return a && a.digLine; }));
   // the sweep: every family, every variant, a year the variant was built; the line is made, finished, free of dashes, and names only the family's own cars
   const bad = []; let made = 0, families = 0;
   for (const fam of V.familiesOf()) { families++;
@@ -522,6 +532,10 @@ function mutants() {
     ["OWN: a name has no page address", "lib/variants.js", s => s.replace('address: "/market-check?q=" + encodeURIComponent(words), ', "")],
     ["OWN: the Ford GT list is not in the data", "data/variantFamilies.json", s => s.replace('"id": "ford-gt-2005"', '"id": "ford-gt-2005zz", "models": ["GTzz"], "x": 0, "z"').replace('"x": 0, "z", "label"', '"label"')],
     ["OWN: the plural of a variant is ignored", "lib/variants.js", s => s.replace("itemOf(v.plural || v.name,", "itemOf(v.name,")],
+    ["DIG: the line is not served", "lib/onebox.js", s => s.replace("out.digLine = dl.line; out.digParts = dl.parts;", "")],
+    ["DIG: a split is not named (the general sentence always)", "lib/variants.js", s => s.replace("if (!vs.length) {", "if (true) {")],
+    ["DIG: the names are not links", "lib/variants.js", s => s.replace("const link = i => ({ text: i.text, address: i.address, sellAddress: i.sellAddress });", "const link = i => ({ text: i.text });")],
+    ["DIG: the line carries the range only for a result (any answer carries it)", "lib/onebox.js", s => s.replace('out.tier === "result" && Array.isArray(out.cluster)) { const dl', 'out && Array.isArray(out.cluster) || true) { const dl')],
     ["the line names what is not set aside", "lib/variants.js", s => s.replace("aside: out.length ? joinAnd(out.map(noun)) : null,", "aside: inNames.length ? joinAnd(inNames.map(noun)) : null,")]
   ];
   let survived = 0;
