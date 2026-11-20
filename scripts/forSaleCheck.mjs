@@ -181,11 +181,12 @@ globalThis.fetch = async (url, init) => {
 };
 // the model is the only fixture on the engine's side: a stand-in for api.anthropic.com that calls search_live with the filters the app's own parser reads from the typed words (the chat road)
 const sse = evts => new Response(new ReadableStream({ start(c) { const e = new TextEncoder(); for (const x of evts) c.enqueue(e.encode("data: " + JSON.stringify(x) + "\n\n")); c.close(); } }), { status: 200, headers: { "content-type": "text/event-stream" } });
+let MODEL_DROPS_FORSALE = false;   // a case: the model's search call carries no for_sale (the buyer's words must still decide)
 async function fakeModel(init) {
   const body = JSON.parse(init.body), msgs = body.messages || [], last = msgs[msgs.length - 1], hasResult = last && Array.isArray(last.content) && last.content.some(c => c.type === "tool_result");
   if (hasResult) return sse([{ type: "message_start", message: { usage: { input_tokens: 10 } } }, { type: "content_block_start", index: 0, content_block: { type: "text" } }, { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "Here they are." } }, { type: "message_delta", delta: { stop_reason: "end_turn" }, usage: { output_tokens: 5 } }, { type: "message_stop" }]);
   const text = String((typeof last.content === "string" ? last.content : (last.content || []).map(c => c.text || "").join(" ")) || ""), f = await SP.filtersFromText({ supabaseUrl: process.env.SUPABASE_URL, supabaseKey: "k" }, text);
-  return sse([{ type: "message_start", message: { usage: { input_tokens: 10 } } }, { type: "content_block_start", index: 0, content_block: { type: "tool_use", id: "tu1", name: "search_live" } }, { type: "content_block_delta", index: 0, delta: { type: "input_json_delta", partial_json: JSON.stringify(f || {}) } }, { type: "message_delta", delta: { stop_reason: "tool_use" }, usage: { output_tokens: 5 } }, { type: "message_stop" }]);
+  return sse([{ type: "message_start", message: { usage: { input_tokens: 10 } } }, { type: "content_block_start", index: 0, content_block: { type: "tool_use", id: "tu1", name: "search_live" } }, { type: "content_block_delta", index: 0, delta: { type: "input_json_delta", partial_json: JSON.stringify(MODEL_DROPS_FORSALE && f ? (({ for_sale: _x, ...rest }) => rest)(f) : (f || {})) } }, { type: "message_delta", delta: { stop_reason: "tool_use" }, usage: { output_tokens: 5 } }, { type: "message_stop" }]);
 }
 async function call(handler, url, { method = "GET", body = null, crew = true, headers = {} } = {}) {
   const chunks = []; const res = { h: {}, code: 200, body: "", setHeader(k, v) { this.h[k.toLowerCase()] = v; return this; }, getHeader(k) { return this.h[k.toLowerCase()]; }, removeHeader() {}, writeHead(c, hh) { this.code = c; if (hh) for (const k of Object.keys(hh)) this.h[k.toLowerCase()] = hh[k]; return this; },
@@ -369,6 +370,37 @@ await section("roads", async () => {
   ok("every buySearch answer that carries a search's cards and its car also carries forSale (rerun, more, direct)", sites.length >= 2 && sites.every(l => /forSale/.test(l)) || /withServedCar\(\{\s*\n\s*status: "ok",\s*\n\s*\.\.\.\(forSale/.test(src), sites.map(l => l.slice(0, 80)));
   ok("the chat shape carries forSale", /shape: async out => withSuggest\(out, \{ \.\.\.\(out\.car \? \{ car: out\.car \} : \{\}\), \.\.\.\(out\.forSale/.test(src));
   ok("Tasks and the alerts are not touched: nothing under lib/tasks or lib/live/buyAlerts.js reads the for-sale table", ["lib/tasks/tasks.js", "lib/live/buyAlerts.js", "lib/live/watches.js"].every(f => !/forsale|for_sale/i.test(fs.readFileSync(path.join(ROOT, f), "utf8"))));
+});
+
+// ================= 3b. THE PILL WORDS (lane-b-sale-name, Nov 19 2026; order bc85 item 4) =================
+// CAUSE: a person who types "dealers" or "classifieds" with the car got the auctions group first (default "auctions" was fixed) and the word was left in the search as a title word or dropped as a filler; the four pills had to be tapped. FIX: lib/live/search.js takes the words in the parse
+// (before any stored answer is read) into filters.forSale, and the answer's forSale.default is that group. CLASS: every word of the order, on every Find road (typed words, the rerun with the filters, the chat's own turn), the count unchanged by a word, no word: auctions.
+await section("pill words", async () => {
+  SERVE.forSaleReset();
+  const WORDS = [["dealers", "dealers"], ["dealer", "dealers"], ["dealership", "dealers"], ["classifieds", "classifieds"], ["classified", "classifieds"], ["private seller", "classifieds"], ["private sale", "classifieds"], ["auctions", "auctions"], ["auction", "auctions"], ["for sale", "all"], ["everything", "all"], ["all", "all"]];
+  const base = json(await find({ q: "1987 Porsche 911" })), bg = base && base.forSale;
+  ok("no word: the default stays auctions", !!bg && bg.default === "auctions", bg && bg.default);
+  for (const [word, want] of WORDS) {
+    const o = json(await find({ q: "1987 Porsche 911 " + word })), g = o && o.forSale;
+    ok(`"${word}" sets the default to ${want}`, !!g && g.default === want, g && g.default);
+    ok(`"${word}": the counts are the search's own (the word is no filter, no title word)`, !!g && !!bg && JSON.stringify(g.counts) === JSON.stringify(bg.counts) && o.total === base.total, g && [g.counts, bg && bg.counts]);
+  }
+  const lead = json(await find({ q: "dealers 1987 Porsche 911" })), mix = json(await find({ q: "1987 Porsche 911 dealers and auctions" })), gen = json(await find({ q: "1987 Porsche 911 dealers for sale" })), awd = json(await find({ q: "1987 Porsche 911 all wheel drive" }));
+  ok("the word first sets the same default", lead && lead.forSale && lead.forSale.default === "dealers", lead && lead.forSale && lead.forSale.default);
+  ok("two named groups are all; a named group beats the generic words", mix && mix.forSale && mix.forSale.default === "all" && gen && gen.forSale && gen.forSale.default === "dealers", [mix && mix.forSale && mix.forSale.default, gen && gen.forSale && gen.forSale.default]);
+  ok("'all wheel drive' is a drivetrain word, not the pill word", awd && (!awd.forSale || awd.forSale.default === "auctions"), awd && awd.forSale && awd.forSale.default);
+  const re = json(await find({ action: "rerun", filters: { make: "Porsche", model: "911", for_sale: "classifieds" } })), bad = json(await find({ action: "rerun", filters: { make: "Porsche", model: "911", for_sale: "everything-else" } }));
+  ok("the rerun carries the group (the address of the search keeps it) and an unknown group is the default", re && re.forSale && re.forSale.default === "classifieds" && bad && bad.forSale && bad.forSale.default === "auctions", [re && re.forSale && re.forSale.default, bad && bad.forSale && bad.forSale.default]);
+  const ch = chatDone(await call(BUY, "/api/buySearch", { method: "POST", body: { action: "chat", messages: [{ role: "user", content: "1987 Porsche 911 dealers" }], state: { filters: {} }, turns: 0 } }));
+  ok("the chat's own turn: the same default", !!(ch && ch.forSale && ch.forSale.default === "dealers"), ch && ch.forSale && ch.forSale.default);
+  const pr = json(await find({ action: "parse", text: "1987 Porsche 911 dealers" }));
+  ok("the car bar's chips say the group the words asked for", !!(pr && Array.isArray(pr.chips) && pr.chips.includes("dealers")), pr && pr.chips);
+  const vis = json(await find({ q: "1987 Porsche 911 dealers" }, { crew: false }));
+  ok("a visitor still reads no for-sale group whatever the words (no field of any kind, the filters included)", !!vis && !("forSale" in vis) && !/forSale|for_sale/.test(JSON.stringify(vis)), vis && Object.keys(vis));
+  const byText = json(await find({ action: "rerun", text: "1987 Porsche 911 dealers" }));
+  ok("the no-model search (the rerun from the typed words) reads the same group", !!(byText && byText.forSale && byText.forSale.default === "dealers"), byText && byText.forSale && byText.forSale.default);
+  MODEL_DROPS_FORSALE = true; const chBare = chatDone(await call(BUY, "/api/buySearch", { method: "POST", body: { action: "chat", messages: [{ role: "user", content: "1987 Porsche 911 classifieds" }], state: { filters: {} }, turns: 0 } })); MODEL_DROPS_FORSALE = false;
+  ok("the chat's own turn: the buyer's words decide the group even when the model's search call carries none", !!(chBare && chBare.forSale && chBare.forSale.default === "classifieds"), chBare && chBare.forSale && chBare.forSale.default);
 });
 
 await section("the range does not move with the asking price", async () => {

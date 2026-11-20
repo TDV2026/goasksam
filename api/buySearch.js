@@ -54,7 +54,7 @@ import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
 import { carFromRequest, isPartialCar, carWords, withPartialCar } from "../lib/carToken.js";
 import { forSaleFor } from "../lib/forsale/serve.js";
-import { withForSale } from "../lib/forsale/gate.js";
+import { withForSale, forSaleActive } from "../lib/forsale/gate.js";
 import { runTurn, runFilters, runSearch, filtersFromText, suggestFor, BATCH_BUDGET_MS, useMarketRank, radiusOf } from "../lib/live/samChat.js";
 // The composer's suggestions (Stage 1c item 6), from the shaped cards (seen_before exists only after shaping).
 const withSuggest = (out, r) => ({ ...r, suggest: suggestFor({ meta: out.meta, filters: out.state && out.state.filters, seenAny: (r.cards || []).some(c => c && c.seen_before) }) });
@@ -329,6 +329,7 @@ function cleanFilters(raw) {
   f.kind = typeof raw.kind === "string" && /^[A-Za-z0-9 .\-]{1,30}$/.test(raw.kind) ? raw.kind : null;
   f.gearbox = raw.gearbox === "manual" || raw.gearbox === "auto" ? raw.gearbox : null; f.gearboxLabel = typeof raw.gearboxLabel === "string" ? raw.gearboxLabel.slice(0, 20) : null;
   f.attrWords = arr("attrWords", /^[a-z0-9]{2,16}$/);
+  if (["dealers", "classifieds", "auctions", "all"].includes(raw.forSale)) f.forSale = raw.forSale;   // the group the page opens on (lib/live/search.js pill words)
   for (const k of ["miMax", "miMin", "priceMax", "priceMin", "yearMin", "yearMax"]) f[k] = Number(raw[k]) > 0 ? Number(raw[k]) : null;
   return f;
 }
@@ -638,6 +639,7 @@ async function handler(req, res) {
       if (v && v.model) chips.push(v.model);
       if (v && v.trim) chips.push(v.trim);
       if (f.gearbox) chips.push(f.gearbox === "auto" ? "automatic" : f.gearbox);
+      if (f.forSale) chips.push(f.forSale === "all" ? "everything for sale" : f.forSale);   // the group the words asked for (the pill words)
       for (const bd of f.bodies || []) chips.push(bd);
       if (f.priceMax) chips.push("under $" + Number(f.priceMax).toLocaleString("en-US"));
       if (f.miMax) chips.push("under " + Number(f.miMax).toLocaleString("en-US") + " miles");
@@ -735,11 +737,11 @@ async function handler(req, res) {
     const familyKey = ["family", v.make, v.parentModel || v.model, v.trim, (f.gens || []).join("-"), (f.bodies || []).join("-")].filter(Boolean).join(":").toLowerCase().replace(/[^a-z0-9:-]+/g, "-");
     // THE CAR ON THE ANSWER (lane-b-typed-through): the car Find read, with the mileage the typed words carried, as token, line and short (lib/onebox.js withServedCar), the same words every tool's answer carries
     // FOR SALE (lane-d-forsale): dealers and classifieds beside the auctions, the same search over our own table; null (nothing added to the answer) for a visitor while FORSALE_PUBLIC is off
-    const forSale = await forSaleFor(env, rowsIn => searchLive(env, v, f, parsed.text, { rows: rowsIn }), rows.length).catch(() => null);
+    const forSale = await forSaleFor(env, rowsIn => searchLive(env, v, f, parsed.text, { rows: rowsIn }), rows.length, { default: f.forSale || null }).catch(() => null);
     return res.status(200).json(withServedCar({
       status: "ok",
       ...(forSale ? { forSale } : {}),
-      understood: { make: v.make, model: v.parentModel || v.model || null, trim: v.trim || null, year: v.year || null, noun: nounFor(v, f), filters: f },
+      understood: { make: v.make, model: v.parentModel || v.model || null, trim: v.trim || null, year: v.year || null, noun: nounFor(v, f), filters: forSaleActive() || !("forSale" in f) ? f : (({ forSale: _x, ...rest }) => rest)(f) },   // a visitor's filters carry no for-sale word
       total: rows.length, shownCap: capped.length, cards: first.concat(rest), facets, familyKey, emptyMarket, excluded: excluded && excluded.length ? excluded : undefined, milesNear: milesNear || undefined
     }, v, env));
   } catch (e) {
