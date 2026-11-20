@@ -209,6 +209,14 @@ await section("the report: a split for every source and the VIN history count", 
   ok("the report names no listing text, seller or VIN: counts only", !/title|seller|vin_norm/.test(JSON.stringify(r)));
 });
 // 6 THE NIGHTLY LEASE AND THE WIDTH (Nov 20 2026): GitHub starts the nightly anywhere from 07:00 to 17:00 UTC, so no clock decides: the nightly's first script sets a lease (lib/nightlyLease.js), its last clears it, it expires alone after 90 minutes; the prepare job (the cron and the loop, one route) makes no read while it is held; the width follows data/forsaleBudget.json prepare.read_width.
+await section("the read window: every source is in the queue (Nov 20 2026)", async () => {
+  // THE CLASS: a source whose rows come late (duPont Registry, Barn Finds) was outside the first N pending rows by id while an earlier source still had pending rows, so it got no read however much it was searched. 100 earlier rows, then 5 late rows of other sources, window 40.
+  const early = Array.from({ length: 100 }, (_, i) => ({ ...mk(i + 1, { title: "1987 Porsche 911 Carrera " + i, mileage: 40000 }), source: "classiccars", source_type: "classified" }));
+  const late = ["dupontregistry", "barnfinds"].flatMap((src, k) => Array.from({ length: 5 }, (_, i) => ({ ...mk(101 + k * 5 + i, { title: "1965 Ford Mustang Fastback " + src + i, mileage: 40000 }), source: src, source_type: "classified" })));
+  reset([...early, ...late]); const lg = {}; const o = await PREP.prepareForSale(ENV, { cfg: WIDE, budgetMs: 60000, engine: ENGINE(lg), resolveLimit: 400, readLimit: 40, onePass: true });
+  ok("the late sources are in the window: duPont Registry and Barn Finds (10 listings) are read though 100 earlier rows are pending and the window is 40", TABLE.filter(r => r.source !== "classiccars" && r.read).length === 10, [TABLE.filter(r => r.source !== "classiccars" && r.read).length, o.reads]);
+  ok("and the earlier source is held to its own window (40 of its 100 read in the pass), not the whole table", TABLE.filter(r => r.source === "classiccars" && r.read).length === 40, TABLE.filter(r => r.source === "classiccars" && r.read).length);
+});
 await section("nightly lease and width", async () => {
   const NL = await imp("lib/nightlyLease.js"), LIVE = JSON.parse(fs.readFileSync(path.join(ROOT, "data/forsaleBudget.json"), "utf8")), mkRows = n => Array.from({ length: n }, (_, i) => mk(i + 1, { title: "1987 Porsche 911 Carrera " + i, mileage: 40000 })), E = { ...ENV };
   ok("the shipped file: no clock window, width 3", !("nightly_pause_utc" in (LIVE.prepare || {})) && LIVE.prepare.read_width === 3, LIVE.prepare);
@@ -269,6 +277,7 @@ function mutants() {
     ["a listing with no price is read", ...sub(P, "&asking_price_usd=gt.0&or=(read.is.null", "&or=(read.is.null")],
     ["a resolver that did not answer marks the listing unresolved", ...sub(P, "if (spec === undefined) continue;", "if (spec === undefined) spec = null;")],
     ["a read older than 12 hours is not made again", ...sub(P, ",read->>at.lt.${encodeURIComponent(stale)})&select=*`;", ")&select=*`;")],
+    ["the read queue looks at the first rows of the whole table (one window, not one per source)", ...sub(P, "await readWindow(env, stale, Number(opts.readLimit) || 6000)", "await selectPages(env, READ_Q(stale), Number(opts.readLimit) || 6000)")],
     ["what is left to read is not counted", ...sub(P, "countOf(env, READ_Q(stale)), Promise.resolve", "Promise.resolve(0), Promise.resolve")],
     ["what is left to resolve is not counted", ...sub(P, "const [a, b, c] = await Promise.all([countOf(env, RESOLVE_Q()),", "const [a, b, c] = await Promise.all([Promise.resolve(0),")],
     ["the time budget is not applied to the reads", ...sub(P, "while (ri < rg.length && left() > Math.min(8000, budget * 0.15)) {", "while (ri < rg.length) {")],
