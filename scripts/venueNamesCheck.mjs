@@ -31,6 +31,9 @@ ok("duPont Registry Live (the live fault) is named", name("dupontregistrylive") 
 ok("a key written with other spelling gives the same name (BaT, Cars & Bids, All Collector Cars)", name("allcollectorcars") === name("acc") && name("Cars & Bids") === "Cars & Bids" && name("BRINGATRAILER") === "Bring a Trailer");
 ok("a key nobody named gives nothing to print, never the key", name("zzzvendorsource") === "" && name("") === "" && name(null) === "");
 ok("a value that is already a name passes through as it is", name("Bring a Trailer") === "Bring a Trailer" && name("Sotheby's Motorsport") === "Sotheby's Motorsport");
+// lib/onebox.js is an ENGINE file: changing it needs the engine stamp bump (Lane B's lane-b-nextbump), so its name map moves in its own commit (branch lane-s-venue-names-onebox) after the Nov 22 launch.
+// Until then it keeps its own PLATFORM_NAMES (the engine's answers print the old form for Gooding); this flag is the one place that says so, and the check asserts the pending state is whole (never half-moved).
+const ONEBOX_WAITS_FOR_STAMP = true;
 // 2 no second map: a file (outside the one map) that holds three or more known keys each paired with a NAME (a capitalised string) is a second map of names. The few that stay are not maps a page prints from, and each says why.
 const STAYS = {
   "lib/desk/measures.js": "the stored archive label the Desk's venue filter queries on (platform=eq.<label>), never printed",
@@ -50,6 +53,7 @@ const STAYS = {
 // 2b the OLD FORMS (Sam, Nov 19 2026: the house is "Gooding Christie's"; Hagerty and PCarMarket stand). "Gooding & Co", "Gooding & Company" and the PCAR Market spellings are STORED archive labels (sales_archive.platform) that a query filters on; they are never a name a page prints.
 // A file outside this list that holds one is a page, email or tile printing the old form; the list says why each stays. The map itself must give the house its new name for the key, the stored label and the old spellings.
 const STORED = {
+  ...(ONEBOX_WAITS_FOR_STAMP ? { "lib/onebox.js": "PLATFORM_NAMES waits for the engine stamp bump (lane-b-nextbump), moved in its own commit" } : {}),
   "api/sellerDecision.js": "the stored label a house-leaders query filters on and the evidence tables key on (platform=eq.<label>)",
   "api/usageDashboard.js": "ops endpoint queries and crew-only ops text",
   "lib/ops/depthProbe.js": "the depth probe's own table (ops)",
@@ -91,7 +95,9 @@ const STORED = {
 // 3 the engine serves the name on each path
 const hd = await imp("api/_historyData.js"), ob = await imp("lib/onebox.js"), srch = await imp("lib/live/search.js"), serve = await imp("lib/forsale/serve.js");
 ok("the history line's houseName gives the name for every auction source and never a key", !hd.__error && AUCTION.every(k => hd.houseName(k) === name(k)) && hd.houseName("zzzvendorsource") === "", hd.__error);
-{ const src = fs.readFileSync(path.join(root, "lib/onebox.js"), "utf8"); ok("lib/onebox.js names venues through the one map (platformName is venueName)", /const platformName = s => venueName\(s\)/.test(src) && !/PLATFORM_NAMES\s*=\s*\{/.test(src)); }
+{ const src = fs.readFileSync(path.join(root, "lib/onebox.js"), "utf8");
+  if (ONEBOX_WAITS_FOR_STAMP) ok("lib/onebox.js is untouched (it waits for the engine stamp bump): still its own PLATFORM_NAMES and no venueNames import", /PLATFORM_NAMES\s*=\s*\{/.test(src) && !/venueNames\.js/.test(src));
+  else ok("lib/onebox.js names venues through the one map (platformName is venueName)", /const platformName = s => venueName\(s\)/.test(src) && !/PLATFORM_NAMES\s*=\s*\{/.test(src)); }
 { const src = fs.readFileSync(path.join(root, "lib/_email.js"), "utf8"); ok("the lead email names its platform through the one map", /venueName/.test(src) && !/PLATFORM_LABELS\s*=\s*\{/.test(src)); }
 { const src = fs.readFileSync(path.join(root, "lib/desk/execute.js"), "utf8"); ok("the Desk names its venues through the one map", /venueName/.test(src) && !/PLATFORM_DISPLAY\s*=\s*\{/.test(src)); }
 // the earlier-sale line: seenBefore serves house, the page prints it (the page holds no map)
@@ -128,7 +134,7 @@ function mutants() {
     ["the history line has a map of its own again", "api/_historyData.js", "export function houseName(s) { return venueName(s); }", 'const HOUSE = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", pcarmarket: "PCarMarket" };\nexport function houseName(s) { const k = String(s || "").toLowerCase(); return HOUSE[k] || (s ? String(s) : ""); }'],
     ["the earlier-sale line is not served with a name", "lib/live/search.js", "house: venueName(x.source), historyUrl", "historyUrl"],
     ["the for sale card has no venue", "lib/forsale/serve.js", ", venue: venueName(row.source)", ""],
-    ["the Find page prints the card's key", "lib/onebox.js", "const platformName = s => venueName(s);", "const platformName = s => String(s || \"\");"],
+    ...(ONEBOX_WAITS_FOR_STAMP ? [] : [["the Find page prints the card's key", "lib/onebox.js", "const platformName = s => venueName(s);", "const platformName = s => String(s || \"\");"]]),
     ["the page keeps a source map of its own", "api/buy.js", "  var KEEP_ICON = __KEEP_ICON__;", "  var KEEP_ICON = __KEEP_ICON__; var HOUSE = {bringatrailer:\\\"Bring a Trailer\\\", carsandbids:\\\"Cars & Bids\\\", hagerty:\\\"Hagerty\\\"};"],
     ["the Desk has a map of its own again", "lib/desk/execute.js", "function platformDisplay(slug) { return venueName(slug); }", 'const PLATFORM_DISPLAY = { bringatrailer: "Bring a Trailer" };\nfunction platformDisplay(slug) { return PLATFORM_DISPLAY[slug] || slug; }'],
   ];
