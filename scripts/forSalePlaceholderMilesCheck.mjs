@@ -51,6 +51,8 @@ ok("a mileage read from the listing's own title is a filler too (a title that sa
   const HD = await imp("api/_historyData.js"), va = await HD.vinAppearances(env, "5F08T123456").catch(() => null); globalThis.fetch = realFetch;
   const apps = va && va.appearances || [];
   ok("the VIN history prints a filler appearance with no mileage and a real one as it is", apps.length === 2 && apps.find(a => a.date === "2024-03-12").mileage == null && apps.find(a => a.date === "2023-03-12").mileage === 41000, JSON.stringify(apps.map(a => a.mileage))); }
+if (PM) { let bad = null; const ap = [{ date: "2024-03-12", result: "sold", miles: 1000 }]; for (let v = 0; v <= 600000 && bad == null; v += 1) { const has = /more miles/.test(PL.priorTake(ap, v, Date.now())); if (has !== (PM.statedMiles(v) != null && PM.statedMiles(v) > 1000)) bad = v; }
+  ok("the history line's own copy of the rule (priorListing.js is self-contained, written into the Buy page) agrees with lib/placeholderMiles.js on every whole number from 0 to 600,000", bad == null, bad == null ? "" : "differ at " + bad); }
 ok("the history line: a filler on the earlier or the current listing prints no 'more miles'", PL.priorTake([{ date: "2024-03-12", result: "sold", miles: 41000 }], 999999, Date.now()) === PL.priorTake([{ date: "2024-03-12", result: "sold", miles: 41000 }], null, Date.now()) && !/more miles/.test(PL.priorTake([{ date: "2024-03-12", result: "sold", miles: 999999 }], 45000, Date.now())));
 ok("prepare groups a filler with the cars of no mileage", P.bandOf(999999) === P.bandOf(null) && P.bandOf(0) === "unknown" && P.bandOf(45000) !== "unknown");
 // 4. THE SWEEP AND THE REQUEUE
@@ -66,6 +68,6 @@ ok("the route has the sweep (report=1&miles=1) and the requeue (mode=requeue&wha
 const ud = src("api/usageDashboard.js"), lsc = ud.slice(ud.indexOf('task === "livesourcecount"'), ud.indexOf('task === "specialscount"'));
 ok("the live source count task (livesourcecount) is read only: one HEAD count a source, a slug only, never a row", /method: "HEAD"/.test(lsc) && !/method: "(POST|PATCH|DELETE|PUT)"/.test(lsc) && /\^\[a-z0-9_\]\{2,40\}\$/.test(lsc) && /writes: 0/.test(lsc));
 // 5. THE CLASS IN THE SOURCE: no reader of a listing's stated mileage takes the raw number
-const raw = ["lib/live/liveTrust.js", "lib/forsale/rules.js", "lib/forsale/serve.js", "lib/live/feed.js", "lib/live/featuredHistory.js", "lib/live/priorListing.js", "api/_historyData.js"];
+const raw = ["lib/live/liveTrust.js", "lib/forsale/rules.js", "lib/forsale/serve.js", "lib/live/feed.js", "lib/live/featuredHistory.js", "api/_historyData.js"];
 ok("every reader of a stated mileage goes through statedMiles", raw.every(f => /statedMiles/.test(src(f))), raw.filter(f => !/statedMiles/.test(src(f))).join(","));
 console.log(failed ? `\n${failed} FAILED` : "\nall pass"); process.exit(failed ? 1 : 0);
