@@ -71,7 +71,7 @@ const lv = car; LIVE = [lv];   /* the car the warm steps above already read: its
 LIVE = [];
 const OB = await imp("lib/onebox.js"), full = await OB.oneEngineAnswer({ make: "Porsche", model: "911", year: 2016, trim: "GT3 RS", requireYear: true }, null, "2016 Porsche 911 GT3 RS", { ...env, asked: 0 }, null).catch(() => null);
 const mcCards = full && full.raw && full.raw.cards || [];
-ok(mcCards.length === N && ea && ea.cards.every((c, k) => c.price === mcCards[k].price && c.date === (mcCards[k].date || null) && c.title === (mcCards[k].title || null)), "warm: the popup's sales are the full Market Check page's cards, the same sales in the same order");
+ok(mcCards.length === N && ea && ea.cards.every((c, k) => c.price === mcCards[k].price && c.date === (mcCards[k].date || null) && c.carLine === (mcCards[k].carLine || null)), "warm: the popup's sales are the full Market Check page's cards, the same sales in the same order");
 // (2) a cold second instance: the card's market line is stored, the popup's own engine read does not come back
 await wait(1500); const SNAP = new Map(STORE); ARCHIVE_DOWN = true;
 const L2 = await imp("lib/live/search.js", "cold"), cold = await L2.panelOf(env, car, L2.listingFacts(car)).catch(e => { ok(false, "cold, engine read failed: panelOf THREW, so the panel answers 500 and the popup draws the card's own header and no sales (" + String(e && e.message).slice(0, 80) + ")"); return null; });

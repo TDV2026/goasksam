@@ -56,7 +56,7 @@ const TASKS = {
 };
 // ---- the watch section (lib/live/watches.js messageFor): a sold-car Task (spec) or an exact-car Task (vin), their events as pendingEvents hands them over.
 const WID = n => `00000000-0000-4000-8000-0000000000b${n}`;
-const sale = (i, o = {}) => ({ key: "s" + i, kind: "sale", date: `2026-10-${String(20 + (i % 8)).padStart(2, "0")}`, price: 98000 + i * 1500, house: "Bring a Trailer", title: `1987 Porsche 911 Carrera Targa ${i}`, miles: 41000 + i * 700, url: "https://example.com/sale/" + i, band: [88000, 121000], ...o });
+const sale = (i, o = {}) => ({ key: "s" + i, kind: "sale", date: `2026-10-${String(20 + (i % 8)).padStart(2, "0")}`, price: 98000 + i * 1500, house: "Bring a Trailer", title: `1987 Porsche 911 Carrera Targa ${i}`, carLine: `1987 Porsche 911 Carrera Targa ${i}`, miles: 41000 + i * 700, url: "https://example.com/sale/" + i, band: [88000, 121000], ...o });
 export const WATCHES = {
   one:   { w: { id: WID(1), user_id: "u", kind: "spec", label: "Porsche 911 Carrera Targas", spec: {}, baseline_date: "2026-10-01" }, events: [sale(1)] },
   many:  { w: { id: WID(2), user_id: "u", kind: "spec", label: "Porsche 911 Carrera Targas", spec: {}, baseline_date: "2026-10-01" }, events: [sale(2), sale(3, { band: null }), sale(4, { band: null, setAside: "modified", hasRange: true })] },

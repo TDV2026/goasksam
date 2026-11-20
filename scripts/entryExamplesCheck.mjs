@@ -57,7 +57,7 @@ const env = { supabaseUrl: "https://fake.supabase.test", supabaseKey: "k" };
 const CREW = "gas_crew=" + C.mintCrewCookieValue(), D1 = Date.parse("2026-11-09T20:00:00Z"), D2 = D1 + 864e5;
 // the shaped cards the engine's answer carries (price, mi, platformName, date, title, image, url)
 let uid = 0;
-const card = (miles, price, o = {}) => ({ id: ++uid, title: "2001 BMW M3", price, mi: miles, milesHidden: false, platformName: "Bring a Trailer", platform: "Bring a Trailer", date: "2026-0" + (1 + (uid % 9)) + "-1" + (uid % 9), image: "https://img.test/m" + uid + ".jpg", url: "https://bringatrailer.com/listing/m3-" + uid + "/", ...o });
+const card = (miles, price, o = {}) => ({ id: ++uid, title: "2001 BMW M3", carLine: "2001 BMW M3", price, mi: miles, milesHidden: false, platformName: "Bring a Trailer", platform: "Bring a Trailer", date: "2026-0" + (1 + (uid % 9)) + "-1" + (uid % 9), image: "https://img.test/m" + uid + ".jpg", url: "https://bringatrailer.com/listing/m3-" + uid + "/", ...o });
 const pool = (len, o = {}) => Array.from({ length: len }, (_, i) => card(20000 + i * 9000, 52000 - i * 2600, o));
 function world(poolsByText, placesByText, now = D1) {
   EE.resetRetryGuard();

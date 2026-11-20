@@ -137,7 +137,7 @@ for (const f of FAMS) {
     // EVERY SALE CARRIES ITS VARIANT (the label Lane S prints on the sales list: card.variantLabel)
     const cl = (a.cards || []), lab = new Map(); for (const c of cl) lab.set(c.variantLabel, (lab.get(c.variantLabel) || 0) + 1);
     ok("the recorded Firebird: every sale on the list carries variantLabel, the variant its own words name (card.variantLabel; null when it names none)", cl.length > 0 && cl.every(c => "variantLabel" in c) && cl.every(c => c.variantLabel === null || vs.rows.some(r => r.name === c.variantLabel)), [cl.length, [...lab.entries()]]);
-    { const VV = await imp("lib/variants.js"), fam = VV.familiesOf().find(x => x.id === f.id), want = c => { const v = VV.variantOfSale(fam, { title: c.title }); return v === VV.UNSTATED ? null : v; };
+    { const VV = await imp("lib/variants.js"), fam = VV.familiesOf().find(x => x.id === f.id), want = c => { const v = VV.variantOfSale(fam, { title: c.carLine }); return v === VV.UNSTATED ? null : v; };
       ok("the recorded Firebird: the sale list's labels are what the sale's own title names (a Trans Am GTA sale is GTA, a plain Firebird is Base, a Formula is Formula)", cl.length > 0 && cl.every(c => c.variantLabel === want(c)) && ["GTA", "Base", "Formula", "Trans Am"].every(n => lab.has(n)), [...lab.entries()]); }
     ok("the recorded Firebird: the four replicas and tributes are set aside and counted in one line (the engine's)", vs.asideLine === "Four replicas and tributes are set aside and counted in none of these.", vs.asideLine);
     ok("the recorded Firebird: no row and no count for the replicas (set aside, counted in one line by the page's source)", !vs.rows.some(r => /replica|kitt/i.test(r.label + r.salesText)), vs.rows.map(r => r.label));

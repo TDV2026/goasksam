@@ -409,7 +409,7 @@ export async function hubVins(env, hub, timing) {
     const key = r.vin_norm + "|" + String(r.sale_date || "").slice(0, 10) + "|" + Math.round(Number(r.sale_price) || 0);
     if (sk.has(key)) continue; sk.add(key);
     const p = usdOf(r.sale_price, r.sale_price_usd, r.currency);
-    get(r.vin_norm).apps.push({ kind: "sale", car: carCols(r.year, r.model, r.model_family, r.body), year: Number(r.year) || null, date: String(r.sale_date || "").slice(0, 10), priceUsd: p.usd, nativePrice: p.native, currency: p.currency, house: houseName(r.platform), url: r.url || r.url2 || null, mileage: num(r.mileage), image: r.img || null, title: r.listing_title });
+    get(r.vin_norm).apps.push({ kind: "sale", car: carCols(r.year, r.model, r.model_family, r.body), year: Number(r.year) || null, date: String(r.sale_date || "").slice(0, 10), priceUsd: p.usd, nativePrice: p.native, currency: p.currency, house: houseName(r.platform), url: r.url || r.url2 || null, mileage: num(r.mileage), image: r.img || null, ...feeFieldsOf({ kind: "sale", house: houseName(r.platform), priceUsd: p.usd, nativePrice: p.native }) });   // the with-fee words are the engine's (lib/buyerFee.js); the listing title is off the wire
   }
   for (const a of atts || []) {
     if (!a.chassis_vin_norm || a.chassis_vin_norm.length < 6 || isMemorabilia(a.title) || isPartsListing(a.title, a.mileage)) continue;

@@ -65,11 +65,11 @@ for (const [name, q] of [["model", MODEL_Q], ["generation", GEN_Q], ["body", BOD
 // THE ENGINE'S HALF OF THE LISTING FORM (Lane B, lane-b-position fd354d56): positions[], placedSales[] and order come from the REAL engine function (lib/onebox.js partnerPositionsOf), fed the same
 // request the page sends. Five sales with a photo that loads, none, and one that does not load. The comparisons are the engine's; this check only reads what the page prints.
 const SALE_CARDS = [
-  { id: "00000000-0000-4000-8000-000000000001", date: "2026-10-24", mi: 31200, price: 31250, title: "2008 Porsche 911 Carrera S", platform: "Venue One", url: "https://sales.example/s1", image: "https://img.example/ok.svg" },
-  { id: "00000000-0000-4000-8000-000000000002", date: "2026-10-19", mi: 18400, price: 43000, title: "2008 Porsche 911 Carrera S Coupe", platform: "Venue Two", url: "https://sales.example/s2", image: "https://img.example/ok.svg" },
-  { id: "00000000-0000-4000-8000-000000000003", date: "2026-10-11", mi: 42900, price: 24000, title: "2008 Porsche 911 Carrera S", platform: "Venue One", url: "https://sales.example/s3", image: null },
-  { id: "00000000-0000-4000-8000-000000000004", date: "2026-10-03", mi: 55100, price: 19500, title: "2008 Porsche 911 Carrera S", platform: "Venue Three", url: "https://sales.example/s4", image: "https://img.example/broken.svg" },
-  { id: "00000000-0000-4000-8000-000000000005", date: "2026-09-27", mi: 27600, price: 38500, title: "2008 Porsche 911 Carrera S sold on Bring a Trailer", platform: "Venue Two", url: "https://sales.example/s5", image: null }
+  { id: "00000000-0000-4000-8000-000000000001", date: "2026-10-24", mi: 31200, price: 31250, carLine: "2008 Porsche 911 Carrera S", platform: "Venue One", url: "https://sales.example/s1", image: "https://img.example/ok.svg" },
+  { id: "00000000-0000-4000-8000-000000000002", date: "2026-10-19", mi: 18400, price: 43000, carLine: "2008 Porsche 911 Carrera S Coupe", platform: "Venue Two", url: "https://sales.example/s2", image: "https://img.example/ok.svg" },
+  { id: "00000000-0000-4000-8000-000000000003", date: "2026-10-11", mi: 42900, price: 24000, carLine: "2008 Porsche 911 Carrera S", platform: "Venue One", url: "https://sales.example/s3", image: null },
+  { id: "00000000-0000-4000-8000-000000000004", date: "2026-10-03", mi: 55100, price: 19500, carLine: "2008 Porsche 911 Carrera S", platform: "Venue Three", url: "https://sales.example/s4", image: "https://img.example/broken.svg" },
+  { id: "00000000-0000-4000-8000-000000000005", date: "2026-09-27", mi: 27600, price: 38500, carLine: null, platform: "Venue Two", url: "https://sales.example/s5", image: null }
 ];
 const RANGE_B = { ...RANGE, cards: SALE_CARDS };
 // The figures the card prints are the ENGINE's, read from the same shape function the endpoint uses (range, and the exact lowest and highest sale: lowestSaleN / highestSaleN). Never typed into this check.

@@ -46,7 +46,7 @@ ok("under 8 sales: thin true, no reason line", a.thin_sales && a.thin_sales.thin
 ok("under 8 sales: the engine's answer line and count line", a.thin_sales && /^\w+ sales?, too few for a range\.$/.test(a.thin_sales.answer_line || "") && /^Since [A-Z][a-z]+ \d{4}\.$/.test(a.thin_sales.count_line || ""), JSON.stringify(a.thin_sales && { a: a.thin_sales.answer_line, c: a.thin_sales.count_line }));
 // e101: a pool split apart reads on Find as the unsaid line (never "pick one"); every other reason line is unchanged
 ok("8 or more, no range: the answer line is the reason line (or the unsaid line for a pool split apart)", ts && (ts.answer_line === ts.reason_line || /^This listing doesn't say which .+ it is, and they sell for different money/.test(ts.answer_line || "")), ts && ts.answer_line);
-ok("every listed sale carries date, miles, gearbox and venue fields", ts && ts.sales.every(x => "date" in x && "mi" in x && "gearbox" in x && "venue" in x && "photo" in x && "title" in x), JSON.stringify(ts && ts.sales[0]));
+ok("every listed sale carries date, miles, gearbox and venue fields", ts && ts.sales.every(x => "date" in x && "mi" in x && "gearbox" in x && "venue" in x && "photo" in x && "carLine" in x), JSON.stringify(ts && ts.sales[0]));
 // 3. the Find card prints them (the five-line box, Oct 29 2026: scripts/findCardShapeCheck.mjs has the fixtures; this part keeps the threshold)
 const s = fs.readFileSync(path.join(root, "api/buy.js"), "utf8");
 const i0 = s.indexOf("const CLIENT = ") + "const CLIENT = ".length, c = JSON.parse(s.slice(i0, s.indexOf('";\n', i0) + 1));

@@ -20,10 +20,10 @@ const w = WLD.install(ROOT), DAY = 864e5; let seq = 0;
 let UNIQ = false;   // part 2 of variant-2: every sale of a world has its own price and mileage, so the engine's dedupe keeps them all
 const world = (make, model, years, spec) => {   // spec: [[title words, count, price]] ; the title words are the variant words the sale names ("" names none)
   const rows = []; let k = 0;
-  for (const [words, count, price] of spec) for (let i = 0; i < count; i++) {
+  for (const [words, count, price, plat] of spec) for (let i = 0; i < count; i++) {
     const year = years[0] + (k % (years[1] - years[0] + 1)), id = "vs" + (seq++), title = `${year} ${make} ${model}${words ? " " + words : ""}`;
     const raw = { id, title, featured_image_url: "https://img.example/" + id + ".jpg", mileage: String(UNIQ ? 30000 + k * 211 : 30000 + (k % 20) * 500), body_style: "Coupe", modifications: null, currency: "USD", transmission: "Manual (5-Speed)", exterior_color: "Red", title_status: "Clean", url: "https://bat.example/" + id, source_url: "https://src.example/" + id, city: "Austin", state: "TX", country_code: "US", auction_end_precision: "day" };
-    rows.push({ id, source_id: id, sale_price: price + (UNIQ ? i * 53 : (i % 5) * 250), sale_date: new Date(Date.now() - (40 + (k % 9) * 8) * DAY).toISOString().slice(0, 10), platform: k % 3 === 0 ? "Cars & Bids" : "Bring a Trailer", listing_title: title, year, make, model, vin_norm: null, stated_mileage: null, project_flag: null, desc_facts: null, has_reserve: false, raw_record: raw, vehicle_type: "car" });
+    rows.push({ id, source_id: id, sale_price: price + (UNIQ ? i * 53 : (i % 5) * 250), sale_date: new Date(Date.now() - (40 + (k % 9) * 8) * DAY).toISOString().slice(0, 10), platform: plat || (k % 3 === 0 ? "Cars & Bids" : "Bring a Trailer"), listing_title: title, year, make, model, vin_norm: null, stated_mileage: null, project_flag: null, desc_facts: null, has_reserve: false, raw_record: raw, vehicle_type: "car" });
     k++;
   }
   return rows;
@@ -425,7 +425,9 @@ for (const f of fails.slice(0, +(process.env.SHOW || 40))) console.log("FAIL " +
 // CLASS: every family in the data (the sweep below), the three read through the engine here (Ford GT, Firebird, Camaro).
 { const ownOf = async (text, vehicle) => { w.deps.resolveVehicle = async () => ({ status: "valid", vehicle }); return (await OB.oneEngineAnswer(vehicle, null, text, { ...w.env })).raw; };
   w.DATA.clear();
-  w.DATA.set("GT", [...world("Ford", "GT", [2005, 2005], [["", 10, 300000]]), ...world("Ford", "GT", [2006, 2006], [["", 9, 350000], ["Heritage Edition", 6, 450000]])]);
+  const FG = JSON.parse(read("scripts/fixtures/fordGtLive.json")).years;   // the live shape (Lane F's census): counts by year, venue and variant; prices placed inside the recorded span
+  const fgRows = []; for (const [yr, y] of Object.entries(FG)) for (const [venue, n] of Object.entries(y.venues)) { const her = (y.heritage || {})[venue] || 0, lo = y.span[0], mid = y.span[0] + (y.span[1] - y.span[0]) * 0.25; if (n - her > 0) fgRows.push(...world("Ford", "GT", [+yr, +yr], [["", n - her, Math.round(lo + (mid - lo) * 0.6), venue]])); if (her) fgRows.push(...world("Ford", "GT", [+yr, +yr], [["Heritage Edition", her, Math.round(mid), venue]])); }
+  w.DATA.set("GT", fgRows);
   w.DATA.set("Firebird", world("Pontiac", "Firebird", [1987, 1987], [["Trans Am", 10, 30000], ["Trans Am GTA", 5, 24000], ["Formula", 5, 13000], ["", 5, 7500]]));
   w.DATA.set("Supra", world("Toyota", "Supra", [1990, 1990], [["", 12, 20000]]));
   w.DATA.set("Camaro", world("Chevrolet", "Camaro", [1987, 1987], [["Z28", 6, 18000], ["IROC-Z", 5, 22000], ["Berlinetta", 5, 9000], ["RS", 5, 11000], ["", 5, 8000]]));

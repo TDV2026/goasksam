@@ -1,7 +1,9 @@
 // THE E98 VISUAL FIXTURES (Lane E, Oct 28 2026). The real 2001 M3 answer (scripts/fixtures/m3Answer.json) taken to each state the engine gives the named cars, with the engine's own lines as
 // Lane B's contract writes them (optionLines / headlineLines / refineOptions / mileageBand.line). Shared by e98Shots.mjs (the screenshots) and underlineCheck.mjs (the class check): both render the same pages.
 import fs from "node:fs";
-export const base = JSON.parse(fs.readFileSync("scripts/fixtures/m3Answer.json", "utf8"));
+// the page prints the engine's carLine on every sale card (the listing title is off the wire): a recorded sale here carries carLine as its title read
+export const withCarLine = o => { if (Array.isArray(o)) o.forEach(withCarLine); else if (o && typeof o === "object") { if (typeof o.title === "string" && "price" in o && !("carLine" in o)) o.carLine = o.title; Object.values(o).forEach(withCarLine); } return o; };
+export const base = withCarLine(JSON.parse(fs.readFileSync("scripts/fixtures/m3Answer.json", "utf8")));
 const $ = n => "$" + Math.round(n).toLocaleString("en-US");
 const REF = { body: v => ({ body: v }), gearbox: v => ({ tx: v }), year: v => ({ year: Number(v) }), mileage: v => v === "lt50" ? { miMin: 0, miMax: 50000 } : { miMin: 50000, miMax: null } };
 const OPT = (dimension, label, value, n, low, high) => { const floor = !(low > 0); return { dimension, label, value, n, low: floor ? null : low, high: floor ? null : high, median: floor ? 30000 : Math.round((low + high) / 2), rangeFloor: floor, windowMonths: 24, windowWords: "over the last 24 months", refine: REF[dimension](value) }; };
@@ -23,8 +25,8 @@ export const asCar = (d, { make, model, year, bodies, lo, hi, years }) => {
     .replace(/"resolvedSpec":"[^"]*"/, '"resolvedSpec":null')
     .replace(/"(price|low|high|typical|lowestSaleN|highestSaleN)":(\d+(?:\.\d+)?)/g, (m, k, v) => `"${k}":${f(Number(v))}`)
     .replace(/"cluster":\[\d+,\d+\]/, `"cluster":[${f(22500)},${f(41000)}]`);
-  if (years) s = s.replace(/"title":"\d{4} /g, () => `"title":"${years[yi++ % years.length]} `);
-  return JSON.parse(s);
+  if (years) { s = s.replace(/"title":"\d{4} /g, () => `"title":"${years[yi++ % years.length]} `); yi = 0; s = s.replace(/"carLine":"\d{4} /g, () => `"carLine":"${years[yi++ % years.length]} `); }
+  return withCarLine(JSON.parse(s));
 };
 const sam = (d, lo, hi) => ({ ...d, cluster: [lo, hi] });
 const ENG = (d, extra) => ({ ...extra, chart: extra.chart || { type: "candles", scope: null, size: "quarter", spanLabel: d.trend.movement.label, caption: "By quarter, November 2023 to September 2026. Quarters with fewer than 5 sales are left out.", note: null, buckets: d.trend.movement.buckets, withheld: null, n: 17 } });
@@ -57,7 +59,7 @@ export const FIND = {
   "2014 Porsche Boxster": { year: 2014, make: "Porsche", model: "Boxster", title: "2014 Porsche Boxster S 7-Speed PDK", bid: 29000, d: { cluster: null, noCluster: true, poolN: 21, countLine: "21 sales since November 2025.", windowWords: "since November 2025", optionsState: "split", headlineLines: ["Manual $33,000 to $43,000, 12 sales", "PDK $31,000 to $41,000, 9 sales"], optionLines: ["Manual $33,000 to $43,000, 12 sales", "PDK $31,000 to $41,000, 9 sales"], thinReason: "pooled_apart" } },
 };
 // the black BMWs on the Find page: each live car with the engine's answer for it, built through the real Find path (coreOf, marketFromCore, samLines) by e98FindRender.mjs
-const sale = (price, date, month, gearbox, mi) => ({ price, date, month, gearbox, mi, venue: "Bring a Trailer", url: "https://bringatrailer.com/listing/x" + price, title: "x", photo: null, year: 2010, body: "Convertible" });
+const sale = (price, date, month, gearbox, mi) => ({ price, date, month, gearbox, mi, venue: "Bring a Trailer", url: "https://bringatrailer.com/listing/x" + price, title: "x", carLine: "x", photo: null, year: 2010, body: "Convertible" });
 export const BLACK_BMW = {
   "2002 BMW M3 Coupe": { year: 2002, make: "BMW", model: "M3", body: "coupe", title: "2002 BMW M3 Coupe", bid: 30000, d: { cluster: null, noCluster: true, poolN: 21, optionsState: "apart", headlineLines: ["Manual $38,000 to $52,000, 12 sales", "SMG $24,000 to $31,000, 9 sales"], optionLines: ["Manual $38,000 to $52,000, 12 sales", "SMG $24,000 to $31,000, 9 sales"], thinReason: "pooled_apart", countLine: "21 sales since March 2024.", windowWords: "since March 2024" } },
   "2003 BMW Alpina Roadster V8": { ...FIND_ALPINA() },

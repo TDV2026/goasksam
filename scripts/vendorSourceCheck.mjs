@@ -66,4 +66,8 @@ const mkRow = (i, label, slug, model, price) => { n++; const t = `2004 Testmake 
   const shown = JSON.stringify({ cards: d.cards, strip: d.strip, recent3: d.recent3, platforms: d.platforms, windowWords: d.windowWords, samLine: d.samLine });
   ok("no slug leaks to a page: the served display fields never carry \"dupontregistrylive\" outside the platformSlug field", dp.length === 3 && !/dupontregistrylive/i.test(shown.replace(/"platformSlug":"dupontregistrylive"/g, "")), (shown.match(/.{30}dupontregistrylive.{20}/i) || [""])[0]);
   const strip = ((d.strip && d.strip.sales) || []).map(x => x.venue); if (strip.length) ok("the sales strip names duPont Registry Live for its sales", strip.filter(v => v === LABEL).length === 3, JSON.stringify(strip)); }
+// (5) ITS OWN TRUST LINE (lane-b-sale-name, order bc85 item 2): a sale from duPont Registry Live carries the engine's priceNote ("reports the hammer price"); a sale from any other venue carries none
+{ const dpN = typeof E.saleNameFields === "function" ? E.saleNameFields({ year: 2006, make: "Ford", model: "GT", source: LABEL }) : {}, otherN = typeof E.saleNameFields === "function" ? E.saleNameFields({ year: 2006, make: "Ford", model: "GT", source: "Bring a Trailer" }) : {};
+  ok("a duPont Registry Live sale carries its own trust line (priceNote), in the engine's words", typeof dpN.priceNote === "string" && /duPont Registry Live reports the hammer price/.test(dpN.priceNote) && !/[\u2013\u2014]/.test(dpN.priceNote), dpN.priceNote);
+  ok("a sale from any other venue carries no trust line", !("priceNote" in otherN), otherN.priceNote); }
 console.log(failed ? `\n${failed} FAILED` : "\nvendorSourceCheck: all pass"); process.exit(failed ? 1 : 0);

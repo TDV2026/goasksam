@@ -182,7 +182,7 @@ export function carLine(c) {
 }
 // The result cell: the outcome word first, then the price or the bid; the buyer's fee (where the house's is known) as a quieter second line.
 export function resultCell(a) {
-  if (a.kind === "sale") { const w = withFee(a); return `<span class="o">Sold</span> <span class="pr">${esc(salePrice(a))}</span>${w ? `<span class="fee">${esc(usd(w))} with buyer&#8217;s fee</span>` : ""}`; }
+  if (a.kind === "sale") { return `<span class="o">Sold</span> <span class="pr">${esc(salePrice(a))}</span>${a.withFeeLine ? `<span class="fee">${esc(a.withFeeLine)}</span>` : ""}`; }
   return `<span class="o no">Not sold</span>${bidPrice(a) ? ` <span class="pr">Bid to ${esc(bidPrice(a))}</span>` : ""}`;
 }
 function resultText(a) { return a.kind === "sale" ? "Sold " + salePriceFee(a) : (bidPrice(a) ? "Bid to " + bidPrice(a) + ", not sold" : "Not sold"); }

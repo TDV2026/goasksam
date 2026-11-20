@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 const root = path.resolve(process.argv[2] || path.join(path.dirname(fileURLToPath(import.meta.url)), ".."));
 let failed = 0; const ok = (n, c, d) => { if (!c) failed++; console.log(`${c ? "PASS" : "FAIL"}  ${n}${d ? "  " + d : ""}`); }, okMain = ok;
-const ALLOWED = new Set(["id", "price", "date", "mi", "rangeLabel", "year", "carName", "variantLabel", "carLine", "bodyWord", "image", "venue", "url", "gearbox"]);
+const ALLOWED = new Set(["id", "price", "date", "mi", "rangeLabel", "year", "carName", "variantLabel", "carLine", "bodyWord", "priceNote", "image", "venue", "url", "gearbox"]);
 const FORBIDDEN = /^(vin|vinNorm|vin_norm|seller|sellerName|owner|name|email|phone|city|state|address|ip|user|userId|source_id|raw_title|rtitle)$/i;
 const SENSITIVE = { id: "7b37ba2e-ef5f-4067-bfa9-00193d7b1e7f", price: 225000, date: "2026-08-13", mi: 12000, milesHidden: false, rangeLabel: null, title: "1937 Delahaye 135 Cabriolet", image: "https://img.example/1.jpg", platformName: "Bring a Trailer", url: "https://example.com/1", gearboxWord: "manual",
   vin: "VF123", vinNorm: "VF123", vin_norm: "VF123", seller: "someone", sellerName: "Someone", owner: "Owner", name: "Name", email: "a@b.c", phone: "555", city: "Austin", state: "TX", address: "1 Main", ip: "1.2.3.4", user: "u", userId: "u1", source_id: "s", raw_title: "raw", rtitle: "raw" };

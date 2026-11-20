@@ -18,7 +18,7 @@ ok(/main \.sfc-row-img,main \.sfc-row-nophoto\{flex:0 0 96px;width:96px;height:7
 ok(/main \.sfc-row-price\{grid-column:2;grid-row:1\/span 2;text-align:right/.test(css) && /main \.sfc-row-title\{grid-column:1;grid-row:1/.test(css) && /main \.sfc-row-meta\{grid-column:1;grid-row:2/.test(css), "the price right-aligned; the date and miles under the car's own name");
 ok(/\.mc-body \.sfc-card\{border:0/.test(css) && /mc-body\{margin:22px 0 0/.test(css), "the open card is a clean full-width list on tab c");
 // the shared card's own markup still carries the rows in this order (nothing in the page changes the text)
-const d = { tier: "thin", poolN: 12, thinLine: "L", latestSaleLine: "S", cards: Array.from({ length: 12 }, (_, i) => ({ price: 1000 + i, date: "2026-10-" + String(20 - i).padStart(2, "0"), mi: 5000 + i, title: "Car " + i })) };
+const d = { tier: "thin", poolN: 12, thinLine: "L", latestSaleLine: "S", cards: Array.from({ length: 12 }, (_, i) => ({ price: 1000 + i, date: "2026-10-" + String(20 - i).padStart(2, "0"), mi: 5000 + i, carLine: "Car " + i })) };
 const card = sellsForCardHtml(d, {}), rows = [...card.matchAll(/<li class="sfc-row">/g)].length;
 ok(rows === 12 && /sfc-row-title">Car 0</.test(card) && card.indexOf("Car 0") < card.indexOf("Car 11"), "the shared card builds every row in the engine's order (the page hides past the tenth, it never drops one)");
 // REVISION 4, R4-A (Sam, Oct 20 2026, item 1): a ranged answer shows the sales behind it, as a thin answer does, from Lane E's rows field

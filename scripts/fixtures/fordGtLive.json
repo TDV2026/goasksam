@@ -1,0 +1,7 @@
+{
+ "note": "THE FORD GT, AS PRODUCTION HOLDS IT (Lane F's census, docs/coverage/ford-gt-2005.md, read live Nov 19 2026 on sales_archive through ops poolrows; counts by model year, venue and variant only, no listing text, no VIN, no seller). Sold Nov 21 2025 to Nov 5 2026, title Ford GT. 2005: 30 sales, the engine pool for the bare 2005 car spans $398,000 to $815,000 (cluster $480,000 to $675,000). 2006: 27 sales; 2 Heritage Editions, both on Bring a Trailer. A venue's name is the label the archive stores. Prices are placed inside the recorded span by the check; the counts are the live shape.",
+ "years": {
+  "2005": { "span": [398000, 815000], "venues": { "Bring a Trailer": 21, "Mecum": 1, "Barrett-Jackson": 2, "Broad Arrow": 3, "Collecting Cars": 1, "RM Sotheby's": 1, "Cars & Bids": 1 } },
+  "2006": { "span": [380000, 2105000], "venues": { "Bring a Trailer": 18, "Sotheby's Motorsport": 2, "RM Sotheby's": 2, "Mecum": 2, "Broad Arrow": 1, "Bonhams": 1, "Barrett-Jackson": 1 }, "heritage": { "Bring a Trailer": 2 } }
+ }
+}

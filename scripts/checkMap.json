@@ -5807,6 +5807,26 @@
     "scripts/saleLabelEngineAnswer.mjs"
    ]
   },
+  "saleNameCheck": {
+   "file": "scripts/saleNameCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/_historyData.js",
+    "api/history.js",
+    "api/sellerDecision.js",
+    "lib/buyerFee.js",
+    "lib/live/watches.js",
+    "lib/onebox.js",
+    "lib/placedSale.js",
+    "lib/sell/sellClient.js",
+    "lib/sell/sellFacts.js",
+    "lib/sell/sellMcClient.js",
+    "lib/sellsForCard.js",
+    "lib/tools/marketCheck.js",
+    "public/js/onebox.js"
+   ]
+  },
   "salePhotoCheck": {
    "file": "scripts/salePhotoCheck.mjs",
    "kind": "offline",
@@ -7429,6 +7449,7 @@
     "scripts/",
     "scripts/_deskOlderWorld.mjs",
     "scripts/fixtures/",
+    "scripts/fixtures/fordGtLive.json",
     "scripts/fixtures/lumpShapes.json",
     "scripts/fixtures/noDeadEnds.json"
    ]

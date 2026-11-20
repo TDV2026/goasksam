@@ -13,7 +13,7 @@ export async function load(ROOT) {
   W.CREW = { headers: { cookie: "gas_crew=" + W.C.mintCrewCookieValue() } }; W.NOCREW = { headers: {} };
   W.D1 = Date.parse("2026-11-09T20:00:00Z"); W.DAY = 864e5;
   let uid = 0;
-  W.card = (miles, price, o = {}) => ({ id: ++uid, title: "2001 BMW M3", price, mi: miles, milesHidden: false, platformName: "Bring a Trailer", platform: "Bring a Trailer", date: "2026-0" + (1 + (uid % 9)) + "-1" + (uid % 9), image: "https://img.test/m" + uid + ".jpg", url: "https://bringatrailer.com/listing/m3-" + uid + "/", ...o });
+  W.card = (miles, price, o = {}) => ({ id: ++uid, title: "2001 BMW M3", carLine: "2001 BMW M3", price, mi: miles, milesHidden: false, platformName: "Bring a Trailer", platform: "Bring a Trailer", date: "2026-0" + (1 + (uid % 9)) + "-1" + (uid % 9), image: "https://img.test/m" + uid + ".jpg", url: "https://bringatrailer.com/listing/m3-" + uid + "/", ...o });
   W.pool = (len, o = {}) => Array.from({ length: len }, (_, i) => W.card(20000 + i * 9000, 52000 - i * 2600, o));
   // an engine answer as the results page draws it: the figure, the typical band, the count and window, the range sentence, the candles and the sales table. The numbers are the fixture's own (it plays the engine); nothing in lib/live derives them.
   W.engineAnswer = cards => { const ps = cards.map(c => c.price).sort((a, b) => a - b), q = f => ps[Math.floor((ps.length - 1) * f)], lo = q(0.25), hi = q(0.75), amount = Math.round((lo + hi) / 2);

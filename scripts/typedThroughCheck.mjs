@@ -172,7 +172,7 @@ for (const stored of [false, true]) {
   for (const [sp, text] of [["the car as the page sends it", "1987 Pontiac Firebird Trans Am 42,500 miles"]]) {
     const veh = { raw: text, year: 1987, make: "Pontiac", model: "Firebird", trim: "Trans AM", mileage: 42500, confidence: "high" };
     W.install(FIRE); const o = await mc(text, { car: { raw: text, vehicle: veh } }), plain = (W.install(FIRE), await mc("1987 Pontiac Firebird Trans Am", { car: { raw: "1987 Pontiac Firebird Trans Am", vehicle: { ...veh, raw: "1987 Pontiac Firebird Trans Am", mileage: null } } })), L = `Trans Am with 42,500 miles (${sp})`;
-    const titlesOf = d => (d.rawPool || []).map(r => String(r.raw_title || r.title || "")), v = o.variants, gta = v && v.items && v.items.find(i => i.name === "GTA");
+    const titlesOf = d => (d.cards || []).map(c => String(c.carLine || "")), v = o.variants, gta = v && v.items && v.items.find(i => i.name === "GTA");
     ok(`${L}: an answer, a range`, o && o.tier === "result", o && [o.tier, o.error]);
     ok(`${L}: priced on Trans Am sales (the variants block says it was asked for and applied)`, !!v && v.applied === true && v.stated.join() === "Trans Am", v && [v.applied, v.stated, v.line]);
     ok(`${L}: no GTA sale is in the pool and the GTA is counted and set aside`, titlesOf(o).length > 0 && titlesOf(o).every(x => /trans am/i.test(x) && !/\bgta\b/i.test(x)) && !!gta && gta.count > 0 && gta.inPool === false, [titlesOf(o).slice(0, 3), gta]);
