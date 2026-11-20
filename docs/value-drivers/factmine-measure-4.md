@@ -2,7 +2,7 @@
 
 Counts only: no listing text, no seller, no VIN, no price is in this file. Topics are the miner's own short words (our extracted facts in our words). Miner fm5 (live on main since 8586332e). Source Bring a Trailer, sold, window 2025-11-17 to 2026-11-16, 100 listings of the Porsche 996 (p996_carrera) and 100 of the BMW E46 M3 (e46_m3), 25 a call (MAX_LISTINGS is 25), so 4 calls a family, one at a time. The first 25 listings of each family have exactly the sentence totals of measure 3 (315 and 320), which is consistent with being the same listings; not otherwise verified. The E46 window holds 145 family listings, so 45 are still unmined.
 
-**Status of this file.** Parts 1 to 4 and 7 are final. Parts 5 (five real cars, measure 3 against measure 4) and 6 (decision facts against filler) and the verdict (part 8) need the per car read `task=factcar`, which is not on main yet; they are marked PENDING and will be finished when Lane C posts lane-d-factcar live. Nothing was worked around: the ops door's other tasks return counts per topic, never per listing.
+**Status of this file.** Complete. Parts 5 and 6 and the verdict (part 8) were finished from the per car read `task=factcar` (live on main since 532cb0e5).
 
 ## 1. Measure 3 against measure 4, every figure (one table)
 
@@ -40,7 +40,7 @@ Reading it plainly:
 - **Cost.** The miner costs about 13% more a listing on the 996 and 20% more on the E46. The whole run was **$9.96**: miner $7.42, coverage $0.08, topic map $2.46 (factreport is read only and free). Measure 3's projection for the full 2,175 listings was $70 to $100; at the measured $0.037 a listing the miner part is about $80 (the full topic map would add to that: this run's map cost $2.46 for 200 listings and the map is not finished, see limits).
 - **Latency.** Mining: 8 calls, average 137 s, worst 153 s, none near the 270 s budget. Coverage 3 to 8 s a call. Map 170 to 239 s a call (each call stopped on its time budget, not on an error).
 - **Failures and truncations.** None. No listing failed, none was cut off, no call stopped early.
-- **Statements per listing** rose from 59.4 to 70.6 on the same first 25 996 listings (+19%) and from 47.4 to 59.4 on the E46 (+25%).
+- **Statements per listing** (read with part 5: on the ten fullest cars the rise is +10% and mostly rewording) rose from 59.4 to 70.6 on the same first 25 996 listings (+19%) and from 47.4 to 59.4 on the E46 (+25%).
 - **Lost statements.** Nothing is dropped for a quote that cannot be found any more. The drops left are lines that cannot be read and exact repeats (3.2% and 2.7%). The unmatched statements (3.1% and 4.7%) are kept with no span; 86% and 96% of them are reworded quotes, so what they state is real but the sentence they came from cannot be marked.
 - **Skipped sentences.** On the same first 25 listings the share fell from 2.5% to 0.6% (996) and from 11.9% to 2.2% (E46). Across all 100 the E46 share is 7.5% and it rises call by call (2.2%, 6.7%, 9.8%, 8.9%): the prompt change worked on the measured 25 and not as well on the other 75. Fewer of the skipped sentences are facts (58% to 62% against 97% to 100%), but the E46 count is larger: 83 fact sentences skipped in 100 listings.
 - **Statement shares are not on the same basis.** Measure 3's year and mileage shares were weighted over the 200 most common topics; measure 4's are over every statement. The proof share is new.
@@ -178,13 +178,124 @@ Model specific issues (a subset of the groups above, not additive): by the large
 
 Both lists are headed by standard equipment, as in measure 3. 21 of the top 30 are equipment or option on the 996 and 24 of 30 on the E46 (by kind, ordered by statements; measure 3, ordered by listings, was 19 and 24). Some canonical topics repeat under a bracketed variant (for example the carfax clean line appears under three), so the topic counts above are floors for the fact.
 
-## 5. Five real cars per family: measure 3 against measure 4 (PENDING factcar)
+## 5. Five real cars per family: measure 3 against measure 4
 
-Not done. It needs the per listing statement lists (family, year, mileage, sale date, our statements) for the same five listings from run fm4 and run fm5, which only `task=factcar` returns. I will read it with `run=fm5&n=5` then `run=fm4&like=fm5` when Lane C posts it live, write each car's two lists side by side with a one line judgment, and finish part 6 from the same read.
+Read through `task=factcar`. The order's read (the five fullest fm5 listings, then their fm4 statements) found fm4 statements for only 3 of the 10 cars, because fm5 read 100 listings and fm4 only the first 25; so I took the five listings with the most fm4 statements in each family (`run=fm4&n=5`) and read their fm5 statements (`run=fm5&like=fm4&n=5`): the same ten listings in both runs. **Selection bias, said plainly: these are the fullest fm4 listings, so they are the cases where fm4 had least left to miss.** Cars are named by year, stated mileage and sale date, as the order asked; the statements are our extracted facts in our words, with the map's kind. A fact is "new" when no statement in the other run shares 60% of its content words (a loose match on the miner's own topic wording, so a re-worded fact that falls under it counts as new and as lost: read the counts as upper bounds). The full statement lists for all ten cars, side by side, are in `docs/value-drivers/factmine-measure-4-cars.md`.
 
-## 6. Decision facts against filler across the 200 listings (PENDING factcar)
+#### Porsche 996, car 1: 2001, 124,000 miles stated, sold 2025-12-16 (Bring a Trailer)
 
-Rule I will state when I write it: a statement is a decision fact when it says work done (what, when, at what mileage), damage or an accident, documentation, a drivetrain change, a stated mileage or the car's history of owners and sales; filler when it states colour, wheels and tyres as fitted, photographs, location, reserve status or standard equipment. What the topic table already shows without the per car read: of the 4,264 and 4,163 statements in the top 200 topics, the standard equipment kind alone is 2,022 and 2,558, so roughly half of what is kept is equipment the default set aside already removes; presentation topics (colour, photos, reserve, location, sale details) are another 227 and 141.
+Measure 3 (fm4) 88 statements, measure 4 (fm5) 100; by topic wording with a loose match (60% of the content words shared), 9 fm5 statements have no fm4 counterpart (1 decision, 5 filler, 3 unclassified) and 4 fm4 statements have no fm5 counterpart (1 decision, 3 filler, 0 unclassified).
+
+- **Measure 3 only:** color (other); 225/40 front tires (equipment); 265/35 rear tires (equipment); current mileage 124k (no kind, 124000 mi)
+- **Measure 4 only:** body style (other, 2001); variant designation (other); odometer reading (condition, 124000 mi); paint code (other); front tow hook added (no kind); clear side markers added (no kind); front tire size (other); rear tire size (other); slotted front rotors (no kind)
+- **Both (91 statements, not listed one by one):** the same facts in the same or near words.
+- **Judgment:** Mostly filler and rewording: the new statements are a re-worded mileage and three small additions (a tow hook, clear side markers, slotted rotors); decision value low.
+
+#### Porsche 996, car 2: 2000, 110,000 miles stated, sold 2025-11-19 (Bring a Trailer)
+
+Measure 3 (fm4) 84 statements, measure 4 (fm5) 90; by topic wording with a loose match (60% of the content words shared), 4 fm5 statements have no fm4 counterpart (2 decision, 2 filler, 0 unclassified) and 2 fm4 statements have no fm5 counterpart (1 decision, 0 filler, 1 unclassified).
+
+- **Measure 3 only:** mileage (condition, 110000 mi); option sticker present (no kind)
+- **Measure 4 only:** topic (other); odometer reading (condition, 110000 mi); clean carfax report (paperwork); option code 236 internal production code related to tires (option)
+- **Both (86 statements, not listed one by one):** the same facts in the same or near words.
+- **Judgment:** Two decision facts new (a clean report on record and a restated odometer), one lost (option sticker); net zero.
+
+#### Porsche 996, car 3: 1999, 110,000 miles stated, sold 2025-12-09 (Bring a Trailer)
+
+Measure 3 (fm4) 80 statements, measure 4 (fm5) 98; by topic wording with a loose match (60% of the content words shared), 2 fm5 statements have no fm4 counterpart (0 decision, 2 filler, 0 unclassified) and 1 fm4 statements have no fm5 counterpart (0 decision, 0 filler, 1 unclassified).
+
+- **Measure 3 only:** offered in canada (no kind)
+- **Measure 4 only:** topic (other); power routed to rear wheels (equipment)
+- **Both (96 statements, not listed one by one):** the same facts in the same or near words.
+- **Judgment:** Nothing new that decides anything: 18 more statements are equipment and rewording; one lost (where it was offered).
+
+#### Porsche 996, car 4: 2002, 55,000 miles stated, sold 2025-11-25 (Bring a Trailer)
+
+Measure 3 (fm4) 73 statements, measure 4 (fm5) 72; by topic wording with a loose match (60% of the content words shared), 4 fm5 statements have no fm4 counterpart (2 decision, 2 filler, 0 unclassified) and 4 fm4 statements have no fm5 counterpart (2 decision, 2 filler, 0 unclassified).
+
+- **Measure 3 only:** body color (other); third owner (no kind); title in owner's name (no kind); leather extends to dashboard and door panels (equipment)
+- **Measure 4 only:** exterior color (other, 2002); interior color (other, 2002); service records present (paperwork); digital odometer (no kind, 55000 mi)
+- **Both (68 statements, not listed one by one):** the same facts in the same or near words.
+- **Judgment:** A trade: service records present is new and useful, but third owner and title in the owner's name were lost; net zero.
+
+#### Porsche 996, car 5: 2003, 93,000 miles stated, sold 2025-12-04 (Bring a Trailer)
+
+Measure 3 (fm4) 71 statements, measure 4 (fm5) 70; by topic wording with a loose match (60% of the content words shared), 1 fm5 statements have no fm4 counterpart (0 decision, 1 filler, 0 unclassified) and 2 fm4 statements have no fm5 counterpart (1 decision, 1 filler, 0 unclassified).
+
+- **Measure 3 only:** ims retrofit database record exists (no kind, 77000 mi, 2020); rear-wheel drive (equipment)
+- **Measure 4 only:** option code 226 internal production code related to tires (option)
+- **Both (69 statements, not listed one by one):** the same facts in the same or near words.
+- **Judgment:** fm5 lost a decision fact the old run had (an IMS retrofit record exists) and gained none.
+
+#### BMW E46 M3, car 1: 2005, 122,000 miles stated, sold 2026-02-03 (Bring a Trailer)
+
+Measure 3 (fm4) 70 statements, measure 4 (fm5) 81; by topic wording with a loose match (60% of the content words shared), 7 fm5 statements have no fm4 counterpart (2 decision, 5 filler, 0 unclassified) and 5 fm4 statements have no fm5 counterpart (0 decision, 5 filler, 0 unclassified).
+
+- **Measure 3 only:** anthracite m texture alcantara interior (equipment); black nappa leather interior (equipment); front tire size 235/35 (no kind); rear tire size 265/30 (no kind); offered at no reserve (other)
+- **Measure 4 only:** aftermarket exhaust components installed (modification); brembo brakes installed (no kind); alcantara-wrapped multifunction steering wheel (equipment); steering wheel has m-color stitching (equipment); coolant temperature gauge (equipment); oil temperature gauge (equipment); fuel level gauge (equipment)
+- **Both (74 statements, not listed one by one):** the same facts in the same or near words.
+- **Judgment:** Gain: exhaust and brake modifications are new, decision facts; what was lost is trim, tyre sizes and reserve (filler).
+
+#### BMW E46 M3, car 2: 2005, 130,000 miles stated, sold 2025-11-22 (Bring a Trailer)
+
+Measure 3 (fm4) 64 statements, measure 4 (fm5) 75; by topic wording with a loose match (60% of the content words shared), 2 fm5 statements have no fm4 counterpart (1 decision, 1 filler, 0 unclassified) and 0 fm4 statements have no fm5 counterpart (0 decision, 0 filler, 0 unclassified).
+
+- **Measure 3 only:** none
+- **Measure 4 only:** topic (other); transmission converted to manual at 122k miles may 2024 (no kind, 122000 mi, 2024)
+- **Both (73 statements, not listed one by one):** the same facts in the same or near words.
+- **Judgment:** Gain: a dated transmission conversion with its mileage (a drivetrain change fm4 missed) is a decision fact, and a conversion, so it must be labelled as one.
+
+#### BMW E46 M3, car 3: 2004, 147,000 miles stated, sold 2026-02-23 (Bring a Trailer)
+
+Measure 3 (fm4) 63 statements, measure 4 (fm5) 64; by topic wording with a loose match (60% of the content words shared), 0 fm5 statements have no fm4 counterpart (0 decision, 0 filler, 0 unclassified) and 0 fm4 statements have no fm5 counterpart (0 decision, 0 filler, 0 unclassified).
+
+- **Measure 3 only:** none
+- **Measure 4 only:** none
+- **Both (64 statements, not listed one by one):** the same facts in the same or near words.
+- **Judgment:** No change: the two lists carry the same facts.
+
+#### BMW E46 M3, car 4: 2002, 137,000 miles stated, sold 2026-02-11 (Bring a Trailer)
+
+Measure 3 (fm4) 60 statements, measure 4 (fm5) 65; by topic wording with a loose match (60% of the content words shared), 5 fm5 statements have no fm4 counterpart (1 decision, 4 filler, 0 unclassified) and 4 fm4 statements have no fm5 counterpart (1 decision, 3 filler, 0 unclassified).
+
+- **Measure 3 only:** coolant temperature gauge (equipment); oil temperature gauge (equipment); fuel level gauge (equipment); sold in canada (no kind)
+- **Measure 4 only:** topic (other); nappa leather upholstery matching body color (no kind); aftermarket stereo with bluetooth connectivity (modification); leather-wrapped multifunction steering wheel (equipment); steering wheel features m-color stitching (equipment)
+- **Both (60 statements, not listed one by one):** the same facts in the same or near words.
+- **Judgment:** Neutral: one small modification added (an aftermarket stereo), three gauges and a sale country lost (filler).
+
+#### BMW E46 M3, car 5: 2005, 68,000 miles stated, sold 2026-01-10 (Bring a Trailer)
+
+Measure 3 (fm4) 56 statements, measure 4 (fm5) 62; by topic wording with a loose match (60% of the content words shared), 9 fm5 statements have no fm4 counterpart (2 decision, 7 filler, 0 unclassified) and 5 fm4 statements have no fm5 counterpart (2 decision, 3 filler, 0 unclassified).
+
+- **Measure 3 only:** interior upholstery (other); current mileage (condition, 68000 mi); rear tire size (equipment); tire brand and model (no kind); odometer reads 68k miles (no kind, 68000 mi)
+- **Measure 4 only:** interior color and material (equipment); odometer reading (condition, 68000 mi); accessories included (other); front tires (no kind); rear tires (no kind); fuel level gauge (equipment); odometer reading (condition, 68000 mi); rear-wheel drive (equipment); six-speed smg transmission (equipment)
+- **Both (53 statements, not listed one by one):** the same facts in the same or near words.
+- **Judgment:** No change in substance: the new statements restate the odometer and tyres; the lost ones are the same facts worded differently.
+
+**Across the ten cars:** fm4 gave 709 statements and fm5 777 (+10%), well under the +19% and +25% of part 1, which was measured on all 25 listings. 11 fm5 statements are new decision facts and 8 fm4 decision statements have no fm5 counterpart: a net gain of 3 decision statements over 777. Where fm5 clearly adds a fact: one dated drivetrain change (a transmission conversion with its mileage), two modifications on one E46, a records line on one 996. Where it loses one: an IMS retrofit record on one 996, a third owner and a title line on another. So on the fullest listings the change from fm4 to fm5 is mostly rewording; the gain in part 1 is real on the listings where fm4 left sentences unread (the skipped sentence figures), not on these.
+
+## 6. Decision facts against filler across the 200 listings
+
+**The rule.** A statement is a **decision fact** when the map's kind is work done, paperwork, history, modification or condition, or its topic names work done, a part replaced or repaired, service, records, receipts, a report, title or ownership, a stated mileage, an accident or damage, a defect, a modification or a recall. It is **filler** when the kind is standard equipment or option, or its topic is a colour, a tyre or wheel size or brand, seats and trim as fitted, the engine, gearbox or body specification, photographs, reserve or sale terms, a location, gauges, lights or glass as fitted, or audio and climate equipment. It is **unclassified** when it has neither (no kind and no word from either list). The rule is mine, written over topic words and the map's kinds; not the miner's.
+
+**Two bases, because the door gives no per statement read across 200 listings.** (a) The ten cars (777 statements, per statement): **decision 281 (36.2%), filler 424 (54.6%), unclassified 72 (9.3%)**. (b) The 200 most common topics of each family over all 200 listings (8,427 of 13,273 statements, 63%; the long tail of rarer topics is not in the report): decision 2,479 (29.4%) and filler 5,948 (70.6%) (996: 28% and 72%; E46: 31% and 69%). The top 200 topics are the commonest, so equipment is over-represented there; the true share across every statement lies between the two bases, and the tail of 4,846 statements is mostly rare, specific facts.
+
+**The ten commonest filler kinds** (so the prompt can drop them; the default set aside already hides the first two):
+
+| # | filler kind | statements, top 200 topics of both families (of 8,427) | statements, the ten cars (of 777) |
+|---|---|---:|---:|
+| 1 | standard equipment (kind equipment) | 4580 | 263 |
+| 2 | optional equipment (kind option) | 708 | 57 |
+| 3 | engine, gearbox and body specification (horsepower, torque, type) | 266 | 6 |
+| 4 | colour and paint colour code | 244 | 18 |
+| 5 | reserve, sale terms and location | 40 | 6 |
+| 6 | photos and listing presentation | 14 | 1 |
+| 7 | tyre and wheel size, brand, fitment | 12 | 17 |
+| 8 | seats, trim and upholstery as fitted | 11 | 24 |
+| 9 | gauges, lights, glass, mirrors as fitted | 0 | 6 |
+| 10 | audio, climate and comfort equipment | 0 | 4 |
+
+A further 73 top-topic statements and 22 on the ten cars are kind other with no word that places them (not counted above).
 
 ## 7. Ten questions GoAskSam can answer from measure 4 (listings that carry the fact, largest single wording, so at least)
 
@@ -205,9 +316,13 @@ Measure 3 could not answer them reliably: either the fact was not extracted at a
 
 Also readable now: oil change and spark plugs replaced (21 and 15 of 100 on the 996, 36 and 17 on the E46), water pump replaced (6 and 10), paint meter readings documented (16 on the 996, 7 on the E46).
 
-## 8. Verdict (PENDING the per car read; what the aggregates show so far)
+## 8. Verdict: CHANGE (for Sam's decision: it reverses fm4's rule)
 
-Provisional, not final: **KEEP** leaning, with one change to test. The miner now reads far more of what a seller states (statements per listing up 19% and 25%, skipped sentences from 2.5% to 0.6% and 11.9% to 2.2% on the same 25 listings, nothing lost for a quote it cannot place), at 13% to 20% more cost a listing, and it answers questions measure 3 could not. The open points are that about half the statements are standard equipment the report already sets aside, and that on the other 75 E46 listings 7.5% of sentences are still skipped, mostly drivetrain specification lines. I will not write the exact prompt change until part 6 shows which filler kinds to drop.
+fm5 does what it was built for, the skipped sentences are down from 2.5% to 0.6% (996) and from 11.9% to 2.2% (E46) on the same 25 listings, nothing is lost for a quote it cannot place, and it reads facts fm4 left unread (for example a transmission conversion dated to the month and mileage on one E46, with no fm4 counterpart by the loose match); but on the ten fullest cars it adds only 3 decision statements net over 777, and its extra statements are mostly rewording and equipment. Between 55% (the ten cars) and 71% (the top 200 topics) of what it writes is standard equipment, options, colour and specification that the report sets aside anyway, and the miner's cost is its output tokens, so a prompt that stopped writing them would cut roughly half the miner cost (an estimate, not measured: the full run's miner part would go from about $80 to about $45). That is a reversal of fm4's rule (capture everything a seller states, decide nothing at reading time), so I would not ship it without Sam's word.
+
+**The exact prompt change** (lib/factMine.js SYSTEM, one paragraph added after the sentence by sentence rule; no code is changed by this file): "Do not write a statement for standard factory equipment, for an option or feature that is only listed as present, for the car's colour or paint code, for tyre or wheel sizes and brands as fitted, or for its specification (horsepower, torque, engine, gearbox or body type), unless the seller says it was changed, added, replaced, repaired, damaged, refinished or documented, or gives a date, a mileage or a price with it. Keep writing a statement for every other sentence about the car: history, ownership, title, records and receipts, mileage, accidents, damage, defects, repairs, service, parts replaced and modifications." Test it on the same 25 listings of each family before any full run: the figures to compare are statements per listing (expect about half), the decision facts per listing (expect no fall), the skipped sentence share and the ten cars above.
+
+If Sam keeps the capture everything rule: KEEP fm5 as it is, and accept the cost of about $0.037 a listing.
 
 ## Limits
 
