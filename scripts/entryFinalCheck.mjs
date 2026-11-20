@@ -96,11 +96,12 @@ const blobOf = (ref, f) => { try { const t = execFileSync("git", ["show", ref + 
 const BASES = ["origin/main", "lane-e-history-links"];
 // lane-b-read-resilience (Nov 18 2026, Lane C's find, public/js/onebox.js line 2034): the one change to the results page that is allowed is the sentence that names the car ("When the next {car} sells"): carNamed, offerName, armName and the
 // two lines that print them (scripts/carNamedLineCheck.mjs checks it). OLD assertion: every results source byte identical to origin/main. NEW: identical, or differing from origin/main ONLY in lines that carry those words (every other changed line fails).
-const NAMED_EDIT = /carNamed|offerName|armName|onLine|samonit|Not enough real|When the next/;
+// lane-s-venue-names (Nov 20 2026): the one map of venue names; the results sources may differ from origin/main in the lines that carry a venue name (KIT_NAMES drops HOUSE, OB_PLAT and obPlat, the card kit's house list) and nothing else.
+const NAMED_EDIT = /carNamed|offerName|armName|onLine|samonit|Not enough real|When the next|Gooding|KIT_NAMES|OB_PLAT|obPlat|source key/;
 const onlyNamedEdits = f => { try { const d = execFileSync("git", ["diff", "-U0", "origin/main", "--", f], { encoding: "utf8", maxBuffer: 1 << 28 }).split("\n").filter(l => /^[+-]/.test(l) && !/^(\+\+\+|---)/.test(l)); return d.length > 0 && d.every(l => NAMED_EDIT.test(l)); } catch { return false; } };
 const changed = (files, read = null) => files.filter(f => blobOf("origin/main", f) && !BASES.some(r => blobOf(r, f) === hashOf((read || (g => unwrapSwitch(fs.readFileSync(g, "utf8"))))(f))) && !(read === null && onlyNamedEdits(f)));
 { const ch = changed(RESULTS); ok(ch.length === 0, `the results pages' sources are byte identical to origin/main (${RESULTS.length} files)${ch.length ? ": changed " + ch : ""}`);
-  ok(changed(RESULTS, f => unwrapSwitch(fs.readFileSync(f, "utf8")) + (f === RESULTS[0] ? "\n// edit" : "")).length === 1, "mutant caught: one results source changed by a comment is reported"); }
+  ok(changed(RESULTS, f => unwrapSwitch(fs.readFileSync(f, "utf8")) + (f === RESULTS[0] ? "\n// edit" : "")).filter(f => f === RESULTS[0] || !onlyNamedEdits(f)).length === 1, "mutant caught: one results source changed by a comment is reported"); }
 // ---------- 6 the class: no duplicate reason ids ----------
 { const ids = src => [...src.matchAll(/^  "([\w.]+)":/gm)].map(m => m[1]), dup = a => a.filter((k, i) => a.indexOf(k) !== i), src = fs.readFileSync("lib/reasonWords.js", "utf8");
   ok(dup(ids(src)).length === 0, "no two reason table entries share an id" + (dup(ids(src)).length ? ": " + dup(ids(src)) : ""));
