@@ -354,6 +354,15 @@
     "node_modules/"
    ]
   },
+  "browserTextImportCheck": {
+   "file": "scripts/browserTextImportCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/",
+    "public/"
+   ]
+  },
   "buildOutputCheck": {
    "file": "scripts/buildOutputCheck.mjs",
    "kind": "offline",
@@ -5618,6 +5627,7 @@
     "api/sellerDecision.js",
     "lib/",
     "lib/_routeLimit.js",
+    "lib/factCoverage.js",
     "lib/factMine.js",
     "lib/live/buyExample.js",
     "lib/live/chatCore.js",
@@ -8074,15 +8084,6 @@
    "kind": "offline",
    "covers": [
     "lib/_ingestHealth.js"
-   ]
-  },
-  "browserTextImportCheck": {
-   "file": "scripts/browserTextImportCheck.mjs",
-   "kind": "offline",
-   "covers": [
-    "api/",
-    "lib/",
-    "public/js/"
    ]
   }
  }
