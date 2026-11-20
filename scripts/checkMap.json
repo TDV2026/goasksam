@@ -5091,6 +5091,23 @@
     "package.json"
    ]
   },
+  "placeholderMilesEngineCheck": {
+   "file": "scripts/placeholderMilesEngineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "data/",
+    "lib/",
+    "lib/onebox.js",
+    "lib/placeholderMiles.js",
+    "node_modules/",
+    "package.json",
+    "scripts/",
+    "scripts/_deskOlderWorld.mjs",
+    "scripts/fixtures/"
+   ]
+  },
   "poolColumnsCheck": {
    "file": "scripts/poolColumnsCheck.mjs",
    "kind": "offline",
@@ -5824,7 +5841,8 @@
     "lib/sell/sellMcClient.js",
     "lib/sellsForCard.js",
     "lib/tools/marketCheck.js",
-    "public/js/onebox.js"
+    "public/js/onebox.js",
+    "scripts/fixtures/saleNameLive.json"
    ]
   },
   "salePhotoCheck": {
