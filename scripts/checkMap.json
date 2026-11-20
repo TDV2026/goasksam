@@ -3116,6 +3116,17 @@
     "vercel.json"
    ]
   },
+  "forSaleHoldingCheck": {
+   "file": "scripts/forSaleHoldingCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/forsale/rules.js",
+    "lib/forsale/serve.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "scripts/_mustangWorld.mjs"
+   ]
+  },
   "forSalePageCheck": {
    "file": "scripts/forSalePageCheck.mjs",
    "kind": "offline",
@@ -3133,6 +3144,24 @@
     "public/js/",
     "scripts/_forSaleWorld.mjs",
     "scripts/fixtures/forsalePageMutants.json"
+   ]
+  },
+  "forSalePlaceholderMilesCheck": {
+   "file": "scripts/forSalePlaceholderMilesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_historyData.js",
+    "api/pullForSale.js",
+    "api/usageDashboard.js",
+    "lib/forsale/report.js",
+    "lib/forsale/rules.js",
+    "lib/forsale/serve.js",
+    "lib/live/featuredHistory.js",
+    "lib/live/feed.js",
+    "lib/live/liveTrust.js",
+    "lib/live/priorListing.js",
+    "lib/placeholderMiles.js",
+    "scripts/_mustangWorld.mjs"
    ]
   },
   "forSalePrepareCheck": {

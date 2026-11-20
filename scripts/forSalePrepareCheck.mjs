@@ -49,7 +49,7 @@ globalThis.fetch = async (url, init) => {
 
 // ---- fixtures: listings over a few cars, with titles, mileages and a VIN or not -------------------------------------------------------------------------------------------------
 const mk = (i, o = {}) => ({ id: i, source: "streetside", source_type: "dealer", source_listing_id: "L" + i, title: o.title || "1987 Porsche 911 Carrera", year: o.year || 1987, make: "Porsche", model: "911", asking_price_usd: o.price === undefined ? 50000 : o.price, mileage: o.mileage === undefined ? 40000 : o.mileage, gone: !!o.gone, hidden: !!o.hidden, resolve_state: o.resolve_state || null, car: o.car || null, car_key: o.car_key || null, read: o.read || null, history: null, vin_norm: o.vin || null, last_seen: new Date().toISOString(), body: null, transmission: null, exterior_color: null, location: "X, ST", country_code: "US", currency: "USD" });
-const specFor = title => /Ghost/.test(title) ? null : { key: "key:" + title.replace(/^\d{4} /, "").replace(/\s+/g, "_"), v: { make: "Porsche", model: "911", year: 1987 }, generation: null };
+const specFor = title => /Ghost/.test(title) ? null : { key: "key:" + title.replace(/^\d{4} /, "").replace(/\s+/g, "_"), v: /Mustang/.test(title) ? { make: "Ford", model: "Mustang", year: 1965 } : { make: "Porsche", model: "911", year: 1987 }, generation: null };
 const ENGINE = (log = {}) => ({
   specOf: async (env, lr) => { log.spec = (log.spec || 0) + 1; (log.order = log.order || []).push("spec"); await new Promise(r => setTimeout(r, log.specMs || 0)); if (log.specUndefined && log.specUndefined.test(lr.listing_title)) return undefined; return specFor(lr.listing_title); },
   listingMarket: async (env, lr, facts) => { (log.order = log.order || []).push("read"); log.reads = (log.reads || 0) + 1; log.cur = (log.cur || 0) + 1; log.max = Math.max(log.max || 0, log.cur); await new Promise(r => setTimeout(r, log.readMs || 5)); log.cur--; (log.keys = log.keys || []).push(lr.listing_title + "|" + facts.miles); return { kind: "range", low: 40000, high: 60000 }; },
@@ -130,6 +130,23 @@ await section("the limits", async () => {
   reset(Array.from({ length: 2300 }, (_, i) => mk(i + 1, { title: "1987 Porsche 911 Carrera " + (i % 40) }))); PAGE_SEEN = [];
   const big = await PREP.prepareForSale(ENV, { budgetMs: 60000, engine: ENGINE({}) });
   ok("the table answers 1,000 rows a page: all 2,300 listings are walked in full (3 pages), resolved and read", big.resolved === 2300 && TABLE.every(r => r.resolve_state === "resolved") && PAGE_SEEN.some(n => n === 1000), [big.resolved, big.reads]);
+});
+
+await section("the queue by demand (Nov 19 2026)", async () => {
+  const mkRows = () => { const rows = [];
+  for (let i = 0; i < 20; i++) rows.push(mk(rows.length + 1, { title: "1987 Porsche 911 Carrera", mileage: 40000 }));
+  for (let i = 0; i < 5; i++) rows.push(mk(rows.length + 1, { title: "1965 Ford Mustang", year: 1965, mileage: 40000 }));
+  for (let i = 0; i < 9; i++) rows.push(mk(rows.length + 1, { title: "1989 Porsche 911 Targa", year: 1989, mileage: 40000 })); return rows; };
+  const demand = new Map([[PREP.demandKey("Ford", "Mustang"), 120], [PREP.demandKey("Porsche", "911"), 7]]);
+  reset(mkRows()); const log = {}, o = await run(log, { demand });
+  ok("the car searched most is read first, though it has the fewest cards (Mustang 120 searches, 5 listings, before the 911s)", log.keys[0].startsWith("1965 Ford Mustang"), log.keys);
+  ok("then the cars with the same demand go by card count (Carrera 20 before Targa 9)", log.keys.findIndex(k => /Carrera/.test(k)) < log.keys.findIndex(k => /Targa/.test(k)), log.keys);
+  ok("the top of the queue is reported: car name, listings, searches, in the order it started", Array.isArray(o.started) && o.started.length === 3 && o.started[0].searches === 120 && o.started[0].listings === 5 && o.started[1].listings === 20 && o.started[0].car && !("title" in o.started[0]), o.started);
+  reset(mkRows()); const l2 = {}; await run(l2, { demand: new Map() });
+  ok("no demand at all keeps the old order (the most cards first)", l2.keys[0].startsWith("1987 Porsche 911 Carrera"), l2.keys);
+  ok("demandKey ignores case, spaces and punctuation; demandOf with the table unreadable is no demand, never an error", PREP.demandKey("Mercedes-Benz", "300 SL") === PREP.demandKey("mercedes benz", "300sl") && (await PREP.demandOf({ supabaseUrl: "http://127.0.0.1:9", supabaseKey: "k" })) instanceof Map);
+  const by = PREP.byDemand([[{ r: { car: { make: "A", model: "x" } } }], [{ r: { car: { make: "B", model: "y" } } }, { r: {} }]], new Map([[PREP.demandKey("A", "x"), 3]]));
+  ok("byDemand puts demand before size", by[0][0].r.car.make === "A");
 });
 await section("the catch up", async () => {
   // 3,000 listings, 200 distinct titles; the engine is slow enough that one run does not finish; the runs left are counted from the table, and the table is done in a few runs
