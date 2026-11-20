@@ -12,7 +12,7 @@ const E = await import(pathToFileURL(path.join(root, "lib/onebox.js")).href), PA
 const fn = E.partnerPositionsOf; ok("lib/onebox.js exports partnerPositionsOf", typeof fn === "function");
 const DEAD = JSON.parse(fs.readFileSync("data/deadPhotoHosts.json", "utf8")).hosts[0].host;
 const uid = n => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const card = (price, date, mi, extra = {}) => ({ id: uid(price), price, date, mi, title: `${date.slice(0, 4)} Porsche 911 GT3`, platformName: "Bring a Trailer", platform: "Bring a Trailer", url: "https://example.test/lot/" + price, image: "https://img.example.test/" + price + ".jpg", ...extra });
+const card = (price, date, mi, extra = {}) => ({ id: uid(price), price, date, mi, title: `${date.slice(0, 4)} Porsche 911 GT3`, carLine: `${date.slice(0, 4)} Porsche 911 GT3`, year: Number(date.slice(0, 4)), carName: "Porsche 911 GT3", platformName: "Bring a Trailer", platform: "Bring a Trailer", url: "https://example.test/lot/" + price, image: "https://img.example.test/" + price + ".jpg", ...extra });
 const CARDS = [card(70000, "2026-03-10", 21000), card(82000, "2026-01-05", 9000), card(64000, "2025-12-20", 44000), card(91000, "2026-04-02", 15000), card(76000, "2025-11-11", null), card(88000, "2026-02-14", 32000), card(61000, "2025-10-01", 30000, { image: `https://${DEAD}/a.jpg` })];
 const D = { tier: "result", cluster: [65000, 90000], cards: CARDS };
 if (fn) {
