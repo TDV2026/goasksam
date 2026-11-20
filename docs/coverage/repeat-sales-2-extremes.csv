@@ -1,0 +1,51 @@
+rank,kind,year,make,model,first_venue,first_date,first_usd,second_venue,second_date,second_usd,months,miles_first,miles_second,ratio
+1,gain,1990,Porsche,964,pcarmarket,2021-07-29,75000,gooding,2025-08-16,1350000,48.6,67253,,18.000
+2,gain,1989,Porsche,964,bringatrailer,2023-04-03,94500,bringatrailer,2026-08-07,1661000,40.1,79000,123,17.577
+3,gain,1991,Lamborghini,Diablo,rmsothebys,2020-03-28,60893,bringatrailer,2022-11-03,250000,31.2,,38000,4.106
+4,gain,1990,Porsche,964,bringatrailer,2023-04-05,150000,bringatrailer,2025-07-11,583000,27.2,40000,42000,3.887
+5,gain,1993,Ferrari,348,bringatrailer,2022-06-25,82000,bringatrailer,2026-10-07,299000,51.4,44000,44000,3.646
+6,gain,1963,Chevrolet,CORVETTE 327/360,bonhams,2017-08-18,277273,barrettjackson,2026-01-24,1000000,101.2,25,,3.607
+7,gain,1962,Chevrolet,Corvette,bringatrailer,2022-08-16,155000,barrettjackson,2023-01-29,520000,5.5,10000,,3.355
+8,gain,1997,Toyota,Supra,rmsothebys,2021-05-26,68750,bringatrailer,2022-07-25,230000,14.0,,53000,3.345
+9,gain,2009,Ferrari,430,bonhams,2019-08-16,241071,bringatrailer,2026-09-02,760000,84.6,8000,12000,3.153
+10,gain,1967,Ford,Mustang,barrettjackson,2022-01-29,110000,barrettjackson,2026-06-27,325000,52.9,,,2.955
+11,gain,1971,Chevrolet,Blazer,barrettjackson,2023-01-30,67000,barrettjackson,2024-04-20,192000,14.7,,,2.866
+12,gain,1992,Porsche,968,rmsothebys,2020-03-07,57500,bringatrailer,2022-03-22,164000,24.5,,8000,2.852
+13,gain,2004,Ferrari,360,rmsothebys,2025-10-11,265909,bringatrailer,2026-05-20,750000,7.3,,9000,2.821
+14,gain,1995,Ferrari,355,bringatrailer,2025-05-12,91500,bringatrailer,2026-08-06,245355,14.8,26000,27000,2.681
+15,gain,1988,Aston Martin,V8 Volante,bonhams,2020-03-05,151786,bonhams,2024-02-29,404545,47.8,,4300,2.665
+16,gain,2003,Ford,Mustang,barrettjackson,2025-04-26,66000,bringatrailer,2026-03-02,175067,10.2,,14,2.653
+17,gain,2001,Ferrari,550,rmsothebys,2023-08-19,400000,bringatrailer,2026-05-22,1052000,33.1,,3400,2.630
+18,gain,1995,Ferrari,F50,gooding,2022-08-20,4200000,rmsothebys,2026-08-15,11000000,47.8,,,2.619
+19,gain,1988,Chevrolet,Corvette,barrettjackson,2025-10-18,100000,barrettjackson,2026-04-17,259091,5.9,,,2.591
+20,gain,1989,Lamborghini,LM002,rmsothebys,2020-08-15,245536,rmsothebys,2024-08-17,635000,48.1,,,2.586
+21,gain,1995,Ferrari,355,bonhams,2018-01-18,64821,pcarmarket,2021-06-23,165000,41.1,13950,15071,2.545
+22,gain,1998,Ferrari,355,bonhams,2017-08-18,58929,gooding,2023-03-02,150000,66.4,14161,,2.545
+23,gain,1998,Ferrari,550 Maranello,bonhams,2019-03-07,70000,bringatrailer,2026-04-24,177000,85.6,31250,33000,2.529
+24,gain,1971,Chevrolet,Blazer,bringatrailer,2022-06-12,51500,barrettjackson,2026-01-23,130000,43.4,70000,,2.524
+25,gain,1995,Aston Martin,Vantage,bonhams,2022-08-19,90000,bringatrailer,2026-04-01,226000,43.4,8031,10000,2.511
+1,loss,1994,Lamborghini,Diablo VT,bonhams,2022-08-19,1900000,bonhams,2022-09-30,220000,1.4,322,322,0.116
+2,loss,2003,Volkswagen,Eurovan,carsandbids,2020-08-25,67001,carsandbids,2020-09-02,8461,0.3,185600,185600,0.126
+3,loss,2022,Karma,GS-6 Sport “Mr,barrettjackson,2022-01-30,636364,bringatrailer,2022-10-24,119805,8.8,,65,0.188
+4,loss,1988,Chevrolet,Corvette,barrettjackson,2025-01-24,481818,barrettjackson,2025-10-18,100000,8.8,,,0.208
+5,loss,2006,Hummer,H1,barrettjackson,2022-01-30,625000,barrettjackson,2025-01-25,135000,35.8,,,0.216
+6,loss,2010,Chevrolet,Camaro,barrettjackson,2022-10-21,227273,bringatrailer,2024-05-17,50001,18.9,,158,0.220
+7,loss,1962,Chevrolet,Corvette,barrettjackson,2023-01-29,520000,barrettjackson,2024-01-28,150000,12.0,,,0.288
+8,loss,2007,Bentley,Continental GT,barrettjackson,2022-01-28,115000,barrettjackson,2024-01-28,35000,24.0,,,0.304
+9,loss,1974,Dodge,Challenger,barrettjackson,2023-01-26,170000,barrettjackson,2026-01-23,55000,35.9,,,0.324
+10,loss,1981,Chevrolet,Camaro,barrettjackson,2023-01-26,98000,barrettjackson,2026-01-23,32000,35.9,,,0.327
+11,loss,1979,Jeep,CJ-5,barrettjackson,2022-01-30,55000,barrettjackson,2024-01-24,18000,23.8,,,0.327
+12,loss,2021,Ford,Bronco,barrettjackson,2022-01-28,120000,barrettjackson,2025-01-24,41000,35.9,,,0.342
+13,loss,1964,Chevrolet,Corvette Convertible,barrettjackson,2023-01-27,225000,mecum,2026-05-15,77000,39.6,,,0.342
+14,loss,2018,Mercedes-Benz,S-Class,carsandbids,2021-07-09,68533,carsandbids,2026-01-06,23750,53.9,35600,114100,0.347
+15,loss,1952,Mercedes-Benz,220 Cabriolet A,rmsothebys,2022-09-24,220982,broadarrow,2025-08-14,80000,34.7,,459,0.362
+16,loss,1987,Jeep,GRAND WAGONEER,bringatrailer,2022-04-02,52000,barrettjackson,2024-01-25,19000,21.8,99000,,0.365
+17,loss,1985,Rolls-Royce,Silver Spur Centenary Limousine,bonhams,2018-09-08,88348,bonhams,2018-12-03,33130,2.8,,,0.375
+18,loss,1972,Chevrolet,El Camino,barrettjackson,2024-10-11,100000,barrettjackson,2025-10-17,39000,12.2,,,0.390
+19,loss,1974,Ford,Bronco,barrettjackson,2022-10-22,190000,barrettjackson,2024-01-27,75000,15.2,,,0.395
+20,loss,2017,Carrozzeria,Touring Superleggera Sciàdipersia Coupé,bonhams,2021-03-10,356870,bonhams,2022-11-18,140870,20.3,11500,11500,0.395
+21,loss,1972,Chevrolet,BLAZER K5,barrettjackson,2023-01-28,175000,barrettjackson,2025-01-24,70000,23.9,,,0.400
+22,loss,1968,Chevrolet,Corvette,barrettjackson,2021-03-27,195000,barrettjackson,2021-09-18,80000,5.7,,,0.410
+23,loss,1964,Lincoln,Continental,barrettjackson,2025-01-24,300000,barrettjackson,2025-04-26,125000,3.0,,,0.417
+24,loss,2018,Toyota,4Runner,barrettjackson,2021-06-18,67000,barrettjackson,2026-01-22,28000,55.2,,,0.418
+25,loss,1963,Chevrolet,Corvette,barrettjackson,2023-01-29,497000,barrettjackson,2024-01-28,210000,12.0,,,0.423
