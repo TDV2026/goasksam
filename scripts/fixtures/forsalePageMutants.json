@@ -1,0 +1,296 @@
+[
+{
+"name": "the default pill is not Auctions",
+"file": "page",
+"edits": [
+[
+"(ORDER.indexOf(fs&&fs.default)>=0?fs.default:\"auctions\")}",
+"\"all\"}"
+]
+]
+},
+{
+"name": "an empty pill is hidden",
+"file": "page",
+"edits": [
+[
+"var n=count(fs,k),off=n===0;return '<button",
+"var n=count(fs,k),off=n===0;if(off)return '';return '<button"
+]
+]
+},
+{
+"name": "a greyed pill can be pressed",
+"file": "page",
+"edits": [
+[
+"function usable(fs,k){return k===\"auctions\"||k===\"all\"||count(fs,k)>0}",
+"function usable(fs,k){return true}"
+],
+[
+"||b.getAttribute(\"aria-disabled\")===\"true\")return;save(k)",
+")return;save(k)"
+]
+]
+},
+{
+"name": "a count is not the engine's",
+"file": "page",
+"edits": [
+[
+"return c>0?c:0}",
+"return c>0?c+1:0}"
+]
+]
+},
+{
+"name": "the remembered choice is ignored",
+"file": "page",
+"edits": [
+[
+"function choose(fs){var s=saved();",
+"function choose(fs){var s=null;"
+]
+]
+},
+{
+"name": "the choice is never remembered",
+"file": "page",
+"edits": [
+[
+"save(k);apply(blk,k)",
+"apply(blk,k)"
+]
+]
+},
+{
+"name": "a remembered pill with nothing in it is kept",
+"file": "page",
+"edits": [
+[
+"ORDER.indexOf(s)>=0&&usable(fs,s)?s:",
+"ORDER.indexOf(s)>=0?s:"
+]
+]
+},
+{
+"name": "the line says nothing of 'Also for sale'",
+"file": "page",
+"edits": [
+[
+"<p class=\"fs-also\">Also for sale: ",
+"<p class=\"fs-also\">"
+]
+]
+},
+{
+"name": "the line shows on every pill",
+"file": "page",
+"edits": [
+[
+"if(al)al.hidden=k!==\"auctions\"",
+"if(al)al.hidden=false"
+]
+]
+},
+{
+"name": "All mixes classifieds into the dealers grid",
+"file": "page",
+"edits": [
+[
+"gridHtml(fs.dealers)+'</section>'",
+"gridHtml(fs.dealers)+gridHtml(fs.classifieds)+'</section>'"
+]
+]
+},
+{
+"name": "All puts the groups above the auctions",
+"file": "page",
+"edits": [
+[
+"grp.parentNode.insertBefore(wrap,grp.nextSibling)",
+"grp.parentNode.insertBefore(wrap,grp)"
+]
+]
+},
+{
+"name": "the dealers heading in its own words",
+"file": "page",
+"edits": [
+[
+"<h3 class=\"fs-h\">At dealers<span",
+"<h3 class=\"fs-h\">Dealers<span"
+]
+]
+},
+{
+"name": "the button says View auction",
+"file": "page",
+"edits": [
+[
+"View listing '+arrow",
+"View auction '+arrow"
+]
+]
+},
+{
+"name": "a bid word on the badge",
+"file": "page",
+"edits": [
+[
+"<span class=\"mlab\"><span class=\"mv\">'+esc(c.askingLine)+'</span></span></a>'",
+"<span class=\"mlab\"><span class=\"mv\">Bid '+esc(c.askingLine)+'</span></span></a>'"
+]
+]
+},
+{
+"name": "the read is left out",
+"file": "page",
+"edits": [
+[
+"'<div class=\"sl\"><span class=\"who\">Sam</span>'+esc(c.read)+(c.historyLine",
+"'<div class=\"sl\"><span class=\"who\">Sam</span>'+(c.historyLine"
+]
+]
+},
+{
+"name": "the earlier sale line printed when there is none",
+"file": "page",
+"edits": [
+[
+"(c.historyLine?'<span class=\"fs-hist\">'+esc(c.historyLine)+'</span>':'')",
+"'<span class=\"fs-hist\">'+esc(c.historyLine)+'</span>'"
+]
+]
+},
+{
+"name": "the label is the kind, not the engine's word",
+"file": "page",
+"edits": [
+[
+"t=esc(c.typeWord)",
+"t=esc(c.kind)"
+]
+]
+},
+{
+"name": "the card is not the auction card",
+"file": "page",
+"edits": [
+[
+"class=\"car fs-car",
+"class=\"fs-car"
+]
+]
+},
+{
+"name": "the cards are sorted by the page",
+"file": "page",
+"edits": [
+[
+"cs.map(function(c,i){return cardHtml(c,i<6)})",
+"cs.slice().sort(function(a,b){return a.asking-b.asking}).map(function(c,i){return cardHtml(c,i<6)})"
+]
+]
+},
+{
+"name": "the pills wrap on a phone",
+"file": "page",
+"edits": [
+[
+"flex-wrap:nowrap;gap:8px;margin:0 0 20px;overflow-x:auto;max-width:100%;",
+"flex-wrap:wrap;gap:8px;margin:0 0 20px;max-width:100%;"
+]
+]
+},
+{
+"name": "the pill row pushes the page sideways",
+"file": "page",
+"edits": [
+[
+"overflow-x:auto;max-width:100%;scrollbar-width:none;",
+"min-width:520px;"
+]
+]
+},
+{
+"name": "the module is on for every visitor",
+"file": "page",
+"edits": [
+[
+"export const forSaleOn = crew => FORSALE_PAGE_PUBLIC === true || crew === true;",
+"export const forSaleOn = crew => true;"
+]
+]
+},
+{
+"name": "the switch is on",
+"file": "page",
+"edits": [
+[
+"export const FORSALE_PAGE_PUBLIC = false;",
+"export const FORSALE_PAGE_PUBLIC = true;"
+]
+]
+},
+{
+"name": "the module is not wired into the page",
+"file": "buy",
+"edits": [
+[
+"${forSaleHead(crew)}<main",
+"<main"
+]
+]
+},
+{
+"name": "the client does not keep the answer",
+"file": "buy",
+"edits": [
+[
+"PRIOR_JS), crew)}</script>",
+"PRIOR_JS), false)}</script>"
+]
+]
+},
+{
+"name": "the dealer cards show on Auctions",
+"file": "page",
+"edits": [
+[
+"if(dl)dl.hidden=!(all||k===\"dealers\")",
+"if(dl)dl.hidden=false"
+]
+]
+},
+{
+"name": "the auction grid stays on Dealers",
+"file": "page",
+"edits": [
+[
+".fs-m-dealers .grp,.fs-m-dealers .nonel,",
+".fs-m-dealers .nonel,"
+]
+]
+},
+{
+"name": "the empty-auction lines stay on Dealers",
+"file": "page",
+"edits": [
+[
+".fs-m-dealers .nonel,",
+""
+]
+]
+},
+{
+"name": "the line does not lead with no auctions",
+"file": "page",
+"edits": [
+[
+"else if(nonel)nonel.parentNode.insertBefore(wrap,nonel);",
+"else if(nonel)nonel.parentNode.insertBefore(wrap,nonel.nextSibling);"
+]
+]
+}
+]

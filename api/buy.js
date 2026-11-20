@@ -24,6 +24,7 @@ import { heldFor } from "../lib/_hold.js";
 import { stillReadingMarket } from "../lib/live/search.js";   // the engine's own retry and wait for a market still being read, given to the Find client (no number of the page's own)
 import { withNewDesign } from "../lib/_newDesign.js";
 import { carFindRoute } from "../lib/carBar.js";
+import { forSaleHead, forSaleClient } from "../lib/forSalePage.js";   // dealer cars and classifieds on Find: crew only (lib/forSalePage.js); a visitor gets both of these back unchanged
 const qsOf = req => { try { return new URL(String(req.url || "/"), "https://x").searchParams; } catch { return new URLSearchParams(); } };
 const STILL = stillReadingMarket();
 
@@ -138,7 +139,7 @@ async function handler(req, res) {
 ${FONT_LINKS}<style>${PAGE_CSS}${AUTH_SIGNBAR_CSS}${SHELL_CSS}${BUY_CSS}${CARD_RULES_CSS}${RUNG_CSS}${BUY_CARD_CSS}${LANDING_CSS}${SELLS_FOR_CARD_CSS}${brandPaletteCss(crew)}${CONSENT_BANNER_CSS}</style></head><body>
 ${AUTH_SIGNBAR_HTML}
 ${railFinal}
-<main class="buymain">
+${forSaleHead(crew)}<main class="buymain">
 <div class="scroll" id="scroll"><div class="col">${landingHtml({ lead })}<div id="convo" aria-live="polite"></div></div></div>
 <div class="composer"><div class="col">
 <div class="search" role="search"><label for="q" style="position:absolute;left:-9999px">Tell Sam what to change, or ask about any car</label><input id="q" autocomplete="off" enterkeyhint="send" placeholder="Search another car, or tell Sam what to change."><button type="button" class="mic" id="mic" aria-label="Speak instead of typing" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg></button><button type="button" class="go sendbtn" id="go" aria-label="Search"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div>
@@ -153,7 +154,7 @@ ${CONSENT_BANNER_HTML}
 <script>${AUTH_SIGNBAR_MIRROR_JS}</script>
 <script>${SELLS_FOR_CARD_JS}</script>
 <script>${START_JS}</script>
-<script>${CLIENT.replace("__KEEP_ICON__", () => JSON.stringify(KEEP_ICON)).replace("__COLD_MISSED__", () => JSON.stringify(reasonLine("cold.missed"))).replace("__CARD_NOT_READ__", () => JSON.stringify(reasonLine("cold.card_missed"))).replace("__STILL_RETRY__", () => String(STILL.retryAfterMs)).replace("__STILL_WAIT__", () => String(STILL.waitMaxMs)).replace("__COLD_READING__", () => JSON.stringify(reasonLine("cold.reading"))).replace("__ANY_ANSWER__", () => ANY_ANSWER_JS).replace("/*__PRIOR__*/", () => PRIOR_JS)}</script>
+<script>${forSaleClient(CLIENT.replace("__KEEP_ICON__", () => JSON.stringify(KEEP_ICON)).replace("__COLD_MISSED__", () => JSON.stringify(reasonLine("cold.missed"))).replace("__CARD_NOT_READ__", () => JSON.stringify(reasonLine("cold.card_missed"))).replace("__STILL_RETRY__", () => String(STILL.retryAfterMs)).replace("__STILL_WAIT__", () => String(STILL.waitMaxMs)).replace("__COLD_READING__", () => JSON.stringify(reasonLine("cold.reading"))).replace("__ANY_ANSWER__", () => ANY_ANSWER_JS).replace("/*__PRIOR__*/", () => PRIOR_JS), crew)}</script>
 <script src="/api/track?js=1" defer></script>
 <script>${CONSENT_BANNER_JS}</script><script>${OUTBOUND_JS};gasOutboundInstall("find")</script></body></html>`;
   // Referrer logging (search measurement). Runs on a cache MISS only (the page is edge-cached 10 min),
