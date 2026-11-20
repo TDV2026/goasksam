@@ -3116,6 +3116,25 @@
     "vercel.json"
    ]
   },
+  "forSalePageCheck": {
+   "file": "scripts/forSalePageCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/buy.js",
+    "lib/",
+    "lib/findCardKit.js",
+    "lib/forSalePage.js",
+    "lib/live/buyAlerts.js",
+    "lib/live/watches.js",
+    "lib/sell/sellClient.js",
+    "lib/tasks/",
+    "package.json",
+    "public/js/",
+    "scripts/_forSaleWorld.mjs",
+    "scripts/fixtures/forsalePageMutants.json"
+   ]
+  },
   "forSalePrepareCheck": {
    "file": "scripts/forSalePrepareCheck.mjs",
    "kind": "offline",
@@ -3133,6 +3152,15 @@
     "node_modules/",
     "package.json",
     "scripts/"
+   ]
+  },
+  "forSaleWorldCheck": {
+   "file": "scripts/forSaleWorldCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "node_modules/",
+    "scripts/_forSaleWorld.mjs"
    ]
   },
   "foreignCarsTaskCheck": {
