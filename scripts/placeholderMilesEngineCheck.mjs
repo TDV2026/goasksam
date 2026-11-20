@@ -44,8 +44,8 @@ for (const f of FILLERS) {
 install(world(4, 999999)); { const a = await read(base, "1966 Ford Mustang"), withMi = (a.cards || []).filter(c => Number(c.mi) > 0), without = (a.cards || []).filter(c => !(Number(c.mi) > 0));
   ok("the sales carrying 999,999 are cards with no mileage (not 999,999, not zero miles)", without.length >= 1 && withMi.every(c => Number(c.mi) >= 41000 && Number(c.mi) < 100000), { without: without.length, withMi: withMi.length }); }
 // 3. the readers on their own (one rule)
-ok("mileageNearOf of a filler is nothing", OB.mileageNearOf([{ m: 50000, p: 30000 }], 999999, 30000) === null);
-ok("nearBandOf of a filler is nothing", OB.nearBandOf({ rawPool: [], tier: "result" }, 999999) === null);
+ok("mileageNearOf of a filler is nothing, even with sales at that very figure", OB.mileageNearOf(Array.from({ length: 12 }, (_, i) => ({ m: 999999 - i * 100, p: 30000 + i * 500 })), 999999, 30000) === null);
+ok("nearBandOf of a filler is nothing", OB.nearBandOf({ tier: "result", rawPool: Array.from({ length: 14 }, (_, i) => ({ _usd: 30000 + i * 400, mileage: 41000 + i * 3000 })) }, 999999) === null);
 ok("mileageBasisOf: a filler query mileage and a filler live hint state no mileage", OB.mileageBasisOf({ tier: "result", queryMileage: 999999 }, { live: 999999, record: 123456 }) === null);
 ok("mileageBasisOf: a stated live mileage still reads", !!OB.mileageBasisOf({ tier: "result" }, { live: 41500 }));
 ok("findAnswerOf: a filler ctx.miles is dropped", (() => { try { return OB.findAnswerOf({ tier: "result", rawPool: [] }, { miles: 999999 }) !== undefined; } catch { return false; } })());
