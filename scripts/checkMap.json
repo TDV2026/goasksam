@@ -8168,6 +8168,18 @@
    "covers": [
     "lib/_ingestHealth.js"
    ]
+  },
+  "forSaleShowMoreCheck": {
+   "file": "scripts/forSaleShowMoreCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "api/buySearch.js",
+    "lib/forSalePage.js",
+    "lib/forsale/serve.js",
+    "lib/reasonWords.js",
+    "scripts/_forSaleWorld.mjs"
+   ]
   }
  }
 }
