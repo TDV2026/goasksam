@@ -71,7 +71,7 @@ ok(EC.indexOf(greenId) >= 48, "the Greenland, NH card sits past the second page 
 const READ = k => { const s = document.querySelector('.fs-sec[data-fs="' + k + '"]'); if (!s) return null; const t = e => e ? e.textContent.replace(/\s+/g, " ").trim() : null; const vis = e => !!e && !!(e.offsetWidth || e.offsetHeight);
   return { vis: vis(s), ids: [...s.querySelectorAll("article.car")].map(a => a.getAttribute("data-fs-id")), count: t(s.querySelector(".fs-count")), btn: t(s.querySelector("[data-fs-more]")), titles: [...s.querySelectorAll("article.car .ttl")].map(x => t(x)), meta: [...s.querySelectorAll("article.car .meta")].map(x => t(x)) }; };
 const pageAll = async (p, k, total) => { let g = 0; while (g++ < 60) { const s = await p.evaluate(READ, k); if (!s.btn) return s; const before = s.ids.length; await p.evaluate(kk => { const a = document.querySelector('.fs-sec[data-fs="' + kk + '"] [data-fs-more]'); if (a) a.click(); }, k);
-  for (let w = 0; w < 100; w++) { await new Promise(r => setTimeout(r, 80)); const n = (await p.evaluate(READ, k)).ids.length; if (n !== before) break; } } return await p.evaluate(READ, k); };
+  for (let w = 0; w < 100; w++) { await new Promise(r => setTimeout(r, 80)); const n = (await p.evaluate(READ, k)).ids.length; if (n !== before) break; } if ((await p.evaluate(READ, k)).ids.length === before) break; } return await p.evaluate(READ, k); };   // a press that draws nothing ends the paging (the asserts then fail)
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-sandbox"] }), fmt = n => Number(n).toLocaleString("en-US");
 try {
   // CLASSIFIEDS
