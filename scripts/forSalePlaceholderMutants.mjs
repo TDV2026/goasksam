@@ -27,7 +27,7 @@ const M = [
   ["the holding line is reworded", "lib/reasonWords.js", "text: () => \"Sam's read is on its way.\"", "text: () => \"Reading.\"", "forSaleHoldingCheck"],
   ["the queue ignores demand", "lib/forsale/prepare.js", "export const byDemand = (groups, demand) => groups.slice().sort((a, b) => groupDemand(b, demand) - groupDemand(a, demand) || b.length - a.length);", "export const byDemand = (groups, demand) => groups.slice().sort((a, b) => b.length - a.length);", "forSalePrepareCheck"],
   ["the queue puts size before demand", "lib/forsale/prepare.js", "groupDemand(b, demand) - groupDemand(a, demand) || b.length - a.length);", "b.length - a.length || groupDemand(b, demand) - groupDemand(a, demand));", "forSalePrepareCheck"],
-  ["an unreadable demand table fails the run", "lib/forsale/prepare.js", "  } catch { return new Map(); }\n}\nexport const groupDemand", "  } catch (e) { throw e; }\n}\nexport const groupDemand", "forSalePrepareCheck"],
+  ["an unreadable demand table breaks the run", "lib/forsale/prepare.js", "for (const r of Array.isArray(rows) ? rows : [])", "for (const r of rows)", "forSalePrepareCheck"],
   ["the top of the queue is not reported", "lib/forsale/prepare.js", "out.started = rg.slice(0, 20).map(", "out.startedX = rg.slice(0, 20).map(", "forSalePrepareCheck"]
 ];
 const only = process.argv.includes("--only") ? Number(process.argv[process.argv.indexOf("--only") + 1]) : null;

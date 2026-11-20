@@ -144,7 +144,7 @@ await section("the queue by demand (Nov 19 2026)", async () => {
   ok("the top of the queue is reported: car name, listings, searches, in the order it started", Array.isArray(o.started) && o.started.length === 3 && o.started[0].searches === 120 && o.started[0].listings === 5 && o.started[1].listings === 20 && o.started[0].car && !("title" in o.started[0]), o.started);
   reset(mkRows()); const l2 = {}; await run(l2, { demand: new Map() });
   ok("no demand at all keeps the old order (the most cards first)", l2.keys[0].startsWith("1987 Porsche 911 Carrera"), l2.keys);
-  ok("demandKey ignores case, spaces and punctuation; demandOf with the table unreadable is no demand, never an error", PREP.demandKey("Mercedes-Benz", "300 SL") === PREP.demandKey("mercedes benz", "300sl") && (await PREP.demandOf({ supabaseUrl: "http://127.0.0.1:9", supabaseKey: "k" })) instanceof Map);
+  ok("demandKey ignores case, spaces and punctuation; demandOf with the table unreadable is no demand, never an error", PREP.demandKey("Mercedes-Benz", "300 SL") === PREP.demandKey("mercedes benz", "300sl") && (await PREP.demandOf({ supabaseUrl: "http://127.0.0.1:9", supabaseKey: "k" })) instanceof Map && (await PREP.demandOf(null)) instanceof Map && await (async () => { const f = globalThis.fetch; globalThis.fetch = async () => new Response("nope", { status: 500 }); try { return (await PREP.demandOf(ENV)) instanceof Map; } finally { globalThis.fetch = f; } })());
   const by = PREP.byDemand([[{ r: { car: { make: "A", model: "x" } } }], [{ r: { car: { make: "B", model: "y" } } }, { r: {} }]], new Map([[PREP.demandKey("A", "x"), 3]]));
   ok("byDemand puts demand before size", by[0][0].r.car.make === "A");
 });
