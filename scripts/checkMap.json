@@ -3278,6 +3278,17 @@
     "scripts/_mustangWorld.mjs"
    ]
   },
+  "forSaleShowMoreCheck": {
+   "file": "scripts/forSaleShowMoreCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/buy.js",
+    "lib/forSalePage.js",
+    "lib/forsale/serve.js",
+    "package.json",
+    "scripts/_forSaleWorld.mjs"
+   ]
+  },
   "forSaleWorldCheck": {
    "file": "scripts/forSaleWorldCheck.mjs",
    "kind": "offline",

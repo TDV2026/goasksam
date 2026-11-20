@@ -210,7 +210,7 @@ await sec("source", async () => {
   ok(FSP && bad.every(re => !re.test(src)), "the module sorts, sums, rounds and parses nothing :: " + bad.filter(re => re.test(src)).join(" "));
   ok(FSP && !/\.title|listing_title|\.car\b|\.car\./.test(src.replace(/closest\("\.car"\)|\\'\.car\\'|article\.car|class="car/g, "")), "the module never reads a car's own fields to decide anything (name, label, asking, read as sent)");
   ok(FSP && !/asking\b(?!Line)|\.asking\s*[<>=]/.test(src.replace(/askingLine/g, "")), "the module never reads the asking number itself, only the engine's words for it");
-  ok(FSP && !/fetch\s*\(/.test(src) && !/XMLHttpRequest/.test(src), "the module asks the server for nothing: the answer is already on the block");
+  ok(FSP && (src.match(/fetch\s*\(/g) || []).length === 1 && /fetch\("\/api\/buySearch",.*action:"more",.*forSaleGroup:k,forSaleOffset:/.test(src) && !/XMLHttpRequest/.test(src), "the module asks the server for one thing only, the next batch of a group (buySearch action more with forSaleGroup and forSaleOffset, Show more, Nov 20 2026): the answer is otherwise already on the block");
   ok(FSP && /At auction now/.test(src) && /At dealers/.test(src) && /Classifieds/.test(src) && /View listing/.test(src) && /Also for sale:/.test(src), "the fixed words are the ones in the order");
   ok(FSP && !/[\u2013\u2014]/.test(src), "no em or en dash in anything a visitor reads");
 });
