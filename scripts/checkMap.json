@@ -8051,6 +8051,15 @@
    "covers": [
     "lib/_ingestHealth.js"
    ]
+  },
+  "browserTextImportCheck": {
+   "file": "scripts/browserTextImportCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/",
+    "public/js/"
+   ]
   }
  }
 }

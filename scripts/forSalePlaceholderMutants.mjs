@@ -24,7 +24,7 @@ const M = [
   ["an unread card has an empty Sam box", "lib/forsale/serve.js", "reasonLine(\"forsale.holding\", {}))", "\"\")", "forSaleHoldingCheck"],
   ["an unread card is not marked pending", "lib/forsale/serve.js", "readKind: readed ? row.read.kind : \"pending\",", "readKind: row.read ? row.read.kind : null,", "forSaleHoldingCheck"],
   ["a listing with no read is held back again", "lib/forsale/rules.js", "  // A LISTING WHOSE READ HAS NOT LANDED IS SERVED", "  if (!(row.read && row.read.sold_line && row.read.engine_version === engineVersion)) return \"read_pending\";\n  // A LISTING WHOSE READ HAS NOT LANDED IS SERVED", "forSaleHoldingCheck"],
-  ["the holding line is reworded", "lib/reasonWords.js", "text: () => \"Sam's read is on its way.\"", "text: () => \"Reading.\"", "forSaleHoldingCheck"],
+  ["the holding line is reworded", "lib/reasonWords.js", "text: () => \"My read is on its way.\"", "text: () => \"Reading.\"", "forSaleHoldingCheck"],
   ["the queue ignores demand", "lib/forsale/prepare.js", "export const byDemand = (groups, demand) => groups.slice().sort((a, b) => groupDemand(b, demand) - groupDemand(a, demand) || b.length - a.length);", "export const byDemand = (groups, demand) => groups.slice().sort((a, b) => b.length - a.length);", "forSalePrepareCheck"],
   ["the queue puts size before demand", "lib/forsale/prepare.js", "groupDemand(b, demand) - groupDemand(a, demand) || b.length - a.length);", "b.length - a.length || groupDemand(b, demand) - groupDemand(a, demand));", "forSalePrepareCheck"],
   ["an unreadable demand table breaks the run", "lib/forsale/prepare.js", "for (const r of Array.isArray(rows) ? rows : [])", "for (const r of rows)", "forSalePrepareCheck"],
