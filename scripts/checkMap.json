@@ -8160,5 +8160,15 @@
     "lib/_ingestHealth.js"
    ]
   }
+ },
+ "factCarCheck": {
+  "file": "scripts/factCarCheck.mjs",
+  "kind": "offline",
+  "covers": [
+   "api/usageDashboard.js",
+   "lib/factCar.js",
+   "lib/factMine.js",
+   "docs/supabase-factmine.sql"
+  ]
  }
 }
