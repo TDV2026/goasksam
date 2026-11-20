@@ -15,7 +15,7 @@ const none = await readFor(null);
 ok("the car with no mileage reads (the engine's own answer, not still reading)", none.read && none.read.sold_line, JSON.stringify(none.read));
 const real = await readFor(45000);
 ok("control: a real mileage still reads its own band (the fixture can tell a mileage from none)", real.read && real.read.sold_line !== none.read.sold_line, JSON.stringify(real.read && real.read.sold_line));
-const FILLERS = [999999, "999,999", 99999, 9999999, 0, 1, 111111, 123456, 12345, 500001, 1000000];
+const FILLERS = [999999, "999,999", 99999, 9999999, 0, 1, 111111, 123456, 12345, 500001, 1000000, 1111, 1234, 9999, 4321];   // 1111, 1234 and 9999 are the three values Lane F's launch census found printed on cards (Nov 20 2026)
 for (const f of FILLERS) {
   const r = await readFor(f);
   ok(`mileage ${JSON.stringify(f)}: the listing states no mileage`, r.facts.miles == null && r.facts.milesSrc == null, JSON.stringify({ miles: r.facts.miles }));
@@ -27,7 +27,8 @@ unquiet();
 ok("lib/placeholderMiles.js exists and holds the rule", !!PM && typeof PM.statedMiles === "function" && typeof PM.isPlaceholderMiles === "function");
 if (PM) {
   ok("fillers: 999,999 and its variants, 0, 1, 111,111, 123,456, anything above 500,000", [999999, 99999, 9999999, 0, 1, 111111, 123456, 12345, 500001, "999,999", -5].every(PM.isPlaceholderMiles));
-  ok("real mileages stay: 2, 9,999, 45,000, 100,000, 250,000, 500,000, 77,000", [2, 9999, 45000, 100000, 250000, 500000, 77000].every(v => !PM.isPlaceholderMiles(v) && PM.statedMiles(v) === v));
+  ok("real mileages stay: 2, 1,112, 1,235, 9,998, 45,000, 100,000, 250,000, 500,000, 77,000", [2, 1112, 1235, 9998, 45000, 100000, 250000, 500000, 77000].every(v => !PM.isPlaceholderMiles(v) && PM.statedMiles(v) === v));
+  ok("the census values are fillers: 1,111 to 9,999 (one digit four places), 1,234 and the runs", [1111, 2222, 9999, 1234, 2345, 6789, 4321, 9876, 99999].every(PM.isPlaceholderMiles) && [999, 1000, 1001, 1230, 2468].every(v => !PM.isPlaceholderMiles(v)));
   ok("no mileage is not a filler (null, empty): it is unknown already", !PM.isPlaceholderMiles(null) && !PM.isPlaceholderMiles("") && PM.statedMiles(null) === null);
   let bad = null; const inList = new Set(PM.PLACEHOLDER_LIST);
   for (let v = 0; v <= 1000000 && !bad; v++) { const filt = v <= 1 || v > 500000 || inList.has(v); if (filt !== PM.isPlaceholderMiles(v)) bad = v; }
