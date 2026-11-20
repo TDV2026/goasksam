@@ -5248,6 +5248,7 @@
     "api/",
     "data/",
     "lib/",
+    "lib/carToken.js",
     "lib/onebox.js",
     "lib/placeholderMiles.js",
     "node_modules/",
