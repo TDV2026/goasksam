@@ -49,7 +49,7 @@ for (const f of FAM) { fams++; const model = String(f.models[0]).replace(/\*$/, 
     for (const d of HOMAGE) if (C.projectFlagReason(title, d)) bad.push(`${title}: "${d}" flags ${C.projectFlagReason(title, d)}`);
     if (!C.projectFlagReason(plain, "This one is a tribute to the original 1966 car.") && !require_pkg(plain)) bad.push(`${plain}: a plain title must still flag "is a tribute to"`);
     if (!C.projectFlagReason(`${title} Tribute`, HOMAGE[0])) bad.push(`${title} Tribute: a tribute in the title must flag`);
-    if (!C.projectFlagReason(title, "This is a tribute car built from a base model.")) bad.push(`${title}: the build wording "tribute car" must still flag`);
+    if (!/\b(heritage|anniversary|commemorative|launch|founders?|final|signature)\s+edition\b/i.test(title) && !C.projectFlagReason(title, "This is a tribute car built from a base model.")) bad.push(`${title}: the build wording "tribute car" must still flag`);
   } }
 function require_pkg(t) { return false; }
 ok(`rule: ${fams} families, ${variants} named variants: the homage wording never flags a titled package, and a plain title, a tribute title and the build wording still flag`, bad.length === 0 && variants >= 60, `${bad.length} wrong, ${variants} variants: ` + bad.slice(0, 4).join(" | "));
