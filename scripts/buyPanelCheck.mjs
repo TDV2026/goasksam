@@ -9,6 +9,7 @@ let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const buy = fs.readFileSync(new URL("../api/buy.js", import.meta.url), "utf8");
 const client = JSON.parse(/^const CLIENT = (".*");$/m.exec(buy)[1]), css = JSON.parse(/^const BUY_CARD_CSS = (".*");$/m.exec(buy)[1]);
+ok(!/var HOUSE = \{/.test(client), "the page holds no map of source names: the card prints the name the engine served, as the one map gives it (lib/venueNames.js)");
 const code = client.split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n");
 const fn = name => { const i = code.indexOf("function " + name + "("); return i < 0 ? "" : code.slice(i, code.indexOf("\n  function ", i + 1)); };
 const d = fn("drawerHtml"), o = fn("openDrawer");
@@ -26,7 +27,7 @@ ok(/\.mcdrawer \.md-x\{flex:0 0 auto;width:36px;height:36px/.test(css) && /\.mcd
 const line = from => { const i = client.indexOf(from); if (i < 0) throw new Error("missing " + from); return client.slice(i, client.indexOf("\n", i)) + "\n"; };
 const blk = (from, to) => { const i = client.indexOf(from), k = client.indexOf(to, i); if (i < 0 || k < 0) throw new Error("missing " + from); return client.slice(i, k); };
 const env = "var REL_MC = true; function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\"/g,'&quot;'); } function cnt(n){ return String(n); } function rungHtml(m){ return (m.rungLines || []).join(' '); } function carTitle(l){ return l.name; } function alertSwitchHtml(){ return '<p class=\"sw\">EMAIL</p>'; } function watchHtml(){ return '<p class=\"mw\">WATCH</p>'; }\n" +
-  line("  function usd(") + line("  function num(") + line("  var M = [") + line("  function monthYear(") + line("  var HOUSE = {") + line("  function cap(") + line("  function venueOf(") + line("  function mdHeadHtml(") + blk("  function sameName(a, b, make){", "  function openDrawer(btn){");
+  line("  function usd(") + line("  function num(") + line("  var M = [") + line("  function monthYear(") + line("  function cap(") + line("  function venueOf(") + line("  function mdHeadHtml(") + blk("  function sameName(a, b, make){", "  function openDrawer(btn){");
 const drawerHtml = new Function(env + "\nreturn drawerHtml;")();
 const rows = Array.from({ length: 12 }, (_, k) => ({ price: 300000 - k * 1000, date: `2026-${String(10 - Math.floor(k / 2)).padStart(2, "0")}-1${k % 2}`, mi: 30000 + k, title: k ? "1996 Porsche 911 Turbo" : "1996 Porsche 911 Turbo 6-Speed", image: k === 3 ? null : `https://img.example/${k}.jpg`, platform: "Bring a Trailer" }));
 const l = { id: 1, name: "1996 Porsche 911 Turbo", make: "Porsche", year: 1996, market: { kind: "range", low: 258000, high: 330000, count: 17, rungLines: ["1996 911 Turbo"], query: "1996 porsche 911 turbo" } };

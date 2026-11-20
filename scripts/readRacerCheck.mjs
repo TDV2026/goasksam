@@ -61,6 +61,7 @@ const REGISTRY = [
   ["lib/variantRows.js", /await Promise\.race\(\[supabaseSelect\(env, `spec_market_cache\?spec_key=eq/, N, "one small keyed read of the stored split row, capped at STORE_READ_MS"],
   ["lib/variantRows.js", /const rows = await Promise\.race\(\[all, new Promise/, P, "the six variant reads keep computing behind the response: keepAlive stores the split and the page asks again (a crew read writes nothing)"],
   ["lib/tasks/tasks.js", /noBlock: true \}\), new Promise/, P,"listingMarket noBlock: the read behind it fills the stored row"],
+  ["api/buy.js", /const fsTotal = crew \? await Promise\.race\(\[withForSale/, P, "the crew's vehicle count (lib/forsale/total.js): the read keeps computing behind the page and fills its ten minute memo, so the next page is not slow; the page prints nothing for it when it is late"],
   ["lib/vehicle.js", /Promise\.race\(\[promise, gone\]\)/, N, "a resolver deadline"]
 ];
 const files = new Set(); const stack = ["api", "lib"];
