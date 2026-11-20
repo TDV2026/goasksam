@@ -83,4 +83,16 @@ for (const d of ["api", "lib", "js", "public"]) { try { walk(d); } catch { /* no
 ok("no function or page a visitor reaches imports lib/_batchReads.js", visitor.length === 0, visitor.join(", "));
 { let changed = null; try { changed = (await import("child_process")).execSync("git diff --name-only origin/main", { cwd: root, encoding: "utf8" }).split("\n").filter(Boolean); } catch { /* no git */ }
   ok("no stamped file and no workflow file is touched by this branch", changed == null || !changed.some(f => ["lib/onebox.js", "lib/variants.js", "lib/variantRows.js", "data/variantFamilies.json"].includes(f) || f.startsWith(".github/")), changed ? changed.join(",").slice(0, 300) : "git not available"); }
+// 9. THE LOG LINES (logLinesCheck): the retry warning and the tally are visible in the nightly's own output, and a visitor's read prints nothing
+{ const grab = async fn => { const out = [], w = console.warn, e = console.error; console.warn = (...a) => out.push(a.join(" ")); console.error = (...a) => out.push(a.join(" ")); try { await fn(); } finally { console.warn = w; console.error = e; } return out; };
+  { const S = await load(); const out = await grab(async () => { fake(rows(5), (off, n) => n === 1 ? "timeout" : "ok"); await S.supabaseSelectAll(env, "sales_archive?select=id"); });
+    ok("a visitor's timed out read prints no retry warning line", !out.some(l => /::warning::/.test(l)), JSON.stringify(out)); }
+  { const S = await load(); enable(S, { pauseMs: 5, fetchMs: 1500 }); const out = await grab(async () => { fake(rows(5), (off, n) => n === 1 ? "timeout" : "ok"); await S.supabaseSelectAll(env, "sales_archive?select=id"); });
+    ok("a batch read that retries prints the ::warning:: line the nightly shows", out.some(l => /^::warning::archive page timed out/.test(l)), JSON.stringify(out)); }
+  const { spawnSync } = await import("child_process");
+  const child = code => spawnSync(process.execPath, ["--input-type=module", "-e", code], { cwd: root, encoding: "utf8", env: { ...process.env, SUPABASE_FETCH_MS: "1000", DEBUG_LOG: "" } });
+  const body = `import "./lib/_batchReads.js"; import { supabaseSelectAll } from "./lib/_supabase.js"; let n = 0; globalThis.fetch = async () => (++n === 1 ? new Response(JSON.stringify({ code: "57014", message: "canceling statement due to statement timeout" }), { status: 500 }) : new Response("[{\\"id\\":1}]", { status: 200 })); await supabaseSelectAll({ supabaseUrl: "https://x.test", supabaseKey: "k" }, "sales_archive?select=id");`;
+  const r = child(body);
+  ok("a nightly process prints the retry warning and the run tally with DEBUG_LOG unset", /::warning::archive page timed out/.test(r.stdout + r.stderr) && /batch reads: 1 timed out reads were read again/.test(r.stdout), (r.stdout + r.stderr).slice(0, 300)); }
+
 globalThis.fetch = real; console.log(`\nbatchReadsCheck: ${failed ? failed + " FAIL" : "all pass"}`); process.exit(failed ? 1 : 0);
