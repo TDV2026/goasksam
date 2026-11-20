@@ -8,6 +8,7 @@
 // crew cookie, so this always serves the PUBLIC list.
 import { isReleased } from "../lib/_launchStage.js";
 import { newestDate } from "../lib/whatsNew.js";
+import { withGooglebotLog } from "../lib/botLog.js";
 
 const SITE = "https://goasksam.com";
 // Each entry's own lastmod/changefreq/priority, same values the old static file carried. "product"
@@ -27,7 +28,7 @@ export const PAGES = [
   { loc: "/business", lastmod: "2026-09-03", changefreq: "monthly", priority: "0.5", product: "business" }
 ];
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   const rows = PAGES
     .filter(p => p.product == null || isReleased(p.product, req))
     .map(p => `  <url>\n    <loc>${SITE}${p.loc}</loc>\n    <lastmod>${p.loc === "/whats-new" ? (newestDate() || "2026-10-31") : p.lastmod}</lastmod>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`)
@@ -39,3 +40,4 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "public, s-maxage=600, stale-while-revalidate=3600");
   res.status(200).send(xml);
 }
+export default withGooglebotLog(handler);

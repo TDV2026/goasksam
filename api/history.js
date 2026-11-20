@@ -513,7 +513,8 @@ ${whyResultHtml(crew)}
   // place in sitemap-vins.xml. This gate MUST match the VIN sitemap's gate so index state and sitemap
   // membership stay coherent (search-rules rule 7). Single-priced-appearance pages stay noindex.
   const pricedCount = appearances.filter(a => a.priceUsd || a.bidUsd || a.nativeBid).length;
-  const index = roadBucket !== "nonroad" && pricedCount >= 2 && realVin(vinNorm) && !!(id.family && id.make) && !(await deadPhotos(env)).vins.has(vinNorm);
+  const soldCount = appearances.filter(a => a.kind === "sale" && a.priceUsd).length;   // a SALE behind the page (Nov 20 2026): bids that never sold are not a page for search
+  const index = roadBucket !== "nonroad" && pricedCount >= 2 && soldCount >= 1 && realVin(vinNorm) && !!(id.family && id.make) && !(await deadPhotos(env)).vins.has(vinNorm);
   await logPageView(env, { path: canonical.replace(SITE, ""), referer: req.headers["referer"] || req.headers["referrer"], userAgent: req.headers["user-agent"] });
   // a page that went out without its market block, or with the family's stand-in, is not cached: the next visit has the stored row (lib/_historyData.js vinPageAnswer)
   send(res, 200, page({ title: `${name}, VIN ${vinNorm}: auction history`, description: story, canonical, body: body2, ld, index, crew, req }), vinCold.timedOut || vinCold.standIn ? { "Cache-Control": "private, no-store" } : {}, index, crew, req);
@@ -788,7 +789,7 @@ ${keepLookingHtml({ context: "spec", subject: name, href: keepLookingHref({ subj
 ${whyResultHtml(crew)}
 <p class="foot">GoAskSam links to every sale. Bidding happens on the auction site.</p>`;
   const ld = [{ "@context": "https://schema.org", "@type": "ItemList", name: `${name} auction results`, url: canonical,
-    itemListElement: list.slice(0, 200).map((g, i) => ({ "@type": "ListItem", position: i + 1, url: hub.year ? `${SITE}/history/${slug}/${g.vin}` : `${SITE}/vin/${g.vin}`, name: `${name}, VIN ${g.vin}` })) }];
+    itemListElement: list.slice(0, 200).map((g, i) => ({ "@type": "ListItem", position: i + 1, url: `${SITE}${hrefOf(g)}`, name: `${name}, VIN ${g.vin}` })) }];
   profMark("renderDone");
   const hubIndex = gate.index;   // decided by hubGate, above
   profMark("deadPhotosDone");
@@ -1037,12 +1038,14 @@ async function rollout(env, opts = {}) {
         const { appearances, ok } = await vinAppearances(env, vin);
         // Same gate as carPage: 2+ appearances each carrying a price (sold or bid); photo not required.
         if (!ok || appearances.filter(a => a.priceUsd || a.bidUsd || a.nativeBid).length < 2) return null;
+        const sold = appearances.filter(a => a.kind === "sale" && a.priceUsd).length;   // the car page's own gate: a sale behind it
+        if (kind === "car" && sold < 1) return null;
         const id = await carIdentity(appearances, vin);
         if (!(id && id.family && id.make)) return null;
         // Photos in the order the page tries them: the page's own hero first, then the others. Only
         // cars carry photos into the sitemap (motorcycles/other never needed them downstream).
         const photos = kind === "car" ? [...new Set(appearances.map(a => a.image).filter(Boolean).concat(g.photos))].slice(0, 4) : undefined;
-        return { kind, vin, loc: `${SITE}/history/${id.slug}/${vin}`, lastmod: (g.date || "").slice(0, 10), photos, ident: identOf(id) };
+        return { kind, vin, loc: `${SITE}/history/${id.slug}/${vin}`, lastmod: (g.date || "").slice(0, 10), photos, sold, ident: identOf(id) };
       } catch { return null; }
     }));
     validatedCandidates += part.length;
@@ -1178,9 +1181,9 @@ async function rolloutCached(env, opts = {}) {
 export function sitemapView(r) {
   if (!r || !Array.isArray(r.vins)) return r;
   const full = { vins: r.vins.length, motos: (r.motos || []).length, others: (r.others || []).length, hubs: (r.hubs || []).length };
-  if (process.env.SITEMAP_LINKED_ONLY === "0" || !Array.isArray(r.linkedVins)) return { ...r, uncapped: full };
+  if (process.env.SITEMAP_LINKED_ONLY === "0" || !Array.isArray(r.linkedVins)) return { ...r, vins: r.vins.filter(u => u.sold !== 0), uncapped: full };
   const linked = new Set(r.linkedVins);
-  return { ...r, vins: r.vins.filter(u => linked.has(u.vin)), motos: [], others: [], uncapped: full };
+  return { ...r, vins: r.vins.filter(u => linked.has(u.vin) && u.sold !== 0), motos: [], others: [], uncapped: full };
 }
 async function sitemap(res, env, which) {
   if (which === "stats") { const r = await rolloutCached(env); res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store"); return res.status(200).send(JSON.stringify({ source: r._source, computed_at: r._computedAt, listed: (v => ({ hubs: (v.hubs || []).length, vins: (v.vins || []).length, motorcycles: (v.motos || []).length, other: (v.others || []).length, uncapped: v.uncapped }))(sitemapView(r)), ...r.counts, fallback_examples: r.fallback.slice().sort((a, b) => b.sales - a.sales).slice(0, 20), alias_merged: r.merged }, null, 1)); }
@@ -1209,7 +1212,7 @@ async function sitemap(res, env, which) {
     const lm = d => (d ? `<lastmod>${xmlEsc(String(d).slice(0, 10))}</lastmod>` : "");
     const pageLast = [...PAGES.map(p => p.loc === "/whats-new" ? (newestDate() || "") : (p.lastmod || ""))].reduce((m, d) => (d > m ? d : m), "");
     const nPages = Math.max(1, Math.ceil(r.vins.length / SITEMAP_PAGE));
-    const files = [[`${SITE}/sitemap-pages.xml`, pageLast], [`${SITE}/sitemap-vins-hubs.xml`, newest(r.vins)]]
+    const files = [[`${SITE}/sitemap-vins-hubs.xml`, newest(r.vins)], [`${SITE}/sitemap-pages.xml`, pageLast]]
       .concat(Array.from({ length: nPages }, (_, k) => [`${SITE}/sitemap-vins-${k + 1}.xml`, newest(r.vins.slice(k * SITEMAP_PAGE, (k + 1) * SITEMAP_PAGE))]));
     if ((r.motos || []).length) files.push([`${SITE}/sitemap-motorcycles.xml`, newest(r.motos)]);
     if ((r.others || []).length) files.push([`${SITE}/sitemap-other.xml`, newest(r.others)]);

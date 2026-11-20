@@ -6,6 +6,7 @@
 // SEO: unique title + meta description, one H1, the lead as the first paragraph, BreadcrumbList JSON-LD, links
 // up/sideways/down (parent, siblings, children) plus to Market Check (prefilled) and /buy.
 import { withTracking } from "../lib/track/log.js";
+import { withGooglebotLog } from "../lib/botLog.js";
 import { parseSlug, allSpecSlugs911 } from "../lib/specPages.js";
 import { PAGE_CSS, FONT_LINKS, railHtml, isCrewRequest } from "./_chrome.js";
 import { KEEPLOOK_CSS, KEEPLOOK_JS, keepLookingHtml, keepLookingHref } from "../lib/appShell.js";
@@ -179,4 +180,4 @@ ${railHtml("history", undefined, crew, req)}
 
 // Analytics (docs/analytics-events.md): an error event when this route throws or answers 5xx.
 // A database failure answers the calm page (503, Retry-After, one plain sentence), never the platform's generic 500 (Lane S review, Oct 27 2026).
-export default withTracking("/api/specPage", withCalm(handler, "specPage"), "site");
+export default withGooglebotLog(withTracking("/api/specPage", withCalm(handler, "specPage"), "site"));

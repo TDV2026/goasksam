@@ -113,7 +113,7 @@ async function handler(req, res) {
       if (out && out.blocked) return page(200, "Still paused", `<h1>Still paused.</h1><p class="task">${tapEsc(task.summary || "")}</p><p>Sam can't start it yet. ${tapEsc(out.blocked.line)}</p><p><a href="/tasks/mine">Open your Tasks</a></p>`);
       const after = (out && out.task) || task;
       const restart = act === "pause" && after.state === "paused" ? oneTap(id, "resume") : null;
-      return page(200, w.done, `<h1>${tapEsc(w.done)}</h1><p class="task">${tapEsc(task.summary || "")}</p>${restart ? `<p>You can start it again <a href="${restart}">here</a>.</p>` : act === "stop" ? `<p>You can start a new search <a href="/buy">here</a>.</p>` : ""}<p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the Task</a></p>`);
+      return page(200, w.done, `<h1>${tapEsc(w.done)}</h1><p class="task">${tapEsc(task.summary || "")}</p>${restart ? `<p>You can start it again <a href="${restart}">here</a>.</p>` : act === "stop" ? `<p>You can start a new search <a href="/find">here</a>.</p>` : ""}<p class="quiet"><a href="/tasks/mine?task=${encodeURIComponent(id)}">Open the Task</a></p>`);
     }
     // The run after each live pull: Vercel cron (CRON_SECRET) or the probe key.
     // The combined Task email (lib/tasks/digest.js): the cron every quarter hour sends each person's email when their
