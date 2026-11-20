@@ -70,6 +70,11 @@ const nt = { id: 11, market: { kind: "not_tracked", notTrackedLine: "Sam doesn't
 ok(samLine(nt) && samLine(nt).html === '<p class="nt">Sam doesn\'t track this one.</p>', "a not-tracked card draws the engine's own line, verbatim, and nothing else in the Sam area");
 ok(samLine({ id: 12, market: { kind: "not_tracked" }, sam_lines: [] }) === null && samLine({ id: 13, swap: true, market: { kind: "not_tracked", notTrackedLine: "x" }, sam_lines: [] }) === null, "no line from the engine (or an engine-swapped card): nothing");
 ok(!(nt.market && nt.market.query) && /var hasMc = !l\.swap && !!\(l\.market && l\.market\.query\) && salesNow;/.test(c), "and no Market Check button (the button needs the market's query, which a not-tracked market has none of)");
-ok(/var isPend = function\(l\)\{ return l\.market === undefined \|\| \(l\.market && l\.market\.kind === "pending"\); \};/.test(c), "a not-tracked card is not pending, so the page never waits or asks again for it");
+// CAUSE of the old red: this line pinned isPend's source text, and Lane B's bcaf5945 (a card whose read failed is settled, not
+// asked for again) added `&& !l.market.couldNot`; the product was right, the pin was stale. CLASS: a check that pins a helper's
+// wording breaks on every right change to it. So run the page's own isPend over every market state it can be handed.
+const isPend = new Function("var f=" + c.slice(c.indexOf("var isPend = function") + 9, c.indexOf("};", c.indexOf("var isPend = function")) + 1).replace(/^isPend = /, "") + ";return f;")();
+const pendStates = [[undefined, true, "no market yet"], [{ kind: "pending" }, true, "pending"], [{ kind: "pending", couldNot: true }, false, "could not read (settled)"], [{ kind: "not_tracked", notTrackedLine: "x" }, false, "not tracked"], [{ kind: "none" }, false, "none"], [{ kind: "market", query: "q" }, false, "a market"]];
+for (const [m, want, name] of pendStates) ok(isPend({ market: m }) === want, "isPend: " + name + " is " + (want ? "" : "not ") + "pending, so the page " + (want ? "asks again" : "never waits or asks again") + " (got " + isPend({ market: m }) + ")");
 console.log(`buyStage1cCheck: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

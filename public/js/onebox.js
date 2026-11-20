@@ -119,6 +119,8 @@
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); }
   function usd(n) { return "$" + Math.round(Number(n)).toLocaleString("en-US"); }
   function sym(cur) { return ({ USD: "$", GBP: "£", EUR: "€" })[cur] || ""; }
+  // THE CAR A SENTENCE NAMES (lane-b-read-resilience, Nov 18 2026): the empty string when the page has no resolved car, so a sentence that puts a name after "the next" never prints "When the next this car sells" (the sentence is then left out, not worded round a placeholder)
+  function carNamed(rc) { return rc && (rc.canonicalLabel || rc.make || rc.model) ? carLabel(rc) : ""; }
   function carLabel(rc) {
     if (!rc) return "this car";
     // Prefer the clean canonical/display label (the title-derived "1990 BMW M3") over rebuilding
@@ -2028,13 +2030,13 @@
   function samOnItHtml(d, m, always) {
     if (!OB_WATCH_READY && !always) return "";
     if (obWatchArmed) {
-      var onLine = m ? "Sam’s looking for this exact car to come up again." : ("Sam’s looking for the next sale of " + esc(obWatchArmed.label || carLabel(d.resolvedCar)) + ".");
-      return '<section class="samonit" data-stage="note"><p class="samonit-on">' + lint(onLine, "samonit.on") + "</p>" + (obWatchFirst ? '<p class="samonit-free">Free. No card, no plan.</p>' : "") + '<p class="samonit-link">' + (obWatchAlready ? "Already in Watching. " : "Added to Watching. ") + '<a href="/tasks/mine' + (obWatchArmed.id ? "#lk-w:" + esc(obWatchArmed.id) : "") + '">Open Tasks</a></p></section>';
+      var armName = obWatchArmed.label || carNamed(d.resolvedCar), onLine = m ? "Sam’s looking for this exact car to come up again." : (armName ? "Sam’s looking for the next sale of " + esc(armName) + "." : "");
+      return '<section class="samonit" data-stage="note">' + (onLine ? '<p class="samonit-on">' + lint(onLine, "samonit.on") + "</p>" : "") + (obWatchFirst ? '<p class="samonit-free">Free. No card, no plan.</p>' : "") + '<p class="samonit-link">' + (obWatchAlready ? "Already in Watching. " : "Added to Watching. ") + '<a href="/tasks/mine' + (obWatchArmed.id ? "#lk-w:" + esc(obWatchArmed.id) : "") + '">Open Tasks</a></p></section>';
     }
-    var line = m ? "If this exact car comes up again, Sam will email you, with the sale attached." : ("When the next " + esc(carLabel(d.resolvedCar)) + " sells, Sam will email you, with the sale attached.");
+    var offerName = carNamed(d.resolvedCar), line = m ? "If this exact car comes up again, Sam will email you, with the sale attached." : (offerName ? "When the next " + esc(offerName) + " sells, Sam will email you, with the sale attached." : "");   // no car named: no sentence
     // samonit-main (follow-up round, Oct 2026): the sentence and the link read as one group on the
     // left, grey "Free to use..." sits at the right - plain text, no box, same copy as before.
-    return '<section class="samonit" data-stage="note"><span class="samonit-main"><p>' + lint(line, "samonit") + '</p><button type="button" class="linkbtn" id="ob-samonit">Have Sam keep looking &#8594;</button></span><p class="samonit-free">Free to use. Sign in only if you want Sam to keep looking.</p><p class="samonit-msg" id="ob-samonit-msg" hidden></p></section>';
+    return '<section class="samonit" data-stage="note"><span class="samonit-main">' + (line ? '<p>' + lint(line, "samonit") + '</p>' : "") + '<button type="button" class="linkbtn" id="ob-samonit">Have Sam keep looking &#8594;</button></span><p class="samonit-free">Free to use. Sign in only if you want Sam to keep looking.</p><p class="samonit-msg" id="ob-samonit-msg" hidden></p></section>';
   }
   // narrowItDownHtml ("Narrow it down": the refinement questions, pills and removable-answer chips)
   // was removed WHOLESALE in the hero-rebuild round (Oct 2026) per the brief's explicit "Remove the
@@ -2544,7 +2546,7 @@
     else if (d.tier === "not_tracked") { body = samMsgHtml([lint(esc(d.samLine || "No sale of a car like this on record in the US or Canada yet."), "nt")], "Sam’s read", "big") + sellHtml(); foot = true; }
     else if (d.tier === "non_road") { body = samMsgHtml([lint(esc(d.samLine || "Market Check covers cars, trucks and motorcycles."), "nr")], "Sam’s read", "big"); foot = true; }
     else if (d.tier === "result") body = resultHtml(d, m);
-    else { body = samMsgHtml([lint(esc("Not enough real " + carLabel(d.resolvedCar) + " sales for an honest read, and nothing here is made up. Try another car and Sam pulls what actually sold."), "zero")], "Sam’s read", "big") + sellHtml(); foot = true; }
+    else { body = samMsgHtml([lint(esc("Not enough real " + (carNamed(d.resolvedCar) ? carNamed(d.resolvedCar) + " " : "") + "sales for an honest read, and nothing here is made up. Try another car and Sam pulls what actually sold."), "zero")], "Sam’s read", "big") + sellHtml(); foot = true; }
     // "Matched to ..." is gone from both "result" and "thin" (hero-rebuild round, Oct 2026): their
     // new heroes (heroRangeHtml / thinHeroHtml) never print that sentence, so it must not render at
     // this shared top level for them either. Every other tier (class_era, refusal...) is unchanged -

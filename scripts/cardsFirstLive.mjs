@@ -60,6 +60,18 @@ for (const [how, url] of [["typed", null], ["car bar", SITE + "/sell?car=Ferrari
 for (const car of ["1987 Pontiac Firebird", "Ferrari 330 GT"]) { const p = await open(), t0 = Date.now(); await p.goto(SITE + "/market-check", { waitUntil: "networkidle2" }); await p.type("#pq", car); await p.keyboard.press("Enter"); const ok = await until(p, () => !!document.getElementById("vrs"), 90000), rows = ok ? await p.evaluate(ROWS) : null;
   console.log(`  Market Check ${car}: ${Date.now() - t0} ms, cards ${rows ? rows.map(r => r.label).join(", ") : "none"}`); check(`e. Market Check '${car}': the cards`, !!rows && rows.length >= 2, JSON.stringify(rows)); await p.close(); }
 
+// f. Sell "bmw" (a make with no model; lane-b-sell-bmw-live): the model choice first, no question before it, one pass through the three questions after a tap
+{ const p = await open(); await p.evaluateOnNewDocument("window.__qs=[];(function(){var seen='';function look(){var t=document.body?document.body.innerText:'';var q='';['Which state is it in?','How would you like to sell it?','How quickly do you need it sold?'].forEach(function(s){if(t.indexOf(s)>=0)q=s});if(q!==seen){seen=q;if(q)window.__qs.push(q)}}new MutationObserver(look).observe(document,{childList:true,subtree:true,characterData:true});setInterval(look,100)})();");
+  const t0 = Date.now(); await p.goto(SITE + "/sell?car=bmw", { waitUntil: "networkidle2" }); const ok = await until(p, () => !!document.getElementById("gmc"), 60000);
+  const qs0 = await p.evaluate("window.__qs"), btn = await p.evaluate(() => [...document.querySelectorAll("#gmc a.gmc-btn")].map(a => a.textContent.trim()));
+  console.log(`  Sell bmw: ${Date.now() - t0} ms, choice ${ok}, buttons ${btn.slice(0, 5).join(", ")}, questions before the choice ${JSON.stringify(qs0)}`);
+  check("f. Sell 'bmw': the model choice is on the page and no question was asked before it", ok && btn.length >= 3 && qs0.length === 0, JSON.stringify([ok, btn.length, qs0]));
+  if (ok) { await Promise.all([p.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => null), p.evaluate(() => [...document.querySelectorAll("#gmc a.gmc-btn")].find(a => /^3 Series$/.test(a.textContent.trim())).click())]);
+    await until(p, () => !!document.getElementById("vrs") || /Which state is it in/.test(document.body.innerText), 100000); const qs1 = await p.evaluate("window.__qs"), cards = await p.evaluate(ROWS).catch(() => null);
+    console.log(`  Sell bmw, tap 3 Series: ${Date.now() - t0} ms, cards ${cards ? cards.map(r => r.label).join(", ") : "none"}, questions ${JSON.stringify(qs1)}`);
+    check("f. a tap on 3 Series opens the cards (or the state question once), never the questions twice", !!cards || qs1.filter(x => /state/.test(x)).length === 1, JSON.stringify([cards && cards.length, qs1])); }
+  await p.close(); }
+
 await browser.close();
 console.log(`cardsFirstLive ${SITE}: ${pass} pass, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

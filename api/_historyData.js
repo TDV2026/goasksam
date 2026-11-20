@@ -14,6 +14,7 @@ import { keepAlive } from "../lib/keepAlive.js";
 import { tryRefresh } from "../lib/refreshGate.js";
 import { normalizeListingUrl } from "../lib/_urlNorm.js";
 import { feeFieldsOf } from "../lib/buyerFee.js";
+import { acquireCold } from "../lib/_coldGate.js";
 
 export function normVin(s) { return String(s == null ? "" : s).toUpperCase().replace(/[^A-Z0-9]/g, ""); }
 export function historyEnv() {
@@ -289,8 +290,10 @@ async function vinPageAnswer(env, vehicle, generation, text, exactSale, opts) {
     return fam.raw;
   }
   if (await readComputing(env, vkey)) { cold.source = "computing"; cold.timedOut = true; return null; }
+  // the History pages run at most HISTORY_COLD_SLOTS cold engine reads at once on this instance (lib/_coldGate.js); with no slot the page is the reading placeholder and no read starts
+  const slot = acquireCold("history"); if (!slot) { cold.source = "gated"; cold.timedOut = true; cold.gated = true; return null; }
   markComputing(env, vkey).catch(() => {});
-  const job = exact().finally(() => clearComputing(env, vkey).catch(() => {}));
+  const job = exact().finally(() => { slot(); return clearComputing(env, vkey).catch(() => {}); });
   keepAlive(job);
   const first = await Promise.race([job.catch(() => null), new Promise(r => setTimeout(() => r("late"), VIN_FIRST_READ_MS))]);
   if (first === "late") { cold.source = "reading"; cold.timedOut = true; return null; }
@@ -298,6 +301,8 @@ async function vinPageAnswer(env, vehicle, generation, text, exactSale, opts) {
   return first && first.tier ? first : null;
 }
 export async function oneBoxFor(env, id, exactSale, opts) {
+  let gate = null;   // the History cold slot of this page (lib/_coldGate.js), released when the page has returned and every read it started has ended
+  const gateMaybe = () => { if (gate && gate.returned && gate.pending === 0 && gate.release) { const r = gate.release; gate.release = null; r(); } };
   try {
     const vehicle = { ...id.vehicle };
     if (id.bodyStyle && !vehicle.bodyStyle) vehicle.bodyStyle = id.bodyStyle;
@@ -311,11 +316,15 @@ export async function oneBoxFor(env, id, exactSale, opts) {
     const wkey = !exactSale ? warmAnswerKeyFor(vehicle, generation, null) : null;
     if (wkey) { const st = await readWarmAnswerDetailed(env, wkey).catch(() => null); if (st && st.raw && st.raw.tier === "result" && (Array.isArray(st.raw.cluster) || (Array.isArray(st.raw.options) && st.raw.options.length))) return st.raw; }   // a result: a ranged answer, or the split and apart ones that carry their options (cluster null, e96): it carries everything the page prints; any other tier is computed as before
     if (wkey && await readComputing(env, wkey)) { if (opts && opts.cold) opts.cold.timedOut = true; return null; }   // already being read: the page asks again, no second compute
+    // the History pages run at most HISTORY_COLD_SLOTS cold engine reads at once on this instance (lib/_coldGate.js): a page with no slot is the reading placeholder, no read started
+    const slot = acquireCold("history"); if (!slot) { if (opts && opts.cold) { opts.cold.timedOut = true; opts.cold.gated = true; } return null; }
+    gate = { release: slot, pending: 0, returned: false };
     if (wkey) markComputing(env, wkey).catch(() => {});
     const run = (asked) => {
       // A VIN page (no stored-row key) stores nothing behind the response, so its deadline stops the read it gave up on (lane-b-archiveread step h); a hub (wkey) keeps computing on purpose and stores its row.
       const ac = wkey ? null : new AbortController();
       const eng = oneEngineAnswer(vehicle, generation, text, { ...env, exactSale: exactSale || null, asked, ...(ac ? { signal: ac.signal } : {}) }, null).then(r => r.raw);
+      gate.pending++; const ended = () => { gate.pending--; gateMaybe(); }; eng.then(ended, ended);   // the slot is held until the read itself ends, also when the page gave up on it and the read keeps computing behind the response
       keepAlive(eng.then(async raw => { if (wkey && asked === 0 && raw && answerCacheable(raw) && !/_choice$/.test(String(raw.tier || ""))) await writeWarmAnswer(env, wkey, slimStored(raw)).catch(() => {}); if (wkey) await clearComputing(env, wkey); }));
       return Promise.race([eng, new Promise((_, rej) => setTimeout(() => { if (ac) ac.abort(); rej(new Error("deadline")); }, exactSale ? 40000 : 15000))]);   // a VIN page has no stored row to come back to (its own sale is part of the read): it waits for the answer; a hub hands off at 15 s to its reading placeholder
     };
@@ -332,6 +341,7 @@ export async function oneBoxFor(env, id, exactSale, opts) {
     if (d && /_choice$/.test(String(d.tier || ""))) d = await run(2);
     return d && d.tier ? d : null;
   } catch (e) { if (opts && opts.cold && e && e.message === "deadline") opts.cold.timedOut = true; console.error("history oneBoxFor failed:", (e && e.message) || e); return null; }
+  finally { if (gate) { gate.returned = true; gateMaybe(); } }
 }
 
 // Multi-word makes, so a hub slug splits make from model correctly.

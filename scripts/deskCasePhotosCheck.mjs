@@ -25,11 +25,12 @@ try {
   const bad = await withPhotos({ year: "1999", make: "Porsche", model: "911" }, [{ name: "x.png", data: b(png) }, { name: "junk.jpg", data: b(Buffer.from("not a picture")) }], ctx());
   ok("a file that is not a picture refuses the whole case before anything is stored", bad.ok === false && /The case was not made because photo 2 was refused/.test(bad.why) && sheets().length === before && photosOf().length === was, String(bad.why));
   store.addPhoto = async (org, sheet, o) => { const x = await realInsert(org, sheet, o); if (o.position === 1) throw new Error("photo row refused (23514)"); return x; };
-  const half = await withPhotos({ year: "1999", make: "Porsche", model: "911" }, [{ name: "x.png", data: b(png) }, { name: "y.png", data: b(png) }], ctx());
+  const half = await withPhotos({ year: "1999", make: "Porsche", model: "911" }, [{ name: "x.png", data: b(png) }, { name: "y.png", data: b(await sharp({ create: { width: 640, height: 480, channels: 3, background: "#112233" } }).png().toBuffer()) }], ctx());
   store.addPhoto = realInsert;
   ok("a photo row that fails after the case is stored takes the case out again: no case, no photo row", half.ok === false && /The case was not made because/.test(half.why) && sheets().length === before && photosOf().length === was, JSON.stringify([half.why, sheets().length, photosOf().length]));
   // 3. a photo added later to an existing case (the road the page takes): PNG and HEIC accepted, row stored
-  const id = r.id, add = async (name, buf) => A.handleSheetAction("case_edit", { id, op: "photo_add", name, data: b(buf) }, ctx());
+  // The same bytes are never on one case twice (Nov 16, lib/desk/sheetActions.js hasPhotoHash), so the three files go onto a case that holds none yet, not onto the case that already has them (the old check re-added them there and got the duplicate answer).
+  const empty = await A.handleSheetAction("case_new", { year: "1999", make: "Porsche", model: "911" }, ctx()), id = empty.id, add = async (name, buf) => A.handleSheetAction("case_edit", { id, op: "photo_add", name, data: b(buf) }, ctx());
   const a1 = await add("d.png", png), a2 = await add("e.heic", heic), a3 = await add("f.jpg", jpg);
   ok("photo_add takes a PNG, a HEIC and a JPG and stores each", a1.ok && a2.ok && a3.ok && photosOf().length === was + 3, JSON.stringify([a1.why, a2.why, a3.why]));
   // 4. discard: the page takes out a case it could not finish, only while it is new and untouched

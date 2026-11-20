@@ -65,7 +65,7 @@ const inWin = r => r.date && r.date >= "2025-11-10" && r.outReason !== "transmis
   ok("(1) newest first", b.sales.every((s, i) => i === 0 || Date.parse(rows.find(r => r.id === b.sales[i - 1].id).date) >= Date.parse(rows.find(r => r.id === s.id).date)));
   const f = b.sales.find(s => s.id === "b2");
   ok("(1) the fields the plot and Show all draw: price, date in words, tier, title, miles, platform, link, photo", f && f.price === 62000 && f.dateLine === "May 15, 2026" && f.tier === 2 && f.titleLine === "1999 Porsche 911 Carrera" && f.milesLine === "40,000 miles" || (f && f.milesLine === "40,000 miles".replace("40,000", (40000 + 62000 % 1000).toLocaleString("en-US"))) && f.platform === "Cars & Bids" && f.url === "https://x.test/b2" && f.photo === "https://img.test/b21.jpg", JSON.stringify(f));
-  ok("(1) the shape is exactly id, price, priceLine, dateLine, tier, titleLine, milesLine, platform, url, photo", b.sales.every(s => JSON.stringify(Object.keys(s)) === JSON.stringify(["id", "price", "priceLine", "dateLine", "tier", "titleLine", "milesLine", "platform", "url", "photo"])));
+  ok("(1) the shape is exactly id, price, priceLine, dateLine, tier, titleLine, milesLine, platform, venue, url, photo", b.sales.every(s => JSON.stringify(Object.keys(s)) === JSON.stringify(["id", "price", "priceLine", "dateLine", "tier", "titleLine", "milesLine", "platform", "venue", "url", "photo"])));
   ok("(5) the miles line is a table line, with no dash", b.sales.every(s => (s.milesLine === null || line("desk.sales.milesLine", s.milesLine)) && noDash(s.milesLine)));
   const nm = await DV.deskBlock([row("m", 50000, "2026-10-01", 2, { miles: null })], { caseDate: CASE, subject: sub, subjectFacts: {}, head });
   ok("(1) a sale with no miles has no miles line, never 0 miles", nm.sales[0].milesLine === null);
@@ -102,7 +102,8 @@ for (const c of W.CASES) for (const o of [{}, { tier: 3 }]) {
   ok(`${label}: the dots are the evidence's population (same count), every dot priced, dated and linked`, d.sales.length === d.evidence.count && d.sales.every(s => s.price > 0 && s.dateLine && (s.url === null || /^https?:/.test(s.url))), `${d.sales.length}/${d.evidence.count}`);
   ok(`${label}: the dots' prices sit inside the evidence's low and high`, d.evidence.insufficient || d.sales.every(s => s.price >= d.evidence.low && s.price <= d.evidence.high));
   ok(`${label}: four rungs whose counts add up to no more than the car's sales, a band only at five or more`, d.rungs.length === 4 && d.rungs.every(x => (x.count >= 5) === (x.band !== null) && line("desk.rungs.sentence", x.sentence)));
-  if (o.tier) ok(`${label}: the dots all carry the case's rung`, d.sales.every(s => s.tier === o.tier));
+  // a tier view too thin to read is served whole from its fallback view (4236695f, desk.servedFrom), so its dots are that view's sales and name the view they came from; a view that is its own carries only its rung
+  if (o.tier) ok(`${label}: the dots all carry the case's rung, or the view says it was served from its fallback`, d.servedFrom ? typeof d.servedFrom === "string" && d.servedFrom.length > 0 : d.sales.every(s => s.tier === o.tier));
   ok(`${label}: a photo is null or one that passed the rule`, d.sales.every(s => s.photo === null || (/^https:/.test(s.photo) && !/9\.jpg$/.test(s.photo) && !/0\.jpg$/.test(s.photo))));
 }
 console.error = quiet;

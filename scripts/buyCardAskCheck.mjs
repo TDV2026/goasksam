@@ -26,7 +26,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   const xs = many(28, {});
   const models = [{ label: "M3", n: 8, patch: { model: "M3" } }, { label: "M4", n: 5, patch: { model: "M4" } }, { label: "M5", n: 4, patch: { model: "M5" } }, { label: "Z4", n: 3, patch: { model: "Z4" } }];
   const a = askRule(xs, { p: { make: "BMW", colour: "red" }, v: { make: "BMW", model: null }, models });
-  ok(a[0] && a[0].dim === "model" && a[0].q === "Which model?" && a[0].any.label === "Any BMW" && a[0].any.n === 28 && a[0].chips.map(c => `${c.label} (${c.n})`).join(" · ") === "M3 (8) · M4 (5) · M5 (4) · Z4 (3)", `red BMW: the model question (got ${JSON.stringify(a[0] && { dim: a[0].dim, q: a[0].q, chips: a[0].chips })})`);
+  ok(a[0] && a[0].dim === "model" && a[0].q === "Which BMW?" && a[0].any.label === "Any BMW" && a[0].any.n === 28 && a[0].chips.map(c => `${c.label} (${c.n})`).join(" · ") === "M3 (8) · M4 (5) · M5 (4) · Z4 (3)", `red BMW: the model question (got ${JSON.stringify(a[0] && { dim: a[0].dim, q: a[0].q, chips: a[0].chips })})`);
 }
 { // 997 Carrera: body 12/6/2, gearbox 9/9 with two unstated. Removal: body 10.8, gearbox 11 (each answer also removes the
   // two that don't say), so the gearbox is asked first and the body after it.
@@ -163,7 +163,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   ok(lib.rungShown({ make: "Porsche", title: "2008 Porsche 911 GT2 Coupe" }, ["2008 911 GT2"]).length === 0, "a line that differs only by the make or a body style word is a repeat (GT2)");
   ok(lib.rungShown({ make: "Porsche", title: "1997 Porsche 911 Carrera Targa" }, ["911 Carrera, 1994 to 1997"]).length === 1 && lib.rungShown(card, ["Closest: 911 Carrera 4S"]).length === 1 && lib.rungShown({ make: "Porsche", title: "2011 Porsche Boxster Spyder" }, ["2011 Boxster"]).length === 1, "a different car compared keeps its line");
   ok(/if \(r\.kind === "sold"\) return cap\(r\.placing === "inside" \? "inside" : r\.placing\) \+ " the range similar cars have sold for\."/.test(client), "an ended sold card: Inside the range similar cars have sold for.");
-  ok(/esc\(qp \? "Have Sam keep looking for " \+ qp \+ " →" : "Have Sam keep looking"\)/.test(client) && /keepHtml\(cards\.length, q, qp\)/.test(client), "the keep looking box names the search");
+  ok(/esc\(qp \? "Have Sam keep looking for " \+ qp \+ " →" : "Have Sam keep looking"\)/.test(client) && /keepHtml\(cards\.length, q, qp, \(d\.meta \|\| \{\}\)\.keepLine\)/.test(client), "the keep looking box names the search");
   ok(/var miles = l\.miles \? num\(l\.miles\) \+ " miles"/.test(client) && /'<span class="nw">' \+ esc\(b\) \+ "<\/span>"/.test(client) && /\.car \.meta \.nw\{white-space:nowrap\}/.test(page), "a mileage never splits from miles (Buy Stage 1 meta line)");
   ok(/askHtml\(a, d\.meta \|\| \{\}, qp\) \+ more/.test(client) && !/right \+ "<\/div><\/div><\/div>" \+ unstatedHtml/.test(client), "the question comes before the don't say and either generation lines");
   // Sam, Oct 15 2026: the cards draw at once; each of the six on screen is asked for alone and filled as it lands.
@@ -199,7 +199,7 @@ const many = (n, o) => Array.from({ length: n }, () => car(o));
   ok(/var hasMc = !l\.swap && !!\(l\.market && l\.market\.query\)/.test(client), "a card still pending has no Market Check button (a pending market has no query)");
   // STAGE 2 (Sam's Buy redesign, Oct 19 2026): the count is said once, in the header, with or without a question; the
   // question no longer repeats it, and the "everything" line is left out while a question shows.
-  ok(/headerHtml\(d\.meta \|\| \{\}, q, qp, f \|\| \{\}, !!\(a && !d\._showAll && !a\.vague && !quiet\), cards\.length\)/.test(client) && /esc\(matchesLine\(n, true\)\) \+ "<\/p>" \+ \(asking \? "" :/.test(client) && /var lead = "";/.test(client), "the count stays in the header while a question shows; the question does not repeat it");
+  ok(/headerHtml\(d\.meta \|\| \{\}, q, qp, f \|\| \{\}, !!\(a && !d\._showAll && !a\.vague && !quiet\), cards\.length\)/.test(client) && /esc\((?:m\.countLine \|\| m\.liveLine \|\| )?matchesLine\(n, true\)\) \+ "<\/p>" \+ \(asking \? "" :/.test(client) && /var lead = "";/.test(client), "the count stays in the header while a question shows; the question does not repeat it");
 }
 
 console.log(`buyCardAskCheck: ${passes} passed, ${fails} failed`);

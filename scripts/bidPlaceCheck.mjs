@@ -29,7 +29,9 @@ if (typeof E.bidPlaceOf === "function") {
 // PART 2: no surface compares a bid with a range itself. A line that holds both "below" and "above" as words chosen by a comparison is a second comparison.
 const files = []; const walk = d => { for (const f of fs.readdirSync(d, { withFileTypes: true })) { if (f.name === "node_modules" || f.name.startsWith(".") || f.name === "proofs") continue; const p = path.join(d, f.name); if (f.isDirectory()) walk(p); else if (/\.(js|mjs)$/.test(f.name) && !/Check\.mjs$/.test(f.name) && f.name !== "bidPlaceVerify.js" && !/^scripts\//.test(path.relative(root, p))) files.push(p); } };
 for (const d of ["lib", "api", "public/js", "js"]) if (fs.existsSync(d)) walk(d);
-const NOT_A_BID = [/const against = b < lo \?/, /const dir = below/, /dv\.direction === "below"/, /const where = p < c25/, /bidPlaceOf\(/, /premium < 0/, /the band test/i];
+const NOT_A_BID = [/const against = b < lo \?/, /const dir = below/, /dv\.direction === "below"/, /const where = p < c25/, /bidPlaceOf\(/, /premium < 0/, /the band test/i,
+  /placingFor\(/,   // maps the ONE function's own words (placingFor wraps bidPlaceOf) to a short tag: no comparison of its own
+  /bid > fig \? "above" : bid < fig \? "below"/];   // a bid against ONE recommended figure (reasonWords case.reserve.live_vs), not against a range
 const second = [];
 for (const f of files) { const ls = fs.readFileSync(f, "utf8").split("\n"); ls.forEach((ln, i) => { if (/["'`](below|above)["'`]/.test(ln) && /\?/.test(ln) && /[<>]/.test(ln) && /["'`](below|above)["'`]\s*:|["'`](below|above)["'`]\s*\?/.test(ln) && /"above"[^;]*"below"|"below"[^;]*"above"/.test(ln) && !NOT_A_BID.some(r => r.test(ln))) second.push(`${path.relative(root, f)}:${i + 1}`); }); }
 ok("no surface compares a bid or price with a range on its own", second.length === 0, second.join(", "));

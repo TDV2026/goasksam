@@ -16,7 +16,14 @@ export function scan(files) {   // files: { path: text } -> [ "path:line: text" 
   const hits = [];
   for (const [f, text] of Object.entries(files)) {
     if (f === "lib/tasks/limit.js" || f === "scripts/taskLimitLiteralCheck.mjs") continue;
-    text.split("\n").forEach((l, i) => { if (LITERAL.test(l) && !/\/\/ literal-ok\b/.test(l)) hits.push(`${f}:${i + 1}: ${l.trim().slice(0, 140)}`); });
+    text.split("\n").forEach((l, i) => {
+      const m = LITERAL.exec(l); if (!m || /\/\/ literal-ok\b/.test(l)) return;
+      // a bare "max: 3" is a literal limit only on a line about Tasks, a limit or a slot: the report PDF's para(..., { max: 3 }) is a cap of three LINES of text, not the Tasks limit
+      if (/^max: ?3$/.test(m[0]) && !/task|limit|slot/i.test(l)) return;
+      // and a line about the fact miner's own concurrency cap (FM.MAX_CONCURRENT, scripts/factMineCheck.mjs) is a different limit that happens to be three
+      if (/MAX_CONCURRENT/.test(l)) return;
+      hits.push(`${f}:${i + 1}: ${l.trim().slice(0, 140)}`);
+    });
   }
   return hits;
 }

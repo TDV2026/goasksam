@@ -35,7 +35,7 @@ let reads = 0;
 ok((await setupQuestion({}, { ...F, builder: "Singer" }, async () => { reads++; return null; })) === null && reads === 0, "setup: a Singer Task asks nothing else and reads nothing");
 // The preview and the per-listing alert answer before any read.
 const src = fs.readFileSync(new URL("../lib/tasks/tasks.js", import.meta.url), "utf8");
-const ep = src.slice(src.indexOf("export async function emailPreview("));
+const ep = src.slice(src.indexOf("async function emailPreviewRead("));   // emailPreview is the wrapper that adds the typed car (690bd2c1); the read, where the builder answer comes first, is emailPreviewRead
 ok(ep.indexOf("builderMarket(row.listing_title, f.make)") > 0 && ep.indexOf("builderMarket(row.listing_title, f.make)") < ep.indexOf("specOf(env, row"), "email preview: the builder answer before the spec or the stored line is read");
 ok(/builderMarket\(r\.listing_title, r\.make\) \|\| await listingMarket\(env, r, listingFacts\(r\)\)/.test(src), "per-listing alert: a listing whose words carry the mark gets the builder answer, no read");
 // A Singer hunt MATCHES Singer cars only (Lane D, Oct 19 2026): taskFits keeps a plain car out when the builder is Singer,

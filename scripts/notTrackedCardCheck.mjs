@@ -10,10 +10,15 @@ ok(b.bidPlacing({ market: nt, current_bid_usd: 50000 }) === null, "no bid placin
 const range = { kind: "range", low: 40000, high: 60000, count: 12, family: "997 Carrera coupes" }; range.soldLine = s.soldLine(range);
 ok(b.samLines({ market: range })[0].text === "The typical range for 997 Carrera coupe sales: $40,000 to $60,000.", "a range card's line is unchanged");
 const src = fs.readFileSync(new URL("../lib/live/search.js", import.meta.url), "utf8");
-ok(/if \(!core\) \{ const nt = opts\.notTracked \? notTrackedMem\.get\(spec\.key\) : null; return nt \? \{ kind: "not_tracked", notTrackedLine: nt \} : null; \}/.test(src), "listingMarket returns the not-tracked market only when the caller passes opts.notTracked");
+// Nov 19 2026 (stale shape): the no-core line grew the zero-sales and refusal answers (Lane B), so the old one-line regex no longer matched. The intent is unchanged and is pinned
+// by meaning: in the no-core branch of listingMarket every not-tracked / refused answer is gated on opts.notTracked, and the fall-through for a caller that does not ask is null.
+const noCore = (src.match(/if \(!core\) \{ const nt = [^\n]*/) || [""])[0];
+ok(/const nt = opts\.notTracked \? notTrackedMem\.get\(spec\.key\) : null;/.test(noCore) && /const zero = opts\.notTracked && thinZeroMem\.has\(spec\.key\);/.test(noCore) && /const rf = opts\.notTracked \? refusalMem\.get\(spec\.key\) : null;/.test(noCore) && /return opts\.notTracked \? \{ kind: "not_tracked"[^}]*\} : null; \}/.test(noCore), "listingMarket returns the not-tracked market only when the caller passes opts.notTracked");
 const buy = fs.readFileSync(new URL("../api/buySearch.js", import.meta.url), "utf8");
-const calls = (buy.match(/notTracked: true/g) || []).length;
-ok(calls === 4, `only Buy's card reads ask for it (${calls} call sites in api/buySearch.js)`);
+// Buy's card paths grew (the second go after a pending read, the lot rows), so the count is not pinned to 4: Buy asks only through listingMarket, and at least its four card reads do.
+// The other callers (tasks, buy alerts, watches) are pinned below not to ask.
+const calls = (buy.match(/notTracked: true/g) || []).length, viaListing = (buy.match(/listingMarket\([^)]*\{[^}]*notTracked: true/g) || []).length;
+ok(calls >= 4 && calls === viaListing, `only Buy's card reads ask for it, each through listingMarket (${calls} call sites in api/buySearch.js)`);
 // the chat search's own cards ask too (Oct 20 2026, the Bugatti card on the chat path), and its facts still read no market
 const chat = fs.readFileSync(new URL("../lib/live/samChat.js", import.meta.url), "utf8"), conv = fs.readFileSync(new URL("../lib/live/converse.js", import.meta.url), "utf8");
 ok(/listingMarket\(env, x\.r, x\.facts, \{ noBlock: true, notTracked: true \}\)/.test(chat), "the chat search's cards ask for the not-tracked line");

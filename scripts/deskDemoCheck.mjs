@@ -44,7 +44,7 @@ ok(asked.some(a => a.text === "2008 Porsche 911 Carrera S" && a.tier === 2), "a 
   const bad = await run("sheet_photo_add", { id: typed.id, name: "x.jpg", data: Buffer.from("not a photo at all").toString("base64") }); ok(bad.refused && /not a photo/.test(bad.why), "a file that is not a picture is refused: " + bad.why);
   const big = await run("sheet_photo_add", { id: typed.id, name: "x.jpg", data: Buffer.alloc(5 * 1024 * 1024, 1).toString("base64") }); ok(big.refused, "a photo over 4 MB is refused");
   const other = await run("sheet_photo_add", { id: typed.id, name: "y.jpg", data: JPG }, "ben"); ok(other.refused, "another seat cannot add a photo to this sheet: " + other.why);
-  let last; for (let i = 0; i < A.MAX_HAND_PHOTOS + 2; i++) last = await run("sheet_photo_add", { id: typed.id, name: "p" + i + ".jpg", data: JPG });
+  let last; for (let i = 0; i < A.MAX_HAND_PHOTOS + 2; i++) last = await run("sheet_photo_add", { id: typed.id, name: "p" + i + ".jpg", data: (await (await import("sharp")).default({ create: { width: 64, height: 48, channels: 3, background: { r: (i * 9) % 256, g: (i * 5) % 256, b: 90 } } }).jpeg().toBuffer()).toString("base64") });   /* a different picture each time: the same bytes are never on a case twice (Nov 16), so the old loop added one photo and stopped */
   ok(last.refused && (await store.get(org, typed.id)).submission.photos.length === A.MAX_HAND_PHOTOS, "a sheet takes no more than " + A.MAX_HAND_PHOTOS + " photos"); }
 ok(/id="vnewm"/.test(html) && /id="vnewf"/.test(html) && /New valuation/.test(html), "the Desk has the New valuation form with miles and photos");
 ok(/sheet_new[\s\S]{0,200}mileage/.test(page) && /sheet_photo_add/.test(page), "the page sends the miles and each photo");

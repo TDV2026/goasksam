@@ -25,14 +25,14 @@ async function call(url, cookie) {
 }
 
 // ---------- the shell's assertions on a served page (text only) ----------
-function textAssertions(html, tag, { activeId, demoCase } = {}) {
+function textAssertions(html, tag, { activeId, demoCase, minCases = 3 } = {}) {
   const bad = [], n = (re) => (html.match(re) || []).length;
   const groups = [...html.matchAll(/data-group="(\w+)"/g)].map(m => m[1]);
-  if (groups.join() !== "new,review,ready,final") bad.push("the four groups are not New leads, In review, Ready for report, Finalized in that order");
+  if (groups.join() !== "new,review,ready,final,sent") bad.push("the groups are not New leads, In review, Ready for report, Finalized, Sent in that order");   // Sent joined the rail with Desk V4 (2a3e7ce7)
   const ids = [...html.matchAll(/class="cs[ "][^>]*data-case="([^"]+)"/g)].map(m => m[1]);
   if (new Set(ids).size !== ids.length) bad.push("a case is listed twice");
-  if (ids.length < 3) bad.push("the rail lists fewer than three cases");
-  for (const label of ["New leads", "In review", "Ready for report", "Finalized"]) if (!html.includes(label)) bad.push("rail group missing: " + label);
+  if (ids.length < minCases) bad.push(`the rail lists fewer than ${minCases} cases`);
+  for (const label of ["New leads", "In review", "Ready for report", "Finalized", "Sent"]) if (!html.includes(label)) bad.push("rail group missing: " + label);
   for (const m of html.matchAll(/<a class="cs[^"]*"[^>]*>([\s\S]*?)<\/a>/g)) if (!/cs-car/.test(m[1]) || !/cs-age/.test(m[1]) || !/cs-st/.test(m[1])) bad.push("a case row lacks car, age or status");
   if (n(/id="railq"/g) !== 1) bad.push("the rail has no single search box");
   if (n(/<nav class="rail"/g) !== 1) bad.push("more than one rail");
@@ -62,7 +62,10 @@ function textAssertions(html, tag, { activeId, demoCase } = {}) {
   ok(/noindex/.test(one.h["x-robots-tag"] || "") && /no-store/.test(one.h["cache-control"] || ""), "noindex header and no-store");
   const vj = JSON.parse(fs.readFileSync("vercel.json", "utf8"));
   for (const [src, page] of [["/preview/desk", "preview-desk"], ["/preview/desk/case/:id", "preview-desk"]]) { const r = (vj.rewrites || []).find(x => x.source === src); ok(r && /gas_crew/.test(JSON.stringify(r.has || [])) && r.destination.includes("page=" + page), "vercel.json routes " + src + " only with the crew cookie"); }
-  const bads = [...textAssertions(list.body, "list"), ...textAssertions(one.body, "case", { activeId: id, demoCase: id === V3.DEMO_ID })];
+  // /preview/desk is the V4 shell now (598bd2cd): the V3 page this check is about is rendered by its own module, the function the route called before, so the V3 markup stays held to the V3 assertions
+  const v3list = await V3.renderDeskV3({ query: { org: PV.SAMPLE_ORG.id } }),   // the three sample cases live in their own org since 3ae46ecb
+    v3one = await V3.renderDeskV3({ query: { case: id } });
+  const bads = [...textAssertions(v3list, "list"), ...textAssertions(v3one, "case", { activeId: id, demoCase: id === V3.DEMO_ID, minCases: 1 })];   // the demonstration case sits in the preview org, which holds only it, so its rail is that one case
   for (const b of bads) ok(false, "page: " + b); ok(!bads.length, "the served list and case pass the shell assertions");
 }
 
@@ -112,7 +115,7 @@ async function inChrome(htmlList, label) {
   } finally { await br.close(); }
   return bad;
 }
-async function goodPage() { await call("/api/crewPage?page=preview-desk", crew); const r = await call(`/api/crewPage?page=preview-desk&case=${V3.DEMO_ID}`, crew); return r.body; }
+async function goodPage() { await call("/api/crewPage?page=preview-desk", crew); return V3.renderDeskV3({ query: { case: V3.DEMO_ID } }); }   // the V3 module's own page, see the note at the shell assertions
 const html = await goodPage();
 // ONE FIGURE IN THE HEADER (Sam, Nov 9 2026): the Valuation, with the market line under it. No reserve, no second or third big figure, in the summary or the sticky bar.
 const headerBad = h => { const bad = [], sum = (/<section class="sum"[\s\S]*?<\/section>/.exec(h) || [""])[0], stk = (/<div class="stk"[\s\S]*?<\/div>\s*<section/.exec(h) || [""])[0], big = (sum.match(/class="fg-v/g) || []).length;

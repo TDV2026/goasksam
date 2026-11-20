@@ -57,7 +57,7 @@ try {
 } catch (e) { ok(false, "threw " + e.message); }
 {
   const rd = x => fs.readFileSync(new URL("../" + x, import.meta.url), "utf8");
-  ok(/excluded: res\.excluded \|\| \[\] \}/.test(rd("lib/live/samChat.js")) && /excluded: \(sr\.excluded \|\| \[\]\)\.map/.test(rd("lib/live/samChat.js")), "the chat path carries the search's excluded[] into meta.excluded");
+  ok(/excluded: res\.excluded \|\| \[\][,} ]/.test(rd("lib/live/samChat.js")) && /excluded: \(sr\.excluded \|\| \[\]\)\.map/.test(rd("lib/live/samChat.js")), "the chat path carries the search's excluded[] into meta.excluded");
 }
 await b.close();
 console.log(`findExcludedCheck: ${pass} pass, ${fail} FAIL`);

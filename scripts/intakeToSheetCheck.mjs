@@ -13,7 +13,10 @@ const K = await loadKit(root);
 const VIN = "WP0AB29918S745123";   // Lane E's fixture VIN: its read is the stand-in fixture
 const { st, deps } = K.fresh();
 // what the page's store sees: the sheet object in each row of the org, nothing else (the page is Lane E's, unchanged)
-const view = st => ({ kind: "intake-memory",
+// the rows are the intake store's; everything else the page's actions now call on a store (exports, seat names, case versions, uploads: lib/desk/sheetActions.js) comes from the real memory store, so the adapter never lags the store's methods
+const { memoryStore } = await import(pathToFileURL(path.join(root, "lib/desk/sheetStore.js")).href);
+const view = st => ({ ...memoryStore(), kind: "intake-memory",
+  async putIf(org, s, expected) { const cur = await this.get(org, s.id); if (!cur || (cur.version || 0) !== (expected || 0)) return false; await st.patchSheet(org, s.id, { sheet: s }); return true; },
   async get(org, id) { const r = await st.getSheet(org, id); return r && r.sheet && r.sheet.id === r.id ? structuredClone(r.sheet) : null; },
   async put(org, s) { await st.patchSheet(org, s.id, { sheet: s }); return s; },
   async insert(org, s) { throw new Error("the page never inserts into an intake store here"); },

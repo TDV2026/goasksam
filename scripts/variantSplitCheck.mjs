@@ -374,8 +374,9 @@ process.env.OLDCARSDATA_API_KEY = "x"; process.env.CURTAIN_CREW_CODE = "fixture-
       // the cold read: the rows are slower than the clock
       VR3.__clearVariantRowsCache(); slow = 700; const t0 = Date.now(), r1 = await VR3.variantSplitFor(d3, ctx3, veh3, null, env3, { deadlineMs: 150 }); slow = 0;
       ok("a cold read whose rows are not done in time says the cards are still being read (splitPending), never a blend that looks final", !!r1 && r1.splitPending === true && !(r1.variantSplit && r1.variantSplit.show), r1 && [r1.splitPending, r1.variantSplit]);
-      for (let i = 0; i < 60 && ![...STORE.keys()].some(k => /^VSPLIT\|/.test(k)); i++) await new Promise(r => setTimeout(r, 100));
-      ok("the split, finished behind the request, is stored (VSPLIT|stamp|family|year|model|miles)", [...STORE.keys()].some(k => /^VSPLIT\|e\d+-/.test(k) && k.includes("ferrari-330")), [...STORE.keys()]);
+      const finishedSplit = () => [...STORE.entries()].some(([k, v]) => /^VSPLIT\|/.test(k) && v.market && v.market.kind === "vsplit");   // the row is first a "being read" marker (vsplit_running) and then, when the rows are done, the split itself
+      for (let i = 0; i < 60 && !finishedSplit(); i++) await new Promise(r => setTimeout(r, 100));
+      ok("the split, finished behind the request, is stored (VSPLIT|stamp|family|year|model|miles)", finishedSplit() && [...STORE.keys()].some(k => /^VSPLIT\|e\d+-/.test(k) && k.includes("ferrari-330")), [...STORE.keys()]);
       // another instance: memory cleared; the read is the stored split, no sale is read
       VR3.__clearVariantRowsCache(); archiveReads = 0; const r2 = await VR3.variantSplitFor(d3, ctx3, veh3, null, env3, { deadlineMs: 150 }), reads2 = archiveReads;
       ok("the second read (another instance, memory empty) returns the cards from the stored split and reads no sales", !!r2 && !r2.splitPending && !!r2.variantSplit && r2.variantSplit.show === true && reads2 === 0, r2 && [r2.splitPending, r2.variantSplit && r2.variantSplit.show, reads2]);
@@ -399,6 +400,30 @@ process.env.OLDCARSDATA_API_KEY = "x"; process.env.CURTAIN_CREW_CODE = "fixture-
       const poolsE = {}; for (const v of fam.variants.filter(v => (byV[v.name] || []).length)) { const rvE = { make: "BMW", model: /is$/i.test(String(v.ask || v.name).replace(/\s/g, "")) ? "325iS" : "325i", year: 1987, trim: String(v.ask || v.name).replace(/\s/g, ""), variant: v.name, variantFamily: fam.id }, aE = (await OB.oneEngineAnswer(rvE, null, "1987 BMW 3-Series " + (v.ask || v.name), { ...w.env, asked: 2 })).raw; poolsE[v.name] = (aE.rawPool || []).map(x => x.id || x.source_id); if (process.env.DBGX) console.log('XROW', v.name, aE.tier, aE.noRangeCode, JSON.stringify(aE.cluster), aE.poolN, JSON.stringify(aE.variants && {st: aE.variants.stated, ap: aE.variants.applied, th: aE.variants.thin, pooled: aE.variants.pooled}), aE.rungLabel, aE.samLine); }
       const names = Object.keys(poolsE); let shared = 0; for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) shared += poolsE[names[i]].filter(x => new Set(poolsE[names[j]]).has(x)).length;
       ok(`BMW: two sibling cards share no sale (${names.map(n => n + " " + poolsE[n].length).join(", ")}; shared ${shared}) (b)`, shared === 0, poolsE);
+      // ===== A SPLIT BEING READ IS READ ONCE (lane-b-sell-bmw-live, Nov 19 2026). Live, the first read of "1987 BMW 3 Series" ran 92 s and drew no cards: the rows need longer than the clock, the page asks again every 2.5 s, and each ask STARTED ITS OWN set of reads and engine runs (one per variant) beside the ones still running, so every compute was slower and none finished in time. CLASS: every family car whose rows outlast the clock (the 3 Series, the Corvette, the Mustang, every family in the list). Counted at the resolver, which each variant's read calls once.
+      { const SD = new Map(), prevF = globalThis.fetch, sleepD = ms => new Promise(r => setTimeout(r, ms)); let calls = 0, failWord = null;
+        globalThis.fetch = async (url, init) => { const u = String(url);
+          if (/spec_market_cache/.test(u) && /VSPLIT/.test(decodeURIComponent(u) + String((init && init.body) || ""))) { if (init && init.method === "POST") { for (const r of JSON.parse(init.body)) SD.set(r.spec_key, r); return new Response("[]", { status: 201 }); } const k = decodeURIComponent((/spec_key=eq\.([^&]+)/.exec(u) || [])[1] || ""); return new Response(JSON.stringify(SD.has(k) ? [SD.get(k)] : []), { status: 200 }); }
+          return prevF(url, init); };
+        VRe.__setResolver(async text => { calls++; await sleepD(600); if (failWord && failWord.test(String(text))) return null; const y = /\b(\d{4})\b/.exec(text), t = /\b(318i|325e|325i|325 is|325is)\b/i.exec(text); return { status: "valid", vehicle: { year: y ? +y[1] : null, make: "BMW", model: t ? (/is\b/i.test(t[1].replace(/\s/g, "")) ? "325iS" : "325i") : "3-Series", trim: t ? t[1].replace(/\s/g, "") : null, confidence: "high", raw: text } }; });
+        const vehD = { raw: "1987 BMW 3 Series", make: "BMW", model: "3-Series", year: 1987, trim: null, confidence: "high", canonicalLabel: "1987 BMW 3-Series" }, dD = (await OB.oneEngineAnswer(vehD, null, "1987 BMW 3 Series", { ...w.env, asked: 2 })).raw, envD = { supabaseUrl: "https://fake.example", supabaseKey: "k" }, ctxD = { asked: 0, refine: null, crew: false, text: "1987 BMW 3 Series" };
+        VRe.__clearVariantRowsCache(); calls = 0; await VRe.variantSplitFor(dD, ctxD, vehD, null, envD, { deadlineMs: 20000 }); const oneCompute = calls;
+        SD.clear(); VRe.__clearVariantRowsCache(); calls = 0; const asksD = []; for (let i = 0; i < 4; i++) { asksD.push(VRe.variantSplitFor(dD, ctxD, vehD, null, envD, { deadlineMs: 60 })); await sleepD(30); }
+        const rsD = await Promise.all(asksD);
+        ok("the E30 family has variants to read (the check is not vacuous)", oneCompute >= 3, [oneCompute, dD && dD.tier, dD && Object.keys(dD).slice(0, 8)]);
+        ok("four asks made while the rows are still being read are all 'still being read'", rsD.every(r => r && r.splitPending === true), rsD.map(r => r && r.splitPending));
+        ok(`four asks start ONE set of reads in all (${oneCompute} variant reads), not one set per ask`, calls <= oneCompute, { oneCompute, calls });
+        VRe.__clearVariantRowsCache(); const callsBefore = calls, rXd = await VRe.variantSplitFor(dD, ctxD, vehD, null, envD, { deadlineMs: 60 });
+        ok("an ask on another instance (memory empty) while the rows are being read answers 'still being read' and starts no reads (the marker row)", !!rXd && rXd.splitPending === true && calls === callsBefore, [rXd && rXd.splitPending, callsBefore, calls]);
+        for (let i = 0; i < 100 && ![...SD.values()].some(v => v.market && v.market.kind === "vsplit"); i++) await sleepD(100);
+        ok("the one set of reads still ends as the stored split", [...SD.values()].some(v => v.market && v.market.kind === "vsplit"), [...SD.values()].map(v => v.market && v.market.kind));
+        // a read that FAILS is not held: the row says so (vsplit_failed), and the next ask reads again (a marker that stayed would hold every ask for two minutes behind a read that is over)
+        SD.clear(); VRe.__clearVariantRowsCache(); failWord = /325 ?is/i; calls = 0; await VRe.variantSplitFor(dD, ctxD, vehD, null, envD, { deadlineMs: 60 });
+        for (let i = 0; i < 100 && ![...SD.values()].some(v => v.market && v.market.kind === "vsplit_failed"); i++) await sleepD(100);
+        ok("a compute with a failed read writes 'failed', not a split and not a marker that stays", [...SD.values()].some(v => v.market && v.market.kind === "vsplit_failed") && ![...SD.values()].some(v => v.market && (v.market.kind === "vsplit" || v.market.kind === "vsplit_running")), [...SD.values()].map(v => v.market && v.market.kind));
+        failWord = null; VRe.__clearVariantRowsCache(); const callsF = calls; await VRe.variantSplitFor(dD, ctxD, vehD, null, envD, { deadlineMs: 60 });
+        ok("and the next ask after a failed read reads again (is not held behind it)", calls > callsF, [callsF, calls]);
+        globalThis.fetch = prevF; }
       VRe.__setResolver(null); }
   // THE FOUR CARS, RECORDED LIVE (scripts/fixtures/noDeadEnds.json): each answered "sold as different cars, so no one range". Rebuilt from the counts by variant and the options priced apart, read through the real handler as a visitor. Never the sentence alone: the cards of the list, or the options each with its count; for the two whose list has two cars with sales, the cards of the list.
     { const ND = JSON.parse(read("scripts/fixtures/noDeadEnds.json")), VRm2 = await imp("lib/variantRows.js");
@@ -494,6 +519,10 @@ function mutants() {
     ["FIRST: a crew read writes the shared store", "lib/variantRows.js", s => s.replace("if (!(ctx && ctx.crew)) keepAlive(writeSplitStore(env, skey, split));", "keepAlive(writeSplitStore(env, skey, split));")],
     ["FIRST: the answer for a pending read is the blend (sellerDecision)", "api/sellerDecision.js", s => s.replace("if (oneBox && oneBox.splitPending === true) return", "if (false) return")],
     ["CARDFIX: a card's car carries no family (the nameplate's pool is read)", "lib/variantRows.js", s => s.replace("variantFamily: fam.id, ...(fam.baseModel", "...(fam.baseModel")],
+    ["ONCE: a repeat ask starts its own reads (no join of the running ones)", "lib/variantRows.js", s => s.replace("const all = running || (() => {", "const all = (() => {")],
+    ["ONCE: a read on another instance does not see the marker (starts its own)", "lib/variantRows.js", s => s.replace("if (stored && stored.__running) return", "if (false) return")],
+    ["ONCE: the marker is never written", "lib/variantRows.js", s => s.replace("if (!(ctx && ctx.crew)) keepAlive(writeSplitMark(env, skey, \"vsplit_running\"));", "")],
+    ["ONCE: a failed read leaves the marker (the next ask is held for two minutes)", "lib/variantRows.js", s => s.replace("return ctx && ctx.crew ? null : writeSplitMark(env, skey, \"vsplit_failed\"); cache.set", "return null; cache.set")],
     ["CARDFIX: a card says too few at any count", "lib/variantRows.js", s => s.replace("  if (n < floor) return reasonLine(\"variant.row_few\");", "  return reasonLine(\"variant.row_few\");")],
     ["NODEAD: the cards are not the answer when the blend has no range (two cars with sales)", "lib/variantRows.js", s => s.replace("if (blendNoRange === true && (rows || []).filter(r => r && Number(r.n) > 0).length >= 2) return { show: true, code: null };", "")],
     ["NODEAD: the cards ignore whether the blend has a range", "lib/variantRows.js", s => s.replace("showSplit(rows, !rangeTextOf(d))", "showSplit(rows, false)")],

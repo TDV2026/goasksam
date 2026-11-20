@@ -14,11 +14,11 @@ if (args.includes("--mutants")) {
   const muts = [
     [DV, "calc = new Set(ex.filter(e => e.scope === \"market_calc\").map(e => e.id))", "calc = new Set()", "market_calc changes nothing"],
     [DV, "scope: SCOPES.includes(scopes[id]) ? scopes[id] : \"note_only\"", "scope: SCOPES.includes(scopes[id]) ? scopes[id] : \"market_calc\"", "an unknown scope leaves the market calculation"],
-    [DV, "const original = evidenceOf(rows.filter(r => r.inPopulation !== false), rows, desk, env);", "const original = evidenceOf(rows.filter(r => r.inPopulation !== false && !new Set((desk.excludedIds || []).map(String)).has(String(r.id))), rows, desk, env);", "the original follows the exclusions"],
-    [DV, "const comparables = await comparablesOf(rows.filter(r => !rep.has(String(r.id))), sub, desk.head || null);", "const comparables = await comparablesOf(rows.filter(r => !rep.has(String(r.id)) && !calc.has(String(r.id))), sub, desk.head || null);", "market_calc also leaves the comparables"],
-    [DV, "const rowsCalc = rows.filter(r => !calc.has(String(r.id))), pop", "const rowsCalc = rows.filter(r => !calc.has(String(r.id)) && !rep.has(String(r.id))), pop", "report_comps also leaves the market calculation"],
+    [DV, "popAll0 = rows.filter(r => r.inPopulation !== false), fullOriginal =", "popAll0 = rows.filter(r => r.inPopulation !== false && !new Set((desk.excludedIds || []).map(String)).has(String(r.id))), fullOriginal =", "the original follows the exclusions"],
+    [DV, "const comparables = await comparablesOf(rows.filter(r => !rep.has(String(r.id))), sub,", "const comparables = await comparablesOf(rows.filter(r => !rep.has(String(r.id)) && !calc.has(String(r.id))), sub,", "market_calc also leaves the comparables"],
+    [DV, "rowsCalc = rows.filter(r => !calc.has(String(r.id))), pop = rowsCalc", "rowsCalc = rows.filter(r => !calc.has(String(r.id)) && !rep.has(String(r.id))), pop = rowsCalc", "report_comps also leaves the market calculation"],
     [DV, "rep = new Set(ex.filter(e => e.scope === \"report_comps\").map(e => e.id));", "rep = new Set(ex.filter(e => e.scope !== \"market_calc\").map(e => e.id));", "note_only also leaves the report comparables"],
-    [DV, "const evidence = calc.size ? evidenceOf(pop, rowsCalc, desk, env) : original;", "const evidence = calc.size ? evidenceOf(pop, rowsCalc, desk, env) : { ...original, count: original.count };\n  original.count = evidence.count;", "the original is overwritten by the recompute"],
+    [DV, "let original = fullOriginal,", "let original = fullEvidence,", "the original is overwritten by the recompute"],
     [DV, "const quarters = quartersOf(pop, env), kase", "const quarters = quartersOf(rows.filter(r => r.inPopulation !== false), env), kase", "the quarters ignore market_calc"]
   ];
   let survivors = 0;
@@ -42,7 +42,8 @@ console.error = () => {};
 const today = new Date().toISOString().slice(0, 10);
 const w = W.install(); const baseFetch = globalThis.fetch; const writes = []; globalThis.fetch = async (url, init) => { if (init && init.method && init.method !== "GET") writes.push(init.method + " " + String(url)); return baseFetch(url, init); };
 const c0 = W.CASES[0], head = async () => ({ status: 200, bytes: 50000, type: "image/jpeg" });
-const read = o => S.sheetRead(w.env, { year: c0.year, make: c0.make, model: c0.model, mileage: 61400, desk: { caseDate: today, transmission: "Manual", head, ...o } }, w.deps);
+// NO MILEAGE ON THE CASE: since order bc85 (6ab6db79) a case with miles is priced over its mileage band, while this check's oracle (the median of the in-population comparables) is the whole population's; the exclusion rules are the same either way.
+const read = o => S.sheetRead(w.env, { year: c0.year, make: c0.make, model: c0.model, desk: { caseDate: today, transmission: "Manual", head, ...o } }, w.deps);
 const J = x => JSON.stringify(x), strip = d => { const { excluded, ...rest } = d; return rest; };
 const base = (await read({})).desk;
 const inPop = base.comparables.filter(c => c.inPopulation), ids = inPop.slice(0, 3).map(c => c.id), outId = base.comparables.find(c => !c.inPopulation).id;
@@ -53,7 +54,10 @@ ok("with nothing excluded, original equals evidence and excluded is empty", J(ba
 // (3) report_comps
 { const d = (await read({ excludedIds: ids, exclusionScope: Object.fromEntries(ids.map(i => [i, "report_comps"])) })).desk;
   ok("report_comps: the sales leave the comparables", ids.every(i => !d.comparables.some(c => c.id === i)) && d.comparables.length === base.comparables.length - 3);
-  ok("report_comps: the evidence, original, quarters, factors, outside, condition are unchanged", J({ ...strip(d), comparables: 0 }) === J({ ...strip(base), comparables: 0 }));
+  // what is built from the comparables LIST follows the list (the nearest-cars basis, the per-sale words, the count of comparables): a report never cites a sale its analyst took out
+  const own = x => { const { comparables, comparablesCount, likelyBasis, words, ...rest } = strip(x); return rest; };
+  ok("report_comps: the evidence, original, quarters, factors, outside, condition are unchanged", J(own(d)) === J(own(base)));
+  ok("report_comps: the nearest-cars basis no longer cites a removed sale", !d.likelyBasis || !Array.isArray(d.likelyBasis.ids) || ids.every(i => !d.likelyBasis.ids.includes(i)));
   ok("report_comps: the rest of the comparables are the same, in the same order", J(d.comparables) === J(base.comparables.filter(c => !ids.includes(c.id)))); }
 // (4) market_calc
 { const d = (await read({ excludedIds: ids, exclusionScope: Object.fromEntries(ids.map(i => [i, "market_calc"])) })).desk;

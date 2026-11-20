@@ -106,7 +106,9 @@ for (const c of W.CASES) {
     got[months || "default"] = ev;
     const chosen = months || 12;
     ok(`${c.model} ${months || "default"}: evidence is the ${chosen} month window`, ev.windowMonths === chosen && ev.count === bw[String(chosen)].count && ev.median === bw[String(chosen)].median);
-    ok(`${c.model} ${months || "default"}: market.meter equals the chosen window (count, low, q1, median, q3, high)`, ev.insufficient ? sh.market.meter === null : eqMeter(sh.market.meter, bw[String(chosen)]), JSON.stringify(sh.market.meter && [sh.market.meter.count, bw[String(chosen)].count]));
+    ok(`${c.model} ${months || "default"}: market.meter equals the chosen window (count, low, q1, median, q3, high)`, ev.insufficient ? sh.market.meter === null : eqMeter(sh.market.meter, { ...bw[String(chosen)], low: ev.low, high: ev.high }), JSON.stringify(sh.market.meter && [sh.market.meter.count, bw[String(chosen)].count]));
+    // the figures are counted over the car's mileage band (6ab6db79) but the extremes (low, high) stay the whole pool's (the SL500 case, Nov 17 2026): the headline evidence carries those, the byWindow entry the banded ones, so the meter takes the headline's extremes and the window's count, q1, median and q3
+    ok(`${c.model} ${months || "default"}: the window's extremes are the whole pool's, around the banded ones`, ev.insufficient || (ev.low <= bw[String(chosen)].low && ev.high >= bw[String(chosen)].high));
   }
   ok(`${c.model}: the windows nest (6 <= 12 <= 24), and 24 reads the same as 12 here (the archive runs 10 months)`, got[6] && got[12] && got[24] && got[6].count <= got[12].count && got[12].count === got[24].count, got[6] && [got[6].count, got[12].count, got[24].count].join("/"));
   ok(`${c.model}: no window ever carries a number when it is insufficient`, got[12] && ["6", "12", "24"].every(k => { const x = got[12].byWindow[k]; return !x.insufficient || [x.q1, x.median, x.q3, x.low, x.high].every(v => v === null); }));

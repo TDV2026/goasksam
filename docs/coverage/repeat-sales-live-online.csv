@@ -1,0 +1,353 @@
+section,type,group,bucket,pairs,share_of_set,median_second_pct_of_first,share_sold_for_more,median_months,median_first_price_usd,median_second_price_usd,median_without_group_pct,min_required,too_few
+1 wait,wait,"under 6 months",LIVE to ONLINE,268,28.4,116.0,75.0,2.6,41900,47600,,30,false
+1 wait,wait,"6 to 12 months",LIVE to ONLINE,157,16.6,107.4,58.6,8.2,57000,63500,,30,false
+1 wait,wait,"12 to 24 months",LIVE to ONLINE,166,17.6,109.4,60.2,17.4,50000,54000,,30,false
+1 wait,wait,"24 months and over",LIVE to ONLINE,353,37.4,113.3,62.0,41.1,67500,72500,,30,false
+1 all,all,"all 944",LIVE to ONLINE,944,100.0,112.9,64.8,14.7,55100,61700,,30,false
+2 breakdown,make,"Chevrolet",LIVE to ONLINE,173,18.3,106.7,59.0,14.6,55000,56000,,20,false
+2 breakdown,make,"Ford",LIVE to ONLINE,131,13.9,108.1,57.3,11.8,52000,60000,,20,false
+2 breakdown,make,"Mercedes-Benz",LIVE to ONLINE,126,13.3,112.4,62.7,13.1,37900,40600,,20,false
+2 breakdown,make,"Porsche",LIVE to ONLINE,101,10.7,122.5,77.2,20.1,149800,166000,,20,false
+2 breakdown,make,"Ferrari",LIVE to ONLINE,65,6.9,128.1,80.0,28.7,125000,156000,,20,false
+2 breakdown,make,"BMW",LIVE to ONLINE,35,3.7,111.5,65.7,22.7,60000,72500,,20,false
+2 breakdown,make,"Dodge",LIVE to ONLINE,34,3.6,110.7,61.8,11.5,58500,67300,,20,false
+2 breakdown,make,"Aston Martin",LIVE to ONLINE,23,2.4,112.8,60.9,15.4,57000,62300,,20,false
+2 breakdown,make,"Bentley",LIVE to ONLINE,21,2.2,86.8,33.3,17.4,57500,46300,,20,false
+2 breakdown,make,"Pontiac",LIVE to ONLINE,18,1.9,,,,,,,20,true
+2 breakdown,make,"Plymouth",LIVE to ONLINE,16,1.7,,,,,,,20,true
+2 breakdown,make,"Lamborghini",LIVE to ONLINE,13,1.4,,,,,,,20,true
+2 breakdown,make,"Buick",LIVE to ONLINE,13,1.4,,,,,,,20,true
+2 breakdown,make,"Land Rover",LIVE to ONLINE,12,1.3,,,,,,,20,true
+2 breakdown,make,"Toyota",LIVE to ONLINE,11,1.2,,,,,,,20,true
+2 breakdown,make,"Lincoln",LIVE to ONLINE,11,1.2,,,,,,,20,true
+2 breakdown,make,"Cadillac",LIVE to ONLINE,10,1.1,,,,,,,20,true
+2 breakdown,make,"Jaguar",LIVE to ONLINE,10,1.1,,,,,,,20,true
+2 breakdown,make,"Jeep",LIVE to ONLINE,9,1.0,,,,,,,20,true
+2 breakdown,make,"Honda",LIVE to ONLINE,8,0.8,,,,,,,20,true
+2 breakdown,make,"Oldsmobile",LIVE to ONLINE,8,0.8,,,,,,,20,true
+2 breakdown,make,"GMC",LIVE to ONLINE,7,0.7,,,,,,,20,true
+2 breakdown,make,"Mercury",LIVE to ONLINE,5,0.5,,,,,,,20,true
+2 breakdown,make,"Acura",LIVE to ONLINE,5,0.5,,,,,,,20,true
+2 breakdown,make,"Maserati",LIVE to ONLINE,5,0.5,,,,,,,20,true
+2 breakdown,make,"Chrysler",LIVE to ONLINE,5,0.5,,,,,,,20,true
+2 breakdown,make,"Nissan",LIVE to ONLINE,5,0.5,,,,,,,20,true
+2 breakdown,make,"Datsun",LIVE to ONLINE,4,0.4,,,,,,,20,true
+2 breakdown,make,"Alfa Romeo",LIVE to ONLINE,4,0.4,,,,,,,20,true
+2 breakdown,make,"DeLorean",LIVE to ONLINE,4,0.4,,,,,,,20,true
+2 breakdown,make,"Shelby",LIVE to ONLINE,4,0.4,,,,,,,20,true
+2 breakdown,make,"Rolls-Royce",LIVE to ONLINE,4,0.4,,,,,,,20,true
+2 breakdown,make,"Hummer",LIVE to ONLINE,4,0.4,,,,,,,20,true
+2 breakdown,make,"Audi",LIVE to ONLINE,3,0.3,,,,,,,20,true
+2 breakdown,make,"Fiat",LIVE to ONLINE,3,0.3,,,,,,,20,true
+2 breakdown,make,"Lexus",LIVE to ONLINE,3,0.3,,,,,,,20,true
+2 breakdown,make,"DeTomaso",LIVE to ONLINE,3,0.3,,,,,,,20,true
+2 breakdown,make,"McLaren",LIVE to ONLINE,3,0.3,,,,,,,20,true
+2 breakdown,make,"Maybach",LIVE to ONLINE,3,0.3,,,,,,,20,true
+2 breakdown,make,"AMC",LIVE to ONLINE,2,0.2,,,,,,,20,true
+2 breakdown,make,"Renault",LIVE to ONLINE,2,0.2,,,,,,,20,true
+2 breakdown,make,"Citroen",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"Mazda",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"Panoz",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"INTERNATIONAL",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"Sunbeam",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"Spyker",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"Lancia",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"Isuzu",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"OSI",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"KARMA",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"Triumph",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"Studebaker",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"Saab",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"Subaru",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"Kaiser",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"Volvo",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"Lotus",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,make,"Rimac",LIVE to ONLINE,1,0.1,,,,,,,20,true
+2 breakdown,decade,"1940s",LIVE to ONLINE,3,0.3,,,,,,,30,true
+2 breakdown,decade,"1950s",LIVE to ONLINE,21,2.2,,,,,,,30,true
+2 breakdown,decade,"1960s",LIVE to ONLINE,150,15.9,108.9,64.0,17.9,62500,64000,,30,false
+2 breakdown,decade,"1970s",LIVE to ONLINE,122,12.9,111.6,63.9,13.0,38700,48800,,30,false
+2 breakdown,decade,"1980s",LIVE to ONLINE,158,16.7,116.2,69.0,17.1,38000,41800,,30,false
+2 breakdown,decade,"1990s",LIVE to ONLINE,165,17.5,118.5,72.1,14.4,43000,51700,,30,false
+2 breakdown,decade,"2000s",LIVE to ONLINE,193,20.4,114.4,66.3,14.4,50000,53500,,30,false
+2 breakdown,decade,"2010s",LIVE to ONLINE,93,9.9,108.7,59.1,17.1,130000,120000,,30,false
+2 breakdown,decade,"2020s",LIVE to ONLINE,39,4.1,96.2,33.3,6.2,125000,105000,,30,false
+2 breakdown,band,"under $25k",LIVE to ONLINE,214,22.7,112.7,64.5,7.8,15000,16400,,30,false
+2 breakdown,band,"$25k to $50k",LIVE to ONLINE,216,22.9,112.2,63.4,15.4,37000,40000,,30,false
+2 breakdown,band,"$50k to $100k",LIVE to ONLINE,234,24.8,112.0,64.5,17.1,67000,74000,,30,false
+2 breakdown,band,"$100k to $250k",LIVE to ONLINE,185,19.6,112.5,64.3,19.3,142500,159000,,30,false
+2 breakdown,band,"$250k and over",LIVE to ONLINE,95,10.1,118.5,70.5,18.4,375000,455000,,30,false
+2 breakdown,model,"Chevrolet Corvette",LIVE to ONLINE,60,6.4,111.0,63.3,17.4,73000,81800,,10,false
+2 breakdown,model,"Ford Bronco",LIVE to ONLINE,28,3.0,101.4,50.0,9.3,77500,78800,,10,false
+2 breakdown,model,"Chevrolet Camaro",LIVE to ONLINE,22,2.3,95.2,40.9,12.9,45500,55300,,10,false
+2 breakdown,model,"Ford Mustang",LIVE to ONLINE,19,2.0,97.4,47.4,16.9,52000,55000,,10,false
+2 breakdown,model,"Porsche 911",LIVE to ONLINE,18,1.9,127.9,94.4,31.6,180000,234000,,10,false
+2 breakdown,model,"Chevrolet Blazer",LIVE to ONLINE,9,1.0,,,,,,,10,true
+2 breakdown,model,"Lincoln Continental",LIVE to ONLINE,7,0.7,,,,,,,10,true
+2 breakdown,model,"Ford GT",LIVE to ONLINE,7,0.7,,,,,,,10,true
+2 breakdown,model,"Ferrari 575",LIVE to ONLINE,6,0.6,,,,,,,10,true
+2 breakdown,model,"Mercedes-Benz SL-Class",LIVE to ONLINE,5,0.5,,,,,,,10,true
+2 breakdown,model,"Ferrari 550",LIVE to ONLINE,5,0.5,,,,,,,10,true
+2 breakdown,model,"Ferrari Testarossa",LIVE to ONLINE,5,0.5,,,,,,,10,true
+2 breakdown,model,"Ford Thunderbird",LIVE to ONLINE,5,0.5,,,,,,,10,true
+2 breakdown,model,"Acura NSX",LIVE to ONLINE,4,0.4,,,,,,,10,true
+2 breakdown,model,"Honda S2000",LIVE to ONLINE,4,0.4,,,,,,,10,true
+2 breakdown,model,"Bentley Continental GT",LIVE to ONLINE,4,0.4,,,,,,,10,true
+2 breakdown,model,"Mercedes-Benz SLR McLaren",LIVE to ONLINE,4,0.4,,,,,,,10,true
+2 breakdown,model,"Pontiac Firebird",LIVE to ONLINE,4,0.4,,,,,,,10,true
+2 breakdown,model,"Chevrolet Corvair",LIVE to ONLINE,4,0.4,,,,,,,10,true
+2 breakdown,model,"Porsche 944",LIVE to ONLINE,3,0.3,,,,,,,10,true
+2 breakdown,model,"BMW 6-Series",LIVE to ONLINE,3,0.3,,,,,,,10,true
+2 breakdown,model,"Porsche Cayman",LIVE to ONLINE,3,0.3,,,,,,,10,true
+2 breakdown,model,"Ferrari 430",LIVE to ONLINE,3,0.3,,,,,,,10,true
+2 breakdown,model,"Toyota Supra",LIVE to ONLINE,3,0.3,,,,,,,10,true
+2 breakdown,model,"Mercedes-Benz 300SL",LIVE to ONLINE,3,0.3,,,,,,,10,true
+2 breakdown,model,"DeLorean DMC-12",LIVE to ONLINE,3,0.3,,,,,,,10,true
+2 breakdown,model,"Plymouth Prowler",LIVE to ONLINE,3,0.3,,,,,,,10,true
+2 breakdown,model,"Buick Riviera",LIVE to ONLINE,3,0.3,,,,,,,10,true
+2 breakdown,model,"BMW Z8",LIVE to ONLINE,3,0.3,,,,,,,10,true
+2 breakdown,model,"Bentley Continental GTC",LIVE to ONLINE,3,0.3,,,,,,,10,true
+2 breakdown,model,"Porsche 996",LIVE to ONLINE,3,0.3,,,,,,,10,true
+2 breakdown,model,"Mercedes-Benz W186/W189 Adenauer",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Aston Martin Lagonda",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Porsche 918 Spyder",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Plymouth Barracuda",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Bentley Continental",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Lexus LFA",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"BMW 8-Series",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Aston Martin DB7",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Chevrolet El Camino",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Lamborghini Countach",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Oldsmobile 442",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Mercedes-Benz 190SL",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Chevrolet Chevelle",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Maserati Quattroporte",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Porsche 968",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Lamborghini Diablo",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Shelby GT350",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Dodge Viper",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Mercedes-Benz 190",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Porsche 928",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Ferrari 612",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Mercedes-Benz G-Class",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Ferrari California",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Land Rover Defender",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Ferrari 599",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Mercedes-Benz SLS AMG",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Plymouth Road Runner",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"GMC Jimmy",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Audi R8",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Bentley Arnage",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Chevrolet Tahoe",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Porsche Boxster",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Nissan Skyline",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Maybach 62",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Hummer H1",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Jeep Wrangler",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Ferrari 360",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"BMW i8",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Ferrari 348",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"DeTomaso Pantera",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Chrysler LeBaron",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Land Rover Range Rover",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Nissan 300ZX",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Chevrolet C/K",LIVE to ONLINE,2,0.2,,,,,,,10,true
+2 breakdown,model,"Alfa Romeo Giulietta",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Ferrari 328",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Lamborghini LM002",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Ford Fairlane",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"AMC AMX",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"BMW Z3",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Renault 5",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Ferrari 488",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Ferrari F12",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Mazda RX-7",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Ferrari 348 TS",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Mercedes-Benz W108 & W109",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Bentley Azure",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Lamborghini Jalpa",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"INTERNATIONAL SCOUT II",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Fiat 600",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Sunbeam Tiger",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Buick LeSabre",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Maserati Coupe",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Pontiac Grand Prix",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Dodge Coronet",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Aston Martin Virage Volante",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Spyker C8",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Dodge Daytona",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Toyota Hilux",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Ford Taurus",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Shelby Series 1",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Jaguar XJ",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Mercedes-Benz W123",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Lancia Fulvia",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Ferrari Mondial",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Hummer H3",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Dodge COLT",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Rolls-Royce Silver Seraph",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Mercedes-Benz C126",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Cadillac Eldorado",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"BMW Z1",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Buick Reatta",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Honda CT90",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Isuzu IMPULSE",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Ford Pinto",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"OSI 20M TS",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Mercury Colony Park",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Mercury Marauder",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Toyota Land Cruiser 60 Series",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Chrysler Conquest",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Mercedes-Benz S-Class",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Jaguar XJS",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Rolls-Royce Phantom",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Ferrari 355",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Toyota MR2",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Chevrolet BEL AIR",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Chevrolet Nomad",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Triumph Bonneville",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Chevrolet 3100",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Aston Martin V12 Vantage",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Mercedes-Benz W114/W115",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Ferrari 308",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"GMC Yukon",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Jaguar X-Type",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"AMC Eagle",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Cadillac XLR",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Ferrari LaFerrari",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Acura NSX-T",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Dodge Super Bee",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"BMW Alpina",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Plymouth GTX",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Aston Martin Virage",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"BMW M5",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Chevrolet Impala",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Plymouth Duster",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Chrysler New Yorker",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Bentley Flying Spur",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Chevrolet Colorado",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Mercedes-Benz 500E",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Chevrolet Silverado",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Buick Roadmaster",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Plymouth Satellite",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Dodge Charger",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Aston Martin Vanquish",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Ferrari 456",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Aston Martin DBS Coupé",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Porsche 718",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Dodge Ramcharger",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Volvo 240 Series",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Oldsmobile Toronado",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Chevrolet Monte Carlo",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Aston Martin V8 Vantage",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Mercedes-Benz Metris",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Ferrari SF90",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Pontiac GTO",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Ford MUSTANG BOSS 302",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Honda Z600",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Cadillac DeVille",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Hummer H2",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"GMC Hummer EV",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Chevrolet Biscayne",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Lamborghini Murciélago",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Ferrari 296",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Chevrolet Suburban",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Buick Grand National",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Lincoln Blackwood",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Dodge Challenger",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Lamborghini Gallardo",LIVE to ONLINE,1,0.1,,,,,,,10,true
+2 breakdown,model,"Porsche 991",LIVE to ONLINE,1,0.1,,,,,,,10,true
+3A removed,make,"Chevrolet",LIVE to ONLINE,173,18.3,106.7,59.0,14.6,55000,56000,114.1,20,false
+3A removed,make,"Ford",LIVE to ONLINE,131,13.9,108.1,57.3,11.8,52000,60000,113.4,20,false
+3A removed,make,"Mercedes-Benz",LIVE to ONLINE,126,13.3,112.4,62.7,13.1,37900,40600,113.0,20,false
+3A removed,make,"Porsche",LIVE to ONLINE,101,10.7,122.5,77.2,20.1,149800,166000,112.0,20,false
+3A removed,make,"Ferrari",LIVE to ONLINE,65,6.9,128.1,80.0,28.7,125000,156000,112.4,20,false
+3A removed,make,"BMW",LIVE to ONLINE,35,3.7,111.5,65.7,22.7,60000,72500,113.0,20,false
+3A removed,make,"Dodge",LIVE to ONLINE,34,3.6,110.7,61.8,11.5,58500,67300,113.1,20,false
+3A removed,make,"Aston Martin",LIVE to ONLINE,23,2.4,112.8,60.9,15.4,57000,62300,113.0,20,false
+3A removed,make,"Bentley",LIVE to ONLINE,21,2.2,86.8,33.3,17.4,57500,46300,113.3,20,false
+3A removed,decade,"2000s",LIVE to ONLINE,193,20.4,114.4,66.3,14.4,50000,53500,112.5,30,false
+3A removed,decade,"1990s",LIVE to ONLINE,165,17.5,118.5,72.1,14.4,43000,51700,111.8,30,false
+3A removed,decade,"1980s",LIVE to ONLINE,158,16.7,116.2,69.0,17.1,38000,41800,112.4,30,false
+3A removed,decade,"1960s",LIVE to ONLINE,150,15.9,108.9,64.0,17.9,62500,64000,113.4,30,false
+3A removed,decade,"1970s",LIVE to ONLINE,122,12.9,111.6,63.9,13.0,38700,48800,113.1,30,false
+3A removed,decade,"2010s",LIVE to ONLINE,93,9.9,108.7,59.1,17.1,130000,120000,113.3,30,false
+3A removed,decade,"2020s",LIVE to ONLINE,39,4.1,96.2,33.3,6.2,125000,105000,113.8,30,false
+3A removed,model,"Chevrolet Corvette",LIVE to ONLINE,60,6.4,111.0,63.3,17.4,73000,81800,113.1,10,false
+3A removed,model,"Ford Bronco",LIVE to ONLINE,28,3.0,101.4,50.0,9.3,77500,78800,113.3,10,false
+3A removed,model,"Chevrolet Camaro",LIVE to ONLINE,22,2.3,95.2,40.9,12.9,45500,55300,113.1,10,false
+3A removed,model,"Ford Mustang",LIVE to ONLINE,19,2.0,97.4,47.4,16.9,52000,55000,113.1,10,false
+3A removed,model,"Porsche 911",LIVE to ONLINE,18,1.9,127.9,94.4,31.6,180000,234000,112.5,10,false
+3B remaining,set,"LIVE to ONLINE remaining",LIVE to ONLINE,778,,111.1,62.0,13.3,46300,51000,,30,false
+3B remaining,set,"ONLINE to ONLINE same makes",ONLINE to ONLINE,10179,,93.7,36.4,11.5,20800,19300,,30,false
+3CD C. most,make,"Ferrari",LIVE to ONLINE,65,6.9,128.1,80.0,28.7,125000,156000,,20,false
+3CD C. most,make,"Porsche",LIVE to ONLINE,101,10.7,122.5,77.2,20.1,149800,166000,,20,false
+3CD C. most,make,"Aston Martin",LIVE to ONLINE,23,2.4,112.8,60.9,15.4,57000,62300,,20,false
+3CD C. most,make,"Mercedes-Benz",LIVE to ONLINE,126,13.3,112.4,62.7,13.1,37900,40600,,20,false
+3CD C. most,make,"BMW",LIVE to ONLINE,35,3.7,111.5,65.7,22.7,60000,72500,,20,false
+3CD D. least or lost,make,"Bentley",LIVE to ONLINE,21,2.2,86.8,33.3,17.4,57500,46300,,20,false
+3CD D. least or lost,make,"Chevrolet",LIVE to ONLINE,173,18.3,106.7,59.0,14.6,55000,56000,,20,false
+3CD D. least or lost,make,"Ford",LIVE to ONLINE,131,13.9,108.1,57.3,11.8,52000,60000,,20,false
+3CD D. least or lost,make,"Dodge",LIVE to ONLINE,34,3.6,110.7,61.8,11.5,58500,67300,,20,false
+3CD D. least or lost,make,"BMW",LIVE to ONLINE,35,3.7,111.5,65.7,22.7,60000,72500,,20,false
+3CD C. most,model,"Porsche 911",LIVE to ONLINE,18,1.9,127.9,94.4,31.6,180000,234000,,10,false
+3CD C. most,model,"Chevrolet Corvette",LIVE to ONLINE,60,6.4,111.0,63.3,17.4,73000,81800,,10,false
+3CD C. most,model,"Ford Bronco",LIVE to ONLINE,28,3.0,101.4,50.0,9.3,77500,78800,,10,false
+3CD C. most,model,"Ford Mustang",LIVE to ONLINE,19,2.0,97.4,47.4,16.9,52000,55000,,10,false
+3CD C. most,model,"Chevrolet Camaro",LIVE to ONLINE,22,2.3,95.2,40.9,12.9,45500,55300,,10,false
+3CD D. least or lost,model,"Chevrolet Camaro",LIVE to ONLINE,22,2.3,95.2,40.9,12.9,45500,55300,,10,false
+3CD D. least or lost,model,"Ford Mustang",LIVE to ONLINE,19,2.0,97.4,47.4,16.9,52000,55000,,10,false
+3CD D. least or lost,model,"Ford Bronco",LIVE to ONLINE,28,3.0,101.4,50.0,9.3,77500,78800,,10,false
+3CD D. least or lost,model,"Chevrolet Corvette",LIVE to ONLINE,60,6.4,111.0,63.3,17.4,73000,81800,,10,false
+3CD D. least or lost,model,"Porsche 911",LIVE to ONLINE,18,1.9,127.9,94.4,31.6,180000,234000,,10,false
+3E same group,make,"Chevrolet",LIVE to ONLINE,173,,106.7,59.0,14.6,55000,56000,,15,false
+3E same group,make,"Chevrolet",ONLINE to ONLINE,912,,95.2,36.6,11.5,27200,27000,,15,false
+3E same group,make,"Ford",LIVE to ONLINE,131,,108.1,57.3,11.8,52000,60000,,15,false
+3E same group,make,"Ford",ONLINE to ONLINE,933,,93.5,35.5,12.0,25300,24000,,15,false
+3E same group,make,"Mercedes-Benz",LIVE to ONLINE,126,,112.4,62.7,13.1,37900,40600,,15,false
+3E same group,make,"Mercedes-Benz",ONLINE to ONLINE,1766,,92.3,35.6,10.7,20000,18000,,15,false
+3E same group,make,"Porsche",LIVE to ONLINE,101,,122.5,77.2,20.1,149800,166000,,15,false
+3E same group,make,"Porsche",ONLINE to ONLINE,1584,,99.6,47.5,13.9,42100,41500,,15,false
+3E same group,make,"Ferrari",LIVE to ONLINE,65,,128.1,80.0,28.7,125000,156000,,15,false
+3E same group,make,"Ferrari",ONLINE to ONLINE,239,,102.0,55.6,16.9,108500,118500,,15,false
+3E same group,make,"BMW",LIVE to ONLINE,35,,111.5,65.7,22.7,60000,72500,,15,false
+3E same group,make,"BMW",ONLINE to ONLINE,1549,,94.7,37.9,13.3,19500,18600,,15,false
+3E same group,make,"Dodge",LIVE to ONLINE,34,,110.7,61.8,11.5,58500,67300,,15,false
+3E same group,make,"Dodge",ONLINE to ONLINE,173,,97.3,40.5,8.3,34000,35800,,15,false
+3E same group,make,"Aston Martin",LIVE to ONLINE,23,,112.8,60.9,15.4,57000,62300,,15,false
+3E same group,make,"Aston Martin",ONLINE to ONLINE,128,,95.9,39.8,16.0,49500,47300,,15,false
+3E same group,make,"Bentley",LIVE to ONLINE,21,,86.8,33.3,17.4,57500,46300,,15,false
+3E same group,make,"Bentley",ONLINE to ONLINE,99,,90.0,20.2,10.3,40000,34400,,15,false
+3E same group,make,"Pontiac",LIVE to ONLINE,18,,105.4,61.1,10.1,31300,36600,,15,false
+3E same group,make,"Pontiac",ONLINE to ONLINE,122,,95.8,37.7,10.8,24300,24100,,15,false
+3E same group,make,"Plymouth",LIVE to ONLINE,16,,115.8,81.3,8.4,46500,51500,,15,false
+3E same group,make,"Plymouth",ONLINE to ONLINE,45,,97.4,42.2,10.4,32700,30000,,15,false
+3E same group,model,"Chevrolet Corvette",LIVE to ONLINE,60,,111.0,63.3,17.4,73000,81800,,15,false
+3E same group,model,"Chevrolet Corvette",ONLINE to ONLINE,405,,95.9,37.3,12.4,33800,33000,,15,false
+3E same group,model,"Ford Bronco",LIVE to ONLINE,28,,101.4,50.0,9.3,77500,78800,,15,false
+3E same group,model,"Ford Bronco",ONLINE to ONLINE,114,,91.0,33.3,13.5,51000,46300,,15,false
+3E same group,model,"Chevrolet Camaro",LIVE to ONLINE,22,,95.2,40.9,12.9,45500,55300,,15,false
+3E same group,model,"Chevrolet Camaro",ONLINE to ONLINE,110,,93.8,31.8,13.8,37500,39400,,15,false
+3E same group,model,"Ford Mustang",LIVE to ONLINE,19,,97.4,47.4,16.9,52000,55000,,15,false
+3E same group,model,"Ford Mustang",ONLINE to ONLINE,305,,95.3,38.0,13.4,32000,34000,,15,false
+3E same group,model,"Porsche 911",LIVE to ONLINE,18,,127.9,94.4,31.6,180000,234000,,15,false
+3E same group,model,"Porsche 911",ONLINE to ONLINE,385,,98.8,46.0,14.2,72500,76500,,15,false
+3F under 6 months,make,"Chevrolet",LIVE to ONLINE under 6 months,54,20.1,118.6,75.9,2.3,40000,48800,,10,false
+3F under 6 months,make,"Ford",LIVE to ONLINE under 6 months,40,14.9,116.9,82.5,2.6,37500,42500,,10,false
+3F under 6 months,make,"Mercedes-Benz",LIVE to ONLINE under 6 months,35,13.1,114.3,71.4,3.0,25000,35000,,10,false
+3F under 6 months,make,"Porsche",LIVE to ONLINE under 6 months,21,7.8,126.9,76.2,2.4,130000,165000,,10,false
+3F under 6 months,make,"Dodge",LIVE to ONLINE under 6 months,13,4.9,107.1,61.5,2.6,69800,70000,,10,false
+3F under 6 months,model,"Chevrolet Corvette",LIVE to ONLINE under 6 months,13,4.9,117.9,69.2,4.0,69000,81000,,10,false
+3F under 6 months,model,"Chevrolet Camaro",LIVE to ONLINE under 6 months,10,3.7,120.7,60.0,1.8,41000,34600,,10,false
+3F under 6 months,decade,"1960s",LIVE to ONLINE under 6 months,40,14.9,123.4,82.5,3.2,45500,62500,,10,false
+3F under 6 months,decade,"1970s",LIVE to ONLINE under 6 months,36,13.4,122.3,77.8,2.5,30500,45000,,10,false
+3F under 6 months,decade,"1980s",LIVE to ONLINE under 6 months,49,18.3,115.8,73.5,2.1,21500,24500,,10,false
+3F under 6 months,decade,"1990s",LIVE to ONLINE under 6 months,46,17.2,120.1,80.4,2.5,28000,34000,,10,false
+3F under 6 months,decade,"2000s",LIVE to ONLINE under 6 months,55,20.5,118.8,76.4,2.6,40000,49000,,10,false
+3F under 6 months,decade,"2010s",LIVE to ONLINE under 6 months,20,7.5,109.2,70.0,3.1,77500,90500,,10,false
+3F under 6 months,decade,"2020s",LIVE to ONLINE under 6 months,18,6.7,99.2,44.4,1.7,112500,115000,,10,false
+3F under 6 months,band,"under $25k",LIVE to ONLINE under 6 months,89,33.2,120.0,74.2,2.2,15000,18000,,10,false
+3F under 6 months,band,"$25k to $50k",LIVE to ONLINE under 6 months,65,24.3,119.2,75.4,2.4,37000,40000,,10,false
+3F under 6 months,band,"$50k to $100k",LIVE to ONLINE under 6 months,60,22.4,117.2,78.3,3.3,67000,73000,,10,false
+3F under 6 months,band,"$100k to $250k",LIVE to ONLINE under 6 months,29,10.8,114.1,69.0,3.2,130000,165000,,10,false
+3F under 6 months,band,"$250k and over",LIVE to ONLINE under 6 months,25,9.3,112.4,76.0,2.6,313600,341000,,10,false

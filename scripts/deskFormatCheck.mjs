@@ -18,7 +18,7 @@ ok(`no lib/desk or lib/pdf file formats a figure of its own (${files.length} fil
 // the one formatters exist and the PDF takes its dollars from them
 const rw = fs.readFileSync(path.join(root, "lib/reasonWords.js"), "utf8"), v3 = fs.readFileSync(path.join(root, "lib/desk/reportPdfV3.js"), "utf8"), old = fs.readFileSync(path.join(root, "lib/desk/reportPdf.js"), "utf8");
 ok("reasonWords exports moneyWords, the one dollar formatter", /export const moneyWords = money/.test(rw));
-ok("reportPdfV3 defines no usd and takes every dollar string from moneyWords", !/\busd\b/.test(strip(v3)) && /import \{ moneyWords \} from "\.\.\/reasonWords\.js"/.test(v3) && /moneyWords\(/.test(v3));
+ok("reportPdfV3 defines no usd and takes every dollar string from moneyWords", !/\busd\b/.test(strip(v3)) && /import \{[^}]*\bmoneyWords\b[^}]*\} from "\.\.\/reasonWords\.js"/.test(v3) && /moneyWords\(/.test(v3));
 ok("the old report's usd is a wrapper over moneyWords and its counts and mileages go through countNoun", /const usd = n => n == null \? "n\/a" : moneyWords\(n\)/.test(old) && /countNoun\(/.test(old) && !/\bnum\(/.test(strip(old)));
 // the formatted text is the same everywhere
 const { moneyWords } = await import("file://" + path.join(root, "lib/reasonWords.js")), { countNoun } = await import("file://" + path.join(root, "lib/countNoun.js"));

@@ -85,6 +85,14 @@ create table if not exists listing_coverage (
 );
 create index if not exists listing_coverage_family_idx on listing_coverage (family, miner_version);
 
+-- Lane D, Nov 19 2026 (lane-d-factmine-4, miner fm5). RUN ONCE; safe to run again. A statement whose quote could not be placed in the text is KEPT, not dropped: its span is null and unmatched is true, so nothing stated is lost and the share is visible (factreport statement_shares.unmatched_pct).
+alter table listing_mentions add column if not exists unmatched boolean not null default false;
+alter table listing_mentions alter column span_start drop not null;
+alter table listing_mentions alter column span_end   drop not null;
+alter table listing_mentions drop constraint if exists listing_mentions_check;
+alter table listing_mentions drop constraint if exists listing_mentions_span_check;
+alter table listing_mentions add constraint listing_mentions_span_check check ((span_start is null and span_end is null and unmatched) or (span_start is not null and span_end is not null and span_end > span_start and span_start >= 0 and not unmatched));
+
 -- STANDING RULE (CLAUDE.md, Database security): locked down from creation.
 alter table listing_mining_runs enable row level security;
 alter table listing_mentions    enable row level security;

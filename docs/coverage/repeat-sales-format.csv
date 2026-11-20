@@ -1,0 +1,140 @@
+section,level,bucket,pairs,median_second_pct_of_first,share_sold_for_more,median_months,median_first_price_usd,mileage_pairs,median_mileage_change,too_few
+mapping,"bringatrailer",ONLINE,150175,,,,,,,false
+mapping,"carsandbids",ONLINE,33841,,,,,,,false
+mapping,"bonhams",LIVE,27927,,,,,,,false
+mapping,"barrettjackson",LIVE,21793,,,,,,,false
+mapping,"collectingcars",ONLINE,19415,,,,,,,false
+mapping,"rmsothebys",LIVE,11640,,,,,,,false
+mapping,"hemmings",ONLINE,5603,,,,,,,false
+mapping,"themarket",ONLINE,5287,,,,,,,false
+mapping,"pcarmarket",ONLINE,4756,,,,,,,false
+mapping,"hagerty",ONLINE,4535,,,,,,,false
+mapping,"mecum",LIVE,3031,,,,,,,false
+mapping,"autohunter",ONLINE,2763,,,,,,,false
+mapping,"gooding",LIVE,2654,,,,,,,false
+mapping,"carandclassic",ONLINE,2509,,,,,,,false
+mapping,"broadarrow",LIVE,2294,,,,,,,false
+mapping,"mbmarket",ONLINE,1116,,,,,,,false
+mapping,"sothebysmotorsport",LIVE,797,,,,,,,false
+mapping,"pistonheads",ONLINE,647,,,,,,,false
+mapping,"acc",ONLINE,591,,,,,,,false
+bucket,"all",LIVE to ONLINE,944,112.9,0.648,14.7,55100,143,290,false
+bucket,"all",ONLINE to LIVE,568,101.3,0.507,12.0,60800,123,240,false
+bucket,"all",ONLINE to ONLINE,12002,94.8,0.383,11.9,23000,11720,1000,false
+bucket,"all",LIVE to LIVE,2220,96.6,0.432,14.5,68000,201,0,false
+a. First sale price band,"under $25k",LIVE to ONLINE,214,112.7,0.645,7.8,15000,17,579,false
+a. First sale price band,"under $25k",ONLINE to LIVE,116,101.9,0.509,8.4,16100,5,271,false
+a. First sale price band,"under $25k",ONLINE to ONLINE,6417,94.7,0.398,10.0,14300,6251,947,false
+a. First sale price band,"under $25k",LIVE to LIVE,342,96.1,0.447,9.2,16000,25,0,false
+a. First sale price band,"$25k to $50k",LIVE to ONLINE,216,112.2,0.634,15.4,37000,30,283,false
+a. First sale price band,"$25k to $50k",ONLINE to LIVE,137,105.3,0.569,12.9,35000,14,420,false
+a. First sale price band,"$25k to $50k",ONLINE to ONLINE,3115,93.3,0.341,13.7,32800,3056,1000,false
+a. First sale price band,"$25k to $50k",LIVE to LIVE,463,99.2,0.451,12.0,36500,22,0,false
+a. First sale price band,"$50k to $100k",LIVE to ONLINE,234,112.0,0.645,17.1,67000,35,500,false
+a. First sale price band,"$50k to $100k",ONLINE to LIVE,125,101.3,0.512,13.2,74000,32,135,false
+a. First sale price band,"$50k to $100k",ONLINE to ONLINE,1554,95.4,0.390,14.4,67000,1518,900,false
+a. First sale price band,"$50k to $100k",LIVE to LIVE,636,96.7,0.426,12.4,70000,61,0,false
+a. First sale price band,"$100k to $250k",LIVE to ONLINE,185,112.5,0.643,19.3,142500,35,495,false
+a. First sale price band,"$100k to $250k",ONLINE to LIVE,120,101.8,0.508,13.0,148000,45,326,false
+a. First sale price band,"$100k to $250k",ONLINE to ONLINE,766,97.2,0.405,15.7,135000,750,500,false
+a. First sale price band,"$100k to $250k",LIVE to LIVE,511,90.2,0.362,20.4,145000,52,66,false
+a. First sale price band,"$250k and over",LIVE to ONLINE,95,118.5,0.705,18.4,375000,26,129,false
+a. First sale price band,"$250k and over",ONLINE to LIVE,70,92.1,0.371,18.9,408800,27,163,false
+a. First sale price band,"$250k and over",ONLINE to ONLINE,150,99.3,0.447,13.2,386000,145,9,false
+a. First sale price band,"$250k and over",LIVE to LIVE,268,103.3,0.526,29.5,400000,41,5,false
+b. Elapsed time between sales,"under 6 months",LIVE to ONLINE,268,116.0,0.750,2.6,41900,48,12,false
+b. Elapsed time between sales,"under 6 months",ONLINE to LIVE,145,106.8,0.614,3.1,40000,21,0,false
+b. Elapsed time between sales,"under 6 months",ONLINE to ONLINE,3780,96.3,0.393,1.7,19000,3695,0,false
+b. Elapsed time between sales,"under 6 months",LIVE to LIVE,485,97.4,0.406,3.2,48000,61,0,false
+b. Elapsed time between sales,"6 to 12",LIVE to ONLINE,157,107.4,0.586,8.2,57000,29,279,false
+b. Elapsed time between sales,"6 to 12",ONLINE to LIVE,140,102.7,0.521,8.7,64000,30,207,false
+b. Elapsed time between sales,"6 to 12",ONLINE to ONLINE,2261,96.7,0.426,9.0,22000,2201,1000,false
+b. Elapsed time between sales,"6 to 12",LIVE to LIVE,493,95.7,0.406,9.6,61000,42,0,false
+b. Elapsed time between sales,"12 to 24",LIVE to ONLINE,166,109.4,0.602,17.4,50000,21,693,false
+b. Elapsed time between sales,"12 to 24",ONLINE to LIVE,147,97.8,0.463,18.0,75000,37,300,false
+b. Elapsed time between sales,"12 to 24",ONLINE to ONLINE,3060,93.2,0.367,17.1,24000,2992,1364,false
+b. Elapsed time between sales,"12 to 24",LIVE to LIVE,537,92.1,0.380,18.7,68000,36,26,false
+b. Elapsed time between sales,"24 and over",LIVE to ONLINE,353,113.3,0.620,41.1,67500,45,1600,false
+b. Elapsed time between sales,"24 and over",ONLINE to LIVE,136,97.1,0.426,35.3,71000,35,462,false
+b. Elapsed time between sales,"24 and over",ONLINE to ONLINE,2901,91.3,0.353,33.2,28500,2832,2304,false
+b. Elapsed time between sales,"24 and over",LIVE to LIVE,705,101.9,0.508,38.4,100000,62,176,false
+c. Year of the second sale,"2021 and earlier",LIVE to ONLINE,21,128.0,0.905,12.8,37000,5,808,true
+c. Year of the second sale,"2021 and earlier",ONLINE to LIVE,2,99.3,0.500,7.0,50300,0,,true
+c. Year of the second sale,"2021 and earlier",ONLINE to ONLINE,119,101.3,0.546,4.7,16500,115,500,false
+c. Year of the second sale,"2021 and earlier",LIVE to LIVE,325,97.5,0.394,9.2,68000,79,0,false
+c. Year of the second sale,"2022",LIVE to ONLINE,113,125.2,0.752,14.0,65000,12,1300,false
+c. Year of the second sale,"2022",ONLINE to LIVE,15,100.0,0.467,4.3,34000,2,119,true
+c. Year of the second sale,"2022",ONLINE to ONLINE,746,97.6,0.434,4.1,22500,735,17,false
+c. Year of the second sale,"2022",LIVE to LIVE,277,108.9,0.588,10.2,66300,13,0,false
+c. Year of the second sale,"2023",LIVE to ONLINE,160,115.7,0.662,14.7,54000,18,304,false
+c. Year of the second sale,"2023",ONLINE to LIVE,55,97.8,0.455,8.0,60000,6,190,false
+c. Year of the second sale,"2023",ONLINE to ONLINE,1671,94.4,0.358,8.9,23300,1648,500,false
+c. Year of the second sale,"2023",LIVE to LIVE,308,95.6,0.448,13.2,60000,22,0,false
+c. Year of the second sale,"2024",LIVE to ONLINE,168,113.7,0.667,12.8,49000,28,525,false
+c. Year of the second sale,"2024",ONLINE to LIVE,114,97.9,0.474,11.1,81100,28,383,false
+c. Year of the second sale,"2024",ONLINE to ONLINE,2640,92.0,0.331,12.2,23300,2587,900,false
+c. Year of the second sale,"2024",LIVE to LIVE,395,91.2,0.365,18.9,76000,31,0,false
+c. Year of the second sale,"2025",LIVE to ONLINE,228,106.3,0.596,16.2,64000,35,15,false
+c. Year of the second sale,"2025",ONLINE to LIVE,153,102.6,0.523,15.0,67000,38,123,false
+c. Year of the second sale,"2025",ONLINE to ONLINE,3345,93.3,0.355,14.6,23000,3261,1000,false
+c. Year of the second sale,"2025",LIVE to LIVE,381,92.8,0.360,23.9,75000,29,84,false
+c. Year of the second sale,"2026",LIVE to ONLINE,254,110.2,0.606,17.1,55000,45,443,false
+c. Year of the second sale,"2026",ONLINE to LIVE,229,102.8,0.528,15.4,48000,49,298,false
+c. Year of the second sale,"2026",ONLINE to ONLINE,3481,97.6,0.444,15.9,23000,3374,1000,false
+c. Year of the second sale,"2026",LIVE to LIVE,534,98.7,0.466,19.0,65000,27,348,false
+d. Season of the second sale,"Jan to Mar",LIVE to ONLINE,203,115.7,0.724,13.9,57000,32,147,false
+d. Season of the second sale,"Jan to Mar",ONLINE to LIVE,230,102.6,0.517,12.6,77000,36,256,false
+d. Season of the second sale,"Jan to Mar",ONLINE to ONLINE,2260,95.3,0.392,10.6,23800,2209,600,false
+d. Season of the second sale,"Jan to Mar",LIVE to LIVE,963,100.0,0.463,18.4,70000,40,0,false
+d. Season of the second sale,"Apr to Jun",LIVE to ONLINE,241,112.1,0.656,13.3,51000,35,459,false
+d. Season of the second sale,"Apr to Jun",ONLINE to LIVE,173,99.0,0.451,11.0,39500,25,300,false
+d. Season of the second sale,"Apr to Jun",ONLINE to ONLINE,3178,95.7,0.405,12.2,23000,3107,1000,false
+d. Season of the second sale,"Apr to Jun",LIVE to LIVE,568,94.8,0.398,12.2,60000,50,0,false
+d. Season of the second sale,"Jul to Sep",LIVE to ONLINE,281,112.1,0.623,17.8,55000,42,277,false
+d. Season of the second sale,"Jul to Sep",ONLINE to LIVE,97,105.7,0.619,10.8,77000,37,254,false
+d. Season of the second sale,"Jul to Sep",ONLINE to ONLINE,3504,94.2,0.374,12.7,22800,3415,1000,false
+d. Season of the second sale,"Jul to Sep",LIVE to LIVE,379,99.1,0.467,17.2,88300,72,34,false
+d. Season of the second sale,"Oct to Dec",LIVE to ONLINE,219,111.7,0.603,13.6,65000,34,373,false
+d. Season of the second sale,"Oct to Dec",ONLINE to LIVE,68,97.8,0.456,13.7,64300,25,114,false
+d. Season of the second sale,"Oct to Dec",ONLINE to ONLINE,3060,93.8,0.364,11.5,23000,2989,1000,false
+d. Season of the second sale,"Oct to Dec",LIVE to LIVE,310,89.6,0.355,14.4,66500,39,0,false
+combined price by time,"under $25k | under 6 months",LIVE to ONLINE,89,120.0,0.742,2.2,15000,6,-222,false
+combined price by time,"under $25k | under 6 months",ONLINE to ONLINE,2364,97.1,0.424,1.6,13000,2306,0,false
+combined price by time,"under $25k | 6 to 12",LIVE to ONLINE,38,114.2,0.632,7.9,15000,3,-141,false
+combined price by time,"under $25k | 6 to 12",ONLINE to ONLINE,1255,98.5,0.469,9.0,14500,1222,1000,false
+combined price by time,"under $25k | 12 to 24",LIVE to ONLINE,32,108.3,0.594,17.3,13800,2,62290,false
+combined price by time,"under $25k | 12 to 24",ONLINE to ONLINE,1561,91.6,0.363,17.0,15000,1525,2000,false
+combined price by time,"under $25k | 24 and over",LIVE to ONLINE,55,107.8,0.527,36.9,16000,6,3000,false
+combined price by time,"under $25k | 24 and over",ONLINE to ONLINE,1237,87.2,0.318,32.5,15500,1198,3300,false
+combined price by time,"$25k to $50k | under 6 months",LIVE to ONLINE,65,119.2,0.754,2.4,37000,10,42,false
+combined price by time,"$25k to $50k | under 6 months",ONLINE to ONLINE,836,95.3,0.341,1.8,31300,818,0,false
+combined price by time,"$25k to $50k | 6 to 12",LIVE to ONLINE,30,98.9,0.467,8.8,37800,5,519,false
+combined price by time,"$25k to $50k | 6 to 12",ONLINE to ONLINE,552,95.5,0.382,9.2,32000,542,1000,false
+combined price by time,"$25k to $50k | 12 to 24",LIVE to ONLINE,49,108.1,0.571,18.5,35000,6,55,false
+combined price by time,"$25k to $50k | 12 to 24",ONLINE to ONLINE,816,91.8,0.332,16.9,33300,798,1500,false
+combined price by time,"$25k to $50k | 24 and over",LIVE to ONLINE,72,113.4,0.639,41.8,37000,9,1600,false
+combined price by time,"$25k to $50k | 24 and over",ONLINE to ONLINE,911,90.2,0.323,33.6,33500,898,2600,false
+combined price by time,"$50k to $100k | under 6 months",LIVE to ONLINE,60,117.2,0.783,3.3,67000,13,-2,false
+combined price by time,"$50k to $100k | under 6 months",ONLINE to ONLINE,375,95.2,0.341,1.9,66000,367,0,false
+combined price by time,"$50k to $100k | 6 to 12",LIVE to ONLINE,34,108.2,0.676,8.1,61500,4,789,false
+combined price by time,"$50k to $100k | 6 to 12",ONLINE to ONLINE,288,95.5,0.375,8.8,66800,276,1000,false
+combined price by time,"$50k to $100k | 12 to 24",LIVE to ONLINE,38,101.7,0.500,15.5,68000,3,2792,false
+combined price by time,"$50k to $100k | 12 to 24",ONLINE to ONLINE,421,96.3,0.411,17.4,67800,414,1000,false
+combined price by time,"$50k to $100k | 24 and over",LIVE to ONLINE,102,111.6,0.608,41.3,67800,15,1750,false
+combined price by time,"$50k to $100k | 24 and over",ONLINE to ONLINE,470,95.3,0.419,33.8,66500,461,1386,false
+combined price by time,"$100k to $250k | under 6 months",LIVE to ONLINE,29,114.1,0.690,3.2,130000,9,400,true
+combined price by time,"$100k to $250k | under 6 months",ONLINE to ONLINE,164,97.7,0.348,2.1,133900,163,0,false
+combined price by time,"$100k to $250k | 6 to 12",LIVE to ONLINE,40,108.6,0.600,8.2,146000,13,507,false
+combined price by time,"$100k to $250k | 6 to 12",ONLINE to ONLINE,134,94.1,0.321,8.7,141500,131,300,false
+combined price by time,"$100k to $250k | 12 to 24",LIVE to ONLINE,33,112.8,0.727,17.4,150000,4,7142,false
+combined price by time,"$100k to $250k | 12 to 24",ONLINE to ONLINE,228,96.7,0.417,17.6,134300,222,1000,false
+combined price by time,"$100k to $250k | 24 and over",LIVE to ONLINE,83,113.3,0.614,40.4,140000,9,2000,false
+combined price by time,"$100k to $250k | 24 and over",ONLINE to ONLINE,240,99.9,0.479,33.7,133000,234,1000,false
+combined price by time,"$250k and over | under 6 months",LIVE to ONLINE,25,112.4,0.760,2.6,313600,10,22,true
+combined price by time,"$250k and over | under 6 months",ONLINE to ONLINE,41,97.2,0.317,1.9,382000,41,0,false
+combined price by time,"$250k and over | 6 to 12",LIVE to ONLINE,15,100.0,0.467,8.8,380000,4,127,true
+combined price by time,"$250k and over | 6 to 12",ONLINE to ONLINE,32,98.5,0.406,8.3,360000,30,0,false
+combined price by time,"$250k and over | 12 to 24",LIVE to ONLINE,14,116.5,0.714,18.2,374700,6,240,true
+combined price by time,"$250k and over | 12 to 24",ONLINE to ONLINE,34,99.7,0.500,18.3,386000,33,200,false
+combined price by time,"$250k and over | 24 and over",LIVE to ONLINE,41,136.1,0.756,43.4,410000,6,227,false
+combined price by time,"$250k and over | 24 and over",ONLINE to ONLINE,43,103.1,0.558,33.4,425000,41,252,false

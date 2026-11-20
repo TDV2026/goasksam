@@ -328,6 +328,6 @@
     { "path": "/api/usageDashboard?view=ops&task=warmBuy&part=5", "schedule": "6 13 * * *" },
     { "path": "/api/usageDashboard?view=ops&task=warmBuy&part=6", "schedule": "21 13 * * *" },
     { "path": "/api/pullForSale?mode=pull", "schedule": "10 */12 * * *" },
-    { "path": "/api/pullForSale?mode=prepare", "schedule": "40 * * * *" }
+    { "path": "/api/pullForSale?mode=prepare", "schedule": "*/10 * * * *" }
   ]
 }
