@@ -1607,6 +1607,14 @@ async function handleOps(req, res) {
   // task=specialscount (Oct 2026, Lane B status check): how many live_listings rows carry a
   // special_flag (Singer/RUF/RWB, race car, replica/clone - lib/live/specialFlag.js), a quick health
   // read for the shipped specials classification. READ-ONLY, planner-estimate count (fast).
+  // task=livesourcecount (Lane D, Nov 19 2026; READ ONLY, one count a source): how many live_listings rows carry the named source (?source=dupontregistrylive), all of them and the ones still status live. A count, never a row.
+  if (task === "livesourcecount") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const src = String(req.query.source || "").toLowerCase(); if (!/^[a-z0-9_]{2,40}$/.test(src)) return res.status(400).json({ error: "source must be a source slug" });
+    const countOf = async filter => { try { const r = await fetch(`${env.supabaseUrl}/rest/v1/live_listings?${filter}&select=id`, { method: "HEAD", headers: { apikey: env.supabaseKey, Authorization: `Bearer ${env.supabaseKey}`, Prefer: "count=exact", Range: "0-0" } }); const m = /\/(\d+)$/.exec(r.headers.get("content-range") || ""); return m ? Number(m[1]) : null; } catch { return null; } };
+    const [rows, live] = await Promise.all([countOf(`source=eq.${src}`), countOf(`source=eq.${src}&status=eq.live`)]);
+    return res.status(200).json({ task: "livesourcecount", source: src, rows, live, ocdSpend: 0, writes: 0 });
+  }
   if (task === "specialscount") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
     const countOf = async (filter) => {

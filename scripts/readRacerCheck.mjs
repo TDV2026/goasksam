@@ -57,6 +57,7 @@ const REGISTRY = [
   ["lib/tasks/tasks.js", /Promise\.race\(\[read\(taskRow/, P, "listingMarket keepAlive fills the stored row"],
   ["lib/tasks/tasks.js", /read\(\{ \.\.\.env, signal/, A, "the model list is stored nowhere: its read is stopped past the wait"],
   ["lib/factMine.js", /const won = await Promise\.race\(\[Promise\.all\(Array\.from/, N, "fact miner (model calls over listing text, a row write each): the deadline only stops it starting another listing; each worker checks the time budget itself and no archive read is raced"],
+  ["lib/factCoverage.js", /const won = await Promise\.race\(\[Promise\.all\(Array\.from/, N, "fact coverage (model calls over the sentences of a mined listing, a row write each): the same deadline as the miner, it only stops it starting another listing; each worker checks the time budget itself and no archive read is raced"],
   ["lib/variantRows.js", /await Promise\.race\(\[supabaseSelect\(env, `spec_market_cache\?spec_key=eq/, N, "one small keyed read of the stored split row, capped at STORE_READ_MS"],
   ["lib/variantRows.js", /const rows = await Promise\.race\(\[all, new Promise/, P, "the six variant reads keep computing behind the response: keepAlive stores the split and the page asks again (a crew read writes nothing)"],
   ["lib/tasks/tasks.js", /noBlock: true \}\), new Promise/, P,"listingMarket noBlock: the read behind it fills the stored row"],
