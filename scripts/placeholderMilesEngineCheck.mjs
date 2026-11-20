@@ -49,6 +49,19 @@ ok("nearBandOf of a filler is nothing", OB.nearBandOf({ tier: "result", rawPool:
 ok("mileageBasisOf: a filler query mileage and a filler live hint state no mileage", OB.mileageBasisOf({ tier: "result", queryMileage: 999999 }, { live: 999999, record: 123456 }) === null);
 ok("mileageBasisOf: a stated live mileage still reads", !!OB.mileageBasisOf({ tier: "result" }, { live: 41500 }));
 ok("findAnswerOf: a filler ctx.miles is dropped", (() => { try { return OB.findAnswerOf({ tier: "result", rawPool: [] }, { miles: 999999 }) !== undefined; } catch { return false; } })());
+// 4. THE WORDS A TYPED FILLER REACHES (order bc85, Nov 20 2026). CAUSE: the car's words (lib/carToken.js carWords, the car.line the Market Check title, H1, lead and the car bar print) took any mileage above 0, so "1966 Ford Mustang 999,999 miles" printed "999,999 miles".
+// CLASS: every filler, on the full car and the partial car ("2009 BMW 999,999 miles"), in line, label and short; the token a page carries back; the whole served answer holds the figure nowhere (a walk over every string and number of the answer).
+install(world(0, 0));   // a world with no filler sale: the figure can only be the typed one
+const CT = await imp("lib/carToken.js"), fmt = f => f.toLocaleString("en-US");
+for (const f of FILLERS) {
+  const full = CT.carWords({ ...base, mileage: f }), part = CT.carWords({ make: "BMW", year: 2009, mileage: f }), st = CT.carStamp({ ...base, mileage: f }), none = CT.carWords({ ...base });
+  const holds = x => x && JSON.stringify(x).replace(/,/g, "").includes(String(f)) && f > 1, said = x => x && /\bmiles\b/.test(JSON.stringify(x));
+  ok(`a typed ${fmt(f)}: the car's line and label say no mileage (full car, partial car, token)`, full && part && st && !said(full) && !said(part) && !said(st) && full.line === none.line && full.label === none.label, { full, part, st });
+  const a = await read({ ...base, mileage: f }, `1966 Ford Mustang ${fmt(f)} miles`), found = [];
+  (function walk(x, p) { if (x == null) return; if (typeof x === "string") { if (f > 1 && x.replace(/,/g, "").includes(String(f))) found.push(p); } else if (typeof x === "number") { if (f > 1 && x === f) found.push(p); } else if (typeof x === "object") for (const k of Object.keys(x)) walk(x[k], p + "." + k); })(a, "a");
+  ok(`a typed ${fmt(f)}: no field of the served answer carries the figure`, found.length === 0, found.slice(0, 5));
+}
+{ const r = CT.carWords({ ...base, mileage: 41500 }); ok("a stated 41,500 is still in the car's line and label", r && /41,500 miles/.test(r.line) && /41,500 miles/.test(r.label), r); }
 console.log(`placeholderMilesEngineCheck: ${pass} pass, ${fail} FAIL` + (fail ? "\n" + fails.map(f => "  FAIL " + f).join("\n") : ""));
 process.exit(fail ? 1 : 0);
 
@@ -57,6 +70,8 @@ function mutants() {
   const M = [
     ["typed: withTypedMileage takes the number as typed", "lib/onebox.js", s => s.replace("const mi = statedMiles(vehicle && vehicle.mileage) || 0;", "const mi = Number(vehicle && vehicle.mileage);")],
     ["archive: miOf takes the number as stored", "lib/onebox.js", s => s.replace('const miOf = r => statedMiles(String(r.mileage == null ? "" : r.mileage).replace(/[^\\d]/g, "")) || 0;', 'const miOf = r => Number(String(r.mileage == null ? "" : r.mileage).replace(/[^\\d]/g, "")) || 0;')],
+    ["words: the car's line prints the typed mileage as typed", "lib/carToken.js", s => s.replace("if (statedMiles(car.mileage)) parts.push(nf(statedMiles(car.mileage)) + \" miles\");", "if (Number(car.mileage) > 0) parts.push(nf(car.mileage) + \" miles\");")],
+    ["words: the car's label prints the typed mileage as typed", "lib/carToken.js", s => s.replace("const words = statedMiles(car.mileage) ? `${label} ${nf(statedMiles(car.mileage))} miles` : label;", "const words = Number(car.mileage) > 0 ? `${label} ${nf(car.mileage)} miles` : label;")],
     ["subject: the subject mileage is the typed number", "lib/onebox.js", s => s.replace("const subject = { mileage: statedMiles(vehicle.mileage) };", "const subject = { mileage: vehicle.mileage };")],
     ["near: mileageNearOf takes a filler", "lib/onebox.js", s => s.replace("  miles = statedMiles(miles);\n", "")],
     ["band: nearBandOf takes a filler", "lib/onebox.js", s => s.replace("const m = statedMiles(miles) || 0; if (!(m > 0) || !(d &&", "const m = Number(miles); if (!(m > 0) || !(d &&")],

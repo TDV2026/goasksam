@@ -102,11 +102,16 @@ for (const text of Object.keys(CARS)) {
   const TM = await imp("lib/tools/marketCheck.js"), ta = TM.toolAnswerOf ? TM.toolAnswerOf({ ...d, representative: { closest: d.cards[0] } }, { vehicle: { year: 1987, make: "Pontiac", model: "Firebird" } }) : null;
   ok("the tool answer's closest sale is named by carLine, no title", !!ta && ta.closestSale && ta.closestSale.carLine === d.cards[0].carLine && !("title" in ta.closestSale), ta && ta.closestSale);
   const PL = await imp("lib/placedSale.js");
+  ok("a name that already ends with its variant is not repeated (Ford GT Heritage, Heritage), a name that does not gets it", OB.saleLineOf(2006, "Ford GT Heritage", "Heritage") === "2006 Ford GT Heritage" && OB.saleLineOf(1987, "Pontiac Firebird", "GTA") === "1987 Pontiac Firebird GTA" && OB.saleLineOf(null, "Ford GT", null) === "Ford GT");
   ok("a partner row's name is the engine's line, never a title", PL.rowTitle({ carLine: "1987 Pontiac Firebird", title: "x " + MARK }) === "1987 Pontiac Firebird" && PL.placedSaleOf({ carLine: "1987 Pontiac Firebird", price: 1, title: MARK }).name === "1987 Pontiac Firebird");
   // emails: the watch email names the sale by carLine
   const WT = await imp("lib/live/watches.js"), ev = { key: "s:1", kind: "sale", date: new Date().toISOString().slice(0, 10), price: 12000, miles: 30000, house: "Bring a Trailer", url: "https://x/1", carLine: d.cards[0].carLine, image: null, band: null, bandNow: null, poolN: 14 };
   const msg = WT.messageFor({ id: "w1", kind: "spec", label: "1987 Pontiac Firebird", spec: {} }, [ev], { first: true, now: new Date() });
   ok("the watch email names the sale by the engine's line and holds no scraped word", JSON.stringify(msg).includes("1987 Pontiac Firebird") && !leaks(msg), JSON.stringify(msg).slice(0, 160));
+  { const ev2 = { ...ev, key: "s:2", carLine: "1987 Pontiac Firebird Trans Am", title: "SCRAPED " + MARK }, m2 = WT.messageFor({ id: "w2", kind: "spec", label: "Pontiac Firebird", spec: {} }, [ev2], { first: true, now: new Date() }), line = JSON.stringify(m2);
+    { const ev3 = { ...ev2, key: "s:3", url: "https://x/3", carLine: "1987 Pontiac Firebird GTA", title: "SCRAPED " + MARK }, m3 = WT.messageFor({ id: "w3", kind: "spec", label: "Pontiac Firebird", spec: {} }, [ev2, ev3], { first: true, now: new Date() }), t3 = JSON.stringify(m3);
+      ok("a watch email with two sales names each by its own carLine and holds no scraped word", t3.includes("1987 Pontiac Firebird Trans Am") && t3.includes("1987 Pontiac Firebird GTA") && !t3.includes("SCRAPED") && !t3.includes(MARK), t3.slice(0, 300)); }
+    ok("the watch email's sale line is the event's own carLine (a line that differs from the Task's label), never the scraped title", String(m2.subject).includes("1987 Pontiac Firebird Trans Am just sold") && !line.includes("SCRAPED") && !line.includes(MARK), line.slice(0, 700)); }
   ok("the watch events are built from the card's carLine (no title field)", /carLine: c\.carLine \|\| ""/.test(read("lib/live/watches.js")) && !/title: c\.title \|\| ""/.test(read("lib/live/watches.js")));
 }
 
@@ -125,6 +130,9 @@ for (const text of Object.keys(CARS)) {
     globalThis.fetch = prevFetch;
     const a = (got.appearances || []);
     ok("each sale appearance carries withFeeLine from the engine (BaT $21,000; Mecum none)", a.length === 2 && a.find(x => /bring/i.test(x.house || "")) && a.find(x => /bring/i.test(x.house || "")).withFeeLine === "$21,000 with buyer's fee" && a.find(x => /mecum/i.test(x.house || "")).withFeeLine === null, a.map(x => [x.house, x.withFeeLine]));
+    { globalThis.fetch = async u => new Response(String(u).includes("sales_archive") ? JSON.stringify([{ vin_norm: "WBAEJ1344YLH00000", sale_date: "2024-05-01", sale_price: 20000, sale_price_usd: 20000, platform: "Bring a Trailer", listing_title: "2002 BMW Z8", year: 2002, make: "BMW", model: "Z8", model_family: "Z8", mileage: 20000, currency: "USD", url: "https://x/a" }]) : "[]", { status: 200, headers: { "content-type": "application/json" } });
+      const g2 = await HD.vinAppearances({ supabaseUrl: "https://fake.example", supabaseKey: "k" }, "WBAEJ1344YLH00000").catch(e => ({ err: String(e) })); globalThis.fetch = prevFetch;
+      ok("the archive read (no index row) carries withFeeLine from the engine too ($21,000 for a $20,000 BaT hammer)", g2.source === "archive" && (g2.appearances || []).length === 1 && g2.appearances[0].withFeeLine === "$21,000 with buyer's fee", g2); }
   } else ok("lib/buyerFee.js exists", false);
 }
 
@@ -152,7 +160,7 @@ function mutants() {
   const cp = spawnSync("sh", ["-c", `cd "${SRC}" && for d in lib api public data scripts package.json; do cp -R "$d" "${COPY}/" 2>/dev/null; done; ln -s "${SRC}/node_modules" "${COPY}/node_modules"`]);
   const rd = f => fs.readFileSync(path.join(COPY, f), "utf8"), wr = (f, s) => fs.writeFileSync(path.join(COPY, f), s);
   const MUT = [
-    ["the carLine is built from the listing title again", "lib/onebox.js", s => s.replace("return { year, carName, variantLabel, carLine: line || saleLineOf(year, carName, variantLabel) };", "return { year, carName, variantLabel, carLine: String(r.raw_title || r.rtitle || \"\") };")],
+    ["the carLine is built from the listing title again", "lib/onebox.js", s => s.replace("carLine: line || saleLineOf(year, carName, variantLabel), ...trust };", "carLine: String(r.raw_title || r.rtitle || r.listing_title || \"\"), ...trust };")],
     ["the year is read from the title, not the archive's year column", "lib/onebox.js", s => s.replace("const year = Number(r.year) > 0 ? Number(r.year) : null; let carName", "const year = Number((/\\b(19|20)\\d{2}\\b/.exec(String(r.raw_title || \"\")) || [])[0]) || null; let carName")],
     ["the variant is repeated after a name that already ends with it", "lib/onebox.js", s => s.replace("const v = variantLabel && !String(carName || \"\").toLowerCase().endsWith(String(variantLabel).toLowerCase()) ? variantLabel : null;", "const v = variantLabel || null;")],
     ["a sale with no year reads 'null' in the line", "lib/onebox.js", s => s.replace("return [Number(year) > 0 ? Number(year) : null, carName, v].filter(Boolean).join(\" \") || null;", "return [Number(year) > 0 ? Number(year) : \"null\", carName, v].filter(Boolean).join(\" \") || null;")],
@@ -166,7 +174,8 @@ function mutants() {
     ["Sell's card answer drops the line", "lib/sell/sellFacts.js", s => s.replace("rangeLabel: c.rangeLabel || null, year: c.year ?? null, carName: c.carName ?? null, variantLabel: c.variantLabel ?? null, carLine: c.carLine ?? null,", "rangeLabel: c.rangeLabel || null, title: c.title || null,")],
     ["the tool's closest sale is named by a title again", "lib/tools/marketCheck.js", s => s.replace("carLine: closestRaw.carLine || spec,", "title: closestRaw.title || spec,")],
     ["a partner row is named by the title", "lib/placedSale.js", s => s.replace("String((r && r.carLine) || \"\").trim()", "String((r && (r.title || r.carLine)) || \"\").trim()")],
-    ["the watch email names the sale from the title", "lib/live/watches.js", s => s.replace("const name = e.carLine || \"car\", v = venueOf(e);", "const name = carName(e.title), v = venueOf(e);")],
+    ["the watch email's subject names the sale from the title", "lib/live/watches.js", s => s.replace("const nm = evs[0].carLine || \"car\";", "const nm = carName(evs[0].title);")],
+    ["the watch email's card names the sale from the title", "lib/live/watches.js", s => s.replace("title = String(e.carLine || humanTitle(", "title = String(carName(e.title) || humanTitle(")],
     ["the VIN page works out the fee itself again", "api/history.js", s => s.replace("function salePriceFee(a) { return salePrice(a) + (a.withFeeLine ? ` (${a.withFeeLine})` : \"\"); }", "const FEES = { \"Bring a Trailer\": [0.05, 250, 7500] };\nfunction salePriceFee(a) { const f = FEES[a.house]; return salePrice(a) + (f && a.priceUsd ? ` ($${a.priceUsd + Math.min(f[2], Math.max(f[1], Math.round(a.priceUsd * f[0])))} with buyer's fee)` : \"\"); }")],
     ["the fee table's cap is dropped", "lib/buyerFee.js", s => s.replace("Math.min(f[2], Math.max(f[1], Math.round(Number(priceUsd) * f[0])))", "Math.max(f[1], Math.round(Number(priceUsd) * f[0]))")],
     ["a native-currency price gets the fee", "lib/buyerFee.js", s => s.replace("|| nativePrice) return null", ") return null")],

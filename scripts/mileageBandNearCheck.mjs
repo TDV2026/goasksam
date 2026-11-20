@@ -45,7 +45,7 @@ for (const miles of [28000, 38000]) {
 }
 // 2. every band a car can sit in: a thin own band with a neighbour's range never prints a range; its line names the band in full; options are never restated; bands ascend
 const SHAPES = [[4, 9, 5], [9, 4, 5], [5, 4, 9], [3, 9, 3], [9, 9, 4], [4, 3, 9], [9, 3, 3], [3, 3, 9]];
-for (const ns of SHAPES) for (const miles of [20000, 28000, 38000, 49999, 50000, 75000, 99999, 120000]) {
+for (const ns of SHAPES) for (const miles of [20000, 28000, 38000, 49999, 50000, 75000, 99998, 120000]   /* 99,999 is a filler by design (Lane D, Nov 19 2026): the test stays on a stated mileage */) {
   const d = answer(ns), sv = served(d, miles), fa = E.findAnswerOf(sv, { title: "1995 BMW M3 Coupe", year: 1995, miles, bid: 7000 });
   const own = miles < 50000 ? 0 : miles < 100000 ? 1 : 2, anyRange = ns.some((n, b) => b !== own && n >= 8), ownRange = ns[own] >= 8, tag = `${ns.join("/")} at ${miles}`;
   if (!fa) { ok(`${tag}: an answer`, false); continue; }
