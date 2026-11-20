@@ -33,8 +33,12 @@ const VINA = "1FAEP12A5BF123456", VINB = "1FAEP12A5BF654321";
   no("a different year is another car", { year: 1966 }); no("a different model is another car", { model: "Mustang II" }); no("a different make is another car", { make: "Mercury" });
   no("a different state is another car", { state: "MA" });
   const t = car("streetside", { vin_norm: VINA }); ok("two different full VINs, both sides, same facts: two cards", RULES.onePerCar([t, car("classiccars", { vin_norm: VINB })]).rows.length === 2);
-  const f1 = car("streetside", { mileage: 999999 }), f2 = car("classiccars", { mileage: 999999 }); ok("a filler mileage is no mileage and never matches (999,999 on both stays two cards)", RULES.onePerCar([f1, f2]).rows.length === 2);
-  const n1 = car("streetside", { mileage: null }), n2 = car("classiccars", { mileage: null }); ok("no stated mileage on either side never matches", RULES.onePerCar([n1, n2]).rows.length === 2);
+  const f1 = car("streetside", { mileage: 999999 }), f2 = car("classiccars", { mileage: 999999 }); ok("a filler mileage is no mileage and never matches ON the mileage (999,999 on both, no place: two cards)", RULES.onePerCar([f1, f2]).rows.length === 2);
+  const n1 = car("streetside", { mileage: null }), n2 = car("classiccars", { mileage: null }); ok("no stated mileage and no place on either side never matches", RULES.onePerCar([n1, n2]).rows.length === 2);
+  const L1 = car("streetside", { mileage: null, location: "Greenland, NH" }), L2 = car("classiccars", { mileage: null, location: "Greenland, NH" }), L3 = car("barnfinds", { mileage: null, location: "Dover, NH" });
+  ok("no stated mileage but the same city and state, year, make, model and price: one card (the dealer's)", ids([L1, L2]).join() === String(L1.id)); ok("no stated mileage and another city: two cards", RULES.onePerCar([L1, L3]).rows.length === 2);
+  ok("a listing with a mileage and one without are not matched", RULES.onePerCar([car("streetside", { location: "Greenland, NH" }), L2]).rows.length === 2);
+  ok("a filler mileage with the same place and facts is one card (it is no mileage on both sides)", RULES.onePerCar([car("streetside", { mileage: 1111, location: "Greenland, NH" }), car("classiccars", { mileage: 1111, location: "Greenland, NH" })]).rows.length === 1);
   const p1 = car("streetside", { asking_price_usd: null }), p2 = car("classiccars", { asking_price_usd: null }); ok("no asking price never matches", RULES.onePerCar([p1, p2]).rows.length === 2);
   ok("a state named on one side only does not keep them apart", RULES.onePerCar([car("streetside", { state: null }), car("classiccars")]).rows.length === 1);
 }
@@ -64,6 +68,7 @@ function mutants() {
     ["two different VINs are merged", ...sub(R, "!(vinOf(k) && vinOf(r) && vinOf(k) !== vinOf(r)) && ", "")],
     ["a different state is merged", ...sub(R, " && !(stateOf(k) && stateOf(r) && stateOf(k) !== stateOf(r))", "")],
     ["the marketplace copy wins over the dealer's page", ...sub(R, "const rank = r => [r.source_type === \"dealer\" ? 0 : 1,", "const rank = r => [r.source_type === \"dealer\" ? 1 : 0,")],
+    ["a car with no mileage matches without the place", ...sub(R, "Math.round(p), place].join(\"|\") : null;", "Math.round(p)].join(\"|\") : null;")],
     ["the make is left out of the match", ...sub(R, "Number(r.year), norm(r.make), norm(r.model), mi", "Number(r.year), norm(r.model), mi")],
     ["the sweep does not count by the pair", ...sub("lib/forsale/report.js", "byPair[k] = (byPair[k] || 0) + 1;", "")]
   ];
