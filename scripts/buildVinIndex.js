@@ -17,6 +17,7 @@
 // transaction via the swap_vin_index() RPC. A cancelled or timed-out run leaves the PREVIOUS live
 // tables completely untouched - Postgres commits the whole swap or none of it; no partial state is
 // ever visible. An insert error into staging is now FATAL (thrown), never a silent partial write.
+import "../lib/_batchReads.js";   // nightly: a timed out archive page is read again (lib/_supabase.js batch reads)
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { typeByMake } from "../lib/_unknownClassify.js";
 import { classifyRoad } from "../lib/_roadType.js";

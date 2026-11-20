@@ -21,6 +21,7 @@
 // Excluded BY RULE (never written here): PCARMarket, Collecting Cars, ACC, PistonHeads
 // (result-unavailable/opaque) and all auction houses (RM/Gooding/Bonhams/BJ/Broad Arrow/
 // Mecum). Only the five below report non-sold outcomes we can trust.
+import "../lib/_batchReads.js";   // nightly: a timed out archive page is read again (lib/_supabase.js batch reads)
 import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";
 import { supabaseEnv, supabaseInsert, supabaseSelect, supabaseSelectAll } from "../lib/_supabase.js";
 import { validVin, normChassis } from "../lib/_canonical.js";

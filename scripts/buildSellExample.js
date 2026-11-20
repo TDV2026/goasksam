@@ -6,6 +6,7 @@
 // Archive reads only, zero OldCarsData. Run after the archive is freshest (after the ingest steps).
 //
 //   node scripts/buildSellExample.js
+import "../lib/_batchReads.js";   // nightly: a timed out archive page is read again (lib/_supabase.js batch reads)
 import { sellExample } from "../lib/sell/sellExample.js";
 import { supabaseEnv } from "../lib/_supabase.js";
 import { countNoun } from "../lib/countNoun.js";

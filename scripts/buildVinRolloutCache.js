@@ -9,6 +9,7 @@
 //
 //   node scripts/buildVinRolloutCache.js             compute and write vin_rollout_cache
 //   node scripts/buildVinRolloutCache.js --dry-run   compute and print the counts, write nothing
+import "../lib/_batchReads.js";   // nightly: a timed out archive page is read again (lib/_supabase.js batch reads)
 import { supabaseEnv, supabaseInsert } from "../lib/_supabase.js";
 import { rollout } from "../api/history.js";
 

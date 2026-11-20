@@ -14,6 +14,7 @@
 // NEVER blocking warm/attempts/premium/cube (all four `needs: ingest` only, not this job).
 //
 //   node scripts/recomputeSpecCache.js [--cap=60]
+import "../lib/_batchReads.js";   // nightly: a timed out archive page is read again (lib/_supabase.js batch reads)
 import fs from "node:fs";
 import { supabaseEnv, supabaseSelect, supabasePatch, supabaseInsert } from "../lib/_supabase.js";
 import { recomputeOneSpecKey, rankSpecKeysByViews, mergeBacklog, BACKLOG_KEY } from "../lib/_specRecompute.js";

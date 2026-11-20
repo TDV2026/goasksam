@@ -6,6 +6,7 @@
 // this nightly job always recomputes, even inside the 24h TTL. Run AFTER the archive is freshest.
 //
 //   node scripts/buildDeskExample.js
+import "../lib/_batchReads.js";   // nightly: a timed out archive page is read again (lib/_supabase.js batch reads)
 import { deskExample } from "../lib/live/deskExample.js";
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {

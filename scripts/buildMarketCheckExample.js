@@ -7,6 +7,7 @@
 // freshest (after scripts/buildVinIndex.js) so the example reflects last night's ingest.
 //
 //   node scripts/buildMarketCheckExample.js
+import "../lib/_batchReads.js";   // nightly: a timed out archive page is read again (lib/_supabase.js batch reads)
 import { marketCheckExample } from "../lib/live/marketCheckExample.js";
 import { rangeWords, salesWords } from "../lib/live/exampleAnswer.js";
 
