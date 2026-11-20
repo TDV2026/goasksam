@@ -101,6 +101,11 @@ try {
   await p.evaluate(() => { const o = window.fetch; window.fetch = function (u, i) { if (i && i.body && /"more"/.test(i.body)) return Promise.reject(new Error("x")); return o.apply(this, arguments); }; const mb = document.querySelector('[data-fs-more="classifieds"]'); if (mb) mb.click(); });
   await new Promise(r => setTimeout(r, 600)); const f = await p.evaluate(() => ({ note: (document.querySelector(".fs-foot .morenote") || {}).textContent || null, btn: (document.querySelector('[data-fs-more="classifieds"]') || {}).textContent || null }));
   ok(f.note && /Could not load more/.test(f.note) && f.btn === "Show 24 more", "a failed ask keeps the button and says so :: " + JSON.stringify(f)); await p.close();
+  // a batch that repeats a card already drawn (an engine page that overlaps) never draws it twice
+  p = await openPage(browser, "/find?q=" + encodeURIComponent(Q)); await p.evaluate(() => document.querySelector('.fs-pill[data-fs-pill="classifieds"]').click());
+  await p.evaluate(() => { const o = window.fetch; window.fetch = function (u, i) { const r = o.apply(this, arguments); if (!(i && i.body && /"more"/.test(i.body))) return r; return r.then(x => x.json()).then(j => { const first = document.querySelector('.fs-sec[data-fs="classifieds"]').__x; const b = document.querySelector(".msg.results").__d.forSale.classifieds.cards[0]; j.forSale.classifieds.cards.unshift(JSON.parse(JSON.stringify(b))); return new Response(JSON.stringify(j), { status: 200, headers: { "content-type": "application/json" } }); }); }; document.querySelector('[data-fs-more="classifieds"]').click(); });
+  await new Promise(r => setTimeout(r, 1200)); const dd = await p.evaluate(READ, "classifieds");
+  ok(dd.ids.length === 48 && new Set(dd.ids).size === 48, "a batch that repeats a card already drawn adds only the new ones (48 distinct) :: " + dd.ids.length + " / " + new Set(dd.ids).size); await p.close();
   // a visitor's page carries none of it (the groups are crew only)
   const vp = await (async () => { const o = await W.call(BUYPAGE, "/find?q=" + encodeURIComponent(Q), { crew: false }); return o.body; })();
   ok(!/data-fs-more|fs-foot|forSaleOffset|fs-count/.test(vp), "a visitor's page carries nothing of Show more");
