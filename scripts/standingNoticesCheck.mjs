@@ -103,6 +103,7 @@ ok(!SEND_FILES.some(f => /watch_requests/.test(rd(f).split("\n").filter(l => !/^
     ["lib/appShell.js", /email you when/, "Task email"],
     ["lib/legal/privacyText.js", /email you when something fits/, "Task email"], ["lib/legal/privacyText.js", /we will tell you in the service or by email/, "none, a legal commitment made by hand"],
     ["lib/live/converse.js", /Sam can tell you when one comes up/, "Task email"],
+    ["lib/reasonWords.js", /Sam will email you when one goes live/, "Task email"],   // keep.none, the keep card's line (find-one-voice): the keep card makes a Task, which is the Task email
     ["lib/live/watches.js", /tell you (about the next sale|when the next)/, "watch email"],
     ["lib/live/looking.js", /Sam tells you when the next one sells|hear about when they sell|tell you again/, "watch email"],
     ["lib/tasks/tasks.js", /emails you|Sam emails you|you get an email|tells you when one matches/, "Task email"],

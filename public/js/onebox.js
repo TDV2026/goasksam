@@ -2955,8 +2955,8 @@
     if (!/[A-Za-z]/.test(c) && c.length < 9) return false;   // a digit-only number is a chassis only from 9 digits (a year, a price or a ZIP never is); same test as lib/_flags.js looksLikeChassisId
     return c.length === 17 || (c.length >= 5 && c.length <= 14);
   }
-  var OB_PLAT = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", pcarmarket: "PCarMarket", hagerty: "Hagerty", rmsothebys: "RM Sotheby's", gooding: "Gooding & Co", acc: "All Collector Cars", allcollectorcars: "All Collector Cars", collectingcars: "Collecting Cars" };
-  function obPlat(s) { var k = String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); return OB_PLAT[k] || (s ? String(s) : ""); }
+  var OB_PLAT = { bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", pcarmarket: "PCarMarket", hagerty: "Hagerty", rmsothebys: "RM Sotheby's", gooding: "Gooding Christie's", goodingco: "Gooding Christie's", acc: "All Collector Cars", allcollectorcars: "All Collector Cars", collectingcars: "Collecting Cars" };
+  function obPlat(s) { var k = String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); return OB_PLAT[k] || (/^[a-z0-9_.-]+$/.test(String(s || "")) ? "" : (s ? String(s) : "")); }   // a source key nobody named is left out, never printed (lib/venueNames.js)
   function monthYear(dstr) { var p = String(dstr || "").slice(0, 10).split("-"); var M = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]; return p.length >= 2 ? ((M[Number(p[1])] || "") + " " + p[0]).trim() : ""; }
   // Chassis exact match: the matched car as a THIS CAR card (its own record, evidence only), then an
   // honest ask for the car. No decoding, no marque guess.

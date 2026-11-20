@@ -54,6 +54,7 @@ import { mapLiveRecord, upsertLive } from "../lib/live/feed.js";
 import { listingCoord } from "../lib/live/geo.js";
 import { carFromRequest, isPartialCar, carWords, withPartialCar } from "../lib/carToken.js";
 import { forSaleFor } from "../lib/forsale/serve.js";
+import { withTotal } from "../lib/forsale/total.js";
 import { withForSale, forSaleActive } from "../lib/forsale/gate.js";
 import { runTurn, runFilters, runSearch, filtersFromText, suggestFor, BATCH_BUDGET_MS, useMarketRank, radiusOf } from "../lib/live/samChat.js";
 // The composer's suggestions (Stage 1c item 6), from the shaped cards (seen_before exists only after shaping).
@@ -737,7 +738,7 @@ async function handler(req, res) {
     const familyKey = ["family", v.make, v.parentModel || v.model, v.trim, (f.gens || []).join("-"), (f.bodies || []).join("-")].filter(Boolean).join(":").toLowerCase().replace(/[^a-z0-9:-]+/g, "-");
     // THE CAR ON THE ANSWER (lane-b-typed-through): the car Find read, with the mileage the typed words carried, as token, line and short (lib/onebox.js withServedCar), the same words every tool's answer carries
     // FOR SALE (lane-d-forsale): dealers and classifieds beside the auctions, the same search over our own table; null (nothing added to the answer) for a visitor while FORSALE_PUBLIC is off
-    const forSale = await forSaleFor(env, rowsIn => searchLive(env, v, f, parsed.text, { rows: rowsIn }), rows.length, { default: f.forSale || null }).catch(() => null);
+    const forSale = await withTotal(env, await forSaleFor(env, rowsIn => searchLive(env, v, f, parsed.text, { rows: rowsIn }), rows.length, { default: f.forSale || null }).catch(() => null));
     return res.status(200).json(withServedCar({
       status: "ok",
       ...(forSale ? { forSale } : {}),

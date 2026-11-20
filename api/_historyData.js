@@ -4,6 +4,7 @@
 // non-alphanumeric, upper-case. When Lane A's vin_index table lands, only vinAppearances changes.
 import { appConfigFlag } from "../lib/_flags.js";
 import { statedMiles } from "../lib/placeholderMiles.js";
+import { venueName } from "../lib/venueNames.js";
 import { resolveVehicle, sanitizeResolvedVehicle, otherModelsNamed } from "../lib/vehicle.js";
 import { storedDecodeFor } from "../lib/_vinDecodeStore.js";
 import { findGeneration } from "../lib/generations.js";
@@ -24,14 +25,8 @@ export function historyEnv() {
   return supabaseUrl && supabaseKey ? { supabaseUrl, supabaseKey } : null;
 }
 
-const HOUSE = {
-  bringatrailer: "Bring a Trailer", carsandbids: "Cars & Bids", pcarmarket: "PCarMarket", hagerty: "Hagerty",
-  acc: "All Collector Cars", allcollectorcars: "All Collector Cars", gooding: "Gooding & Co", rmsothebys: "RM Sotheby's",
-  hemmings: "Hemmings", sothebysmotorsport: "Sotheby's Motorsport", mbmarket: "MB Market", autohunter: "AutoHunter",
-  barrettjackson: "Barrett-Jackson", mecum: "Mecum", bonhams: "Bonhams", broadarrow: "Broad Arrow",
-  carandclassic: "Car & Classic", collectingcars: "Collecting Cars", themarket: "The Market", pistonheads: "PistonHeads", dupontregistrylive: "duPont Registry Live"
-};
-export function houseName(s) { const k = String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); return HOUSE[k] || (s ? String(s) : ""); }
+// one map, lib/venueNames.js: a key nobody named gives "", never the key
+export function houseName(s) { return venueName(s); }
 
 function num(v) { if (v == null || v === "") return null; const n = Number(String(v).replace(/[^\d.]/g, "")); return Number.isFinite(n) && n > 0 ? n : null; }
 function usdOf(native, usd, currency) {

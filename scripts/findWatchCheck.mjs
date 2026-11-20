@@ -4,6 +4,7 @@
 //   1. the rows and the counts (apart from the Task limit); 2. the account caps and the dedupe; 3. the address line; 4. the toggle's rule; 5. the engine's name for the car; 6. the Tasks page (tasksPageShots, in Chrome).
 //   node scripts/findWatchCheck.mjs
 import fs from "node:fs";
+import { fillBuyClient } from "./_buyClient.mjs";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 process.env.LAUNCH_STAGE = "2"; process.env.SUPABASE_URL = "https://fake.supabase.test"; process.env.SUPABASE_SERVICE_ROLE_KEY = "k";
 const rd = f => fs.readFileSync(f, "utf8");
@@ -63,7 +64,7 @@ ok(!/You’ll get an email before it ends/.test(C), "the toggle no longer says '
 ok(/Added to /.test(C) && /Already in /.test(C) && /href="\/tasks\/mine/.test(C), "a toggle or button confirms 'Added to Watching' (or 'Already in Watching') with the link (standingControlsCheck covers the rest)");
 ok(/alertFail\(id, j && j\.line\)/.test(C) && /watchFail\(id, j && j\.line\)/.test(C), "the cap and the address line reach the page as the server's own words");
 ok(/BOTH/.test("BOTH") && /askSignInFor\("watch"/.test(C) && /askSignIn\(id\)/.test(C), "signed out: the choice starts the sign-in and comes back to it (the drawer's own flow)");
-try { new Function(C.replace("__KEEP_ICON__", "''").replace("__COLD_MISSED__", () => JSON.stringify("COLD_MISSED")).replace("__COLD_READING__", () => JSON.stringify("COLD_READING"))); ok(true, ""); } catch (e) { ok(false, "Find's client script parses (" + e.message + ")"); }
+try { new Function(fillBuyClient(C)); ok(true, ""); } catch (e) { ok(false, "Find's client script parses (" + e.message + ")"); }
 // 5. the engine's name for the car
 const S = await import("../lib/live/search.js");
 const spec = { v: { year: 1995, make: "Chevrolet", model: "Impala", trim: "SS" }, title: "1995 Chevrolet Impala SS Sedan" };

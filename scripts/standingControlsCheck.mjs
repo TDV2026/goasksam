@@ -5,6 +5,7 @@
 // page code (CLIENT in api/buy.js, public/js/onebox.js, api/tasksPage.js, the badge scripts) for the rest.
 //   node scripts/standingControlsCheck.mjs
 import fs from "node:fs";
+import { fillBuyClient } from "./_buyClient.mjs";
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 process.env.LAUNCH_STAGE = "2"; process.env.SUPABASE_URL = "https://fake.supabase.test"; process.env.SUPABASE_SERVICE_ROLE_KEY = "k"; process.env.SUPABASE_ANON_KEY = "anon"; process.env.TRACK_STRICT = "1";
 const rd = f => fs.readFileSync(f, "utf8");
@@ -217,7 +218,7 @@ ok(/data-wstop="' \+ esc\(watchedSpec\(l\)\.id\)/.test(C) && /data-wstop="' \+ e
 ok(/redrawAllWatch\(\); \}\)\.catch/.test(C), "Find: every open drawer is redrawn from the stored list once it loads");
 ok(/function stopWatch\(wid\)\{\s*fetch\(/.test(C) && /function disarm\(id\)\{\s*fetch\(/.test(C), "Find: Stop and switch-off wait for the server (the drawer shows the stored state)");
 ok(/obWatchAlready/.test(O) && /Added to Watching\. /.test(O) && /onFail\(j && j\.line\)/.test(O) && /soi\.textContent = "Have Sam keep looking/.test(O), "Market Check: the confirmation links to the item, a refusal shows the server's line, and the button label stays");
-try { new Function(C.replace("__KEEP_ICON__", "''").replace("__COLD_MISSED__", () => JSON.stringify("COLD_MISSED")).replace("__COLD_READING__", () => JSON.stringify("COLD_READING"))); ok(true, ""); } catch (e) { ok(false, "Find's client script parses (" + e.message + ")"); }
+try { new Function(fillBuyClient(C)); ok(true, ""); } catch (e) { ok(false, "Find's client script parses (" + e.message + ")"); }
 
 globalThis.fetch = realFetch;
 console.log(`standingControlsCheck: ${pass} pass, ${fail} FAIL`);
