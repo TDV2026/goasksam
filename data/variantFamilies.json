@@ -226,6 +226,7 @@
         {"name": "Cabriolet", "years": [1983, 1983], "matchFirst": true, "matchRank": 1, "words": ["cabriolet"]},
         {"name": "Turbo", "years": [1975, 1983], "matchFirst": true, "matchRank": 0, "words": ["turbo", "\\b930\\b"]}
       ]
-    }
+    },
+    {"id": "ford-gt-2005", "label": "Ford GT, 2005 to 2006", "make": "Ford", "models": ["GT"], "years": [2005, 2006], "vin": null, "unnamedIs": "Base", "pricedByYear": true, "variants": [{"name": "Base", "years": [2005, 2006], "words": ["\\bbase\\b"]}, {"name": "Heritage Edition", "years": [2006, 2006], "words": ["heritage"], "plural": "Heritage Editions", "ask": "Heritage Edition"}]}
   ]
 }
