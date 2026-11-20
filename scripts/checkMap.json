@@ -3231,15 +3231,20 @@
     "api/",
     "api/pullForSale.js",
     "data/",
+    "data/forsaleBudget.json",
     "docs/",
     "lib/",
     "lib/forsale/prepare.js",
     "lib/forsale/report.js",
     "lib/forsale/rules.js",
+    "lib/nightlyLease.js",
     "lib/onebox.js",
     "node_modules/",
     "package.json",
-    "scripts/"
+    "scripts/",
+    "scripts/buildVinRolloutCache.js",
+    "scripts/ingest.js",
+    "scripts/prepareLoop.mjs"
    ]
   },
   "forSaleReadAgeCheck": {
@@ -8198,19 +8203,5 @@
     "lib/_ingestHealth.js"
    ]
   }
- },
- "forSalePrepareCheck": {
-  "file": "scripts/forSalePrepareCheck.mjs",
-  "kind": "offline",
-  "covers": [
-   "api/pullForSale.js",
-   "data/forsaleBudget.json",
-   "lib/forsale/prepare.js",
-   "lib/forsale/report.js",
-   "lib/nightlyLease.js",
-   "scripts/prepareLoop.mjs",
-   "scripts/ingest.js",
-   "scripts/buildVinRolloutCache.js"
-  ]
  }
 }
