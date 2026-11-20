@@ -41,6 +41,13 @@ for (const [text, name] of texts) {
   const leaks = [...used].filter(n => names.has(n) && !declared.has(n) && !own.has(n) && n !== name);
   ok(!leaks.length, `${name} (${home}) is written into a page as text and uses ${leaks.join(", ")} from its own file, which the browser does not have`);
 }
+
+// 2b. COMMENTS travel too: toString() keeps them, so a comment inside such a function is page text, readable by a visitor. No comment inside a
+// function written into a page may carry crew words (forSalePageCheck: a visitor's page carries nothing of the for sale module).
+const noStr = t => t.replace(/"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`/g, '""');
+const commentsOf = t => { const b = noStr(t); return [...b.matchAll(/\/\*[\s\S]*?\*\/|(?:^|[^:\\])\/\/[^\n]*/g)].map(m => m[0]); };
+const CREW_WORDS = /forSale|for_sale|FORSALE|fs-mod|fs-css|fs-pill|__d = d|crew|Crew|dealer|classified/;   // the words forSalePageCheck keeps off a visitor's page (the for sale module is crew only)
+for (const [text, name] of texts) { const bad = commentsOf(text).filter(c => CREW_WORDS.test(c)); ok(!bad.length, `${name} is written into a page as text and a comment inside it carries crew words (the for sale module's names) (${bad.length})`); }
 // 3. files served to the browser as script carry no module syntax
 for (const f of walk("public")) { const s = fs.readFileSync(f, "utf8"); ok(!/^\s*(import\s[^(]|export\s)/m.test(s) && !/\brequire\(/.test(s), `${f} is served as page script and has import, export or require`); }
 console.log(`browserTextImportCheck: ${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
