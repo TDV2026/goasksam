@@ -15,7 +15,7 @@ let span = src.slice(start, src.indexOf("\n", everyAt) + 1);
 const FIND_ROOT = 'const args = process.argv.slice(2), here = path.dirname(fileURLToPath(import.meta.url)), ROOT = path.resolve(args.find(a => !a.startsWith("--")) || path.join(here, ".."));';
 if (!span.includes(FIND_ROOT)) throw new Error("scripts/forSaleCheck.mjs: the line that finds its root changed; the world cannot be taken from it until this file follows");
 span = span.replace(FIND_ROOT, `const args = [], here = ${JSON.stringify(here)}, ROOT = ${JSON.stringify(ROOT)};`).replace('if (args.includes("--mutants")) process.exit(await mutants());\n', "");
-span += '\nexport { call, find, json, chatDone, BUY, MC, PULL, PROBE, SERVE, TABLE, CREW, CT, W, world, LOGS, ago, vin, SP, HAVE };\n';
+span += '\nexport { call, find, json, chatDone, BUY, MC, PULL, PROBE, SERVE, TABLE, CREW, CT, W, world, LOGS, ago, vin, SP, HAVE, LIVE, liveRow };\n';
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fsworld-")), file = path.join(dir, "world.mjs");
 fs.writeFileSync(file, span);
 const M = await import(pathToFileURL(file).href);
@@ -33,5 +33,5 @@ if (M.HAVE) {
   }
   M.SERVE.forSaleReset();
 }
-export const { call, find, json, chatDone, BUY, MC, PULL, PROBE, SERVE, TABLE, CREW, CT, W, world, LOGS, ago, vin, SP, HAVE } = M;
+export const { call, find, json, chatDone, BUY, MC, PULL, PROBE, SERVE, TABLE, CREW, CT, W, world, LOGS, ago, vin, SP, HAVE, LIVE, liveRow } = M;
 export { ROOT, pathToFileURL, probeH };
