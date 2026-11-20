@@ -240,6 +240,34 @@
     "public/js/auth.js"
    ]
   },
+  "bareHostCheck": {
+   "file": "scripts/bareHostCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/about.js",
+    "api/business.js",
+    "api/buy.js",
+    "api/history.js",
+    "api/home.js",
+    "api/howSamDecides.js",
+    "api/legal.js",
+    "api/marketCheck.js",
+    "api/sellNext.js",
+    "api/sitemapPages.js",
+    "api/tasks.js",
+    "api/tasksPage.js",
+    "api/whatsNew.js",
+    "lib/",
+    "lib/botLog.js",
+    "lib/live/featuredHistory.js",
+    "public/",
+    "public/mcp.html",
+    "public/powersellers.html",
+    "public/robots.txt",
+    "vercel.json"
+   ]
+  },
   "bareModelCheck": {
    "file": "scripts/bareModelCheck.mjs",
    "kind": "offline",
@@ -4062,6 +4090,7 @@
     "lib/_houseComps.js",
     "lib/_spendAlerts.js",
     "lib/_vinDecodeStore.js",
+    "lib/botLog.js",
     "lib/live/search.js",
     "lib/newsletterSignup.js",
     "lib/onebox.js",
