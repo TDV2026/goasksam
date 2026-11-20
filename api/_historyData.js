@@ -3,6 +3,7 @@
 // chassis_vin_norm, with the SAME normalisation as findVinArchiveMatch (lib/_flags.js): strip every
 // non-alphanumeric, upper-case. When Lane A's vin_index table lands, only vinAppearances changes.
 import { appConfigFlag } from "../lib/_flags.js";
+import { statedMiles } from "../lib/placeholderMiles.js";
 import { resolveVehicle, sanitizeResolvedVehicle, otherModelsNamed } from "../lib/vehicle.js";
 import { storedDecodeFor } from "../lib/_vinDecodeStore.js";
 import { findGeneration } from "../lib/generations.js";
@@ -53,7 +54,7 @@ export async function vinAppearances(env, vin) {
     const apps = vi.map(r => { const sold = /^sold|^ended_sold|^sale/i.test(String(r.result || "")); const p = num(r.price_usd); return {
       kind: sold ? "sale" : "attempt", date: String(r.appearance_date || "").slice(0, 10) || null,
       priceUsd: sold ? p : null, bidUsd: sold ? null : p, nativePrice: null, nativeBid: null, currency: null,
-      status: r.result || null, house: houseName(r.source), url: r.url || null, mileage: num(r.mileage), title: r.listing_title || "", image: r.photo_url || null,
+      status: r.result || null, house: houseName(r.source), url: r.url || null, mileage: statedMiles(r.mileage), title: r.listing_title || "", image: r.photo_url || null,
       year: Number(r.year) || null, make: r.make || null, model: r.model || null, body: null, color: null, familyKey: r.model_family || null }; });
     return { vinNorm: want, appearances: apps.map(a => ({ ...a, ...feeFieldsOf(a) })), ok: true, source: "vin_index", summary: Array.isArray(summary) && summary[0] ? summary[0] : null };
   }
@@ -75,7 +76,7 @@ export async function vinAppearances(env, vin) {
     if (seen.has(key)) continue; seen.add(key); if (day) saleDays.add(day);
     const p = usdOf(r.sale_price, r.sale_price_usd, r.currency);
     out.push({ kind: "sale", date: day || null, priceUsd: p.usd, nativePrice: p.native, currency: p.currency,
-      house: houseName(r.platform), url: r.url || r.url2 || null, mileage: num(r.mileage),
+      house: houseName(r.platform), url: r.url || r.url2 || null, mileage: statedMiles(r.mileage),
       title: r.listing_title || r.rtitle || "", image: r.img || null, year: Number(r.year) || null,
       make: r.make || null, model: r.model || null, body: r.body || null, color: r.color || null, familyKey: r.model_family || null });
   }
@@ -419,7 +420,7 @@ export async function hubVins(env, hub, timing) {
     const key = r.vin_norm + "|" + String(r.sale_date || "").slice(0, 10) + "|" + Math.round(Number(r.sale_price) || 0);
     if (sk.has(key)) continue; sk.add(key);
     const p = usdOf(r.sale_price, r.sale_price_usd, r.currency);
-    get(r.vin_norm).apps.push({ kind: "sale", car: carCols(r.year, r.model, r.model_family, r.body), year: Number(r.year) || null, date: String(r.sale_date || "").slice(0, 10), priceUsd: p.usd, nativePrice: p.native, currency: p.currency, house: houseName(r.platform), url: r.url || r.url2 || null, mileage: num(r.mileage), image: r.img || null, ...feeFieldsOf({ kind: "sale", house: houseName(r.platform), priceUsd: p.usd, nativePrice: p.native }) });   // the with-fee words are the engine's (lib/buyerFee.js); the listing title is off the wire
+    get(r.vin_norm).apps.push({ kind: "sale", car: carCols(r.year, r.model, r.model_family, r.body), year: Number(r.year) || null, date: String(r.sale_date || "").slice(0, 10), priceUsd: p.usd, nativePrice: p.native, currency: p.currency, house: houseName(r.platform), url: r.url || r.url2 || null, mileage: statedMiles(r.mileage), image: r.img || null, ...feeFieldsOf({ kind: "sale", house: houseName(r.platform), priceUsd: p.usd, nativePrice: p.native }) });   // the with-fee words are the engine's (lib/buyerFee.js); the listing title is off the wire
   }
   for (const a of atts || []) {
     if (!a.chassis_vin_norm || a.chassis_vin_norm.length < 6 || isMemorabilia(a.title) || isPartsListing(a.title, a.mileage)) continue;

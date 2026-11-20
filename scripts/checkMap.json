@@ -354,6 +354,15 @@
     "node_modules/"
    ]
   },
+  "browserTextImportCheck": {
+   "file": "scripts/browserTextImportCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "lib/",
+    "public/"
+   ]
+  },
   "buildOutputCheck": {
    "file": "scripts/buildOutputCheck.mjs",
    "kind": "offline",
@@ -3129,6 +3138,17 @@
     "vercel.json"
    ]
   },
+  "forSaleHoldingCheck": {
+   "file": "scripts/forSaleHoldingCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "lib/forsale/rules.js",
+    "lib/forsale/serve.js",
+    "lib/onebox.js",
+    "lib/reasonWords.js",
+    "scripts/_mustangWorld.mjs"
+   ]
+  },
   "forSalePageCheck": {
    "file": "scripts/forSalePageCheck.mjs",
    "kind": "offline",
@@ -3148,6 +3168,24 @@
     "scripts/fixtures/forsalePageMutants.json"
    ]
   },
+  "forSalePlaceholderMilesCheck": {
+   "file": "scripts/forSalePlaceholderMilesCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/_historyData.js",
+    "api/pullForSale.js",
+    "api/usageDashboard.js",
+    "lib/forsale/report.js",
+    "lib/forsale/rules.js",
+    "lib/forsale/serve.js",
+    "lib/live/featuredHistory.js",
+    "lib/live/feed.js",
+    "lib/live/liveTrust.js",
+    "lib/live/priorListing.js",
+    "lib/placeholderMiles.js",
+    "scripts/_mustangWorld.mjs"
+   ]
+  },
   "forSalePrepareCheck": {
    "file": "scripts/forSalePrepareCheck.mjs",
    "kind": "offline",
@@ -3165,6 +3203,17 @@
     "node_modules/",
     "package.json",
     "scripts/"
+   ]
+  },
+  "forSaleReadAgeCheck": {
+   "file": "scripts/forSaleReadAgeCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "data/forsaleBudget.json",
+    "lib/forsale/prepare.js",
+    "lib/forsale/serve.js",
+    "lib/onebox.js",
+    "scripts/_mustangWorld.mjs"
    ]
   },
   "forSaleWorldCheck": {
@@ -5603,6 +5652,7 @@
     "api/sellerDecision.js",
     "lib/",
     "lib/_routeLimit.js",
+    "lib/factCoverage.js",
     "lib/factMine.js",
     "lib/live/buyExample.js",
     "lib/live/chatCore.js",
