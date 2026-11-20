@@ -23,11 +23,12 @@ let chain = Promise.resolve();   // one offline read at a time: it borrows the p
 const offline = text => { const run = chain.then(() => offline0(text)); chain = run.catch(() => {}); return run; };
 const offline0 = async text => { const u = process.env.SUPABASE_URL, k = process.env.SUPABASE_SERVICE_ROLE_KEY, f0 = globalThis.fetch; delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; globalThis.fetch = async () => new Response("[]", { status: 200 }); try { return await VH.resolveVehicle(text, {}); } finally { process.env.SUPABASE_URL = u; process.env.SUPABASE_SERVICE_ROLE_KEY = k; globalThis.fetch = f0; } };
 const builtOf = (f, year) => f.variants.filter(v => !v.years || (year >= v.years[0] && year <= v.years[1]));   // the variants built in the asked year (the data's years per variant)
-const FAMS = JSON.parse(fs.readFileSync(path.join(ROOT, "data/variantFamilies.json"), "utf8")).families;
+const ALL = JSON.parse(fs.readFileSync(path.join(ROOT, "data/variantFamilies.json"), "utf8")).families;   // every list; FAMS (below, after the plans) is the lists of the first fourteen families, each with a plan and a recorded live shape; the lists of lane-b-sell-nolump are read by the LUMPING CLASS section
 // the sales of a family: [variant name or "", count, base price]; the first variants get the lowest prices, each next one 1.4 times the one before
 const PLAN = { "pontiac-firebird-3rd": { year: 1987, counts: [0, 8, 10, 9, 3, 0], unstated: 12 }, "chevrolet-camaro-3rd": { year: 1987, counts: [0, 9, 10, 8], unstated: 12 }, "ford-mustang-fox": { year: 1987, counts: [0, 3, 9, 10, 8], unstated: 12 }, "chevrolet-corvette-c4": { year: 1996, counts: [0, 9, 9], unstated: 12 } , "bmw-3-series-e30": { year: 1987, counts: [3, 9, 10, 9], unstated: 0 }, "porsche-911-1984-1989": { year: 1987, counts: [0, 9, 10, 8, 3, 9], unstated: 12 }, "mercedes-sl-r107": { year: 1980, counts: [3, 9, 10, 9, 8, 0], unstated: 0 }, "mercedes-sl-w113": { year: 1968, counts: [9, 10, 8], unstated: 0 },
   "porsche-964": { year: 1991, counts: [9, 10, 8, 9, 3, 0], unstated: 0 }, "porsche-993": { year: 1996, counts: [0, 9, 10, 8, 9, 3, 9], unstated: 12 }, "chevrolet-corvette-c5": { year: 2002, counts: [0, 10], unstated: 12 }, "chevrolet-corvette-c6": { year: 2011, counts: [0, 9, 10, 9], unstated: 12 },
   "ford-mustang-sn95": { year: 2003, counts: [10, 9, 8, 0], unstated: 0 }, "ford-mustang-s197": { year: 2012, counts: [10, 9, 8, 0], unstated: 0 } };
+const FAMS = ALL.filter(f => PLAN[f.id]);
 const TITLE = { "ZR-1": "ZR1" };   // the archive titles a ZR-1 'ZR1' as often as 'ZR-1', and the resolver's trim fence is ZR1 (a hyphen spelling does not match it: the known gap in CLAUDE.md, the resolver backlog)
 const mkRows = (f, plan, { replicas = true, flat = false } = {}) => {
   const rows = [], model = f.models[0]; let k = 0, base = 9000; const add = (words, count, price) => { for (let i = 0; i < count; i++) { const id = "vr" + (seq++), title = `${plan.year} ${f.make} ${model}${words ? " " + words : ""}`;
@@ -57,10 +58,10 @@ if (VR && VR.__setResolver) VR.__setResolver(async text => RES.get(text) || { st
   for (const [id, title, want] of READS) { const fam0 = VV.familiesOf().find(x => x.id === id); if (!fam0) { ok(`the list of ${id} exists`, false); continue; } const got = VV.variantOfSale(fam0, { title }); ok(`the list of ${id} reads "${title}" as ${want}`, got === want, got); } }
 // EVERY LIST READS ITSELF (lane-b-variant-split, the class of a list that cannot read its own variants): for every family of the data, the variant's own words as a title read back as that variant (the one reader), no list name reads as another variant, every family's models and years are named, and no two families of a make and model overlap in years
 { const VV = await imp("lib/variants.js");
-  for (const f of FAMS) { const fam = VV.familiesOf().find(x => x.id === f.id), y = f.years[0];
+  for (const f of ALL) { const fam = VV.familiesOf().find(x => x.id === f.id), y = f.years[0];
     ok(`${f.id}: the family names its make, models and years, and its variants have words`, !!f.make && f.models.length > 0 && f.years.length === 2 && f.variants.length >= 2 && f.variants.every(v => v.name && v.words && v.words.length > 0), f.id);
     for (const v of f.variants) { const got = VV.variantOfSale(fam, { title: `${y} ${f.make} ${f.models[0]} ${v.ask || v.name}` }); ok(`${f.id}: "${v.name}" as a title reads as ${v.name}`, got === v.name, got); }
-    const dup = FAMS.filter(g => g !== f && g.make === f.make && g.models.some(m => f.models.includes(m)) && g.years[0] <= f.years[1] && f.years[0] <= g.years[1]); ok(`${f.id}: no other family of the same make and model covers the same years (${dup.map(g => g.id).join(", ") || "none"})`, dup.length === 0, dup.map(g => g.id)); } }
+    const dup = ALL.filter(g => g !== f && g.make === f.make && g.models.some(m => f.models.includes(m)) && g.years[0] <= f.years[1] && f.years[0] <= g.years[1]); ok(`${f.id}: no other family of the same make and model covers the same years (${dup.map(g => g.id).join(", ") || "none"})`, dup.length === 0, dup.map(g => g.id)); } }
 const SWEEP = [];
 const OB0 = OB.RANGE_RULES.trimFirst; OB.RANGE_RULES.trimFirst = false;
 for (const f of FAMS) {
@@ -124,14 +125,14 @@ for (const f of FAMS) {
     ok("the recorded Firebird (1987): the cards are Base, Formula, Trans Am and GTA in the data's order: the 20th Anniversary was built in 1989 and Firehawk in 1991 and 1992, so neither is shown for a 1987 car", JSON.stringify(vs.rows.map(r => r.label)) === JSON.stringify(["Base", "Formula", "Trans Am", "GTA"]), vs.rows.map(r => r.label));
     for (const r of vs.rows) { 
       const h = await asked(f, plan, r.car.words), hr = h && h.tier === "result" && !(h.variants && h.variants.thin) && Array.isArray(h.cluster) ? money(h.cluster[0]) + " to " + money(h.cluster[1]) : null;
-      ok(`the recorded Firebird, ${r.label}: the row's range, count and mileage note are the answer for its own car`, !!h && (r.rangeText || null) === hr && r.salesText === CN.countNoun(VR.salesCountOf(h), "sale") && (!r.rangeText || r.mileageNote === h.mileageLine), [r.rangeText, hr, r.salesText, VR.salesCountOf(h), r.mileageNote, h && h.mileageLine]);
+      ok(`the recorded Firebird, ${r.label}: the row's range, count and mileage note are the answer for its own car`, !!h && (r.rangeText || null) === hr && r.salesText === CN.countNoun(VR.salesCountOf(h), "sale") && (!r.rangeText || (r.mileageNote || vs.mileageLine) === h.mileageLine) && r.mileageNote == null && vs.mileageLine === h.mileageLine, [r.rangeText, hr, r.salesText, VR.salesCountOf(h), r.mileageNote, h && h.mileageLine]);
       ok(`the recorded Firebird, ${r.label}: the row is priced (its own pool has the sales)`, r.priced === true && !!r.rangeText, r); }
     const med = x => { const m = /\$([\d,]+) to \$([\d,]+)/.exec(x || ""); return m ? (Number(m[1].replace(/,/g, "")) + Number(m[2].replace(/,/g, ""))) / 2 : null; };
     const gta = vs.rows.find(r => r.name === "GTA"), tam = vs.rows.find(r => r.name === "Trans Am");
     ok("the recorded Firebird: the GTA's range is above the Trans Am's", med(gta.rangeText) > med(tam.rangeText), [tam.rangeText, gta.rangeText]);
     // THE JOIN: the page's own row builder (lib/variantRowsPage.js) given exactly what the handler sent prints the engine's words and nothing else: every row's label, range, sales count, mileage note and link, the one aside line
     const html = (await imp("lib/variantRowsPage.js")).variantRowsHtml(vs), txt = html.replace(/<[^>]*>/g, "|").split("|").filter(Boolean).join("").replace(/&amp;/g, "&").replace(/&#39;/g, "'");
-    ok("the recorded Firebird, the page's join: the page prints the engine's line, each row's label, range, sales and mileage note, and the one aside line, and no other words", txt === vs.line + vs.rows.map(r => r.label + (r.rangeText || "") + (r.salesText || "") + (r.mileageNote || "")).join("") + vs.asideLine, txt.slice(0, 200));
+    ok("the recorded Firebird, the page's join: the page prints the engine's line, each row's label, range, sales and mileage note, and the one aside line, and no other words", txt === vs.line + vs.rows.map(r => r.label + (r.rangeText || "") + (r.salesText || "") + (r.mileageNote || "")).join("") + (vs.mileageLine || "") + vs.asideLine, txt.slice(0, 200));
     ok("the recorded Firebird, the page's join: every row is a link to its own car (the address the engine sent)", vs.rows.every(r => html.includes('href="' + r.car.address.replace(/&/g, "&amp;") + '"')), null);
     // EVERY SALE CARRIES ITS VARIANT (the label Lane S prints on the sales list: card.variantLabel)
     const cl = (a.cards || []), lab = new Map(); for (const c of cl) lab.set(c.variantLabel, (lab.get(c.variantLabel) || 0) + 1);
@@ -144,21 +145,30 @@ for (const f of FAMS) {
 }
 // ONE ARCHIVE READ FOR THE SIX (lane-b-variant-split-3): the variants' reads share the request's memo, so the archive is asked less than six pages' worth. Counted on the family's own world: the archive reads of the crew's unstated read against the reads of the same car's blended answer plus each variant's page asked alone
 { const f = FAMS.find(x => x.id === "pontiac-firebird-3rd"), plan = PLAN[f.id], model = f.models[0], name = `${plan.year} ${f.make} ${model}`; let n = 0; const f0 = globalThis.fetch; globalThis.fetch = (u, ...r) => { if (/sales_archive/.test(String(u))) n++; return f0(u, ...r); };
-  try { install(model, mkRows(f, plan)); n = 0; await hit({ oneBox: true, search: name }, true); const blended = n;
+  try { install(model, mkRows(f, plan)); n = 0; { const r0 = RES.get(name), v0 = r0 && r0.vehicle; await OB.oneEngineAnswer({ ...(VH.sanitizeResolvedVehicle(v0) || v0) }, null, name, { ...w.env }); } const blended = n;   // the blended answer alone (the engine, no split: a visitor read now carries the split too)
     install(model, mkRows(f, plan)); n = 0; await hit({ oneBox: true, search: name }); const split = n; let alone = 0;
     for (const v of builtOf(f, plan.year)) { install(model, mkRows(f, plan)); n = 0; await asked(f, plan, `${name} ${v.ask || v.name}`); alone += n; }
     if (process.env.READS) process.stderr.write("READS " + JSON.stringify({ split, alone, blended }) + "\n");
     ok(`the split reads the archive at most 70% of the variants' pages asked alone plus the blended answer (${split} reads against ${alone} for ${builtOf(f, plan.year).length} pages, ${blended} for the blended answer alone)`, split > 0 && alone > 0 && split * 10 <= (alone + blended) * 7, { split, alone, blended }); }
   finally { globalThis.fetch = f0; } }
 // A CARD'S COUNT IS ITS OWN PAGE'S COUNT (lane-b-variant-split-3): a page that is a sales answer counts its pool even with no range (the 560SL for a car of a year it was built: pooled apart, 46 sales, no range); a page that is a question, not tracked or unavailable counts none
+// THE MILEAGE LINE, ONCE (lane-b-variant-split-4): live, "The range is for all mileages." printed under every row. The engine's line is printed once under the list when it is the same on every priced row; rows that differ keep their own line only where it differs from the line most rows share.
+{ const L = "The range is for all mileages.", M = "Narrowed to 50,000 to 100,000 miles.", row = (n, note, priced = true) => ({ name: n, priced, rangeText: priced ? "$1 to $2" : null, mileageNote: note }), f = VR.mileageLinesOf;
+  const same = f([row("A", L), row("B", L), row("C", L), row("D", null, false)]);
+  ok("mileage line: the same on every priced row prints once, under the list, and on no row", same.line === L && same.rows.every(r => r.mileageNote == null), same);
+  const diff = f([row("A", L), row("B", L), row("C", M)]);
+  ok("mileage line: rows that differ keep their own line only where it differs from the others; the shared line is not printed (it does not apply to every row)", diff.line === null && diff.rows[0].mileageNote == null && diff.rows[1].mileageNote == null && diff.rows[2].mileageNote === M, diff);
+  const tie = f([row("A", L), row("B", M)]);
+  ok("mileage line: with no line shared by most rows every row keeps its own", tie.line === null && tie.rows[0].mileageNote === L && tie.rows[1].mileageNote === M, tie);
+  ok("mileage line: no notes at all is no line, a single row's note prints once", f([row("A", null)]).line === null && f([row("A", L)]).line === L); }
 { const v = { name: "X" }; ok("rowOf: a sales answer with no range counts its pool and prints no range", VR.rowOf && VR.rowOf(v, { tier: "result", poolN: 46, cluster: null }).salesText === CN.countNoun(46, "sale") && VR.rowOf(v, { tier: "result", poolN: 46, cluster: null }).rangeText === null, VR.rowOf && VR.rowOf(v, { tier: "result", poolN: 46, cluster: null }));
   ok("rowOf: a page that is a question (body choice) or unavailable has no sales to count", ["body_choice", "trim_choice", "unavailable", "refusal", "not_tracked"].every(t => VR.rowOf && VR.rowOf(v, { tier: t, poolN: 9, soldCount: 9 }).salesText === CN.countNoun(0, "sale")), null); }
 // THE STORED QUESTION (lane-b-variant-split-3): live, "1987 Porsche 911" was answered in 592 ms with the trim question: a STORED question row (spec_market_cache, kind question) read before the engine, whatever the engine now asks. The crew never reads it for a car of a family with a list; a visitor still does
 { const f = FAMS.find(x => x.id === "porsche-911-1984-1989"), plan = PLAN[f.id], model = f.models[0], name = `${plan.year} ${f.make} ${model}`, f0 = globalThis.fetch; let served = 0;
   let writes = 0; globalThis.fetch = async (u, ...r) => { const url = String(u), m = String((r[0] && r[0].method) || "GET").toUpperCase(); if (m !== "GET" && /spec_market_cache|market_cache|warm/i.test(url)) { writes++; if (process.env.WURL) process.stderr.write("WRITE " + m + " " + url.slice(0, 160) + "\n"); } if (/spec_market_cache\?spec_key=eq\./.test(url) && /MCQ:/.test(decodeURIComponent(url))) { served++; return new Response(JSON.stringify([{ computed_at: new Date().toISOString(), market: { kind: "question", engineVersion: OB.ENGINE_VERSION, raw: { tier: "trim_choice", askIndex: 1, prompt: "These sold as Carrera and Turbo, and they price differently. Which one is it?", trimOptions: [{ label: "Carrera", n: 45 }, { label: "Turbo", n: 11 }], resolvedCar: { year: plan.year, make: f.make, model } } } }]), { status: 200, headers: { "content-type": "application/json" } }); } return f0(u, ...r); };
   try { install(model, mkRows(f, plan)); const vis = await hit({ oneBox: true, search: name }, true); const crew = await hit({ oneBox: true, search: name }, false);
-    ok("a visitor is still served the stored trim question (the baseline the rule changes)", !!vis && vis.tier === "trim_choice" && served > 0, vis && [vis.tier, served]);
-    { const w0 = writes; install(model, mkRows(f, plan)); await hit({ oneBox: true, search: name }, false); ok("a crew read of a family car writes nothing to the shared answer stores (a visitor still reads the rows as they were)", writes === w0, writes - w0); }
+    ok("VISITOR (the split is public, lane-b-variant-split-4): a visitor is not served the stored trim question either: a result with its variants as cards, the stored row never read", !!vis && vis.tier === "result" && !vis.trimOptions && !!vis.variantSplit && vis.variantSplit.show === true && served === 0, vis && [vis.tier, served, vis.variantSplit && vis.variantSplit.show]);
+    { const w0 = writes; install(model, mkRows(f, plan)); await hit({ oneBox: true, search: name }, false); ok("a crew read of a family car writes nothing to the shared answer stores", writes === w0, writes - w0); }
     ok("the crew is not served the stored trim question: a result with its variants as cards", !!crew && crew.tier === "result" && !crew.trimOptions && !!crew.variantSplit && crew.variantSplit.show === true, crew && [crew.tier, crew.variantSplit && crew.variantSplit.why]); }
   finally { globalThis.fetch = f0; } }
 // A SLOW SPLIT NEVER HOLDS THE ANSWER (lane-b-variant-split-3): live, the six reads took 10 to 48 s and, on the 2003 Mustang, two reads of 60 s answered nothing. A split not done by its deadline leaves the blended answer as it was and says why
@@ -184,8 +194,9 @@ for (const f of FAMS) {
   for (const f of FAMS) { const plan = PLAN[f.id], model = f.models[0], name = `${plan.year} ${f.make} ${model}`; install(model, mkRows(f, plan));
     const vv = await hit({ oneBox: true, search: name }, true); if (/^trim_choice$/.test(String(vv && vv.tier))) visitorAsked++;
     install(model, mkRows(f, plan)); const cc = await hit({ oneBox: true, search: name }, false);
+    ok(`${f.id}: THE VISITOR GETS THE SPLIT (public): with the trim question on, a visitor read is a result with the same cards as the crew, never a trim question`, !!vv && vv.tier === "result" && !vv.trimOptions && !!vv.variantSplit && vv.variantSplit.show === true && !vv.variantSplit.why, vv && [vv.tier, vv.prompt, vv.variantSplit && vv.variantSplit.show]);
     ok(`${f.id}: with the trim question on, a crew read is a result with its variants (tier ${cc && cc.tier}), never a trim question`, !!cc && cc.tier === "result" && !cc.trimOptions && !!cc.variantSplit && cc.variantSplit.show === true, cc && [cc.tier, cc.prompt, cc.variantSplit && cc.variantSplit.why]); }
-  ok(`the trim question is still asked of a visitor where the engine asks it (${visitorAsked} of ${FAMS.length} families here), so the crew rule changes only the crew's read`, visitorAsked > 0, visitorAsked);
+  ok(`no family car of the ${FAMS.length} is asked the trim question by anyone while the split is public`, visitorAsked === 0, visitorAsked);
   OB.RANGE_RULES.trimFirst = false; }
 OB.RANGE_RULES.trimFirst = OB0;
 { install("Beetle", [{ ...mkRows(FAMS[0], PLAN["pontiac-firebird-3rd"])[0], make: "Volkswagen", model: "Beetle", listing_title: "1987 Volkswagen Beetle" }]); const b = await hit({ oneBox: true, search: "1987 Volkswagen Beetle" }); ok("a family with no variant list: show is false (or no field)", !b || !b.variantSplit || b.variantSplit.show === false, b && b.variantSplit); }
@@ -199,8 +210,14 @@ process.exit(fail ? 1 : 0);
 function mutants() {
   const me = fileURLToPath(import.meta.url), R = ROOT;
   const M = [
-    ["the rows are not served", "api/sellerDecision.js", "if (!vinCtx && !exactSale && isCrewRequest(req)) oneBox = await variantSplitFor(", "if (false) oneBox = await variantSplitFor("],
-    ["the qualifying question is asked again (variantQuestionFor)", "api/sellerDecision.js", "      if (!vinCtx && !exactSale && isCrewRequest(req)) oneBox = await variantSplitFor(", "      oneBox = await variantQuestionFor(oneBox, { text: oneBoxText, asked: askedN, refine: obRefine }, vehicle, generation, { supabaseUrl, supabaseKey });\n      if (!vinCtx && !exactSale && isCrewRequest(req)) oneBox = await variantSplitFor("],
+    ["the rows are not served", "api/sellerDecision.js", "if (!vinCtx && !exactSale && splitServed(req)) oneBox = await variantSplitFor(", "if (false) oneBox = await variantSplitFor("],
+    ["the switch is off: a visitor gets no split", "lib/variants.js", "export const VARIANT_SPLIT_PUBLIC = true;", "export const VARIANT_SPLIT_PUBLIC = false;"],
+    ["the rows are served to the crew only (the old gate)", "api/sellerDecision.js", "if (!vinCtx && !exactSale && splitServed(req)) oneBox", "if (!vinCtx && !exactSale && isCrewRequest(req)) oneBox"],
+    ["the trim question is read for a visitor's family car", "api/sellerDecision.js", "const crewVariantCar = !!(splitServed(req) && vehicle", "const crewVariantCar = !!(isCrewRequest(req) && vehicle"],
+    ["the mileage line stays on every row", "lib/variantRows.js", "const ml = mileageLinesOf(rows), split", "const ml = { rows, line: null }, split"],
+    ["the mileage line is printed once even when rows differ", "lib/variantRows.js", "if (count.size === 1 && priced.length === withNote)", "if (priced.length > 0)"],
+    ["a row keeps the line most rows share", "lib/variantRows.js", "r.mileageNote === major ? { ...r, mileageNote: null } : r), line: null };", "false ? { ...r, mileageNote: null } : r), line: null };"],
+    ["the qualifying question is asked again (variantQuestionFor)", "api/sellerDecision.js", "      if (!vinCtx && !exactSale && splitServed(req)) oneBox = await variantSplitFor(", "      oneBox = await variantQuestionFor(oneBox, { text: oneBoxText, asked: askedN, refine: obRefine }, vehicle, generation, { supabaseUrl, supabaseKey });\n      if (!vinCtx && !exactSale && splitServed(req)) oneBox = await variantSplitFor("],
     ["the crew reads the stored trim question", "api/sellerDecision.js", "(wantsWarm && !recompute && !crewVariantCar) ? readQuestionRow", "(wantsWarm && !recompute) ? readQuestionRow"],
     ["the engine is not told not to ask a trim question", "api/sellerDecision.js", "...(crewVariantCar ? { noTrimQuestion: true } : {}),", ""],
     ["the engine ignores the order not to ask a trim question", "lib/onebox.js", "const noTrimQuestion = !!(env && env.noTrimQuestion) &&", "const noTrimQuestion = false &&"],

@@ -5,12 +5,15 @@
 // and requests every public route as a stranger: each must answer 200 with a page (no redirect, no 404, no sealed or holding page), and every public rail and footer item must be in each page's rail. Then the one-state rule: LAUNCH_BUSINESS=0 is the only thing that holds /business back.
 //   node scripts/openSiteGateCheck.mjs
 import fs from "node:fs"; import path from "node:path"; import { pathToFileURL, fileURLToPath } from "node:url";
+import { useFakeClock, FAKE_LAUNCH_ISO } from "./_fakeClock.mjs";
+// The open site is the state AFTER launch. A fixed made-up launch moment and a clock an hour past it, so the check says the same at any real hour (it once wrote the real launch moment against the real clock).
+useFakeClock(Date.parse(FAKE_LAUNCH_ISO) + 3600e3);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log("FAIL " + m); } };
 const imp = f => import(pathToFileURL(path.join(ROOT, f)).href);
 globalThis.fetch = async (u, init = {}) => { const url = String(u); if (init.method === "HEAD") return new Response(null, { status: 206, headers: { "content-range": "0-0/0" } }); return new Response("[]", { status: 200, headers: { "content-type": "application/json", "content-range": "0-0/0" } }); };
 const OPEN = () => { for (const k of ["CURTAIN_SEALED", "PUBLIC_LAUNCH", "LAUNCH_BUSINESS", "CURTAIN_CREW_CODE", "GAS_CREW_SECRET"]) delete process.env[k];
-  Object.assign(process.env, { LAUNCH_STAGE: "2", SELL_NEXT_ON: "1", LAUNCH_AT: "2026-10-29T07:00:00-07:00", SUPABASE_URL: "https://x.test", SUPABASE_SERVICE_ROLE_KEY: "k" }); };
+  Object.assign(process.env, { LAUNCH_STAGE: "2", SELL_NEXT_ON: "1", LAUNCH_AT: FAKE_LAUNCH_ISO, SUPABASE_URL: "https://x.test", SUPABASE_SERVICE_ROLE_KEY: "k" }); };
 const mkRes = () => ({ h: {}, c: 200, b: "", setHeader(k, v) { this.h[k.toLowerCase()] = v; }, getHeader(k) { return this.h[k.toLowerCase()]; }, status(c) { this.c = c; this.statusCode = c; return this; }, send(b) { this.b = b == null ? "" : String(b); return this; }, json(o) { this.b = JSON.stringify(o); return this; }, end(b) { if (b) this.b = String(b); return this; }, redirect(a, b) { this.c = typeof a === "number" ? a : b; this.h.location = typeof a === "number" ? b : a; return this; } });
 const stranger = (url, query = {}) => ({ url, method: "GET", query, headers: { "x-forwarded-for": "203.0.113.9", "user-agent": "Mozilla/5.0 (iPhone)", host: "goasksam.com" }, socket: {}, cookies: {} });
 // every public route a stranger can reach: [path, handler file, query]

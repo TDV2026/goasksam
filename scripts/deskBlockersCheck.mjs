@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // DESK DEMO BLOCKERS (Lane D, Nov 2026; Lane F's live check of two Hagerty test sheets). Offline: a fake archive holds cars whose pool SPLITS by body, the real engine reads it, the real sheet read and sheet actions answer.
 //   node scripts/deskBlockersCheck.mjs [repo root]        (scripts/deskBlockersFailsWithout.mjs: each mutant must turn it red)
 //  1. A POOL THAT SPLITS ASKS: when the engine finds the pool splits by body (or gearbox, edition, year) the sheet asks which one, from the engine's own options and counts (the VIN's body preselected when known); the tier is then read
@@ -100,9 +101,11 @@ ok(full >= 4 && thin >= 2, `the sample reaches both the read tier pool (${full} 
 // ---------- the VIN names the body: preselected, and the expert can pick the other
 { const c = CARS[0], deps = { ...mkDeps(c), decodeVin: async () => ({ year: 2008, make: "Porsche", model: "911", trim: "Carrera S", bodyStyle: "Convertible/Cabriolet" }), vinPlan: async f => ({ vehicle: { ...f, bodyStyle: null }, text: textOf(c), ctx: null }) };
   const rv = await S.sheetRead(env, { vin: "WP0AB29918S745123", mileage: MILES, tier: 2 }, deps);
-  ok(rv && rv.market.asks[0] && rv.market.asks[0].selected === "open" && rv.market.asks[0].fromVin === true && rv.condition.state !== "needs_choice", "a VIN whose decode says Cabriolet preselects Cabriolet (and says so)");
+  // Nov 11 2026 (788553d0): a VIN case reads the SAME pool as its typed twin, the decoded body rides on the vehicle. So the VIN's Cabriolet scopes the read at once: no open question, the pool is that body's, the figure is the one a typed "pick Cabriolet" reads.
+  const twin = await S.sheetRead(env, { text: textOf(c), mileage: MILES, tier: 2, picks: [{ dimension: "body", value: "open" }] }, mkDeps(c));
+  ok(rv && rv.market.asks.length === 0 && rv.condition.state !== "needs_choice" && rv.market.count === c.nb && rv.market.startingFigure != null && rv.market.startingFigure === twin.market.startingFigure, "a VIN whose decode says Cabriolet reads the Cabriolet pool at once, with no question, the same figure as the typed twin that picked Cabriolet");
   const rv2 = await S.sheetRead(env, { vin: "WP0AB29918S745123", mileage: MILES, tier: 2, picks: [{ dimension: "body", value: "coupe" }] }, deps);
-  ok(rv2 && rv2.market.asks[0].selected === "coupe" && rv2.market.asks[0].fromVin === false, "the expert's own pick wins over the VIN's body");
+  ok(rv2 && rv2.market.asks.length === 0 && rv2.market.count === c.nb && rv2.market.startingFigure === rv.market.startingFigure, "the VIN body is the case's body: a pick of the other body is not offered, so it never widens the read to Coupes");
   const bad = await S.sheetRead(env, { ...{ text: textOf(c), mileage: MILES }, tier: 2, picks: [{ dimension: "body", value: "spaceship" }] }, mkDeps(c));
   ok(bad && bad.market.asks[0].selected == null && bad.condition.state === "needs_choice", "a pick the engine does not offer is dropped, never read"); }
 

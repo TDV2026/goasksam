@@ -1,0 +1,122 @@
+{
+ "note": "THE FOUR CARS THAT ANSWERED \"sold as different cars, so no one range\", RECORDED LIVE (Lane B, lane-b-sell-nolump-3, Nov 18 2026): per car the typed words, the sales the engine read by variant of its list (the variants block pool counts) and the options it priced apart (body or gearbox: n, low, high), as counts and prices only. The check rebuilds an archive of that shape and reads it through the real handler. reproduces: true where the rebuilt archive has no one range of its own, as live (the BMW); the other three keep a band of their own in a rebuilt archive (their live no-range came from the options priced apart, which a rebuilt archive does not reproduce), so for them the check holds the invariant only.",
+ "cars": [
+  {
+   "typed": "1987 BMW 3 Series",
+   "make": "BMW",
+   "model": "3-Series",
+   "year": 1987,
+   "family": "bmw-3-series-e30",
+   "variants": {
+    "325i": 8,
+    "325is": 6,
+    "Unstated": 1
+   },
+   "dimension": "gearbox",
+   "options": [
+    {
+     "label": "Manual",
+     "value": "manual",
+     "n": 9,
+     "low": 16500,
+     "high": 26000
+    },
+    {
+     "label": "Automatic",
+     "value": "auto",
+     "n": 8,
+     "low": 7500,
+     "high": 16500
+    }
+   ],
+   "reproduces": true
+  },
+  {
+   "typed": "1996 Porsche 993",
+   "make": "Porsche",
+   "model": "993",
+   "year": 1996,
+   "family": "porsche-993",
+   "variants": {
+    "Carrera": 13,
+    "Targa": 1,
+    "Cabriolet": 5
+   },
+   "dimension": "body",
+   "options": [
+    {
+     "label": "Cabriolet",
+     "value": "open",
+     "n": 11,
+     "low": 58500,
+     "high": 80500
+    },
+    {
+     "label": "Coupe",
+     "value": "coupe",
+     "n": 13,
+     "low": 94000,
+     "high": 127000
+    }
+   ],
+   "reproduces": false
+  },
+  {
+   "typed": "2000 Chevrolet Corvette",
+   "make": "Chevrolet",
+   "model": "Corvette",
+   "year": 2000,
+   "family": "chevrolet-corvette-c5",
+   "variants": {
+    "Base": 13
+   },
+   "dimension": "body",
+   "options": [
+    {
+     "label": "Coupe",
+     "value": "coupe",
+     "n": 8,
+     "low": 15500,
+     "high": 22500
+    },
+    {
+     "label": "Convertible",
+     "value": "open",
+     "n": 13,
+     "low": 14500,
+     "high": 18500
+    }
+   ],
+   "reproduces": false
+  },
+  {
+   "typed": "1978 Porsche 911",
+   "make": "Porsche",
+   "model": "911",
+   "year": 1978,
+   "family": "porsche-911-1974-1983",
+   "variants": {
+    "Targa": 9,
+    "Unstated": 3
+   },
+   "dimension": "body",
+   "options": [
+    {
+     "label": "Targa",
+     "value": "targa",
+     "n": 9,
+     "low": 45000,
+     "high": 68000
+    },
+    {
+     "label": "Coupe",
+     "value": "coupe",
+     "n": 12,
+     "low": 44000,
+     "high": 76000
+    }
+   ],
+   "reproduces": false
+  }
+ ]
+}

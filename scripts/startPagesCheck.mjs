@@ -19,9 +19,10 @@ const call = async (mod, url, headers = {}) => { const { default: h } = await im
 const text = h => h.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ").replace(/&middot;|&#183;/g, "·").replace(/\s+/g, " ");
 const home = await call("home", "/"), find = await call("buy", "/find"), mc = await call("marketCheck", "/market-check"), sell = await call("sellNext", "/api/sellNext", { cookie: "" });
 // Home
-ok(home.code === 200 && /<h1 class="gst-h">Find the car you&#39;re looking for\.<\/h1>/.test(home.body) || /<h1 class="gst-h">Find the car you're looking for\.<\/h1>/.test(home.body), "Home: the headline is Sam's (" + home.code + ")");
+const ent = x => String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"), hasH1 = (body, t) => body.includes('<h1 class="gst-h">' + ent(t) + "</h1>") || body.includes('<h1 class="gst-h">' + t + "</h1>");
+ok(home.code === 200 && hasH1(home.body, C.home.START_TITLE), "Home: the headline is Sam's, from data/copy.json (" + home.code + ")");
 const homeMarkup = home.body.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script[\s\S]*?<\/script>/g, "");
-ok(!/Welcome to GoAskSam/i.test(homeMarkup) && !/class="gst-eye"/.test(homeMarkup) && /Tell Sam what you want\. Search live enthusiast car auctions in your own words\./.test(home.body) && !/Speak or type naturally/.test(home.body), "Home: no eyebrow, no helper line, the sub is Sam's");
+ok(!/Welcome to GoAskSam/i.test(homeMarkup) && !/class="gst-eye"/.test(homeMarkup) && home.body.includes(ent(C.home.START_SUB)) || home.body.includes(C.home.START_SUB) && !/Speak or type naturally/.test(home.body), "Home: no eyebrow, no helper line, the sub is Sam's");
 ok(/Market Check<\/b><span>See what similar cars have actually sold for\.<\/span>/.test(home.body) && /Sell a car<\/b><span>Discover where and how to sell\.<\/span>/.test(home.body), "Home: the two cards are Sam's");
 // (Oct 25 2026: the one quiet bottom line "(c) GoAskSam, from The Daily Vroom" with Privacy links is Sam's order and is the only mention allowed in the body.)
 const homeMain = home.body.slice(home.body.indexOf("<main"), home.body.indexOf("</main>")).replace(/<div class="hm-legal">[\s\S]*?<\/div>/, "");
@@ -33,7 +34,7 @@ ok(/<p class="gst-asof" data-lead-sentence>Live auctions(?: now| updated [^<]*?)
 const closed = await call("home", "/", { cookie: "" });
 { const prev = process.env.LAUNCH_STAGE; process.env.LAUNCH_STAGE = "0"; const c0 = await call("home", "/"); process.env.LAUNCH_STAGE = prev; ok(c0.code === 302 && c0.hd.location === "/sell", "Home: while Find is not released, '/' answers as before (302 to /sell), not a permanent redirect"); }
 // Find
-ok(/<h1 class="gst-h">What car are you looking for\?<\/h1>/.test(find.body) && /Find · Live auctions/.test(find.body) && /Describe it naturally\. Sam searches live enthusiast car auctions for you\./.test(find.body), "Find: eyebrow, headline, sub are Sam's");
+ok(hasH1(find.body, C.find.START_TITLE) && /Find · Live auctions/.test(find.body) && (find.body.includes(ent(C.find.START_SUB)) || find.body.includes(C.find.START_SUB)), "Find: eyebrow, headline, sub are Sam's, from data/copy.json");
 ok(!/Type it or say it/.test(find.body) && !/Live auctions across platforms/.test(find.body) && /id="hq"/.test(find.body) && /id="hgo"/.test(find.body) && /id="hmic"/.test(find.body), "Find: helper and line are Sam's; the box keeps ids hq, hgo, hmic (its own engine path)");
 ok(/data-lead-sentence>Live auctions(?: now| updated [^<]*?)?\.( Sales to [A-Z][a-z]{2} \d{1,2}, \d{4}\.)?</.test(find.body) && /<meta name="description" content="Live auctions[^"]*\. (Sales to [A-Z][a-z]{2} \d{1,2}, \d{4}\. )?Each car is shown with what cars like it have actually sold for\.">/.test(find.body) && !/Sam follows the enthusiast/.test(find.body) && !/collector/i.test(text(find.body)), "Find: the dated lead sentence is there and nothing says collector");
 ok(!/lk-chip|Put Sam on it|ls-step|One search\. Every live/.test(find.body.replace(/<style>[\s\S]*?<\/style>/g, "").replace(/<script>[\s\S]*?<\/script>/g, "")), "Find: the old landing (hero, feature cards, Put Sam on it, example band) is gone");

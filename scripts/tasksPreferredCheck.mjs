@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // PREFERRED VERSUS REQUIRED IN A TASK (Lane B, Nov 2026, CREW ONLY, NOT LIVE). Lane F's audit: "preferably black" became a hard requirement and the read-back said "black manual".
 // CAUSE: the Task's job had one kind of criterion, a required one; the setup model's words "preferably / ideally / would like" had no field to land in, so the colour filter excluded every non-black car and
 // the read-back printed the colour as a requirement. Affects every colour, gearbox, body and trim a buyer words as a wish (not the budget, miles or distance, which stay required) in a hunt's read-back

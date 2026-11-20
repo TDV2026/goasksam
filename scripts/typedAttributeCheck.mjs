@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // TYPED GEARBOX, ENGINE AND BODY WORDS ARE APPLIED OR ANNOUNCED, NEVER DROPPED; THE CLASSIC BODIES ARE SEPARATE POOLS; SALES CAN BE READ BY DATE (Lane B, Oct 30 2026, two readers on launch day).
 // THE THREE LIVE CASES: "2005-6 Pontiac GTO 6-speed" returned manual and automatic together; "W123 Mercedes with a V8" returned a four-cylinder 230TE; "1932 Ford V-8 Roadster" pooled a 1933 Phaeton and a street rod, and
 // "1930 Packard 745 Deluxe Eight Roadster" returned Phaetons as in range and a 1929 626 Speedster as the top sale.

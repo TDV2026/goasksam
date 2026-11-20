@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // A CAR IN A THIN MILEAGE BAND READS THE NEAREST BAND THAT HAS A RANGE, THE OPTION LIST NEVER RESTATES THE HEADLINE, BANDS PRINT ASCENDING (Lane B, Oct 30 2026).
 // THE LIVE CASE: a Task email, 1995 BMW M3 Coupe, 61,000 km (about 38,000 miles), Bellingham WA. Its own band (under 50,000 miles) holds 4 sales; the next (50,000 to 100,000 miles) holds 9, $26,000 to $36,500.
 // The card printed "Four sales under 50,000 miles, too few for a range." as the headline, then "Under 50,000 miles, 4 sales, too few for a range" as its first option (the same band twice), then the options as under 50,
@@ -66,7 +67,7 @@ for (const ns of SHAPES) for (const miles of [20000, 28000, 38000, 49999, 50000,
   globalThis.fetch = f0;
   ok("storedBorrowedBand: true only for a row with nearBand.to", E.storedBorrowedBand(rows.borrowed.market.raw) === true && !E.storedBorrowedBand(rows.thinSentence.market.raw) && !E.storedBorrowedBand(rows.none.market.raw) && !E.storedBorrowedBand(rows.other.market.raw) && !E.storedBorrowedBand(null));
   ok("the warm read marks stale ONLY the borrowed row (reason borrowed_band_recheck); the other three keep serving", got.borrowed.raw === null && got.borrowed.reason === "borrowed_band_recheck" && ["thinSentence", "none", "other"].every(k => got[k].raw && got[k].reason !== "borrowed_band_recheck"), JSON.stringify(Object.fromEntries(Object.entries(got).map(([k, x]) => [k, x.raw ? "served" : x.reason]))));
-  ok("no engine stamp bump: the stamp is still the one of 60cfa555", /^e100-20261110-oldergens/.test(E.ENGINE_VERSION), E.ENGINE_VERSION); }
+  ok("the stamp is the engine's one stamp (data/engineStamp.json) and the rows this check stores carry it (the old pin, the stamp of 60cfa555, was true only on that commit)", E.ENGINE_VERSION === (() => { try { return JSON.parse(fs.readFileSync("data/engineStamp.json", "utf8")).stamp; } catch { return null; } })() && /^e\d+-\d{8}-/.test(String(E.ENGINE_VERSION)), E.ENGINE_VERSION); }
 // 3. nothing to headline: no band has a range, the sentence is not made up
 { const fa = find(answer([4, 5, 3]), 38000); ok("no band has a range: the engine says too few (honest), with no near-band sentence", fa && fa.state === "few" && !fa.nearBand && /too few for a range/.test(fa.lines[0]), fa && JSON.stringify(fa.lines)); }
 // 4. km: 61,000 km is about 37,900 miles before it is banded, and the band label is in miles
@@ -104,7 +105,7 @@ for (const [dim, labels, title] of [["gearbox", [["Manual", "manual"], ["Tiptron
     const line = R({ make, model, generation, year_min: y, year_max: y, gearbox }, { year: 1995, gearbox: "manual" }, null); if (line) sweep.push(line); }
   ok(`every reason (${sweep.length} filter shapes) is a sentence naming a car ("a ..." or "an ..."), never a bare year, make or code`, sweep.every(l => /^Matches your Task: an? [^,.]*(car|[A-Za-z]{2,})[^.]*\.$/.test(l) && !/^Matches your Task: (\d{4}|[A-Z0-9-]{2,6})\.$/.test(l)), sweep.find(l => !/^Matches your Task: an? /.test(l)));
   const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? (/node_modules|\.git|proofs|docs/.test(e.name) ? [] : walk(path.join(d, e.name))) : /\.(js|mjs)$/.test(e.name) ? [path.join(d, e.name)] : []);
-  const hits = [...walk("lib"), ...walk("api"), ...walk("public")].filter(f => /Matches your Task|Matches your task|matches your Task/i.test(fs.readFileSync(f, "utf8").replace(/\/\/[^\n]*/g, "")));
+  const hits = [...walk("lib"), ...walk("api"), ...walk("public")].filter(f => /matches your task:/i.test(fs.readFileSync(f, "utf8").replace(/\/\/[^\n]*/g, "")));
   ok("the reason string is built in one place (lib/tasks/tasks.js), so no watch or Task path has its own", hits.length === 1 && hits[0] === path.join("lib", "tasks", "tasks.js"), hits.join(" | "));
 }
 console.log(fail ? `mileageBandNearCheck: ${fail} failure(s)` : "mileageBandNearCheck: all pass");

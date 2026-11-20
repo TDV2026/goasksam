@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // DESK DRY RUN 2 (Lane D, Nov 8 2026; Sam's run on the 2008 Porsche 911 Carrera S sheet and its draft PDF). In the real page, in Chrome, over the real sheet actions and the real PDF writer, on three cars (a split pool,
 // a plain pool, a thin tier pool), not the one example. CAUSES: (1) a sheet could only be given photos by the New valuation form and printed none at the top; (2) a click waited for the engine before it showed anything and
 // the open waited too; (4/5/6) the median and the range were the body pool's whatever tier was picked, and the decision was held against a different range from the one on the page.
@@ -25,7 +26,7 @@ const fetchImage = async url => { const m = /^data:[^;]+;base64,(.*)$/.exec(Stri
 const stream = bytes => [...Buffer.from(bytes).toString("latin1").matchAll(/stream\n([\s\S]*?)\nendstream/g)].map(m => m[1]).filter(s => /BT /.test(s));
 const imgs = s => (s.match(/\/Im\d+ Do/g) || []).length;
 const V_SPLIT = "WP0CB29918S765432", V_PLAIN = "WP0AB29918S745123", V_M3 = "WBSBR93422EX21856";
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dr2-")), f1 = path.join(tmp, "one.jpg"), f2 = path.join(tmp, "two.jpg"); fs.writeFileSync(f1, JPG); fs.writeFileSync(f2, JPG);
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dr2-")), f1 = path.join(tmp, "one.jpg"), f2 = path.join(tmp, "two.jpg"); fs.writeFileSync(f1, JPG); fs.writeFileSync(f2, await (await import("sharp")).default(JPG).negate().jpeg().toBuffer());   /* a different picture (colours inverted): the page shrinks a photo before it sends it and the same bytes are never on a case twice (Nov 16), so two copies of one picture show one thumbnail */
 const base = { reasons: [], otherText: "", line: "", guardLines: {} };
 const usd = n => "$" + Math.round(n).toLocaleString("en-US");
 

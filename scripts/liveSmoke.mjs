@@ -5,6 +5,7 @@
 // Rule: the pages compute nothing; every assertion reads what the page printed from the engine's answer. Waits are for a named condition, never a fixed pause (liveWaitsCheck).
 import { execFileSync } from "node:child_process";
 import puppeteer from "puppeteer-core";
+import { FIND_ANSWERED } from "./_findAnswered.mjs";
 
 const SITE = (process.argv.includes("--site") ? process.argv[process.argv.indexOf("--site") + 1] : process.env.SITE || "https://goasksam.com").replace(/\/$/, "");
 const CHROME = process.env.CHROME || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -87,7 +88,7 @@ await FI.p.close();
 const RANGE_OK = /\$[\d,]+ to \$[\d,]+/;
 const RANGE = /\$[\d,]+ to \$[\d,]+/;
 const fb = await mcSearch(false, "1987 Pontiac Firebird");
-check("MC visitor: '1987 Pontiac Firebird' gives a range and its count, the whole generation", fb.ok && /MARKET CHECK \| 1987 Pontiac Firebird/.test(fb.text) && RANGE.test(fb.text) && /of the \d+ sales since/.test(fb.text), fb.text.slice(0, 300));
+check("MC visitor: '1987 Pontiac Firebird' gives the engine's line and a range for each variant (the cards are public since Nov 18 2026; the one range card stands aside)", fb.ok && /MARKET CHECK \| 1987 Pontiac Firebird/.test(fb.text) && /depends on which one it is/.test(fb.text) && (fb.text.match(/\$[\d,]+ to \$[\d,]+/g) || []).length >= 2, fb.text.slice(0, 300));
 check("MC visitor: ...with no variant question", !/Which (one|variant|Firebird)|Trans Am \([\d]+\) →|Formula \([\d]+\) →/.test(fb.text), fb.text.slice(0, 300));
 check("MC visitor: ...and no notice", !/didn't use/i.test(fb.text), (fb.text.match(/Sam didn't use[^|]*/) || [""])[0]);
 await fb.p.close();
@@ -139,10 +140,10 @@ async function barSuite(isCrew, who) {
   await c.p.close();
   if (findPill) {
     const p = await open(isCrew); await p.goto(new URL(findPill.href, SITE).href, { waitUntil: "networkidle2" });
-    await p.waitForFunction(() => /live match|No live|0 live/i.test(document.body.innerText), { timeout: 60000 }).catch(() => {});
+    await p.waitForFunction(re => new RegExp(re.source, re.flags).test(document.body.innerText), { timeout: 60000 }, { source: FIND_ANSWERED.source, flags: FIND_ANSWERED.flags }).catch(() => {});
     const t = await textOf(p);
-    check("Find pill (crew): opens already run for the SL500 (a result line, the car's chips, not the empty prompt)", /live match/i.test(t) && /SL500/.test(t) && !/What car are you looking for\?/.test(t), t.slice(0, 300));
-    check("Find pill (crew): the line above the cars names the mileage (the ones within 15,000 miles of 38,400, or none is within it and here is every one)", /None for sale right now is within 15,000 miles of 38,400, so here is every one\.|These are the ones within 15,000 miles of 38,400\./.test(t) && !/38,400 to 38,400/.test(t), t.slice(0, 700));
+    check("Find pill (crew): opens already run for the SL500 (a result line, the car's chips, not the empty prompt)", FIND_ANSWERED.test(t) && /SL500/.test(t) && !/What car are you looking for\?/.test(t), t.slice(0, 300));
+    check("Find pill (crew): the line above the cars names the mileage (the ones within 15,000 miles of 38,400, or none is within it and here is every one)", /None for sale right now is within 15,000 miles of 38,400, so here is every one\.|Only one for sale right now is within 15,000 miles of 38,400, too few to narrow to, so here is every one\.|These are the ones within 15,000 miles of 38,400\./.test(t) && !/38,400 to 38,400/.test(t), t.slice(0, 700));
     check("Find pill (crew): the bar is kept on the Find page", /38,400 miles/.test(t), t.slice(0, 200));
     await p.close();
   } else check("Find pill (crew): opens already run", false, "no Find pill");
@@ -164,7 +165,7 @@ async function barSuite(isCrew, who) {
     check("Tasks pill (crew): the car bar shows above, with Tasks filled", !!tk && !!tk.line && /SL500/.test(tk.line) && tk.on.length === 1 && tk.on[0] === "Tasks", tk && JSON.stringify([tk.line, tk.on]));
     const tks = tk ? tk.pills.map(a => (/[?&]car=([^&]+)/.exec(a.href) || [])[1]).filter(Boolean) : [];
     check("Tasks pill (crew): the other three pills carry the same token as the Market Check bar", tks.length === 4 && tks.every(x => x === toks[0]), tks.length + " tokens");
-    for (const [label, ready, re] of [["Find", /live match/i, /SL500/], ["Market Check", null, /SL500/], ["Sell", /Which state is it in\?/, /SL500/]]) {
+    for (const [label, ready, re] of [["Find", FIND_ANSWERED, /SL500/], ["Market Check", null, /SL500/], ["Sell", /Which state is it in\?/, /SL500/]]) {
       const pill = tk && tk.pills.find(a => a.label === label); if (!pill) { check("Tasks to " + label + " (crew): the pill is on the Tasks bar", false, "missing"); continue; }
       const q = await open(isCrew); await q.goto(new URL(pill.href, SITE).href, { waitUntil: "networkidle2" });
       if (label === "Market Check") await answered(q); else await q.waitForFunction(r => new RegExp(r).test(document.body.innerText), { polling: 500, timeout: 60000 }, ready.source).catch(() => {});
@@ -181,7 +182,7 @@ await barSuite(false, "visitor");
 // ---- 3b. Find's one line about the mileage (lane-b-find-line): a search with no mileage keeps "That's everything", a typed ceiling still filters ---------------------------------------------------------------
 {
   const findText = async typed => { const p = await open(false); await p.goto(SITE + "/find", { waitUntil: "networkidle2" }); await p.type("#pq", typed); await p.keyboard.press("Enter");
-    const end = Date.now() + 60000; while (Date.now() < end) { await new Promise(r => setTimeout(r, 1000)); try { if (/live match|Nothing live|No .* live/i.test(await textOf(p))) break; } catch { /* moving */ } } await quiet(p); const t = await textOf(p), u = p.url(); await p.close(); return { t, u }; };
+    const end = Date.now() + 60000; while (Date.now() < end) { await new Promise(r => setTimeout(r, 1000)); try { if (FIND_ANSWERED.test(await textOf(p))) break; } catch { /* moving */ } } await quiet(p); const t = await textOf(p), u = p.url(); await p.close(); return { t, u }; };
   const nm = await findText("2003 Mercedes-Benz SL500");
   check("Find (visitor): a search with no mileage still reads \"That's everything matching your search right now.\"", /That.s everything matching your search right now\./.test(nm.t), nm.t.slice(0, 400));
   const un = await findText("2003 Mercedes-Benz SL500 under 40,000 miles");
@@ -211,7 +212,7 @@ await barSuite(false, "visitor");
     if (sp) { const q = await open(true); await q.goto(new URL(sp.h, SITE).href, { waitUntil: "networkidle2" }); const r = await poll(async () => { const t = await textOf(q), b2 = await barOf(q); return /Which state is it in\?/.test(t) && b2 ? { t, b2 } : null; }, 30000);
       check("partial car (crew): the Sell pill opens Sell with the bar '2009 BMW' at its first question", !!r && r.b2.line === "2009 BMW", r && r.b2.line); await q.close(); }
     const fp = pills.find(x => x.l === "Find");
-    if (fp) { const q = await open(true); await q.goto(new URL(fp.h, SITE).href, { waitUntil: "networkidle2" }); const r = await poll(async () => { const t = await textOf(q), b2 = await barOf(q); return /live match/i.test(t) && b2 ? { t, b2 } : null; }, 60000);
+    if (fp) { const q = await open(true); await q.goto(new URL(fp.h, SITE).href, { waitUntil: "networkidle2" }); const r = await poll(async () => { const t = await textOf(q), b2 = await barOf(q); return FIND_ANSWERED.test(t) && b2 ? { t, b2 } : null; }, 60000);
       check("partial car (crew): the Find pill opens the results with the bar '2009 BMW'", !!r && r.b2.line === "2009 BMW", r && r.b2.line); await q.close(); }
     { const q = await open(true); await q.goto(SITE + "/market-check", { waitUntil: "networkidle2" }); await q.type("#pq", "1950 Toyota"); await q.keyboard.press("Enter");
       const afterOf = t => t.slice(t.indexOf("Search a car") + 12, t.indexOf("Real sales only") > 0 ? t.indexOf("Real sales only") : undefined).replace(/[|→\s]+/g, " ").trim();
@@ -223,7 +224,7 @@ await barSuite(false, "visitor");
   }
   { const p = await open(false); await p.goto(SITE + "/market-check", { waitUntil: "networkidle2" }); await p.type("#pq", "2009 BMW"); await p.keyboard.press("Enter");
     await poll(async () => (await gmc(p)).buttons.length > 0, 45000); await quiet(p); const g = await gmc(p), b2 = await barOf(p);
-    check("partial car (visitor): Market Check '2009 BMW' shows the choice once, 'Which 2009 BMW?', no older block, with the bar '2009 BMW' (the partial car is public), and no variant rows", g.blocks === 1 && g.line === "Which 2009 BMW?" && g.older === false && !!b2 && b2.line === "2009 BMW" && !(await p.evaluate(() => !!document.getElementById("vrs-mod"))), JSON.stringify([g.blocks, g.line, g.older, b2 && b2.line])); await p.close(); }
+    check("partial car (visitor): Market Check '2009 BMW' shows the choice once, 'Which 2009 BMW?', no older block, with the bar '2009 BMW' (the partial car is public), and no variant rows drawn (the variant rows are public since Nov 18 2026: the module is in the page, the rows are not drawn for a choice)", g.blocks === 1 && g.line === "Which 2009 BMW?" && g.older === false && !!b2 && b2.line === "2009 BMW" && !(await p.evaluate(() => !!document.getElementById("vrs"))), JSON.stringify([g.blocks, g.line, g.older, b2 && b2.line])); await p.close(); }
   { const p = await open(false); await p.goto(SITE + "/market-check", { waitUntil: "networkidle2" }); await p.type("#pq", "2009 BMW M3"); await p.keyboard.press("Enter"); const b2 = await poll(() => barOf(p), 45000);
     check("partial car (visitor): a full car '2009 BMW M3' keeps the public bar", !!b2 && b2.line === "2009 BMW M3" && b2.pills.length === 4, b2 && b2.line); await p.close(); }
 }
@@ -243,11 +244,55 @@ await barSuite(false, "visitor");
   }
   const v = await mcSearch(false, "1987 Pontiac Firebird"); await quiet(v.p);
   const rv = await rowsOf(v.p).catch(() => null);
-  check("rows (visitor): '1987 Pontiac Firebird' shows no variant rows", !rv && !/vrs-mod|vrs-css/.test(await v.p.content()), JSON.stringify(rv));
+  check("rows (visitor): '1987 Pontiac Firebird' shows the engine's line and a row per variant, the same as the crew (the split is public since Nov 18 2026)", !!rv && !!rv.line && rv.rows.length >= 2 && rv.rows.every(x => x.label && x.sales), JSON.stringify(rv));
   check("rows (visitor): ...and the car bar shows", !(await noBar(v.p)));
   await v.p.close();
+  // lane-b-sell-nolump-2 (Nov 18 2026): the cars whose blended answer has no range are cards, one per car; the exact car is named as itself; no other car sits in a pool
+  const g3 = await mcSearch(false, "Ferrari 330 GT"); await quiet(g3.p); const r3 = await waitRows(g3.p).catch(() => null);
+  check("rows (visitor): 'Ferrari 330 GT' shows a row per car with a range of its own (GT 2+2, GTC), not the 'different cars' refusal", !!r3 && r3.rows.length >= 2 && r3.rows.filter(x => x.range).length >= 2 && !/there is no one range for them/.test(await textOf(g3.p)), r3 && JSON.stringify(r3).slice(0, 300));
+  check("rows (visitor): ...and no sales list that mixes the cars (What has sold)", !/What has sold/.test(await textOf(g3.p)), (await textOf(g3.p)).slice(0, 200)); await g3.p.close();
+  const g4 = await mcSearch(false, "Ferrari 330 GT 2+2"); await quiet(g4.p);
+  check("MC visitor: 'Ferrari 330 GT 2+2' is named as itself and answers with a range", g4.ok && /MARKET CHECK \| Ferrari 330 GT 2\+2/.test(await textOf(g4.p)) && RANGE.test(await textOf(g4.p)), (await textOf(g4.p)).slice(0, 300)); await g4.p.close();
+  const g5 = await mcSearch(false, "Ferrari 365"); await quiet(g5.p);
+  check("MC visitor: 'Ferrari 365' lists no Ferrari 400i or 412 (a sale of another car is not in the pool)", !/Ferrari (400i|412|400 GT)/.test(await textOf(g5.p)), (await textOf(g5.p)).slice(0, 200)); await g5.p.close();
 }
 
+
+// ---- 5. SELL MUST ANSWER (Lane C, Nov 18 2026, the live fault: any search on Sell ended on "This one could not be read yet." and "bmw" asked every question, drew the model choice, asked them all again) ---------------------
+// Three rules, each failing on its own: (a) Sell answers a car it knows, to the end (a visitor: a car and a VIN reach the pick or the range, never the could-not-read line); (b) a partial car (a make only) gets the model choice BEFORE any question;
+// (c) no question is asked twice in one run. Waits are for named conditions with ceilings (liveWaitsCheck), never fixed pauses beyond the one-second poll.
+{
+  const SELL_DONE = /SAM.S PICK|WHAT THESE SELL FOR|Too few sales to show a range|different cars at different prices|price depends on which one it is/i, COULD_NOT = /could not be read yet|still being read|When the next/i;
+  const QUESTIONS = ["Which state is it in?", "How would you like to sell it?", "How quickly do you need it sold?"];
+  const pollIn = async (p, f, ms) => { const end = Date.now() + ms; while (Date.now() < end) { try { const r = await f(); if (r) return r; } catch { /* the page is moving */ } await new Promise(x => setTimeout(x, 1000)); } return null; };
+  const tapChip = async (p, labels) => { try { return await tapChipRaw(p, labels); } catch { return null; } };
+  const tapChipRaw = (p, labels) => p.evaluate(ls => { const e = [...document.querySelectorAll("button,.chip")].find(e => e.offsetParent && ls.includes(e.innerText.trim())); if (e) { e.click(); return e.innerText.trim(); } return null; }, labels);
+  // one run through Sell for a typed car as a visitor: the screens seen in order (the question prompts and the choice block), until it ends or the ceiling
+  const runSell = async (typed, { tapModel = null, ms = 100000 } = {}) => {
+    const p = await open(false); await p.goto(SITE + "/sell", { waitUntil: "networkidle2" }); await p.type("#pq", typed); await p.keyboard.press("Enter");
+    const seen = []; let choiceAt = -1, tapped = null, text = "", end = Date.now() + ms;
+    while (Date.now() < end) {
+      let st = null; try { st = await p.evaluate(() => ({ t: document.body.innerText.replace(/\s+/g, " "), gmc: !!document.querySelector("#gmc .gmc-btn") })); } catch { /* moving */ }
+      if (st) {
+        text = st.t; for (const q of QUESTIONS) if (st.t.includes(q) && seen[seen.length - 1] !== q) seen.push(q);
+        if (st.gmc && choiceAt < 0) { choiceAt = seen.length; seen.push("CHOICE"); if (tapModel) { tapped = await p.evaluate(m => { const b = [...document.querySelectorAll("#gmc .gmc-btn")].find(x => x.textContent.trim() === m) || document.querySelector("#gmc .gmc-btn"); if (b) { b.click(); return b.textContent.trim(); } return null; }, tapModel); } }
+        if (SELL_DONE.test(st.t) && !QUESTIONS.some(q => st.t.includes(q))) break;
+        if (COULD_NOT.test(st.t) && !QUESTIONS.some(q => st.t.includes(q)) && !/Sam is reading/.test(st.t)) break;
+      }
+      const chip = await tapChip(p, ["Texas", "I'll sell it myself", "Within a month"]); if (chip) await new Promise(x => setTimeout(x, 1500)); else await new Promise(x => setTimeout(x, 1000));
+    }
+    try { await p.close(); } catch { /* gone */ } return { seen, choiceAt, tapped, text, done: SELL_DONE.test(text), couldNot: COULD_NOT.test(text) };
+  };
+  for (const [name, typed] of [["a car", "2003 Mercedes-Benz SL500"], ["a VIN", "WP0AA29962S621698"]]) {
+    const r = await runSell(typed);
+    check("Sell (visitor): " + name + " ('" + typed + "') is answered to the end: the pick or the range, never the could-not-read line", r.done && !r.couldNot, r.seen.join(" > ") + " :: " + r.text.slice(0, 200));
+  }
+  const bm = await runSell("bmw", { tapModel: "3 Series" });
+  check("Sell (visitor): a make only ('bmw') draws the model choice BEFORE the first question", bm.choiceAt === 0, bm.seen.join(" > ") + " :: " + bm.text.slice(0, 160));
+  const seenQ = bm.seen.filter(x => x !== "CHOICE"); const twice = QUESTIONS.filter(q => seenQ.filter(x => x === q).length > 1);
+  check("Sell (visitor): no question is asked twice in one run ('bmw', then a model)", twice.length === 0 && bm.choiceAt >= 0, "twice: " + twice.join(" | ") + " :: " + bm.seen.join(" > "));
+  check("Sell (visitor): 'bmw' then a model ends on a result, not on the could-not-read line", bm.done && !bm.couldNot, bm.seen.join(" > ") + " :: " + bm.text.slice(0, 200));
+}
 
 console.log("\nliveSmoke " + SITE + ": " + pass + " pass, " + fail + " FAIL");
 await browser.close();

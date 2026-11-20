@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // HOT-PATH LOG LINES PER REQUEST (Lane E, Nov 3 2026, lane-e-vercelcost). Vercel usage Oct 25 to Nov 3: 5.02M observability events ($5.25), the largest line on the bill. Every console.log / console.warn / console.error a function
 // prints is one log event, and so is every request. CAUSE: the engine printed a "cache_decision" line (with the full spec key) for every cache it read, every time it read one (lib/live/search.js logCacheDecision: the in-memory
 // range cache, the stored Market Check row, the question row, the spec memory, the stored spec row), and "stage_ms" for every engine read (lib/onebox.js), so ONE Find search of 24 cars printed a line per car per cache, and a

@@ -1,0 +1,29 @@
+{
+ "stamp": "e107-20261119-readretry",
+ "hash": "0a20d73d532f0dc53d7737e9727ef45f1fddedba479714678a017e87bc12eb40",
+ "bumps": [
+  {
+   "stamp": "e101-20261118-variantcards",
+   "approvedBy": "before the rule (Nov 18 2026)"
+  },
+  {
+   "stamp": "e102-20261118-nolump2",
+   "approvedBy": "before the rule (Nov 18 2026)"
+  },
+  {
+   "stamp": "e103-20261118-nodead",
+   "approvedBy": "before the rule (Nov 18 2026)"
+  },
+  {
+   "stamp": "e104-20261118-cardsfirst",
+   "approvedBy": "before the rule (Nov 18 2026)"
+  },
+  {
+   "stamp": "e105-20261118-cardsfirst2",
+   "approvedBy": "before the rule (Nov 18 2026)"
+  },
+  {
+   "stamp": "e107-20261119-readretry"
+  }
+ ]
+}

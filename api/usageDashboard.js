@@ -436,6 +436,19 @@ async function handleOps(req, res) {
     return res.status(401).json({ error: "Unauthorized (ops). Send the key in the x-ops-key header." });
   }
 
+  // task=vinoverlap (Lane S, Nov 18 2026): READ ONLY, POST only, no OldCarsData, no cache, no writes; lib/ops/vinOverlap.js.
+  // After the key check above and before the OCD key check, which this task never needs.
+  if (String(req.query?.task || "") === "vinoverlap") {
+    if (req.method !== "POST") { res.setHeader("Allow", "POST"); return res.status(405).json({ error: "vinoverlap is POST only." }); }
+    const venv = supabaseEnv();
+    if (!venv) return res.status(500).json({ error: "Supabase env not set." });
+    let body = req.body; if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = null; } }
+    const { runVinOverlap } = await import("../lib/ops/vinOverlap.js");
+    const out = await runVinOverlap(body, p => supabaseSelectAll(venv, p));
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(out.status).json(out.json);
+  }
+
   const apiKey = process.env.OLDCARSDATA_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "OLDCARSDATA_API_KEY not set in Vercel." });
   const env = supabaseEnv();
@@ -3591,15 +3604,15 @@ if (task === "optiondetail") {
     res.setHeader("Cache-Control", "no-store");
     return r.ok ? res.status(200).json(r.body) : res.status(r.status || 400).json({ task: "valuecensus", error: r.why });
   }
-  // task=factmine / factmap / factreport / factprice (Lane B, Nov 17 2026, order bc85, lib/factMine.js, factMap.js, factReport.js, factPrice.js): value driver mining. factmine and factmap WRITE listing_mentions, listing_mining_runs and topic_map
+  // task=factmine / factmap / factreport / factprice / factcoverage (factcoverage: Lane D, Nov 19 2026, lib/factCoverage.js: the second read of the sentences the miner left out, counts only; same door, same lease and limits as factmine) (Lane B, Nov 17 2026, order bc85, lib/factMine.js, factMap.js, factReport.js, factPrice.js): value driver mining. factmine and factmap WRITE listing_mentions, listing_mining_runs and topic_map
   // (docs/supabase-factmine.sql, run by Sam), one source and one family per call, a window of 366 days or less, 25 listings and a token cap per call; factreport and factprice are read only. Every answer is counts and tokens, never listing text or a seller.
-  if (task === "factmine" || task === "factmap" || task === "factreport" || task === "factprice") {
+  if (task === "factmine" || task === "factmap" || task === "factreport" || task === "factprice" || task === "factcoverage") {
     if (!env) return res.status(500).json({ error: "Supabase env not set." });
-    const FM = task === "factmine" ? await import("../lib/factMine.js") : task === "factmap" ? await import("../lib/factMap.js") : task === "factreport" ? await import("../lib/factReport.js") : await import("../lib/factPrice.js");
+    const FM = task === "factmine" ? await import("../lib/factMine.js") : task === "factmap" ? await import("../lib/factMap.js") : task === "factreport" ? await import("../lib/factReport.js") : task === "factcoverage" ? await import("../lib/factCoverage.js") : await import("../lib/factPrice.js");
     const { makeCallModel } = await import("../lib/factModel.js");
     const { supabaseInsert } = await import("../lib/_supabase.js");
     const deps = { select: qs => supabaseSelect(env, qs), insert: async (table, rows, prefer, query) => { try { const w = await supabaseInsert(table, rows, env.supabaseUrl, env.supabaseKey, prefer, query); return w && w.error ? { error: "write failed" } : {}; } catch { return { error: "write failed" }; } }, callModel: makeCallModel(env, task) };
-    const run = task === "factmine" ? FM.runFactMine : task === "factmap" ? FM.runFactMap : task === "factreport" ? FM.runFactReport : FM.runFactPrice;
+    const run = task === "factmine" ? FM.runFactMine : task === "factmap" ? FM.runFactMap : task === "factreport" ? FM.runFactReport : task === "factcoverage" ? FM.runFactCoverage : FM.runFactPrice;
     const r = await run(req.query || {}, deps);
     res.setHeader("Cache-Control", "no-store");
     return r.ok ? res.status(200).json(r.body) : res.status(r.status || 400).json({ task, error: r.why });
@@ -5315,6 +5328,20 @@ if (task === "optiondetail") {
     const bySource = {}, byPath = {};
     for (const r of rows) { const s = (r.metadata && r.metadata.source) || "?"; bySource[s] = (bySource[s] || 0) + 1; const p = r.route || (r.metadata && r.metadata.path) || "?"; byPath[p] = (byPath[p] || 0) + 1; }
     return res.status(200).json({ task: "pageviews", last24h: rows.length, bySource, byPath, recent: rows.slice(0, 12).map(r => ({ at: r.created_at.slice(0, 19), path: r.route || (r.metadata && r.metadata.path), source: r.metadata && r.metadata.source, kind: r.status })) });
+  }
+
+  // task=warmlist (lane-b-read-resilience, Nov 18 2026): READ-ONLY. The cars visitors read most over the last N days (analytics search_run query_text) and the History hubs read most (page_view rows), for the warm-up after a stamp bump
+  // (scripts/warmAfterBump.mjs). Nothing written, zero OldCarsData, at most two bounded reads.
+  if (task === "warmlist") {
+    if (!env) return res.status(500).json({ error: "Supabase env not set." });
+    const WL = await import("../lib/warmList.js");
+    const days = Math.max(1, Math.min(60, Number(req.query?.days) || 30)), maxCars = Math.max(1, Math.min(1000, Number(req.query?.cars) || 300)), maxHubs = Math.max(0, Math.min(1000, Number(req.query?.hubs) || 200));
+    const sinceIso = new Date(Date.now() - days * 864e5).toISOString();
+    const ev = await supabaseSelect(env, `analytics_events?name=eq.search_run&ts=gte.${sinceIso}&select=props&order=ts.desc&limit=20000`).catch(() => null);
+    const pv = maxHubs ? await supabaseSelect(env, `app_usage_events?event_type=eq.page_view&created_at=gte.${sinceIso}&route=like.%2Fhistory%2F*&select=route&order=created_at.desc&limit=20000`).catch(() => null) : [];
+    if (!Array.isArray(ev) || !Array.isArray(pv)) return res.status(200).json({ task: "warmlist", readFailed: true, writes: 0, ocdSpend: 0 });
+    const cars = WL.topCars(ev.map(r => r && r.props), maxCars), hubs = WL.topHubs(pv, maxHubs);
+    return res.status(200).json({ task: "warmlist", days, searchEvents: ev.length, pageViews: pv.length, cars, hubs, plan: WL.planOf({ cars: cars.length, hubs: hubs.length }), writes: 0, ocdSpend: 0 });
   }
 
   // task=vindbg: READ-ONLY. What vinAppearances sees for a VIN: vin_index rows + direct sales/attempts.

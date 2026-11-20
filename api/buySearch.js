@@ -666,8 +666,11 @@ async function handler(req, res) {
     // each enriched like the first batch (a car whose sales are not read yet comes with the engine's "being read" market), and the counts (shown, remaining, nextN, countLine) written
     // in lib/live/samChat.js. Nothing is sorted, counted or sliced here or on the page.
     if (b.action === "more") {
-      const offset = Math.max(0, Math.min(100000, Math.floor(Number(b.offset) || 0)));
-      const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, radius: radiusOf(b.radius), offset, batchOnly: true });
+      // FOR SALE (lane-d-forsale): "more" of the dealers or the classifieds is the same ask with the group named (b.forSaleGroup) and how many of it the page draws (b.forSaleOffset): the same search, rules and order, the group's next batch (lib/forsale/serve.js). Crew only behind FORSALE_PUBLIC: a visitor's answer carries none.
+      const fsMore = b.forSaleGroup === "dealers" || b.forSaleGroup === "classifieds" ? { group: b.forSaleGroup, offset: Math.max(0, Math.min(100000, Math.floor(Number(b.forSaleOffset) || 0))) } : null;
+      const offset = fsMore ? 0 : Math.max(0, Math.min(100000, Math.floor(Number(b.offset) || 0)));   // a for sale ask leaves the auctions at the start: only the group's own batch is answered
+      const out = await runFilters(env, b.filters || {}, { zip: /^\d{5}$/.test(String(b.zip || "")) ? String(b.zip) : null, radius: radiusOf(b.radius), forSaleMore: fsMore, offset, batchOnly: true });
+      if (fsMore) return res.status(200).json({ ...(out.car ? { car: out.car } : {}), ...(out.forSale ? { forSale: out.forSale } : {}), cards: [] });
       // one stored-row read for the batch's spec keys, inside the same clock (a failure here only means each card reads as it would have)
       const pre = Promise.all(out.cards.map(x => specOf(env, x.r, x.facts).catch(() => null))).then(sp => { const keys = sp.filter(Boolean).map(z => z.key); return keys.length ? prefetchSpecs(env, keys) : null; }).catch(() => null);
       const cards = await moreBatch(out.cards, { enrichOne: async x => { await pre; return enrichFast(env, x); }, pendingOf: pendingCardOf });

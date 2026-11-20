@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // THE HOURLY REVALIDATION OF EVERY CREW EXAMPLE (Lane B, Nov 8 2026, per Sam): no example ever shows an ended auction as live. The Find pick and the watching card (findPickCheck, liveExamplesCheck) and now the Tasks example and the Homepage pick are confirmed live at least hourly by KEYED READS only:
 //   (1) the Tasks example (revalidateTasksDemo): live and eligible -> the stamp moves, so it is served past the 90 minute limit, overnight too; ended, withdrawn, no longer eligible or unreadable -> the pick is cleared and tasksDemoField serves the fallback (the last proved car, ended) until a pull picks a new one
 //   (2) the Homepage pick (revalidateFeaturedHistory): the same; a failed pick is absent (the Homepage has no fallback card)

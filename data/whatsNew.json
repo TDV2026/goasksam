@@ -1,5 +1,21 @@
 [
   {
+    "date": "2026-11-18",
+    "text": "Sell now shows the versions of your car first, so you pick the right one before answering any questions."
+  },
+  {
+    "date": "2026-11-18",
+    "text": "Sell always tells you where to sell, even when there are too few sales to put a price range on the car."
+  },
+  {
+    "date": "2026-11-18",
+    "text": "Cars that share a name but not a price are kept apart. A Ferrari 330 GT 2+2 and a 330 GTC each get their own range, in Market Check and in Sell."
+  },
+  {
+    "date": "2026-11-18",
+    "text": "Cars whose trims sell apart are priced trim by trim. A Firebird is a Base, a Formula, a Trans Am or a GTA, and each gets its own range."
+  },
+  {
     "date": "2026-11-17",
     "text": "Start with just a make and year. Sam asks which model and carries it across Find, Market Check, Sell and Tasks."
   },

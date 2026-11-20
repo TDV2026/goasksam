@@ -4,6 +4,8 @@
   "data/calculatorModelYears.json",
   "data/copy.json",
   "data/deadPhotoHosts.json",
+  "data/forsaleBudget.json",
+  "data/forsaleSources.json",
   "data/modelYearsFilled.json",
   "data/variantFamilies.json",
   "lib/bareModel.js",
@@ -352,6 +354,19 @@
     "node_modules/"
    ]
   },
+  "buildOutputCheck": {
+   "file": "scripts/buildOutputCheck.mjs",
+   "kind": "offline",
+   "serial": "writes decoy build folders (.vercel/output, .next, dist, build, out, .output, .turbo, .cache, coverage) into the worktree and moves a person's own .vercel/output out and back while it runs; nothing else may sweep the tree beside it",
+   "covers": [
+    "api/",
+    "data/",
+    "lib/",
+    "public/js/",
+    "scripts/",
+    "scripts/checkMap.json"
+   ]
+  },
   "bulkSaleCheck": {
    "file": "scripts/bulkSaleCheck.mjs",
    "kind": "offline",
@@ -608,12 +623,21 @@
     "lib/carToken.js",
     "lib/live/search.js",
     "lib/modelChoicePage.js",
+    "lib/preview/tasksPreview.js",
     "lib/sell/sellFlow.js",
     "lib/vehicle.js",
     "package.json",
     "public/",
     "scripts/_historyStub.mjs",
     "scripts/_typedThroughWorld.mjs"
+   ]
+  },
+  "carNamedLineCheck": {
+   "file": "scripts/carNamedLineCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "public/js/onebox.js"
    ]
   },
   "carNamesCheck": {
@@ -929,6 +953,7 @@
    "file": "scripts/containedReadCheck.mjs",
    "kind": "offline",
    "covers": [
+    "lib/generations.js",
     "lib/onebox.js"
    ]
   },
@@ -996,6 +1021,7 @@
     "lib/",
     "lib/countNoun.js",
     "lib/onebox.js",
+    "lib/reasonWords.js",
     "lib/sell/sellFlow.js",
     "lib/sellsForCard.js",
     "lib/tasks/tasks.js",
@@ -1103,7 +1129,9 @@
   },
   "crossProductCheck": {
    "file": "scripts/crossProductCheck.js",
-   "kind": "offline",
+   "kind": "live",
+   "kindFixed": "live",
+   "why": "run as a command it reads the shared archive through SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (exit 2 without them); prePush imports only its pure fixture functions, which is a different use. Without the credentials treat it as SKIPPED, never red or green.",
    "covers": [
     "api/buySearch.js",
     "api/sellerDecision.js",
@@ -1974,6 +2002,7 @@
    "kind": "offline",
    "covers": [
     "lib/desk/sheetActions.js",
+    "lib/deskV3.js",
     "lib/reasonWords.js",
     "scripts/deskV4Harness.mjs",
     "scripts/fixtures/hagertySamResend.subject.txt",
@@ -2342,6 +2371,18 @@
     "scripts/fixtures/m3Answer.json"
    ]
   },
+  "engineStampCheck": {
+   "file": "scripts/engineStampCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "data/engineStamp.json",
+    "data/variantFamilies.json",
+    "lib/onebox.js",
+    "lib/variantRows.js",
+    "lib/variants.js"
+   ]
+  },
   "engineWordFilterCheck": {
    "file": "scripts/engineWordFilterCheck.mjs",
    "kind": "offline",
@@ -2500,14 +2541,56 @@
     "scripts/fixtures/answer-stag.json"
    ]
   },
+  "factCoverageCheck": {
+   "file": "scripts/factCoverageCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/usageDashboard.js",
+    "data/",
+    "docs/",
+    "docs/supabase-factmine.sql",
+    "lib/",
+    "lib/factCoverage.js",
+    "lib/factMine.js",
+    "node_modules/",
+    "package.json",
+    "scripts/"
+   ]
+  },
+  "factMapCheck": {
+   "file": "scripts/factMapCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/usageDashboard.js",
+    "data/",
+    "docs/",
+    "docs/supabase-factmine.sql",
+    "lib/",
+    "lib/factMap.js",
+    "lib/factMine.js",
+    "lib/factPrice.js",
+    "lib/factReport.js",
+    "node_modules/",
+    "package.json",
+    "scripts/"
+   ]
+  },
   "factMineCheck": {
    "file": "scripts/factMineCheck.mjs",
    "kind": "offline",
    "covers": [
     "./",
     "api/",
+    "api/usageDashboard.js",
     "data/",
+    "docs/",
+    "docs/supabase-factmine.sql",
     "lib/",
+    "lib/factCoverage.js",
     "lib/factMap.js",
     "lib/factMine.js",
     "lib/factModel.js",
@@ -2539,6 +2622,7 @@
     "api/",
     "api/buySearch.js",
     "api/usageDashboard.js",
+    "data/",
     "lib/",
     "lib/_staleMark.js",
     "lib/live/buyExample.js",
@@ -2552,6 +2636,7 @@
     "lib/sell/sellBlock.js",
     "lib/sell/sellExample.js",
     "lib/sell/sellFacts.js",
+    "lib/variantRows.js",
     "node_modules/",
     "package.json",
     "public/",
@@ -2887,6 +2972,14 @@
     "lib/live/samChat.js"
    ]
   },
+  "findSortHoldsCheck": {
+   "file": "scripts/findSortHoldsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "lib/live/samChat.js"
+   ]
+  },
   "findSortsCheck": {
    "file": "scripts/findSortsCheck.mjs",
    "kind": "offline",
@@ -2941,7 +3034,8 @@
     "public/js/entry.js",
     "public/js/onebox.js",
     "public/js/result-v2.js",
-    "public/js/result.js"
+    "public/js/result.js",
+    "scripts/_pageLift.mjs"
    ]
   },
   "findWatchCheck": {
@@ -2976,6 +3070,69 @@
    "covers": [
     "lib/onebox.js",
     "lib/sellsForCard.js"
+   ]
+  },
+  "forSaleCheck": {
+   "file": "scripts/forSaleCheck.mjs",
+   "kind": "offline",
+   "kindFixed": "offline",
+   "why": "Runs the live handlers over a fake PostgREST and a stand-in vendor (scripts/fixtures/forsaleShape.json); it names goasksam.com and PROBE_KEY only as fixture values and never calls production (Lane C, Nov 19 2026).",
+   "covers": [
+    "./",
+    "api/",
+    "api/buySearch.js",
+    "api/pullForSale.js",
+    "api/sellerDecision.js",
+    "data/",
+    "data/forsaleBudget.json",
+    "data/forsaleSources.json",
+    "docs/",
+    "docs/supabase-forsale.sql",
+    "lib/",
+    "lib/_classify.js",
+    "lib/_crew.js",
+    "lib/_houseComps.js",
+    "lib/carToken.js",
+    "lib/desk/execute.js",
+    "lib/forsale/budget.js",
+    "lib/forsale/gate.js",
+    "lib/forsale/prepare.js",
+    "lib/forsale/report.js",
+    "lib/forsale/rules.js",
+    "lib/forsale/serve.js",
+    "lib/forsale/sync.js",
+    "lib/live/buyAlerts.js",
+    "lib/live/samChat.js",
+    "lib/live/search.js",
+    "lib/live/watches.js",
+    "lib/onebox.js",
+    "lib/sell/sellFacts.js",
+    "lib/tasks/tasks.js",
+    "lib/variants.js",
+    "node_modules/",
+    "package.json",
+    "scripts/",
+    "scripts/fixtures/forsaleShape.json",
+    "vercel.json"
+   ]
+  },
+  "forSalePrepareCheck": {
+   "file": "scripts/forSalePrepareCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "api/pullForSale.js",
+    "data/",
+    "docs/",
+    "lib/",
+    "lib/forsale/prepare.js",
+    "lib/forsale/report.js",
+    "lib/forsale/rules.js",
+    "lib/onebox.js",
+    "node_modules/",
+    "package.json",
+    "scripts/"
    ]
   },
   "foreignCarsTaskCheck": {
@@ -3268,6 +3425,17 @@
     "vercel.json"
    ]
   },
+  "historyColdGateCheck": {
+   "file": "scripts/historyColdGateCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/_historyData.js",
+    "lib/_caller.js",
+    "lib/_coldGate.js",
+    "lib/onebox.js"
+   ]
+  },
   "historyReachCheck": {
    "file": "scripts/historyReachCheck.mjs",
    "kind": "offline",
@@ -3405,6 +3573,7 @@
    "file": "scripts/houseSalesCountCheck.mjs",
    "kind": "offline",
    "covers": [
+    "data/engineStamp.json",
     "lib/live/search.js",
     "lib/onebox.js",
     "lib/reasonWords.js"
@@ -3549,6 +3718,7 @@
    "kind": "offline",
    "covers": [
     "lib/desk/sheetActions.js",
+    "lib/desk/sheetStore.js",
     "scripts/deskIntakeKit.mjs",
     "scripts/deskValsRender.mjs"
    ]
@@ -3908,6 +4078,7 @@
     "node_modules/",
     "public/js/onebox.js",
     "scripts/_mcExamplesWorld.mjs",
+    "scripts/_pageLift.mjs",
     "scripts/fixtures/",
     "scripts/fixtures/answer-325i.json"
    ]
@@ -3988,6 +4159,7 @@
    "covers": [
     "api/",
     "api/buySearch.js",
+    "data/engineStamp.json",
     "lib/",
     "lib/live/search.js",
     "lib/onebox.js",
@@ -4156,7 +4328,8 @@
     "lib/genPhrase.js",
     "lib/live/samChat.js",
     "lib/live/search.js",
-    "lib/onebox.js"
+    "lib/onebox.js",
+    "lib/reasonWords.js"
    ]
   },
   "namedWarmCheck": {
@@ -4310,7 +4483,11 @@
    "file": "scripts/noQuestionRuleCheck.mjs",
    "kind": "offline",
    "covers": [
+    "docs/",
     "lib/onebox.js",
+    "scripts/.checkTimes.json",
+    "scripts/_repoWalk.mjs",
+    "scripts/checkMap.json",
     "scripts/generationChipCheck.mjs",
     "scripts/mixedRangeCheck.mjs",
     "scripts/prePush.mjs",
@@ -4527,7 +4704,8 @@
     "api/sell.js",
     "api/specPage.js",
     "api/tasksPage.js",
-    "lib/_launchStage.js"
+    "lib/_launchStage.js",
+    "scripts/_fakeClock.mjs"
    ]
   },
   "openingTimeCheck": {
@@ -4664,6 +4842,7 @@
     "api/specPage.js",
     "api/tasksPage.js",
     "lib/appShell.js",
+    "lib/reasonWords.js",
     "lib/sell/",
     "lib/startPage.js",
     "lib/tasks/",
@@ -4690,16 +4869,52 @@
     "lib/carBar.js",
     "lib/carChoice.js",
     "lib/carToken.js",
+    "lib/forsale/gate.js",
+    "lib/forsale/serve.js",
     "lib/live/search.js",
+    "lib/modelChoicePage.js",
     "lib/onebox.js",
     "lib/sell/sellFacts.js",
     "lib/sell/sellFlow.js",
     "lib/sheetRead.js",
     "lib/tasks/tasks.js",
+    "lib/variantRowsPage.js",
     "lib/vinAsTyped.js",
     "node_modules/",
     "public/",
     "scripts/"
+   ]
+  },
+  "partialCarJoinCheck": {
+   "file": "scripts/partialCarJoinCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/buy.js",
+    "api/buySearch.js",
+    "api/marketCheck.js",
+    "api/sell.js",
+    "api/sellChat.js",
+    "api/sellerDecision.js",
+    "api/tasks.js",
+    "api/tasksPage.js",
+    "data/",
+    "lib/_crew.js",
+    "lib/carBar.js",
+    "lib/carChoice.js",
+    "lib/carToken.js",
+    "lib/live/narrow.js",
+    "lib/live/samChat.js",
+    "lib/modelChoicePage.js",
+    "lib/sell/sellFlow.js",
+    "lib/sell/sellMcClient.js",
+    "lib/tasks/tasks.js",
+    "node_modules/",
+    "package.json",
+    "public/",
+    "public/js/onebox.js",
+    "scripts/_findAnswered.mjs",
+    "scripts/liveSmoke.mjs"
    ]
   },
   "partnerAccessCheck": {
@@ -5322,6 +5537,7 @@
     "api/sellerDecision.js",
     "lib/",
     "lib/_routeLimit.js",
+    "lib/factMine.js",
     "lib/live/buyExample.js",
     "lib/live/chatCore.js",
     "lib/live/deskExample.js",
@@ -5340,6 +5556,7 @@
     "lib/sell/sellFacts.js",
     "lib/tasks/fullCards.js",
     "lib/tasks/tasks.js",
+    "lib/variantRows.js",
     "lib/vehicle.js"
    ]
   },
@@ -5347,13 +5564,18 @@
    "file": "scripts/readRetryCheck.mjs",
    "kind": "offline",
    "covers": [
-    "lib/_supabase.js"
+    "./",
+    "lib/_caller.js",
+    "lib/_readRetry.js",
+    "lib/_readScope.js",
+    "lib/onebox.js"
    ]
   },
   "readRetryRequestCheck": {
    "file": "scripts/readRetryRequestCheck.mjs",
    "kind": "offline",
    "covers": [
+    "lib/_caller.js",
     "lib/desk/execute.js",
     "lib/onebox.js"
    ]
@@ -5620,6 +5842,29 @@
     "lib/track/log.js"
    ]
   },
+  "saleLabelCheck": {
+   "file": "scripts/saleLabelCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/_amazonDemo.js",
+    "api/marketCheck.js",
+    "api/partnerAnswer.js",
+    "api/partnerDemo.js",
+    "lib/",
+    "lib/_crew.js",
+    "lib/carBar.js",
+    "lib/live/watches.js",
+    "lib/onebox.js",
+    "lib/placedSale.js",
+    "lib/saleLabelPage.js",
+    "lib/sellsForCard.js",
+    "public/",
+    "public/js/onebox.js",
+    "scripts/mcSellHarness.mjs",
+    "scripts/saleLabelEngineAnswer.mjs"
+   ]
+  },
   "salePhotoCheck": {
    "file": "scripts/salePhotoCheck.mjs",
    "kind": "offline",
@@ -5684,7 +5929,9 @@
   },
   "searchCheck": {
    "file": "scripts/searchCheck.js",
-   "kind": "offline",
+   "kind": "live",
+   "kindFixed": "live",
+   "why": "fetches the live public pages and sitemaps at https://goasksam.com (and reads vin_summary through Supabase); behind Vercel bot protection it needs VERCEL_AUTOMATION_BYPASS_SECRET or GAS_BYPASS, and it goes red under load without it. Without them treat it as SKIPPED; scripts/searchCheckBrowser.mjs is the browser twin.",
    "covers": [
     "api/_usage.js",
     "lib/_supabase.js"
@@ -5730,6 +5977,30 @@
    "covers": [
     "public/js/",
     "public/sell-old.html"
+   ]
+  },
+  "sellBmwLiveCheck": {
+   "file": "scripts/sellBmwLiveCheck.mjs",
+   "kind": "live",
+   "covers": [
+    "./",
+    "api/buy.js",
+    "api/buySearch.js",
+    "api/marketCheck.js",
+    "api/sell.js",
+    "api/sellChat.js",
+    "api/sellerDecision.js",
+    "api/tasks.js",
+    "api/tasksPage.js",
+    "data/",
+    "lib/_crew.js",
+    "lib/carToken.js",
+    "lib/live/samChat.js",
+    "lib/sell/sellFlow.js",
+    "lib/sell/sellMcClient.js",
+    "node_modules/",
+    "package.json",
+    "public/"
    ]
   },
   "sellBuilderCheck": {
@@ -5841,10 +6112,22 @@
    "file": "scripts/sellRefusalCheck.mjs",
    "kind": "offline",
    "covers": [
+    "api/",
+    "api/sellChat.js",
+    "data/",
+    "data/variantFamilies.json",
+    "docs/",
+    "lib/",
+    "lib/reasonWords.js",
     "lib/sell/sellFacts.js",
     "lib/sell/sellFlow.js",
     "lib/sell/sellMcClient.js",
-    "lib/sellsForCard.js"
+    "lib/sellsForCard.js",
+    "lib/variants.js",
+    "node_modules/",
+    "package.json",
+    "scripts/",
+    "scripts/_repoWalk.mjs"
    ]
   },
   "sellReserveLineCheck": {
@@ -6274,6 +6557,14 @@
     "lib/live/search.js",
     "lib/onebox.js",
     "scripts/ingest.js"
+   ]
+  },
+  "stampPinCheck": {
+   "file": "scripts/stampPinCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "scripts/",
+    "scripts/_repoWalk.mjs"
    ]
   },
   "standingControlsCheck": {
@@ -6922,6 +7213,7 @@
     "lib/sell/sellFacts.js",
     "lib/sell/sellFlow.js",
     "lib/sheetRead.js",
+    "lib/tasks/tasks.js",
     "lib/tools/_shared.js",
     "lib/tools/marketCheck.js",
     "lib/tools/whereToSell.js"
@@ -7071,6 +7363,7 @@
     "lib/live/buyAlerts.js",
     "lib/live/marketCheckLanding.js",
     "lib/live/search.js",
+    "lib/reasonWords.js",
     "lib/sell/sellFlow.js",
     "public/js/onebox.js"
    ]
@@ -7154,6 +7447,8 @@
     "lib/onebox.js",
     "lib/reasonWords.js",
     "lib/variantRows.js",
+    "lib/variantRowsPage.js",
+    "lib/variants.js",
     "lib/vehicle.js",
     "node_modules/",
     "package.json",
@@ -7172,6 +7467,7 @@
     "lib/carBar.js",
     "lib/carToken.js",
     "lib/variantRowsPage.js",
+    "lib/variants.js",
     "scripts/mcSellHarness.mjs"
    ]
   },
@@ -7187,13 +7483,18 @@
     "lib/",
     "lib/_classify.js",
     "lib/_crew.js",
+    "lib/carBar.js",
+    "lib/countNoun.js",
     "lib/desk/caseModel.js",
     "lib/desk/caseWorkflow.js",
     "lib/desk/sheetActions.js",
     "lib/deskV3.js",
     "lib/onebox.js",
     "lib/preview/deskV4Client.js",
+    "lib/sell/sellBlock.js",
+    "lib/sell/sellFlow.js",
     "lib/sheetRead.js",
+    "lib/variantRows.js",
     "lib/variants.js",
     "lib/vehicle.js",
     "node_modules/",
@@ -7201,7 +7502,9 @@
     "public/js/onebox.js",
     "scripts/",
     "scripts/_deskOlderWorld.mjs",
-    "scripts/fixtures/"
+    "scripts/fixtures/",
+    "scripts/fixtures/lumpShapes.json",
+    "scripts/fixtures/noDeadEnds.json"
    ]
   },
   "vercelConfigCheck": {
@@ -7273,6 +7576,26 @@
     "api/usageDashboard.js"
    ]
   },
+  "vinIndexPageCheck": {
+   "file": "scripts/vinIndexPageCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "api/_historyData.js",
+    "api/admin.js",
+    "api/history.js",
+    "api/usageDashboard.js",
+    "docs/",
+    "lib/",
+    "lib/_email.js",
+    "lib/preview/deskV3.js",
+    "lib/tasks/carMailPreview.js",
+    "lib/tasks/emailCardLayout.js",
+    "package.json",
+    "scripts/",
+    "scripts/fixtures/vinIndexMutants.json"
+   ]
+  },
   "vinLiveMatchCheck": {
    "file": "scripts/vinLiveMatchCheck.mjs",
    "kind": "live",
@@ -7319,6 +7642,14 @@
    "kind": "offline",
    "covers": [
     "lib/vehicle.js"
+   ]
+  },
+  "vinOverlapCheck": {
+   "file": "scripts/vinOverlapCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/usageDashboard.js",
+    "lib/ops/vinOverlap.js"
    ]
   },
   "vinPlanCheck": {
@@ -7419,6 +7750,16 @@
     "lib/vehicle.js"
    ]
   },
+  "warmAfterBumpCheck": {
+   "file": "scripts/warmAfterBumpCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/usageDashboard.js",
+    "lib/warmList.js",
+    "scripts/warmAfterBump.mjs"
+   ]
+  },
   "warmBaseCheck": {
    "file": "scripts/warmBaseCheck.mjs",
    "kind": "live",
@@ -7492,7 +7833,9 @@
   },
   "warmMarketCheck": {
    "file": "scripts/warmMarketCheck.js",
-   "kind": "offline",
+   "kind": "live",
+   "kindFixed": "live",
+   "why": "run as a command it reads and writes the warm cache through SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (exit 1 without them). Without the credentials treat it as SKIPPED, never red or green.",
    "covers": [
     "lib/_caller.js",
     "lib/_supabase.js",
@@ -7608,6 +7951,7 @@
    "file": "scripts/widenedLineCheck.mjs",
    "kind": "offline",
    "covers": [
+    "data/engineStamp.json",
     "lib/live/samChat.js",
     "lib/live/search.js",
     "lib/live/unusedWords.js",

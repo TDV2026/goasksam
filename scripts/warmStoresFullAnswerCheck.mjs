@@ -11,6 +11,9 @@ const files = execSync("grep -rln 'writeWarmAnswer(' api lib scripts --include=*
 let sites = 0;
 for (const f of new Set(files)) {
   const L = fs.readFileSync(f, "utf8").split("\n");
+  // Nov 19 2026 (stand-in, not a writer): an offline check script that replaces globalThis.fetch with a fake store writes a literal stand-in answer to test the WRITER (epochMatchCheck); it never feeds the real spec_market_cache,
+  // so the "answer comes from the engine" rule is not about it. A real writer script (warmMC, warmDemo, the nightly bare-nameplate script) does not mock fetch and is still held to oneEngineAnswer.
+  if (/^scripts\/[A-Za-z0-9]+Check\.mjs$/.test(f) && /globalThis\.fetch\s*=/.test(L.join("\n"))) continue;
   L.forEach((l, i) => {
     if (!/writeWarmAnswer\(/.test(l) || /export async function writeWarmAnswer|^import /.test(l) || /^\s*\/\//.test(l)) return;
     sites++;

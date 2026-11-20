@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // DESK V3 STAGE 7, THE DEMO WALKTHROUGH (Lane E, Nov 9 2026). Chrome drives the whole road against the REAL readers (the preview door, Lane D's case_new and case_edit and case_pdf and case_finalize, caseView, readinessOf, Lane B's deskBlock):
 // a case from nothing through the New case form, two photos (the first becomes the cover), condition Good then Excellent then Fair with the market line changing each time and the page never reloading, the valuation typed, the reserve and rationale,
 // the draft report opened in the pane, Finalize, version 1 locked. The only stand-in is the archive: a registered engine answers from tiered sample sales through Lane B's deskBlock (the same block the page reads live).
@@ -7,18 +8,28 @@ import os from "node:os";
 import path from "node:path";
 import { V3, launch, imp, tally } from "./deskV3Harness.mjs";
 const PV = await imp("lib/preview/deskPreview.js"), SR = await imp("lib/desk/sheetRead.js"), DB = await imp("lib/deskV3.js");
+const STARTS = new Map();   // upload id to case id, from photo_upload_start
 const day = n => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
 // 36 sample sales of one car in four tiers (1 Concours .. 4 Fair), each tier with its own price level; every row carries the engine's normalised fields
 const LEVEL = { 1: 1.32, 2: 1.14, 3: 1.0, 4: 0.82 }, ROWS = []; for (let i = 0; i < 36; i++) { const t = 1 + (i % 4), base = 30000 + (i * 397) % 4200; ROWS.push({ id: "t" + i, title: "2001 BMW M3", year: 2001, generation: "E46", body: "coupe", gearbox: "manual", gearboxWord: "6-speed manual", miles: 60000 + (i * 811) % 30000, platform: ["Bring a Trailer", "Cars & Bids", "PCarMarket"][i % 3], date: day(3 + i * 4), price: Math.round(base * LEVEL[t] / 50) * 50, url: "https://example.test/sale/" + i, photo: null, tier: t, inPopulation: true, outReason: null }); }
-SR.useSheetEngine(async (env, input) => ({ desk: await DB.deskBlock(ROWS.filter(r => !input.tier || r.tier === input.tier), { caseDate: (input.desk && input.desk.caseDate) || day(0), ...(input.tier ? { tier: input.tier } : {}), subjectFacts: { year: 2001, generation: "E46", body: "coupe", gearbox: "manual", miles: Number(input.mileage) || 72100 }, subject: { transmission: "Manual", label: (input.desk && input.desk.label) || "2001 BMW M3" } }), exact: {} }));
+// THE STAND-IN ENGINE answers as the engine does for a case (lib/onebox.js, Lane D Nov 11 and Nov 16): when the case asks for the views (input.desk.views) every condition and every period is one block from the same sales, packed into desk.views and desk.pool; an answer without them is incomplete (lib/desk/answerHealth.js "no_views") and the case would show Retry, never a figure
+SR.useSheetEngine(async (env, input) => {
+  const block = (t, m) => DB.deskBlock(ROWS.filter(r => !t || r.tier === t), { caseDate: (input.desk && input.desk.caseDate) || day(0), ...(t ? { tier: t } : {}), ...(m ? { windowMonths: m } : {}), subjectFacts: { year: 2001, generation: "E46", body: "coupe", gearbox: "manual", miles: Number(input.mileage) || 72100 }, subject: { transmission: "Manual", label: (input.desk && input.desk.label) || "2001 BMW M3" } });
+  const desk = await block(input.tier || 0, input.desk && input.desk.windowMonths);
+  if (input.desk && input.desk.views === true) { const blocks = {}; for (const t of [0, 1, 2, 3, 4]) for (const m of DB.WINDOWS) blocks[DB.viewKey(t, m)] = await block(t, m); Object.assign(desk, DB.packViews(blocks)); }
+  return { desk, exact: {} };
+});
 const br0 = await launch(); const shot = async c => { const p = await br0.newPage(); await p.setContent(`<body style="margin:0;background:${c}"><div style="width:640px;height:400px"></div></body>`); const b = await p.screenshot({ type: "jpeg", clip: { x: 0, y: 0, width: 640, height: 400 } }); await p.close(); return b; };
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "deskflow-")), P1 = path.join(dir, "front.jpg"), P2 = path.join(dir, "rear.jpg"); fs.writeFileSync(P1, await shot("#6d8aa3")); fs.writeFileSync(P2, await shot("#a38a6d"));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 async function flow(mut = x => x, log = false) {
   const bad = [], note = m => { if (log) console.log("  . " + m); };
-  const p = await br0.newPage(); await p.setViewport({ width: 1440, height: 900 }); await p.setRequestInterception(true); p._err = []; p.on("pageerror", e => p._err.push(String(e).slice(0, 160)));
+  const p = await br0.newPage(); await p.setViewport({ width: 1440, height: 900 }); await p.setRequestInterception(true);
+  await p.evaluateOnNewDocument(() => { const of = window.fetch; window.fetch = function (u, o) { if (String(u).indexOf("memory://upload/") === 0) return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => of("/__put/" + String(u).split("/").pop(), { method: "POST", body: String(fr.result).split(",")[1] }).then(() => res(new Response("", { status: 200 })), rej); fr.readAsDataURL(o.body); }); return of.apply(this, arguments); }; }); p._err = []; p.on("pageerror", e => p._err.push(String(e).slice(0, 160)));
   p.on("request", async r => { try { const u = new URL(r.url()); if (u.host !== "goasksam.com") return r.respond({ status: 204, body: "" });
-    if (r.method() === "POST" && u.pathname === "/preview/desk/api") return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(await PV.previewDeskApi(JSON.parse(r.postData() || "{}"))) });
+    if (r.method() === "POST" && u.pathname === "/preview/desk/api") { const q = JSON.parse(r.postData() || "{}"), out = await PV.previewDeskApi(q); if (q.op === "photo_upload_start" && out && out.ok && out.upload) STARTS.set(out.upload.id, q.id); return r.respond({ status: 200, contentType: "application/json", body: JSON.stringify(out) }); }
+    // THE STORAGE STAND-IN (the direct photo route, Lane D Nov 16 a6ba9cf9): the page PUTs the file to the address photo_upload_start gave (memory://upload/<id> on the memory store, which a browser cannot reach); the page hook below forwards the bytes here and the memory store holds them, where the real photo_upload_commit reads them back
+    if (r.method() === "POST" && u.pathname.startsWith("/__put/")) { const id = u.pathname.slice(7); (await PV.previewStore()).putUpload(PV.PREVIEW_ORG.id, STARTS.get(id), id, Buffer.from(r.postData() || "", "base64")); return r.respond({ status: 200, body: "ok" }); }
     const m = /^\/preview\/desk(?:\/case\/([\w-]+))?$/.exec(u.pathname); if (r.method() === "GET" && m) return r.respond({ status: 200, contentType: "text/html", body: mut(await V3.renderDeskV3({ query: m[1] ? { case: m[1] } : {} })) });
     return r.respond({ status: 204, body: "" }); } catch (e) { try { r.respond({ status: 500, body: String(e.message) }); } catch {} } });
   if (log) p.on("response", async r => { if (r.request().method() === "POST") { try { const j = JSON.parse(await r.text()), q = JSON.parse(r.request().postData() || "{}"); if (q.action === "case_finalize" || j.ok === false) console.log("  . api " + q.action + (q.op ? "/" + q.op : "") + " -> " + JSON.stringify(j).slice(0, 300)); } catch {} } });

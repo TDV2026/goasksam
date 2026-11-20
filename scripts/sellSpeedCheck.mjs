@@ -55,7 +55,9 @@ ok("cold visit: the result carries the engine's numbers and both e91 fields", co
 ok("cold visit: timings name each piece and drop nothing", cold.timings && typeof cold.timings.total === "number" && typeof cold.timings.build === "number" && !(cold.timings.dropped || []).length, JSON.stringify(cold.timings));
 await new Promise(r => setTimeout(r, 50));
 const keys = [...store.keys()];
-ok("the car-only block is stored under sell|v13|<stamp>|<specKey> with no day and no label", keys.some(k => k.startsWith("sell|v13|" + E.ENGINE_VERSION + "|") && !k.includes(new Date().toISOString().slice(0, 10)) && !k.includes("1972 Datsun")), keys.map(k => k.slice(0, 60)).join(" ; "));
+// Nov 19 2026 (stale version): the block key's version is the product's SELL_BLOCK_V (v14 now), read from it so a bump never reds this check again; the key SHAPE below is still pinned.
+const BLK = "sell|v" + (await import(pathToFileURL(path.join(root, "lib/sell/sellBlock.js")).href)).SELL_BLOCK_V + "|";
+ok("the car-only block is stored under sell|v<N>|<stamp>|<specKey> with no day and no label", keys.some(k => k.startsWith(BLK + E.ENGINE_VERSION + "|") && !k.includes(new Date().toISOString().slice(0, 10)) && !k.includes("1972 Datsun")), keys.map(k => k.slice(0, 60)).join(" ; "));
 ok("the stored Market Check answer is written too (one row per market)", keys.some(k => k.startsWith("MCWARM:")));
 // block hit
 archiveReads = 0;
@@ -63,7 +65,7 @@ const hit = await buildResult(env, { carText: text, state: null, how: "unsure", 
 ok("block hit: zero engine calls, zero archive reads", hit.timings.answer === "block" && !hit.timings.engineCalls && archiveReads === 0, JSON.stringify(hit.timings));
 ok("block hit: the same numbers as the cold visit", JSON.stringify(hit.marketAnswer) === JSON.stringify(cold.marketAnswer) && JSON.stringify(hit.recent) === JSON.stringify(cold.recent));
 // stored answer only (the warm wrote the answer, no block yet)
-for (const k of keys) if (k.startsWith("sell|v13")) store.delete(k);
+for (const k of keys) if (k.startsWith(BLK)) store.delete(k);
 const blk = await import(pathToFileURL(path.join(root, "lib/sell/sellBlock.js")).href);
 blk.forgetBlocks(); archiveReads = 0;
 const mem = await buildResult(env, { carText: text, state: null, how: "unsure", rush: null });

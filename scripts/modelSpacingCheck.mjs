@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 import { findGeneration } from "../lib/generations.js";

@@ -40,7 +40,7 @@
       ]
     },
     {
-      "id": "bmw-3-series-e30", "label": "BMW 3 Series (E30), 1984 to 1991", "make": "BMW", "models": ["3-Series"], "years": [1984, 1991], "vin": null,
+      "id": "bmw-3-series-e30", "label": "BMW 3 Series (E30), 1984 to 1991", "make": "BMW", "models": ["3-Series"], "alsoModels": ["318i", "325e", "325i", "325is"], "years": [1984, 1991], "vin": null,
       "variants": [
         {"name": "318i", "years": [1984, 1991], "words": ["\\b318\\s?is?\\b"]},
         {"name": "325e", "years": [1984, 1987], "words": ["\\b325\\s?e\\b"]},
@@ -133,6 +133,98 @@
         {"name": "Shelby GT500", "years": [2007, 2014], "words": ["gt\\s?500"], "matchFirst": true},
         {"name": "Boss 302", "years": [2012, 2013], "words": ["boss\\s?302"], "matchFirst": true},
         {"name": "Bullitt", "years": [2008, 2009], "words": ["bullitt"], "matchFirst": true}
+      ]
+    },
+    {
+      "id": "ferrari-330", "titleFence": true, "label": "Ferrari 330, 1963 to 1968", "make": "Ferrari", "models": ["330*"], "baseModel": "330", "askBase": "330", "years": [1963, 1968], "vin": null,
+      "variants": [
+        {"name": "GT 2+2", "years": [1963, 1967], "typedWords": ["2\\s?\\+\\s?2", "series\\s?(i|ii|1|2)\\b"], "ask": "GT 2+2", "words": ["2\\s?\\+\\s?2", "series\\s?(i|ii|1|2)\\b", "\\b330\\s?gt\\b(?!\\s?[cs])"]},
+        {"name": "GTC", "years": [1966, 1968], "matchFirst": true, "words": ["\\bgtc\\b"]},
+        {"name": "GTS", "years": [1967, 1968], "matchFirst": true, "words": ["\\bgts\\b"]}
+      ]
+    },
+    {
+      "id": "ferrari-250", "titleFence": true, "label": "Ferrari 250 GT, 1954 to 1964", "make": "Ferrari", "models": ["250*"], "baseModel": "250", "askBase": "250 GT", "years": [1954, 1964], "vin": null,
+      "variants": [
+        {"name": "Coupe", "years": [1954, 1960], "ask": "Coupe", "words": ["coup[eé]", "pininfarina", "boano", "ellena"]},
+        {"name": "GT 2+2", "years": [1960, 1964], "ask": "GTE 2+2", "matchFirst": true, "words": ["\\bgte\\b", "2\\s?\\+\\s?2"]},
+        {"name": "Lusso", "years": [1962, 1964], "matchFirst": true, "words": ["lusso"]},
+        {"name": "Cabriolet", "years": [1957, 1962], "matchFirst": true, "words": ["cabriolet"]},
+        {"name": "California Spider", "years": [1957, 1963], "ask": "California Spider", "matchFirst": true, "words": ["california", "spyder|spider"]},
+        {"name": "SWB", "years": [1959, 1962], "ask": "SWB", "matchFirst": true, "words": ["\\bswb\\b", "short[- ]wheelbase"]},
+        {"name": "GTO", "years": [1962, 1964], "matchFirst": true, "words": ["\\bgto\\b"]}
+      ]
+    },
+    {
+      "id": "ferrari-275", "titleFence": true, "label": "Ferrari 275, 1964 to 1968", "make": "Ferrari", "models": ["275*"], "baseModel": "275", "askBase": "275", "years": [1964, 1968], "vin": null,
+      "variants": [
+        {"name": "GTB", "years": [1964, 1968], "words": ["gtb(?!\\s?\\/?\\s?4)"]},
+        {"name": "GTB/4", "years": [1966, 1968], "ask": "GTB/4", "matchFirst": true, "words": ["gtb\\s?\\/?\\s?4", "four[- ]cam"]},
+        {"name": "GTS", "years": [1966, 1968], "words": ["\\bgts\\b"]}
+      ]
+    },
+    {
+      "id": "ferrari-365", "titleFence": true, "label": "Ferrari 365, 1966 to 1976", "make": "Ferrari", "models": ["365*"], "baseModel": "365", "askBase": "365", "years": [1966, 1976], "vin": null,
+      "variants": [
+        {"name": "GT 2+2", "years": [1967, 1976], "ask": "GT 2+2", "words": ["2\\s?\\+\\s?2"]},
+        {"name": "GTC", "years": [1968, 1970], "words": ["\\bgtc\\b(?!\\s?\\/?\\s?4)"]},
+        {"name": "GTC/4", "years": [1971, 1972], "matchFirst": true, "words": ["gtc\\s?\\/?\\s?4"]},
+        {"name": "GTS/4", "years": [1969, 1973], "ask": "GTS/4", "matchFirst": true, "words": ["gts\\s?\\/?\\s?4", "spider"]},
+        {"name": "GTB/4 Daytona", "years": [1968, 1973], "ask": "GTB/4 Daytona", "matchFirst": true, "words": ["gtb\\s?\\/?\\s?4", "daytona"]},
+        {"name": "BB", "years": [1973, 1976], "ask": "BB", "matchFirst": true, "words": ["boxer", "\\bbb\\b", "gt4\\s?bb"]}
+      ]
+    },
+    {
+      "id": "ferrari-575", "titleFence": true, "label": "Ferrari 575, 2002 to 2006", "make": "Ferrari", "models": ["575*"], "baseModel": "575", "askBase": "575", "years": [2002, 2006], "vin": null,
+      "variants": [
+        {"name": "Maranello", "years": [2002, 2006], "ask": "Maranello", "words": ["maranello", "575m\\b(?!\\s?super)"]},
+        {"name": "Superamerica", "years": [2005, 2006], "matchFirst": true, "words": ["superamerica"]}
+      ]
+    },
+    {
+      "id": "aston-martin-db6", "titleFence": true, "ownWords": ["DB ?6"], "label": "Aston Martin DB6, 1965 to 1971", "make": "Aston Martin", "models": ["DB6*"], "baseModel": "DB6", "askBase": "DB6", "years": [1965, 1971], "vin": null, "unnamedIs": "Saloon",
+      "variants": [
+        {"name": "Saloon", "years": [1965, 1970], "words": ["saloon", "sedan"]},
+        {"name": "Vantage", "years": [1965, 1970], "matchFirst": true, "matchRank": 2, "words": ["vantage"]},
+        {"name": "Volante", "years": [1966, 1971], "matchFirst": true, "matchRank": 1, "words": ["volante", "convertible", "drophead"]}
+      ]
+    },
+    {
+      "id": "aston-martin-db2", "titleFence": true, "ownWords": ["DB ?2"], "label": "Aston Martin DB2, 1950 to 1959", "make": "Aston Martin", "models": ["DB2*"], "baseModel": "DB2", "askBase": "DB2", "years": [1950, 1959], "vin": null, "unnamedIs": "Saloon",
+      "variants": [
+        {"name": "Saloon", "years": [1950, 1957], "words": ["saloon", "sedan", "coup[eé]\\b(?!.*drophead)"]},
+        {"name": "Drophead Coupe", "years": [1950, 1959], "ask": "Drophead Coupe", "matchFirst": true, "words": ["drophead", "convertible", "\\bdhc\\b"]}
+      ]
+    },
+    {
+      "id": "jaguar-e-type", "titleFence": true, "ownWords": ["XK-?E"], "label": "Jaguar E-Type, 1961 to 1974", "make": "Jaguar", "models": ["E-Type*", "XKE*"], "baseModel": "E-Type", "askBase": "E-Type", "years": [1961, 1974], "vin": null,
+      "variants": [
+        {"name": "Series 1 Roadster", "years": [1961, 1968], "ask": "Series 1 Roadster", "words": ["^(?=.*series\\s?(i|1)\\b)(?=.*(roadster|convertible|\\bots\\b|spider))"]},
+        {"name": "Series 1 Coupe", "years": [1961, 1968], "ask": "Series 1 Coupe", "words": ["^(?=.*series\\s?(i|1)\\b)(?=.*(coup[eé]|\\bfhc\\b|fixed head|2\\s?\\+\\s?2))"]},
+        {"name": "Series 2 Roadster", "years": [1968, 1971], "ask": "Series 2 Roadster", "matchFirst": true, "matchRank": 2, "words": ["^(?=.*series\\s?(ii|2)\\b)(?=.*(roadster|convertible|\\bots\\b|spider))"]},
+        {"name": "Series 2 Coupe", "years": [1968, 1971], "ask": "Series 2 Coupe", "matchFirst": true, "matchRank": 2, "words": ["^(?=.*series\\s?(ii|2)\\b)(?=.*(coup[eé]|\\bfhc\\b|fixed head|2\\s?\\+\\s?2))"]},
+        {"name": "Series 3 Roadster", "years": [1971, 1974], "ask": "Series 3 Roadster", "matchFirst": true, "matchRank": 1, "words": ["^(?=.*(series\\s?(iii|3)\\b|v12))(?=.*(roadster|convertible|\\bots\\b|spider))"]},
+        {"name": "Series 3 Coupe", "years": [1971, 1974], "ask": "Series 3 Coupe", "matchFirst": true, "matchRank": 1, "words": ["^(?=.*(series\\s?(iii|3)\\b|v12))(?=.*(coup[eé]|\\bfhc\\b|fixed head|2\\s?\\+\\s?2))"]}
+      ]
+    },
+    {
+      "id": "porsche-911-1965-1973", "titleFence": true, "label": "Porsche 911, 1965 to 1973", "make": "Porsche", "models": ["911"], "years": [1965, 1973], "vin": null,
+      "variants": [
+        {"name": "911T/E", "years": [1968, 1973], "ask": "911T", "words": ["911\\s?(t|e|l)\\b"]},
+        {"name": "Targa", "years": [1967, 1973], "matchFirst": true, "matchRank": 2, "words": ["targa"]},
+        {"name": "911S", "years": [1967, 1973], "ask": "911S", "matchFirst": true, "matchRank": 1, "words": ["911\\s?s\\b"]},
+        {"name": "Carrera RS", "years": [1973, 1973], "ask": "Carrera RS", "matchFirst": true, "matchRank": 0, "words": ["\\brs\\b", "carrera", "lightweight"]}
+      ]
+    },
+    {
+      "id": "porsche-911-1974-1983", "titleFence": true, "label": "Porsche 911, 1974 to 1983", "make": "Porsche", "models": ["911"], "years": [1974, 1983], "vin": null,
+      "variants": [
+        {"name": "911S", "years": [1974, 1977], "ask": "911S", "words": ["911\\s?s\\b"]},
+        {"name": "Carrera 3.0", "years": [1974, 1977], "ask": "Carrera 3.0", "matchFirst": true, "matchRank": 3, "words": ["carrera"]},
+        {"name": "SC", "years": [1978, 1983], "ask": "SC", "words": ["\\bsc\\b"]},
+        {"name": "Targa", "years": [1974, 1983], "matchFirst": true, "matchRank": 2, "words": ["targa"]},
+        {"name": "Cabriolet", "years": [1983, 1983], "matchFirst": true, "matchRank": 1, "words": ["cabriolet"]},
+        {"name": "Turbo", "years": [1975, 1983], "matchFirst": true, "matchRank": 0, "words": ["turbo", "\\b930\\b"]}
       ]
     }
   ]

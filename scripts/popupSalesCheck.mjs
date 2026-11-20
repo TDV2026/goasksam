@@ -1,3 +1,4 @@
+// clock: real-ok every fixture date is built from the real now (sales "days ago", the auction end "6 days ahead") and the page reads the same real clock, so the hour of the day changes nothing; no calendar date is asserted (Lane C, Nov 2026)
 // POPUP SALES (Lane E, Nov 2 2026). Live: the Find card popup on a 2016 Porsche 911 GT3 RS (19 sales on file) printed "Based on 19 sales, the latest in October 2026", the mileage line, Open full Market Check, the
 // email toggle and the Look for chips, and NO sales. CAUSE: the card's market line comes from the STORED row but the popup's sales come from a SECOND engine read made when it opens (lib/live/search.js panelOf);
 // when that read does not come back (a cold instance, the engine queue, a busy database: it returns undefined) the answer carried engineAnswer: null and the popup printed its header over nothing, with no reason.

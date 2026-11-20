@@ -7,7 +7,8 @@ import fs from "fs";
 let bad = 0;
 const ok = (c, m) => { if (c) console.log("ok   " + m); else { bad++; console.log("FAIL " + m); } };
 const src = fs.readFileSync(new URL("../lib/onebox.js", import.meta.url), "utf8");
-const i = src.indexOf("SET ASIDE, NOT ABSENT"), j = src.indexOf("return { tier: \"not_tracked\", dedup: diag, resolvedCar: { ...resolvedCar, bodyStyle: refine.body", i);
+// Nov 19 2026 (stale anchor): the "SET ASIDE, NOT ABSENT" banner comment is gone from lib/onebox.js (the branch itself is unchanged); the block now starts at its own comment.
+const i = src.indexOf("Rows that state THIS body but were every one set aside"), j = src.indexOf("return { tier: \"not_tracked\", dedup: diag, resolvedCar: { ...resolvedCar, bodyStyle: refine.body", i);
 const blk = i > 0 && j > i ? src.slice(i, j) : "";
 ok(!!blk, "the not-tracked body branch carries the set-aside count");
 ok(/if \(asideN === 0\)/.test(blk) && /collectExcluded: true/.test(blk) && /await fetchQualifying\(spec, since5, env, dx\)/.test(blk), "only when the pool holds none, the body's fetch is re-read with its set-aside rows kept");

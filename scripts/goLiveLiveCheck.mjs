@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // goLiveLiveCheck (Lane E, Nov 10 2026): THE GO LIVE HEAD ON THE LIVE SITE, as a visitor would meet it after the flip, seen early through the crew look (?design=new with the signed crew cookie).
 //   HEAD (no browser, read only, GET only): for every public route, the look's title, description, robots, canonical, Open Graph, Twitter and structured data equal the PUBLIC page's byte for byte, and the look answers X-Design: new.
 //     This is the check that was missing when /sell?design=new carried noindex and /find?design=new answered today's page (Lane C, Nov 10).

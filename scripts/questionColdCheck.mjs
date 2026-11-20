@@ -84,7 +84,7 @@ if (typeof S.writeQuestionRow === "function" && typeof E.isStorableQuestion === 
 }
 // the handler: reads the question row first, stores a computed question, refreshes a stale one, drops it when the engine stops asking, and shows no stale line on a question
 const sd = fs.readFileSync("api/sellerDecision.js", "utf8").replace(/\/\/[^\n]*/g, "");
-ok("the handler reads the question row beside the answer row and serves it first", /const qP = \(wantsWarm && !recompute\) \? readQuestionRow/.test(sd) && /const w = q && q\.raw \? null : await obWithin\(warmP\)/.test(sd) && /oneBox = casedChips\(q\.raw\)/.test(sd));
+ok("the handler reads the question row beside the answer row and serves it first", /const qP = \(wantsWarm && !recompute(?: && !crewVariantCar)?\) \? readQuestionRow/.test(sd) && /const w = q && q\.raw \? null : await obWithin\(warmP\)/.test(sd) && /oneBox = casedChips\(q\.raw\)/.test(sd));
 ok("the handler stores a computed question as itself and never as an answer row", /if \(wantsWarm && !poolSeed && raw && isStorableQuestion\(raw\)\) \{ await writeQuestionRow/.test(sd));
 ok("a stale question is refreshed behind the response and removed when the engine stops asking", /isStorableQuestion\(fr\)\) await writeQuestionRow/.test(sd) && /staleInfo\.question && fr && !\/_choice\$\/\.test\(String\(fr\.tier \|\| ""\)\)\) await deleteQuestionRow/.test(sd));
 ok("a question carries no stale line", /const staleFields = staleInfo && !staleInfo\.question/.test(sd));

@@ -1,3 +1,4 @@
+// clock: real-ok same pass and fail counts and the same exit with the clock at +0 and +60 days (Lane C probe, Nov 18 2026: node --import scripts/_clockShift.mjs); a date in it is built from the real now or never read
 // FIND CARDS IN A ROW ARE LEVEL (Sam, Oct 29 2026): every card's Sam block is a fixed-height slot, the chips row a fixed two-line height, so the View auction buttons of the cards in one row sit on one line, at 1440 and 390, in every
 // state (a range, thin, refused, no bids, ended, still being read). This renders rows of mixed-state cards through the real Find page (api/buy.js) and FAILS if any two buttons in a row differ in vertical position, if a Sam block's
 // height differs from its row mates, or if a card repeats its own name inside the Sam block. "See the sales" prints whenever the engine's answer has sales or options (Nov 3 2026) and sits beside the button.
