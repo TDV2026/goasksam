@@ -3306,6 +3306,24 @@
     "scripts/_forSaleWorld.mjs"
    ]
   },
+  "forSaleVinStampCheck": {
+   "file": "scripts/forSaleVinStampCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "./",
+    "api/",
+    "data/",
+    "docs/",
+    "lib/",
+    "lib/forsale/prepare.js",
+    "lib/forsale/report.js",
+    "lib/forsale/rules.js",
+    "lib/forsale/serve.js",
+    "lib/live/search.js",
+    "node_modules/",
+    "scripts/"
+   ]
+  },
   "forSaleWorldCheck": {
    "file": "scripts/forSaleWorldCheck.mjs",
    "kind": "offline",
@@ -8310,18 +8328,6 @@
    "kind": "offline",
    "covers": [
     "lib/_ingestHealth.js"
-   ]
-  },
-  "forSaleVinStampCheck": {
-   "file": "scripts/forSaleVinStampCheck.mjs",
-   "kind": "offline",
-   "covers": [
-    "lib/forsale/prepare.js",
-    "lib/forsale/report.js",
-    "lib/forsale/serve.js",
-    "lib/ops/vinOverlap.js",
-    "api/pullForSale.js",
-    "scripts/prepareLoop.mjs"
    ]
   }
  }
