@@ -27,6 +27,7 @@ const filterRows = (rows, u) => {
   }
   const orp = decodeURIComponent(u.searchParams.get("or") || "");
   if (/^\(resolve_state\.is\.null,/.test(orp)) { const ver = /neq\.([^)]+)\)$/.exec(orp)[1]; out = out.filter(r => r.resolve_state == null || !r.car || r.car.engine_version !== ver); }
+  if (/^\(history\.is\.null,/.test(orp)) { const lt = /history->>at\.lt\.([^,)]+)/.exec(orp)[1], nv = /and\(history->>why\.eq\.no_vin/.test(orp); out = out.filter(r => r.history == null || String(r.history.at) < lt || (nv && r.history.why === "no_vin" && r.vin_norm != null)); }
   if (/^\(read\.is\.null,/.test(orp)) { const ver = /engine_version\.neq\.([^,]+),/.exec(orp)[1], lt = /at\.lt\.([^)]+)\)$/.exec(orp)[1]; out = out.filter(r => r.read == null || r.read.engine_version !== ver || String(r.read.at) < lt); }
   return out;
 };
@@ -59,6 +60,7 @@ const specFor = title => /Ghost/.test(title) ? null : { key: "key:" + title.repl
 const ENGINE = (log = {}) => ({
   specOf: async (env, lr) => { log.spec = (log.spec || 0) + 1; (log.order = log.order || []).push("spec"); await new Promise(r => setTimeout(r, log.specMs || 0)); if (log.specUndefined && log.specUndefined.test(lr.listing_title)) return undefined; return specFor(lr.listing_title); },
   listingMarket: async (env, lr, facts) => { if (log.failReads && (log.callN = (log.callN || 0) + 1) <= log.failReads) throw new Error("archive read failed"); (log.order = log.order || []).push("read"); log.reads = (log.reads || 0) + 1; log.cur = (log.cur || 0) + 1; log.max = Math.max(log.max || 0, log.cur); await new Promise(r => setTimeout(r, log.readMs || 5)); log.cur--; (log.keys = log.keys || []).push(lr.listing_title + "|" + facts.miles); return { kind: "range", low: 40000, high: 60000 }; },
+  seenMany: async (env, vins) => { log.vins = (log.vins || 0) + vins.length; log.batches = (log.batches || 0) + 1; return new Map(log.seen || []); },
   seenBefore: async (env, vin) => { log.vins = (log.vins || 0) + 1; return null; }
 });
 // the config the older rules below run under: three wide, no nightly window (the rules they cover are about the lease, the budget, the failures and the table, not the width setting; the width and the window have their own section at the end)
@@ -99,7 +101,7 @@ await section("one engine read per distinct car and mileage band", async () => {
   const again = {}, o2 = await run(again); ok("a second run reads nothing again (the stamped reads are current) and ends at once", again.reads === undefined && o2.reads === 0 && o2.readCalls === 0, o2);
   const ageH = h => new Date(Date.now() - h * 3600e3).toISOString(), pick = TABLE.filter(r => r.read).slice(0, 10);
   pick.forEach(r => { r.read = { ...r.read, at: ageH(13) }; });
-  const l3 = {}; const o3 = await run(l3); ok("a read 13 hours old is KEPT (a read lives 7 days, data/forsaleBudget.json prepare.read_age_hours 168): no engine read, nothing requeued", (l3.reads || 0) === 0 && o3.reads === 0 && o3.readCalls === 0 && pick.every(r => r.read && r.read.at === pick[0].read.at), [l3.reads, o3.reads]);
+  const l3 = {}; const o3 = await run(l3); ok("a read 13 hours old is KEPT (a read lives 7 days, data/forsaleBudget.json prepare.read_age_hours 168): no engine read, nothing requeued", (l3.reads || 0) === 0 && o3.reads === 0 && o3.readCalls === 0 && pick.every(r => r.read && r.read.at === pick[0].read.at), [l3.reads, o3.reads, o3.readCalls, o3.histories, pick.map(r => r.read && r.read.at === pick[0].read.at).join()]);
   pick.forEach(r => { r.read = { ...r.read, at: ageH(24 * 8) }; });
   const l8 = {}; const o8 = await run(l8); ok("a read 8 days old is made again, still one read per group", l8.reads >= 1 && l8.reads <= 3 && o8.reads >= 10 && pick.every(r => Date.now() - Date.parse(r.read.at) < 3600e3), [l8.reads, o8.reads]);
   ok("the age is the setting, not a constant: 168 hours in data/forsaleBudget.json, read by readAgeMs", PREP.READ_MAX_AGE_MS === 168 * 3600e3 && PREP.readAgeMs({ prepare: { read_age_hours: 24 } }) === 24 * 3600e3 && PREP.readAgeMs({}) === 168 * 3600e3);
@@ -113,7 +115,7 @@ await section("one engine read per distinct car and mileage band", async () => {
 await section("the VIN history, once per VIN", async () => {
   const V = "WP0AB0914HS120001"; reset(Array.from({ length: 6 }, (_, i) => mk(i + 1, { title: "1987 Porsche 911 Carrera", vin: V })).concat([mk(7, { title: "1987 Porsche 911 Carrera", vin: "WP0AB0914HS120002" })]));
   const log = {}, o = await run(log);
-  ok("a VIN is looked up once however many listings carry it (7 listings, 2 VINs: 2 lookups) and the finished record is stamped on all of them", log.vins === 2 && o.histories === 7 && TABLE.every(r => r.history && r.history.none === true), [log.vins, o.histories]);
+  ok("a VIN is looked up once however many listings carry it (7 listings, 2 VINs: 2 lookups, in ONE batch) and the finished record is stamped on all of them", log.vins === 2 && log.batches === 1 && o.histories === 7 && TABLE.every(r => r.history && r.history.none === true), [log.vins, o.histories]);
 });
 await section("the limits", async () => {
   reset(Array.from({ length: 30 }, (_, i) => mk(i + 1, { title: "1987 Porsche 911 Carrera " + i, year: 1987, mileage: 40000 })));

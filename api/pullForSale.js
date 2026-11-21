@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, mode, vendorQueries: 0, fillerMiles: out });
     }
     if (mode === "prepare") {
-      const out = await prepareForSale(env, { budgetMs: Number(q.budgetMs) || undefined, concurrency: Number(q.concurrency) || undefined });
+      const out = await prepareForSale(env, { budgetMs: Number(q.budgetMs) || undefined, concurrency: Number(q.concurrency) || undefined, stampOnly: q.stamp === "1" });
       await recordUsageEvent({ event_type: "forsale_prepare", route: "pull_for_sale", status: "ok", oldcarsdata_metered_requests: 0, metadata: out }, env.supabaseUrl, env.supabaseKey).catch(() => {});
       return res.status(200).json({ ok: true, mode, vendorQueries: 0, ...out });
     }
