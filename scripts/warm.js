@@ -10,6 +10,7 @@
 // The nameplate list is the top movers by real search volume (app_usage_events),
 // falling back to a curated collector-core seed until that history builds up. A
 // rotation cursor in scripts/warm-progress.json cycles the whole list.
+import "../lib/_batchReads.js";   // nightly: a timed out archive page is read again (lib/_supabase.js batch reads)
 import fs from "node:fs";
 import { supabaseEnv, supabaseSelect } from "../lib/_supabase.js";
 

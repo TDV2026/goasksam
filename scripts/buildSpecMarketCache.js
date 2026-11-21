@@ -14,6 +14,7 @@
 // asks instead of guessing, lib/onebox.js), logged by name as skipped, never as failed; (2) a 60s
 // per-spec clock so one slow spec can no longer hold the whole budget hostage; (3) the red rule now
 // requires at least 5 ATTEMPTED specs before "more than half failed" means anything.
+import "../lib/_batchReads.js";   // nightly: a timed out archive page is read again (lib/_supabase.js batch reads)
 import { liveRows, listingFacts, specOf, refreshSpec } from "../lib/live/search.js";
 import { supabaseSelectAll } from "../lib/_supabase.js";
 

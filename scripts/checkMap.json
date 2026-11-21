@@ -288,6 +288,23 @@
     "lib/sellsForCard.js"
    ]
   },
+  "batchReadsCheck": {
+   "file": "scripts/batchReadsCheck.mjs",
+   "kind": "offline",
+   "covers": [
+    "api/",
+    "data/variantFamilies.json",
+    "lib/",
+    "lib/_batchReads.js",
+    "lib/_readScope.js",
+    "lib/_supabase.js",
+    "lib/onebox.js",
+    "lib/variantRows.js",
+    "lib/variants.js",
+    "public/",
+    "scripts/"
+   ]
+  },
   "beaconCeilingCheck": {
    "file": "scripts/beaconCeilingCheck.mjs",
    "kind": "offline",
@@ -4121,10 +4138,12 @@
     "data/",
     "docs/",
     "lib/",
+    "lib/_batchReads.js",
     "lib/_email.js",
     "lib/_epoch.js",
     "lib/_houseComps.js",
     "lib/_spendAlerts.js",
+    "lib/_supabase.js",
     "lib/_vinDecodeStore.js",
     "lib/botLog.js",
     "lib/live/search.js",
@@ -8134,6 +8153,7 @@
    "kindFixed": "live",
    "why": "run as a command it reads and writes the warm cache through SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (exit 1 without them). Without the credentials treat it as SKIPPED, never red or green.",
    "covers": [
+    "lib/_batchReads.js",
     "lib/_caller.js",
     "lib/_supabase.js",
     "lib/generations.js",

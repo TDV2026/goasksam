@@ -11,6 +11,7 @@
 //
 // Needs SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OLDCARSDATA_API_KEY (GitHub
 // Actions provides them as secrets; secrets are not pullable to a laptop).
+import "../lib/_batchReads.js";   // nightly: a timed out archive page is read again (lib/_supabase.js batch reads)
 import fs from "node:fs";
 import { rawColumnsOf, rawColumnsLine } from "../lib/_rawColumns.js";
 import { callOldCarsData, configureOcdUsage, flushOcdUsage, getOcdRunMetered } from "../lib/_ocd.js";

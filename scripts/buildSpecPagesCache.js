@@ -4,6 +4,7 @@
 // (rule 11, under 1 second) never compute a specPage() on request and the JSON snapshot never needs a
 // second manual run. Runs in the nightly GitHub Action right after "Refresh spec market cache". Archive
 // only, ZERO OldCarsData. Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
+import "../lib/_batchReads.js";   // nightly: a timed out archive page is read again (lib/_supabase.js batch reads)
 import { specPage, allSpecSlugs911 } from "../lib/specPages.js";
 import { runAsCaller } from "../lib/_caller.js";
 

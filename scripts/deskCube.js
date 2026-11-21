@@ -20,6 +20,7 @@
 //   node scripts/deskCube.js --dry       build + report only, NO writes
 //   node scripts/deskCube.js --min 8     only families with >= N qualifying sales (default 8)
 // =====================================================================
+import "../lib/_batchReads.js";   // nightly: a timed out archive page is read again (lib/_supabase.js batch reads)
 import { supabaseEnv, supabaseSelect, supabaseInsert } from "../lib/_supabase.js";
 import { hammerUsd, isHouseVenue, sourceSlugOf, setFxRates } from "../lib/_houseComps.js";
 import { loadFxRates } from "../lib/_fx.js";

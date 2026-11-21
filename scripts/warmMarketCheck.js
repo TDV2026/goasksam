@@ -15,6 +15,7 @@
 // OldCarsData spend - runOneBox reads sales_archive, never OCD.
 //
 //   node scripts/warmMarketCheck.js [--list=a|b]   warm the built-in list (or a custom pipe list)
+import "../lib/_batchReads.js";   // nightly: a timed out archive page is read again (lib/_supabase.js batch reads)
 import { resolveVehicle } from "../lib/vehicle.js";
 import { findGeneration } from "../lib/generations.js";
 import { oneEngineAnswer } from "../lib/onebox.js";

@@ -14,6 +14,7 @@
 //   node scripts/backfillModelFamily.js --only-null  only rows where model_family is null (fast rerun)
 //   node scripts/backfillModelFamily.js --limit 5000 cap rows scanned (a smoke run)
 // =====================================================================
+import "../lib/_batchReads.js";   // nightly: a timed out archive page is read again (lib/_supabase.js batch reads)
 import { supabaseEnv, supabaseSelect, supabasePatch } from "../lib/_supabase.js";
 import { deskModelFamily } from "../lib/desk/familyKey.js";
 // NOTE: this script makes ZERO OldCarsData calls. The null-row title resolution below is PURE
