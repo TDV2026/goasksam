@@ -467,7 +467,7 @@ for (const f of fails.slice(0, +(process.env.SHOW || 40))) console.log("FAIL " +
   ok("an unstated Firebird (every variant in the pool) has no line", !(un.variants && un.variants.ownLine), un.variants && un.variants.ownLine);
   // THE DIG LINE (order bc85 item 5): one public line under every range; the split names the variants left out; a car with no family gets the general sentence
   const sup = await ownOf("1990 Toyota Supra", { year: 1990, make: "Toyota", model: "Supra" });
-  const GEN = "Every sale we hold is in this range. Editions and trims are priced on their own, and replicas and tributes are set aside.";
+  const GEN = "Editions and trims are priced on their own, and replicas and tributes are set aside.";   // lane-b-dig-wording: the first sentence is not said where the engine cannot prove it (the held sales ledger is on the next bump)
   ok("DIG: the 2005 Ford GT names its split", g05.tier === "result" && g05.digLine === "Every sale we hold is in this range. Heritage editions are priced on their own. Replicas and tributes are set aside.", g05.digLine);
   ok("DIG: the 1987 Firebird Trans Am names its split (GTA and Formula)", fb.tier === "result" && fb.digLine === "Every sale we hold is in this range. GTA and Formula cars are priced on their own. Replicas and tributes are set aside.", [fb.tier, fb.digLine]);
   ok("DIG: a car with no family gets the general sentence", sup.tier === "result" && sup.digLine === GEN, [sup.tier, sup.digLine]);
